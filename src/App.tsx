@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
 import ProductsPage from "./pages/admin/Products";
 import ProductForm from "./pages/admin/ProductForm";
+import CategoriesPage from "./pages/admin/Categories";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -38,10 +39,10 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/new" element={<ProductForm />} />
-              <Route path="products/:id/edit" element={<ProductForm />} />
+<Route path="products/:id/edit" element={<ProductForm />} />
               <Route path="orders" element={<PlaceholderPage title="Bestellingen" description="Orderbeheer wordt gebouwd in Fase 3." />} />
               <Route path="customers" element={<PlaceholderPage title="Klanten" description="Klantenbeheer wordt gebouwd in Fase 3." />} />
-              <Route path="categories" element={<PlaceholderPage title="Categorieën" description="Categoriebeheer wordt gebouwd in Fase 2." />} />
+              <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<PlaceholderPage title="Verzending" description="Verzendinstellingen worden gebouwd in Fase 4." />} />
               <Route path="settings" element={<PlaceholderPage title="Instellingen" description="Winkelinstellingen worden gebouwd in Fase 4." />} />
               <Route path="analytics" element={<PlaceholderPage title="Analytics" description="Analytics dashboard wordt gebouwd in Fase 6." />} />
