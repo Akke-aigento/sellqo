@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,15 +25,42 @@ export function CategoryTreeItem({
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = category.children && category.children.length > 0;
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: category.id,
+    data: {
+      category,
+      level,
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
-    <div className="select-none">
+    <div ref={setNodeRef} style={style} className="select-none">
       <div
         className={cn(
           "group flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors",
-          level > 0 && "ml-6"
+          level > 0 && "ml-6",
+          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20"
         )}
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 cursor-grab" />
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
         
         {hasChildren ? (
           <button

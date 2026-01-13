@@ -90,6 +90,27 @@ export function useCategories() {
     },
   });
 
+  const updateSortOrder = useMutation({
+    mutationFn: async (updates: { id: string; sort_order: number }[]) => {
+      // Update each category's sort_order
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('categories')
+          .update({ sort_order: update.sort_order })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      toast({ title: 'Volgorde bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Build tree structure from flat list
   const buildCategoryTree = (categories: Category[]): Category[] => {
     const map = new Map<string, Category>();
@@ -112,7 +133,17 @@ export function useCategories() {
       }
     });
 
-    return roots;
+    // Sort children by sort_order
+    const sortChildren = (cats: Category[]): Category[] => {
+      return cats
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map(cat => ({
+          ...cat,
+          children: cat.children ? sortChildren(cat.children) : [],
+        }));
+    };
+
+    return sortChildren(roots);
   };
 
   return {
@@ -123,6 +154,7 @@ export function useCategories() {
     createCategory,
     updateCategory,
     deleteCategory,
+    updateSortOrder,
     refetch: categoriesQuery.refetch,
   };
 }
