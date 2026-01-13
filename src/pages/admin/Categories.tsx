@@ -9,8 +9,9 @@ import {
   useSensors,
   DragStartEvent,
   DragEndEvent,
-  DragOverEvent,
   useDroppable,
+  pointerWithin,
+  rectIntersection,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -81,7 +82,7 @@ export default function CategoriesPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -122,6 +123,27 @@ export default function CategoriesPage() {
       return;
     }
 
+    // Handle drop on child zone (specific area to add as child)
+    if (overId.startsWith('child-zone-')) {
+      const targetId = overId.replace('child-zone-', '');
+      const draggedCategory = categories.find(c => c.id === activeId);
+      const targetCategory = categories.find(c => c.id === targetId);
+
+      if (!draggedCategory || !targetCategory) return;
+      if (activeId === targetId) return;
+
+      // Prevent dropping a parent onto its own child
+      if (isDescendantOf(categoryTree, targetId, activeId)) {
+        return;
+      }
+
+      // Don't reparent if already a child of target
+      if (draggedCategory.parent_id === targetId) return;
+
+      reparentCategory.mutate({ id: activeId, newParentId: targetId });
+      return;
+    }
+
     // Handle drop on a category drop zone (reparenting)
     if (overId.startsWith('droppable-')) {
       const targetId = overId.replace('droppable-', '');
@@ -131,7 +153,7 @@ export default function CategoriesPage() {
       if (!draggedCategory || !targetCategory) return;
       if (activeId === targetId) return;
 
-      // Prevent dropping a parent onto its own child (would create circular reference)
+      // Prevent dropping a parent onto its own child
       if (isDescendantOf(categoryTree, targetId, activeId)) {
         return;
       }
@@ -146,26 +168,25 @@ export default function CategoriesPage() {
     // Handle reordering within same level (original behavior)
     if (activeId === overId) return;
 
-    const activeCategory = categories.find(c => c.id === activeId);
-    const overCategory = categories.find(c => c.id === overId);
+    const activeCat = categories.find(c => c.id === activeId);
+    const overCat = categories.find(c => c.id === overId);
 
-    if (!activeCategory || !overCategory) return;
+    if (!activeCat || !overCat) return;
 
     // Only allow reordering within the same parent level
-    if (activeCategory.parent_id !== overCategory.parent_id) {
+    if (activeCat.parent_id !== overCat.parent_id) {
       return;
     }
 
     // Get siblings at the same level
     const siblings = categories
-      .filter(c => c.parent_id === activeCategory.parent_id)
+      .filter(c => c.parent_id === activeCat.parent_id)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
     const oldIndex = siblings.findIndex(c => c.id === activeId);
     const newIndex = siblings.findIndex(c => c.id === overId);
 
     if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-      // Calculate new sort orders
       const reordered = [...siblings];
       const [moved] = reordered.splice(oldIndex, 1);
       reordered.splice(newIndex, 0, moved);
@@ -247,7 +268,7 @@ export default function CategoriesPage() {
             Categoriestructuur
           </CardTitle>
           <CardDescription>
-            Sleep categorieën om te herordenen of naar een andere categorie om te verplaatsen.
+            Sleep categorieën met het ⋮⋮ icoon. Sleep naar een categorie om subcategorie te maken, of naar boven voor hoofdcategorie.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -266,7 +287,7 @@ export default function CategoriesPage() {
           ) : (
             <DndContext
               sensors={sensors}
-              collisionDetection={closestCenter}
+              collisionDetection={pointerWithin}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
@@ -276,7 +297,7 @@ export default function CategoriesPage() {
                   <RootDropZone isOver={isOverRoot} activeId={activeId} />
                 </div>
                 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {categoryTree.map((category) => (
                     <CategoryTreeItem
                       key={category.id}
@@ -285,13 +306,14 @@ export default function CategoriesPage() {
                       onDelete={handleDelete}
                       onAddChild={handleAddChild}
                       activeId={activeId}
+                      breadcrumb={[]}
                     />
                   ))}
                 </div>
               </SortableContext>
-              <DragOverlay>
+              <DragOverlay dropAnimation={null}>
                 {activeCategory ? (
-                  <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-background shadow-lg border">
+                  <div className="flex items-center gap-2 py-2 px-4 rounded-lg bg-background shadow-xl border-2 border-primary">
                     <Folder className="h-4 w-4 text-primary" />
                     <span className="font-medium">{activeCategory.name}</span>
                   </div>
