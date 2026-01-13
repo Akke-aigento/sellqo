@@ -1,0 +1,225 @@
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Users, 
+  FolderTree,
+  Truck,
+  Settings, 
+  BarChart3,
+  Building2,
+  LogOut,
+  ChevronDown,
+  Store
+} from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/hooks/useTenant';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const mainNavItems = [
+  { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
+  { title: 'Producten', url: '/admin/products', icon: Package },
+  { title: 'Bestellingen', url: '/admin/orders', icon: ShoppingCart },
+  { title: 'Klanten', url: '/admin/customers', icon: Users },
+  { title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
+];
+
+const settingsNavItems = [
+  { title: 'Verzending', url: '/admin/shipping', icon: Truck },
+  { title: 'Instellingen', url: '/admin/settings', icon: Settings },
+  { title: 'Analytics', url: '/admin/analytics', icon: BarChart3 },
+];
+
+const platformNavItems = [
+  { title: 'Tenants', url: '/admin/platform', icon: Building2 },
+];
+
+export function AdminSidebar() {
+  const location = useLocation();
+  const { user, signOut, isPlatformAdmin } = useAuth();
+  const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
+
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return location.pathname === '/admin';
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  const getInitials = (email: string) => {
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b">
+        <div className="flex items-center gap-2 px-2 py-2">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
+            <Store className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="font-semibold">Multi-Store</span>
+        </div>
+
+        {/* Tenant Switcher */}
+        {(isPlatformAdmin || tenants.length > 1) && (
+          <div className="px-2 pb-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between text-left font-normal"
+                  disabled={tenantsLoading}
+                >
+                  {tenantsLoading ? (
+                    <Skeleton className="h-4 w-24" />
+                  ) : currentTenant ? (
+                    <span className="truncate">{currentTenant.name}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Selecteer winkel</span>
+                  )}
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {tenants.map((tenant) => (
+                  <DropdownMenuItem
+                    key={tenant.id}
+                    onClick={() => setCurrentTenant(tenant)}
+                    className={cn(
+                      currentTenant?.id === tenant.id && 'bg-accent'
+                    )}
+                  >
+                    <Store className="mr-2 h-4 w-4" />
+                    {tenant.name}
+                  </DropdownMenuItem>
+                ))}
+                {tenants.length === 0 && (
+                  <DropdownMenuItem disabled>
+                    Geen winkels beschikbaar
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Instellingen</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {isPlatformAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {platformNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      <SidebarFooter className="border-t">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="w-full">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-xs">
+                      {user?.email ? getInitials(user.email) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate flex-1 text-left">
+                    {user?.email}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem asChild>
+                  <NavLink to="/admin/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Instellingen
+                  </NavLink>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Uitloggen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}

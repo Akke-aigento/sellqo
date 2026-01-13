@@ -2,8 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import Auth from "./pages/Auth";
+import AdminDashboard from "./pages/admin/Dashboard";
+import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -11,15 +16,43 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Redirect root to admin */}
+            <Route path="/" element={<Navigate to="/admin" replace />} />
+            
+            {/* Auth routes */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Admin routes */}
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="products" element={<PlaceholderPage title="Producten" description="Productbeheer wordt gebouwd in Fase 2." />} />
+              <Route path="products/new" element={<PlaceholderPage title="Nieuw Product" description="Productformulier wordt gebouwd in Fase 2." />} />
+              <Route path="orders" element={<PlaceholderPage title="Bestellingen" description="Orderbeheer wordt gebouwd in Fase 3." />} />
+              <Route path="customers" element={<PlaceholderPage title="Klanten" description="Klantenbeheer wordt gebouwd in Fase 3." />} />
+              <Route path="categories" element={<PlaceholderPage title="Categorieën" description="Categoriebeheer wordt gebouwd in Fase 2." />} />
+              <Route path="shipping" element={<PlaceholderPage title="Verzending" description="Verzendinstellingen worden gebouwd in Fase 4." />} />
+              <Route path="settings" element={<PlaceholderPage title="Instellingen" description="Winkelinstellingen worden gebouwd in Fase 4." />} />
+              <Route path="analytics" element={<PlaceholderPage title="Analytics" description="Analytics dashboard wordt gebouwd in Fase 6." />} />
+              <Route path="platform" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlaceholderPage title="Platform Beheer" description="Platform management wordt gebouwd in Fase 5." />
+                </ProtectedRoute>
+              } />
+            </Route>
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
