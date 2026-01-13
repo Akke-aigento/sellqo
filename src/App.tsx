@@ -8,6 +8,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
+import ProductsPage from "./pages/admin/Products";
+import ProductForm from "./pages/admin/ProductForm";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -34,8 +36,9 @@ const App = () => (
               </ProtectedRoute>
             }>
               <Route index element={<AdminDashboard />} />
-              <Route path="products" element={<PlaceholderPage title="Producten" description="Productbeheer wordt gebouwd in Fase 2." />} />
-              <Route path="products/new" element={<PlaceholderPage title="Nieuw Product" description="Productformulier wordt gebouwd in Fase 2." />} />
+              <Route path="products" element={<ProductsPage />} />
+              <Route path="products/new" element={<ProductForm />} />
+              <Route path="products/:id/edit" element={<ProductForm />} />
               <Route path="orders" element={<PlaceholderPage title="Bestellingen" description="Orderbeheer wordt gebouwd in Fase 3." />} />
               <Route path="customers" element={<PlaceholderPage title="Klanten" description="Klantenbeheer wordt gebouwd in Fase 3." />} />
               <Route path="categories" element={<PlaceholderPage title="Categorieën" description="Categoriebeheer wordt gebouwd in Fase 2." />} />

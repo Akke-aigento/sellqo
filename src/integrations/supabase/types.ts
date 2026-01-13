@@ -14,6 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          allow_backorder: boolean | null
+          barcode: string | null
+          category_id: string | null
+          compare_at_price: number | null
+          cost_price: number | null
+          created_at: string | null
+          description: string | null
+          featured_image: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          low_stock_threshold: number | null
+          meta_description: string | null
+          meta_title: string | null
+          name: string
+          price: number
+          requires_shipping: boolean | null
+          short_description: string | null
+          sku: string | null
+          slug: string
+          stock: number | null
+          tags: string[] | null
+          tenant_id: string
+          track_inventory: boolean | null
+          updated_at: string | null
+          weight: number | null
+        }
+        Insert: {
+          allow_backorder?: boolean | null
+          barcode?: string | null
+          category_id?: string | null
+          compare_at_price?: number | null
+          cost_price?: number | null
+          created_at?: string | null
+          description?: string | null
+          featured_image?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          low_stock_threshold?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
+          name: string
+          price: number
+          requires_shipping?: boolean | null
+          short_description?: string | null
+          sku?: string | null
+          slug: string
+          stock?: number | null
+          tags?: string[] | null
+          tenant_id: string
+          track_inventory?: boolean | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Update: {
+          allow_backorder?: boolean | null
+          barcode?: string | null
+          category_id?: string | null
+          compare_at_price?: number | null
+          cost_price?: number | null
+          created_at?: string | null
+          description?: string | null
+          featured_image?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          low_stock_threshold?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
+          name?: string
+          price?: number
+          requires_shipping?: boolean | null
+          short_description?: string | null
+          sku?: string | null
+          slug?: string
+          stock?: number | null
+          tags?: string[] | null
+          tenant_id?: string
+          track_inventory?: boolean | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
