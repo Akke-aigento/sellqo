@@ -9,9 +9,10 @@ import {
   useSensors,
   DragStartEvent,
   DragEndEvent,
+  DragOverEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -30,9 +31,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useCategories } from '@/hooks/useCategories';
-import { CategoryTreeItem } from '@/components/admin/CategoryTreeItem';
+import { CategoryTreeItem, RootDropZone } from '@/components/admin/CategoryTreeItem';
 import { CategoryFormDialog } from '@/components/admin/CategoryFormDialog';
 import type { Category, CategoryFormData } from '@/types/product';
+
+// Helper to check if a category is a descendant of another
+function isDescendantOf(categories: Category[], childId: string, parentId: string): boolean {
+  const findInChildren = (cats: Category[], targetId: string): boolean => {
+    for (const cat of cats) {
+      if (cat.id === targetId) return true;
+      if (cat.children && findInChildren(cat.children, targetId)) return true;
+    }
+    return false;
+  };
+
+  const parent = categories.find(c => c.id === parentId);
+  if (!parent || !parent.children) return false;
+  return findInChildren(parent.children, childId);
+}
 
 export default function CategoriesPage() {
   const { 
@@ -43,6 +59,7 @@ export default function CategoriesPage() {
     updateCategory, 
     deleteCategory,
     updateSortOrder,
+    reparentCategory,
   } = useCategories();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -51,6 +68,15 @@ export default function CategoriesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Root drop zone for making items top-level
+  const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
+    id: 'root-drop-zone',
+    data: {
+      type: 'root-drop-zone',
+    }
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -74,16 +100,54 @@ export default function CategoriesPage() {
     const { active } = event;
     const category = categories.find(c => c.id === active.id);
     setActiveCategory(category || null);
+    setActiveId(active.id as string);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCategory(null);
+    setActiveId(null);
 
-    if (!over || active.id === over.id) return;
+    if (!over) return;
 
-    const activeCategory = categories.find(c => c.id === active.id);
-    const overCategory = categories.find(c => c.id === over.id);
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Handle drop on root zone - make it a top-level category
+    if (overId === 'root-drop-zone') {
+      const draggedCategory = categories.find(c => c.id === activeId);
+      if (draggedCategory && draggedCategory.parent_id !== null) {
+        reparentCategory.mutate({ id: activeId, newParentId: null });
+      }
+      return;
+    }
+
+    // Handle drop on a category drop zone (reparenting)
+    if (overId.startsWith('droppable-')) {
+      const targetId = overId.replace('droppable-', '');
+      const draggedCategory = categories.find(c => c.id === activeId);
+      const targetCategory = categories.find(c => c.id === targetId);
+
+      if (!draggedCategory || !targetCategory) return;
+      if (activeId === targetId) return;
+
+      // Prevent dropping a parent onto its own child (would create circular reference)
+      if (isDescendantOf(categoryTree, targetId, activeId)) {
+        return;
+      }
+
+      // Don't reparent if already a child of target
+      if (draggedCategory.parent_id === targetId) return;
+
+      reparentCategory.mutate({ id: activeId, newParentId: targetId });
+      return;
+    }
+
+    // Handle reordering within same level (original behavior)
+    if (activeId === overId) return;
+
+    const activeCategory = categories.find(c => c.id === activeId);
+    const overCategory = categories.find(c => c.id === overId);
 
     if (!activeCategory || !overCategory) return;
 
@@ -97,11 +161,15 @@ export default function CategoriesPage() {
       .filter(c => c.parent_id === activeCategory.parent_id)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-    const oldIndex = siblings.findIndex(c => c.id === active.id);
-    const newIndex = siblings.findIndex(c => c.id === over.id);
+    const oldIndex = siblings.findIndex(c => c.id === activeId);
+    const newIndex = siblings.findIndex(c => c.id === overId);
 
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const reordered = arrayMove(siblings, oldIndex, newIndex);
+    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+      // Calculate new sort orders
+      const reordered = [...siblings];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      
       const updates = reordered.map((cat, index) => ({
         id: cat.id,
         sort_order: index,
@@ -179,7 +247,7 @@ export default function CategoriesPage() {
             Categoriestructuur
           </CardTitle>
           <CardDescription>
-            Sleep categorieën om de volgorde te wijzigen (binnen hetzelfde niveau).
+            Sleep categorieën om te herordenen of naar een andere categorie om te verplaatsen.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,6 +271,11 @@ export default function CategoriesPage() {
               onDragEnd={handleDragEnd}
             >
               <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
+                {/* Root drop zone */}
+                <div ref={setRootDropRef}>
+                  <RootDropZone isOver={isOverRoot} activeId={activeId} />
+                </div>
+                
                 <div className="space-y-1">
                   {categoryTree.map((category) => (
                     <CategoryTreeItem
@@ -211,6 +284,7 @@ export default function CategoriesPage() {
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                       onAddChild={handleAddChild}
+                      activeId={activeId}
                     />
                   ))}
                 </div>
