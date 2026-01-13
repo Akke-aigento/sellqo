@@ -1,0 +1,447 @@
+import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  Plus, 
+  Search, 
+  MoreHorizontal, 
+  Pencil, 
+  Trash2, 
+  Eye, 
+  EyeOff,
+  Star,
+  Package,
+  Filter,
+  Download
+} from 'lucide-react';
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { useTenant } from '@/hooks/useTenant';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
+import type { Product, ProductStatus, StockStatus } from '@/types/product';
+
+export default function ProductsPage() {
+  const { currentTenant } = useTenant();
+  const { products, isLoading, deleteProduct, bulkUpdateProducts, bulkDeleteProducts } = useProducts();
+  const { categories } = useCategories();
+  
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ProductStatus>('all');
+  const [stockFilter, setStockFilter] = useState<StockStatus>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      // Search filter
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const matchesSearch = 
+          product.name.toLowerCase().includes(searchLower) ||
+          product.sku?.toLowerCase().includes(searchLower) ||
+          product.barcode?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (statusFilter === 'active' && !product.is_active) return false;
+      if (statusFilter === 'inactive' && product.is_active) return false;
+
+      // Stock filter
+      if (stockFilter === 'out_of_stock' && product.stock > 0) return false;
+      if (stockFilter === 'low_stock' && (product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
+      if (stockFilter === 'in_stock' && product.stock <= 0) return false;
+
+      // Category filter
+      if (categoryFilter !== 'all' && product.category_id !== categoryFilter) return false;
+
+      return true;
+    });
+  }, [products, search, statusFilter, stockFilter, categoryFilter]);
+
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProducts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Bulk actions
+  const handleBulkActivate = () => {
+    bulkUpdateProducts.mutate({ ids: Array.from(selectedIds), data: { is_active: true } });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDeactivate = () => {
+    bulkUpdateProducts.mutate({ ids: Array.from(selectedIds), data: { is_active: false } });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    bulkDeleteProducts.mutate(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteProduct = () => {
+    if (productToDelete) {
+      deleteProduct.mutate(productToDelete.id);
+      setProductToDelete(null);
+    }
+  };
+
+  // Stock badge color
+  const getStockBadge = (product: Product) => {
+    if (product.stock === 0) {
+      return <Badge variant="destructive">Uitverkocht</Badge>;
+    }
+    if (product.stock <= product.low_stock_threshold) {
+      return <Badge className="bg-amber-500 hover:bg-amber-600">{product.stock} stuks</Badge>;
+    }
+    return <Badge variant="secondary">{product.stock} stuks</Badge>;
+  };
+
+  // Format price
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('nl-NL', {
+      style: 'currency',
+      currency: currentTenant?.currency || 'EUR',
+    }).format(price);
+  };
+
+  if (!currentTenant) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Selecteer eerst een winkel</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Producten</h1>
+          <p className="text-muted-foreground">
+            Beheer je productcatalogus
+          </p>
+        </div>
+        <Button asChild>
+          <Link to="/admin/products/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Nieuw product
+          </Link>
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Zoek op naam, SKU of barcode..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProductStatus)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle statussen</SelectItem>
+              <SelectItem value="active">Actief</SelectItem>
+              <SelectItem value="inactive">Inactief</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as StockStatus)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Voorraad" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle voorraad</SelectItem>
+              <SelectItem value="in_stock">Op voorraad</SelectItem>
+              <SelectItem value="low_stock">Laag</SelectItem>
+              <SelectItem value="out_of_stock">Uitverkocht</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Categorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle categorieën</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Bulk actions */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-4 rounded-lg border bg-muted/50 p-3">
+          <span className="text-sm font-medium">
+            {selectedIds.size} geselecteerd
+          </span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleBulkActivate}>
+              <Eye className="mr-2 h-4 w-4" />
+              Activeren
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
+              <EyeOff className="mr-2 h-4 w-4" />
+              Deactiveren
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Verwijderen
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+              </TableHead>
+              <TableHead className="w-16">Afbeelding</TableHead>
+              <TableHead>Product</TableHead>
+              <TableHead>SKU</TableHead>
+              <TableHead>Categorie</TableHead>
+              <TableHead className="text-right">Prijs</TableHead>
+              <TableHead>Voorraad</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              [...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                  <TableCell><Skeleton className="h-10 w-10 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                </TableRow>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Package className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      {products.length === 0 
+                        ? 'Nog geen producten. Voeg je eerste product toe!'
+                        : 'Geen producten gevonden met deze filters'}
+                    </p>
+                    {products.length === 0 && (
+                      <Button asChild size="sm">
+                        <Link to="/admin/products/new">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Product toevoegen
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredProducts.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(product.id)}
+                      onCheckedChange={() => toggleSelect(product.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {product.featured_image ? (
+                      <img
+                        src={product.featured_image}
+                        alt={product.name}
+                        className="h-10 w-10 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <Link 
+                          to={`/admin/products/${product.id}/edit`}
+                          className="font-medium hover:underline"
+                        >
+                          {product.name}
+                        </Link>
+                        {product.is_featured && (
+                          <Star className="ml-1 inline h-3 w-3 text-amber-500 fill-amber-500" />
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {product.sku || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {product.category ? (
+                      <Badge variant="outline">{product.category.name}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatPrice(product.price)}
+                    {product.compare_at_price && (
+                      <span className="ml-2 text-sm text-muted-foreground line-through">
+                        {formatPrice(product.compare_at_price)}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>{getStockBadge(product)}</TableCell>
+                  <TableCell>
+                    <Badge variant={product.is_active ? 'default' : 'secondary'}>
+                      {product.is_active ? 'Actief' : 'Inactief'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link to={`/admin/products/${product.id}/edit`}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Bewerken
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => setProductToDelete(product)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Verwijderen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Delete confirmation dialogs */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Producten verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je {selectedIds.size} product(en) wilt verwijderen? 
+              Dit kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Product verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je "{productToDelete?.name}" wilt verwijderen? 
+              Dit kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground">
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
