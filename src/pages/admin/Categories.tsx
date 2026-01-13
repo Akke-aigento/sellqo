@@ -32,6 +32,8 @@ import {
 import { useCategories } from '@/hooks/useCategories';
 import { CategoryTreeItem, RootDropZone } from '@/components/admin/CategoryTreeItem';
 import { CategoryFormDialog } from '@/components/admin/CategoryFormDialog';
+import { CategorySearch } from '@/components/admin/CategorySearch';
+import { CategoryBulkActions } from '@/components/admin/CategoryBulkActions';
 import type { Category, CategoryFormData } from '@/types/product';
 
 // Helper to check if a category is a descendant of another
@@ -49,6 +51,36 @@ function isDescendantOf(categories: Category[], childId: string, parentId: strin
   return findInChildren(parent.children, childId);
 }
 
+// Helper to get all category IDs from tree
+function getAllCategoryIds(cats: Category[]): string[] {
+  return cats.flatMap(cat => [cat.id, ...(cat.children ? getAllCategoryIds(cat.children) : [])]);
+}
+
+// Helper to filter tree based on search
+function filterCategoryTree(categories: Category[], search: string): Category[] {
+  if (!search.trim()) return categories;
+  
+  const lowerSearch = search.toLowerCase();
+  
+  const filterNode = (cat: Category): Category | null => {
+    const matchesName = cat.name.toLowerCase().includes(lowerSearch);
+    const matchesSlug = cat.slug.toLowerCase().includes(lowerSearch);
+    const matches = matchesName || matchesSlug;
+    
+    const filteredChildren = cat.children
+      ? cat.children.map(filterNode).filter((c): c is Category => c !== null)
+      : [];
+    
+    if (matches || filteredChildren.length > 0) {
+      return { ...cat, children: filteredChildren };
+    }
+    
+    return null;
+  };
+  
+  return categories.map(filterNode).filter((c): c is Category => c !== null);
+}
+
 export default function CategoriesPage() {
   const { 
     categories, 
@@ -59,6 +91,8 @@ export default function CategoriesPage() {
     deleteCategory,
     updateSortOrder,
     reparentCategory,
+    bulkUpdateActive,
+    bulkDelete,
   } = useCategories();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -66,12 +100,16 @@ export default function CategoriesPage() {
   const [parentIdForNew, setParentIdForNew] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(categories.map(c => c.id)));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Update expandedIds when categories change (e.g., new category added)
-  const allCategoryIds = useMemo(() => new Set(categories.map(c => c.id)), [categories]);
+  // Filtered tree based on search
+  const filteredTree = useMemo(() => filterCategoryTree(categoryTree, searchQuery), [categoryTree, searchQuery]);
+  const filteredIds = useMemo(() => getAllCategoryIds(filteredTree), [filteredTree]);
   
   const handleExpandAll = () => {
     setExpandedIds(new Set(categories.map(c => c.id)));
@@ -93,6 +131,50 @@ export default function CategoriesPage() {
     });
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedIds(new Set(filteredIds));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkActivate = () => {
+    bulkUpdateActive.mutate({ ids: Array.from(selectedIds), isActive: true });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDeactivate = () => {
+    bulkUpdateActive.mutate({ ids: Array.from(selectedIds), isActive: false });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    await bulkDelete.mutateAsync(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setBulkDeleteDialogOpen(false);
+  };
+
+  const handleMove = (categoryId: string, newParentId: string | null) => {
+    reparentCategory.mutate({ id: categoryId, newParentId });
+  };
+
   // Root drop zone for making items top-level
   const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
     id: 'root-drop-zone',
@@ -111,11 +193,6 @@ export default function CategoriesPage() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Get all category IDs for SortableContext
-  const getAllCategoryIds = (cats: Category[]): string[] => {
-    return cats.flatMap(cat => [cat.id, ...(cat.children ? getAllCategoryIds(cat.children) : [])]);
-  };
 
   const categoryIds = useMemo(() => getAllCategoryIds(categoryTree), [categoryTree]);
 
@@ -165,8 +242,6 @@ export default function CategoriesPage() {
       reparentCategory.mutate({ id: activeId, newParentId: targetId });
       return;
     }
-
-
 
     // Handle reordering within same level (original behavior)
     if (activeId === overId) return;
@@ -281,11 +356,33 @@ export default function CategoriesPage() {
             Categoriestructuur
           </CardTitle>
           <CardDescription>
-            Sleep categorieën met het ⋮⋮ icoon. Sleep naar een categorie om subcategorie te maken, of naar boven voor hoofdcategorie.
+            Sleep categorieën met het ⋮⋮ icoon, of gebruik de → knop om te verplaatsen.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {categoryTree.length === 0 ? (
+        <CardContent className="space-y-4">
+          {/* Search bar */}
+          <CategorySearch value={searchQuery} onChange={setSearchQuery} />
+
+          {/* Bulk actions */}
+          <CategoryBulkActions
+            selectedCount={selectedIds.size}
+            totalCount={filteredIds.length}
+            onSelectAll={handleSelectAll}
+            onDeselectAll={handleDeselectAll}
+            onActivate={handleBulkActivate}
+            onDeactivate={handleBulkDeactivate}
+            onDelete={handleBulkDelete}
+            isDeleting={bulkDelete.isPending}
+            isUpdating={bulkUpdateActive.isPending}
+          />
+
+          {filteredTree.length === 0 && searchQuery ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                Geen categorieën gevonden voor "{searchQuery}"
+              </p>
+            </div>
+          ) : categoryTree.length === 0 ? (
             <div className="text-center py-12">
               <FolderTree className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">Geen categorieën</h3>
@@ -311,17 +408,22 @@ export default function CategoriesPage() {
                 </div>
                 
                 <div className="space-y-0.5">
-                  {categoryTree.map((category) => (
+                  {filteredTree.map((category) => (
                     <CategoryTreeItem
                       key={category.id}
                       category={category}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                       onAddChild={handleAddChild}
+                      onMove={handleMove}
                       activeId={activeId}
                       breadcrumb={[]}
                       expandedIds={expandedIds}
                       onToggleExpand={handleToggleExpand}
+                      allCategories={categoryTree}
+                      searchQuery={searchQuery}
+                      selectedIds={selectedIds}
+                      onToggleSelect={handleToggleSelect}
                     />
                   ))}
                 </div>
@@ -349,6 +451,7 @@ export default function CategoriesPage() {
         isLoading={createCategory.isPending || updateCategory.isPending}
       />
 
+      {/* Single delete dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -367,6 +470,30 @@ export default function CategoriesPage() {
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Categorieën verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je {selectedIds.size} categorie(ën) wilt verwijderen?
+              <span className="block mt-2 text-destructive font-medium">
+                Let op: Subcategorieën van geselecteerde categorieën worden ook verwijderd.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Verwijderen

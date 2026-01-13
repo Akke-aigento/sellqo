@@ -4,7 +4,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { CategoryMoveDropdown } from './CategoryMoveDropdown';
+import { HighlightText } from './CategorySearch';
 import type { Category } from '@/types/product';
 
 interface CategoryTreeItemProps {
@@ -13,10 +16,15 @@ interface CategoryTreeItemProps {
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
   onAddChild: (parentId: string) => void;
+  onMove: (categoryId: string, newParentId: string | null) => void;
   activeId?: string | null;
   breadcrumb?: string[];
   expandedIds: Set<string>;
   onToggleExpand: (id: string) => void;
+  allCategories: Category[];
+  searchQuery?: string;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
 }
 
 export function CategoryTreeItem({
@@ -25,14 +33,20 @@ export function CategoryTreeItem({
   onEdit,
   onDelete,
   onAddChild,
+  onMove,
   activeId,
   breadcrumb = [],
   expandedIds,
   onToggleExpand,
+  allCategories,
+  searchQuery = '',
+  selectedIds,
+  onToggleSelect,
 }: CategoryTreeItemProps) {
   const isExpanded = expandedIds.has(category.id);
   const hasChildren = category.children && category.children.length > 0;
   const currentBreadcrumb = [...breadcrumb, category.name];
+  const isSelected = selectedIds.has(category.id);
 
   const {
     attributes,
@@ -50,7 +64,6 @@ export function CategoryTreeItem({
     }
   });
 
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -66,9 +79,17 @@ export function CategoryTreeItem({
         className={cn(
           "group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all",
           "hover:bg-muted/50",
-          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20 z-50"
+          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20 z-50",
+          isSelected && "bg-primary/5 ring-1 ring-primary/20"
         )}
       >
+        {/* Checkbox for bulk selection */}
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelect(category.id)}
+          className="shrink-0"
+        />
+
         {/* Indent indicator for nested items */}
         {level > 0 && (
           <div className="flex items-center" style={{ width: level * 24 }}>
@@ -116,7 +137,9 @@ export function CategoryTreeItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{category.name}</span>
+            <span className="font-medium truncate">
+              <HighlightText text={category.name} search={searchQuery} />
+            </span>
           </div>
           {/* Breadcrumb path */}
           {level > 0 && (
@@ -131,6 +154,11 @@ export function CategoryTreeItem({
         </Badge>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <CategoryMoveDropdown
+            category={category}
+            allCategories={allCategories}
+            onMove={onMove}
+          />
           <Button
             variant="ghost"
             size="icon"
@@ -176,10 +204,15 @@ export function CategoryTreeItem({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}
+              onMove={onMove}
               activeId={activeId}
               breadcrumb={currentBreadcrumb}
               expandedIds={expandedIds}
               onToggleExpand={onToggleExpand}
+              allCategories={allCategories}
+              searchQuery={searchQuery}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
             />
           ))}
         </div>

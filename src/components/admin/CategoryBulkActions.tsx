@@ -1,0 +1,99 @@
+import { CheckSquare, Square, Trash2, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+interface CategoryBulkActionsProps {
+  selectedCount: number;
+  totalCount: number;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onActivate: () => void;
+  onDeactivate: () => void;
+  onDelete: () => void;
+  isDeleting?: boolean;
+  isUpdating?: boolean;
+}
+
+export function CategoryBulkActions({
+  selectedCount,
+  totalCount,
+  onSelectAll,
+  onDeselectAll,
+  onActivate,
+  onDeactivate,
+  onDelete,
+  isDeleting,
+  isUpdating,
+}: CategoryBulkActionsProps) {
+  const allSelected = selectedCount === totalCount && totalCount > 0;
+  const someSelected = selectedCount > 0;
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={allSelected ? onDeselectAll : onSelectAll}
+        className="gap-2"
+      >
+        {allSelected ? (
+          <>
+            <Square className="h-4 w-4" />
+            Deselecteer alles
+          </>
+        ) : (
+          <>
+            <CheckSquare className="h-4 w-4" />
+            Selecteer alles
+          </>
+        )}
+      </Button>
+
+      {someSelected && (
+        <>
+          <Badge variant="secondary" className="gap-1">
+            {selectedCount} geselecteerd
+            <button onClick={onDeselectAll} className="ml-1 hover:text-destructive">
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+
+          <div className="h-4 w-px bg-border" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onActivate}
+            disabled={isUpdating}
+            className="gap-2"
+          >
+            <ToggleRight className="h-4 w-4" />
+            Activeren
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDeactivate}
+            disabled={isUpdating}
+            className="gap-2"
+          >
+            <ToggleLeft className="h-4 w-4" />
+            Deactiveren
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="gap-2 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            Verwijderen
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}

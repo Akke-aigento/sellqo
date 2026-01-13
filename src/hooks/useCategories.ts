@@ -135,6 +135,42 @@ export function useCategories() {
     },
   });
 
+  const bulkUpdateActive = useMutation({
+    mutationFn: async ({ ids, isActive }: { ids: string[]; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('categories')
+        .update({ is_active: isActive })
+        .in('id', ids);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { isActive }) => {
+      queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      toast({ title: isActive ? 'Categorieën geactiveerd' : 'Categorieën gedeactiveerd' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      toast({ title: 'Categorieën verwijderd' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Build tree structure from flat list
   const buildCategoryTree = (categories: Category[]): Category[] => {
     const map = new Map<string, Category>();
@@ -180,6 +216,8 @@ export function useCategories() {
     deleteCategory,
     updateSortOrder,
     reparentCategory,
+    bulkUpdateActive,
+    bulkDelete,
     refetch: categoriesQuery.refetch,
   };
 }
