@@ -50,38 +50,23 @@ export function CategoryTreeItem({
     }
   });
 
-  // Make this item a drop target for reparenting
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: `droppable-${category.id}`,
-    data: {
-      type: 'category-drop-zone',
-      category,
-      accepts: 'category',
-    }
-  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  // Don't show drop indicator on itself
-  const showDropIndicator = isOver && activeId && activeId !== category.id;
-
-  // Combine refs
   const setRefs = (element: HTMLDivElement | null) => {
     setSortableRef(element);
-    setDroppableRef(element);
   };
 
   return (
-    <div ref={setRefs} style={style} className="select-none">
+    <div ref={setRefs} style={style} className="select-none relative">
       <div
         className={cn(
           "group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all",
           "hover:bg-muted/50",
-          isDragging && "opacity-0",
-          showDropIndicator && "bg-primary/10 ring-2 ring-primary"
+          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20 z-50"
         )}
       >
         {/* Indent indicator for nested items */}
@@ -124,21 +109,14 @@ export function CategoryTreeItem({
         )}
 
         {isExpanded && hasChildren ? (
-          <FolderOpen className={cn("h-4 w-4", showDropIndicator ? "text-primary" : "text-primary")} />
+          <FolderOpen className="h-4 w-4 text-primary" />
         ) : (
-          <Folder className={cn("h-4 w-4", showDropIndicator ? "text-primary" : "text-muted-foreground")} />
+          <Folder className="h-4 w-4 text-muted-foreground" />
         )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={cn("font-medium truncate", showDropIndicator && "text-primary")}>
-              {category.name}
-            </span>
-            {showDropIndicator && (
-              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary">
-                Hier plaatsen
-              </Badge>
-            )}
+            <span className="font-medium truncate">{category.name}</span>
           </div>
           {/* Breadcrumb path */}
           {level > 0 && (
@@ -224,10 +202,10 @@ function ChildDropZone({ categoryId, categoryName }: { categoryId: string; categ
     <div
       ref={setNodeRef}
       className={cn(
-        "ml-8 my-1 py-2 px-3 rounded border-2 border-dashed transition-all text-sm",
+        "absolute left-10 right-3 top-full mt-1 py-2 px-3 rounded border-2 border-dashed transition-all text-sm z-20",
         isOver 
           ? "border-primary bg-primary/10 text-primary" 
-          : "border-transparent hover:border-muted-foreground/30 text-muted-foreground/50 hover:text-muted-foreground"
+          : "border-muted-foreground/30 bg-background/80 text-muted-foreground"
       )}
     >
       <div className="flex items-center gap-2">
