@@ -18,7 +18,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, FolderTree, Loader2, Folder } from 'lucide-react';
+import { Plus, FolderTree, Loader2, Folder, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -70,6 +70,30 @@ export default function CategoriesPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(categories.map(c => c.id)));
+
+  // Update expandedIds when categories change (e.g., new category added)
+  const allCategoryIds = useMemo(() => new Set(categories.map(c => c.id)), [categories]);
+  
+  const handleExpandAll = () => {
+    setExpandedIds(new Set(categories.map(c => c.id)));
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedIds(new Set());
+  };
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   // Root drop zone for making items top-level
   const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
@@ -255,10 +279,20 @@ export default function CategoriesPage() {
             Beheer je productcategorieën en subcategorieën
           </p>
         </div>
-        <Button onClick={handleAddNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nieuwe categorie
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExpandAll}>
+            <ChevronsUpDown className="mr-2 h-4 w-4" />
+            Alles openklappen
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleCollapseAll}>
+            <ChevronsDownUp className="mr-2 h-4 w-4" />
+            Alles inklappen
+          </Button>
+          <Button onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nieuwe categorie
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -307,6 +341,8 @@ export default function CategoriesPage() {
                       onAddChild={handleAddChild}
                       activeId={activeId}
                       breadcrumb={[]}
+                      expandedIds={expandedIds}
+                      onToggleExpand={handleToggleExpand}
                     />
                   ))}
                 </div>
