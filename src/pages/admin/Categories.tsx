@@ -222,9 +222,9 @@ export default function CategoriesPage() {
       return;
     }
 
-    // Handle drop on child zone (specific area to add as child)
-    if (overId.startsWith('child-zone-')) {
-      const targetId = overId.replace('child-zone-', '');
+    // Handle drop on a category item (to make it a child)
+    if (overId.startsWith('drop-on-')) {
+      const targetId = overId.replace('drop-on-', '');
       const draggedCategory = categories.find(c => c.id === activeId);
       const targetCategory = categories.find(c => c.id === targetId);
 
@@ -243,7 +243,7 @@ export default function CategoriesPage() {
       return;
     }
 
-    // Handle reordering within same level (original behavior)
+    // Handle reordering within same level
     if (activeId === overId) return;
 
     const activeCat = categories.find(c => c.id === activeId);

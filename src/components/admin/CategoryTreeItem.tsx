@@ -1,6 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,8 +51,6 @@ export function CategoryTreeItem({
     attributes,
     listeners,
     setNodeRef: setSortableRef,
-    transform,
-    transition,
     isDragging,
   } = useSortable({ 
     id: category.id,
@@ -64,23 +61,40 @@ export function CategoryTreeItem({
     }
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  // Droppable for this item (to make dragged items children of this)
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `drop-on-${category.id}`,
+    data: {
+      type: 'category-target',
+      targetId: category.id,
+    }
+  });
 
+  // Combine sortable and droppable refs
   const setRefs = (element: HTMLDivElement | null) => {
     setSortableRef(element);
+    setDroppableRef(element);
   };
 
+  // Show drop indicator when another item is dragged over this one
+  const showDropIndicator = isOver && activeId && activeId !== category.id;
+
   return (
-    <div ref={setRefs} style={style} className="select-none relative">
+    <div 
+      ref={setRefs} 
+      className={cn(
+        "select-none",
+        // Make original item invisible when dragging - only DragOverlay shows
+        isDragging && "opacity-0"
+      )}
+    >
       <div
         className={cn(
           "group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all",
           "hover:bg-muted/50",
-          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20 z-50",
-          isSelected && "bg-primary/5 ring-1 ring-primary/20"
+          isSelected && "bg-primary/5 ring-1 ring-primary/20",
+          // Drop indicator - highlight when item is dragged over this category
+          showDropIndicator && "ring-2 ring-primary bg-primary/10"
         )}
       >
         {/* Checkbox for bulk selection */}
@@ -187,12 +201,13 @@ export function CategoryTreeItem({
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
+        {/* Drop hint text */}
+        {showDropIndicator && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded">
+            Subcategorie maken
+          </div>
+        )}
       </div>
-
-      {/* Drop zone indicator for adding as child */}
-      {activeId && activeId !== category.id && !isDragging && (
-        <ChildDropZone categoryId={category.id} categoryName={category.name} />
-      )}
 
       {hasChildren && isExpanded && (
         <div className="ml-2">
@@ -217,34 +232,6 @@ export function CategoryTreeItem({
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// Separate drop zone for adding as child
-function ChildDropZone({ categoryId, categoryName }: { categoryId: string; categoryName: string }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `child-zone-${categoryId}`,
-    data: {
-      type: 'child-drop-zone',
-      parentId: categoryId,
-    }
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "absolute left-10 right-3 top-full mt-1 py-2 px-3 rounded border-2 border-dashed transition-all text-sm z-20",
-        isOver 
-          ? "border-primary bg-primary/10 text-primary" 
-          : "border-muted-foreground/30 bg-background/80 text-muted-foreground"
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <CornerDownRight className="h-3 w-3" />
-        <span>{isOver ? `Toevoegen aan "${categoryName}"` : `Subcategorie van ${categoryName}`}</span>
-      </div>
     </div>
   );
 }
