@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ interface CategoryTreeItemProps {
   onDelete: (category: Category) => void;
   onAddChild: (parentId: string) => void;
   activeId?: string | null;
+  breadcrumb?: string[];
 }
 
 export function CategoryTreeItem({
@@ -24,9 +25,11 @@ export function CategoryTreeItem({
   onDelete,
   onAddChild,
   activeId,
+  breadcrumb = [],
 }: CategoryTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = category.children && category.children.length > 0;
+  const currentBreadcrumb = [...breadcrumb, category.name];
 
   const {
     attributes,
@@ -72,17 +75,32 @@ export function CategoryTreeItem({
     <div ref={setRefs} style={style} className="select-none">
       <div
         className={cn(
-          "group flex items-center gap-2 py-2 px-3 rounded-lg transition-all",
+          "group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all",
           "hover:bg-muted/50",
-          level > 0 && "ml-6",
-          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20",
-          showDropIndicator && "bg-primary/10 ring-2 ring-primary ring-dashed"
+          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20 z-50",
+          showDropIndicator && "bg-primary/10 ring-2 ring-primary"
         )}
       >
+        {/* Indent indicator for nested items */}
+        {level > 0 && (
+          <div className="flex items-center" style={{ width: level * 24 }}>
+            {Array.from({ length: level }).map((_, i) => (
+              <div key={i} className="w-6 flex justify-center">
+                {i === level - 1 ? (
+                  <CornerDownRight className="h-3 w-3 text-muted-foreground/50" />
+                ) : (
+                  <div className="w-px h-full bg-muted" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+          title="Sleep om te verplaatsen"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </button>
@@ -108,20 +126,30 @@ export function CategoryTreeItem({
           <Folder className={cn("h-4 w-4", showDropIndicator ? "text-primary" : "text-muted-foreground")} />
         )}
 
-        <span className={cn("flex-1 font-medium", showDropIndicator && "text-primary")}>
-          {category.name}
-          {showDropIndicator && (
-            <span className="ml-2 text-xs text-primary font-normal">
-              ← hier plaatsen
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={cn("font-medium truncate", showDropIndicator && "text-primary")}>
+              {category.name}
             </span>
+            {showDropIndicator && (
+              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary">
+                Hier plaatsen
+              </Badge>
+            )}
+          </div>
+          {/* Breadcrumb path */}
+          {level > 0 && (
+            <div className="text-xs text-muted-foreground truncate">
+              {breadcrumb.join(' › ')}
+            </div>
           )}
-        </span>
+        </div>
 
-        <Badge variant={category.is_active ? "default" : "secondary"} className="text-xs">
+        <Badge variant={category.is_active ? "default" : "secondary"} className="text-xs shrink-0">
           {category.is_active ? 'Actief' : 'Inactief'}
         </Badge>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -152,8 +180,13 @@ export function CategoryTreeItem({
         </div>
       </div>
 
+      {/* Drop zone indicator for adding as child */}
+      {activeId && activeId !== category.id && !isDragging && (
+        <ChildDropZone categoryId={category.id} categoryName={category.name} />
+      )}
+
       {hasChildren && isExpanded && (
-        <div className="border-l-2 border-muted ml-5">
+        <div className="ml-2">
           {category.children!.map((child) => (
             <CategoryTreeItem
               key={child.id}
@@ -163,10 +196,39 @@ export function CategoryTreeItem({
               onDelete={onDelete}
               onAddChild={onAddChild}
               activeId={activeId}
+              breadcrumb={currentBreadcrumb}
             />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Separate drop zone for adding as child
+function ChildDropZone({ categoryId, categoryName }: { categoryId: string; categoryName: string }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `child-zone-${categoryId}`,
+    data: {
+      type: 'child-drop-zone',
+      parentId: categoryId,
+    }
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "ml-8 my-1 py-2 px-3 rounded border-2 border-dashed transition-all text-sm",
+        isOver 
+          ? "border-primary bg-primary/10 text-primary" 
+          : "border-transparent hover:border-muted-foreground/30 text-muted-foreground/50 hover:text-muted-foreground"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <CornerDownRight className="h-3 w-3" />
+        <span>{isOver ? `Toevoegen aan "${categoryName}"` : `Subcategorie van ${categoryName}`}</span>
+      </div>
     </div>
   );
 }
@@ -178,7 +240,7 @@ export function RootDropZone({ isOver, activeId }: { isOver: boolean; activeId: 
   return (
     <div
       className={cn(
-        "py-3 px-4 rounded-lg border-2 border-dashed transition-all mb-2",
+        "py-3 px-4 rounded-lg border-2 border-dashed transition-all mb-3",
         isOver 
           ? "border-primary bg-primary/10 text-primary" 
           : "border-muted-foreground/30 text-muted-foreground"
@@ -186,7 +248,7 @@ export function RootDropZone({ isOver, activeId }: { isOver: boolean; activeId: 
     >
       <div className="flex items-center gap-2 text-sm">
         <Folder className="h-4 w-4" />
-        <span>{isOver ? "Loslaten om hoofdcategorie te maken" : "Sleep hier voor hoofdcategorie"}</span>
+        <span>{isOver ? "Loslaten om hoofdcategorie te maken" : "Sleep hier voor hoofdcategorie (geen parent)"}</span>
       </div>
     </div>
   );
