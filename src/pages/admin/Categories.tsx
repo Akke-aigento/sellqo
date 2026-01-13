@@ -1,5 +1,22 @@
-import { useState } from 'react';
-import { Plus, FolderTree, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Plus, FolderTree, Loader2, Folder } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -24,7 +41,8 @@ export default function CategoriesPage() {
     isLoading, 
     createCategory, 
     updateCategory, 
-    deleteCategory 
+    deleteCategory,
+    updateSortOrder,
   } = useCategories();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -32,6 +50,65 @@ export default function CategoriesPage() {
   const [parentIdForNew, setParentIdForNew] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Get all category IDs for SortableContext
+  const getAllCategoryIds = (cats: Category[]): string[] => {
+    return cats.flatMap(cat => [cat.id, ...(cat.children ? getAllCategoryIds(cat.children) : [])]);
+  };
+
+  const categoryIds = useMemo(() => getAllCategoryIds(categoryTree), [categoryTree]);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const category = categories.find(c => c.id === active.id);
+    setActiveCategory(category || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveCategory(null);
+
+    if (!over || active.id === over.id) return;
+
+    const activeCategory = categories.find(c => c.id === active.id);
+    const overCategory = categories.find(c => c.id === over.id);
+
+    if (!activeCategory || !overCategory) return;
+
+    // Only allow reordering within the same parent level
+    if (activeCategory.parent_id !== overCategory.parent_id) {
+      return;
+    }
+
+    // Get siblings at the same level
+    const siblings = categories
+      .filter(c => c.parent_id === activeCategory.parent_id)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+    const oldIndex = siblings.findIndex(c => c.id === active.id);
+    const newIndex = siblings.findIndex(c => c.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = arrayMove(siblings, oldIndex, newIndex);
+      const updates = reordered.map((cat, index) => ({
+        id: cat.id,
+        sort_order: index,
+      }));
+      updateSortOrder.mutate(updates);
+    }
+  };
 
   const handleAddNew = () => {
     setEditingCategory(null);
@@ -102,7 +179,7 @@ export default function CategoriesPage() {
             Categoriestructuur
           </CardTitle>
           <CardDescription>
-            Sleep categorieën om de volgorde te wijzigen. Klik op een pijl om subcategorieën te tonen.
+            Sleep categorieën om de volgorde te wijzigen (binnen hetzelfde niveau).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -119,17 +196,34 @@ export default function CategoriesPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-1">
-              {categoryTree.map((category) => (
-                <CategoryTreeItem
-                  key={category.id}
-                  category={category}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onAddChild={handleAddChild}
-                />
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
+                <div className="space-y-1">
+                  {categoryTree.map((category) => (
+                    <CategoryTreeItem
+                      key={category.id}
+                      category={category}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onAddChild={handleAddChild}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+              <DragOverlay>
+                {activeCategory ? (
+                  <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-background shadow-lg border">
+                    <Folder className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{activeCategory.name}</span>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           )}
         </CardContent>
       </Card>
