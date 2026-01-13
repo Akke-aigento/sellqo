@@ -10,8 +10,6 @@ import {
   DragStartEvent,
   DragEndEvent,
   useDroppable,
-  pointerWithin,
-  rectIntersection,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -168,26 +166,7 @@ export default function CategoriesPage() {
       return;
     }
 
-    // Handle drop on a category drop zone (reparenting)
-    if (overId.startsWith('droppable-')) {
-      const targetId = overId.replace('droppable-', '');
-      const draggedCategory = categories.find(c => c.id === activeId);
-      const targetCategory = categories.find(c => c.id === targetId);
 
-      if (!draggedCategory || !targetCategory) return;
-      if (activeId === targetId) return;
-
-      // Prevent dropping a parent onto its own child
-      if (isDescendantOf(categoryTree, targetId, activeId)) {
-        return;
-      }
-
-      // Don't reparent if already a child of target
-      if (draggedCategory.parent_id === targetId) return;
-
-      reparentCategory.mutate({ id: activeId, newParentId: targetId });
-      return;
-    }
 
     // Handle reordering within same level (original behavior)
     if (activeId === overId) return;
@@ -321,7 +300,7 @@ export default function CategoriesPage() {
           ) : (
             <DndContext
               sensors={sensors}
-              collisionDetection={pointerWithin}
+              collisionDetection={closestCenter}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
@@ -349,7 +328,7 @@ export default function CategoriesPage() {
               </SortableContext>
               <DragOverlay dropAnimation={null}>
                 {activeCategory ? (
-                  <div className="flex items-center gap-2 py-2 px-4 rounded-lg bg-background shadow-xl border-2 border-primary">
+                  <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-background shadow-xl border-2 border-primary">
                     <Folder className="h-4 w-4 text-primary" />
                     <span className="font-medium">{activeCategory.name}</span>
                   </div>
