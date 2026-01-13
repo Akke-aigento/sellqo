@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ interface CategoryTreeItemProps {
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
   onAddChild: (parentId: string) => void;
+  activeId?: string | null;
 }
 
 export function CategoryTreeItem({
@@ -21,6 +23,7 @@ export function CategoryTreeItem({
   onEdit,
   onDelete,
   onAddChild,
+  activeId,
 }: CategoryTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = category.children && category.children.length > 0;
@@ -28,15 +31,26 @@ export function CategoryTreeItem({
   const {
     attributes,
     listeners,
-    setNodeRef,
+    setNodeRef: setSortableRef,
     transform,
     transition,
     isDragging,
   } = useSortable({ 
     id: category.id,
     data: {
+      type: 'category',
       category,
       level,
+    }
+  });
+
+  // Make this item a drop target for reparenting
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `droppable-${category.id}`,
+    data: {
+      type: 'category-drop-zone',
+      category,
+      accepts: 'category',
     }
   });
 
@@ -45,13 +59,24 @@ export function CategoryTreeItem({
     transition,
   };
 
+  // Don't show drop indicator on itself
+  const showDropIndicator = isOver && activeId && activeId !== category.id;
+
+  // Combine refs
+  const setRefs = (element: HTMLDivElement | null) => {
+    setSortableRef(element);
+    setDroppableRef(element);
+  };
+
   return (
-    <div ref={setNodeRef} style={style} className="select-none">
+    <div ref={setRefs} style={style} className="select-none">
       <div
         className={cn(
-          "group flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors",
+          "group flex items-center gap-2 py-2 px-3 rounded-lg transition-all",
+          "hover:bg-muted/50",
           level > 0 && "ml-6",
-          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20"
+          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20",
+          showDropIndicator && "bg-primary/10 ring-2 ring-primary ring-dashed"
         )}
       >
         <button
@@ -78,12 +103,19 @@ export function CategoryTreeItem({
         )}
 
         {isExpanded && hasChildren ? (
-          <FolderOpen className="h-4 w-4 text-primary" />
+          <FolderOpen className={cn("h-4 w-4", showDropIndicator ? "text-primary" : "text-primary")} />
         ) : (
-          <Folder className="h-4 w-4 text-muted-foreground" />
+          <Folder className={cn("h-4 w-4", showDropIndicator ? "text-primary" : "text-muted-foreground")} />
         )}
 
-        <span className="flex-1 font-medium">{category.name}</span>
+        <span className={cn("flex-1 font-medium", showDropIndicator && "text-primary")}>
+          {category.name}
+          {showDropIndicator && (
+            <span className="ml-2 text-xs text-primary font-normal">
+              ← hier plaatsen
+            </span>
+          )}
+        </span>
 
         <Badge variant={category.is_active ? "default" : "secondary"} className="text-xs">
           {category.is_active ? 'Actief' : 'Inactief'}
@@ -130,10 +162,32 @@ export function CategoryTreeItem({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}
+              activeId={activeId}
             />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Root drop zone component for making items top-level
+export function RootDropZone({ isOver, activeId }: { isOver: boolean; activeId: string | null }) {
+  if (!activeId) return null;
+  
+  return (
+    <div
+      className={cn(
+        "py-3 px-4 rounded-lg border-2 border-dashed transition-all mb-2",
+        isOver 
+          ? "border-primary bg-primary/10 text-primary" 
+          : "border-muted-foreground/30 text-muted-foreground"
+      )}
+    >
+      <div className="flex items-center gap-2 text-sm">
+        <Folder className="h-4 w-4" />
+        <span>{isOver ? "Loslaten om hoofdcategorie te maken" : "Sleep hier voor hoofdcategorie"}</span>
+      </div>
     </div>
   );
 }

@@ -92,7 +92,6 @@ export function useCategories() {
 
   const updateSortOrder = useMutation({
     mutationFn: async (updates: { id: string; sort_order: number }[]) => {
-      // Update each category's sort_order
       for (const update of updates) {
         const { error } = await supabase
           .from('categories')
@@ -105,6 +104,31 @@ export function useCategories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
       toast({ title: 'Volgorde bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const reparentCategory = useMutation({
+    mutationFn: async ({ id, newParentId }: { id: string; newParentId: string | null }) => {
+      // Get the max sort_order in the new parent's children
+      const siblings = categoriesQuery.data?.filter(c => c.parent_id === newParentId) || [];
+      const maxSortOrder = Math.max(-1, ...siblings.map(c => c.sort_order ?? 0));
+
+      const { error } = await supabase
+        .from('categories')
+        .update({ 
+          parent_id: newParentId,
+          sort_order: maxSortOrder + 1,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      toast({ title: 'Categorie verplaatst' });
     },
     onError: (error: Error) => {
       toast({ title: 'Fout', description: error.message, variant: 'destructive' });
@@ -155,6 +179,7 @@ export function useCategories() {
     updateCategory,
     deleteCategory,
     updateSortOrder,
+    reparentCategory,
     refetch: categoriesQuery.refetch,
   };
 }
