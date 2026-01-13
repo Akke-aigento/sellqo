@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -16,6 +15,8 @@ interface CategoryTreeItemProps {
   onAddChild: (parentId: string) => void;
   activeId?: string | null;
   breadcrumb?: string[];
+  expandedIds: Set<string>;
+  onToggleExpand: (id: string) => void;
 }
 
 export function CategoryTreeItem({
@@ -26,8 +27,10 @@ export function CategoryTreeItem({
   onAddChild,
   activeId,
   breadcrumb = [],
+  expandedIds,
+  onToggleExpand,
 }: CategoryTreeItemProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const isExpanded = expandedIds.has(category.id);
   const hasChildren = category.children && category.children.length > 0;
   const currentBreadcrumb = [...breadcrumb, category.name];
 
@@ -77,7 +80,7 @@ export function CategoryTreeItem({
         className={cn(
           "group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all",
           "hover:bg-muted/50",
-          isDragging && "opacity-50 bg-muted shadow-lg ring-2 ring-primary/20 z-50",
+          isDragging && "opacity-0",
           showDropIndicator && "bg-primary/10 ring-2 ring-primary"
         )}
       >
@@ -107,7 +110,7 @@ export function CategoryTreeItem({
         
         {hasChildren ? (
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => onToggleExpand(category.id)}
             className="p-0.5 hover:bg-muted rounded"
           >
             {isExpanded ? (
@@ -197,6 +200,8 @@ export function CategoryTreeItem({
               onAddChild={onAddChild}
               activeId={activeId}
               breadcrumb={currentBreadcrumb}
+              expandedIds={expandedIds}
+              onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
