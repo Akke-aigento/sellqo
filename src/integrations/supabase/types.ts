@@ -71,6 +71,209 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          created_at: string | null
+          default_billing_address: Json | null
+          default_shipping_address: Json | null
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          notes: string | null
+          phone: string | null
+          tenant_id: string
+          total_orders: number | null
+          total_spent: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_billing_address?: Json | null
+          default_shipping_address?: Json | null
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          tenant_id: string
+          total_orders?: number | null
+          total_spent?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_billing_address?: Json | null
+          default_shipping_address?: Json | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          tenant_id?: string
+          total_orders?: number | null
+          total_spent?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_id: string
+          product_id: string | null
+          product_image: string | null
+          product_name: string
+          product_sku: string | null
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_id: string
+          product_id?: string | null
+          product_image?: string | null
+          product_name: string
+          product_sku?: string | null
+          quantity?: number
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          product_image?: string | null
+          product_name?: string
+          product_sku?: string | null
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          billing_address: Json | null
+          cancelled_at: string | null
+          created_at: string | null
+          customer_email: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivered_at: string | null
+          discount_amount: number | null
+          id: string
+          internal_notes: string | null
+          notes: string | null
+          order_number: string
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          shipped_at: string | null
+          shipping_address: Json | null
+          shipping_cost: number | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          subtotal: number
+          tax_amount: number | null
+          tenant_id: string
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          billing_address?: Json | null
+          cancelled_at?: string | null
+          created_at?: string | null
+          customer_email: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivered_at?: string | null
+          discount_amount?: number | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_number: string
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          subtotal?: number
+          tax_amount?: number | null
+          tenant_id: string
+          total?: number
+          updated_at?: string | null
+        }
+        Update: {
+          billing_address?: Json | null
+          cancelled_at?: string | null
+          created_at?: string | null
+          customer_email?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivered_at?: string | null
+          discount_amount?: number | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_number?: string
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          subtotal?: number
+          tax_amount?: number | null
+          tenant_id?: string
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           allow_backorder: boolean | null
@@ -324,6 +527,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_order_number: { Args: { _tenant_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -340,6 +544,13 @@ export type Database = {
     }
     Enums: {
       app_role: "platform_admin" | "tenant_admin" | "staff"
+      order_status:
+        | "pending"
+        | "processing"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+      payment_status: "pending" | "paid" | "refunded" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -468,6 +679,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["platform_admin", "tenant_admin", "staff"],
+      order_status: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      payment_status: ["pending", "paid", "refunded", "failed"],
     },
   },
 } as const
