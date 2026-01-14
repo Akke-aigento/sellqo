@@ -11,6 +11,9 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import ProductsPage from "./pages/admin/Products";
 import ProductForm from "./pages/admin/ProductForm";
 import CategoriesPage from "./pages/admin/Categories";
+import OrdersPage from "./pages/admin/Orders";
+import OrderDetailPage from "./pages/admin/OrderDetail";
+import CustomersPage from "./pages/admin/Customers";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -40,8 +43,9 @@ const App = () => (
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/new" element={<ProductForm />} />
 <Route path="products/:id/edit" element={<ProductForm />} />
-              <Route path="orders" element={<PlaceholderPage title="Bestellingen" description="Orderbeheer wordt gebouwd in Fase 3." />} />
-              <Route path="customers" element={<PlaceholderPage title="Klanten" description="Klantenbeheer wordt gebouwd in Fase 3." />} />
+              <Route path="orders" element={<OrdersPage />} />
+              <Route path="orders/:id" element={<OrderDetailPage />} />
+              <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<PlaceholderPage title="Verzending" description="Verzendinstellingen worden gebouwd in Fase 4." />} />
               <Route path="settings" element={<PlaceholderPage title="Instellingen" description="Winkelinstellingen worden gebouwd in Fase 4." />} />
