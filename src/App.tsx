@@ -16,6 +16,7 @@ import OrderDetailPage from "./pages/admin/OrderDetail";
 import CustomersPage from "./pages/admin/Customers";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
+import AnalyticsPage from "./pages/admin/Analytics";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -51,7 +52,7 @@ const App = () => (
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="settings" element={<PlaceholderPage title="Instellingen" description="Winkelinstellingen worden gebouwd in Fase 4." />} />
-              <Route path="analytics" element={<PlaceholderPage title="Analytics" description="Analytics dashboard wordt gebouwd in Fase 6." />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />
