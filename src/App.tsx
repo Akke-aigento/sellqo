@@ -14,6 +14,7 @@ import CategoriesPage from "./pages/admin/Categories";
 import OrdersPage from "./pages/admin/Orders";
 import OrderDetailPage from "./pages/admin/OrderDetail";
 import CustomersPage from "./pages/admin/Customers";
+import ShippingPage from "./pages/admin/Shipping";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -47,7 +48,7 @@ const App = () => (
               <Route path="orders/:id" element={<OrderDetailPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
-              <Route path="shipping" element={<PlaceholderPage title="Verzending" description="Verzendinstellingen worden gebouwd in Fase 4." />} />
+              <Route path="shipping" element={<ShippingPage />} />
               <Route path="settings" element={<PlaceholderPage title="Instellingen" description="Winkelinstellingen worden gebouwd in Fase 4." />} />
               <Route path="analytics" element={<PlaceholderPage title="Analytics" description="Analytics dashboard wordt gebouwd in Fase 6." />} />
               <Route path="platform" element={
