@@ -185,6 +185,7 @@ export type Database = {
         Row: {
           billing_address: Json | null
           cancelled_at: string | null
+          carrier: string | null
           created_at: string | null
           customer_email: string
           customer_id: string | null
@@ -200,16 +201,20 @@ export type Database = {
           shipped_at: string | null
           shipping_address: Json | null
           shipping_cost: number | null
+          shipping_method_id: string | null
           status: Database["public"]["Enums"]["order_status"] | null
           subtotal: number
           tax_amount: number | null
           tenant_id: string
           total: number
+          tracking_number: string | null
+          tracking_url: string | null
           updated_at: string | null
         }
         Insert: {
           billing_address?: Json | null
           cancelled_at?: string | null
+          carrier?: string | null
           created_at?: string | null
           customer_email: string
           customer_id?: string | null
@@ -225,16 +230,20 @@ export type Database = {
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
+          shipping_method_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id: string
           total?: number
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string | null
         }
         Update: {
           billing_address?: Json | null
           cancelled_at?: string | null
+          carrier?: string | null
           created_at?: string | null
           customer_email?: string
           customer_id?: string | null
@@ -250,11 +259,14 @@ export type Database = {
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
+          shipping_method_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id?: string
           total?: number
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -263,6 +275,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
             referencedColumns: ["id"]
           },
           {
@@ -405,6 +424,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      shipping_methods: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_days_max: number | null
+          estimated_days_min: number | null
+          free_above: number | null
+          id: string
+          is_active: boolean
+          is_default: boolean | null
+          name: string
+          price: number
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_days_max?: number | null
+          estimated_days_min?: number | null
+          free_above?: number | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean | null
+          name: string
+          price?: number
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_days_max?: number | null
+          estimated_days_min?: number | null
+          free_above?: number | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean | null
+          name?: string
+          price?: number
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_methods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenants: {
         Row: {
