@@ -1,11 +1,10 @@
-import { User, Building2, Store, CreditCard, Users, Image } from 'lucide-react';
+import { User, Building2, Store, CreditCard, Users } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/admin/settings/AccountSettings';
 import { BusinessSettings } from '@/components/admin/settings/BusinessSettings';
 import { StoreSettings } from '@/components/admin/settings/StoreSettings';
 import { PaymentSettings } from '@/components/admin/settings/PaymentSettings';
 import { TeamSettings } from '@/components/admin/settings/TeamSettings';
-import { LogoProcessor } from '@/components/admin/LogoProcessor';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
@@ -26,7 +25,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="account" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1 p-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto gap-1 p-1">
           <TabsTrigger value="account" className="flex items-center gap-2 py-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Account</span>
@@ -49,10 +48,6 @@ export default function SettingsPage() {
               <span className="hidden sm:inline">Team</span>
             </TabsTrigger>
           )}
-          <TabsTrigger value="branding" className="flex items-center gap-2 py-2">
-            <Image className="h-4 w-4" />
-            <span className="hidden sm:inline">Branding</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="account">
@@ -76,10 +71,6 @@ export default function SettingsPage() {
             <TeamSettings />
           </TabsContent>
         )}
-
-        <TabsContent value="branding">
-          <LogoProcessor />
-        </TabsContent>
       </Tabs>
     </div>
   );
