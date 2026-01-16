@@ -7,9 +7,24 @@ import { Badge } from '@/components/ui/badge';
 
 const plans = [
   {
+    name: 'Free',
+    price: 0,
+    yearlyPrice: 0,
+    badge: 'Om te starten',
+    features: [
+      'Tot 25 bestellingen/maand',
+      '1 verkoopkanaal',
+      'Basis voorraadmanagement',
+      'Standaard facturen',
+      'Community support',
+    ],
+    cta: 'Start Gratis',
+    highlighted: false,
+  },
+  {
     name: 'Starter',
-    price: 19,
-    yearlyPrice: 228,
+    price: 29,
+    yearlyPrice: 290,
     badge: 'Perfect voor starters',
     features: [
       'Tot 100 bestellingen/maand',
@@ -24,8 +39,8 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: 49,
-    yearlyPrice: 588,
+    price: 79,
+    yearlyPrice: 790,
     badge: 'Meest gekozen',
     features: [
       'Onbeperkte bestellingen',
@@ -41,9 +56,9 @@ const plans = [
     highlighted: true,
   },
   {
-    name: 'Business',
-    price: 99,
-    yearlyPrice: 1188,
+    name: 'Enterprise',
+    price: 199,
+    yearlyPrice: 1990,
     badge: 'Voor schaalbare businesses',
     features: [
       'Onbeperkt alles',
@@ -81,7 +96,7 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-12">
           {plans.map((plan, index) => (
             <div
               key={index}
@@ -109,12 +124,16 @@ export function PricingSection() {
                   <Badge variant="secondary" className="mb-4">{plan.badge}</Badge>
                 )}
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-foreground">€{plan.price}</span>
-                  <span className="text-muted-foreground">/maand</span>
+                  <span className="text-4xl font-bold text-foreground">
+                    {plan.price === 0 ? 'Gratis' : `€${plan.price}`}
+                  </span>
+                  {plan.price > 0 && <span className="text-muted-foreground">/maand</span>}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  €{plan.yearlyPrice} per jaar (bespaar 2 maanden)
-                </p>
+                {plan.yearlyPrice > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    €{plan.yearlyPrice} per jaar (bespaar 2 maanden)
+                  </p>
+                )}
               </div>
 
               <ul className="space-y-3 mb-8">
