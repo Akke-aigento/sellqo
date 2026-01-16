@@ -11,6 +11,93 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SEND-QUOTE-EMAIL] ${step}`, details ? JSON.stringify(details) : '');
 };
 
+// EU countries for VAT purposes
+const EU_COUNTRIES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 
+  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 
+  'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
+];
+
+interface VatCalculation {
+  vatRate: number;
+  vatAmount: number;
+  vatType: 'standard' | 'reverse_charge' | 'export' | 'oss';
+  vatText: string | null;
+}
+
+function calculateVat(params: {
+  subtotal: number;
+  tenant: any;
+  customer: any;
+  customerCountry: string;
+}): VatCalculation {
+  const { subtotal, tenant, customer, customerCountry } = params;
+  const tenantCountry = tenant.country || 'NL';
+  const taxPercent = tenant.tax_percentage || 21;
+  const isB2B = customer?.customer_type === 'b2b';
+  const hasValidVat = customer?.vat_verified === true;
+  const isEuCountry = EU_COUNTRIES.includes(customerCountry);
+  const isSameCountry = customerCountry === tenantCountry;
+
+  logStep("VAT calculation", { tenantCountry, customerCountry, isB2B, hasValidVat, isEuCountry, isSameCountry });
+
+  // Same country - always apply local VAT
+  if (isSameCountry) {
+    return {
+      vatRate: taxPercent,
+      vatAmount: subtotal * (taxPercent / 100),
+      vatType: 'standard',
+      vatText: null,
+    };
+  }
+
+  // B2B with valid VAT number in EU - Reverse Charge
+  if (isB2B && hasValidVat && isEuCountry) {
+    return {
+      vatRate: 0,
+      vatAmount: 0,
+      vatType: 'reverse_charge',
+      vatText: tenant.reverse_charge_text || 'BTW verlegd naar afnemer conform artikel 44 EU BTW-richtlijn',
+    };
+  }
+
+  // Export outside EU
+  if (!isEuCountry) {
+    return {
+      vatRate: 0,
+      vatAmount: 0,
+      vatType: 'export',
+      vatText: tenant.export_text || 'Vrijgesteld van BTW - levering buiten EU',
+    };
+  }
+
+  // B2C in EU with OSS enabled
+  if (!isB2B && isEuCountry && tenant.apply_oss_rules) {
+    const ossRates: Record<string, number> = {
+      'AT': 20, 'BE': 21, 'BG': 20, 'HR': 25, 'CY': 19, 'CZ': 21,
+      'DK': 25, 'EE': 22, 'FI': 24, 'FR': 20, 'DE': 19, 'GR': 24,
+      'HU': 27, 'IE': 23, 'IT': 22, 'LV': 21, 'LT': 21, 'LU': 17,
+      'MT': 18, 'NL': 21, 'PL': 23, 'PT': 23, 'RO': 19, 'SK': 20,
+      'SI': 22, 'ES': 21, 'SE': 25
+    };
+    const ossRate = ossRates[customerCountry] || taxPercent;
+    return {
+      vatRate: ossRate,
+      vatAmount: subtotal * (ossRate / 100),
+      vatType: 'oss',
+      vatText: `BTW ${ossRate}% (OSS - ${customerCountry})`,
+    };
+  }
+
+  // Default: apply local VAT
+  return {
+    vatRate: taxPercent,
+    vatAmount: subtotal * (taxPercent / 100),
+    vatType: 'standard',
+    vatText: null,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -83,6 +170,23 @@ serve(async (req) => {
         })
       : null;
 
+    // Calculate VAT based on customer type and location
+    const customerCountry = quote.customer.billing_country || tenant.country || 'NL';
+    const subtotal = Number(quote.subtotal);
+    const vatCalculation = calculateVat({
+      subtotal,
+      tenant,
+      customer: quote.customer,
+      customerCountry,
+    });
+
+    logStep("VAT calculated for quote", vatCalculation);
+
+    // Calculate final totals
+    const taxAmount = vatCalculation.vatAmount;
+    const discountAmount = Number(quote.discount_amount) || 0;
+    const total = subtotal + taxAmount - discountAmount;
+
     // Build items HTML
     const itemsHtml = quote.quote_items.map((item: any) => `
       <tr>
@@ -95,6 +199,57 @@ serve(async (req) => {
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">€${Number(item.total_price).toFixed(2)}</td>
       </tr>
     `).join('');
+
+    // Build VAT display for email
+    let vatDisplayHtml = '';
+    if (vatCalculation.vatType === 'reverse_charge') {
+      vatDisplayHtml = `
+        <tr>
+          <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">BTW (0%)</td>
+          <td style="padding: 12px; text-align: right;">€0,00</td>
+        </tr>
+        <tr>
+          <td colspan="4" style="padding: 12px; font-size: 12px; color: #92400e; background-color: #fef3c7;">
+            ${vatCalculation.vatText}
+          </td>
+        </tr>
+      `;
+    } else if (vatCalculation.vatType === 'export') {
+      vatDisplayHtml = `
+        <tr>
+          <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">BTW (0%)</td>
+          <td style="padding: 12px; text-align: right;">€0,00</td>
+        </tr>
+        <tr>
+          <td colspan="4" style="padding: 12px; font-size: 12px; color: #92400e; background-color: #fef3c7;">
+            ${vatCalculation.vatText}
+          </td>
+        </tr>
+      `;
+    } else if (vatCalculation.vatType === 'oss') {
+      vatDisplayHtml = `
+        <tr>
+          <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">BTW (${vatCalculation.vatRate}% OSS)</td>
+          <td style="padding: 12px; text-align: right;">€${taxAmount.toFixed(2)}</td>
+        </tr>
+      `;
+    } else {
+      vatDisplayHtml = `
+        <tr>
+          <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">BTW (${vatCalculation.vatRate}%)</td>
+          <td style="padding: 12px; text-align: right;">€${taxAmount.toFixed(2)}</td>
+        </tr>
+      `;
+    }
+
+    // Customer company info for B2B
+    const customerDisplayName = quote.customer.company_name 
+      ? quote.customer.company_name
+      : customerName;
+
+    const customerVatInfo = quote.customer.vat_number 
+      ? `<p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">BTW-nummer: ${quote.customer.vat_number}</p>` 
+      : '';
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -113,6 +268,13 @@ serve(async (req) => {
           <tr>
             <td style="padding: 40px 30px;">
               <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 20px;">Offerte ${quote.quote_number}</h2>
+              
+              <div style="margin-bottom: 20px; padding: 15px; background-color: #f9fafb; border-radius: 8px;">
+                <p style="margin: 0; font-weight: 600;">${customerDisplayName}</p>
+                ${quote.customer.company_name && quote.customer.first_name ? `<p style="margin: 5px 0 0 0; font-size: 14px; color: #6b7280;">t.a.v. ${customerName}</p>` : ''}
+                ${customerVatInfo}
+              </div>
+              
               <p style="margin: 0 0 20px 0; color: #374151; line-height: 1.6;">
                 Beste ${customerName},
               </p>
@@ -141,21 +303,18 @@ serve(async (req) => {
                 <tfoot>
                   <tr>
                     <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">Subtotaal</td>
-                    <td style="padding: 12px; text-align: right;">€${Number(quote.subtotal).toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: right;">€${subtotal.toFixed(2)}</td>
                   </tr>
-                  <tr>
-                    <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">BTW</td>
-                    <td style="padding: 12px; text-align: right;">€${Number(quote.tax_amount).toFixed(2)}</td>
-                  </tr>
-                  ${Number(quote.discount_amount) > 0 ? `
+                  ${vatDisplayHtml}
+                  ${discountAmount > 0 ? `
                     <tr>
                       <td colspan="3" style="padding: 12px; text-align: right; color: #059669;">Korting</td>
-                      <td style="padding: 12px; text-align: right; color: #059669;">-€${Number(quote.discount_amount).toFixed(2)}</td>
+                      <td style="padding: 12px; text-align: right; color: #059669;">-€${discountAmount.toFixed(2)}</td>
                     </tr>
                   ` : ''}
                   <tr style="background-color: #f9fafb;">
                     <td colspan="3" style="padding: 16px 12px; text-align: right; font-weight: 700; font-size: 16px;">Totaal</td>
-                    <td style="padding: 16px 12px; text-align: right; font-weight: 700; font-size: 16px;">€${Number(quote.total).toFixed(2)}</td>
+                    <td style="padding: 16px 12px; text-align: right; font-weight: 700; font-size: 16px;">€${total.toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -183,9 +342,10 @@ serve(async (req) => {
           <tr>
             <td style="padding: 30px; background-color: #f9fafb; text-align: center;">
               <p style="margin: 0; color: #6b7280; font-size: 12px;">
-                ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code ? `${tenant.postal_code} ` : ''}${tenant.city || ''}
+                ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code ? `${tenant.postal_code} ` : ''}${tenant.city || ''} ${tenant.country || ''}
                 ${tenant.phone ? `<br>Tel: ${tenant.phone}` : ''}
                 ${tenant.owner_email ? `<br>${tenant.owner_email}` : ''}
+                ${tenant.btw_number ? `<br>BTW: ${tenant.btw_number}` : ''}
               </p>
             </td>
           </tr>
@@ -206,12 +366,14 @@ serve(async (req) => {
 
     logStep("Email sent", { emailResponse });
 
-    // Update quote status to 'sent'
+    // Update quote with recalculated tax amount and status
     const { error: updateError } = await supabase
       .from("quotes")
       .update({ 
         status: 'sent',
-        sent_at: new Date().toISOString()
+        sent_at: new Date().toISOString(),
+        tax_amount: taxAmount,
+        total: total,
       })
       .eq("id", quoteId);
 
@@ -223,7 +385,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: "Email sent successfully",
-        emailResponse
+        emailResponse,
+        vat_type: vatCalculation.vatType,
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },

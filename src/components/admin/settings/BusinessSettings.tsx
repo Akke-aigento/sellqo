@@ -5,9 +5,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+// EU countries for VAT purposes
+const EU_COUNTRIES = [
+  { code: 'NL', name: 'Nederland' },
+  { code: 'BE', name: 'België' },
+  { code: 'DE', name: 'Duitsland' },
+  { code: 'FR', name: 'Frankrijk' },
+  { code: 'LU', name: 'Luxemburg' },
+  { code: 'AT', name: 'Oostenrijk' },
+  { code: 'IT', name: 'Italië' },
+  { code: 'ES', name: 'Spanje' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'IE', name: 'Ierland' },
+  { code: 'FI', name: 'Finland' },
+  { code: 'SE', name: 'Zweden' },
+  { code: 'DK', name: 'Denemarken' },
+  { code: 'PL', name: 'Polen' },
+  { code: 'CZ', name: 'Tsjechië' },
+  { code: 'SK', name: 'Slowakije' },
+  { code: 'HU', name: 'Hongarije' },
+  { code: 'RO', name: 'Roemenië' },
+  { code: 'BG', name: 'Bulgarije' },
+  { code: 'GR', name: 'Griekenland' },
+  { code: 'CY', name: 'Cyprus' },
+  { code: 'MT', name: 'Malta' },
+  { code: 'EE', name: 'Estland' },
+  { code: 'LV', name: 'Letland' },
+  { code: 'LT', name: 'Litouwen' },
+  { code: 'SI', name: 'Slovenië' },
+  { code: 'HR', name: 'Kroatië' },
+];
 
 export function BusinessSettings() {
   const { currentTenant, refreshTenants } = useTenant();
@@ -21,6 +53,7 @@ export function BusinessSettings() {
     address: '',
     city: '',
     postal_code: '',
+    country: 'NL',
     kvk_number: '',
     btw_number: '',
   });
@@ -34,6 +67,7 @@ export function BusinessSettings() {
         address: currentTenant.address || '',
         city: currentTenant.city || '',
         postal_code: currentTenant.postal_code || '',
+        country: currentTenant.country || 'NL',
         kvk_number: currentTenant.kvk_number || '',
         btw_number: currentTenant.btw_number || '',
       });
@@ -58,6 +92,7 @@ export function BusinessSettings() {
           address: formData.address,
           city: formData.city,
           postal_code: formData.postal_code,
+          country: formData.country,
           kvk_number: formData.kvk_number,
           btw_number: formData.btw_number,
         })
@@ -179,6 +214,28 @@ export function BusinessSettings() {
               onChange={(e) => handleChange('city', e.target.value)}
               placeholder="Amsterdam"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="country">Land *</Label>
+            <Select
+              value={formData.country}
+              onValueChange={(value) => handleChange('country', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecteer land" />
+              </SelectTrigger>
+              <SelectContent>
+                {EU_COUNTRIES.map((country) => (
+                  <SelectItem key={country.code} value={country.code}>
+                    {country.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Belangrijk voor BTW-berekeningen en -regels
+            </p>
           </div>
 
           <div className="grid gap-2">
