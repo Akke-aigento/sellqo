@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTenant } from '@/hooks/useTenant';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function AdminHeader() {
   const { currentTenant } = useTenant();
@@ -25,6 +26,8 @@ export function AdminHeader() {
           </div>
         )}
       </div>
+
+      <ThemeToggle />
     </header>
   );
 }

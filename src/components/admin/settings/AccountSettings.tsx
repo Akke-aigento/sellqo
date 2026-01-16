@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Lock, Camera, Globe } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { User, Lock, Camera, Globe, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ export function AccountSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const { language, setLanguage, supportedLanguages, isLoading: isLanguageLoading } = useLanguage();
   
   const [fullName, setFullName] = useState('');
@@ -239,6 +241,40 @@ export function AccountSettings() {
                     </span>
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Theme Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Palette className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle>{t('settings.account.theme')}</CardTitle>
+              <CardDescription>
+                {t('settings.account.themeDescription')}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-xs">
+            <Select 
+              value={theme} 
+              onValueChange={setTheme}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">{t('settings.account.themeLight')}</SelectItem>
+                <SelectItem value="dark">{t('settings.account.themeDark')}</SelectItem>
+                <SelectItem value="system">{t('settings.account.themeSystem')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
