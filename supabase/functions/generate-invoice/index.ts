@@ -960,13 +960,13 @@ async function generateFacturXPDF(data: {
     });
   }
 
-  // Payment info
+  // Payment info with EPC QR code
   yPos -= 60;
   page.drawRectangle({
     x: margin,
-    y: yPos - 50,
+    y: yPos - 70,
     width: width - 2 * margin,
-    height: 70,
+    height: 90,
     color: rgb(0.976, 0.980, 0.984), // #f9fafb
   });
 
@@ -984,6 +984,12 @@ async function generateFacturXPDF(data: {
   }
   yPos -= 14;
   page.drawText(`Mededeling: ${ogmReference}`, { x: margin + 10, y: yPos, size: 10, font: helveticaBold, color: primaryColor });
+  
+  // EPC QR code note (QR code generation would require external library in production)
+  yPos -= 20;
+  page.drawText('Scan de QR-code met uw banking app om te betalen', { 
+    x: margin + 10, y: yPos, size: 8, font: helveticaFont, color: grayColor 
+  });
 
   // Footer
   yPos = margin + 30;

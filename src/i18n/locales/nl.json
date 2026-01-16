@@ -315,7 +315,7 @@
     "total_excl_vat": "Totaal excl. BTW",
     "total_incl_vat": "Totaal incl. BTW"
   },
-  "archive": {
+"archive": {
     "title": "Factuurarchief",
     "description": "Documenten worden 7 jaar bewaard conform Belgische wetgeving",
     "integrity_valid": "Integriteit OK",
@@ -326,5 +326,71 @@
     "verify_integrity": "Controleer integriteit",
     "archived_at": "Gearchiveerd op",
     "file_size": "Bestandsgrootte"
+  },
+  "epc": {
+    "scan_to_pay": "Scan om te betalen",
+    "description": "Scan deze QR-code met uw banking app om direct te betalen met de juiste gegevens"
+  },
+  "discount": {
+    "title": "Korting",
+    "percentage": "Percentage korting",
+    "fixed_amount": "Vaste korting",
+    "volume": "Volume korting",
+    "coupon": "Couponcode",
+    "commercial": "Commerciële korting",
+    "subtotal_discount": "Korting op subtotaal",
+    "line_discount": "Lijnkorting",
+    "add_discount": "Korting toevoegen",
+    "remove_discount": "Korting verwijderen"
+  },
+  "reminders": {
+    "settings_title": "Betalingsherinneringen",
+    "settings_description": "Configureer automatische betalingsherinneringen voor openstaande facturen",
+    "auto_enabled": "Automatische herinneringen inschakelen",
+    "auto_enabled_description": "Verstuur automatisch herinneringen voor onbetaalde facturen",
+    "level1": "Eerste herinnering",
+    "level2": "Tweede herinnering",
+    "level3": "Aanmaning",
+    "days_after_due": "dagen na vervaldatum",
+    "add_late_fee": "Rente en kosten toevoegen",
+    "add_late_fee_description": "Voeg rente en kosten toe bij de laatste aanmaning",
+    "late_fee_percentage": "Percentage",
+    "final_notice": "laatste aanmaning",
+    "send_manually": "Herinnering versturen",
+    "send_level": "Verstuur niveau {level}",
+    "sent_success": "Herinnering verstuurd"
+  },
+  "proforma": {
+    "title": "Pro-forma factuur",
+    "create": "Pro-forma aanmaken",
+    "notice": "Dit document is geen factuur en heeft geen fiscale waarde",
+    "valid_until": "Geldig tot",
+    "convert_to_invoice": "Omzetten naar factuur",
+    "already_converted": "Reeds omgezet naar factuur",
+    "expired": "Verlopen",
+    "reference_on_invoice": "Ref. pro-forma",
+    "validity_days": "Geldigheid (dagen)",
+    "status_draft": "Concept",
+    "status_sent": "Verstuurd",
+    "status_converted": "Omgezet",
+    "status_expired": "Verlopen"
+  },
+  "packing_slip": {
+    "title": "Pakbon",
+    "print": "Print pakbon",
+    "number": "Pakbon nr",
+    "order_reference": "Order nr",
+    "ship_from": "Verzendadres",
+    "ship_to": "Afleveradres",
+    "contents": "Inhoud",
+    "sku": "Artikelnr",
+    "description": "Omschrijving",
+    "quantity": "Aantal",
+    "total_packages": "Totaal colli",
+    "total_weight": "Totaal gewicht",
+    "received_confirmation": "Ontvangen in goede staat",
+    "signature": "Handtekening",
+    "note": "Controleer de inhoud bij ontvangst. Meld eventuele schade of ontbrekende artikelen binnen 48 uur.",
+    "create_from_order": "Pakbon maken"
   }
 }

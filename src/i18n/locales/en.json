@@ -315,7 +315,7 @@
     "total_excl_vat": "Total excl. VAT",
     "total_incl_vat": "Total incl. VAT"
   },
-  "archive": {
+"archive": {
     "title": "Invoice Archive",
     "description": "Documents are retained for 7 years in accordance with Belgian law",
     "integrity_valid": "Integrity OK",
@@ -326,5 +326,71 @@
     "verify_integrity": "Verify integrity",
     "archived_at": "Archived at",
     "file_size": "File size"
+  },
+  "epc": {
+    "scan_to_pay": "Scan to pay",
+    "description": "Scan this QR code with your banking app to pay directly with the correct details"
+  },
+  "discount": {
+    "title": "Discount",
+    "percentage": "Percentage discount",
+    "fixed_amount": "Fixed discount",
+    "volume": "Volume discount",
+    "coupon": "Coupon code",
+    "commercial": "Commercial discount",
+    "subtotal_discount": "Discount on subtotal",
+    "line_discount": "Line discount",
+    "add_discount": "Add discount",
+    "remove_discount": "Remove discount"
+  },
+  "reminders": {
+    "settings_title": "Payment reminders",
+    "settings_description": "Configure automatic payment reminders for unpaid invoices",
+    "auto_enabled": "Enable automatic reminders",
+    "auto_enabled_description": "Automatically send reminders for unpaid invoices",
+    "level1": "First reminder",
+    "level2": "Second reminder",
+    "level3": "Final notice",
+    "days_after_due": "days after due date",
+    "add_late_fee": "Add late fees and interest",
+    "add_late_fee_description": "Add interest and fees to the final notice",
+    "late_fee_percentage": "Percentage",
+    "final_notice": "final notice",
+    "send_manually": "Send reminder",
+    "send_level": "Send level {level}",
+    "sent_success": "Reminder sent"
+  },
+  "proforma": {
+    "title": "Pro-forma invoice",
+    "create": "Create pro-forma",
+    "notice": "This document is not an invoice and has no fiscal value",
+    "valid_until": "Valid until",
+    "convert_to_invoice": "Convert to invoice",
+    "already_converted": "Already converted to invoice",
+    "expired": "Expired",
+    "reference_on_invoice": "Pro-forma ref.",
+    "validity_days": "Validity (days)",
+    "status_draft": "Draft",
+    "status_sent": "Sent",
+    "status_converted": "Converted",
+    "status_expired": "Expired"
+  },
+  "packing_slip": {
+    "title": "Packing Slip",
+    "print": "Print packing slip",
+    "number": "Packing slip no.",
+    "order_reference": "Order no.",
+    "ship_from": "Ship from",
+    "ship_to": "Ship to",
+    "contents": "Contents",
+    "sku": "SKU",
+    "description": "Description",
+    "quantity": "Quantity",
+    "total_packages": "Total packages",
+    "total_weight": "Total weight",
+    "received_confirmation": "Received in good condition",
+    "signature": "Signature",
+    "note": "Please check contents upon receipt. Report any damage or missing items within 48 hours.",
+    "create_from_order": "Create packing slip"
   }
 }

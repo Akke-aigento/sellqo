@@ -381,14 +381,62 @@ export type Database = {
           },
         ]
       }
+      invoice_discounts: {
+        Row: {
+          amount: number
+          applies_to: string
+          coupon_code: string | null
+          created_at: string | null
+          description: string | null
+          discount_type: string
+          id: string
+          invoice_id: string | null
+          value: number
+        }
+        Insert: {
+          amount: number
+          applies_to: string
+          coupon_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_type: string
+          id?: string
+          invoice_id?: string | null
+          value: number
+        }
+        Update: {
+          amount?: number
+          applies_to?: string
+          coupon_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string
+          id?: string
+          invoice_id?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_discounts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_lines: {
         Row: {
           created_at: string | null
           description: string
+          discount_amount: number | null
+          discount_percentage: number | null
+          gross_amount: number | null
           id: string
           invoice_id: string
           line_total: number
           line_type: string | null
+          net_amount: number | null
           product_id: string | null
           quantity: number
           shipping_method_id: string | null
@@ -401,10 +449,14 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          gross_amount?: number | null
           id?: string
           invoice_id: string
           line_total: number
           line_type?: string | null
+          net_amount?: number | null
           product_id?: string | null
           quantity?: number
           shipping_method_id?: string | null
@@ -417,10 +469,14 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          gross_amount?: number | null
           id?: string
           invoice_id?: string
           line_total?: number
           line_type?: string | null
+          net_amount?: number | null
           product_id?: string | null
           quantity?: number
           shipping_method_id?: string | null
@@ -458,9 +514,11 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string | null
+          due_date: string | null
           id: string
           invoice_number: string
           is_b2b: boolean | null
+          last_reminder_at: string | null
           ogm_reference: string | null
           order_id: string | null
           paid_at: string | null
@@ -468,6 +526,8 @@ export type Database = {
           peppol_required: boolean | null
           peppol_sent_at: string | null
           peppol_status: string | null
+          proforma_reference: string | null
+          reminder_level: number | null
           sent_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
@@ -480,9 +540,11 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id?: string | null
+          due_date?: string | null
           id?: string
           invoice_number: string
           is_b2b?: boolean | null
+          last_reminder_at?: string | null
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
@@ -490,6 +552,8 @@ export type Database = {
           peppol_required?: boolean | null
           peppol_sent_at?: string | null
           peppol_status?: string | null
+          proforma_reference?: string | null
+          reminder_level?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
@@ -502,9 +566,11 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string | null
+          due_date?: string | null
           id?: string
           invoice_number?: string
           is_b2b?: boolean | null
+          last_reminder_at?: string | null
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
@@ -512,6 +578,8 @@ export type Database = {
           peppol_required?: boolean | null
           peppol_sent_at?: string | null
           peppol_status?: string | null
+          proforma_reference?: string | null
+          reminder_level?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
@@ -717,6 +785,152 @@ export type Database = {
           },
         ]
       }
+      packing_slip_lines: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          packing_slip_id: string | null
+          quantity: number | null
+          sku: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          packing_slip_id?: string | null
+          quantity?: number | null
+          sku?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          packing_slip_id?: string | null
+          quantity?: number | null
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packing_slip_lines_packing_slip_id_fkey"
+            columns: ["packing_slip_id"]
+            isOneToOne: false
+            referencedRelation: "packing_slips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packing_slips: {
+        Row: {
+          created_at: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          order_id: string | null
+          packing_slip_number: string
+          printed_at: string | null
+          ship_from_address: Json | null
+          ship_to_address: Json | null
+          tenant_id: string
+          total_packages: number | null
+          total_weight: number | null
+          weight_unit: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          packing_slip_number: string
+          printed_at?: string | null
+          ship_from_address?: Json | null
+          ship_to_address?: Json | null
+          tenant_id: string
+          total_packages?: number | null
+          total_weight?: number | null
+          weight_unit?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          packing_slip_number?: string
+          printed_at?: string | null
+          ship_from_address?: Json | null
+          ship_to_address?: Json | null
+          tenant_id?: string
+          total_packages?: number | null
+          total_weight?: number | null
+          weight_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packing_slips_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packing_slips_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packing_slips_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_reminders: {
+        Row: {
+          created_at: string | null
+          email_sent_to: string | null
+          id: string
+          invoice_id: string | null
+          late_fee_amount: number | null
+          level: number
+          sent_at: string
+          total_due_amount: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_sent_to?: string | null
+          id?: string
+          invoice_id?: string | null
+          late_fee_amount?: number | null
+          level: number
+          sent_at?: string
+          total_due_amount?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          email_sent_to?: string | null
+          id?: string
+          invoice_id?: string | null
+          late_fee_amount?: number | null
+          level?: number
+          sent_at?: string
+          total_due_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_reminders_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           allow_backorder: boolean | null
@@ -861,6 +1075,155 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      proforma_invoice_lines: {
+        Row: {
+          created_at: string | null
+          description: string
+          discount_amount: number | null
+          discount_percentage: number | null
+          id: string
+          line_total: number
+          line_type: string | null
+          product_id: string | null
+          proforma_id: string | null
+          quantity: number | null
+          sort_order: number | null
+          unit_price: number
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          id?: string
+          line_total: number
+          line_type?: string | null
+          product_id?: string | null
+          proforma_id?: string | null
+          quantity?: number | null
+          sort_order?: number | null
+          unit_price: number
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          id?: string
+          line_total?: number
+          line_type?: string | null
+          product_id?: string | null
+          proforma_id?: string | null
+          quantity?: number | null
+          sort_order?: number | null
+          unit_price?: number
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proforma_invoice_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proforma_invoice_lines_proforma_id_fkey"
+            columns: ["proforma_id"]
+            isOneToOne: false
+            referencedRelation: "proforma_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proforma_invoices: {
+        Row: {
+          converted_to_invoice_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          discount_total: number | null
+          id: string
+          notes: string | null
+          proforma_number: string
+          shipping_method_id: string | null
+          status: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          tenant_id: string
+          total: number | null
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          converted_to_invoice_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          discount_total?: number | null
+          id?: string
+          notes?: string | null
+          proforma_number: string
+          shipping_method_id?: string | null
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tenant_id: string
+          total?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          converted_to_invoice_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          discount_total?: number | null
+          id?: string
+          notes?: string | null
+          proforma_number?: string
+          shipping_method_id?: string | null
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tenant_id?: string
+          total?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proforma_invoices_converted_to_invoice_id_fkey"
+            columns: ["converted_to_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proforma_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proforma_invoices_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proforma_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quote_items: {
         Row: {
@@ -1126,10 +1489,21 @@ export type Database = {
           oss_registration_date: string | null
           owner_email: string
           owner_name: string | null
+          packing_slip_prefix: string | null
+          packing_slip_start_number: number | null
           peppol_id: string | null
           phone: string | null
           postal_code: string | null
           primary_color: string | null
+          proforma_prefix: string | null
+          proforma_start_number: number | null
+          proforma_validity_days: number | null
+          reminder_late_fee_enabled: boolean | null
+          reminder_late_fee_percentage: number | null
+          reminder_level1_days: number | null
+          reminder_level2_days: number | null
+          reminder_level3_days: number | null
+          reminders_enabled: boolean | null
           require_vies_validation: boolean | null
           reverse_charge_text: string | null
           secondary_color: string | null
@@ -1178,10 +1552,21 @@ export type Database = {
           oss_registration_date?: string | null
           owner_email: string
           owner_name?: string | null
+          packing_slip_prefix?: string | null
+          packing_slip_start_number?: number | null
           peppol_id?: string | null
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          proforma_prefix?: string | null
+          proforma_start_number?: number | null
+          proforma_validity_days?: number | null
+          reminder_late_fee_enabled?: boolean | null
+          reminder_late_fee_percentage?: number | null
+          reminder_level1_days?: number | null
+          reminder_level2_days?: number | null
+          reminder_level3_days?: number | null
+          reminders_enabled?: boolean | null
           require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
@@ -1230,10 +1615,21 @@ export type Database = {
           oss_registration_date?: string | null
           owner_email?: string
           owner_name?: string | null
+          packing_slip_prefix?: string | null
+          packing_slip_start_number?: number | null
           peppol_id?: string | null
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          proforma_prefix?: string | null
+          proforma_start_number?: number | null
+          proforma_validity_days?: number | null
+          reminder_late_fee_enabled?: boolean | null
+          reminder_late_fee_percentage?: number | null
+          reminder_level1_days?: number | null
+          reminder_level2_days?: number | null
+          reminder_level3_days?: number | null
+          reminders_enabled?: boolean | null
           require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
@@ -1413,6 +1809,14 @@ export type Database = {
       }
       generate_invoice_number: { Args: { _tenant_id: string }; Returns: string }
       generate_order_number: { Args: { _tenant_id: string }; Returns: string }
+      generate_packing_slip_number: {
+        Args: { _tenant_id: string }
+        Returns: string
+      }
+      generate_proforma_number: {
+        Args: { _tenant_id: string }
+        Returns: string
+      }
       generate_quote_number: { Args: { _tenant_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
