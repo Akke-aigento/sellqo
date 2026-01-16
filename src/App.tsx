@@ -23,6 +23,8 @@ import CustomersPage from "./pages/admin/Customers";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
 import SubscriptionsPage from "./pages/admin/Subscriptions";
+import BillingPage from "./pages/admin/Billing";
+import PricingPage from "./pages/Pricing";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
@@ -40,6 +42,9 @@ const App = () => (
           <Routes>
             {/* Redirect root to admin */}
             <Route path="/" element={<Navigate to="/admin" replace />} />
+            
+            {/* Public pricing page */}
+            <Route path="/pricing" element={<PricingPage />} />
             
             {/* Auth routes */}
             <Route path="/auth" element={<Auth />} />
@@ -66,6 +71,7 @@ const App = () => (
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
+              <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="platform" element={

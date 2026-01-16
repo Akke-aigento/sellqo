@@ -525,5 +525,66 @@
   },
   "common": {
     "all": "Alle"
+  },
+  "pricing": {
+    "title": "Eenvoudige, transparante prijzen",
+    "subtitle": "Kies het plan dat bij je past. Upgrade of downgrade wanneer je wilt.",
+    "monthly": "Maandelijks",
+    "yearly": "Jaarlijks",
+    "yearly_discount": "2 maanden gratis",
+    "per_month": "/maand",
+    "most_popular": "Meest gekozen",
+    "start_free": "Start gratis",
+    "choose_plan": "Kies dit plan",
+    "contact_sales": "Neem contact op",
+    "unlimited": "Onbeperkt",
+    "features": {
+      "products": "producten",
+      "orders_per_month": "orders/maand",
+      "customers": "klanten",
+      "team_members": "teamleden",
+      "storage": "opslag",
+      "custom_domain": "Eigen domein",
+      "api_access": "API toegang",
+      "priority_support": "Prioriteit support",
+      "advanced_analytics": "Geavanceerde analytics",
+      "white_label": "White-label"
+    },
+    "all_plans_include": "Alle plannen bevatten"
+  },
+  "billing": {
+    "title": "Facturatie",
+    "current_plan": "Huidig abonnement",
+    "change_plan": "Wijzig abonnement",
+    "cancel_subscription": "Abonnement opzeggen",
+    "next_billing_date": "Volgende factuurdatum",
+    "usage": "Verbruik",
+    "payment_method": "Betaalmethode",
+    "update_payment_method": "Betaalmethode wijzigen",
+    "invoices": "Facturen",
+    "view_all_invoices": "Bekijk alle facturen",
+    "billing_details": "Facturatiegegevens",
+    "upgrade_needed": "Je nadert je limiet",
+    "upgrade_to": "Upgrade naar",
+    "downgrade_warning": "Bij downgrade verlies je mogelijk toegang tot bepaalde features",
+    "proration": "Verrekening",
+    "pay_now": "Nu te betalen",
+    "confirm_change": "Bevestig wijziging",
+    "subscription_canceled": "Je abonnement wordt beëindigd op",
+    "reactivate": "Heractiveer abonnement"
+  },
+  "admin_billing": {
+    "title": "Platform Billing",
+    "mrr": "Maandelijks terugkerend",
+    "arr": "Jaarlijks terugkerend",
+    "paying_customers": "Betalende klanten",
+    "churn_rate": "Opzegpercentage",
+    "subscribers_by_plan": "Abonnees per plan",
+    "recent_activity": "Recente activiteit",
+    "at_risk": "Risico klanten",
+    "lifetime_value": "Lifetime value",
+    "gift_month": "Gratis maand geven",
+    "apply_discount": "Korting toepassen",
+    "refund": "Terugbetalen"
   }
 }

@@ -525,5 +525,44 @@
   },
   "common": {
     "all": "All"
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Choose the plan that fits you. Upgrade or downgrade anytime.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "yearly_discount": "2 months free",
+    "per_month": "/month",
+    "most_popular": "Most popular",
+    "start_free": "Start free",
+    "choose_plan": "Choose plan",
+    "contact_sales": "Contact sales",
+    "unlimited": "Unlimited",
+    "features": {
+      "products": "products",
+      "orders_per_month": "orders/month",
+      "customers": "customers",
+      "team_members": "team members",
+      "storage": "storage",
+      "custom_domain": "Custom domain",
+      "api_access": "API access",
+      "priority_support": "Priority support",
+      "advanced_analytics": "Advanced analytics",
+      "white_label": "White-label"
+    },
+    "all_plans_include": "All plans include"
+  },
+  "billing": {
+    "title": "Billing",
+    "current_plan": "Current plan",
+    "change_plan": "Change plan",
+    "next_billing_date": "Next billing date",
+    "usage": "Usage",
+    "payment_method": "Payment method",
+    "update_payment_method": "Update payment method",
+    "invoices": "Invoices",
+    "view_all_invoices": "View all invoices",
+    "upgrade_needed": "You're approaching your limit",
+    "subscription_canceled": "Your subscription will end on"
   }
 }

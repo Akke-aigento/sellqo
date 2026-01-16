@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Store,
   FileText,
-  RefreshCw
+  RefreshCw,
+  Receipt
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -61,6 +62,7 @@ const mainNavItems = [
 
 const settingsNavItems = [
   { title: 'Verzending', url: '/admin/shipping', icon: Truck },
+  { title: 'Facturatie', url: '/admin/billing', icon: Receipt },
   { title: 'Instellingen', url: '/admin/settings', icon: Settings },
   { title: 'Analytics', url: '/admin/analytics', icon: BarChart3 },
 ];
