@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import LandingPage from "./pages/Landing";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
 import ProductsPage from "./pages/admin/Products";
@@ -34,7 +35,7 @@ import PlatformBillingPage from "./pages/platform/PlatformBilling";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
@@ -42,8 +43,8 @@ const App = () => (
           <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Redirect root to admin */}
-            <Route path="/" element={<Navigate to="/admin" replace />} />
+            {/* Public landing page */}
+            <Route path="/" element={<LandingPage />} />
             
             {/* Public pricing page */}
             <Route path="/pricing" element={<PricingPage />} />
