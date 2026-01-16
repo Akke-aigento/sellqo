@@ -92,8 +92,12 @@ export function useStripeConnect(tenantId: string | undefined) {
       }
 
       if (data.url) {
-        // Redirect to Stripe onboarding
-        window.location.href = data.url;
+        // Open Stripe onboarding in new tab
+        window.open(data.url, '_blank');
+        toast({
+          title: 'Stripe onboarding geopend',
+          description: 'Rond de onboarding af in het nieuwe tabblad en klik daarna op "Status vernieuwen".',
+        });
       }
     } catch (error: any) {
       console.error('Error creating Stripe account:', error);
