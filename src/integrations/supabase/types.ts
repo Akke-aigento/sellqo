@@ -203,6 +203,8 @@ export type Database = {
           shipping_cost: number | null
           shipping_method_id: string | null
           status: Database["public"]["Enums"]["order_status"] | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
           subtotal: number
           tax_amount: number | null
           tenant_id: string
@@ -232,6 +234,8 @@ export type Database = {
           shipping_cost?: number | null
           shipping_method_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id: string
@@ -261,6 +265,8 @@ export type Database = {
           shipping_cost?: number | null
           shipping_method_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id?: string
@@ -504,6 +510,9 @@ export type Database = {
           shipping_enabled: boolean | null
           slug: string
           stripe_account_id: string | null
+          stripe_charges_enabled: boolean | null
+          stripe_onboarding_complete: boolean | null
+          stripe_payouts_enabled: boolean | null
           subscription_plan: string | null
           subscription_status: string | null
           tax_percentage: number | null
@@ -531,6 +540,9 @@ export type Database = {
           shipping_enabled?: boolean | null
           slug: string
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_onboarding_complete?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           subscription_plan?: string | null
           subscription_status?: string | null
           tax_percentage?: number | null
@@ -558,6 +570,9 @@ export type Database = {
           shipping_enabled?: boolean | null
           slug?: string
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_onboarding_complete?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           subscription_plan?: string | null
           subscription_status?: string | null
           tax_percentage?: number | null
