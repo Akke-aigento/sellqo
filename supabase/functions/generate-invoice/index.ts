@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,6 +79,13 @@ interface VatCalculation {
   vatType: 'standard' | 'reverse_charge' | 'export' | 'oss';
   vatText: string | null;
   taxCategoryCode: string;
+}
+
+interface TaxBreakdownLine {
+  vatRate: number;
+  vatCategory: string;
+  taxableAmount: number;
+  vatAmount: number;
 }
 
 function calculateVat(params: {
@@ -169,6 +177,32 @@ function calculateVat(params: {
   };
 }
 
+// Calculate tax breakdown per VAT rate for multi-rate invoices
+function calculateTaxBreakdown(lines: any[], vatCalculation: VatCalculation): TaxBreakdownLine[] {
+  const breakdown = new Map<string, TaxBreakdownLine>();
+  
+  for (const line of lines) {
+    const lineVatRate = line.vat_rate ?? vatCalculation.vatRate;
+    const lineVatCategory = line.vat_category ?? vatCalculation.taxCategoryCode;
+    const key = `${lineVatRate}-${lineVatCategory}`;
+    
+    const existing = breakdown.get(key) || {
+      vatRate: lineVatRate,
+      vatCategory: lineVatCategory,
+      taxableAmount: 0,
+      vatAmount: 0
+    };
+    
+    const lineSubtotal = (line.quantity || 1) * (line.unit_price || line.total_price || 0);
+    existing.taxableAmount += lineSubtotal;
+    existing.vatAmount += lineSubtotal * (lineVatRate / 100);
+    
+    breakdown.set(key, existing);
+  }
+  
+  return Array.from(breakdown.values()).sort((a, b) => b.vatRate - a.vatRate);
+}
+
 /**
  * Generates a Belgian structured communication (OGM)
  * Format: +++XXX/XXXX/XXXXX+++ (12 digits, last 2 = modulo 97 checksum)
@@ -217,7 +251,27 @@ function escapeXml(str: string): string {
     .replace(/'/g, '&apos;');
 }
 
-// Generate Cross-Industry Invoice (CII) XML for Factur-X
+// VAT category codes for XML
+function getVatCategoryCode(category: string): string {
+  const codes: Record<string, string> = {
+    'standard': 'S',
+    'reduced': 'AA',
+    'super_reduced': 'AA',
+    'zero': 'Z',
+    'exempt': 'E',
+    'reverse_charge': 'AE',
+    'export': 'G',
+    'S': 'S',
+    'AA': 'AA',
+    'Z': 'Z',
+    'E': 'E',
+    'AE': 'AE',
+    'G': 'G',
+  };
+  return codes[category] || 'S';
+}
+
+// Generate Cross-Industry Invoice (CII) XML for Factur-X EN16931
 function generateCIIXml(data: {
   invoiceNumber: string;
   issueDate: string;
@@ -227,13 +281,21 @@ function generateCIIXml(data: {
   customer: any;
   order: any;
   orderItems: any[];
+  invoiceLines: any[];
   subtotal: number;
   taxAmount: number;
   total: number;
   shippingCost: number;
   vatCalculation: VatCalculation;
+  taxBreakdown: TaxBreakdownLine[];
+  ogmReference: string;
+  isB2B: boolean;
 }): string {
-  const { invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, orderItems, subtotal, taxAmount, total, shippingCost, vatCalculation } = data;
+  const { 
+    invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
+    orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
+    vatCalculation, taxBreakdown, ogmReference, isB2B 
+  } = data;
   
   const issueDateTime = formatCIIDate(new Date(issueDate));
   const dueDateTime = formatCIIDate(new Date(dueDate));
@@ -242,35 +304,52 @@ function generateCIIXml(data: {
     `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || 
     customer?.email || 'Customer';
 
-  // Generate line items
-  const lineItems = orderItems.map((item, index) => `
+  // Use invoice lines if available, otherwise use order items
+  const lineItems = (invoiceLines?.length > 0 ? invoiceLines : orderItems).map((item, index) => {
+    const lineVatRate = item.vat_rate ?? vatCalculation.vatRate;
+    const lineVatCategory = item.vat_category ?? vatCalculation.taxCategoryCode;
+    const lineTotal = item.line_total ?? item.total_price ?? (item.quantity * item.unit_price);
+    
+    return `
     <ram:IncludedSupplyChainTradeLineItem>
       <ram:AssociatedDocumentLineDocument>
         <ram:LineID>${index + 1}</ram:LineID>
       </ram:AssociatedDocumentLineDocument>
       <ram:SpecifiedTradeProduct>
         ${item.product_sku ? `<ram:SellerAssignedID>${escapeXml(item.product_sku)}</ram:SellerAssignedID>` : ''}
-        <ram:Name>${escapeXml(item.product_name)}</ram:Name>
+        <ram:Name>${escapeXml(item.description || item.product_name)}</ram:Name>
       </ram:SpecifiedTradeProduct>
       <ram:SpecifiedLineTradeAgreement>
         <ram:NetPriceProductTradePrice>
-          <ram:ChargeAmount>${item.unit_price.toFixed(2)}</ram:ChargeAmount>
+          <ram:ChargeAmount>${Number(item.unit_price).toFixed(2)}</ram:ChargeAmount>
         </ram:NetPriceProductTradePrice>
       </ram:SpecifiedLineTradeAgreement>
       <ram:SpecifiedLineTradeDelivery>
-        <ram:BilledQuantity unitCode="C62">${item.quantity}</ram:BilledQuantity>
+        <ram:BilledQuantity unitCode="C62">${item.quantity || 1}</ram:BilledQuantity>
       </ram:SpecifiedLineTradeDelivery>
       <ram:SpecifiedLineTradeSettlement>
         <ram:ApplicableTradeTax>
           <ram:TypeCode>VAT</ram:TypeCode>
-          <ram:CategoryCode>${vatCalculation.taxCategoryCode}</ram:CategoryCode>
-          <ram:RateApplicablePercent>${vatCalculation.vatRate}</ram:RateApplicablePercent>
+          <ram:CategoryCode>${getVatCategoryCode(lineVatCategory)}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${lineVatRate}</ram:RateApplicablePercent>
         </ram:ApplicableTradeTax>
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
-          <ram:LineTotalAmount>${item.total_price.toFixed(2)}</ram:LineTotalAmount>
+          <ram:LineTotalAmount>${Number(lineTotal).toFixed(2)}</ram:LineTotalAmount>
         </ram:SpecifiedTradeSettlementLineMonetarySummation>
       </ram:SpecifiedLineTradeSettlement>
-    </ram:IncludedSupplyChainTradeLineItem>`).join('');
+    </ram:IncludedSupplyChainTradeLineItem>`;
+  }).join('');
+
+  // Generate tax breakdown XML
+  const taxBreakdownXml = taxBreakdown.map(tax => `
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${tax.vatAmount.toFixed(2)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        ${vatCalculation.vatText && tax.vatRate === 0 ? `<ram:ExemptionReason>${escapeXml(vatCalculation.vatText)}</ram:ExemptionReason>` : ''}
+        <ram:BasisAmount>${tax.taxableAmount.toFixed(2)}</ram:BasisAmount>
+        <ram:CategoryCode>${getVatCategoryCode(tax.vatCategory)}</ram:CategoryCode>
+        <ram:RateApplicablePercent>${tax.vatRate}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
@@ -304,6 +383,10 @@ function generateCIIXml(data: {
         <ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${escapeXml(tenant.btw_number)}</ram:ID>
         </ram:SpecifiedTaxRegistration>` : ''}
+        <ram:DefinedTradeContact>
+          ${tenant.owner_email ? `<ram:EmailURIUniversalCommunication><ram:URIID>${escapeXml(tenant.owner_email)}</ram:URIID></ram:EmailURIUniversalCommunication>` : ''}
+          ${tenant.phone ? `<ram:TelephoneUniversalCommunication><ram:CompleteNumber>${escapeXml(tenant.phone)}</ram:CompleteNumber></ram:TelephoneUniversalCommunication>` : ''}
+        </ram:DefinedTradeContact>
       </ram:SellerTradeParty>
       <ram:BuyerTradeParty>
         ${customer?.peppol_id ? `<ram:GlobalID schemeID="${customer.peppol_id.split(':')[0]}">${escapeXml(customer.peppol_id.split(':')[1] || customer.peppol_id)}</ram:GlobalID>` : ''}
@@ -343,18 +426,22 @@ function generateCIIXml(data: {
           <udt:DateTimeString format="102">${dueDateTime}</udt:DateTimeString>
         </ram:DueDateDateTime>
       </ram:SpecifiedTradePaymentTerms>
-      <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${taxAmount.toFixed(2)}</ram:CalculatedAmount>
-        <ram:TypeCode>VAT</ram:TypeCode>
-        ${vatCalculation.vatText ? `<ram:ExemptionReason>${escapeXml(vatCalculation.vatText)}</ram:ExemptionReason>` : ''}
-        <ram:BasisAmount>${subtotal.toFixed(2)}</ram:BasisAmount>
-        <ram:CategoryCode>${vatCalculation.taxCategoryCode}</ram:CategoryCode>
-        <ram:RateApplicablePercent>${vatCalculation.vatRate}</ram:RateApplicablePercent>
-      </ram:ApplicableTradeTax>
+      ${tenant.iban ? `
+      <ram:SpecifiedTradeSettlementPaymentMeans>
+        <ram:TypeCode>58</ram:TypeCode>
+        <ram:PayeePartyCreditorFinancialAccount>
+          <ram:IBANID>${escapeXml(tenant.iban)}</ram:IBANID>
+        </ram:PayeePartyCreditorFinancialAccount>
+        ${tenant.bic ? `
+        <ram:PayeeSpecifiedCreditorFinancialInstitution>
+          <ram:BICID>${escapeXml(tenant.bic)}</ram:BICID>
+        </ram:PayeeSpecifiedCreditorFinancialInstitution>` : ''}
+      </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
+${taxBreakdownXml}
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${subtotal.toFixed(2)}</ram:LineTotalAmount>
         ${shippingCost > 0 ? `<ram:ChargeTotalAmount>${shippingCost.toFixed(2)}</ram:ChargeTotalAmount>` : ''}
-        <ram:TaxBasisTotalAmount>${subtotal.toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:TaxBasisTotalAmount>${(subtotal + shippingCost).toFixed(2)}</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="${currency}">${taxAmount.toFixed(2)}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${total.toFixed(2)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${total.toFixed(2)}</ram:DuePayableAmount>
@@ -374,27 +461,49 @@ function generateUBL(data: {
   customer: any;
   order: any;
   orderItems: any[];
+  invoiceLines: any[];
   subtotal: number;
   taxAmount: number;
   total: number;
+  shippingCost: number;
   vatCalculation: VatCalculation;
+  taxBreakdown: TaxBreakdownLine[];
 }): string {
-  const { invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, orderItems, subtotal, taxAmount, total, vatCalculation } = data;
+  const { 
+    invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
+    orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost,
+    vatCalculation, taxBreakdown 
+  } = data;
   
-  const invoiceLines = orderItems.map((item, index) => `
+  // Use invoice lines if available, otherwise use order items
+  const lines = invoiceLines?.length > 0 ? invoiceLines : orderItems;
+  
+  const invoiceLinesXml = lines.map((item, index) => {
+    const lineVatRate = item.vat_rate ?? vatCalculation.vatRate;
+    const lineTotal = item.line_total ?? item.total_price ?? (item.quantity * item.unit_price);
+    
+    return `
     <cac:InvoiceLine>
       <cbc:ID>${index + 1}</cbc:ID>
-      <cbc:InvoicedQuantity unitCode="EA">${item.quantity}</cbc:InvoicedQuantity>
-      <cbc:LineExtensionAmount currencyID="${currency}">${item.total_price.toFixed(2)}</cbc:LineExtensionAmount>
+      <cbc:InvoicedQuantity unitCode="EA">${item.quantity || 1}</cbc:InvoicedQuantity>
+      <cbc:LineExtensionAmount currencyID="${currency}">${Number(lineTotal).toFixed(2)}</cbc:LineExtensionAmount>
       <cac:Item>
-        <cbc:Description>${escapeXml(item.product_name)}</cbc:Description>
-        <cbc:Name>${escapeXml(item.product_name)}</cbc:Name>
+        <cbc:Description>${escapeXml(item.description || item.product_name)}</cbc:Description>
+        <cbc:Name>${escapeXml(item.description || item.product_name)}</cbc:Name>
         ${item.product_sku ? `<cac:SellersItemIdentification><cbc:ID>${escapeXml(item.product_sku)}</cbc:ID></cac:SellersItemIdentification>` : ''}
+        <cac:ClassifiedTaxCategory>
+          <cbc:ID>${getVatCategoryCode(item.vat_category || vatCalculation.taxCategoryCode)}</cbc:ID>
+          <cbc:Percent>${lineVatRate}</cbc:Percent>
+          <cac:TaxScheme>
+            <cbc:ID>VAT</cbc:ID>
+          </cac:TaxScheme>
+        </cac:ClassifiedTaxCategory>
       </cac:Item>
       <cac:Price>
-        <cbc:PriceAmount currencyID="${currency}">${item.unit_price.toFixed(2)}</cbc:PriceAmount>
+        <cbc:PriceAmount currencyID="${currency}">${Number(item.unit_price).toFixed(2)}</cbc:PriceAmount>
       </cac:Price>
-    </cac:InvoiceLine>`).join('\n');
+    </cac:InvoiceLine>`;
+  }).join('\n');
 
   const customerVatInfo = customer?.vat_number && vatCalculation.vatType === 'reverse_charge' 
     ? `<cac:PartyTaxScheme>
@@ -412,6 +521,37 @@ function generateUBL(data: {
   const buyerEndpoint = customer?.peppol_id 
     ? `<cbc:EndpointID schemeID="${customer.peppol_id.split(':')[0]}">${escapeXml(customer.peppol_id.split(':')[1] || customer.peppol_id)}</cbc:EndpointID>` 
     : '';
+
+  // Tax subtotals for multi-rate support
+  const taxSubtotals = taxBreakdown.map(tax => `
+      <cac:TaxSubtotal>
+        <cbc:TaxableAmount currencyID="${currency}">${tax.taxableAmount.toFixed(2)}</cbc:TaxableAmount>
+        <cbc:TaxAmount currencyID="${currency}">${tax.vatAmount.toFixed(2)}</cbc:TaxAmount>
+        <cac:TaxCategory>
+          <cbc:ID>${getVatCategoryCode(tax.vatCategory)}</cbc:ID>
+          <cbc:Percent>${tax.vatRate}</cbc:Percent>
+          ${vatCalculation.vatText && tax.vatRate === 0 ? `<cbc:TaxExemptionReason>${escapeXml(vatCalculation.vatText)}</cbc:TaxExemptionReason>` : ''}
+          <cac:TaxScheme>
+            <cbc:ID>VAT</cbc:ID>
+          </cac:TaxScheme>
+        </cac:TaxCategory>
+      </cac:TaxSubtotal>`).join('\n');
+
+  // Shipping as AllowanceCharge (charge)
+  const shippingCharge = shippingCost > 0 ? `
+  <cac:AllowanceCharge>
+    <cbc:ChargeIndicator>true</cbc:ChargeIndicator>
+    <cbc:AllowanceChargeReasonCode>FC</cbc:AllowanceChargeReasonCode>
+    <cbc:AllowanceChargeReason>Shipping costs</cbc:AllowanceChargeReason>
+    <cbc:Amount currencyID="${currency}">${shippingCost.toFixed(2)}</cbc:Amount>
+    <cac:TaxCategory>
+      <cbc:ID>S</cbc:ID>
+      <cbc:Percent>${vatCalculation.vatRate}</cbc:Percent>
+      <cac:TaxScheme>
+        <cbc:ID>VAT</cbc:ID>
+      </cac:TaxScheme>
+    </cac:TaxCategory>
+  </cac:AllowanceCharge>` : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -463,52 +603,54 @@ function generateUBL(data: {
     <cac:Party>
       ${buyerEndpoint}
       <cac:PartyName>
-        <cbc:Name>${escapeXml(customer?.company_name || `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || customer?.email || 'Klant')}</cbc:Name>
+        <cbc:Name>${escapeXml(customer?.company_name || `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || 'Customer')}</cbc:Name>
       </cac:PartyName>
       <cac:PostalAddress>
-        ${order.shipping_address?.street ? `<cbc:StreetName>${escapeXml(order.shipping_address.street)}</cbc:StreetName>` : ''}
-        ${order.shipping_address?.city ? `<cbc:CityName>${escapeXml(order.shipping_address.city)}</cbc:CityName>` : ''}
-        ${order.shipping_address?.postal_code ? `<cbc:PostalZone>${escapeXml(order.shipping_address.postal_code)}</cbc:PostalZone>` : ''}
+        ${order.billing_address?.street ? `<cbc:StreetName>${escapeXml(order.billing_address.street)}</cbc:StreetName>` : ''}
+        ${order.billing_address?.city ? `<cbc:CityName>${escapeXml(order.billing_address.city)}</cbc:CityName>` : ''}
+        ${order.billing_address?.postal_code ? `<cbc:PostalZone>${escapeXml(order.billing_address.postal_code)}</cbc:PostalZone>` : ''}
         <cac:Country>
-          <cbc:IdentificationCode>${order.shipping_address?.country || 'NL'}</cbc:IdentificationCode>
+          <cbc:IdentificationCode>${order.billing_address?.country || 'NL'}</cbc:IdentificationCode>
         </cac:Country>
       </cac:PostalAddress>
       ${customerVatInfo}
       <cac:Contact>
         <cbc:ElectronicMail>${escapeXml(customer?.email || order.customer_email)}</cbc:ElectronicMail>
-        ${customer?.phone ? `<cbc:Telephone>${escapeXml(customer.phone)}</cbc:Telephone>` : ''}
       </cac:Contact>
     </cac:Party>
   </cac:AccountingCustomerParty>
 
+  ${tenant.iban ? `
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>58</cbc:PaymentMeansCode>
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>${escapeXml(tenant.iban)}</cbc:ID>
+      ${tenant.bic ? `
+      <cac:FinancialInstitutionBranch>
+        <cbc:ID>${escapeXml(tenant.bic)}</cbc:ID>
+      </cac:FinancialInstitutionBranch>` : ''}
+    </cac:PayeeFinancialAccount>
+  </cac:PaymentMeans>` : ''}
+${shippingCharge}
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="${currency}">${taxAmount.toFixed(2)}</cbc:TaxAmount>
-    <cac:TaxSubtotal>
-      <cbc:TaxableAmount currencyID="${currency}">${subtotal.toFixed(2)}</cbc:TaxableAmount>
-      <cbc:TaxAmount currencyID="${currency}">${taxAmount.toFixed(2)}</cbc:TaxAmount>
-      <cac:TaxCategory>
-        <cbc:ID>${vatCalculation.taxCategoryCode}</cbc:ID>
-        <cbc:Percent>${vatCalculation.vatRate}</cbc:Percent>
-        ${vatCalculation.vatText ? `<cbc:TaxExemptionReason>${escapeXml(vatCalculation.vatText)}</cbc:TaxExemptionReason>` : ''}
-        <cac:TaxScheme>
-          <cbc:ID>VAT</cbc:ID>
-        </cac:TaxScheme>
-      </cac:TaxCategory>
-    </cac:TaxSubtotal>
+${taxSubtotals}
   </cac:TaxTotal>
 
   <cac:LegalMonetaryTotal>
     <cbc:LineExtensionAmount currencyID="${currency}">${subtotal.toFixed(2)}</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="${currency}">${subtotal.toFixed(2)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxExclusiveAmount currencyID="${currency}">${(subtotal + shippingCost).toFixed(2)}</cbc:TaxExclusiveAmount>
     <cbc:TaxInclusiveAmount currencyID="${currency}">${total.toFixed(2)}</cbc:TaxInclusiveAmount>
+    ${shippingCost > 0 ? `<cbc:ChargeTotalAmount currencyID="${currency}">${shippingCost.toFixed(2)}</cbc:ChargeTotalAmount>` : ''}
     <cbc:PayableAmount currencyID="${currency}">${total.toFixed(2)}</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
 
-${invoiceLines}
+${invoiceLinesXml}
 </Invoice>`;
 }
 
-function generatePDFHTML(data: {
+// Generate true Factur-X PDF with embedded CII XML using pdf-lib
+async function generateFacturXPDF(data: {
   invoiceNumber: string;
   issueDate: string;
   dueDate: string;
@@ -517,217 +659,369 @@ function generatePDFHTML(data: {
   customer: any;
   order: any;
   orderItems: any[];
+  invoiceLines: any[];
   subtotal: number;
   taxAmount: number;
   total: number;
   shippingCost: number;
   vatCalculation: VatCalculation;
-}): string {
-  const { invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, orderItems, subtotal, taxAmount, total, shippingCost, vatCalculation } = data;
-  
-  const formatAmount = (amount: number) => formatCurrency(amount, currency);
-  
-  const itemRows = orderItems.map(item => `
-    <tr>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeXml(item.product_name)}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatAmount(item.unit_price)}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatAmount(item.total_price)}</td>
-    </tr>
-  `).join('');
+  taxBreakdown: TaxBreakdownLine[];
+  ogmReference: string;
+  isB2B: boolean;
+}): Promise<{ pdfBytes: Uint8Array; ciiXml: string }> {
+  const { 
+    invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
+    orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
+    vatCalculation, taxBreakdown, ogmReference, isB2B 
+  } = data;
 
-  let vatDisplay = '';
-  if (vatCalculation.vatType === 'reverse_charge') {
-    vatDisplay = `
-      <div class="total-row">
-        <span>BTW (0%)</span>
-        <span>${formatAmount(0)}</span>
-      </div>
-      <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
-        ${escapeXml(vatCalculation.vatText || '')}
-      </div>
-    `;
-  } else if (vatCalculation.vatType === 'export') {
-    vatDisplay = `
-      <div class="total-row">
-        <span>BTW (0%)</span>
-        <span>${formatAmount(0)}</span>
-      </div>
-      <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
-        ${escapeXml(vatCalculation.vatText || '')}
-      </div>
-    `;
-  } else if (vatCalculation.vatType === 'oss') {
-    vatDisplay = `
-      <div class="total-row">
-        <span>BTW (${vatCalculation.vatRate}% OSS)</span>
-        <span>${formatAmount(taxAmount)}</span>
-      </div>
-    `;
-  } else {
-    vatDisplay = `
-      <div class="total-row">
-        <span>BTW (${vatCalculation.vatRate}%)</span>
-        <span>${formatAmount(taxAmount)}</span>
-      </div>
-    `;
+  // Generate the CII XML first
+  const ciiXml = generateCIIXml(data);
+
+  // Create PDF document
+  const pdfDoc = await PDFDocument.create();
+  
+  // Embed fonts
+  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  
+  // Set PDF metadata for Factur-X compliance
+  pdfDoc.setTitle(`Invoice ${invoiceNumber}`);
+  pdfDoc.setAuthor(tenant.name);
+  pdfDoc.setSubject(`Invoice ${invoiceNumber}`);
+  pdfDoc.setKeywords(['invoice', 'factur-x', 'en16931']);
+  pdfDoc.setProducer('Sellqo Factur-X Generator');
+  pdfDoc.setCreator('Sellqo');
+  pdfDoc.setCreationDate(new Date());
+  pdfDoc.setModificationDate(new Date());
+
+  // Create page (A4 size)
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4 in points
+  const { width, height } = page.getSize();
+  
+  const margin = 50;
+  let yPos = height - margin;
+  
+  const primaryColor = rgb(0.231, 0.510, 0.965); // #3b82f6
+  const textColor = rgb(0.122, 0.161, 0.216); // #1f2937
+  const grayColor = rgb(0.420, 0.447, 0.502); // #6b7280
+  const lightGray = rgb(0.898, 0.906, 0.922); // #e5e7eb
+
+
+  const formatAmount = (amount: number) => formatCurrency(amount, currency);
+
+  // Helper function to safely get customer name
+  const customerName = customer?.company_name || 
+    `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || 
+    customer?.email || 'Klant';
+
+  // Header
+  page.drawText(tenant.name, {
+    x: margin,
+    y: yPos,
+    size: 18,
+    font: helveticaBold,
+    color: primaryColor,
+  });
+
+  page.drawText('FACTUUR', {
+    x: width - margin - 100,
+    y: yPos,
+    size: 24,
+    font: helveticaBold,
+    color: textColor,
+  });
+
+  yPos -= 20;
+  page.drawText(invoiceNumber, {
+    x: width - margin - 100,
+    y: yPos,
+    size: 12,
+    font: helveticaFont,
+    color: grayColor,
+  });
+
+  // Factur-X badge
+  yPos -= 20;
+  page.drawRectangle({
+    x: width - margin - 90,
+    y: yPos - 5,
+    width: 90,
+    height: 16,
+    color: rgb(0.063, 0.725, 0.506), // #10b981
+  });
+  page.drawText('FACTUR-X EN16931', {
+    x: width - margin - 85,
+    y: yPos,
+    size: 7,
+    font: helveticaBold,
+    color: rgb(1, 1, 1),
+  });
+
+  // Company info
+  yPos = height - margin - 20;
+  const companyInfo = [
+    tenant.address,
+    `${tenant.postal_code || ''} ${tenant.city || ''}`.trim(),
+    tenant.country || 'NL',
+    tenant.phone ? `Tel: ${tenant.phone}` : null,
+    tenant.owner_email ? `Email: ${tenant.owner_email}` : null,
+    tenant.kvk_number ? `KBO/KvK: ${tenant.kvk_number}` : null,
+    tenant.btw_number ? `BTW: ${tenant.btw_number}` : null,
+  ].filter(Boolean);
+
+  for (const line of companyInfo) {
+    yPos -= 14;
+    page.drawText(line as string, {
+      x: margin,
+      y: yPos,
+      size: 10,
+      font: helveticaFont,
+      color: textColor,
+    });
   }
 
-  const customerNameDisplay = customer?.company_name 
-    ? escapeXml(customer.company_name)
-    : escapeXml(`${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || customer?.email || 'Klant');
+  // Addresses section
+  yPos -= 40;
+  
+  // Billing address
+  page.drawText('Factuuradres', {
+    x: margin,
+    y: yPos,
+    size: 10,
+    font: helveticaBold,
+    color: textColor,
+  });
+  
+  page.drawText('Afleveradres', {
+    x: width / 2,
+    y: yPos,
+    size: 10,
+    font: helveticaBold,
+    color: textColor,
+  });
 
-  const customerVatDisplay = customer?.vat_number 
-    ? `<div>BTW: ${escapeXml(customer.vat_number)}</div>` 
-    : '';
+  yPos -= 16;
+  page.drawText(customerName, {
+    x: margin,
+    y: yPos,
+    size: 10,
+    font: helveticaBold,
+    color: textColor,
+  });
+  page.drawText(customerName, {
+    x: width / 2,
+    y: yPos,
+    size: 10,
+    font: helveticaBold,
+    color: textColor,
+  });
 
-  const customerPeppolDisplay = customer?.peppol_id 
-    ? `<div>Peppol-ID: ${escapeXml(customer.peppol_id)}</div>` 
-    : '';
+  const billingLines = [
+    order.billing_address?.street,
+    `${order.billing_address?.postal_code || ''} ${order.billing_address?.city || ''}`.trim(),
+    order.billing_address?.country,
+    customer?.vat_number ? `BTW: ${customer.vat_number}` : null,
+  ].filter(Boolean);
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 40px; color: #1f2937; font-size: 14px; }
-    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-    .company-info { max-width: 300px; }
-    .company-name { font-size: 24px; font-weight: bold; color: ${tenant.primary_color || '#3b82f6'}; margin-bottom: 8px; }
-    .invoice-title { font-size: 32px; font-weight: bold; color: #1f2937; text-align: right; }
-    .invoice-number { font-size: 16px; color: #6b7280; text-align: right; margin-top: 8px; }
-    .facturx-badge { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; margin-top: 8px; display: inline-block; }
-    .addresses { display: flex; justify-content: space-between; margin-bottom: 40px; }
-    .address-block { max-width: 250px; }
-    .address-label { font-weight: 600; margin-bottom: 8px; color: #374151; }
-    .meta-table { width: 100%; margin-bottom: 40px; }
-    .meta-table td { padding: 8px 0; }
-    .meta-label { color: #6b7280; width: 150px; }
-    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-    .items-table th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
-    .items-table th:nth-child(2), .items-table th:nth-child(3), .items-table th:nth-child(4) { text-align: right; }
-    .items-table th:nth-child(2) { text-align: center; }
-    .totals { margin-left: auto; width: 300px; }
-    .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
-    .total-row.final { font-size: 18px; font-weight: bold; border-top: 2px solid #1f2937; padding-top: 12px; margin-top: 8px; }
-    .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; }
-    .payment-info { margin-top: 40px; padding: 20px; background: #f9fafb; border-radius: 8px; }
-    .payment-title { font-weight: 600; margin-bottom: 12px; }
-    .vat-notice { margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; font-size: 12px; color: #92400e; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="company-info">
-      ${tenant.logo_url ? `<img src="${tenant.logo_url}" alt="${escapeXml(tenant.name)}" style="max-height: 60px; margin-bottom: 16px;">` : `<div class="company-name">${escapeXml(tenant.name)}</div>`}
-      <div>${tenant.address ? escapeXml(tenant.address) : ''}</div>
-      <div>${tenant.postal_code ? escapeXml(tenant.postal_code) : ''} ${tenant.city ? escapeXml(tenant.city) : ''}</div>
-      <div>${tenant.country || 'NL'}</div>
-      ${tenant.phone ? `<div>Tel: ${escapeXml(tenant.phone)}</div>` : ''}
-      ${tenant.owner_email ? `<div>Email: ${escapeXml(tenant.owner_email)}</div>` : ''}
-      ${tenant.kvk_number ? `<div>KvK: ${escapeXml(tenant.kvk_number)}</div>` : ''}
-      ${tenant.btw_number ? `<div>BTW: ${escapeXml(tenant.btw_number)}</div>` : ''}
-      ${tenant.peppol_id ? `<div>Peppol-ID: ${escapeXml(tenant.peppol_id)}</div>` : ''}
-    </div>
-    <div>
-      <div class="invoice-title">FACTUUR</div>
-      <div class="invoice-number">${escapeXml(invoiceNumber)}</div>
-      <div class="facturx-badge">Factur-X EN16931</div>
-    </div>
-  </div>
+  const shippingLines = [
+    order.shipping_address?.street,
+    `${order.shipping_address?.postal_code || ''} ${order.shipping_address?.city || ''}`.trim(),
+    order.shipping_address?.country,
+  ].filter(Boolean);
 
-  <div class="addresses">
-    <div class="address-block">
-      <div class="address-label">Factuuradres</div>
-      <div><strong>${customerNameDisplay}</strong></div>
-      ${customer?.first_name && customer?.company_name ? `<div>t.a.v. ${escapeXml(`${customer.first_name} ${customer.last_name || ''}`.trim())}</div>` : ''}
-      ${order.billing_address?.street ? `<div>${escapeXml(order.billing_address.street)}</div>` : ''}
-      ${order.billing_address?.postal_code || order.billing_address?.city ? `<div>${escapeXml(order.billing_address.postal_code || '')} ${escapeXml(order.billing_address.city || '')}</div>` : ''}
-      ${order.billing_address?.country ? `<div>${escapeXml(order.billing_address.country)}</div>` : ''}
-      ${customerVatDisplay}
-      ${customerPeppolDisplay}
-    </div>
-    <div class="address-block">
-      <div class="address-label">Afleveradres</div>
-      <div><strong>${customerNameDisplay}</strong></div>
-      ${order.shipping_address?.street ? `<div>${escapeXml(order.shipping_address.street)}</div>` : ''}
-      ${order.shipping_address?.postal_code || order.shipping_address?.city ? `<div>${escapeXml(order.shipping_address.postal_code || '')} ${escapeXml(order.shipping_address.city || '')}</div>` : ''}
-      ${order.shipping_address?.country ? `<div>${escapeXml(order.shipping_address.country)}</div>` : ''}
-    </div>
-  </div>
+  for (let i = 0; i < Math.max(billingLines.length, shippingLines.length); i++) {
+    yPos -= 14;
+    if (billingLines[i]) {
+      page.drawText(billingLines[i] as string, {
+        x: margin,
+        y: yPos,
+        size: 10,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
+    if (shippingLines[i]) {
+      page.drawText(shippingLines[i] as string, {
+        x: width / 2,
+        y: yPos,
+        size: 10,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
+  }
 
-  <table class="meta-table">
-    <tr>
-      <td class="meta-label">Factuurdatum:</td>
-      <td>${issueDate}</td>
-      <td class="meta-label">Ordernummer:</td>
-      <td>${escapeXml(order.order_number)}</td>
-    </tr>
-    <tr>
-      <td class="meta-label">Vervaldatum:</td>
-      <td>${dueDate}</td>
-      <td class="meta-label">Klantnummer:</td>
-      <td>${customer?.id?.substring(0, 8).toUpperCase() || '-'}</td>
-    </tr>
-  </table>
+  // Meta info
+  yPos -= 30;
+  const metaY = yPos;
+  
+  page.drawText('Factuurdatum:', { x: margin, y: metaY, size: 10, font: helveticaFont, color: grayColor });
+  page.drawText(issueDate, { x: margin + 80, y: metaY, size: 10, font: helveticaFont, color: textColor });
+  page.drawText('Ordernummer:', { x: width / 2, y: metaY, size: 10, font: helveticaFont, color: grayColor });
+  page.drawText(order.order_number, { x: width / 2 + 80, y: metaY, size: 10, font: helveticaFont, color: textColor });
 
-  <table class="items-table">
-    <thead>
-      <tr>
-        <th>Omschrijving</th>
-        <th style="text-align: center;">Aantal</th>
-        <th style="text-align: right;">Prijs</th>
-        <th style="text-align: right;">Totaal</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemRows}
-    </tbody>
-  </table>
+  yPos -= 16;
+  page.drawText('Vervaldatum:', { x: margin, y: yPos, size: 10, font: helveticaFont, color: grayColor });
+  page.drawText(dueDate, { x: margin + 80, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  page.drawText('OGM:', { x: width / 2, y: yPos, size: 10, font: helveticaFont, color: grayColor });
+  page.drawText(ogmReference, { x: width / 2 + 80, y: yPos, size: 10, font: helveticaFont, color: textColor });
 
-  <div class="totals">
-    <div class="total-row">
-      <span>Subtotaal</span>
-      <span>${formatAmount(subtotal)}</span>
-    </div>
-    ${shippingCost > 0 ? `
-    <div class="total-row">
-      <span>Verzendkosten</span>
-      <span>${formatAmount(shippingCost)}</span>
-    </div>
-    ` : ''}
-    ${vatDisplay}
-    <div class="total-row final">
-      <span>Totaal</span>
-      <span>${formatAmount(total)}</span>
-    </div>
-  </div>
+  // Items table header
+  yPos -= 40;
+  page.drawRectangle({
+    x: margin,
+    y: yPos - 5,
+    width: width - 2 * margin,
+    height: 20,
+    color: rgb(0.953, 0.957, 0.965), // #f3f4f6
+  });
 
-  ${vatCalculation.vatText ? `
-  <div class="vat-notice">
-    <strong>BTW-vermelding:</strong> ${escapeXml(vatCalculation.vatText)}
-  </div>
-  ` : ''}
+  page.drawText('Omschrijving', { x: margin + 10, y: yPos, size: 10, font: helveticaBold, color: textColor });
+  page.drawText('Aantal', { x: 320, y: yPos, size: 10, font: helveticaBold, color: textColor });
+  page.drawText('BTW%', { x: 370, y: yPos, size: 10, font: helveticaBold, color: textColor });
+  page.drawText('Prijs', { x: 420, y: yPos, size: 10, font: helveticaBold, color: textColor });
+  page.drawText('Totaal', { x: 480, y: yPos, size: 10, font: helveticaBold, color: textColor });
 
-  <div class="payment-info">
-    <div class="payment-title">Betaling</div>
-    <div>Deze factuur is betaald via ${order.stripe_payment_intent_id ? 'online betaling' : 'onze webshop'}.</div>
-    ${tenant.iban ? `
-    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-      <div style="font-weight: 600; margin-bottom: 4px;">Bankgegevens</div>
-      <div>IBAN: ${escapeXml(tenant.iban.replace(/(.{4})/g, '$1 ').trim())}</div>
-      ${tenant.bic ? `<div>BIC: ${escapeXml(tenant.bic)}</div>` : ''}
-    </div>
-    ` : ''}
-  </div>
+  // Items
+  const items = invoiceLines?.length > 0 ? invoiceLines : orderItems;
+  for (const item of items || []) {
+    yPos -= 20;
+    const lineVatRate = item.vat_rate ?? vatCalculation.vatRate;
+    const lineTotal = item.line_total ?? item.total_price ?? (item.quantity * item.unit_price);
+    
+    page.drawText((item.description || item.product_name || '').substring(0, 40), { 
+      x: margin + 10, y: yPos, size: 9, font: helveticaFont, color: textColor 
+    });
+    page.drawText(String(item.quantity || 1), { 
+      x: 320, y: yPos, size: 9, font: helveticaFont, color: textColor 
+    });
+    page.drawText(`${lineVatRate}%`, { 
+      x: 370, y: yPos, size: 9, font: helveticaFont, color: textColor 
+    });
+    page.drawText(formatAmount(item.unit_price), { 
+      x: 420, y: yPos, size: 9, font: helveticaFont, color: textColor 
+    });
+    page.drawText(formatAmount(lineTotal), { 
+      x: 480, y: yPos, size: 9, font: helveticaFont, color: textColor 
+    });
+    
+    page.drawLine({
+      start: { x: margin, y: yPos - 5 },
+      end: { x: width - margin, y: yPos - 5 },
+      thickness: 0.5,
+      color: lightGray,
+    });
+  }
 
-  <div class="footer">
-    <p>${escapeXml(tenant.name)} ${tenant.kvk_number ? `| KBO/KvK: ${escapeXml(tenant.kvk_number)}` : ''} ${tenant.btw_number ? `| BTW: ${escapeXml(tenant.btw_number)}` : ''} ${tenant.iban ? `| IBAN: ${escapeXml(tenant.iban)}` : ''}</p>
-    <p style="margin-top: 8px; font-size: 10px; color: #9ca3af;">Deze factuur bevat embedded Factur-X XML (EN16931) voor automatische verwerking door boekhoudsoftware.</p>
-  </div>
-</body>
-</html>`;
+  // Totals section
+  yPos -= 40;
+  const totalsX = 380;
+  
+  page.drawText('Subtotaal', { x: totalsX, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  page.drawText(formatAmount(subtotal), { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
+
+  if (shippingCost > 0) {
+    yPos -= 16;
+    page.drawText('Verzendkosten', { x: totalsX, y: yPos, size: 10, font: helveticaFont, color: textColor });
+    page.drawText(formatAmount(shippingCost), { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  }
+
+  // Tax breakdown
+  for (const tax of taxBreakdown) {
+    yPos -= 16;
+    page.drawText(`BTW ${tax.vatRate}%`, { x: totalsX, y: yPos, size: 10, font: helveticaFont, color: textColor });
+    page.drawText(formatAmount(tax.vatAmount), { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  }
+
+  // Total
+  yPos -= 20;
+  page.drawLine({
+    start: { x: totalsX, y: yPos + 5 },
+    end: { x: width - margin, y: yPos + 5 },
+    thickness: 1,
+    color: textColor,
+  });
+  page.drawText('Totaal', { x: totalsX, y: yPos - 5, size: 12, font: helveticaBold, color: textColor });
+  page.drawText(formatAmount(total), { x: 480, y: yPos - 5, size: 12, font: helveticaBold, color: textColor });
+
+  // VAT notice if applicable
+  if (vatCalculation.vatText) {
+    yPos -= 40;
+    page.drawRectangle({
+      x: margin,
+      y: yPos - 10,
+      width: width - 2 * margin,
+      height: 30,
+      color: rgb(0.996, 0.953, 0.780), // #fef3c7
+    });
+    page.drawText('BTW-vermelding: ' + vatCalculation.vatText, { 
+      x: margin + 10, y: yPos, size: 9, font: helveticaFont, color: rgb(0.573, 0.251, 0.055) // #92400e
+    });
+  }
+
+  // Payment info
+  yPos -= 60;
+  page.drawRectangle({
+    x: margin,
+    y: yPos - 50,
+    width: width - 2 * margin,
+    height: 70,
+    color: rgb(0.976, 0.980, 0.984), // #f9fafb
+  });
+
+  page.drawText('Betalingsgegevens', { x: margin + 10, y: yPos, size: 10, font: helveticaBold, color: textColor });
+  
+  if (tenant.iban) {
+    yPos -= 16;
+    page.drawText(`IBAN: ${tenant.iban.replace(/(.{4})/g, '$1 ').trim()}`, { 
+      x: margin + 10, y: yPos, size: 10, font: helveticaFont, color: textColor 
+    });
+  }
+  if (tenant.bic) {
+    yPos -= 14;
+    page.drawText(`BIC: ${tenant.bic}`, { x: margin + 10, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  }
+  yPos -= 14;
+  page.drawText(`Mededeling: ${ogmReference}`, { x: margin + 10, y: yPos, size: 10, font: helveticaBold, color: primaryColor });
+
+  // Footer
+  yPos = margin + 30;
+  page.drawLine({
+    start: { x: margin, y: yPos + 10 },
+    end: { x: width - margin, y: yPos + 10 },
+    thickness: 0.5,
+    color: lightGray,
+  });
+
+  const footerText = [
+    tenant.name,
+    tenant.kvk_number ? `KBO/KvK: ${tenant.kvk_number}` : null,
+    tenant.btw_number ? `BTW: ${tenant.btw_number}` : null,
+    tenant.iban ? `IBAN: ${tenant.iban}` : null,
+  ].filter(Boolean).join(' | ');
+
+  page.drawText(footerText, { 
+    x: margin, y: yPos - 5, size: 8, font: helveticaFont, color: grayColor 
+  });
+
+  page.drawText('Deze factuur bevat embedded Factur-X XML (EN16931) voor automatische verwerking.', { 
+    x: margin, y: yPos - 18, size: 7, font: helveticaFont, color: rgb(0.612, 0.639, 0.686) // #9ca3af
+  });
+
+  // Embed CII XML as attached file for Factur-X compliance
+  const xmlBytes = new TextEncoder().encode(ciiXml);
+  await pdfDoc.attach(xmlBytes, 'factur-x.xml', {
+    mimeType: 'application/xml',
+    description: 'Factur-X XML invoice data (EN16931)',
+    creationDate: new Date(),
+    modificationDate: new Date(),
+  });
+
+  // Generate PDF bytes
+  const pdfBytes = await pdfDoc.save();
+  
+  return { pdfBytes, ciiXml };
 }
 
 serve(async (req) => {
@@ -827,14 +1121,25 @@ serve(async (req) => {
     const customerCountry = order.shipping_address?.country || customer?.billing_country || tenant.country || 'NL';
 
     const subtotal = Number(order.subtotal) || 0;
+    const shippingCost = Number(order.shipping_cost) || 0;
+    
     const vatCalculation = calculateVat({
-      subtotal,
+      subtotal: subtotal + shippingCost,
       tenant,
       customer,
       customerCountry,
     });
 
+    // Calculate tax breakdown for multi-rate support
+    const taxBreakdown = calculateTaxBreakdown(orderItems || [], vatCalculation);
+
     logStep("VAT calculated", vatCalculation);
+
+    const isB2B = customer?.customer_type === 'b2b';
+    
+    // Generate OGM (Belgian structured communication)
+    const ogmReference = generateOGM(invoiceNumber);
+    logStep("OGM generated", { ogmReference });
 
     const invoiceData = {
       invoiceNumber,
@@ -845,27 +1150,30 @@ serve(async (req) => {
       customer,
       order,
       orderItems: orderItems || [],
+      invoiceLines: [], // Will be populated from invoice_lines table in future
       subtotal,
       taxAmount: vatCalculation.vatAmount,
-      total: subtotal + vatCalculation.vatAmount + (Number(order.shipping_cost) || 0),
-      shippingCost: Number(order.shipping_cost) || 0,
+      total: subtotal + vatCalculation.vatAmount + shippingCost,
+      shippingCost,
       vatCalculation,
+      taxBreakdown,
+      ogmReference,
+      isB2B,
     };
 
     let pdfUrl = null;
     let ublUrl = null;
-    let ciiUrl = null;
 
-    // Always generate Factur-X compatible PDF
-    logStep("Generating Factur-X PDF HTML");
-    const pdfHtml = generatePDFHTML(invoiceData);
+    // Generate true Factur-X PDF with embedded CII XML
+    logStep("Generating Factur-X PDF with embedded XML");
+    const { pdfBytes, ciiXml } = await generateFacturXPDF(invoiceData);
     
-    const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.html`;
+    const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
     
     const { error: uploadError } = await supabaseClient.storage
       .from("invoices")
-      .upload(pdfPath, new Blob([pdfHtml], { type: 'text/html' }), {
-        contentType: 'text/html',
+      .upload(pdfPath, pdfBytes, {
+        contentType: 'application/pdf',
         upsert: true,
       });
 
@@ -874,32 +1182,23 @@ serve(async (req) => {
         .from("invoices")
         .getPublicUrl(pdfPath);
       pdfUrl = publicUrl;
-      logStep("PDF HTML uploaded", { pdfUrl });
+      logStep("Factur-X PDF uploaded", { pdfUrl });
+    } else {
+      logStep("PDF upload error", { error: uploadError.message });
     }
 
-    // Always generate CII XML for Factur-X embedding
-    logStep("Generating CII XML for Factur-X");
-    const ciiXml = generateCIIXml(invoiceData);
-    
+    // Also save standalone CII XML for reference/debugging
     const ciiPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}_factur-x.xml`;
     
-    const { error: ciiUploadError } = await supabaseClient.storage
+    await supabaseClient.storage
       .from("invoices")
       .upload(ciiPath, new Blob([ciiXml], { type: 'application/xml' }), {
         contentType: 'application/xml',
         upsert: true,
       });
-
-    if (!ciiUploadError) {
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from("invoices")
-        .getPublicUrl(ciiPath);
-      ciiUrl = publicUrl;
-      logStep("CII XML uploaded", { ciiUrl });
-    }
+    logStep("CII XML uploaded as reference file");
 
     // Generate UBL XML for Peppol (always for B2B, or if explicitly requested)
-    const isB2B = customer?.customer_type === 'b2b';
     const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
     const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
     
@@ -928,10 +1227,6 @@ serve(async (req) => {
     // Determine Peppol status
     const peppolStatus = peppolRequired ? 'pending' : null;
 
-    // Generate OGM (Belgian structured communication)
-    const ogmReference = generateOGM(invoiceNumber);
-    logStep("OGM generated", { ogmReference });
-
     // Create invoice record
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
@@ -943,7 +1238,7 @@ serve(async (req) => {
         status: 'draft',
         subtotal: order.subtotal,
         tax_amount: vatCalculation.vatAmount,
-        total: subtotal + vatCalculation.vatAmount + (Number(order.shipping_cost) || 0),
+        total: subtotal + vatCalculation.vatAmount + shippingCost,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
         ogm_reference: ogmReference,
@@ -958,12 +1253,53 @@ serve(async (req) => {
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
 
+    // Create invoice lines for tracking
+    if (orderItems && orderItems.length > 0) {
+      const invoiceLines = orderItems.map((item, index) => ({
+        invoice_id: invoice.id,
+        description: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        line_total: item.total_price,
+        vat_rate: vatCalculation.vatRate,
+        vat_category: vatCalculation.taxCategoryCode,
+        vat_amount: item.total_price * (vatCalculation.vatRate / 100),
+        line_type: 'product',
+        product_id: item.product_id,
+        sort_order: index,
+      }));
+
+      // Add shipping line if applicable
+      if (shippingCost > 0) {
+        invoiceLines.push({
+          invoice_id: invoice.id,
+          description: 'Verzendkosten',
+          quantity: 1,
+          unit_price: shippingCost,
+          line_total: shippingCost,
+          vat_rate: vatCalculation.vatRate,
+          vat_category: vatCalculation.taxCategoryCode,
+          vat_amount: shippingCost * (vatCalculation.vatRate / 100),
+          line_type: 'shipping',
+          product_id: null,
+          sort_order: orderItems.length,
+        });
+      }
+
+      await supabaseClient
+        .from("invoice_lines")
+        .insert(invoiceLines);
+      
+      logStep("Invoice lines created", { count: invoiceLines.length });
+    }
+
     logStep("Invoice created successfully", { 
       invoice_id: invoice.id, 
       vatType: vatCalculation.vatType,
       isB2B,
       peppolStatus,
-      hasCiiXml: !!ciiUrl
+      hasFacturX: true,
+      taxBreakdown: taxBreakdown.length
     });
 
     return new Response(JSON.stringify({ 
@@ -972,21 +1308,20 @@ serve(async (req) => {
       invoice_number: invoiceNumber,
       pdf_url: pdfUrl,
       ubl_url: ublUrl,
-      cii_url: ciiUrl,
-      auto_send: tenant.auto_send_invoices,
-      vat_type: vatCalculation.vatType,
-      is_b2b: isB2B,
-      peppol_status: peppolStatus,
-      peppol_required: peppolRequired,
+      ogm_reference: ogmReference,
+      has_facturx: true,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+  } catch (error: any) {
+    logStep("Error", { message: error.message, stack: error.stack });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message 
+    }), {
       status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
