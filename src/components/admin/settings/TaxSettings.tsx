@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert, Send, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,7 @@ export function TaxSettings() {
     oss_identification_number: '',
     require_vies_validation: true,
     block_invalid_vat_orders: false,
+    peppol_id: '',
   });
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export function TaxSettings() {
         oss_identification_number: tenantData.oss_identification_number || '',
         require_vies_validation: tenantData.require_vies_validation ?? true,
         block_invalid_vat_orders: tenantData.block_invalid_vat_orders ?? false,
+        peppol_id: tenantData.peppol_id || '',
       });
     }
   }, [currentTenant]);
@@ -66,6 +68,7 @@ export function TaxSettings() {
           oss_identification_number: formData.oss_identification_number || null,
           require_vies_validation: formData.require_vies_validation,
           block_invalid_vat_orders: formData.block_invalid_vat_orders,
+          peppol_id: formData.peppol_id || null,
         })
         .eq('id', currentTenant.id);
 
@@ -611,7 +614,129 @@ export function TaxSettings() {
         </CardContent>
       </Card>
 
-      {/* BTW Decision Tree Preview */}
+      {/* Peppol E-Invoicing Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <Send className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle>{t('peppol.title')}</CardTitle>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <p>Peppol is het Europese netwerk voor het uitwisselen van elektronische facturen. Factur-X PDF's bevatten embedded XML die automatisch ingelezen kan worden door boekhoudsoftware.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <CardDescription>
+                {t('peppol.description')}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Peppol ID Input */}
+          <div className="grid gap-2">
+            <Label htmlFor="peppol_id" className="flex items-center gap-2">
+              <Hash className="h-4 w-4" />
+              {t('peppol.yourPeppolId')}
+            </Label>
+            <Input
+              id="peppol_id"
+              value={formData.peppol_id}
+              onChange={(e) => setFormData(prev => ({ ...prev, peppol_id: e.target.value }))}
+              placeholder={t('peppol.peppolIdPlaceholder')}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('peppol.peppolIdHelp')}
+            </p>
+          </div>
+
+          {/* Mandatory Notice for Belgium */}
+          {((currentTenant as any)?.country === 'BE') && (
+            <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800 dark:text-amber-200">Peppol verplicht in België</AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                {t('peppol.mandatoryNotice')}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Factur-X Enabled Info */}
+          <div className="p-4 border rounded-lg bg-green-50/50 dark:bg-green-950/20 space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <span className="font-medium text-green-700 dark:text-green-300">
+                {t('peppol.facturxEnabled')}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('peppol.facturxDescription')}
+            </p>
+          </div>
+
+          {/* Phase Info */}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              {t('peppol.phaseInfo')}
+            </AlertDescription>
+          </Alert>
+
+          {/* Peppol ID Schemes Reference */}
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span>Veelgebruikte Peppol ID-schemes</span>
+                <span className="text-muted-foreground">▼</span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 font-medium">Code</th>
+                      <th className="text-left py-2 px-3 font-medium">Beschrijving</th>
+                      <th className="text-left py-2 px-3 font-medium">Voorbeeld</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    <tr className="hover:bg-muted/50">
+                      <td className="py-2 px-3 font-mono">0208</td>
+                      <td className="py-2 px-3">België - KBO/BCE nummer</td>
+                      <td className="py-2 px-3 font-mono text-muted-foreground">0208:0123456789</td>
+                    </tr>
+                    <tr className="hover:bg-muted/50">
+                      <td className="py-2 px-3 font-mono">0106</td>
+                      <td className="py-2 px-3">Nederland - KvK nummer</td>
+                      <td className="py-2 px-3 font-mono text-muted-foreground">0106:12345678</td>
+                    </tr>
+                    <tr className="hover:bg-muted/50">
+                      <td className="py-2 px-3 font-mono">9925</td>
+                      <td className="py-2 px-3">BTW-nummer (EU-breed)</td>
+                      <td className="py-2 px-3 font-mono text-muted-foreground">9925:BE0123456789</td>
+                    </tr>
+                    <tr className="hover:bg-muted/50">
+                      <td className="py-2 px-3 font-mono">0190</td>
+                      <td className="py-2 px-3">Nederland - OIN</td>
+                      <td className="py-2 px-3 font-mono text-muted-foreground">0190:123456789012345</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>BTW-beslisboom</CardTitle>

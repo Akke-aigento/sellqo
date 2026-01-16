@@ -127,5 +127,30 @@
       "previewInLanguage": "Preview in language:",
       "defaultTexts": "These are the legally correct default texts. Customize only if necessary."
     }
+  },
+  "peppol": {
+    "title": "Peppol E-Invoicing",
+    "description": "Configure Peppol electronic invoicing for B2B compliance",
+    "yourPeppolId": "Your Peppol ID",
+    "peppolIdPlaceholder": "e.g. 0208:0123456789 or 0106:12345678",
+    "peppolIdHelp": "Your endpoint ID for receiving e-invoices. Common schemes: 0208 (Belgium KBO), 0106 (Netherlands KvK), 9925 (VAT number)",
+    "mandatoryNotice": "From January 1, 2026, Peppol e-invoicing is mandatory for B2B transactions in Belgium.",
+    "facturxEnabled": "Factur-X PDF enabled",
+    "facturxDescription": "All invoices are sent as Factur-X PDF. These hybrid invoices contain embedded XML data that can be automatically imported by accounting software like Odoo, Exact and SAP.",
+    "phaseInfo": "For Belgian B2B invoices, UBL XML is also generated. Download the UBL file and send via your accounting software or Access Point provider to the Peppol network.",
+    "downloadUbl": "Download UBL XML",
+    "pendingShipment": "Peppol shipment pending",
+    "missingCustomerIdWarning": "Warning: This B2B customer does not have a Peppol ID yet. Request this from the customer.",
+    "markAsSent": "Mark as sent via Peppol",
+    "markedAsSent": "Marked as sent via Peppol",
+    "customerPeppolId": "Customer Peppol ID",
+    "customerPeppolIdPlaceholder": "e.g. 0208:0123456789",
+    "customerPeppolIdHelp": "The customer's endpoint ID for receiving e-invoices",
+    "peppolStatus": {
+      "pending": "Pending",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "failed": "Failed"
+    }
   }
 }

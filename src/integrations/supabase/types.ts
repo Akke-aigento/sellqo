@@ -88,6 +88,7 @@ export type Database = {
           id: string
           last_name: string | null
           notes: string | null
+          peppol_id: string | null
           phone: string | null
           shipping_address_verified: boolean | null
           shipping_city: string | null
@@ -120,6 +121,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           notes?: string | null
+          peppol_id?: string | null
           phone?: string | null
           shipping_address_verified?: boolean | null
           shipping_city?: string | null
@@ -152,6 +154,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           notes?: string | null
+          peppol_id?: string | null
           phone?: string | null
           shipping_address_verified?: boolean | null
           shipping_city?: string | null
@@ -184,9 +187,12 @@ export type Database = {
           customer_id: string | null
           id: string
           invoice_number: string
+          is_b2b: boolean | null
           order_id: string | null
           paid_at: string | null
           pdf_url: string | null
+          peppol_sent_at: string | null
+          peppol_status: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
@@ -201,9 +207,12 @@ export type Database = {
           customer_id?: string | null
           id?: string
           invoice_number: string
+          is_b2b?: boolean | null
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
+          peppol_sent_at?: string | null
+          peppol_status?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
@@ -218,9 +227,12 @@ export type Database = {
           customer_id?: string | null
           id?: string
           invoice_number?: string
+          is_b2b?: boolean | null
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
+          peppol_sent_at?: string | null
+          peppol_status?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
@@ -798,6 +810,7 @@ export type Database = {
           oss_registration_date: string | null
           owner_email: string
           owner_name: string | null
+          peppol_id: string | null
           phone: string | null
           postal_code: string | null
           primary_color: string | null
@@ -844,6 +857,7 @@ export type Database = {
           oss_registration_date?: string | null
           owner_email: string
           owner_name?: string | null
+          peppol_id?: string | null
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
@@ -890,6 +904,7 @@ export type Database = {
           oss_registration_date?: string | null
           owner_email?: string
           owner_name?: string | null
+          peppol_id?: string | null
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null

@@ -117,15 +117,40 @@
       "title": "Textes TVA sur factures",
       "description": "Textes légaux affichés sur les factures pour les situations TVA spéciales. Le texte est affiché dans la langue du client.",
       "intracomGoodsLabel": "Livraison intracommunautaire de biens (B2B)",
-      "intracomGoodsDescription": "Pour les livraisons de biens aux clients B2B avec numéro de TVA UE valide dans un autre pays UE",
+      "intracomGoodsDescription": "Pour les livraisons de biens à des clients B2B avec un numéro de TVA UE valide dans un autre pays de l'UE",
       "intracomServicesLabel": "Services intracommunautaires (B2B) - Autoliquidation",
-      "intracomServicesDescription": "Pour les services aux clients B2B avec numéro de TVA UE valide dans un autre pays UE",
-      "exportLabel": "Exportation hors UE",
-      "exportDescription": "Pour les livraisons aux clients en dehors de l'Union européenne",
+      "intracomServicesDescription": "Pour les services à des clients B2B avec un numéro de TVA UE valide dans un autre pays de l'UE",
+      "exportLabel": "Export hors UE",
+      "exportDescription": "Pour les livraisons à des clients hors de l'Union européenne",
       "ossLabel": "Régime OSS (B2C UE)",
-      "ossDescription": "Pour les ventes B2C aux consommateurs dans d'autres pays de l'UE sous le régime OSS",
-      "previewInLanguage": "Aperçu dans la langue:",
+      "ossDescription": "Pour les ventes B2C à des consommateurs dans d'autres pays de l'UE sous le régime OSS",
+      "previewInLanguage": "Aperçu en langue :",
       "defaultTexts": "Ce sont les textes par défaut légalement corrects. Personnalisez uniquement si nécessaire."
+    }
+  },
+  "peppol": {
+    "title": "Peppol Facturation électronique",
+    "description": "Configurez la facturation électronique Peppol pour la conformité B2B",
+    "yourPeppolId": "Votre identifiant Peppol",
+    "peppolIdPlaceholder": "ex. 0208:0123456789 ou 0106:12345678",
+    "peppolIdHelp": "Votre identifiant d'endpoint pour recevoir des factures électroniques. Schémas courants : 0208 (Belgique KBO), 0106 (Pays-Bas KvK), 9925 (numéro de TVA)",
+    "mandatoryNotice": "À partir du 1er janvier 2026, la facturation électronique Peppol est obligatoire pour les transactions B2B en Belgique.",
+    "facturxEnabled": "PDF Factur-X activé",
+    "facturxDescription": "Toutes les factures sont envoyées au format PDF Factur-X. Ces factures hybrides contiennent des données XML intégrées qui peuvent être automatiquement importées par les logiciels de comptabilité comme Odoo, Exact et SAP.",
+    "phaseInfo": "Pour les factures B2B belges, le format UBL XML est également généré. Téléchargez le fichier UBL et envoyez-le via votre logiciel comptable ou fournisseur Access Point vers le réseau Peppol.",
+    "downloadUbl": "Télécharger UBL XML",
+    "pendingShipment": "Envoi Peppol en attente",
+    "missingCustomerIdWarning": "Attention : Ce client B2B n'a pas encore d'identifiant Peppol. Demandez-le au client.",
+    "markAsSent": "Marquer comme envoyé via Peppol",
+    "markedAsSent": "Marqué comme envoyé via Peppol",
+    "customerPeppolId": "Identifiant Peppol du client",
+    "customerPeppolIdPlaceholder": "ex. 0208:0123456789",
+    "customerPeppolIdHelp": "L'identifiant d'endpoint du client pour recevoir des factures électroniques",
+    "peppolStatus": {
+      "pending": "En attente",
+      "sent": "Envoyé",
+      "delivered": "Livré",
+      "failed": "Échoué"
     }
   }
 }
