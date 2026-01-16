@@ -4,9 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { SellqoLogo } from '@/components/SellqoLogo';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -118,12 +119,9 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
-            <Package className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <span className="text-2xl font-bold">Multi-Store</span>
+        {/* Sellqo Logo with Tagline */}
+        <div className="flex justify-center mb-8">
+          <SellqoLogo variant="tagline" width={280} />
         </div>
 
         <Card>
@@ -274,7 +272,7 @@ export default function Auth() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Multi-Store Admin Platform
+          Jouw webshop. Simpel online.
         </p>
       </div>
     </div>
