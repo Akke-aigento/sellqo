@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.stripe-connect-webhook]
 verify_jwt = false
+
+[functions.create-quote-payment-link]
+verify_jwt = false
+
+[functions.send-quote-email]
+verify_jwt = false
