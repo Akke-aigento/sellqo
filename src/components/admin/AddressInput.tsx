@@ -74,7 +74,7 @@ export function AddressInput({
   onChange,
   onValidated,
   disabled,
-  label = 'Adres',
+  label,
   showValidation = true,
 }: AddressInputProps) {
   const {
@@ -148,30 +148,54 @@ export function AddressInput({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label>{label}</Label>
-        {hasValidated && result && (
-          <Badge 
-            variant="outline" 
-            className={cn(
-              result.valid 
-                ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200" 
-                : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-200"
-            )}
-          >
-            {result.valid ? (
-              <>
-                <Check className="h-3 w-3 mr-1" />
-                Geverifieerd
-              </>
-            ) : (
-              <>
-                <X className="h-3 w-3 mr-1" />
-                Niet gevonden
-              </>
-            )}
-          </Badge>
-        )}
+      {/* Header with label and validation badge */}
+      {(label || hasValidated) && (
+        <div className="flex items-center justify-between">
+          {label && <Label>{label}</Label>}
+          {hasValidated && result && (
+            <Badge 
+              variant="outline" 
+              className={cn(
+                result.valid 
+                  ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200" 
+                  : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-200"
+              )}
+            >
+              {result.valid ? (
+                <>
+                  <Check className="h-3 w-3 mr-1" />
+                  Geverifieerd
+                </>
+              ) : (
+                <>
+                  <X className="h-3 w-3 mr-1" />
+                  Niet gevonden
+                </>
+              )}
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Country - First for better UX with address autocomplete */}
+      <div>
+        <Label htmlFor="country" className="text-xs text-muted-foreground">Land</Label>
+        <Select
+          value={value.country}
+          onValueChange={(val) => onChange({ ...value, country: val })}
+          disabled={disabled}
+        >
+          <SelectTrigger className="mt-1">
+            <SelectValue placeholder="Selecteer land" />
+          </SelectTrigger>
+          <SelectContent>
+            {COUNTRIES.map((country) => (
+              <SelectItem key={country.code} value={country.code}>
+                {country.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Street with autocomplete */}
@@ -260,27 +284,6 @@ export function AddressInput({
         </div>
       </div>
 
-      {/* Country */}
-      <div>
-        <Label htmlFor="country" className="text-xs text-muted-foreground">Land</Label>
-        <Select
-          value={value.country}
-          onValueChange={(val) => onChange({ ...value, country: val })}
-          disabled={disabled}
-        >
-          <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Selecteer land" />
-          </SelectTrigger>
-          <SelectContent>
-            {COUNTRIES.map((country) => (
-              <SelectItem key={country.code} value={country.code}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Validate button */}
       {showValidation && (
         <Button
@@ -322,4 +325,3 @@ export function AddressInput({
     </div>
   );
 }
-
