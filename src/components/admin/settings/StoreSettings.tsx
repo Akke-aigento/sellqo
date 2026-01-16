@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useTheme } from 'next-themes';
 
 const CURRENCIES = [
   { code: 'EUR', name: 'Euro (€)', symbol: '€' },
@@ -26,7 +27,9 @@ const LANGUAGES = [
 export function StoreSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
+  const followSystemTheme = theme === 'system';
 
   const [formData, setFormData] = useState({
     tax_percentage: 21,
@@ -271,6 +274,28 @@ export function StoreSettings() {
                 Secundaire knop
               </Button>
             </div>
+          </div>
+
+          {/* System Theme Toggle */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <p className="font-medium">Systeemthema volgen</p>
+              <p className="text-sm text-muted-foreground">
+                Automatisch schakelen tussen licht en donker op basis van je apparaatinstellingen
+              </p>
+            </div>
+            <Switch
+              checked={followSystemTheme}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setTheme('system');
+                } else {
+                  // When turning off, use current resolved theme
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  setTheme(prefersDark ? 'dark' : 'light');
+                }
+              }}
+            />
           </div>
         </CardContent>
       </Card>
