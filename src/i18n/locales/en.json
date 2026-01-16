@@ -1,0 +1,102 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "search": "Search...",
+    "add": "Add",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "description": "Description",
+    "price": "Price",
+    "total": "Total",
+    "date": "Date",
+    "noResults": "No results found"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "signUp": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset password"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "customers": "Customers",
+    "categories": "Categories",
+    "shipping": "Shipping",
+    "settings": "Settings",
+    "analytics": "Analytics",
+    "platform": "Platform",
+    "tenants": "Tenants"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account, business details and store settings.",
+    "tabs": {
+      "account": "Account",
+      "business": "Business",
+      "store": "Store",
+      "payments": "Payments",
+      "team": "Team"
+    },
+    "account": {
+      "title": "Account",
+      "profile": "Profile",
+      "manageProfile": "Manage your profile information and preferences.",
+      "fullName": "Full name",
+      "emailReadOnly": "Your email address cannot be changed.",
+      "language": "Language",
+      "languageDescription": "Choose your preferred interface language.",
+      "saveProfile": "Save profile",
+      "profileUpdated": "Profile updated",
+      "profileUpdatedDescription": "Your profile information has been saved.",
+      "profileError": "Save error",
+      "profileErrorDescription": "An error occurred while saving your profile."
+    },
+    "password": {
+      "title": "Password",
+      "description": "Change your password for extra security.",
+      "new": "New password",
+      "confirm": "Confirm password",
+      "change": "Change password",
+      "mismatch": "Passwords don't match",
+      "mismatchDescription": "The new password and confirmation don't match.",
+      "tooShort": "Password too short",
+      "tooShortDescription": "Your password must be at least 6 characters.",
+      "updated": "Password changed",
+      "updatedDescription": "Your password has been updated successfully.",
+      "error": "Change error",
+      "errorDescription": "An error occurred while changing your password."
+    }
+  },
+  "languages": {
+    "nl": "Nederlands",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
+  "toast": {
+    "success": "Success",
+    "error": "Error",
+    "saved": "Saved",
+    "deleted": "Deleted",
+    "updated": "Updated"
+  }
+}

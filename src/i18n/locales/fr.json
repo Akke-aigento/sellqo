@@ -1,0 +1,102 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement...",
+    "search": "Rechercher...",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "yes": "Oui",
+    "no": "Non",
+    "actions": "Actions",
+    "status": "Statut",
+    "name": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "address": "Adresse",
+    "description": "Description",
+    "price": "Prix",
+    "total": "Total",
+    "date": "Date",
+    "noResults": "Aucun résultat trouvé"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "signUp": "S'inscrire",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "resetPassword": "Réinitialiser le mot de passe"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "products": "Produits",
+    "orders": "Commandes",
+    "customers": "Clients",
+    "categories": "Catégories",
+    "shipping": "Expédition",
+    "settings": "Paramètres",
+    "analytics": "Analytique",
+    "platform": "Plateforme",
+    "tenants": "Locataires"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Gérez votre compte, vos données d'entreprise et les paramètres de la boutique.",
+    "tabs": {
+      "account": "Compte",
+      "business": "Entreprise",
+      "store": "Boutique",
+      "payments": "Paiements",
+      "team": "Équipe"
+    },
+    "account": {
+      "title": "Compte",
+      "profile": "Profil",
+      "manageProfile": "Gérez vos informations de profil et vos préférences.",
+      "fullName": "Nom complet",
+      "emailReadOnly": "Votre adresse e-mail ne peut pas être modifiée.",
+      "language": "Langue",
+      "languageDescription": "Choisissez votre langue préférée pour l'interface.",
+      "saveProfile": "Enregistrer le profil",
+      "profileUpdated": "Profil mis à jour",
+      "profileUpdatedDescription": "Vos informations de profil ont été enregistrées.",
+      "profileError": "Erreur de sauvegarde",
+      "profileErrorDescription": "Une erreur s'est produite lors de l'enregistrement de votre profil."
+    },
+    "password": {
+      "title": "Mot de passe",
+      "description": "Changez votre mot de passe pour plus de sécurité.",
+      "new": "Nouveau mot de passe",
+      "confirm": "Confirmer le mot de passe",
+      "change": "Changer le mot de passe",
+      "mismatch": "Les mots de passe ne correspondent pas",
+      "mismatchDescription": "Le nouveau mot de passe et la confirmation ne correspondent pas.",
+      "tooShort": "Mot de passe trop court",
+      "tooShortDescription": "Votre mot de passe doit contenir au moins 6 caractères.",
+      "updated": "Mot de passe changé",
+      "updatedDescription": "Votre mot de passe a été mis à jour avec succès.",
+      "error": "Erreur de changement",
+      "errorDescription": "Une erreur s'est produite lors du changement de votre mot de passe."
+    }
+  },
+  "languages": {
+    "nl": "Nederlands",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
+  "toast": {
+    "success": "Succès",
+    "error": "Erreur",
+    "saved": "Enregistré",
+    "deleted": "Supprimé",
+    "updated": "Mis à jour"
+  }
+}

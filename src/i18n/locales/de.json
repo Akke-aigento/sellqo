@@ -1,0 +1,102 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "loading": "Laden...",
+    "search": "Suchen...",
+    "add": "Hinzufügen",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "yes": "Ja",
+    "no": "Nein",
+    "actions": "Aktionen",
+    "status": "Status",
+    "name": "Name",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "address": "Adresse",
+    "description": "Beschreibung",
+    "price": "Preis",
+    "total": "Gesamt",
+    "date": "Datum",
+    "noResults": "Keine Ergebnisse gefunden"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "signUp": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "resetPassword": "Passwort zurücksetzen"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "products": "Produkte",
+    "orders": "Bestellungen",
+    "customers": "Kunden",
+    "categories": "Kategorien",
+    "shipping": "Versand",
+    "settings": "Einstellungen",
+    "analytics": "Analytik",
+    "platform": "Plattform",
+    "tenants": "Mandanten"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "description": "Verwalten Sie Ihr Konto, Geschäftsdaten und Shop-Einstellungen.",
+    "tabs": {
+      "account": "Konto",
+      "business": "Unternehmen",
+      "store": "Shop",
+      "payments": "Zahlungen",
+      "team": "Team"
+    },
+    "account": {
+      "title": "Konto",
+      "profile": "Profil",
+      "manageProfile": "Verwalten Sie Ihre Profilinformationen und Einstellungen.",
+      "fullName": "Vollständiger Name",
+      "emailReadOnly": "Ihre E-Mail-Adresse kann nicht geändert werden.",
+      "language": "Sprache",
+      "languageDescription": "Wählen Sie Ihre bevorzugte Sprache für die Benutzeroberfläche.",
+      "saveProfile": "Profil speichern",
+      "profileUpdated": "Profil aktualisiert",
+      "profileUpdatedDescription": "Ihre Profilinformationen wurden gespeichert.",
+      "profileError": "Speicherfehler",
+      "profileErrorDescription": "Beim Speichern Ihres Profils ist ein Fehler aufgetreten."
+    },
+    "password": {
+      "title": "Passwort",
+      "description": "Ändern Sie Ihr Passwort für zusätzliche Sicherheit.",
+      "new": "Neues Passwort",
+      "confirm": "Passwort bestätigen",
+      "change": "Passwort ändern",
+      "mismatch": "Passwörter stimmen nicht überein",
+      "mismatchDescription": "Das neue Passwort und die Bestätigung stimmen nicht überein.",
+      "tooShort": "Passwort zu kurz",
+      "tooShortDescription": "Ihr Passwort muss mindestens 6 Zeichen lang sein.",
+      "updated": "Passwort geändert",
+      "updatedDescription": "Ihr Passwort wurde erfolgreich aktualisiert.",
+      "error": "Änderungsfehler",
+      "errorDescription": "Beim Ändern Ihres Passworts ist ein Fehler aufgetreten."
+    }
+  },
+  "languages": {
+    "nl": "Nederlands",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
+  "toast": {
+    "success": "Erfolg",
+    "error": "Fehler",
+    "saved": "Gespeichert",
+    "deleted": "Gelöscht",
+    "updated": "Aktualisiert"
+  }
+}
