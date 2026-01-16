@@ -793,6 +793,8 @@ export type Database = {
           last_login: string | null
           logo_url: string | null
           name: string
+          oss_identification_number: string | null
+          oss_registration_date: string | null
           owner_email: string
           owner_name: string | null
           phone: string | null
@@ -835,6 +837,8 @@ export type Database = {
           last_login?: string | null
           logo_url?: string | null
           name: string
+          oss_identification_number?: string | null
+          oss_registration_date?: string | null
           owner_email: string
           owner_name?: string | null
           phone?: string | null
@@ -877,6 +881,8 @@ export type Database = {
           last_login?: string | null
           logo_url?: string | null
           name?: string
+          oss_identification_number?: string | null
+          oss_registration_date?: string | null
           owner_email?: string
           owner_name?: string | null
           phone?: string | null
