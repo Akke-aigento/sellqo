@@ -257,8 +257,11 @@ export type Database = {
           default_billing_address: Json | null
           default_shipping_address: Json | null
           email: string
+          external_id: string | null
           first_name: string | null
           id: string
+          import_job_id: string | null
+          imported_at: string | null
           last_name: string | null
           notes: string | null
           peppol_id: string | null
@@ -290,8 +293,11 @@ export type Database = {
           default_billing_address?: Json | null
           default_shipping_address?: Json | null
           email: string
+          external_id?: string | null
           first_name?: string | null
           id?: string
+          import_job_id?: string | null
+          imported_at?: string | null
           last_name?: string | null
           notes?: string | null
           peppol_id?: string | null
@@ -323,8 +329,11 @@ export type Database = {
           default_billing_address?: Json | null
           default_shipping_address?: Json | null
           email?: string
+          external_id?: string | null
           first_name?: string | null
           id?: string
+          import_job_id?: string | null
+          imported_at?: string | null
           last_name?: string | null
           notes?: string | null
           peppol_id?: string | null
@@ -346,7 +355,228 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "customers_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_category_mappings: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          created_category_id: string | null
+          id: string
+          import_job_id: string | null
+          is_approved: boolean | null
+          matched_existing_id: string | null
+          original_value: string
+          parent_category_id: string | null
+          parent_mapping_id: string | null
+          product_count: number | null
+          source_field: string | null
+          suggested_name: string
+          suggested_slug: string | null
+          user_assigned_parent: string | null
+          user_modified_name: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          created_category_id?: string | null
+          id?: string
+          import_job_id?: string | null
+          is_approved?: boolean | null
+          matched_existing_id?: string | null
+          original_value: string
+          parent_category_id?: string | null
+          parent_mapping_id?: string | null
+          product_count?: number | null
+          source_field?: string | null
+          suggested_name: string
+          suggested_slug?: string | null
+          user_assigned_parent?: string | null
+          user_modified_name?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          created_category_id?: string | null
+          id?: string
+          import_job_id?: string | null
+          is_approved?: boolean | null
+          matched_existing_id?: string | null
+          original_value?: string
+          parent_category_id?: string | null
+          parent_mapping_id?: string | null
+          product_count?: number | null
+          source_field?: string | null
+          suggested_name?: string
+          suggested_slug?: string | null
+          user_assigned_parent?: string | null
+          user_modified_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_category_mappings_created_category_id_fkey"
+            columns: ["created_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_category_mappings_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_category_mappings_matched_existing_id_fkey"
+            columns: ["matched_existing_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_category_mappings_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_category_mappings_user_assigned_parent_fkey"
+            columns: ["user_assigned_parent"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_jobs: {
+        Row: {
+          categories_created: number | null
+          categories_matched: number | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          data_type: string
+          duration_ms: number | null
+          errors: Json | null
+          failed_count: number | null
+          file_name: string | null
+          id: string
+          mapping: Json | null
+          options: Json | null
+          skipped_count: number | null
+          source_platform: string
+          started_at: string | null
+          status: string | null
+          success_count: number | null
+          tenant_id: string | null
+          total_rows: number | null
+        }
+        Insert: {
+          categories_created?: number | null
+          categories_matched?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_type: string
+          duration_ms?: number | null
+          errors?: Json | null
+          failed_count?: number | null
+          file_name?: string | null
+          id?: string
+          mapping?: Json | null
+          options?: Json | null
+          skipped_count?: number | null
+          source_platform: string
+          started_at?: string | null
+          status?: string | null
+          success_count?: number | null
+          tenant_id?: string | null
+          total_rows?: number | null
+        }
+        Update: {
+          categories_created?: number | null
+          categories_matched?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_type?: string
+          duration_ms?: number | null
+          errors?: Json | null
+          failed_count?: number | null
+          file_name?: string | null
+          id?: string
+          mapping?: Json | null
+          options?: Json | null
+          skipped_count?: number | null
+          source_platform?: string
+          started_at?: string | null
+          status?: string | null
+          success_count?: number | null
+          tenant_id?: string | null
+          total_rows?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_mappings: {
+        Row: {
+          category_mappings: Json | null
+          created_at: string | null
+          data_type: string
+          id: string
+          is_default: boolean | null
+          mapping: Json
+          name: string
+          source_platform: string
+          tenant_id: string | null
+        }
+        Insert: {
+          category_mappings?: Json | null
+          created_at?: string | null
+          data_type: string
+          id?: string
+          is_default?: boolean | null
+          mapping: Json
+          name: string
+          source_platform: string
+          tenant_id?: string | null
+        }
+        Update: {
+          category_mappings?: Json | null
+          created_at?: string | null
+          data_type?: string
+          id?: string
+          is_default?: boolean | null
+          mapping?: Json
+          name?: string
+          source_platform?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_mappings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1167,15 +1397,19 @@ export type Database = {
           cost_price: number | null
           created_at: string | null
           description: string | null
+          external_id: string | null
           featured_image: string | null
           id: string
           images: string[] | null
+          import_job_id: string | null
+          imported_at: string | null
           is_active: boolean | null
           is_featured: boolean | null
           low_stock_threshold: number | null
           meta_description: string | null
           meta_title: string | null
           name: string
+          original_category_value: string | null
           price: number
           requires_shipping: boolean | null
           short_description: string | null
@@ -1197,15 +1431,19 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          external_id?: string | null
           featured_image?: string | null
           id?: string
           images?: string[] | null
+          import_job_id?: string | null
+          imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
           low_stock_threshold?: number | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
+          original_category_value?: string | null
           price: number
           requires_shipping?: boolean | null
           short_description?: string | null
@@ -1227,15 +1465,19 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          external_id?: string | null
           featured_image?: string | null
           id?: string
           images?: string[] | null
+          import_job_id?: string | null
+          imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
           low_stock_threshold?: number | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
+          original_category_value?: string | null
           price?: number
           requires_shipping?: boolean | null
           short_description?: string | null
@@ -1255,6 +1497,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
             referencedColumns: ["id"]
           },
           {
