@@ -14,6 +14,9 @@ import ProductForm from "./pages/admin/ProductForm";
 import CategoriesPage from "./pages/admin/Categories";
 import OrdersPage from "./pages/admin/Orders";
 import OrderDetailPage from "./pages/admin/OrderDetail";
+import QuotesPage from "./pages/admin/Quotes";
+import QuoteFormPage from "./pages/admin/QuoteForm";
+import QuoteDetailPage from "./pages/admin/QuoteDetail";
 import CustomersPage from "./pages/admin/Customers";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
@@ -50,6 +53,10 @@ const App = () => (
 <Route path="products/:id/edit" element={<ProductForm />} />
               <Route path="orders" element={<OrdersPage />} />
               <Route path="orders/:id" element={<OrderDetailPage />} />
+              <Route path="orders/quotes" element={<QuotesPage />} />
+              <Route path="orders/quotes/new" element={<QuoteFormPage />} />
+              <Route path="orders/quotes/:id" element={<QuoteDetailPage />} />
+              <Route path="orders/quotes/:id/edit" element={<QuoteFormPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
