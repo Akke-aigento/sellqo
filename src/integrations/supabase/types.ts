@@ -773,6 +773,7 @@ export type Database = {
           address: string | null
           apply_oss_rules: boolean | null
           auto_send_invoices: boolean | null
+          block_invalid_vat_orders: boolean | null
           btw_number: string | null
           city: string | null
           country: string | null
@@ -800,6 +801,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           primary_color: string | null
+          require_vies_validation: boolean | null
           reverse_charge_text: string | null
           secondary_color: string | null
           shipping_enabled: boolean | null
@@ -817,6 +819,7 @@ export type Database = {
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
+          block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
           city?: string | null
           country?: string | null
@@ -844,6 +847,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
           shipping_enabled?: boolean | null
@@ -861,6 +865,7 @@ export type Database = {
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
+          block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
           city?: string | null
           country?: string | null
@@ -888,6 +893,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
           shipping_enabled?: boolean | null
@@ -928,6 +934,63 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_validations: {
+        Row: {
+          company_address: string | null
+          company_name: string | null
+          country_code: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          is_valid: boolean
+          tenant_id: string
+          validated_at: string
+          vat_number: string
+          vies_request_id: string | null
+        }
+        Insert: {
+          company_address?: string | null
+          company_name?: string | null
+          country_code: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          is_valid: boolean
+          tenant_id: string
+          validated_at?: string
+          vat_number: string
+          vies_request_id?: string | null
+        }
+        Update: {
+          company_address?: string | null
+          company_name?: string | null
+          country_code?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          is_valid?: boolean
+          tenant_id?: string
+          validated_at?: string
+          vat_number?: string
+          vies_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_validations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_validations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
