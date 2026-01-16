@@ -13,13 +13,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import type { Customer } from '@/types/order';
 
 export default function CustomersPage() {
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
-  const { customers, isLoading, deleteCustomer } = useCustomers(search);
+  const { customers, isLoading, createCustomer, deleteCustomer } = useCustomers(search);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -53,6 +54,10 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Klanten</h1>
           <p className="text-muted-foreground">Beheer je klantenbestand</p>
         </div>
+        <CustomerFormDialog 
+          onSubmit={(data) => createCustomer.mutate(data)}
+          isLoading={createCustomer.isPending}
+        />
       </div>
 
       {/* Search */}
