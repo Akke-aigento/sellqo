@@ -181,6 +181,14 @@ export function AdminSidebar() {
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/invoices')}>
+                          <NavLink to="/admin/orders/invoices">
+                            <FileText className="h-4 w-4 mr-1" />
+                            Facturen
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>

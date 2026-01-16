@@ -1,0 +1,231 @@
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { nl } from 'date-fns/locale';
+import { FileText, Download, Mail, Search, ExternalLink, FileCode } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useInvoices } from '@/hooks/useInvoices';
+import { useTenant } from '@/hooks/useTenant';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { InvoiceStatus } from '@/types/invoice';
+
+export default function InvoicesPage() {
+  const navigate = useNavigate();
+  const { currentTenant } = useTenant();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
+
+  const { invoices, isLoading, resendInvoice } = useInvoices({
+    search: search || undefined,
+    status: statusFilter === 'all' ? undefined : statusFilter,
+  });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('nl-NL', {
+      style: 'currency',
+      currency: currentTenant?.currency || 'EUR',
+    }).format(amount);
+  };
+
+  const getCustomerDisplay = (invoice: typeof invoices[0]) => {
+    if (invoice.customers) {
+      return {
+        name: `${invoice.customers.first_name} ${invoice.customers.last_name}`.trim(),
+        email: invoice.customers.email,
+      };
+    }
+    if (invoice.orders) {
+      return {
+        name: invoice.orders.customer_name || 'Onbekend',
+        email: null,
+      };
+    }
+    return { name: 'Onbekend', email: null };
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Facturen</h1>
+        <p className="text-muted-foreground">
+          Beheer en bekijk alle facturen
+        </p>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Zoeken op factuurnummer..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as InvoiceStatus | 'all')}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle statussen</SelectItem>
+                <SelectItem value="draft">Concept</SelectItem>
+                <SelectItem value="sent">Verstuurd</SelectItem>
+                <SelectItem value="paid">Betaald</SelectItem>
+                <SelectItem value="cancelled">Geannuleerd</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Invoices Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Alle facturen
+          </CardTitle>
+          <CardDescription>
+            {invoices.length} facturen gevonden
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">Geen facturen gevonden</h3>
+              <p className="text-muted-foreground mt-1">
+                {search || statusFilter !== 'all'
+                  ? 'Probeer andere zoekfilters'
+                  : 'Facturen worden automatisch aangemaakt na betaling'}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Factuurnummer</TableHead>
+                  <TableHead>Klant</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Datum</TableHead>
+                  <TableHead className="text-right">Bedrag</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Acties</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => {
+                  const customer = getCustomerDisplay(invoice);
+                  return (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-medium">
+                        {invoice.invoice_number}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{customer.name}</div>
+                          {customer.email && (
+                            <div className="text-sm text-muted-foreground">{customer.email}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {invoice.orders ? (
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto font-normal"
+                            onClick={() => navigate(`/admin/orders/${invoice.order_id}`)}
+                          >
+                            {invoice.orders.order_number}
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(invoice.total)}
+                      </TableCell>
+                      <TableCell>
+                        <InvoiceStatusBadge status={invoice.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {invoice.pdf_url && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => window.open(invoice.pdf_url!, '_blank')}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Download PDF</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {invoice.ubl_url && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => window.open(invoice.ubl_url!, '_blank')}
+                                >
+                                  <FileCode className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Download UBL/XML</TooltipContent>
+                            </Tooltip>
+                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => resendInvoice.mutate(invoice.id)}
+                                disabled={resendInvoice.isPending}
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Opnieuw versturen</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
