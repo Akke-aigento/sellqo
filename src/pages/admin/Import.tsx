@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { AdminLayout } from '@/components/admin/AdminLayout';
 import { ImportWizard } from '@/components/admin/import/ImportWizard';
 
 export default function Import() {
@@ -10,10 +9,8 @@ export default function Import() {
   };
 
   return (
-    <AdminLayout>
-      <div className="container mx-auto py-6 px-4">
-        <ImportWizard onComplete={handleComplete} />
-      </div>
-    </AdminLayout>
+    <div className="container mx-auto py-6 px-4">
+      <ImportWizard onComplete={handleComplete} />
+    </div>
   );
 }
