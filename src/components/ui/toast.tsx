@@ -41,7 +41,20 @@ const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
-  return <ToastPrimitives.Root ref={ref} className={cn(toastVariants({ variant }), className)} {...props} />;
+  return (
+    <ToastPrimitives.Root ref={ref} className={cn(toastVariants({ variant }), "overflow-hidden", className)} {...props}>
+      {props.children}
+      <div 
+        className={cn(
+          "absolute bottom-0 left-0 h-1 w-full origin-left",
+          variant === "destructive" ? "bg-destructive-foreground/30" : "bg-primary/30"
+        )}
+        style={{
+          animation: "shrink 5s linear forwards"
+        }}
+      />
+    </ToastPrimitives.Root>
+  );
 });
 Toast.displayName = ToastPrimitives.Root.displayName;
 
