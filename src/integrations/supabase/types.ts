@@ -73,7 +73,14 @@ export type Database = {
       }
       customers: {
         Row: {
+          billing_address_verified: boolean | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_street: string | null
+          company_name: string | null
           created_at: string | null
+          customer_type: string | null
           default_billing_address: Json | null
           default_shipping_address: Json | null
           email: string
@@ -82,13 +89,30 @@ export type Database = {
           last_name: string | null
           notes: string | null
           phone: string | null
+          shipping_address_verified: boolean | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_postal_code: string | null
+          shipping_street: string | null
+          tax_exempt: boolean | null
+          tax_exempt_reason: string | null
           tenant_id: string
           total_orders: number | null
           total_spent: number | null
           updated_at: string | null
+          vat_number: string | null
+          vat_verified: boolean | null
+          vat_verified_at: string | null
         }
         Insert: {
+          billing_address_verified?: boolean | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_street?: string | null
+          company_name?: string | null
           created_at?: string | null
+          customer_type?: string | null
           default_billing_address?: Json | null
           default_shipping_address?: Json | null
           email: string
@@ -97,13 +121,30 @@ export type Database = {
           last_name?: string | null
           notes?: string | null
           phone?: string | null
+          shipping_address_verified?: boolean | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
+          shipping_street?: string | null
+          tax_exempt?: boolean | null
+          tax_exempt_reason?: string | null
           tenant_id: string
           total_orders?: number | null
           total_spent?: number | null
           updated_at?: string | null
+          vat_number?: string | null
+          vat_verified?: boolean | null
+          vat_verified_at?: string | null
         }
         Update: {
+          billing_address_verified?: boolean | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_street?: string | null
+          company_name?: string | null
           created_at?: string | null
+          customer_type?: string | null
           default_billing_address?: Json | null
           default_shipping_address?: Json | null
           email?: string
@@ -112,10 +153,20 @@ export type Database = {
           last_name?: string | null
           notes?: string | null
           phone?: string | null
+          shipping_address_verified?: boolean | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
+          shipping_street?: string | null
+          tax_exempt?: boolean | null
+          tax_exempt_reason?: string | null
           tenant_id?: string
           total_orders?: number | null
           total_spent?: number | null
           updated_at?: string | null
+          vat_number?: string | null
+          vat_verified?: boolean | null
+          vat_verified_at?: string | null
         }
         Relationships: [
           {
@@ -720,6 +771,7 @@ export type Database = {
       tenants: {
         Row: {
           address: string | null
+          apply_oss_rules: boolean | null
           auto_send_invoices: boolean | null
           btw_number: string | null
           city: string | null
@@ -727,6 +779,8 @@ export type Database = {
           created_at: string | null
           currency: string | null
           custom_domain: string | null
+          default_vat_handling: string | null
+          export_text: string | null
           id: string
           invoice_bcc_email: string | null
           invoice_cc_email: string | null
@@ -744,6 +798,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           primary_color: string | null
+          reverse_charge_text: string | null
           secondary_color: string | null
           shipping_enabled: boolean | null
           slug: string
@@ -758,6 +813,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
           btw_number?: string | null
           city?: string | null
@@ -765,6 +821,8 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           custom_domain?: string | null
+          default_vat_handling?: string | null
+          export_text?: string | null
           id?: string
           invoice_bcc_email?: string | null
           invoice_cc_email?: string | null
@@ -782,6 +840,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          reverse_charge_text?: string | null
           secondary_color?: string | null
           shipping_enabled?: boolean | null
           slug: string
@@ -796,6 +855,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
           btw_number?: string | null
           city?: string | null
@@ -803,6 +863,8 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           custom_domain?: string | null
+          default_vat_handling?: string | null
+          export_text?: string | null
           id?: string
           invoice_bcc_email?: string | null
           invoice_cc_email?: string | null
@@ -820,6 +882,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          reverse_charge_text?: string | null
           secondary_color?: string | null
           shipping_enabled?: boolean | null
           slug?: string
