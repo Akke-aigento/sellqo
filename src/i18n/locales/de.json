@@ -302,7 +302,7 @@
     "pickup": "Abholung im Geschäft",
     "vat_rate": "MwSt-Satz"
   },
-  "invoice": {
+"invoice": {
     "vat": {
       "intracom_goods": "Innergemeinschaftliche Lieferung umsatzsteuerfrei - Art. 138 MwSt-Richtlinie 2006/112/EG",
       "intracom_services": "Steuerschuldnerschaft des Leistungsempfängers - Art. 196 MwSt-Richtlinie 2006/112/EG",
@@ -314,5 +314,83 @@
     "vat_amount": "MwSt",
     "total_excl_vat": "Gesamtbetrag exkl. MwSt",
     "total_incl_vat": "Gesamtbetrag inkl. MwSt"
+  },
+  "archive": {
+    "title": "Rechnungsarchiv",
+    "description": "Dokumente werden gemäß belgischem Recht 7 Jahre aufbewahrt",
+    "integrity_valid": "Integrität OK",
+    "integrity_invalid": "Integrität verletzt!",
+    "retention_notice": "Dokumente werden gemäß belgischem Recht 7 Jahre aufbewahrt",
+    "expires_on": "Läuft ab am",
+    "download_original": "Original herunterladen",
+    "verify_integrity": "Integrität prüfen",
+    "archived_at": "Archiviert am",
+    "file_size": "Dateigröße"
+  },
+  "epc": {
+    "scan_to_pay": "Zum Bezahlen scannen",
+    "description": "Scannen Sie diesen QR-Code mit Ihrer Banking-App, um direkt mit den richtigen Daten zu bezahlen"
+  },
+  "discount": {
+    "title": "Rabatt",
+    "percentage": "Prozentrabatt",
+    "fixed_amount": "Fester Rabatt",
+    "volume": "Mengenrabatt",
+    "coupon": "Gutscheincode",
+    "commercial": "Handelsrabatt",
+    "subtotal_discount": "Rabatt auf Zwischensumme",
+    "line_discount": "Positionsrabatt",
+    "add_discount": "Rabatt hinzufügen",
+    "remove_discount": "Rabatt entfernen"
+  },
+  "reminders": {
+    "settings_title": "Zahlungserinnerungen",
+    "settings_description": "Konfigurieren Sie automatische Zahlungserinnerungen für unbezahlte Rechnungen",
+    "auto_enabled": "Automatische Erinnerungen aktivieren",
+    "auto_enabled_description": "Automatisch Erinnerungen für unbezahlte Rechnungen senden",
+    "level1": "Erste Erinnerung",
+    "level2": "Zweite Erinnerung",
+    "level3": "Mahnung",
+    "days_after_due": "Tage nach Fälligkeit",
+    "add_late_fee": "Verzugszinsen hinzufügen",
+    "add_late_fee_description": "Zinsen und Gebühren zur letzten Mahnung hinzufügen",
+    "late_fee_percentage": "Prozentsatz",
+    "final_notice": "letzte Mahnung",
+    "send_manually": "Erinnerung senden",
+    "send_level": "Stufe {level} senden",
+    "sent_success": "Erinnerung gesendet"
+  },
+  "proforma": {
+    "title": "Pro-forma-Rechnung",
+    "create": "Pro-forma erstellen",
+    "notice": "Dieses Dokument ist keine Rechnung und hat keinen steuerlichen Wert",
+    "valid_until": "Gültig bis",
+    "convert_to_invoice": "In Rechnung umwandeln",
+    "already_converted": "Bereits in Rechnung umgewandelt",
+    "expired": "Abgelaufen",
+    "reference_on_invoice": "Pro-forma-Ref.",
+    "validity_days": "Gültigkeit (Tage)",
+    "status_draft": "Entwurf",
+    "status_sent": "Gesendet",
+    "status_converted": "Umgewandelt",
+    "status_expired": "Abgelaufen"
+  },
+  "packing_slip": {
+    "title": "Lieferschein",
+    "print": "Lieferschein drucken",
+    "number": "Lieferschein-Nr.",
+    "order_reference": "Bestellnr.",
+    "ship_from": "Versand von",
+    "ship_to": "Lieferadresse",
+    "contents": "Inhalt",
+    "sku": "Art.-Nr.",
+    "description": "Beschreibung",
+    "quantity": "Menge",
+    "total_packages": "Anzahl Pakete",
+    "total_weight": "Gesamtgewicht",
+    "received_confirmation": "In gutem Zustand erhalten",
+    "signature": "Unterschrift",
+    "note": "Bitte überprüfen Sie den Inhalt bei Erhalt. Melden Sie Schäden oder fehlende Artikel innerhalb von 48 Stunden.",
+    "create_from_order": "Lieferschein erstellen"
   }
 }

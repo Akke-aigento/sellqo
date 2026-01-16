@@ -302,7 +302,7 @@
     "pickup": "Retrait en magasin",
     "vat_rate": "Taux de TVA"
   },
-  "invoice": {
+"invoice": {
     "vat": {
       "intracom_goods": "Livraison intracommunautaire exonérée de TVA - Art. 138 Directive TVA 2006/112/CE",
       "intracom_services": "TVA autoliquidée par le preneur - Art. 196 Directive TVA 2006/112/CE",
@@ -314,5 +314,83 @@
     "vat_amount": "TVA",
     "total_excl_vat": "Total hors TVA",
     "total_incl_vat": "Total TTC"
+  },
+  "archive": {
+    "title": "Archives de factures",
+    "description": "Les documents sont conservés 7 ans conformément à la législation belge",
+    "integrity_valid": "Intégrité OK",
+    "integrity_invalid": "Intégrité compromise!",
+    "retention_notice": "Les documents sont conservés 7 ans conformément à la législation belge",
+    "expires_on": "Expire le",
+    "download_original": "Télécharger l'original",
+    "verify_integrity": "Vérifier l'intégrité",
+    "archived_at": "Archivé le",
+    "file_size": "Taille du fichier"
+  },
+  "epc": {
+    "scan_to_pay": "Scannez pour payer",
+    "description": "Scannez ce code QR avec votre application bancaire pour payer directement avec les bonnes informations"
+  },
+  "discount": {
+    "title": "Remise",
+    "percentage": "Remise en pourcentage",
+    "fixed_amount": "Remise fixe",
+    "volume": "Remise volume",
+    "coupon": "Code promo",
+    "commercial": "Remise commerciale",
+    "subtotal_discount": "Remise sur sous-total",
+    "line_discount": "Remise ligne",
+    "add_discount": "Ajouter remise",
+    "remove_discount": "Supprimer remise"
+  },
+  "reminders": {
+    "settings_title": "Rappels de paiement",
+    "settings_description": "Configurez les rappels automatiques pour les factures impayées",
+    "auto_enabled": "Activer les rappels automatiques",
+    "auto_enabled_description": "Envoyer automatiquement des rappels pour les factures impayées",
+    "level1": "Premier rappel",
+    "level2": "Deuxième rappel",
+    "level3": "Mise en demeure",
+    "days_after_due": "jours après l'échéance",
+    "add_late_fee": "Ajouter intérêts et frais",
+    "add_late_fee_description": "Ajouter des intérêts et frais au dernier rappel",
+    "late_fee_percentage": "Pourcentage",
+    "final_notice": "dernière mise en demeure",
+    "send_manually": "Envoyer rappel",
+    "send_level": "Envoyer niveau {level}",
+    "sent_success": "Rappel envoyé"
+  },
+  "proforma": {
+    "title": "Facture pro-forma",
+    "create": "Créer pro-forma",
+    "notice": "Ce document n'est pas une facture et n'a pas de valeur fiscale",
+    "valid_until": "Valable jusqu'au",
+    "convert_to_invoice": "Convertir en facture",
+    "already_converted": "Déjà converti en facture",
+    "expired": "Expiré",
+    "reference_on_invoice": "Réf. pro-forma",
+    "validity_days": "Validité (jours)",
+    "status_draft": "Brouillon",
+    "status_sent": "Envoyé",
+    "status_converted": "Converti",
+    "status_expired": "Expiré"
+  },
+  "packing_slip": {
+    "title": "Bon de livraison",
+    "print": "Imprimer bon de livraison",
+    "number": "N° bon de livraison",
+    "order_reference": "N° commande",
+    "ship_from": "Expédié de",
+    "ship_to": "Livré à",
+    "contents": "Contenu",
+    "sku": "Réf.",
+    "description": "Description",
+    "quantity": "Quantité",
+    "total_packages": "Nombre de colis",
+    "total_weight": "Poids total",
+    "received_confirmation": "Reçu en bon état",
+    "signature": "Signature",
+    "note": "Veuillez vérifier le contenu à la réception. Signalez tout dommage ou article manquant dans les 48 heures.",
+    "create_from_order": "Créer bon de livraison"
   }
 }

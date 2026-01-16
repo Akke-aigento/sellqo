@@ -25,6 +25,47 @@ interface Tenant {
   tax_percentage: number;
   created_at: string;
   updated_at: string;
+  // Peppol
+  peppol_id?: string | null;
+  // Invoice settings
+  invoice_prefix?: string | null;
+  invoice_start_number?: number | null;
+  invoice_format?: string | null;
+  iban?: string | null;
+  bic?: string | null;
+  auto_send_invoices?: boolean;
+  // Credit note settings
+  credit_note_prefix?: string | null;
+  credit_note_start_number?: number | null;
+  // OSS settings
+  apply_oss_rules?: boolean;
+  oss_registration_date?: string | null;
+  oss_identification_number?: string | null;
+  // VAT settings
+  require_vies_validation?: boolean;
+  block_invalid_vat_orders?: boolean;
+  default_vat_handling?: string | null;
+  reverse_charge_text?: string | null;
+  export_text?: string | null;
+  // Reminder settings
+  reminders_enabled?: boolean;
+  reminder_level1_days?: number;
+  reminder_level2_days?: number;
+  reminder_level3_days?: number;
+  reminder_late_fee_enabled?: boolean;
+  reminder_late_fee_percentage?: number;
+  // Pro-forma settings
+  proforma_prefix?: string | null;
+  proforma_start_number?: number | null;
+  proforma_validity_days?: number;
+  // Packing slip settings
+  packing_slip_prefix?: string | null;
+  packing_slip_start_number?: number | null;
+  // Stripe
+  stripe_account_id?: string | null;
+  stripe_charges_enabled?: boolean;
+  stripe_payouts_enabled?: boolean;
+  stripe_onboarding_complete?: boolean;
 }
 
 interface TenantContextType {
