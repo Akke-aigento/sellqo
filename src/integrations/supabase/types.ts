@@ -319,6 +319,79 @@ export type Database = {
           },
         ]
       }
+      invoice_lines: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number
+          line_type: string | null
+          product_id: string | null
+          quantity: number
+          shipping_method_id: string | null
+          sort_order: number | null
+          unit_price: number
+          vat_amount: number
+          vat_category: string | null
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          invoice_id: string
+          line_total: number
+          line_type?: string | null
+          product_id?: string | null
+          quantity?: number
+          shipping_method_id?: string | null
+          sort_order?: number | null
+          unit_price: number
+          vat_amount?: number
+          vat_category?: string | null
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          line_type?: string | null
+          product_id?: string | null
+          quantity?: number
+          shipping_method_id?: string | null
+          sort_order?: number | null
+          unit_price?: number
+          vat_amount?: number
+          vat_category?: string | null
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           created_at: string
@@ -607,6 +680,7 @@ export type Database = {
           tenant_id: string
           track_inventory: boolean | null
           updated_at: string | null
+          vat_rate_id: string | null
           weight: number | null
         }
         Insert: {
@@ -636,6 +710,7 @@ export type Database = {
           tenant_id: string
           track_inventory?: boolean | null
           updated_at?: string | null
+          vat_rate_id?: string | null
           weight?: number | null
         }
         Update: {
@@ -665,6 +740,7 @@ export type Database = {
           tenant_id?: string
           track_inventory?: boolean | null
           updated_at?: string | null
+          vat_rate_id?: string | null
           weight?: number | null
         }
         Relationships: [
@@ -680,6 +756,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_vat_rate_id_fkey"
+            columns: ["vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
             referencedColumns: ["id"]
           },
         ]
@@ -876,10 +959,15 @@ export type Database = {
           is_active: boolean
           is_default: boolean | null
           name: string
+          name_de: string | null
+          name_en: string | null
+          name_fr: string | null
+          name_nl: string | null
           price: number
           sort_order: number | null
           tenant_id: string
           updated_at: string
+          vat_rate_id: string | null
         }
         Insert: {
           created_at?: string
@@ -891,10 +979,15 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean | null
           name: string
+          name_de?: string | null
+          name_en?: string | null
+          name_fr?: string | null
+          name_nl?: string | null
           price?: number
           sort_order?: number | null
           tenant_id: string
           updated_at?: string
+          vat_rate_id?: string | null
         }
         Update: {
           created_at?: string
@@ -906,10 +999,15 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean | null
           name?: string
+          name_de?: string | null
+          name_en?: string | null
+          name_fr?: string | null
+          name_nl?: string | null
           price?: number
           sort_order?: number | null
           tenant_id?: string
           updated_at?: string
+          vat_rate_id?: string | null
         }
         Relationships: [
           {
@@ -917,6 +1015,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_methods_vat_rate_id_fkey"
+            columns: ["vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
             referencedColumns: ["id"]
           },
         ]
@@ -1105,6 +1210,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_rates: {
+        Row: {
+          category: string
+          country_code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name_de: string | null
+          name_en: string | null
+          name_fr: string | null
+          name_nl: string | null
+          rate: number
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          country_code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name_de?: string | null
+          name_en?: string | null
+          name_fr?: string | null
+          name_nl?: string | null
+          rate: number
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name_de?: string | null
+          name_en?: string | null
+          name_fr?: string | null
+          name_nl?: string | null
+          rate?: number
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_rates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

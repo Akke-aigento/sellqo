@@ -262,5 +262,54 @@
   "ogm": {
     "label": "Communication structurée",
     "payment_instruction": "Veuillez mentionner la communication structurée lors du paiement"
+  },
+  "vat_rates": {
+    "title": "Taux de TVA",
+    "description": "Gérer les taux de TVA par pays pour une facturation correcte",
+    "country": "Pays",
+    "add": "Ajouter un taux",
+    "add_new": "Nouveau taux de TVA",
+    "edit": "Modifier le taux de TVA",
+    "rate": "Taux",
+    "category": "Catégorie",
+    "standard": "Standard",
+    "reduced": "Réduit",
+    "super_reduced": "Super réduit",
+    "zero": "Taux zéro",
+    "exempt": "Exonéré",
+    "is_default": "Taux par défaut",
+    "no_rates": "Aucun taux de TVA trouvé pour ce pays",
+    "delete_title": "Supprimer le taux de TVA ?",
+    "delete_description": "Êtes-vous sûr de vouloir supprimer ce taux de TVA ? Cette action ne peut pas être annulée.",
+    "active_description": "Le taux actif peut être sélectionné",
+    "default_description": "Appliqué automatiquement aux nouveaux produits"
+  },
+  "shipping": {
+    "title": "Méthodes de livraison",
+    "add": "Ajouter une méthode de livraison",
+    "name": "Nom",
+    "price": "Prix",
+    "free_above": "Gratuit à partir de",
+    "estimated_delivery": "Délai de livraison estimé",
+    "carrier": "Transporteur",
+    "costs": "Frais de livraison",
+    "free": "Livraison gratuite",
+    "standard": "Livraison standard",
+    "express": "Livraison express",
+    "pickup": "Retrait en magasin",
+    "vat_rate": "Taux de TVA"
+  },
+  "invoice": {
+    "vat": {
+      "intracom_goods": "Livraison intracommunautaire exonérée de TVA - Art. 138 Directive TVA 2006/112/CE",
+      "intracom_services": "TVA autoliquidée par le preneur - Art. 196 Directive TVA 2006/112/CE",
+      "export": "Exportation exonérée de TVA - Art. 146 Directive TVA 2006/112/CE",
+      "oss_applied": "TVA calculée selon le régime OSS (guichet unique) - taux du pays de destination"
+    },
+    "vat_breakdown": "Détail TVA",
+    "taxable_amount": "Base imposable",
+    "vat_amount": "TVA",
+    "total_excl_vat": "Total hors TVA",
+    "total_incl_vat": "Total TTC"
   }
 }
