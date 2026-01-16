@@ -690,10 +690,17 @@ function generatePDFHTML(data: {
   <div class="payment-info">
     <div class="payment-title">Betaling</div>
     <div>Deze factuur is betaald via ${order.stripe_payment_intent_id ? 'online betaling' : 'onze webshop'}.</div>
+    ${tenant.iban ? `
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+      <div style="font-weight: 600; margin-bottom: 4px;">Bankgegevens</div>
+      <div>IBAN: ${escapeXml(tenant.iban.replace(/(.{4})/g, '$1 ').trim())}</div>
+      ${tenant.bic ? `<div>BIC: ${escapeXml(tenant.bic)}</div>` : ''}
+    </div>
+    ` : ''}
   </div>
 
   <div class="footer">
-    <p>${escapeXml(tenant.name)} ${tenant.kvk_number ? `| KvK: ${escapeXml(tenant.kvk_number)}` : ''} ${tenant.btw_number ? `| BTW: ${escapeXml(tenant.btw_number)}` : ''}</p>
+    <p>${escapeXml(tenant.name)} ${tenant.kvk_number ? `| KBO/KvK: ${escapeXml(tenant.kvk_number)}` : ''} ${tenant.btw_number ? `| BTW: ${escapeXml(tenant.btw_number)}` : ''} ${tenant.iban ? `| IBAN: ${escapeXml(tenant.iban)}` : ''}</p>
     <p style="margin-top: 8px; font-size: 10px; color: #9ca3af;">Deze factuur bevat embedded Factur-X XML (EN16931) voor automatische verwerking door boekhoudsoftware.</p>
   </div>
 </body>
