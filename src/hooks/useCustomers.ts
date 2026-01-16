@@ -32,6 +32,39 @@ export function useCustomers(search?: string) {
     enabled: !!currentTenant?.id,
   });
 
+  const createCustomer = useMutation({
+    mutationFn: async (data: { 
+      first_name: string; 
+      last_name: string; 
+      email: string; 
+      phone?: string;
+    }) => {
+      if (!currentTenant?.id) throw new Error('Geen tenant geselecteerd');
+
+      const { data: newCustomer, error } = await supabase
+        .from('customers')
+        .insert({
+          tenant_id: currentTenant.id,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          email: data.email,
+          phone: data.phone || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return newCustomer;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({ title: 'Klant aangemaakt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout bij aanmaken', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const updateCustomer = useMutation({
     mutationFn: async ({ customerId, data }: { customerId: string; data: Partial<Customer> }) => {
       const { error } = await supabase
@@ -73,6 +106,7 @@ export function useCustomers(search?: string) {
     isLoading,
     error,
     refetch,
+    createCustomer,
     updateCustomer,
     deleteCustomer,
   };

@@ -176,7 +176,6 @@ export function AdminSidebar() {
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/quotes')}>
                           <NavLink to="/admin/orders/quotes">
-                            <FileText className="h-4 w-4 mr-1" />
                             Offertes
                           </NavLink>
                         </SidebarMenuSubButton>
@@ -184,7 +183,6 @@ export function AdminSidebar() {
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/invoices')}>
                           <NavLink to="/admin/orders/invoices">
-                            <FileText className="h-4 w-4 mr-1" />
                             Facturen
                           </NavLink>
                         </SidebarMenuSubButton>
