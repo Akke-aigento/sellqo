@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Store
 } from 'lucide-react';
+import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,11 +78,8 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
-            <Store className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-semibold">Multi-Store</span>
+        <div className="flex items-center gap-2 px-2 py-3">
+          <SellqoLogo variant="full" className="h-7" />
         </div>
 
         {/* Tenant Switcher */}
