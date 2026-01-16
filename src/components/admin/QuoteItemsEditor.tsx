@@ -30,7 +30,14 @@ interface QuoteItemsEditorProps {
 export function QuoteItemsEditor({ items, onChange, taxPercentage }: QuoteItemsEditorProps) {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [productSearch, setProductSearch] = useState('');
-  const { products, isLoading: productsLoading } = useProducts({ search: productSearch });
+  const { products: allProducts, isLoading: productsLoading } = useProducts();
+  
+  // Filter products client-side
+  const products = allProducts.filter(p => 
+    !productSearch || 
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.sku?.toLowerCase().includes(productSearch.toLowerCase())
+  );
 
   const addItem = (item: QuoteItemInput) => {
     onChange([...items, item]);

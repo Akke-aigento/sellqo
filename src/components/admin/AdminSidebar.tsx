@@ -10,7 +10,9 @@ import {
   Building2,
   LogOut,
   ChevronDown,
-  Store
+  ChevronRight,
+  Store,
+  FileText
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -29,6 +31,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -37,6 +42,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,7 +54,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 const mainNavItems = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
   { title: 'Producten', url: '/admin/products', icon: Package },
-  { title: 'Bestellingen', url: '/admin/orders', icon: ShoppingCart },
   { title: 'Klanten', url: '/admin/customers', icon: Users },
   { title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
 ];
@@ -70,6 +79,8 @@ export function AdminSidebar() {
     }
     return location.pathname.startsWith(path);
   };
+
+  const isOrdersActive = location.pathname.startsWith('/admin/orders');
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -142,6 +153,38 @@ export function AdminSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Orders with submenu */}
+              <Collapsible defaultOpen={isOrdersActive} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={isOrdersActive}>
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Bestellingen</span>
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/orders'}>
+                          <NavLink to="/admin/orders">
+                            Alle bestellingen
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/quotes')}>
+                          <NavLink to="/admin/orders/quotes">
+                            <FileText className="h-4 w-4 mr-1" />
+                            Offertes
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
