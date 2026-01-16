@@ -1293,6 +1293,50 @@ serve(async (req) => {
       logStep("Invoice lines created", { count: invoiceLines.length });
     }
 
+    // Archive the invoice for 7-year retention (Belgian legal requirement)
+    logStep("Archiving invoice for 7-year retention");
+    try {
+      const pdfBuffer = new Uint8Array(pdfBytes);
+      const encoder = new TextEncoder();
+      
+      // Calculate SHA256 hash of PDF for integrity verification
+      const hashBuffer = await crypto.subtle.digest('SHA-256', pdfBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const sha256Hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      // Calculate expiry date (7 years from now)
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 7);
+
+      // Create archive record
+      await supabaseClient
+        .from("invoice_archive")
+        .insert({
+          tenant_id: order.tenant_id,
+          document_id: invoice.id,
+          document_type: 'invoice',
+          document_number: invoiceNumber,
+          pdf_storage_key: pdfPath,
+          ubl_storage_key: ublUrl ? `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml` : null,
+          cii_storage_key: ciiPath,
+          sha256_hash: sha256Hash,
+          file_size_bytes: pdfBuffer.length,
+          expires_at: expiresAt.toISOString(),
+          metadata: {
+            customer_name: customer?.company_name || `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim(),
+            total_amount: invoiceData.total,
+            issue_date: issueDate,
+            vat_type: vatCalculation.vatType,
+            is_b2b: isB2B,
+          },
+        });
+      
+      logStep("Invoice archived", { sha256Hash, expiresAt: expiresAt.toISOString() });
+    } catch (archiveError: any) {
+      // Log but don't fail the invoice generation if archiving fails
+      logStep("Archive warning", { message: archiveError.message });
+    }
+
     logStep("Invoice created successfully", { 
       invoice_id: invoice.id, 
       vatType: vatCalculation.vatType,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Mail, Search, ExternalLink, FileCode } from 'lucide-react';
+import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
@@ -14,17 +14,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { ManualInvoiceDialog } from '@/components/admin/ManualInvoiceDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 import type { InvoiceStatus } from '@/types/invoice';
 
 export default function InvoicesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
+  const [peppolPendingOnly, setPeppolPendingOnly] = useState(false);
 
-  const { invoices, isLoading, resendInvoice, refetch } = useInvoices({
+  const { invoices, isLoading, resendInvoice, markPeppolSent, refetch } = useInvoices({
     search: search || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
+    peppolPending: peppolPendingOnly || undefined,
   });
 
   const formatCurrency = (amount: number) => {
@@ -50,6 +57,33 @@ export default function InvoicesPage() {
     return { name: 'Onbekend', email: null };
   };
 
+  const getPeppolStatusBadge = (invoice: any) => {
+    if (!invoice.peppol_status) return null;
+    
+    if (invoice.peppol_status === 'pending') {
+      return (
+        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+          <Clock className="h-3 w-3 mr-1" />
+          {t('peppol.status_pending')}
+        </Badge>
+      );
+    }
+    
+    if (invoice.peppol_status === 'sent') {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Peppol verzonden
+        </Badge>
+      );
+    }
+    
+    return null;
+  };
+
+  // Count peppol pending invoices
+  const peppolPendingCount = invoices.filter(inv => (inv as any).peppol_status === 'pending').length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -65,31 +99,53 @@ export default function InvoicesPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Zoeken op factuurnummer..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Zoeken op factuurnummer..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as InvoiceStatus | 'all')}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle statussen</SelectItem>
+                  <SelectItem value="draft">Concept</SelectItem>
+                  <SelectItem value="sent">Verstuurd</SelectItem>
+                  <SelectItem value="paid">Betaald</SelectItem>
+                  <SelectItem value="cancelled">Geannuleerd</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as InvoiceStatus | 'all')}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle statussen</SelectItem>
-                <SelectItem value="draft">Concept</SelectItem>
-                <SelectItem value="sent">Verstuurd</SelectItem>
-                <SelectItem value="paid">Betaald</SelectItem>
-                <SelectItem value="cancelled">Geannuleerd</SelectItem>
-              </SelectContent>
-            </Select>
+            
+            {/* Peppol filter */}
+            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+              <Network className="h-5 w-5 text-primary" />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="peppol-pending"
+                  checked={peppolPendingOnly}
+                  onCheckedChange={setPeppolPendingOnly}
+                />
+                <Label htmlFor="peppol-pending" className="cursor-pointer">
+                  {t('peppol.status_pending')} alleen
+                  {peppolPendingCount > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {peppolPendingCount}
+                    </Badge>
+                  )}
+                </Label>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -117,7 +173,7 @@ export default function InvoicesPage() {
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">Geen facturen gevonden</h3>
               <p className="text-muted-foreground mt-1">
-                {search || statusFilter !== 'all'
+                {search || statusFilter !== 'all' || peppolPendingOnly
                   ? 'Probeer andere zoekfilters'
                   : 'Facturen worden automatisch aangemaakt na betaling'}
               </p>
@@ -132,12 +188,14 @@ export default function InvoicesPage() {
                   <TableHead>Datum</TableHead>
                   <TableHead className="text-right">Bedrag</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Peppol</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {invoices.map((invoice) => {
                   const customer = getCustomerDisplay(invoice);
+                  const invoiceAny = invoice as any;
                   return (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">
@@ -174,6 +232,9 @@ export default function InvoicesPage() {
                       <TableCell>
                         <InvoiceStatusBadge status={invoice.status} />
                       </TableCell>
+                      <TableCell>
+                        {getPeppolStatusBadge(invoiceAny)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {invoice.pdf_url && (
@@ -203,7 +264,23 @@ export default function InvoicesPage() {
                                   <FileCode className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Download UBL/XML</TooltipContent>
+                              <TooltipContent>{t('peppol.download_ubl')}</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {invoiceAny.peppol_status === 'pending' && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => markPeppolSent.mutate(invoice.id)}
+                                  disabled={markPeppolSent.isPending}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('peppol.mark_as_sent')}</TooltipContent>
                             </Tooltip>
                           )}
                           <Tooltip>

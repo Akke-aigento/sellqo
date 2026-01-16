@@ -319,6 +319,68 @@ export type Database = {
           },
         ]
       }
+      invoice_archive: {
+        Row: {
+          archived_at: string
+          cii_storage_key: string | null
+          created_at: string | null
+          document_id: string
+          document_number: string
+          document_type: string
+          expires_at: string
+          file_size_bytes: number | null
+          id: string
+          metadata: Json | null
+          pdf_storage_key: string
+          sha256_hash: string
+          tenant_id: string
+          ubl_storage_key: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          archived_at?: string
+          cii_storage_key?: string | null
+          created_at?: string | null
+          document_id: string
+          document_number: string
+          document_type: string
+          expires_at: string
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json | null
+          pdf_storage_key: string
+          sha256_hash: string
+          tenant_id: string
+          ubl_storage_key?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          archived_at?: string
+          cii_storage_key?: string | null
+          created_at?: string | null
+          document_id?: string
+          document_number?: string
+          document_type?: string
+          expires_at?: string
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json | null
+          pdf_storage_key?: string
+          sha256_hash?: string
+          tenant_id?: string
+          ubl_storage_key?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_archive_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_lines: {
         Row: {
           created_at: string | null
@@ -403,6 +465,7 @@ export type Database = {
           order_id: string | null
           paid_at: string | null
           pdf_url: string | null
+          peppol_required: boolean | null
           peppol_sent_at: string | null
           peppol_status: string | null
           sent_at: string | null
@@ -424,6 +487,7 @@ export type Database = {
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
+          peppol_required?: boolean | null
           peppol_sent_at?: string | null
           peppol_status?: string | null
           sent_at?: string | null
@@ -445,6 +509,7 @@ export type Database = {
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
+          peppol_required?: boolean | null
           peppol_sent_at?: string | null
           peppol_status?: string | null
           sent_at?: string | null
