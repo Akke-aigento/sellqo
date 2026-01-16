@@ -103,5 +103,29 @@
     "saved": "Saved",
     "deleted": "Deleted",
     "updated": "Updated"
+  },
+  "invoice": {
+    "vat": {
+      "intracom_goods": "Intra-Community supply exempt from VAT - Art. 138 VAT Directive 2006/112/EC",
+      "intracom_services": "VAT reverse charged to customer - Art. 196 VAT Directive 2006/112/EC",
+      "export": "Export exempt from VAT - Art. 146 VAT Directive 2006/112/EC",
+      "oss_applied": "VAT calculated under OSS scheme (One-Stop-Shop) - destination country rate"
+    }
+  },
+  "tax": {
+    "invoiceTexts": {
+      "title": "VAT Invoice Texts",
+      "description": "Legal texts displayed on invoices for special VAT situations. Text is shown in customer's language.",
+      "intracomGoodsLabel": "Intra-Community supply of goods (B2B)",
+      "intracomGoodsDescription": "For deliveries of goods to B2B customers with valid EU VAT number in another EU country",
+      "intracomServicesLabel": "Intra-Community services (B2B) - Reverse Charge",
+      "intracomServicesDescription": "For services to B2B customers with valid EU VAT number in another EU country",
+      "exportLabel": "Export outside EU",
+      "exportDescription": "For deliveries to customers outside the European Union",
+      "ossLabel": "OSS scheme (B2C EU)",
+      "ossDescription": "For B2C sales to consumers in other EU countries under the OSS scheme",
+      "previewInLanguage": "Preview in language:",
+      "defaultTexts": "These are the legally correct default texts. Customize only if necessary."
+    }
   }
 }

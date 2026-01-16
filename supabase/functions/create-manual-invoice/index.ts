@@ -18,6 +18,60 @@ const EU_COUNTRIES = [
   'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
 ];
 
+// 4-language VAT invoice texts - legally correct texts per EU Directive 2006/112/EC
+type SupportedLanguage = 'nl' | 'en' | 'fr' | 'de';
+
+const VAT_TEXTS = {
+  // Intra-Community supply of GOODS (B2B) - Article 138
+  intracom_goods: {
+    nl: 'Intracommunautaire levering vrijgesteld van BTW - art. 138 BTW-richtlijn 2006/112/EG',
+    en: 'Intra-Community supply exempt from VAT - Art. 138 VAT Directive 2006/112/EC',
+    fr: 'Livraison intracommunautaire exonérée de TVA - Art. 138 Directive TVA 2006/112/CE',
+    de: 'Innergemeinschaftliche Lieferung umsatzsteuerfrei - Art. 138 MwSt-Richtlinie 2006/112/EG',
+  },
+  // Intra-Community SERVICES (B2B) - Article 196 (Reverse Charge)
+  intracom_services: {
+    nl: 'BTW verlegd naar afnemer - art. 196 BTW-richtlijn 2006/112/EG',
+    en: 'VAT reverse charged to customer - Art. 196 VAT Directive 2006/112/EC',
+    fr: 'TVA autoliquidée par le preneur - Art. 196 Directive TVA 2006/112/CE',
+    de: 'Steuerschuldnerschaft des Leistungsempfängers - Art. 196 MwSt-Richtlinie 2006/112/EG',
+  },
+  // Export outside EU - Article 146
+  export: {
+    nl: 'Uitvoer vrijgesteld van BTW - art. 146 BTW-richtlijn 2006/112/EG',
+    en: 'Export exempt from VAT - Art. 146 VAT Directive 2006/112/EC',
+    fr: 'Exportation exonérée de TVA - Art. 146 Directive TVA 2006/112/CE',
+    de: 'Ausfuhr umsatzsteuerfrei - Art. 146 MwSt-Richtlinie 2006/112/EG',
+  },
+  // OSS Scheme applied
+  oss: {
+    nl: 'BTW berekend volgens OSS-regeling (One-Stop-Shop) - bestemmingsland tarief',
+    en: 'VAT calculated under OSS scheme (One-Stop-Shop) - destination country rate',
+    fr: 'TVA calculée selon le régime OSS (guichet unique) - taux du pays de destination',
+    de: 'MwSt berechnet nach OSS-Regelung (One-Stop-Shop) - Steuersatz des Bestimmungslandes',
+  },
+};
+
+// Get customer language, defaulting to tenant language or 'nl'
+function getCustomerLanguage(customer: any, tenant: any): SupportedLanguage {
+  const countryToLanguage: Record<string, SupportedLanguage> = {
+    'NL': 'nl', 'BE': 'nl',
+    'DE': 'de', 'AT': 'de', 'CH': 'de', 'LU': 'de',
+    'FR': 'fr', 
+    'GB': 'en', 'IE': 'en', 'US': 'en', 'CA': 'en', 'AU': 'en',
+  };
+  
+  const customerCountry = customer?.billing_country || customer?.shipping_country || '';
+  const inferredLang = countryToLanguage[customerCountry];
+  
+  if (inferredLang) return inferredLang;
+  
+  const tenantLang = tenant?.language?.toLowerCase() as SupportedLanguage;
+  if (['nl', 'en', 'fr', 'de'].includes(tenantLang)) return tenantLang;
+  
+  return 'nl';
+}
+
 interface VatCalculation {
   vatRate: number;
   vatAmount: number;
@@ -39,8 +93,10 @@ function calculateVat(params: {
   const hasValidVat = customer?.vat_verified === true;
   const isEuCountry = EU_COUNTRIES.includes(customerCountry);
   const isSameCountry = customerCountry === tenantCountry;
+  
+  const lang = getCustomerLanguage(customer, tenant);
 
-  logStep("VAT calculation", { tenantCountry, customerCountry, isB2B, hasValidVat, isEuCountry, isSameCountry });
+  logStep("VAT calculation", { tenantCountry, customerCountry, isB2B, hasValidVat, isEuCountry, isSameCountry, lang });
 
   // Same country - always apply local VAT
   if (isSameCountry) {
@@ -59,7 +115,7 @@ function calculateVat(params: {
       vatRate: 0,
       vatAmount: 0,
       vatType: 'reverse_charge',
-      vatText: tenant.reverse_charge_text || 'BTW verlegd naar afnemer conform artikel 44 EU BTW-richtlijn',
+      vatText: VAT_TEXTS.intracom_services[lang],
       taxCategoryCode: 'AE',
     };
   }
@@ -70,14 +126,13 @@ function calculateVat(params: {
       vatRate: 0,
       vatAmount: 0,
       vatType: 'export',
-      vatText: tenant.export_text || 'Vrijgesteld van BTW - levering buiten EU',
+      vatText: VAT_TEXTS.export[lang],
       taxCategoryCode: 'G',
     };
   }
 
   // B2C in EU with OSS enabled
   if (!isB2B && isEuCountry && tenant.apply_oss_rules) {
-    // OSS VAT rates by country (standard rates 2025/2026)
     const ossRates: Record<string, number> = {
       'AT': 20, 'BE': 21, 'BG': 20, 'HR': 25, 'CY': 19, 'CZ': 21,
       'DK': 25, 'EE': 22, 'FI': 25.5, 'FR': 20, 'DE': 19, 'GR': 24,
@@ -90,7 +145,7 @@ function calculateVat(params: {
       vatRate: ossRate,
       vatAmount: subtotal * (ossRate / 100),
       vatType: 'oss',
-      vatText: `OSS-regeling toegepast - BTW ${ossRate}% (${customerCountry})`,
+      vatText: `${VAT_TEXTS.oss[lang]} (${ossRate}% ${customerCountry})`,
       taxCategoryCode: 'S',
     };
   }

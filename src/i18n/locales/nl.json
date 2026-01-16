@@ -103,5 +103,29 @@
     "saved": "Opgeslagen",
     "deleted": "Verwijderd",
     "updated": "Bijgewerkt"
+  },
+  "invoice": {
+    "vat": {
+      "intracom_goods": "Intracommunautaire levering vrijgesteld van BTW - art. 138 BTW-richtlijn 2006/112/EG",
+      "intracom_services": "BTW verlegd naar afnemer - art. 196 BTW-richtlijn 2006/112/EG",
+      "export": "Uitvoer vrijgesteld van BTW - art. 146 BTW-richtlijn 2006/112/EG",
+      "oss_applied": "BTW berekend volgens OSS-regeling (One-Stop-Shop) - bestemmingsland tarief"
+    }
+  },
+  "tax": {
+    "invoiceTexts": {
+      "title": "BTW Factuurteksten",
+      "description": "Wettelijke teksten die op facturen worden getoond bij speciale BTW-situaties. Tekst wordt getoond in de taal van de klant.",
+      "intracomGoodsLabel": "Intracommunautaire levering goederen (B2B)",
+      "intracomGoodsDescription": "Voor leveringen van goederen aan B2B klanten met geldig EU BTW-nummer in een ander EU-land",
+      "intracomServicesLabel": "Intracommunautaire diensten (B2B) - BTW verlegd",
+      "intracomServicesDescription": "Voor diensten aan B2B klanten met geldig EU BTW-nummer in een ander EU-land",
+      "exportLabel": "Export buiten EU",
+      "exportDescription": "Voor leveringen aan klanten buiten de Europese Unie",
+      "ossLabel": "OSS-regeling (B2C EU)",
+      "ossDescription": "Voor B2C verkopen aan particulieren in andere EU-landen onder de OSS-regeling",
+      "previewInLanguage": "Voorbeeld in taal:",
+      "defaultTexts": "Dit zijn de wettelijk correcte standaardteksten. Pas alleen aan indien noodzakelijk."
+    }
   }
 }
