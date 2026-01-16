@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Building2, Upload, Save } from 'lucide-react';
+import { Building2, Upload, Save, Landmark, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
 
 // EU countries for VAT purposes
@@ -44,7 +46,9 @@ const EU_COUNTRIES = [
 export function BusinessSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
+  const { isCompliant, errorCount } = useInvoiceCompliance();
   const [isSaving, setIsSaving] = useState(false);
+  const [ibanError, setIbanError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -56,10 +60,13 @@ export function BusinessSettings() {
     country: 'NL',
     kvk_number: '',
     btw_number: '',
+    iban: '',
+    bic: '',
   });
 
   useEffect(() => {
     if (currentTenant) {
+      const tenantData = currentTenant as any;
       setFormData({
         name: currentTenant.name || '',
         owner_name: currentTenant.owner_name || '',
@@ -70,16 +77,38 @@ export function BusinessSettings() {
         country: currentTenant.country || 'NL',
         kvk_number: currentTenant.kvk_number || '',
         btw_number: currentTenant.btw_number || '',
+        iban: tenantData.iban || '',
+        bic: tenantData.bic || '',
       });
     }
   }, [currentTenant]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Validate IBAN when it changes
+    if (field === 'iban') {
+      if (value && !validateIBAN(value)) {
+        setIbanError('Ongeldig IBAN formaat');
+      } else {
+        setIbanError(null);
+      }
+    }
   };
 
   const handleSave = async () => {
     if (!currentTenant) return;
+    
+    // Validate IBAN before saving
+    if (formData.iban && !validateIBAN(formData.iban)) {
+      toast({
+        title: 'Ongeldige IBAN',
+        description: 'Controleer het IBAN nummer en probeer opnieuw.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsSaving(true);
 
     try {
@@ -95,6 +124,8 @@ export function BusinessSettings() {
           country: formData.country,
           kvk_number: formData.kvk_number,
           btw_number: formData.btw_number,
+          iban: formData.iban.replace(/\s/g, '').toUpperCase() || null,
+          bic: formData.bic.toUpperCase() || null,
         })
         .eq('id', currentTenant.id);
 
@@ -133,6 +164,17 @@ export function BusinessSettings() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Compliance warning */}
+        {!isCompliant && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Er ontbreken {errorCount} verplichte velden voor Belgische factuur compliance. 
+              Vul alle verplichte velden in om te voldoen aan de wettelijke eisen.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Logo section */}
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20 rounded-lg">
@@ -187,7 +229,7 @@ export function BusinessSettings() {
           </div>
 
           <div className="grid gap-2 sm:col-span-2">
-            <Label htmlFor="address">Adres</Label>
+            <Label htmlFor="address">Adres *</Label>
             <Input
               id="address"
               value={formData.address}
@@ -197,7 +239,7 @@ export function BusinessSettings() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="postal_code">Postcode</Label>
+            <Label htmlFor="postal_code">Postcode *</Label>
             <Input
               id="postal_code"
               value={formData.postal_code}
@@ -207,7 +249,7 @@ export function BusinessSettings() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="city">Stad</Label>
+            <Label htmlFor="city">Stad *</Label>
             <Input
               id="city"
               value={formData.city}
@@ -239,23 +281,66 @@ export function BusinessSettings() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="kvk_number">KvK-nummer</Label>
+            <Label htmlFor="kvk_number">Ondernemingsnummer (KBO/KvK) *</Label>
             <Input
               id="kvk_number"
               value={formData.kvk_number}
               onChange={(e) => handleChange('kvk_number', e.target.value)}
-              placeholder="12345678"
+              placeholder="BE: 0123.456.789 | NL: 12345678"
             />
+            <p className="text-xs text-muted-foreground">
+              {formData.country === 'BE' ? 'KBO-nummer' : 'KvK-nummer'}
+            </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="btw_number">BTW-nummer</Label>
+            <Label htmlFor="btw_number">BTW-nummer *</Label>
             <Input
               id="btw_number"
               value={formData.btw_number}
               onChange={(e) => handleChange('btw_number', e.target.value)}
-              placeholder="NL123456789B01"
+              placeholder={formData.country === 'BE' ? 'BE0123456789' : 'NL123456789B01'}
             />
+          </div>
+        </div>
+
+        {/* Bank Account Section */}
+        <div className="pt-4 border-t">
+          <div className="flex items-center gap-2 mb-4">
+            <Landmark className="h-5 w-5 text-primary" />
+            <h4 className="font-semibold">Bankgegevens</h4>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2 sm:col-span-2">
+              <Label htmlFor="iban">IBAN Bankrekeningnummer *</Label>
+              <Input
+                id="iban"
+                value={formatIBAN(formData.iban)}
+                onChange={(e) => handleChange('iban', e.target.value.replace(/\s/g, ''))}
+                placeholder="NL91 ABNA 0417 1643 00"
+                className={ibanError ? 'border-destructive' : ''}
+              />
+              {ibanError && (
+                <p className="text-xs text-destructive">{ibanError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Verplicht voor Belgische facturen. Wordt getoond op alle facturen.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="bic">BIC/SWIFT code (optioneel)</Label>
+              <Input
+                id="bic"
+                value={formData.bic}
+                onChange={(e) => handleChange('bic', e.target.value.toUpperCase())}
+                placeholder="ABNANL2A"
+                maxLength={11}
+              />
+              <p className="text-xs text-muted-foreground">
+                Vereist voor internationale betalingen
+              </p>
+            </div>
           </div>
         </div>
 

@@ -785,6 +785,7 @@ export type Database = {
           address: string | null
           apply_oss_rules: boolean | null
           auto_send_invoices: boolean | null
+          bic: string | null
           block_invalid_vat_orders: boolean | null
           btw_number: string | null
           city: string | null
@@ -794,6 +795,7 @@ export type Database = {
           custom_domain: string | null
           default_vat_handling: string | null
           export_text: string | null
+          iban: string | null
           id: string
           invoice_bcc_email: string | null
           invoice_cc_email: string | null
@@ -801,6 +803,7 @@ export type Database = {
           invoice_email_subject: string | null
           invoice_format: string | null
           invoice_prefix: string | null
+          invoice_start_number: number | null
           kvk_number: string | null
           language: string | null
           last_login: string | null
@@ -832,6 +835,7 @@ export type Database = {
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
+          bic?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
           city?: string | null
@@ -841,6 +845,7 @@ export type Database = {
           custom_domain?: string | null
           default_vat_handling?: string | null
           export_text?: string | null
+          iban?: string | null
           id?: string
           invoice_bcc_email?: string | null
           invoice_cc_email?: string | null
@@ -848,6 +853,7 @@ export type Database = {
           invoice_email_subject?: string | null
           invoice_format?: string | null
           invoice_prefix?: string | null
+          invoice_start_number?: number | null
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
@@ -879,6 +885,7 @@ export type Database = {
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
+          bic?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
           city?: string | null
@@ -888,6 +895,7 @@ export type Database = {
           custom_domain?: string | null
           default_vat_handling?: string | null
           export_text?: string | null
+          iban?: string | null
           id?: string
           invoice_bcc_email?: string | null
           invoice_cc_email?: string | null
@@ -895,6 +903,7 @@ export type Database = {
           invoice_email_subject?: string | null
           invoice_format?: string | null
           invoice_prefix?: string | null
+          invoice_start_number?: number | null
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null

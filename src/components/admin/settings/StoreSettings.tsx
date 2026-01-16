@@ -48,6 +48,7 @@ export function StoreSettings() {
     auto_send_invoices: true,
     invoice_format: 'pdf',
     invoice_prefix: 'INV',
+    invoice_start_number: 1,
     invoice_email_subject: '',
     invoice_email_body: '',
     invoice_cc_email: '',
@@ -67,6 +68,7 @@ export function StoreSettings() {
         auto_send_invoices: tenantData.auto_send_invoices ?? true,
         invoice_format: tenantData.invoice_format || 'pdf',
         invoice_prefix: tenantData.invoice_prefix || 'INV',
+        invoice_start_number: tenantData.invoice_start_number || 1,
         invoice_email_subject: tenantData.invoice_email_subject || '',
         invoice_email_body: tenantData.invoice_email_body || '',
         invoice_cc_email: tenantData.invoice_cc_email || '',
@@ -92,6 +94,7 @@ export function StoreSettings() {
           auto_send_invoices: formData.auto_send_invoices,
           invoice_format: formData.invoice_format,
           invoice_prefix: formData.invoice_prefix,
+          invoice_start_number: formData.invoice_start_number,
           invoice_email_subject: formData.invoice_email_subject || null,
           invoice_email_body: formData.invoice_email_body || null,
           invoice_cc_email: formData.invoice_cc_email || null,
@@ -401,9 +404,37 @@ export function StoreSettings() {
                 maxLength={10}
               />
               <p className="text-xs text-muted-foreground">
-                Voorbeeld: {formData.invoice_prefix}-2025-0001
+                Voorbeeld: {formData.invoice_prefix}-{new Date().getFullYear()}-{String(formData.invoice_start_number).padStart(4, '0')}
               </p>
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="invoice_start_number">Startnummer</Label>
+              <Input
+                id="invoice_start_number"
+                type="number"
+                min="1"
+                value={formData.invoice_start_number}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  invoice_start_number: Math.max(1, parseInt(e.target.value) || 1)
+                }))}
+                placeholder="1"
+              />
+              <p className="text-xs text-muted-foreground">
+                Het eerste factuurnummer begint met dit nummer. Wijzig alleen als je migreert van een ander systeem.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-muted/50 rounded-lg text-sm">
+            <p className="font-medium mb-2">Factuurnummering</p>
+            <p className="text-muted-foreground">
+              Factuurnummers worden automatisch gegenereerd in het formaat: <code className="bg-background px-1 py-0.5 rounded">{formData.invoice_prefix}-{new Date().getFullYear()}-0001</code>
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Het systeem houdt automatisch opeenvolgende nummers bij. Gaten in de nummering worden voorkomen.
+            </p>
           </div>
 
           <div className="grid gap-2">
