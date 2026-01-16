@@ -28,6 +28,7 @@ import PricingPage from "./pages/Pricing";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
+import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,11 @@ const App = () => (
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/billing" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformBillingPage />
                 </ProtectedRoute>
               } />
             </Route>

@@ -69,6 +69,7 @@ const settingsNavItems = [
 
 const platformNavItems = [
   { title: 'Tenants', url: '/admin/platform', icon: Building2 },
+  { title: 'Platform Billing', url: '/admin/platform/billing', icon: Receipt },
 ];
 
 export function AdminSidebar() {
