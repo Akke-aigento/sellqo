@@ -22,6 +22,7 @@ import CreditNotesPage from "./pages/admin/CreditNotes";
 import CustomersPage from "./pages/admin/Customers";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
+import SubscriptionsPage from "./pages/admin/Subscriptions";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="orders/quotes/:id/edit" element={<QuoteFormPage />} />
               <Route path="orders/invoices" element={<InvoicesPage />} />
               <Route path="orders/creditnotes" element={<CreditNotesPage />} />
+              <Route path="orders/subscriptions" element={<SubscriptionsPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />

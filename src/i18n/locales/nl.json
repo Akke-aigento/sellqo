@@ -392,5 +392,138 @@
     "signature": "Handtekening",
     "note": "Controleer de inhoud bij ontvangst. Meld eventuele schade of ontbrekende artikelen binnen 48 uur.",
     "create_from_order": "Pakbon maken"
+  },
+  "subscriptions": {
+    "title": "Abonnementen",
+    "description": "Beheer terugkerende facturen en abonnementen",
+    "create": "Abonnement aanmaken",
+    "edit": "Abonnement bewerken",
+    "form_description": "Configureer een terugkerend factuurschema voor deze klant",
+    "customer": "Klant",
+    "select_customer": "Selecteer klant",
+    "name": "Naam / Omschrijving",
+    "name_placeholder": "bijv. Website onderhoud, SaaS licentie",
+    "billing_cycle": "Factuurcyclus",
+    "every": "Elke",
+    "days": "dagen",
+    "interval": {
+      "weekly": "Week/Weken",
+      "monthly": "Maand(en)",
+      "quarterly": "Kwartaal/Kwartalen",
+      "yearly": "Jaar/Jaren"
+    },
+    "lines": "Factuurlijnen",
+    "add_line": "Lijn toevoegen",
+    "start_date": "Startdatum",
+    "end_date": "Einddatum (optioneel)",
+    "no_end_date": "Geen einddatum",
+    "next_invoice": "Volgende factuur",
+    "last_invoice": "Laatste factuur",
+    "settings": "Instellingen",
+    "auto_send": "Factuur automatisch versturen",
+    "payment_term": "Betalingstermijn",
+    "generate_days_before": "Genereer factuur dagen vooraf",
+    "notify_customer": "Klant informeren voor verlenging",
+    "days_before_renewal": "dagen voor verlenging",
+    "active_count": "abonnementen",
+    "status": {
+      "active": "Actief",
+      "paused": "Gepauzeerd",
+      "cancelled": "Geannuleerd",
+      "ended": "Beëindigd"
+    },
+    "actions": {
+      "pause": "Pauzeren",
+      "resume": "Hervatten",
+      "cancel": "Annuleren",
+      "generate_now": "Nu factureren"
+    },
+    "invoice_note": "Abonnement: {name} - Periode: {period}",
+    "history": "Factuurgeschiedenis"
+  },
+  "invoice_duplicate": {
+    "title": "Duplicaat",
+    "watermark": "DUPLICAAT",
+    "notice": "DUPLICAAT - Kopie van factuur dd. {originalDate} - Aangemaakt op {duplicateDate}",
+    "download": "Duplicaat downloaden",
+    "email": "Duplicaat e-mailen",
+    "history": "Duplicaat geschiedenis",
+    "reason": {
+      "customer_request": "Klantvraag",
+      "lost": "Verloren",
+      "archive": "Archief",
+      "accounting": "Boekhouding"
+    }
+  },
+  "vat_export": {
+    "title": "BTW-aangifte export",
+    "description": "Exporteer BTW-gegevens voor je periodieke aangifte",
+    "period_type": "Aangifteperiode",
+    "monthly": "Maandelijks",
+    "quarterly": "Per kwartaal",
+    "year": "Jaar",
+    "quarter": "Kwartaal",
+    "month": "Maand",
+    "calculate": "Berekenen",
+    "preview": "Overzicht",
+    "domestic_sales": "Binnenlandse verkopen",
+    "intra_community": "Intracommunautaire leveringen",
+    "exports_outside_eu": "Export buiten EU",
+    "vat_due": "Verschuldigde BTW",
+    "export_format": "Exportformaat",
+    "download": "Downloaden",
+    "ic_listing": "IC-listing downloaden",
+    "detailed_report": "Gedetailleerd rapport",
+    "invoice_count": "Facturen",
+    "creditnote_count": "Creditnota's"
+  },
+  "reports": {
+    "title": "Rapportages",
+    "period": "Periode",
+    "export": "Exporteren",
+    "revenue": {
+      "title": "Omzet rapport",
+      "total_revenue": "Totale omzet",
+      "invoice_count": "Aantal facturen",
+      "average_order": "Gemiddelde order",
+      "growth": "Groei"
+    },
+    "top_customers": {
+      "title": "Top klanten",
+      "rank": "Rang",
+      "customer": "Klant",
+      "percentage_of_total": "% van totaal"
+    },
+    "aging": {
+      "title": "Openstaande facturen",
+      "total_outstanding": "Totaal openstaand",
+      "days_overdue": "Dagen over tijd",
+      "bucket_0_30": "0-30 dagen",
+      "bucket_31_60": "31-60 dagen",
+      "bucket_61_90": "61-90 dagen",
+      "bucket_90_plus": "90+ dagen",
+      "critical": "Kritieke facturen"
+    },
+    "subscriptions": {
+      "title": "Abonnementen overzicht",
+      "mrr": "MRR (Maandelijks terugkerend)",
+      "arr": "ARR (Jaarlijks terugkerend)",
+      "active_count": "Actieve abonnementen",
+      "churn_rate": "Opzegpercentage",
+      "by_interval": "Per interval"
+    },
+    "vat": {
+      "title": "BTW-overzicht",
+      "by_rate": "Per tarief",
+      "collected": "Geïnd"
+    },
+    "products": {
+      "title": "Product prestaties",
+      "units_sold": "Verkocht",
+      "revenue": "Omzet"
+    }
+  },
+  "common": {
+    "all": "Alle"
   }
 }

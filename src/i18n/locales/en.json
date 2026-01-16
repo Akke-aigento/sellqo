@@ -392,5 +392,138 @@
     "signature": "Signature",
     "note": "Please check contents upon receipt. Report any damage or missing items within 48 hours.",
     "create_from_order": "Create packing slip"
+  },
+  "subscriptions": {
+    "title": "Subscriptions",
+    "description": "Manage recurring invoices and subscriptions",
+    "create": "Create subscription",
+    "edit": "Edit subscription",
+    "form_description": "Configure a recurring invoice schedule for this customer",
+    "customer": "Customer",
+    "select_customer": "Select customer",
+    "name": "Name / Description",
+    "name_placeholder": "e.g. Website maintenance, SaaS license",
+    "billing_cycle": "Billing cycle",
+    "every": "Every",
+    "days": "days",
+    "interval": {
+      "weekly": "Week(s)",
+      "monthly": "Month(s)",
+      "quarterly": "Quarter(s)",
+      "yearly": "Year(s)"
+    },
+    "lines": "Invoice lines",
+    "add_line": "Add line",
+    "start_date": "Start date",
+    "end_date": "End date (optional)",
+    "no_end_date": "No end date",
+    "next_invoice": "Next invoice",
+    "last_invoice": "Last invoice",
+    "settings": "Settings",
+    "auto_send": "Automatically send invoice",
+    "payment_term": "Payment term",
+    "generate_days_before": "Generate invoice days before",
+    "notify_customer": "Notify customer before renewal",
+    "days_before_renewal": "days before renewal",
+    "active_count": "subscriptions",
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "cancelled": "Cancelled",
+      "ended": "Ended"
+    },
+    "actions": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
+      "generate_now": "Generate invoice now"
+    },
+    "invoice_note": "Subscription: {name} - Period: {period}",
+    "history": "Invoice history"
+  },
+  "invoice_duplicate": {
+    "title": "Duplicate",
+    "watermark": "DUPLICATE",
+    "notice": "DUPLICATE - Copy of invoice dated {originalDate} - Generated on {duplicateDate}",
+    "download": "Download duplicate",
+    "email": "Email duplicate",
+    "history": "Duplicate history",
+    "reason": {
+      "customer_request": "Customer request",
+      "lost": "Lost",
+      "archive": "Archive",
+      "accounting": "Accounting"
+    }
+  },
+  "vat_export": {
+    "title": "VAT return export",
+    "description": "Export VAT data for your periodic return",
+    "period_type": "Return period",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "year": "Year",
+    "quarter": "Quarter",
+    "month": "Month",
+    "calculate": "Calculate",
+    "preview": "Preview",
+    "domestic_sales": "Domestic sales",
+    "intra_community": "Intra-community supplies",
+    "exports_outside_eu": "Exports outside EU",
+    "vat_due": "VAT due",
+    "export_format": "Export format",
+    "download": "Download",
+    "ic_listing": "Download IC listing",
+    "detailed_report": "Detailed report",
+    "invoice_count": "Invoices",
+    "creditnote_count": "Credit notes"
+  },
+  "reports": {
+    "title": "Reports",
+    "period": "Period",
+    "export": "Export",
+    "revenue": {
+      "title": "Revenue report",
+      "total_revenue": "Total revenue",
+      "invoice_count": "Invoice count",
+      "average_order": "Average order",
+      "growth": "Growth"
+    },
+    "top_customers": {
+      "title": "Top customers",
+      "rank": "Rank",
+      "customer": "Customer",
+      "percentage_of_total": "% of total"
+    },
+    "aging": {
+      "title": "Outstanding invoices",
+      "total_outstanding": "Total outstanding",
+      "days_overdue": "Days overdue",
+      "bucket_0_30": "0-30 days",
+      "bucket_31_60": "31-60 days",
+      "bucket_61_90": "61-90 days",
+      "bucket_90_plus": "90+ days",
+      "critical": "Critical invoices"
+    },
+    "subscriptions": {
+      "title": "Subscriptions overview",
+      "mrr": "MRR (Monthly Recurring)",
+      "arr": "ARR (Annual Recurring)",
+      "active_count": "Active subscriptions",
+      "churn_rate": "Churn rate",
+      "by_interval": "By interval"
+    },
+    "vat": {
+      "title": "VAT overview",
+      "by_rate": "By rate",
+      "collected": "Collected"
+    },
+    "products": {
+      "title": "Product performance",
+      "units_sold": "Units sold",
+      "revenue": "Revenue"
+    }
+  },
+  "common": {
+    "all": "All"
   }
 }
