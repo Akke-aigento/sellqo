@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
+import { ManualInvoiceDialog } from '@/components/admin/ManualInvoiceDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { InvoiceStatus } from '@/types/invoice';
 
@@ -21,7 +22,7 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
 
-  const { invoices, isLoading, resendInvoice } = useInvoices({
+  const { invoices, isLoading, resendInvoice, refetch } = useInvoices({
     search: search || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
@@ -51,11 +52,14 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Facturen</h1>
-        <p className="text-muted-foreground">
-          Beheer en bekijk alle facturen
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Facturen</h1>
+          <p className="text-muted-foreground">
+            Beheer en bekijk alle facturen
+          </p>
+        </div>
+        <ManualInvoiceDialog onSuccess={() => refetch()} />
       </div>
 
       {/* Filters */}
