@@ -239,5 +239,28 @@
     "required_fields": "Required fields present",
     "peppol_configured": "Peppol ID configured",
     "generate_test": "Generate test invoice"
+  },
+  "creditnote": {
+    "title": "Credit Note",
+    "create": "Create credit note",
+    "create_for": "Create credit note for invoice",
+    "description": "Create a credit note for this invoice.",
+    "type": "Type",
+    "type_full": "Full credit",
+    "type_partial": "Partial credit",
+    "type_correction": "Correction",
+    "reason": "Reason",
+    "reason_placeholder": "e.g. Return, Incorrect billing, Damaged product",
+    "select_lines": "Select lines to credit",
+    "reference_invoice": "Credit note for invoice",
+    "number_prefix": "Credit note prefix",
+    "total_to_credit": "Amount to credit",
+    "status_draft": "Draft",
+    "status_sent": "Sent",
+    "status_processed": "Processed"
+  },
+  "ogm": {
+    "label": "Structured reference",
+    "payment_instruction": "Please include the structured reference with your payment"
   }
 }

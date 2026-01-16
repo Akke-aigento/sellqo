@@ -239,5 +239,28 @@
     "required_fields": "Pflichtfelder vorhanden",
     "peppol_configured": "Peppol-ID konfiguriert",
     "generate_test": "Testrechnung erstellen"
+  },
+  "creditnote": {
+    "title": "Gutschrift",
+    "create": "Gutschrift erstellen",
+    "create_for": "Gutschrift erstellen für Rechnung",
+    "description": "Erstellen Sie eine Gutschrift für diese Rechnung.",
+    "type": "Typ",
+    "type_full": "Vollständige Gutschrift",
+    "type_partial": "Teilgutschrift",
+    "type_correction": "Korrektur",
+    "reason": "Grund",
+    "reason_placeholder": "z.B. Retoure, Fehlerhafte Rechnung, Beschädigtes Produkt",
+    "select_lines": "Zu gutschreibende Positionen auswählen",
+    "reference_invoice": "Gutschrift zu Rechnung",
+    "number_prefix": "Gutschrift-Präfix",
+    "total_to_credit": "Zu gutschreibender Betrag",
+    "status_draft": "Entwurf",
+    "status_sent": "Gesendet",
+    "status_processed": "Verarbeitet"
+  },
+  "ogm": {
+    "label": "Strukturierte Mitteilung",
+    "payment_instruction": "Bitte geben Sie bei der Zahlung die strukturierte Mitteilung an"
   }
 }

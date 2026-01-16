@@ -169,6 +169,29 @@ function calculateVat(params: {
   };
 }
 
+/**
+ * Generates a Belgian structured communication (OGM)
+ * Format: +++XXX/XXXX/XXXXX+++ (12 digits, last 2 = modulo 97 checksum)
+ */
+function generateOGM(baseNumber: number | string): string {
+  let numericBase = typeof baseNumber === 'string' 
+    ? baseNumber.replace(/\D/g, '') 
+    : baseNumber.toString();
+  
+  if (!numericBase || numericBase === '0') {
+    numericBase = Date.now().toString().slice(-10);
+  }
+  
+  numericBase = numericBase.slice(-10).padStart(10, '0');
+  
+  const baseNum = BigInt(numericBase);
+  const remainder = Number(baseNum % 97n);
+  const checksum = (remainder === 0 ? 97 : remainder).toString().padStart(2, '0');
+  
+  const full = numericBase + checksum;
+  return `+++${full.slice(0, 3)}/${full.slice(3, 7)}/${full.slice(7, 12)}+++`;
+}
+
 function formatCurrency(amount: number, currency: string = 'EUR'): string {
   return new Intl.NumberFormat('nl-NL', {
     style: 'currency',
@@ -905,6 +928,10 @@ serve(async (req) => {
     // Determine Peppol status
     const peppolStatus = peppolRequired ? 'pending' : null;
 
+    // Generate OGM (Belgian structured communication)
+    const ogmReference = generateOGM(invoiceNumber);
+    logStep("OGM generated", { ogmReference });
+
     // Create invoice record
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
@@ -919,6 +946,7 @@ serve(async (req) => {
         total: subtotal + vatCalculation.vatAmount + (Number(order.shipping_cost) || 0),
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
+        ogm_reference: ogmReference,
         paid_at: new Date().toISOString(),
         is_b2b: isB2B,
         peppol_status: peppolStatus,

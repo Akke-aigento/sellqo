@@ -239,5 +239,28 @@
     "required_fields": "Verplichte velden aanwezig",
     "peppol_configured": "Peppol-ID geconfigureerd",
     "generate_test": "Genereer testfactuur"
+  },
+  "creditnote": {
+    "title": "Creditnota",
+    "create": "Creditnota aanmaken",
+    "create_for": "Creditnota aanmaken voor factuur",
+    "description": "Maak een creditnota aan voor deze factuur.",
+    "type": "Type",
+    "type_full": "Volledige creditering",
+    "type_partial": "Gedeeltelijke creditering",
+    "type_correction": "Correctie",
+    "reason": "Reden",
+    "reason_placeholder": "bijv. Retour, Foutieve facturatie, Beschadigd product",
+    "select_lines": "Selecteer te crediteren lijnen",
+    "reference_invoice": "Creditnota bij factuur",
+    "number_prefix": "Creditnota prefix",
+    "total_to_credit": "Te crediteren bedrag",
+    "status_draft": "Concept",
+    "status_sent": "Verstuurd",
+    "status_processed": "Verwerkt"
+  },
+  "ogm": {
+    "label": "Gestructureerde mededeling",
+    "payment_instruction": "Gelieve bij betaling de gestructureerde mededeling te vermelden"
   }
 }

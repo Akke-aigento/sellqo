@@ -71,6 +71,144 @@ export type Database = {
           },
         ]
       }
+      credit_note_lines: {
+        Row: {
+          created_at: string | null
+          credit_note_id: string
+          description: string
+          id: string
+          line_total: number
+          line_type: string | null
+          original_invoice_line_id: string | null
+          quantity: number
+          unit_price: number
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          credit_note_id: string
+          description: string
+          id?: string
+          line_total: number
+          line_type?: string | null
+          original_invoice_line_id?: string | null
+          quantity?: number
+          unit_price: number
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          credit_note_id?: string
+          description?: string
+          id?: string
+          line_total?: number
+          line_type?: string | null
+          original_invoice_line_id?: string | null
+          quantity?: number
+          unit_price?: number
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_note_lines_credit_note_id_fkey"
+            columns: ["credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_notes: {
+        Row: {
+          created_at: string | null
+          credit_note_number: string
+          customer_id: string | null
+          id: string
+          issue_date: string
+          ogm_reference: string | null
+          original_invoice_id: string
+          pdf_url: string | null
+          peppol_required: boolean | null
+          peppol_status: string | null
+          reason: string
+          status: string | null
+          subtotal: number
+          tax_amount: number | null
+          tenant_id: string
+          total: number
+          type: string
+          ubl_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credit_note_number: string
+          customer_id?: string | null
+          id?: string
+          issue_date?: string
+          ogm_reference?: string | null
+          original_invoice_id: string
+          pdf_url?: string | null
+          peppol_required?: boolean | null
+          peppol_status?: string | null
+          reason: string
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number | null
+          tenant_id: string
+          total?: number
+          type: string
+          ubl_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credit_note_number?: string
+          customer_id?: string | null
+          id?: string
+          issue_date?: string
+          ogm_reference?: string | null
+          original_invoice_id?: string
+          pdf_url?: string | null
+          peppol_required?: boolean | null
+          peppol_status?: string | null
+          reason?: string
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number | null
+          tenant_id?: string
+          total?: number
+          type?: string
+          ubl_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_original_invoice_id_fkey"
+            columns: ["original_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           billing_address_verified: boolean | null
@@ -188,6 +326,7 @@ export type Database = {
           id: string
           invoice_number: string
           is_b2b: boolean | null
+          ogm_reference: string | null
           order_id: string | null
           paid_at: string | null
           pdf_url: string | null
@@ -208,6 +347,7 @@ export type Database = {
           id?: string
           invoice_number: string
           is_b2b?: boolean | null
+          ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
@@ -228,6 +368,7 @@ export type Database = {
           id?: string
           invoice_number?: string
           is_b2b?: boolean | null
+          ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
@@ -791,6 +932,8 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          credit_note_prefix: string | null
+          credit_note_start_number: number | null
           currency: string | null
           custom_domain: string | null
           default_vat_handling: string | null
@@ -841,6 +984,8 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          credit_note_prefix?: string | null
+          credit_note_start_number?: number | null
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
@@ -891,6 +1036,8 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          credit_note_prefix?: string | null
+          credit_note_start_number?: number | null
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
@@ -1030,6 +1177,10 @@ export type Database = {
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
+      }
+      generate_credit_note_number: {
+        Args: { _tenant_id: string }
+        Returns: string
       }
       generate_invoice_number: { Args: { _tenant_id: string }; Returns: string }
       generate_order_number: { Args: { _tenant_id: string }; Returns: string }

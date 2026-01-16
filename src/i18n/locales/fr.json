@@ -239,5 +239,28 @@
     "required_fields": "Champs obligatoires présents",
     "peppol_configured": "Identifiant Peppol configuré",
     "generate_test": "Générer une facture test"
+  },
+  "creditnote": {
+    "title": "Note de crédit",
+    "create": "Créer une note de crédit",
+    "create_for": "Créer une note de crédit pour la facture",
+    "description": "Créer une note de crédit pour cette facture.",
+    "type": "Type",
+    "type_full": "Crédit total",
+    "type_partial": "Crédit partiel",
+    "type_correction": "Correction",
+    "reason": "Motif",
+    "reason_placeholder": "ex. Retour, Facturation incorrecte, Produit endommagé",
+    "select_lines": "Sélectionnez les lignes à créditer",
+    "reference_invoice": "Note de crédit pour facture",
+    "number_prefix": "Préfixe note de crédit",
+    "total_to_credit": "Montant à créditer",
+    "status_draft": "Brouillon",
+    "status_sent": "Envoyée",
+    "status_processed": "Traitée"
+  },
+  "ogm": {
+    "label": "Communication structurée",
+    "payment_instruction": "Veuillez mentionner la communication structurée lors du paiement"
   }
 }
