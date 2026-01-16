@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText } from 'lucide-react';
+import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useOssRevenue, OSS_THRESHOLD_AMOUNT } from '@/hooks/useOssRevenue';
@@ -33,6 +34,8 @@ export function TaxSettings() {
     apply_oss_rules: false,
     oss_registration_date: '',
     oss_identification_number: '',
+    require_vies_validation: true,
+    block_invalid_vat_orders: false,
   });
 
   useEffect(() => {
@@ -43,6 +46,8 @@ export function TaxSettings() {
         apply_oss_rules: tenantData.apply_oss_rules ?? false,
         oss_registration_date: tenantData.oss_registration_date || '',
         oss_identification_number: tenantData.oss_identification_number || '',
+        require_vies_validation: tenantData.require_vies_validation ?? true,
+        block_invalid_vat_orders: tenantData.block_invalid_vat_orders ?? false,
       });
     }
   }, [currentTenant]);
@@ -59,6 +64,8 @@ export function TaxSettings() {
           apply_oss_rules: formData.apply_oss_rules,
           oss_registration_date: formData.oss_registration_date || null,
           oss_identification_number: formData.oss_identification_number || null,
+          require_vies_validation: formData.require_vies_validation,
+          block_invalid_vat_orders: formData.block_invalid_vat_orders,
         })
         .eq('id', currentTenant.id);
 
@@ -150,6 +157,113 @@ export function TaxSettings() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* VIES Validation Settings Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <ShieldCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle>VIES BTW-validatie</CardTitle>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <p>Het VIES-systeem (VAT Information Exchange System) is de EU-database om BTW-nummers te valideren. Alleen bij een geldig BTW-nummer mag BTW worden verlegd.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <CardDescription>
+                Valideer BTW-nummers via het EU VIES-systeem voor B2B-transacties
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Require VIES Validation Toggle */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-1">
+              <p className="font-medium">Verplichte VIES-validatie voor BTW-verlegging</p>
+              <p className="text-sm text-muted-foreground">
+                BTW wordt alleen verlegd als het BTW-nummer geldig is gevalideerd in VIES
+              </p>
+            </div>
+            <Switch
+              checked={formData.require_vies_validation}
+              onCheckedChange={(checked) => 
+                setFormData(prev => ({ ...prev, require_vies_validation: checked }))
+              }
+            />
+          </div>
+
+          {formData.require_vies_validation && (
+            <>
+              {/* Invalid VAT Handling */}
+              <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+                <Label className="text-sm font-medium">Gedrag bij ongeldig BTW-nummer</Label>
+                <RadioGroup
+                  value={formData.block_invalid_vat_orders ? 'block' : 'warn'}
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, block_invalid_vat_orders: value === 'block' }))
+                  }
+                  className="space-y-3"
+                >
+                  <div className="flex items-start space-x-3 p-3 border rounded-lg bg-background">
+                    <RadioGroupItem value="warn" id="warn" className="mt-1" />
+                    <Label htmlFor="warn" className="flex-1 cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4 text-amber-500" />
+                        <span className="font-medium">Toon waarschuwing</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Bestelling is toegestaan, maar standaard BTW-tarief wordt toegepast en een waarschuwing wordt gelogd
+                      </p>
+                    </Label>
+                  </div>
+                  <div className="flex items-start space-x-3 p-3 border rounded-lg bg-background">
+                    <RadioGroupItem value="block" id="block" className="mt-1" />
+                    <Label htmlFor="block" className="flex-1 cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-destructive" />
+                        <span className="font-medium">Blokkeer bestelling</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        B2B bestellingen met een ongeldig BTW-nummer worden niet geaccepteerd
+                      </p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
+                <ShieldCheck className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800 dark:text-green-200">VIES-validatie actief</AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-300">
+                  Bij het invoeren van een BTW-nummer wordt dit real-time gevalideerd via het EU VIES-systeem. 
+                  Alle validaties worden gelogd voor je administratie.
+                </AlertDescription>
+              </Alert>
+            </>
+          )}
+
+          {!formData.require_vies_validation && (
+            <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800 dark:text-amber-200">Let op: VIES-validatie uitgeschakeld</AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                Zonder VIES-validatie loop je risico op naheffing als een BTW-nummer later ongeldig blijkt.
+                Het is sterk aanbevolen om VIES-validatie ingeschakeld te houden.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
@@ -512,7 +626,7 @@ export function TaxSettings() {
                 <tr className="border-b">
                   <th className="text-left py-2 px-3 font-medium">Klanttype</th>
                   <th className="text-left py-2 px-3 font-medium">Locatie</th>
-                  <th className="text-left py-2 px-3 font-medium">BTW-nummer</th>
+                  <th className="text-left py-2 px-3 font-medium">VIES Validatie</th>
                   <th className="text-left py-2 px-3 font-medium">BTW-tarief</th>
                   <th className="text-left py-2 px-3 font-medium">Factuur vermelding</th>
                 </tr>
@@ -539,23 +653,35 @@ export function TaxSettings() {
                 <tr className="hover:bg-muted/50">
                   <td className="py-2 px-3">B2B</td>
                   <td className="py-2 px-3">Eigen land ({tenantCountry})</td>
-                  <td className="py-2 px-3">✓ Geldig</td>
+                  <td className="py-2 px-3 text-muted-foreground">n.v.t.</td>
                   <td className="py-2 px-3 font-medium">{currentTenant?.tax_percentage || 21}%</td>
                   <td className="py-2 px-3 text-muted-foreground">Standaard</td>
                 </tr>
-                <tr className="hover:bg-muted/50 bg-green-50/50 dark:bg-green-950/20">
+                <tr className={`hover:bg-muted/50 ${formData.require_vies_validation ? 'bg-green-50/50 dark:bg-green-950/20' : ''}`}>
                   <td className="py-2 px-3">B2B</td>
                   <td className="py-2 px-3">Ander EU-land</td>
-                  <td className="py-2 px-3 text-green-600">✓ Geldig</td>
+                  <td className="py-2 px-3">
+                    <span className="inline-flex items-center gap-1 text-green-600">
+                      <ShieldCheck className="h-3 w-3" />
+                      Geldig in VIES
+                    </span>
+                  </td>
                   <td className="py-2 px-3 font-medium text-green-600">0%</td>
                   <td className="py-2 px-3 text-green-600">BTW verlegd</td>
                 </tr>
                 <tr className="hover:bg-muted/50">
                   <td className="py-2 px-3">B2B</td>
                   <td className="py-2 px-3">Ander EU-land</td>
-                  <td className="py-2 px-3 text-destructive">✗ Ongeldig</td>
+                  <td className="py-2 px-3">
+                    <span className="inline-flex items-center gap-1 text-destructive">
+                      <ShieldAlert className="h-3 w-3" />
+                      Ongeldig in VIES
+                    </span>
+                  </td>
                   <td className="py-2 px-3 font-medium">{currentTenant?.tax_percentage || 21}%</td>
-                  <td className="py-2 px-3 text-muted-foreground">Standaard</td>
+                  <td className="py-2 px-3 text-muted-foreground">
+                    {formData.block_invalid_vat_orders ? 'Bestelling geblokkeerd' : 'Standaard + waarschuwing'}
+                  </td>
                 </tr>
                 <tr className="hover:bg-muted/50 bg-blue-50/50 dark:bg-blue-950/20">
                   <td className="py-2 px-3">B2C / B2B</td>

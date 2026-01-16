@@ -89,13 +89,27 @@ function calculateVat(params: {
   const tenantCountry = tenant.country || 'NL';
   const taxPercent = tenant.tax_percentage || 21;
   const isB2B = customer?.customer_type === 'b2b';
-  const hasValidVat = customer?.vat_verified === true;
+  const requireViesValidation = tenant.require_vies_validation !== false; // Default to true
+  const hasValidVat = requireViesValidation 
+    ? customer?.vat_verified === true 
+    : Boolean(customer?.vat_number);
   const isEuCountry = EU_COUNTRIES.includes(customerCountry);
   const isSameCountry = customerCountry === tenantCountry;
 
   const lang = getCustomerLanguage(customer, tenant);
 
-  logStep("VAT calculation", { tenantCountry, customerCountry, isB2B, hasValidVat, isEuCountry, isSameCountry, lang });
+  logStep("VAT calculation", { 
+    tenantCountry, 
+    customerCountry, 
+    isB2B, 
+    hasValidVat, 
+    isEuCountry, 
+    isSameCountry, 
+    lang,
+    requireViesValidation,
+    vatVerified: customer?.vat_verified,
+    vatNumber: customer?.vat_number
+  });
 
   // Same country - always apply local VAT
   if (isSameCountry) {
@@ -108,6 +122,7 @@ function calculateVat(params: {
   }
 
   // B2B with valid VAT number in EU - Reverse Charge
+  // Only apply if VIES validation passed (when required) or if VAT number exists (when not required)
   if (isB2B && hasValidVat && isEuCountry) {
     return {
       vatRate: 0,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, X, Loader2, Search, Building2 } from 'lucide-react';
+import { Check, X, Loader2, Search, Building2, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,9 +14,11 @@ interface VatInputProps {
     valid: boolean;
     company_name?: string | null;
     address?: string | null;
+    service_unavailable?: boolean;
   }) => void;
   disabled?: boolean;
   className?: string;
+  customerId?: string;
 }
 
 const EU_COUNTRIES = [
@@ -55,6 +57,7 @@ export function VatInput({
   onValidated,
   disabled,
   className,
+  customerId,
 }: VatInputProps) {
   const { validateVat, isValidating, result, resetValidation } = useVatValidation();
   const [hasValidated, setHasValidated] = useState(false);
@@ -70,7 +73,7 @@ export function VatInput({
   const handleValidate = async () => {
     if (!value.trim()) return;
 
-    const validationResult = await validateVat(value);
+    const validationResult = await validateVat(value, customerId);
     setHasValidated(true);
 
     if (onValidated) {
@@ -78,6 +81,7 @@ export function VatInput({
         valid: validationResult.valid,
         company_name: validationResult.company_name,
         address: validationResult.address,
+        service_unavailable: validationResult.service_unavailable,
       });
     }
   };
@@ -85,6 +89,9 @@ export function VatInput({
   const getStatusIcon = () => {
     if (isValidating) {
       return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+    }
+    if (result?.service_unavailable) {
+      return <AlertTriangle className="h-4 w-4 text-amber-500" />;
     }
     if (result?.valid) {
       return <Check className="h-4 w-4 text-green-600" />;
@@ -109,7 +116,8 @@ export function VatInput({
             className={cn(
               "pr-8",
               result?.valid && "border-green-500 focus-visible:ring-green-500",
-              result && !result.valid && hasValidated && "border-destructive focus-visible:ring-destructive"
+              result?.service_unavailable && "border-amber-500 focus-visible:ring-amber-500",
+              result && !result.valid && !result.service_unavailable && hasValidated && "border-destructive focus-visible:ring-destructive"
             )}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -135,7 +143,9 @@ export function VatInput({
       {result && hasValidated && (
         <div className={cn(
           "p-3 rounded-md text-sm",
-          result.valid ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800" : "bg-destructive/10 border border-destructive/20"
+          result.valid ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800" : 
+          result.service_unavailable ? "bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800" :
+          "bg-destructive/10 border border-destructive/20"
         )}>
           {result.valid ? (
             <div className="space-y-1">
@@ -156,6 +166,11 @@ export function VatInput({
                   </div>
                 </div>
               )}
+            </div>
+          ) : result.service_unavailable ? (
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+              <AlertTriangle className="h-4 w-4" />
+              <span>VIES-service tijdelijk niet beschikbaar. Probeer later opnieuw.</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-destructive">
