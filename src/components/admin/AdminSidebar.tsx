@@ -187,6 +187,13 @@ export function AdminSidebar() {
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/creditnotes')}>
+                          <NavLink to="/admin/orders/creditnotes">
+                            Creditnota's
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>
