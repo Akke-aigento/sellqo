@@ -21,6 +21,9 @@ export interface Customer {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  company_name: string | null;
+  customer_type: string | null;
+  vat_number: string | null;
   default_shipping_address: JsonAddress;
   default_billing_address: JsonAddress;
   total_orders: number;
