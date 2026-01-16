@@ -103,5 +103,29 @@
     "saved": "Gespeichert",
     "deleted": "Gelöscht",
     "updated": "Aktualisiert"
+  },
+  "invoice": {
+    "vat": {
+      "intracom_goods": "Innergemeinschaftliche Lieferung umsatzsteuerfrei - Art. 138 MwSt-Richtlinie 2006/112/EG",
+      "intracom_services": "Steuerschuldnerschaft des Leistungsempfängers - Art. 196 MwSt-Richtlinie 2006/112/EG",
+      "export": "Ausfuhr umsatzsteuerfrei - Art. 146 MwSt-Richtlinie 2006/112/EG",
+      "oss_applied": "MwSt berechnet nach OSS-Regelung (One-Stop-Shop) - Steuersatz des Bestimmungslandes"
+    }
+  },
+  "tax": {
+    "invoiceTexts": {
+      "title": "MwSt Rechnungstexte",
+      "description": "Gesetzliche Texte, die auf Rechnungen bei besonderen MwSt-Situationen angezeigt werden. Der Text wird in der Sprache des Kunden angezeigt.",
+      "intracomGoodsLabel": "Innergemeinschaftliche Lieferung von Waren (B2B)",
+      "intracomGoodsDescription": "Für Warenlieferungen an B2B-Kunden mit gültiger EU-USt-IdNr. in einem anderen EU-Land",
+      "intracomServicesLabel": "Innergemeinschaftliche Dienstleistungen (B2B) - Steuerschuldumkehr",
+      "intracomServicesDescription": "Für Dienstleistungen an B2B-Kunden mit gültiger EU-USt-IdNr. in einem anderen EU-Land",
+      "exportLabel": "Ausfuhr außerhalb der EU",
+      "exportDescription": "Für Lieferungen an Kunden außerhalb der Europäischen Union",
+      "ossLabel": "OSS-Regelung (B2C EU)",
+      "ossDescription": "Für B2C-Verkäufe an Verbraucher in anderen EU-Ländern unter der OSS-Regelung",
+      "previewInLanguage": "Vorschau in Sprache:",
+      "defaultTexts": "Dies sind die gesetzlich korrekten Standardtexte. Passen Sie sie nur bei Bedarf an."
+    }
   }
 }

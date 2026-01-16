@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp } from 'lucide-react';
+import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,12 +15,16 @@ import { useToast } from '@/hooks/use-toast';
 import { useOssRevenue, OSS_THRESHOLD_AMOUNT } from '@/hooks/useOssRevenue';
 import { supabase } from '@/integrations/supabase/client';
 import { EU_VAT_RATES } from '@/lib/euVatRates';
+import { DEFAULT_VAT_TEXTS, type VatTextType, type SupportedLanguage } from '@/lib/vatInvoiceTexts';
+import { useTranslation } from 'react-i18next';
 
 export function TaxSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
   const [isSaving, setIsSaving] = useState(false);
   const [showVatRates, setShowVatRates] = useState(false);
+  const [previewLanguage, setPreviewLanguage] = useState<SupportedLanguage>('nl');
 
   const { data: ossRevenue, isLoading: ossLoading } = useOssRevenue();
 
@@ -30,8 +33,6 @@ export function TaxSettings() {
     apply_oss_rules: false,
     oss_registration_date: '',
     oss_identification_number: '',
-    reverse_charge_text: 'BTW verlegd naar afnemer conform artikel 44 EU BTW-richtlijn',
-    export_text: 'Vrijgesteld van BTW - levering buiten EU',
   });
 
   useEffect(() => {
@@ -42,8 +43,6 @@ export function TaxSettings() {
         apply_oss_rules: tenantData.apply_oss_rules ?? false,
         oss_registration_date: tenantData.oss_registration_date || '',
         oss_identification_number: tenantData.oss_identification_number || '',
-        reverse_charge_text: tenantData.reverse_charge_text || 'BTW verlegd naar afnemer conform artikel 44 EU BTW-richtlijn',
-        export_text: tenantData.export_text || 'Vrijgesteld van BTW - levering buiten EU',
       });
     }
   }, [currentTenant]);
@@ -60,8 +59,6 @@ export function TaxSettings() {
           apply_oss_rules: formData.apply_oss_rules,
           oss_registration_date: formData.oss_registration_date || null,
           oss_identification_number: formData.oss_identification_number || null,
-          reverse_charge_text: formData.reverse_charge_text,
-          export_text: formData.export_text,
         })
         .eq('id', currentTenant.id);
 
@@ -384,47 +381,118 @@ export function TaxSettings() {
         </CardContent>
       </Card>
 
-      {/* Invoice Texts Card */}
+      {/* Invoice Texts Card - 4 Language Support */}
       <Card>
         <CardHeader>
-          <CardTitle>Factuur teksten</CardTitle>
-          <CardDescription>
-            Teksten die op facturen worden getoond bij speciale BTW-situaties
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <CardTitle>{t('tax.invoiceTexts.title')}</CardTitle>
+              <CardDescription>
+                {t('tax.invoiceTexts.description')}
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-2">
-            <Label htmlFor="reverse_charge_text">BTW verlegd tekst</Label>
-            <Textarea
-              id="reverse_charge_text"
-              value={formData.reverse_charge_text}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                reverse_charge_text: e.target.value 
-              }))}
-              placeholder="BTW verlegd naar afnemer..."
-              rows={2}
-            />
-            <p className="text-xs text-muted-foreground">
-              Deze tekst verschijnt op facturen voor B2B klanten met een geldig EU BTW-nummer
-            </p>
+          {/* Language Preview Selector */}
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <Globe className="h-5 w-5 text-muted-foreground" />
+            <Label className="text-sm">{t('tax.invoiceTexts.previewInLanguage')}</Label>
+            <Select
+              value={previewLanguage}
+              onValueChange={(value) => setPreviewLanguage(value as SupportedLanguage)}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nl">Nederlands</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="de">Deutsch</SelectItem>
+                <SelectItem value="fr">Français</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="export_text">Export tekst</Label>
-            <Textarea
-              id="export_text"
-              value={formData.export_text}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                export_text: e.target.value 
-              }))}
-              placeholder="Vrijgesteld van BTW - levering buiten EU"
-              rows={2}
-            />
-            <p className="text-xs text-muted-foreground">
-              Deze tekst verschijnt op facturen voor klanten buiten de EU
-            </p>
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              {t('tax.invoiceTexts.defaultTexts')}
+            </AlertDescription>
+          </Alert>
+
+          {/* VAT Text Types */}
+          <div className="space-y-4">
+            {/* Intra-Community Goods */}
+            <div className="p-4 border rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium text-green-700 dark:text-green-400">
+                    {t('tax.invoiceTexts.intracomGoodsLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('tax.invoiceTexts.intracomGoodsDescription')}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 bg-muted/30 rounded border text-sm font-mono">
+                {DEFAULT_VAT_TEXTS.intracom_goods[previewLanguage]}
+              </div>
+            </div>
+
+            {/* Intra-Community Services (Reverse Charge) */}
+            <div className="p-4 border rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                    {t('tax.invoiceTexts.intracomServicesLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('tax.invoiceTexts.intracomServicesDescription')}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 bg-muted/30 rounded border text-sm font-mono">
+                {DEFAULT_VAT_TEXTS.intracom_services[previewLanguage]}
+              </div>
+            </div>
+
+            {/* Export */}
+            <div className="p-4 border rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                    {t('tax.invoiceTexts.exportLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('tax.invoiceTexts.exportDescription')}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 bg-muted/30 rounded border text-sm font-mono">
+                {DEFAULT_VAT_TEXTS.export[previewLanguage]}
+              </div>
+            </div>
+
+            {/* OSS */}
+            <div className="p-4 border rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium text-purple-700 dark:text-purple-400">
+                    {t('tax.invoiceTexts.ossLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('tax.invoiceTexts.ossDescription')}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 bg-muted/30 rounded border text-sm font-mono">
+                {DEFAULT_VAT_TEXTS.oss[previewLanguage]}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
