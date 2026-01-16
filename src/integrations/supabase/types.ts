@@ -127,6 +127,82 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          id: string
+          invoice_number: string
+          order_id: string | null
+          paid_at: string | null
+          pdf_url: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tax_amount: number | null
+          tenant_id: string
+          total: number
+          ubl_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_number: string
+          order_id?: string | null
+          paid_at?: string | null
+          pdf_url?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax_amount?: number | null
+          tenant_id: string
+          total?: number
+          ubl_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_number?: string
+          order_id?: string | null
+          paid_at?: string | null
+          pdf_url?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax_amount?: number | null
+          tenant_id?: string
+          total?: number
+          ubl_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -644,6 +720,7 @@ export type Database = {
       tenants: {
         Row: {
           address: string | null
+          auto_send_invoices: boolean | null
           btw_number: string | null
           city: string | null
           country: string | null
@@ -651,6 +728,10 @@ export type Database = {
           currency: string | null
           custom_domain: string | null
           id: string
+          invoice_email_body: string | null
+          invoice_email_subject: string | null
+          invoice_format: string | null
+          invoice_prefix: string | null
           kvk_number: string | null
           language: string | null
           last_login: string | null
@@ -675,6 +756,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auto_send_invoices?: boolean | null
           btw_number?: string | null
           city?: string | null
           country?: string | null
@@ -682,6 +764,10 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           id?: string
+          invoice_email_body?: string | null
+          invoice_email_subject?: string | null
+          invoice_format?: string | null
+          invoice_prefix?: string | null
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
@@ -706,6 +792,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auto_send_invoices?: boolean | null
           btw_number?: string | null
           city?: string | null
           country?: string | null
@@ -713,6 +800,10 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           id?: string
+          invoice_email_body?: string | null
+          invoice_email_subject?: string | null
+          invoice_format?: string | null
+          invoice_prefix?: string | null
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
@@ -778,6 +869,7 @@ export type Database = {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
       }
+      generate_invoice_number: { Args: { _tenant_id: string }; Returns: string }
       generate_order_number: { Args: { _tenant_id: string }; Returns: string }
       generate_quote_number: { Args: { _tenant_id: string }; Returns: string }
       get_user_role: {
@@ -796,6 +888,7 @@ export type Database = {
     }
     Enums: {
       app_role: "platform_admin" | "tenant_admin" | "staff"
+      invoice_status: "draft" | "sent" | "paid" | "cancelled"
       order_status:
         | "pending"
         | "processing"
@@ -938,6 +1031,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["platform_admin", "tenant_admin", "staff"],
+      invoice_status: ["draft", "sent", "paid", "cancelled"],
       order_status: [
         "pending",
         "processing",

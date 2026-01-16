@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.send-quote-email]
 verify_jwt = false
+
+[functions.generate-invoice]
+verify_jwt = false
+
+[functions.send-invoice-email]
+verify_jwt = false

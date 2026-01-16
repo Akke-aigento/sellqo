@@ -130,6 +130,46 @@ serve(async (req) => {
           }
           logStep("Stock updated for order items");
         }
+
+        // Generate invoice after successful payment
+        try {
+          logStep("Triggering invoice generation", { orderId });
+          
+          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const invoiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ order_id: orderId }),
+          });
+
+          const invoiceResult = await invoiceResponse.json();
+          logStep("Invoice generation result", invoiceResult);
+
+          // Send invoice email if auto_send is enabled
+          if (invoiceResult.success && invoiceResult.auto_send && invoiceResult.invoice_id) {
+            logStep("Triggering invoice email send", { invoice_id: invoiceResult.invoice_id });
+            
+            const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({ invoice_id: invoiceResult.invoice_id }),
+            });
+
+            const emailResult = await emailResponse.json();
+            logStep("Invoice email result", emailResult);
+          }
+        } catch (invoiceError) {
+          logStep("Invoice generation error (non-blocking)", { 
+            error: invoiceError instanceof Error ? invoiceError.message : String(invoiceError) 
+          });
+        }
+
         break;
       }
 

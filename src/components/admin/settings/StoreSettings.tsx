@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Store, Palette, Save } from 'lucide-react';
+import { Store, Palette, Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,12 @@ const LANGUAGES = [
   { code: 'fr', name: 'Français', flag: '🇫🇷' },
 ];
 
+const INVOICE_FORMATS = [
+  { value: 'pdf', label: 'PDF', description: 'Standaard PDF factuur' },
+  { value: 'ubl', label: 'UBL (e-facturatie)', description: 'XML formaat voor boekhoudprogramma\'s' },
+  { value: 'both', label: 'Beide', description: 'PDF én UBL formaat' },
+];
+
 export function StoreSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
@@ -38,17 +45,28 @@ export function StoreSettings() {
     shipping_enabled: true,
     primary_color: '#3b82f6',
     secondary_color: '#1e40af',
+    auto_send_invoices: true,
+    invoice_format: 'pdf',
+    invoice_prefix: 'INV',
+    invoice_email_subject: '',
+    invoice_email_body: '',
   });
 
   useEffect(() => {
     if (currentTenant) {
+      const tenantData = currentTenant as any;
       setFormData({
         tax_percentage: currentTenant.tax_percentage || 21,
         currency: currentTenant.currency || 'EUR',
-        language: (currentTenant as any).language || 'nl',
+        language: tenantData.language || 'nl',
         shipping_enabled: currentTenant.shipping_enabled ?? true,
         primary_color: currentTenant.primary_color || '#3b82f6',
         secondary_color: currentTenant.secondary_color || '#1e40af',
+        auto_send_invoices: tenantData.auto_send_invoices ?? true,
+        invoice_format: tenantData.invoice_format || 'pdf',
+        invoice_prefix: tenantData.invoice_prefix || 'INV',
+        invoice_email_subject: tenantData.invoice_email_subject || '',
+        invoice_email_body: tenantData.invoice_email_body || '',
       });
     }
   }, [currentTenant]);
@@ -67,6 +85,11 @@ export function StoreSettings() {
           shipping_enabled: formData.shipping_enabled,
           primary_color: formData.primary_color,
           secondary_color: formData.secondary_color,
+          auto_send_invoices: formData.auto_send_invoices,
+          invoice_format: formData.invoice_format,
+          invoice_prefix: formData.invoice_prefix,
+          invoice_email_subject: formData.invoice_email_subject || null,
+          invoice_email_body: formData.invoice_email_body || null,
         })
         .eq('id', currentTenant.id);
 
@@ -296,6 +319,115 @@ export function StoreSettings() {
                 }
               }}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Invoice Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <FileText className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Facturatie</CardTitle>
+              <CardDescription>
+                Configureer automatische facturen na betaling
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <p className="font-medium">Automatisch facturen versturen</p>
+              <p className="text-sm text-muted-foreground">
+                Stuur facturen automatisch naar klanten na succesvolle betaling
+              </p>
+            </div>
+            <Switch
+              checked={formData.auto_send_invoices}
+              onCheckedChange={(checked) => 
+                setFormData(prev => ({ ...prev, auto_send_invoices: checked }))
+              }
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="invoice_format">Factuurformaat</Label>
+              <Select
+                value={formData.invoice_format}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, invoice_format: value }))}
+              >
+                <SelectTrigger id="invoice_format">
+                  <SelectValue placeholder="Selecteer formaat" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INVOICE_FORMATS.map((format) => (
+                    <SelectItem key={format.value} value={format.value}>
+                      <div>
+                        <span className="font-medium">{format.label}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {format.description}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                UBL (e-facturatie) is een XML standaard die direct importeerbaar is in boekhoudprogramma's
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="invoice_prefix">Factuurnummer prefix</Label>
+              <Input
+                id="invoice_prefix"
+                value={formData.invoice_prefix}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  invoice_prefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') 
+                }))}
+                placeholder="INV"
+                maxLength={10}
+              />
+              <p className="text-xs text-muted-foreground">
+                Voorbeeld: {formData.invoice_prefix}-2025-0001
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="invoice_email_subject">E-mail onderwerp (optioneel)</Label>
+            <Input
+              id="invoice_email_subject"
+              value={formData.invoice_email_subject}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                invoice_email_subject: e.target.value 
+              }))}
+              placeholder={`Factuur [nummer] van ${currentTenant?.name || 'je bedrijf'}`}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="invoice_email_body">E-mail tekst (optioneel)</Label>
+            <Textarea
+              id="invoice_email_body"
+              value={formData.invoice_email_body}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                invoice_email_body: e.target.value 
+              }))}
+              placeholder="Voeg een persoonlijke boodschap toe aan je factuur e-mails..."
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Deze tekst wordt toegevoegd aan de standaard factuur e-mail
+            </p>
           </div>
         </CardContent>
       </Card>
