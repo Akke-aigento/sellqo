@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_billing_actions: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          performed_by: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          performed_by?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          performed_by?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_billing_actions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -986,6 +1021,143 @@ export type Database = {
           },
         ]
       }
+      platform_invoices: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          due_date: string | null
+          hosted_invoice_url: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          invoice_pdf_url: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          status: string
+          stripe_charge_id: string | null
+          stripe_invoice_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          due_date?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          invoice_pdf_url?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_invoice_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          due_date?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          invoice_pdf_url?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_invoice_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_plans: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          currency: string | null
+          features: Json
+          highlighted: boolean | null
+          id: string
+          limit_api_calls: number | null
+          limit_customers: number | null
+          limit_orders: number | null
+          limit_products: number | null
+          limit_storage_gb: number
+          limit_users: number
+          monthly_price: number
+          name: string
+          slug: string
+          sort_order: number | null
+          stripe_price_id_monthly: string | null
+          stripe_price_id_yearly: string | null
+          stripe_product_id: string | null
+          updated_at: string | null
+          yearly_price: number
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          currency?: string | null
+          features?: Json
+          highlighted?: boolean | null
+          id: string
+          limit_api_calls?: number | null
+          limit_customers?: number | null
+          limit_orders?: number | null
+          limit_products?: number | null
+          limit_storage_gb?: number
+          limit_users?: number
+          monthly_price?: number
+          name: string
+          slug: string
+          sort_order?: number | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string | null
+          yearly_price?: number
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          currency?: string | null
+          features?: Json
+          highlighted?: boolean | null
+          id?: string
+          limit_api_calls?: number | null
+          limit_customers?: number | null
+          limit_orders?: number | null
+          limit_products?: number | null
+          limit_storage_gb?: number
+          limit_users?: number
+          monthly_price?: number
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string | null
+          yearly_price?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           allow_backorder: boolean | null
@@ -1715,12 +1887,91 @@ export type Database = {
           },
         ]
       }
+      tenant_subscriptions: {
+        Row: {
+          billing_interval: string
+          cancel_at_period_end: boolean | null
+          canceled_at: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          last_payment_amount: number | null
+          last_payment_date: string | null
+          plan_id: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string | null
+          trial_end: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_interval?: string
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          last_payment_amount?: number | null
+          last_payment_date?: string | null
+          plan_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string | null
+          trial_end?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_interval?: string
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          last_payment_amount?: number | null
+          last_payment_date?: string | null
+          plan_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string | null
+          trial_end?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           address: string | null
           apply_oss_rules: boolean | null
           auto_send_invoices: boolean | null
           bic: string | null
+          billing_address: Json | null
+          billing_company_name: string | null
+          billing_email: string | null
+          billing_vat_number: string | null
           block_invalid_vat_orders: boolean | null
           btw_number: string | null
           city: string | null
@@ -1784,6 +2035,10 @@ export type Database = {
           apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
           bic?: string | null
+          billing_address?: Json | null
+          billing_company_name?: string | null
+          billing_email?: string | null
+          billing_vat_number?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
           city?: string | null
@@ -1847,6 +2102,10 @@ export type Database = {
           apply_oss_rules?: boolean | null
           auto_send_invoices?: boolean | null
           bic?: string | null
+          billing_address?: Json | null
+          billing_company_name?: string | null
+          billing_email?: string | null
+          billing_vat_number?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
           city?: string | null
