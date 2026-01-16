@@ -114,18 +114,43 @@
   },
   "tax": {
     "invoiceTexts": {
-      "title": "MwSt Rechnungstexte",
-      "description": "Gesetzliche Texte, die auf Rechnungen bei besonderen MwSt-Situationen angezeigt werden. Der Text wird in der Sprache des Kunden angezeigt.",
+      "title": "MwSt-Rechnungstexte",
+      "description": "Gesetzliche Texte auf Rechnungen für besondere MwSt-Situationen. Text wird in der Kundensprache angezeigt.",
       "intracomGoodsLabel": "Innergemeinschaftliche Lieferung von Waren (B2B)",
       "intracomGoodsDescription": "Für Warenlieferungen an B2B-Kunden mit gültiger EU-USt-IdNr. in einem anderen EU-Land",
-      "intracomServicesLabel": "Innergemeinschaftliche Dienstleistungen (B2B) - Steuerschuldumkehr",
+      "intracomServicesLabel": "Innergemeinschaftliche Dienstleistungen (B2B) - Steuerschuldnerschaft",
       "intracomServicesDescription": "Für Dienstleistungen an B2B-Kunden mit gültiger EU-USt-IdNr. in einem anderen EU-Land",
-      "exportLabel": "Ausfuhr außerhalb der EU",
+      "exportLabel": "Export außerhalb der EU",
       "exportDescription": "Für Lieferungen an Kunden außerhalb der Europäischen Union",
       "ossLabel": "OSS-Regelung (B2C EU)",
       "ossDescription": "Für B2C-Verkäufe an Verbraucher in anderen EU-Ländern unter der OSS-Regelung",
       "previewInLanguage": "Vorschau in Sprache:",
-      "defaultTexts": "Dies sind die gesetzlich korrekten Standardtexte. Passen Sie sie nur bei Bedarf an."
+      "defaultTexts": "Dies sind die gesetzlich korrekten Standardtexte. Nur bei Bedarf anpassen."
+    }
+  },
+  "peppol": {
+    "title": "Peppol E-Rechnung",
+    "description": "Konfigurieren Sie Peppol elektronische Rechnungsstellung für B2B-Compliance",
+    "yourPeppolId": "Ihre Peppol-ID",
+    "peppolIdPlaceholder": "z.B. 0208:0123456789 oder 0106:12345678",
+    "peppolIdHelp": "Ihre Endpunkt-ID für den Empfang von E-Rechnungen. Gängige Schemes: 0208 (Belgien KBO), 0106 (Niederlande KvK), 9925 (USt-IdNr.)",
+    "mandatoryNotice": "Ab dem 1. Januar 2026 ist Peppol E-Rechnungsstellung für B2B-Transaktionen in Belgien obligatorisch.",
+    "facturxEnabled": "Factur-X PDF aktiviert",
+    "facturxDescription": "Alle Rechnungen werden als Factur-X PDF versendet. Diese hybriden Rechnungen enthalten eingebettete XML-Daten, die automatisch von Buchhaltungssoftware wie Odoo, Exact und SAP importiert werden können.",
+    "phaseInfo": "Für belgische B2B-Rechnungen wird auch UBL XML generiert. Laden Sie die UBL-Datei herunter und senden Sie sie über Ihre Buchhaltungssoftware oder Ihren Access Point-Anbieter an das Peppol-Netzwerk.",
+    "downloadUbl": "UBL XML herunterladen",
+    "pendingShipment": "Peppol-Versand ausstehend",
+    "missingCustomerIdWarning": "Achtung: Dieser B2B-Kunde hat noch keine Peppol-ID. Fordern Sie diese beim Kunden an.",
+    "markAsSent": "Als über Peppol gesendet markieren",
+    "markedAsSent": "Als über Peppol gesendet markiert",
+    "customerPeppolId": "Peppol-ID des Kunden",
+    "customerPeppolIdPlaceholder": "z.B. 0208:0123456789",
+    "customerPeppolIdHelp": "Die Endpunkt-ID des Kunden für den Empfang von E-Rechnungen",
+    "peppolStatus": {
+      "pending": "Ausstehend",
+      "sent": "Gesendet",
+      "delivered": "Zugestellt",
+      "failed": "Fehlgeschlagen"
     }
   }
 }

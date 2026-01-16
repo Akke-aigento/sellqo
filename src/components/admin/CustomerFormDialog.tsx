@@ -28,6 +28,7 @@ interface CustomerFormData {
   company_name?: string;
   vat_number?: string;
   vat_verified?: boolean;
+  peppol_id?: string;
   billing_street?: string;
   billing_city?: string;
   billing_postal_code?: string;
@@ -54,6 +55,7 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
     company_name: '',
     vat_number: '',
     vat_verified: false,
+    peppol_id: '',
     billing_street: '',
     billing_city: '',
     billing_postal_code: '',
@@ -74,6 +76,7 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
       company_name: formData.customer_type === 'b2b' ? formData.company_name : undefined,
       vat_number: formData.customer_type === 'b2b' ? formData.vat_number : undefined,
       vat_verified: formData.customer_type === 'b2b' ? formData.vat_verified : undefined,
+      peppol_id: formData.customer_type === 'b2b' ? formData.peppol_id : undefined,
       shipping_street: differentShipping ? formData.shipping_street : undefined,
       shipping_city: differentShipping ? formData.shipping_city : undefined,
       shipping_postal_code: differentShipping ? formData.shipping_postal_code : undefined,
@@ -95,6 +98,7 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
       company_name: '',
       vat_number: '',
       vat_verified: false,
+      peppol_id: '',
       billing_street: '',
       billing_city: '',
       billing_postal_code: '',
@@ -195,6 +199,23 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
                   onChange={(value) => setFormData(prev => ({ ...prev, vat_number: value }))}
                   onValidated={handleVatValidated}
                 />
+
+                {/* Peppol ID Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="peppol_id" className="flex items-center gap-2">
+                    Peppol-ID
+                    <span className="text-xs text-muted-foreground font-normal">(optioneel)</span>
+                  </Label>
+                  <Input
+                    id="peppol_id"
+                    value={formData.peppol_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, peppol_id: e.target.value }))}
+                    placeholder="bijv. 0208:0123456789"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Endpoint-ID voor Peppol e-facturatie. Formaat: [scheme]:[identifier]
+                  </p>
+                </div>
               </div>
             </div>
           )}

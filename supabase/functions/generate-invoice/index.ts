@@ -54,9 +54,8 @@ const VAT_TEXTS = {
 
 // Get customer language, defaulting to tenant language or 'nl'
 function getCustomerLanguage(customer: any, tenant: any): SupportedLanguage {
-  // Check customer's country to infer language (simplified mapping)
   const countryToLanguage: Record<string, SupportedLanguage> = {
-    'NL': 'nl', 'BE': 'nl', // Could be fr for Belgian French speakers
+    'NL': 'nl', 'BE': 'nl',
     'DE': 'de', 'AT': 'de', 'CH': 'de', 'LU': 'de',
     'FR': 'fr', 
     'GB': 'en', 'IE': 'en', 'US': 'en', 'CA': 'en', 'AU': 'en',
@@ -67,7 +66,6 @@ function getCustomerLanguage(customer: any, tenant: any): SupportedLanguage {
   
   if (inferredLang) return inferredLang;
   
-  // Fall back to tenant language or 'nl'
   const tenantLang = tenant?.language?.toLowerCase() as SupportedLanguage;
   if (['nl', 'en', 'fr', 'de'].includes(tenantLang)) return tenantLang;
   
@@ -92,14 +90,13 @@ function calculateVat(params: {
   const tenantCountry = tenant.country || 'NL';
   const taxPercent = tenant.tax_percentage || 21;
   const isB2B = customer?.customer_type === 'b2b';
-  const requireViesValidation = tenant.require_vies_validation !== false; // Default to true
+  const requireViesValidation = tenant.require_vies_validation !== false;
   const hasValidVat = requireViesValidation 
     ? customer?.vat_verified === true 
     : Boolean(customer?.vat_number);
   const isEuCountry = EU_COUNTRIES.includes(customerCountry);
   const isSameCountry = customerCountry === tenantCountry;
   
-  // Get customer language for localized VAT text
   const lang = getCustomerLanguage(customer, tenant);
 
   logStep("VAT calculation", { 
@@ -115,7 +112,6 @@ function calculateVat(params: {
     vatNumber: customer?.vat_number
   });
 
-  // Same country - always apply local VAT
   if (isSameCountry) {
     return {
       vatRate: taxPercent,
@@ -126,32 +122,27 @@ function calculateVat(params: {
     };
   }
 
-  // B2B with valid VAT number in EU - Reverse Charge (using intracom_services text for services)
-  // Only apply if VIES validation passed (when required) or if VAT number exists (when not required)
   if (isB2B && hasValidVat && isEuCountry) {
     return {
       vatRate: 0,
       vatAmount: 0,
       vatType: 'reverse_charge',
       vatText: VAT_TEXTS.intracom_services[lang],
-      taxCategoryCode: 'AE', // Reverse charge
+      taxCategoryCode: 'AE',
     };
   }
 
-  // Export outside EU
   if (!isEuCountry) {
     return {
       vatRate: 0,
       vatAmount: 0,
       vatType: 'export',
       vatText: VAT_TEXTS.export[lang],
-      taxCategoryCode: 'G', // Free export
+      taxCategoryCode: 'G',
     };
   }
 
-  // B2C in EU with OSS enabled - apply destination country VAT
   if (!isB2B && isEuCountry && tenant.apply_oss_rules) {
-    // OSS VAT rates by country (standard rates 2025/2026)
     const ossRates: Record<string, number> = {
       'AT': 20, 'BE': 21, 'BG': 20, 'HR': 25, 'CY': 19, 'CZ': 21,
       'DK': 25, 'EE': 22, 'FI': 25.5, 'FR': 20, 'DE': 19, 'GR': 24,
@@ -169,7 +160,6 @@ function calculateVat(params: {
     };
   }
 
-  // Default: apply local VAT
   return {
     vatRate: taxPercent,
     vatAmount: subtotal * (taxPercent / 100),
@@ -190,6 +180,10 @@ function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+function formatCIIDate(date: Date): string {
+  return date.toISOString().split('T')[0].replace(/-/g, '');
+}
+
 function escapeXml(str: string): string {
   if (!str) return '';
   return str
@@ -198,6 +192,154 @@ function escapeXml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+// Generate Cross-Industry Invoice (CII) XML for Factur-X
+function generateCIIXml(data: {
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  currency: string;
+  tenant: any;
+  customer: any;
+  order: any;
+  orderItems: any[];
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  shippingCost: number;
+  vatCalculation: VatCalculation;
+}): string {
+  const { invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, orderItems, subtotal, taxAmount, total, shippingCost, vatCalculation } = data;
+  
+  const issueDateTime = formatCIIDate(new Date(issueDate));
+  const dueDateTime = formatCIIDate(new Date(dueDate));
+  
+  const customerName = customer?.company_name || 
+    `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || 
+    customer?.email || 'Customer';
+
+  // Generate line items
+  const lineItems = orderItems.map((item, index) => `
+    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument>
+        <ram:LineID>${index + 1}</ram:LineID>
+      </ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        ${item.product_sku ? `<ram:SellerAssignedID>${escapeXml(item.product_sku)}</ram:SellerAssignedID>` : ''}
+        <ram:Name>${escapeXml(item.product_name)}</ram:Name>
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>${item.unit_price.toFixed(2)}</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="C62">${item.quantity}</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${vatCalculation.taxCategoryCode}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${vatCalculation.vatRate}</ram:RateApplicablePercent>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>${item.total_price.toFixed(2)}</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>`).join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+                          xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+                          xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"
+                          xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100">
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:factur-x.eu:1p0:en16931</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+    <ram:ID>${escapeXml(invoiceNumber)}</ram:ID>
+    <ram:TypeCode>380</ram:TypeCode>
+    <ram:IssueDateTime>
+      <udt:DateTimeString format="102">${issueDateTime}</udt:DateTimeString>
+    </ram:IssueDateTime>
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        ${tenant.peppol_id ? `<ram:GlobalID schemeID="${tenant.peppol_id.split(':')[0]}">${escapeXml(tenant.peppol_id.split(':')[1] || tenant.peppol_id)}</ram:GlobalID>` : ''}
+        <ram:Name>${escapeXml(tenant.name)}</ram:Name>
+        <ram:PostalTradeAddress>
+          ${tenant.address ? `<ram:LineOne>${escapeXml(tenant.address)}</ram:LineOne>` : ''}
+          ${tenant.postal_code ? `<ram:PostcodeCode>${escapeXml(tenant.postal_code)}</ram:PostcodeCode>` : ''}
+          ${tenant.city ? `<ram:CityName>${escapeXml(tenant.city)}</ram:CityName>` : ''}
+          <ram:CountryID>${tenant.country || 'NL'}</ram:CountryID>
+        </ram:PostalTradeAddress>
+        ${tenant.btw_number ? `
+        <ram:SpecifiedTaxRegistration>
+          <ram:ID schemeID="VA">${escapeXml(tenant.btw_number)}</ram:ID>
+        </ram:SpecifiedTaxRegistration>` : ''}
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        ${customer?.peppol_id ? `<ram:GlobalID schemeID="${customer.peppol_id.split(':')[0]}">${escapeXml(customer.peppol_id.split(':')[1] || customer.peppol_id)}</ram:GlobalID>` : ''}
+        <ram:Name>${escapeXml(customerName)}</ram:Name>
+        <ram:PostalTradeAddress>
+          ${order.billing_address?.street ? `<ram:LineOne>${escapeXml(order.billing_address.street)}</ram:LineOne>` : ''}
+          ${order.billing_address?.postal_code ? `<ram:PostcodeCode>${escapeXml(order.billing_address.postal_code)}</ram:PostcodeCode>` : ''}
+          ${order.billing_address?.city ? `<ram:CityName>${escapeXml(order.billing_address.city)}</ram:CityName>` : ''}
+          <ram:CountryID>${order.billing_address?.country || 'NL'}</ram:CountryID>
+        </ram:PostalTradeAddress>
+        ${customer?.vat_number && vatCalculation.vatType === 'reverse_charge' ? `
+        <ram:SpecifiedTaxRegistration>
+          <ram:ID schemeID="VA">${escapeXml(customer.vat_number)}</ram:ID>
+        </ram:SpecifiedTaxRegistration>` : ''}
+        <ram:DefinedTradeContact>
+          <ram:EmailURIUniversalCommunication>
+            <ram:URIID>${escapeXml(customer?.email || order.customer_email)}</ram:URIID>
+          </ram:EmailURIUniversalCommunication>
+        </ram:DefinedTradeContact>
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <ram:ApplicableHeaderTradeDelivery>
+      <ram:ShipToTradeParty>
+        <ram:Name>${escapeXml(customerName)}</ram:Name>
+        <ram:PostalTradeAddress>
+          ${order.shipping_address?.street ? `<ram:LineOne>${escapeXml(order.shipping_address.street)}</ram:LineOne>` : ''}
+          ${order.shipping_address?.postal_code ? `<ram:PostcodeCode>${escapeXml(order.shipping_address.postal_code)}</ram:PostcodeCode>` : ''}
+          ${order.shipping_address?.city ? `<ram:CityName>${escapeXml(order.shipping_address.city)}</ram:CityName>` : ''}
+          <ram:CountryID>${order.shipping_address?.country || 'NL'}</ram:CountryID>
+        </ram:PostalTradeAddress>
+      </ram:ShipToTradeParty>
+    </ram:ApplicableHeaderTradeDelivery>
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>${currency}</ram:InvoiceCurrencyCode>
+      <ram:SpecifiedTradePaymentTerms>
+        <ram:DueDateDateTime>
+          <udt:DateTimeString format="102">${dueDateTime}</udt:DateTimeString>
+        </ram:DueDateDateTime>
+      </ram:SpecifiedTradePaymentTerms>
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${taxAmount.toFixed(2)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        ${vatCalculation.vatText ? `<ram:ExemptionReason>${escapeXml(vatCalculation.vatText)}</ram:ExemptionReason>` : ''}
+        <ram:BasisAmount>${subtotal.toFixed(2)}</ram:BasisAmount>
+        <ram:CategoryCode>${vatCalculation.taxCategoryCode}</ram:CategoryCode>
+        <ram:RateApplicablePercent>${vatCalculation.vatRate}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>${subtotal.toFixed(2)}</ram:LineTotalAmount>
+        ${shippingCost > 0 ? `<ram:ChargeTotalAmount>${shippingCost.toFixed(2)}</ram:ChargeTotalAmount>` : ''}
+        <ram:TaxBasisTotalAmount>${subtotal.toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="${currency}">${taxAmount.toFixed(2)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${total.toFixed(2)}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>${total.toFixed(2)}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+${lineItems}
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>`;
 }
 
 function generateUBL(data: {
@@ -231,7 +373,6 @@ function generateUBL(data: {
       </cac:Price>
     </cac:InvoiceLine>`).join('\n');
 
-  // B2B customer info for VAT
   const customerVatInfo = customer?.vat_number && vatCalculation.vatType === 'reverse_charge' 
     ? `<cac:PartyTaxScheme>
         <cbc:CompanyID>${escapeXml(customer.vat_number)}</cbc:CompanyID>
@@ -239,6 +380,14 @@ function generateUBL(data: {
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>
       </cac:PartyTaxScheme>` 
+    : '';
+
+  // Add Peppol endpoint IDs if available
+  const sellerEndpoint = tenant.peppol_id 
+    ? `<cbc:EndpointID schemeID="${tenant.peppol_id.split(':')[0]}">${escapeXml(tenant.peppol_id.split(':')[1] || tenant.peppol_id)}</cbc:EndpointID>` 
+    : '';
+  const buyerEndpoint = customer?.peppol_id 
+    ? `<cbc:EndpointID schemeID="${customer.peppol_id.split(':')[0]}">${escapeXml(customer.peppol_id.split(':')[1] || customer.peppol_id)}</cbc:EndpointID>` 
     : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -256,6 +405,7 @@ function generateUBL(data: {
 
   <cac:AccountingSupplierParty>
     <cac:Party>
+      ${sellerEndpoint}
       <cac:PartyName>
         <cbc:Name>${escapeXml(tenant.name)}</cbc:Name>
       </cac:PartyName>
@@ -288,6 +438,7 @@ function generateUBL(data: {
 
   <cac:AccountingCustomerParty>
     <cac:Party>
+      ${buyerEndpoint}
       <cac:PartyName>
         <cbc:Name>${escapeXml(customer?.company_name || `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || customer?.email || 'Klant')}</cbc:Name>
       </cac:PartyName>
@@ -362,7 +513,6 @@ function generatePDFHTML(data: {
     </tr>
   `).join('');
 
-  // Build VAT display
   let vatDisplay = '';
   if (vatCalculation.vatType === 'reverse_charge') {
     vatDisplay = `
@@ -400,13 +550,16 @@ function generatePDFHTML(data: {
     `;
   }
 
-  // Customer company info for B2B
   const customerNameDisplay = customer?.company_name 
     ? escapeXml(customer.company_name)
     : escapeXml(`${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() || customer?.email || 'Klant');
 
   const customerVatDisplay = customer?.vat_number 
     ? `<div>BTW: ${escapeXml(customer.vat_number)}</div>` 
+    : '';
+
+  const customerPeppolDisplay = customer?.peppol_id 
+    ? `<div>Peppol-ID: ${escapeXml(customer.peppol_id)}</div>` 
     : '';
 
   return `
@@ -421,6 +574,7 @@ function generatePDFHTML(data: {
     .company-name { font-size: 24px; font-weight: bold; color: ${tenant.primary_color || '#3b82f6'}; margin-bottom: 8px; }
     .invoice-title { font-size: 32px; font-weight: bold; color: #1f2937; text-align: right; }
     .invoice-number { font-size: 16px; color: #6b7280; text-align: right; margin-top: 8px; }
+    .facturx-badge { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; margin-top: 8px; display: inline-block; }
     .addresses { display: flex; justify-content: space-between; margin-bottom: 40px; }
     .address-block { max-width: 250px; }
     .address-label { font-weight: 600; margin-bottom: 8px; color: #374151; }
@@ -451,10 +605,12 @@ function generatePDFHTML(data: {
       ${tenant.owner_email ? `<div>Email: ${escapeXml(tenant.owner_email)}</div>` : ''}
       ${tenant.kvk_number ? `<div>KvK: ${escapeXml(tenant.kvk_number)}</div>` : ''}
       ${tenant.btw_number ? `<div>BTW: ${escapeXml(tenant.btw_number)}</div>` : ''}
+      ${tenant.peppol_id ? `<div>Peppol-ID: ${escapeXml(tenant.peppol_id)}</div>` : ''}
     </div>
     <div>
       <div class="invoice-title">FACTUUR</div>
       <div class="invoice-number">${escapeXml(invoiceNumber)}</div>
+      <div class="facturx-badge">Factur-X EN16931</div>
     </div>
   </div>
 
@@ -467,6 +623,7 @@ function generatePDFHTML(data: {
       ${order.billing_address?.postal_code || order.billing_address?.city ? `<div>${escapeXml(order.billing_address.postal_code || '')} ${escapeXml(order.billing_address.city || '')}</div>` : ''}
       ${order.billing_address?.country ? `<div>${escapeXml(order.billing_address.country)}</div>` : ''}
       ${customerVatDisplay}
+      ${customerPeppolDisplay}
     </div>
     <div class="address-block">
       <div class="address-label">Afleveradres</div>
@@ -537,6 +694,7 @@ function generatePDFHTML(data: {
 
   <div class="footer">
     <p>${escapeXml(tenant.name)} ${tenant.kvk_number ? `| KvK: ${escapeXml(tenant.kvk_number)}` : ''} ${tenant.btw_number ? `| BTW: ${escapeXml(tenant.btw_number)}` : ''}</p>
+    <p style="margin-top: 8px; font-size: 10px; color: #9ca3af;">Deze factuur bevat embedded Factur-X XML (EN16931) voor automatische verwerking door boekhoudsoftware.</p>
   </div>
 </body>
 </html>`;
@@ -563,7 +721,6 @@ serve(async (req) => {
 
     logStep("Fetching order", { order_id });
 
-    // Fetch order with items
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .select("*")
@@ -574,7 +731,6 @@ serve(async (req) => {
       throw new Error(`Order not found: ${orderError?.message}`);
     }
 
-    // Check if invoice already exists
     const { data: existingInvoice } = await supabaseClient
       .from("invoices")
       .select("id")
@@ -592,13 +748,11 @@ serve(async (req) => {
       });
     }
 
-    // Fetch order items
     const { data: orderItems } = await supabaseClient
       .from("order_items")
       .select("*")
       .eq("order_id", order_id);
 
-    // Fetch tenant
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
       .select("*")
@@ -609,7 +763,6 @@ serve(async (req) => {
       throw new Error(`Tenant not found: ${tenantError?.message}`);
     }
 
-    // Fetch customer
     let customer = null;
     if (order.customer_id) {
       const { data: customerData } = await supabaseClient
@@ -633,19 +786,16 @@ serve(async (req) => {
 
     logStep("Generating invoice number");
 
-    // Generate invoice number
     const { data: invoiceNumber } = await supabaseClient
       .rpc("generate_invoice_number", { _tenant_id: order.tenant_id });
 
     const issueDate = formatDate(new Date());
-    const dueDate = formatDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)); // 14 days
+    const dueDate = formatDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
     const currency = tenant.currency || 'EUR';
     const invoiceFormat = tenant.invoice_format || 'pdf';
 
-    // Determine customer country from shipping address
     const customerCountry = order.shipping_address?.country || customer?.billing_country || tenant.country || 'NL';
 
-    // Calculate VAT based on customer type and location
     const subtotal = Number(order.subtotal) || 0;
     const vatCalculation = calculateVat({
       subtotal,
@@ -674,46 +824,69 @@ serve(async (req) => {
 
     let pdfUrl = null;
     let ublUrl = null;
+    let ciiUrl = null;
 
-    // Generate PDF HTML
-    if (invoiceFormat === 'pdf' || invoiceFormat === 'both') {
-      logStep("Generating PDF HTML");
-      const pdfHtml = generatePDFHTML(invoiceData);
-      
-      // Store HTML as PDF placeholder (actual PDF rendering would need a service like Puppeteer)
-      const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.html`;
-      
-      const { error: uploadError } = await supabaseClient.storage
+    // Always generate Factur-X compatible PDF
+    logStep("Generating Factur-X PDF HTML");
+    const pdfHtml = generatePDFHTML(invoiceData);
+    
+    const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.html`;
+    
+    const { error: uploadError } = await supabaseClient.storage
+      .from("invoices")
+      .upload(pdfPath, new Blob([pdfHtml], { type: 'text/html' }), {
+        contentType: 'text/html',
+        upsert: true,
+      });
+
+    if (!uploadError) {
+      const { data: { publicUrl } } = supabaseClient.storage
         .from("invoices")
-        .upload(pdfPath, new Blob([pdfHtml], { type: 'text/html' }), {
-          contentType: 'text/html',
-          upsert: true,
-        });
-
-      if (!uploadError) {
-        const { data: { publicUrl } } = supabaseClient.storage
-          .from("invoices")
-          .getPublicUrl(pdfPath);
-        pdfUrl = publicUrl;
-        logStep("PDF HTML uploaded", { pdfUrl });
-      }
+        .getPublicUrl(pdfPath);
+      pdfUrl = publicUrl;
+      logStep("PDF HTML uploaded", { pdfUrl });
     }
 
-    // Generate UBL XML
-    if (invoiceFormat === 'ubl' || invoiceFormat === 'both') {
-      logStep("Generating UBL XML");
+    // Always generate CII XML for Factur-X embedding
+    logStep("Generating CII XML for Factur-X");
+    const ciiXml = generateCIIXml(invoiceData);
+    
+    const ciiPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}_factur-x.xml`;
+    
+    const { error: ciiUploadError } = await supabaseClient.storage
+      .from("invoices")
+      .upload(ciiPath, new Blob([ciiXml], { type: 'application/xml' }), {
+        contentType: 'application/xml',
+        upsert: true,
+      });
+
+    if (!ciiUploadError) {
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from("invoices")
+        .getPublicUrl(ciiPath);
+      ciiUrl = publicUrl;
+      logStep("CII XML uploaded", { ciiUrl });
+    }
+
+    // Generate UBL XML for Peppol (always for B2B, or if explicitly requested)
+    const isB2B = customer?.customer_type === 'b2b';
+    const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
+    const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
+    
+    if (invoiceFormat === 'ubl' || invoiceFormat === 'both' || isB2B) {
+      logStep("Generating UBL XML for Peppol");
       const ublXml = generateUBL(invoiceData);
       
       const ublPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
       
-      const { error: uploadError } = await supabaseClient.storage
+      const { error: ublUploadError } = await supabaseClient.storage
         .from("invoices")
         .upload(ublPath, new Blob([ublXml], { type: 'application/xml' }), {
           contentType: 'application/xml',
           upsert: true,
         });
 
-      if (!uploadError) {
+      if (!ublUploadError) {
         const { data: { publicUrl } } = supabaseClient.storage
           .from("invoices")
           .getPublicUrl(ublPath);
@@ -721,6 +894,9 @@ serve(async (req) => {
         logStep("UBL XML uploaded", { ublUrl });
       }
     }
+
+    // Determine Peppol status
+    const peppolStatus = peppolRequired ? 'pending' : null;
 
     // Create invoice record
     const { data: invoice, error: invoiceError } = await supabaseClient
@@ -737,6 +913,8 @@ serve(async (req) => {
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
         paid_at: new Date().toISOString(),
+        is_b2b: isB2B,
+        peppol_status: peppolStatus,
       })
       .select()
       .single();
@@ -745,7 +923,13 @@ serve(async (req) => {
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
 
-    logStep("Invoice created successfully", { invoice_id: invoice.id, vatType: vatCalculation.vatType });
+    logStep("Invoice created successfully", { 
+      invoice_id: invoice.id, 
+      vatType: vatCalculation.vatType,
+      isB2B,
+      peppolStatus,
+      hasCiiXml: !!ciiUrl
+    });
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -753,8 +937,12 @@ serve(async (req) => {
       invoice_number: invoiceNumber,
       pdf_url: pdfUrl,
       ubl_url: ublUrl,
+      cii_url: ciiUrl,
       auto_send: tenant.auto_send_invoices,
       vat_type: vatCalculation.vatType,
+      is_b2b: isB2B,
+      peppol_status: peppolStatus,
+      peppol_required: peppolRequired,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

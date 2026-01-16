@@ -115,7 +115,7 @@
   "tax": {
     "invoiceTexts": {
       "title": "BTW Factuurteksten",
-      "description": "Wettelijke teksten die op facturen worden getoond bij speciale BTW-situaties. Tekst wordt getoond in de taal van de klant.",
+      "description": "Wettelijke teksten op facturen voor speciale BTW-situaties. Tekst wordt getoond in de taal van de klant.",
       "intracomGoodsLabel": "Intracommunautaire levering goederen (B2B)",
       "intracomGoodsDescription": "Voor leveringen van goederen aan B2B klanten met geldig EU BTW-nummer in een ander EU-land",
       "intracomServicesLabel": "Intracommunautaire diensten (B2B) - BTW verlegd",
@@ -123,9 +123,34 @@
       "exportLabel": "Export buiten EU",
       "exportDescription": "Voor leveringen aan klanten buiten de Europese Unie",
       "ossLabel": "OSS-regeling (B2C EU)",
-      "ossDescription": "Voor B2C verkopen aan particulieren in andere EU-landen onder de OSS-regeling",
+      "ossDescription": "Voor B2C verkopen aan consumenten in andere EU-landen onder de OSS-regeling",
       "previewInLanguage": "Voorbeeld in taal:",
       "defaultTexts": "Dit zijn de wettelijk correcte standaardteksten. Pas alleen aan indien noodzakelijk."
+    }
+  },
+  "peppol": {
+    "title": "Peppol E-Facturatie",
+    "description": "Configureer Peppol elektronische facturatie voor B2B compliance",
+    "yourPeppolId": "Jouw Peppol-ID",
+    "peppolIdPlaceholder": "bijv. 0208:0123456789 of 0106:12345678",
+    "peppolIdHelp": "Je endpoint-ID voor het ontvangen van e-facturen. Veelgebruikte schemes: 0208 (België KBO), 0106 (Nederland KvK), 9925 (BTW-nummer)",
+    "mandatoryNotice": "Vanaf 1 januari 2026 is Peppol e-facturatie verplicht voor B2B-transacties in België.",
+    "facturxEnabled": "Factur-X PDF actief",
+    "facturxDescription": "Alle facturen worden als Factur-X PDF verstuurd. Deze hybride facturen bevatten embedded XML data die automatisch ingelezen kan worden door boekhoudsoftware zoals Odoo, Exact en SAP.",
+    "phaseInfo": "Voor Belgische B2B facturen wordt ook UBL XML gegenereerd. Download het UBL bestand en verstuur via je boekhoudsoftware of Access Point provider naar het Peppol netwerk.",
+    "downloadUbl": "Download UBL XML",
+    "pendingShipment": "Peppol verzending pending",
+    "missingCustomerIdWarning": "Let op: Deze B2B klant heeft nog geen Peppol-ID. Vraag dit op bij de klant.",
+    "markAsSent": "Markeer als verstuurd via Peppol",
+    "markedAsSent": "Gemarkeerd als verstuurd via Peppol",
+    "customerPeppolId": "Peppol-ID klant",
+    "customerPeppolIdPlaceholder": "bijv. 0208:0123456789",
+    "customerPeppolIdHelp": "Het endpoint-ID van de klant voor het ontvangen van e-facturen",
+    "peppolStatus": {
+      "pending": "In afwachting",
+      "sent": "Verzonden",
+      "delivered": "Afgeleverd",
+      "failed": "Mislukt"
     }
   }
 }
