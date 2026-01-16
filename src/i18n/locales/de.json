@@ -128,17 +128,86 @@
       "defaultTexts": "Dies sind die gesetzlich korrekten Standardtexte. Nur bei Bedarf anpassen."
     }
   },
+  "vat": {
+    "settings": {
+      "title": "MwSt",
+      "subtitle": "MwSt-Einstellungen und Berechnungen verwalten"
+    },
+    "calculation": {
+      "title": "MwSt-Berechnung",
+      "price_display": "Preisanzeige",
+      "inclusive": "Inkl. MwSt",
+      "exclusive": "Exkl. MwSt",
+      "inclusive_description": "Preise werden inklusive MwSt angezeigt"
+    },
+    "oss": {
+      "title": "OSS-Regelung anwenden",
+      "description": "One-Stop-Shop-Regelung für EU B2C-Verkäufe an Verbraucher in anderen EU-Ländern. Hiermit wird automatisch der MwSt-Satz des Bestimmungslandes angewendet.",
+      "registration_date": "OSS-Registrierungsdatum",
+      "identification_number": "OSS-Identifikationsnummer",
+      "threshold_warning": "Sie nähern sich der OSS-Schwelle von 10.000 €. Erwägen Sie eine OSS-Registrierung.",
+      "threshold_exceeded": "OSS-Schwelle überschritten! OSS-Registrierung ist Pflicht.",
+      "revenue_tracker_title": "B2C-Umsatz andere EU-Länder"
+    },
+    "invoice_texts": {
+      "title": "Rechnungstexte",
+      "subtitle": "Texte, die auf Rechnungen bei besonderen MwSt-Situationen angezeigt werden",
+      "intracom_goods_label": "Innergemeinschaftliche Lieferung von Waren (B2B)",
+      "intracom_goods_help": "Dieser Text erscheint auf Rechnungen für B2B-Kunden mit gültiger EU-USt-IdNr.",
+      "intracom_services_label": "Innergemeinschaftliche Dienstleistungen (B2B)",
+      "export_label": "Export außerhalb der EU",
+      "export_help": "Dieser Text erscheint auf Rechnungen für Kunden außerhalb der EU"
+    },
+    "decision_tree": {
+      "title": "MwSt-Entscheidungsbaum",
+      "subtitle": "Übersicht wie MwSt pro Situation berechnet wird",
+      "customer_type": "Kundentyp",
+      "location": "Standort",
+      "vat_number": "USt-IdNr.",
+      "vat_rate": "MwSt-Satz",
+      "invoice_note": "Rechnungsvermerk",
+      "domestic": "Inland",
+      "other_eu": "Anderes EU-Land",
+      "outside_eu": "Außerhalb EU",
+      "valid": "Gültig",
+      "invalid": "Ungültig",
+      "standard": "Standard",
+      "reverse_charge": "Steuerschuldumkehr",
+      "export": "Export"
+    },
+    "vies": {
+      "validating": "USt-IdNr. wird validiert...",
+      "valid": "Gültige USt-IdNr.",
+      "invalid": "Ungültige USt-IdNr.",
+      "service_unavailable": "VIES-Dienst vorübergehend nicht verfügbar",
+      "require_validation": "VIES-Validierung für Steuerschuldumkehr erforderlich",
+      "block_on_invalid": "Bestellung bei ungültiger USt-IdNr. blockieren"
+    },
+    "rules": {
+      "title": "MwSt-Regeln für den internationalen Handel",
+      "description": "Diese Einstellungen bestimmen, wie die MwSt basierend auf Kundentyp und Standort berechnet wird",
+      "b2b_valid_vat": "B2B + gültige EU-USt-IdNr.: Steuerschuldumkehr (0%)",
+      "b2b_invalid_vat": "B2B ohne gültige USt-IdNr. in EU: Standard-MwSt-Satz",
+      "b2c_domestic": "B2C im Inland: Standard-MwSt-Satz",
+      "b2c_eu_oss": "B2C in anderem EU-Land (mit OSS): MwSt-Satz des Bestimmungslandes",
+      "outside_eu": "Kunden außerhalb EU: 0% MwSt (Export)"
+    }
+  },
   "peppol": {
     "title": "Peppol E-Rechnung",
-    "description": "Konfigurieren Sie Peppol elektronische Rechnungsstellung für B2B-Compliance",
+    "description": "Konfigurieren Sie Peppol für die elektronische B2B-Rechnungsstellung. Pflicht in Belgien ab 1. Januar 2026.",
     "yourPeppolId": "Ihre Peppol-ID",
+    "peppol_id": "Peppol-ID",
+    "peppol_id_placeholder": "z.B. 0208:BE0123456789",
     "peppolIdPlaceholder": "z.B. 0208:0123456789 oder 0106:12345678",
     "peppolIdHelp": "Ihre Endpunkt-ID für den Empfang von E-Rechnungen. Gängige Schemes: 0208 (Belgien KBO), 0106 (Niederlande KvK), 9925 (USt-IdNr.)",
     "mandatoryNotice": "Ab dem 1. Januar 2026 ist Peppol E-Rechnungsstellung für B2B-Transaktionen in Belgien obligatorisch.",
+    "mandatory_notice": "Pflicht für B2B-Rechnungen in Belgien ab 1. Januar 2026",
     "facturxEnabled": "Factur-X PDF aktiviert",
     "facturxDescription": "Alle Rechnungen werden als Factur-X PDF versendet. Diese hybriden Rechnungen enthalten eingebettete XML-Daten, die automatisch von Buchhaltungssoftware wie Odoo, Exact und SAP importiert werden können.",
     "phaseInfo": "Für belgische B2B-Rechnungen wird auch UBL XML generiert. Laden Sie die UBL-Datei herunter und senden Sie sie über Ihre Buchhaltungssoftware oder Ihren Access Point-Anbieter an das Peppol-Netzwerk.",
     "downloadUbl": "UBL XML herunterladen",
+    "download_ubl": "UBL XML herunterladen",
     "pendingShipment": "Peppol-Versand ausstehend",
     "missingCustomerIdWarning": "Achtung: Dieser B2B-Kunde hat noch keine Peppol-ID. Fordern Sie diese beim Kunden an.",
     "markAsSent": "Als über Peppol gesendet markieren",
@@ -146,11 +215,29 @@
     "customerPeppolId": "Peppol-ID des Kunden",
     "customerPeppolIdPlaceholder": "z.B. 0208:0123456789",
     "customerPeppolIdHelp": "Die Endpunkt-ID des Kunden für den Empfang von E-Rechnungen",
+    "access_point": "Access Point Anbieter",
+    "status": "Status",
+    "not_configured": "Nicht konfiguriert",
+    "configured": "Konfiguriert",
+    "test_connection": "Verbindung testen",
+    "b2b_peppol_required": "Diese B2B-Rechnung muss über Peppol gesendet werden",
     "peppolStatus": {
       "pending": "Ausstehend",
       "sent": "Gesendet",
       "delivered": "Zugestellt",
       "failed": "Fehlgeschlagen"
     }
+  },
+  "compliance": {
+    "title": "Compliance-Prüfung",
+    "company_details": "Unternehmensdaten",
+    "enterprise_number_filled": "Unternehmensnummer ausgefüllt",
+    "vat_format_correct": "USt-IdNr. korrektes Format",
+    "address_complete": "Adressdaten vollständig",
+    "invoicing": "Rechnungsstellung",
+    "sequential_numbers": "Fortlaufende Rechnungsnummern",
+    "required_fields": "Pflichtfelder vorhanden",
+    "peppol_configured": "Peppol-ID konfiguriert",
+    "generate_test": "Testrechnung erstellen"
   }
 }

@@ -62,14 +62,14 @@
       "manageProfile": "Manage your profile information and preferences.",
       "fullName": "Full name",
       "emailReadOnly": "Your email address cannot be changed.",
-    "language": "Language",
-    "languageDescription": "Choose your preferred interface language.",
-    "theme": "Appearance",
-    "themeDescription": "Choose your preference for light or dark mode.",
-    "themeLight": "Light",
-    "themeDark": "Dark",
-    "themeSystem": "System",
-    "saveProfile": "Save profile",
+      "language": "Language",
+      "languageDescription": "Choose your preferred interface language.",
+      "theme": "Appearance",
+      "themeDescription": "Choose your preference for light or dark mode.",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "saveProfile": "Save profile",
       "profileUpdated": "Profile updated",
       "profileUpdatedDescription": "Your profile information has been saved.",
       "profileError": "Save error",
@@ -128,17 +128,86 @@
       "defaultTexts": "These are the legally correct default texts. Customize only if necessary."
     }
   },
+  "vat": {
+    "settings": {
+      "title": "VAT",
+      "subtitle": "Manage VAT settings and calculations"
+    },
+    "calculation": {
+      "title": "VAT calculation",
+      "price_display": "Price display",
+      "inclusive": "Including VAT",
+      "exclusive": "Excluding VAT",
+      "inclusive_description": "Prices are displayed including VAT"
+    },
+    "oss": {
+      "title": "Apply OSS scheme",
+      "description": "One-Stop-Shop scheme for EU B2C sales to consumers in other EU countries. This automatically applies the VAT rate of the destination country.",
+      "registration_date": "OSS registration date",
+      "identification_number": "OSS identification number",
+      "threshold_warning": "You are approaching the OSS threshold of €10,000. Consider OSS registration.",
+      "threshold_exceeded": "OSS threshold exceeded! OSS registration is mandatory.",
+      "revenue_tracker_title": "B2C revenue other EU countries"
+    },
+    "invoice_texts": {
+      "title": "Invoice texts",
+      "subtitle": "Texts displayed on invoices for special VAT situations",
+      "intracom_goods_label": "Intra-Community supply of goods (B2B)",
+      "intracom_goods_help": "This text appears on invoices for B2B customers with a valid EU VAT number",
+      "intracom_services_label": "Intra-Community services (B2B)",
+      "export_label": "Export outside EU",
+      "export_help": "This text appears on invoices for customers outside the EU"
+    },
+    "decision_tree": {
+      "title": "VAT decision tree",
+      "subtitle": "Overview of how VAT is calculated per situation",
+      "customer_type": "Customer type",
+      "location": "Location",
+      "vat_number": "VAT number",
+      "vat_rate": "VAT rate",
+      "invoice_note": "Invoice note",
+      "domestic": "Domestic",
+      "other_eu": "Other EU country",
+      "outside_eu": "Outside EU",
+      "valid": "Valid",
+      "invalid": "Invalid",
+      "standard": "Standard",
+      "reverse_charge": "Reverse charge",
+      "export": "Export"
+    },
+    "vies": {
+      "validating": "Validating VAT number...",
+      "valid": "Valid VAT number",
+      "invalid": "Invalid VAT number",
+      "service_unavailable": "VIES service temporarily unavailable",
+      "require_validation": "Require VIES validation for reverse charge",
+      "block_on_invalid": "Block order on invalid VAT number"
+    },
+    "rules": {
+      "title": "VAT rules for international trade",
+      "description": "These settings determine how VAT is calculated based on customer type and location",
+      "b2b_valid_vat": "B2B + valid EU VAT number: Reverse charge (0%)",
+      "b2b_invalid_vat": "B2B without valid VAT number in EU: Standard VAT rate",
+      "b2c_domestic": "B2C in own country: Standard VAT rate",
+      "b2c_eu_oss": "B2C in other EU country (with OSS): VAT rate of destination country",
+      "outside_eu": "Customers outside EU: 0% VAT (export)"
+    }
+  },
   "peppol": {
     "title": "Peppol E-Invoicing",
-    "description": "Configure Peppol electronic invoicing for B2B compliance",
+    "description": "Configure Peppol for electronic B2B invoicing. Mandatory in Belgium from January 1, 2026.",
     "yourPeppolId": "Your Peppol ID",
+    "peppol_id": "Peppol ID",
+    "peppol_id_placeholder": "e.g. 0208:BE0123456789",
     "peppolIdPlaceholder": "e.g. 0208:0123456789 or 0106:12345678",
     "peppolIdHelp": "Your endpoint ID for receiving e-invoices. Common schemes: 0208 (Belgium KBO), 0106 (Netherlands KvK), 9925 (VAT number)",
     "mandatoryNotice": "From January 1, 2026, Peppol e-invoicing is mandatory for B2B transactions in Belgium.",
+    "mandatory_notice": "Mandatory for B2B invoices in Belgium from January 1, 2026",
     "facturxEnabled": "Factur-X PDF enabled",
     "facturxDescription": "All invoices are sent as Factur-X PDF. These hybrid invoices contain embedded XML data that can be automatically imported by accounting software like Odoo, Exact and SAP.",
     "phaseInfo": "For Belgian B2B invoices, UBL XML is also generated. Download the UBL file and send via your accounting software or Access Point provider to the Peppol network.",
     "downloadUbl": "Download UBL XML",
+    "download_ubl": "Download UBL XML",
     "pendingShipment": "Peppol shipment pending",
     "missingCustomerIdWarning": "Warning: This B2B customer does not have a Peppol ID yet. Request this from the customer.",
     "markAsSent": "Mark as sent via Peppol",
@@ -146,11 +215,29 @@
     "customerPeppolId": "Customer Peppol ID",
     "customerPeppolIdPlaceholder": "e.g. 0208:0123456789",
     "customerPeppolIdHelp": "The customer's endpoint ID for receiving e-invoices",
+    "access_point": "Access Point Provider",
+    "status": "Status",
+    "not_configured": "Not configured",
+    "configured": "Configured",
+    "test_connection": "Test connection",
+    "b2b_peppol_required": "This B2B invoice must be sent via Peppol",
     "peppolStatus": {
       "pending": "Pending",
       "sent": "Sent",
       "delivered": "Delivered",
       "failed": "Failed"
     }
+  },
+  "compliance": {
+    "title": "Compliance Check",
+    "company_details": "Company details",
+    "enterprise_number_filled": "Enterprise number filled in",
+    "vat_format_correct": "VAT number correct format",
+    "address_complete": "Address details complete",
+    "invoicing": "Invoicing",
+    "sequential_numbers": "Sequential invoice numbers",
+    "required_fields": "Required fields present",
+    "peppol_configured": "Peppol ID configured",
+    "generate_test": "Generate test invoice"
   }
 }
