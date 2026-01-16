@@ -425,6 +425,51 @@ export type Database = {
           },
         ]
       }
+      invoice_duplicates: {
+        Row: {
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          invoice_id: string
+          reason: string | null
+          sent_to_email: string | null
+          tenant_id: string
+        }
+        Insert: {
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          invoice_id: string
+          reason?: string | null
+          sent_to_email?: string | null
+          tenant_id: string
+        }
+        Update: {
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          invoice_id?: string
+          reason?: string | null
+          sent_to_email?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_duplicates_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_duplicates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_lines: {
         Row: {
           created_at: string | null
@@ -530,6 +575,7 @@ export type Database = {
           reminder_level: number | null
           sent_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
+          subscription_id: string | null
           subtotal: number
           tax_amount: number | null
           tenant_id: string
@@ -556,6 +602,7 @@ export type Database = {
           reminder_level?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
+          subscription_id?: string | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id: string
@@ -582,6 +629,7 @@ export type Database = {
           reminder_level?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
+          subscription_id?: string | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id?: string
@@ -602,6 +650,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
           {
@@ -1454,6 +1509,212 @@ export type Database = {
           },
         ]
       }
+      subscription_invoices: {
+        Row: {
+          generated_at: string | null
+          id: string
+          invoice_id: string
+          subscription_id: string
+        }
+        Insert: {
+          generated_at?: string | null
+          id?: string
+          invoice_id: string
+          subscription_id: string
+        }
+        Update: {
+          generated_at?: string | null
+          id?: string
+          invoice_id?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_lines: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          quantity: number | null
+          sort_order: number | null
+          subscription_id: string
+          unit_price: number
+          vat_rate: number | null
+          vat_rate_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          quantity?: number | null
+          sort_order?: number | null
+          subscription_id: string
+          unit_price: number
+          vat_rate?: number | null
+          vat_rate_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          quantity?: number | null
+          sort_order?: number | null
+          subscription_id?: string
+          unit_price?: number
+          vat_rate?: number | null
+          vat_rate_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_lines_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_lines_vat_rate_id_fkey"
+            columns: ["vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_notifications: {
+        Row: {
+          id: string
+          next_invoice_date: string | null
+          notification_type: string
+          sent_at: string | null
+          subscription_id: string
+        }
+        Insert: {
+          id?: string
+          next_invoice_date?: string | null
+          notification_type: string
+          sent_at?: string | null
+          subscription_id: string
+        }
+        Update: {
+          id?: string
+          next_invoice_date?: string | null
+          notification_type?: string
+          sent_at?: string | null
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_notifications_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          auto_send: boolean | null
+          created_at: string | null
+          customer_id: string
+          end_date: string | null
+          generate_days_before: number | null
+          id: string
+          interval: string
+          interval_count: number | null
+          last_invoice_date: string | null
+          name: string
+          next_invoice_date: string
+          notify_before_renewal: boolean | null
+          notify_days_before: number | null
+          payment_term_days: number | null
+          start_date: string
+          status: string | null
+          subtotal: number | null
+          tenant_id: string
+          total: number | null
+          updated_at: string | null
+          vat_total: number | null
+        }
+        Insert: {
+          auto_send?: boolean | null
+          created_at?: string | null
+          customer_id: string
+          end_date?: string | null
+          generate_days_before?: number | null
+          id?: string
+          interval: string
+          interval_count?: number | null
+          last_invoice_date?: string | null
+          name: string
+          next_invoice_date: string
+          notify_before_renewal?: boolean | null
+          notify_days_before?: number | null
+          payment_term_days?: number | null
+          start_date: string
+          status?: string | null
+          subtotal?: number | null
+          tenant_id: string
+          total?: number | null
+          updated_at?: string | null
+          vat_total?: number | null
+        }
+        Update: {
+          auto_send?: boolean | null
+          created_at?: string | null
+          customer_id?: string
+          end_date?: string | null
+          generate_days_before?: number | null
+          id?: string
+          interval?: string
+          interval_count?: number | null
+          last_invoice_date?: string | null
+          name?: string
+          next_invoice_date?: string
+          notify_before_renewal?: boolean | null
+          notify_days_before?: number | null
+          payment_term_days?: number | null
+          start_date?: string
+          status?: string | null
+          subtotal?: number | null
+          tenant_id?: string
+          total?: number | null
+          updated_at?: string | null
+          vat_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           address: string | null
@@ -1730,6 +1991,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vat_rates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_returns: {
+        Row: {
+          created_at: string | null
+          credit_note_count: number | null
+          domestic_taxable: number | null
+          domestic_vat: number | null
+          exported_at: string | null
+          exports: number | null
+          id: string
+          intra_community: number | null
+          invoice_count: number | null
+          period: number
+          period_type: string
+          status: string | null
+          submitted_at: string | null
+          tenant_id: string
+          vat_due: number | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          credit_note_count?: number | null
+          domestic_taxable?: number | null
+          domestic_vat?: number | null
+          exported_at?: string | null
+          exports?: number | null
+          id?: string
+          intra_community?: number | null
+          invoice_count?: number | null
+          period: number
+          period_type: string
+          status?: string | null
+          submitted_at?: string | null
+          tenant_id: string
+          vat_due?: number | null
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          credit_note_count?: number | null
+          domestic_taxable?: number | null
+          domestic_vat?: number | null
+          exported_at?: string | null
+          exports?: number | null
+          id?: string
+          intra_community?: number | null
+          invoice_count?: number | null
+          period?: number
+          period_type?: string
+          status?: string | null
+          submitted_at?: string | null
+          tenant_id?: string
+          vat_due?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_returns_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
