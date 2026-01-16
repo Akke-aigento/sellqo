@@ -82,23 +82,33 @@ serve(async (req) => {
 
     // Create new Stripe Express account
     logStep("Creating new Stripe Express account");
-    const account = await stripe.accounts.create({
-      type: "express",
-      country: "NL",
-      email: tenantData.owner_email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-        ideal_payments: { requested: true },
-        bancontact_payments: { requested: true },
-      },
-      business_type: "individual",
-      metadata: {
-        tenant_id: tenant_id,
-        tenant_name: tenantData.name,
-      },
-    });
-    logStep("Stripe account created", { accountId: account.id });
+    let account;
+    try {
+      account = await stripe.accounts.create({
+        type: "express",
+        country: "NL",
+        email: tenantData.owner_email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+          ideal_payments: { requested: true },
+          bancontact_payments: { requested: true },
+        },
+        business_type: "individual",
+        metadata: {
+          tenant_id: tenant_id,
+          tenant_name: tenantData.name,
+        },
+      });
+      logStep("Stripe account created", { accountId: account.id });
+    } catch (stripeError: any) {
+      logStep("Stripe account creation failed", { error: stripeError.message });
+      // Provide helpful error message for Connect not enabled
+      if (stripeError.message?.includes("signed up for Connect")) {
+        throw new Error("Stripe Connect is niet geactiveerd. Ga naar je Stripe Dashboard > Settings > Connect om dit te activeren.");
+      }
+      throw new Error(`Stripe fout: ${stripeError.message}`);
+    }
 
     // Update tenant with Stripe account ID
     const { error: updateError } = await supabaseClient
