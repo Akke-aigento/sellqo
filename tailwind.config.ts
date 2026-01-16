@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'Poppins', 'Arial', 'Helvetica', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,11 +60,24 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Sellqo brand colors for direct use
+        sellqo: {
+          primary: "hsl(var(--sellqo-primary))",
+          accent: "hsl(var(--sellqo-accent))",
+          surface: "hsl(var(--sellqo-surface))",
+          "text-secondary": "hsl(var(--sellqo-text-secondary))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.5rem",
+      },
+      boxShadow: {
+        'sellqo': '0 4px 14px 0 rgba(30, 58, 95, 0.08)',
+        'sellqo-lg': '0 10px 30px -10px rgba(30, 58, 95, 0.15)',
       },
       keyframes: {
         "accordion-down": {
