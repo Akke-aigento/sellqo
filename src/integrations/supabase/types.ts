@@ -498,6 +498,7 @@ export type Database = {
           custom_domain: string | null
           id: string
           kvk_number: string | null
+          language: string | null
           last_login: string | null
           logo_url: string | null
           name: string
@@ -528,6 +529,7 @@ export type Database = {
           custom_domain?: string | null
           id?: string
           kvk_number?: string | null
+          language?: string | null
           last_login?: string | null
           logo_url?: string | null
           name: string
@@ -558,6 +560,7 @@ export type Database = {
           custom_domain?: string | null
           id?: string
           kvk_number?: string | null
+          language?: string | null
           last_login?: string | null
           logo_url?: string | null
           name?: string
