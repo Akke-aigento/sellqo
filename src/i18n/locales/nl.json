@@ -62,14 +62,14 @@
       "manageProfile": "Beheer je profielgegevens en voorkeuren.",
       "fullName": "Volledige naam",
       "emailReadOnly": "Je e-mailadres kan niet worden gewijzigd.",
-    "language": "Taal",
-    "languageDescription": "Kies je voorkeurstaal voor de interface.",
-    "theme": "Weergave",
-    "themeDescription": "Kies je voorkeur voor lichte of donkere modus.",
-    "themeLight": "Licht",
-    "themeDark": "Donker",
-    "themeSystem": "Systeem",
-    "saveProfile": "Profiel opslaan",
+      "language": "Taal",
+      "languageDescription": "Kies je voorkeurstaal voor de interface.",
+      "theme": "Weergave",
+      "themeDescription": "Kies je voorkeur voor lichte of donkere modus.",
+      "themeLight": "Licht",
+      "themeDark": "Donker",
+      "themeSystem": "Systeem",
+      "saveProfile": "Profiel opslaan",
       "profileUpdated": "Profiel bijgewerkt",
       "profileUpdatedDescription": "Je profielgegevens zijn opgeslagen.",
       "profileError": "Fout bij opslaan",
@@ -128,17 +128,86 @@
       "defaultTexts": "Dit zijn de wettelijk correcte standaardteksten. Pas alleen aan indien noodzakelijk."
     }
   },
+  "vat": {
+    "settings": {
+      "title": "BTW",
+      "subtitle": "Beheer BTW-instellingen en berekeningen"
+    },
+    "calculation": {
+      "title": "BTW-berekening",
+      "price_display": "Prijzen weergave",
+      "inclusive": "Inclusief BTW",
+      "exclusive": "Exclusief BTW",
+      "inclusive_description": "Prijzen worden inclusief BTW getoond"
+    },
+    "oss": {
+      "title": "OSS-regeling toepassen",
+      "description": "One-Stop-Shop regeling voor EU B2C verkopen aan consumenten in andere EU-landen. Hiermee wordt automatisch het BTW-tarief van het bestemmingsland toegepast.",
+      "registration_date": "OSS-registratiedatum",
+      "identification_number": "OSS-identificatienummer",
+      "threshold_warning": "Je nadert de OSS-drempel van €10.000. Overweeg OSS-registratie.",
+      "threshold_exceeded": "OSS-drempel overschreden! OSS-registratie is verplicht.",
+      "revenue_tracker_title": "B2C omzet andere EU-landen"
+    },
+    "invoice_texts": {
+      "title": "Factuurteksten",
+      "subtitle": "Teksten die op facturen worden getoond bij speciale BTW-situaties",
+      "intracom_goods_label": "Intracommunautaire levering goederen (B2B)",
+      "intracom_goods_help": "Deze tekst verschijnt op facturen voor B2B klanten met een geldig EU BTW-nummer",
+      "intracom_services_label": "Intracommunautaire diensten (B2B)",
+      "export_label": "Export buiten EU",
+      "export_help": "Deze tekst verschijnt op facturen voor klanten buiten de EU"
+    },
+    "decision_tree": {
+      "title": "BTW-beslisboom",
+      "subtitle": "Overzicht hoe BTW wordt berekend per situatie",
+      "customer_type": "Klanttype",
+      "location": "Locatie",
+      "vat_number": "BTW-nummer",
+      "vat_rate": "BTW-tarief",
+      "invoice_note": "Factuurvermelding",
+      "domestic": "Eigen land",
+      "other_eu": "Ander EU-land",
+      "outside_eu": "Buiten EU",
+      "valid": "Geldig",
+      "invalid": "Ongeldig",
+      "standard": "Standaard",
+      "reverse_charge": "BTW verlegd",
+      "export": "Export"
+    },
+    "vies": {
+      "validating": "BTW-nummer valideren...",
+      "valid": "Geldig BTW-nummer",
+      "invalid": "Ongeldig BTW-nummer",
+      "service_unavailable": "VIES-service tijdelijk onbereikbaar",
+      "require_validation": "Verplicht VIES-validatie voor BTW-verlegging",
+      "block_on_invalid": "Blokkeer bestelling bij ongeldig BTW-nummer"
+    },
+    "rules": {
+      "title": "BTW-regels voor internationale handel",
+      "description": "Deze instellingen bepalen hoe BTW wordt berekend op basis van klanttype en locatie",
+      "b2b_valid_vat": "B2B + geldig EU BTW-nummer: BTW verlegd (0%)",
+      "b2b_invalid_vat": "B2B zonder geldig BTW-nummer in EU: Standaard BTW-tarief",
+      "b2c_domestic": "B2C in eigen land: Standaard BTW-tarief",
+      "b2c_eu_oss": "B2C in ander EU-land (met OSS): BTW-tarief van bestemmingsland",
+      "outside_eu": "Klanten buiten EU: 0% BTW (export)"
+    }
+  },
   "peppol": {
     "title": "Peppol E-Facturatie",
-    "description": "Configureer Peppol elektronische facturatie voor B2B compliance",
+    "description": "Configureer Peppol voor elektronische B2B facturatie. Verplicht in België vanaf 1 januari 2026.",
     "yourPeppolId": "Jouw Peppol-ID",
+    "peppol_id": "Peppol-ID",
+    "peppol_id_placeholder": "bijv. 0208:BE0123456789",
     "peppolIdPlaceholder": "bijv. 0208:0123456789 of 0106:12345678",
     "peppolIdHelp": "Je endpoint-ID voor het ontvangen van e-facturen. Veelgebruikte schemes: 0208 (België KBO), 0106 (Nederland KvK), 9925 (BTW-nummer)",
     "mandatoryNotice": "Vanaf 1 januari 2026 is Peppol e-facturatie verplicht voor B2B-transacties in België.",
+    "mandatory_notice": "Vanaf 1 januari 2026 verplicht voor B2B facturen in België",
     "facturxEnabled": "Factur-X PDF actief",
     "facturxDescription": "Alle facturen worden als Factur-X PDF verstuurd. Deze hybride facturen bevatten embedded XML data die automatisch ingelezen kan worden door boekhoudsoftware zoals Odoo, Exact en SAP.",
     "phaseInfo": "Voor Belgische B2B facturen wordt ook UBL XML gegenereerd. Download het UBL bestand en verstuur via je boekhoudsoftware of Access Point provider naar het Peppol netwerk.",
     "downloadUbl": "Download UBL XML",
+    "download_ubl": "Download UBL XML",
     "pendingShipment": "Peppol verzending pending",
     "missingCustomerIdWarning": "Let op: Deze B2B klant heeft nog geen Peppol-ID. Vraag dit op bij de klant.",
     "markAsSent": "Markeer als verstuurd via Peppol",
@@ -146,11 +215,29 @@
     "customerPeppolId": "Peppol-ID klant",
     "customerPeppolIdPlaceholder": "bijv. 0208:0123456789",
     "customerPeppolIdHelp": "Het endpoint-ID van de klant voor het ontvangen van e-facturen",
+    "access_point": "Access Point Provider",
+    "status": "Status",
+    "not_configured": "Niet geconfigureerd",
+    "configured": "Geconfigureerd",
+    "test_connection": "Test verbinding",
+    "b2b_peppol_required": "Deze B2B factuur moet via Peppol verstuurd worden",
     "peppolStatus": {
       "pending": "In afwachting",
       "sent": "Verzonden",
       "delivered": "Afgeleverd",
       "failed": "Mislukt"
     }
+  },
+  "compliance": {
+    "title": "Compliance Check",
+    "company_details": "Bedrijfsgegevens",
+    "enterprise_number_filled": "Ondernemingsnummer ingevuld",
+    "vat_format_correct": "BTW-nummer correct formaat",
+    "address_complete": "Adresgegevens volledig",
+    "invoicing": "Facturatie",
+    "sequential_numbers": "Opeenvolgende factuurnummers",
+    "required_fields": "Verplichte velden aanwezig",
+    "peppol_configured": "Peppol-ID geconfigureerd",
+    "generate_test": "Genereer testfactuur"
   }
 }

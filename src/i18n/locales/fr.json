@@ -128,17 +128,86 @@
       "defaultTexts": "Ce sont les textes par défaut légalement corrects. Personnalisez uniquement si nécessaire."
     }
   },
+  "vat": {
+    "settings": {
+      "title": "TVA",
+      "subtitle": "Gérer les paramètres et calculs de TVA"
+    },
+    "calculation": {
+      "title": "Calcul de la TVA",
+      "price_display": "Affichage des prix",
+      "inclusive": "TVA incluse",
+      "exclusive": "Hors TVA",
+      "inclusive_description": "Les prix sont affichés TVA incluse"
+    },
+    "oss": {
+      "title": "Appliquer le régime OSS",
+      "description": "Régime de guichet unique pour les ventes B2C UE aux consommateurs d'autres pays de l'UE. Ceci applique automatiquement le taux de TVA du pays de destination.",
+      "registration_date": "Date d'enregistrement OSS",
+      "identification_number": "Numéro d'identification OSS",
+      "threshold_warning": "Vous approchez du seuil OSS de 10 000 €. Envisagez l'enregistrement OSS.",
+      "threshold_exceeded": "Seuil OSS dépassé ! L'enregistrement OSS est obligatoire.",
+      "revenue_tracker_title": "Chiffre d'affaires B2C autres pays UE"
+    },
+    "invoice_texts": {
+      "title": "Textes de facture",
+      "subtitle": "Textes affichés sur les factures pour les situations TVA spéciales",
+      "intracom_goods_label": "Livraison intracommunautaire de biens (B2B)",
+      "intracom_goods_help": "Ce texte apparaît sur les factures pour les clients B2B avec un numéro de TVA UE valide",
+      "intracom_services_label": "Services intracommunautaires (B2B)",
+      "export_label": "Exportation hors UE",
+      "export_help": "Ce texte apparaît sur les factures pour les clients hors UE"
+    },
+    "decision_tree": {
+      "title": "Arbre de décision TVA",
+      "subtitle": "Aperçu du calcul de la TVA par situation",
+      "customer_type": "Type de client",
+      "location": "Localisation",
+      "vat_number": "Numéro de TVA",
+      "vat_rate": "Taux de TVA",
+      "invoice_note": "Mention sur facture",
+      "domestic": "Pays national",
+      "other_eu": "Autre pays UE",
+      "outside_eu": "Hors UE",
+      "valid": "Valide",
+      "invalid": "Invalide",
+      "standard": "Standard",
+      "reverse_charge": "Autoliquidation",
+      "export": "Exportation"
+    },
+    "vies": {
+      "validating": "Validation du numéro de TVA...",
+      "valid": "Numéro de TVA valide",
+      "invalid": "Numéro de TVA invalide",
+      "service_unavailable": "Service VIES temporairement indisponible",
+      "require_validation": "Exiger la validation VIES pour l'autoliquidation",
+      "block_on_invalid": "Bloquer la commande si numéro de TVA invalide"
+    },
+    "rules": {
+      "title": "Règles de TVA pour le commerce international",
+      "description": "Ces paramètres déterminent comment la TVA est calculée en fonction du type de client et de la localisation",
+      "b2b_valid_vat": "B2B + numéro de TVA UE valide : Autoliquidation (0%)",
+      "b2b_invalid_vat": "B2B sans numéro de TVA valide dans l'UE : Taux de TVA standard",
+      "b2c_domestic": "B2C dans le pays national : Taux de TVA standard",
+      "b2c_eu_oss": "B2C dans un autre pays UE (avec OSS) : Taux de TVA du pays de destination",
+      "outside_eu": "Clients hors UE : 0% TVA (exportation)"
+    }
+  },
   "peppol": {
     "title": "Peppol Facturation électronique",
-    "description": "Configurez la facturation électronique Peppol pour la conformité B2B",
+    "description": "Configurez Peppol pour la facturation électronique B2B. Obligatoire en Belgique à partir du 1er janvier 2026.",
     "yourPeppolId": "Votre identifiant Peppol",
+    "peppol_id": "Identifiant Peppol",
+    "peppol_id_placeholder": "ex. 0208:BE0123456789",
     "peppolIdPlaceholder": "ex. 0208:0123456789 ou 0106:12345678",
     "peppolIdHelp": "Votre identifiant d'endpoint pour recevoir des factures électroniques. Schémas courants : 0208 (Belgique KBO), 0106 (Pays-Bas KvK), 9925 (numéro de TVA)",
     "mandatoryNotice": "À partir du 1er janvier 2026, la facturation électronique Peppol est obligatoire pour les transactions B2B en Belgique.",
+    "mandatory_notice": "Obligatoire pour les factures B2B en Belgique à partir du 1er janvier 2026",
     "facturxEnabled": "PDF Factur-X activé",
     "facturxDescription": "Toutes les factures sont envoyées au format PDF Factur-X. Ces factures hybrides contiennent des données XML intégrées qui peuvent être automatiquement importées par les logiciels de comptabilité comme Odoo, Exact et SAP.",
     "phaseInfo": "Pour les factures B2B belges, le format UBL XML est également généré. Téléchargez le fichier UBL et envoyez-le via votre logiciel comptable ou fournisseur Access Point vers le réseau Peppol.",
     "downloadUbl": "Télécharger UBL XML",
+    "download_ubl": "Télécharger UBL XML",
     "pendingShipment": "Envoi Peppol en attente",
     "missingCustomerIdWarning": "Attention : Ce client B2B n'a pas encore d'identifiant Peppol. Demandez-le au client.",
     "markAsSent": "Marquer comme envoyé via Peppol",
@@ -146,11 +215,29 @@
     "customerPeppolId": "Identifiant Peppol du client",
     "customerPeppolIdPlaceholder": "ex. 0208:0123456789",
     "customerPeppolIdHelp": "L'identifiant d'endpoint du client pour recevoir des factures électroniques",
+    "access_point": "Fournisseur Access Point",
+    "status": "Statut",
+    "not_configured": "Non configuré",
+    "configured": "Configuré",
+    "test_connection": "Tester la connexion",
+    "b2b_peppol_required": "Cette facture B2B doit être envoyée via Peppol",
     "peppolStatus": {
       "pending": "En attente",
       "sent": "Envoyé",
       "delivered": "Livré",
       "failed": "Échoué"
     }
+  },
+  "compliance": {
+    "title": "Vérification de conformité",
+    "company_details": "Coordonnées de l'entreprise",
+    "enterprise_number_filled": "Numéro d'entreprise renseigné",
+    "vat_format_correct": "Format du numéro de TVA correct",
+    "address_complete": "Coordonnées complètes",
+    "invoicing": "Facturation",
+    "sequential_numbers": "Numéros de facture séquentiels",
+    "required_fields": "Champs obligatoires présents",
+    "peppol_configured": "Identifiant Peppol configuré",
+    "generate_test": "Générer une facture test"
   }
 }
