@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.send-invoice-email]
 verify_jwt = false
+
+[functions.create-manual-invoice]
+verify_jwt = false
