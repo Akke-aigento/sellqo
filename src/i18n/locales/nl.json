@@ -262,5 +262,54 @@
   "ogm": {
     "label": "Gestructureerde mededeling",
     "payment_instruction": "Gelieve bij betaling de gestructureerde mededeling te vermelden"
+  },
+  "vat_rates": {
+    "title": "BTW-tarieven",
+    "description": "Beheer BTW-tarieven per land voor correcte facturatie",
+    "country": "Land",
+    "add": "Tarief toevoegen",
+    "add_new": "Nieuw BTW-tarief",
+    "edit": "BTW-tarief bewerken",
+    "rate": "Tarief",
+    "category": "Categorie",
+    "standard": "Standaard",
+    "reduced": "Verlaagd",
+    "super_reduced": "Super verlaagd",
+    "zero": "Nultarief",
+    "exempt": "Vrijgesteld",
+    "is_default": "Standaard tarief",
+    "no_rates": "Geen BTW-tarieven gevonden voor dit land",
+    "delete_title": "BTW-tarief verwijderen?",
+    "delete_description": "Weet je zeker dat je dit BTW-tarief wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+    "active_description": "Actief tarief kan worden geselecteerd",
+    "default_description": "Automatisch toegepast bij nieuwe producten"
+  },
+  "shipping": {
+    "title": "Verzendmethodes",
+    "add": "Verzendmethode toevoegen",
+    "name": "Naam",
+    "price": "Prijs",
+    "free_above": "Gratis vanaf",
+    "estimated_delivery": "Geschatte levertijd",
+    "carrier": "Vervoerder",
+    "costs": "Verzendkosten",
+    "free": "Gratis verzending",
+    "standard": "Standaard levering",
+    "express": "Express levering",
+    "pickup": "Afhalen in winkel",
+    "vat_rate": "BTW-tarief"
+  },
+  "invoice": {
+    "vat": {
+      "intracom_goods": "Intracommunautaire levering vrijgesteld van BTW - art. 138 BTW-richtlijn 2006/112/EG",
+      "intracom_services": "BTW verlegd naar afnemer - art. 196 BTW-richtlijn 2006/112/EG",
+      "export": "Uitvoer vrijgesteld van BTW - art. 146 BTW-richtlijn 2006/112/EG",
+      "oss_applied": "BTW berekend volgens OSS-regeling (One-Stop-Shop) - bestemmingsland tarief"
+    },
+    "vat_breakdown": "BTW-overzicht",
+    "taxable_amount": "Grondslag",
+    "vat_amount": "BTW",
+    "total_excl_vat": "Totaal excl. BTW",
+    "total_incl_vat": "Totaal incl. BTW"
   }
 }

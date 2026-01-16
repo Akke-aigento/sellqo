@@ -262,5 +262,54 @@
   "ogm": {
     "label": "Strukturierte Mitteilung",
     "payment_instruction": "Bitte geben Sie bei der Zahlung die strukturierte Mitteilung an"
+  },
+  "vat_rates": {
+    "title": "MwSt-Sätze",
+    "description": "MwSt-Sätze pro Land für korrekte Rechnungsstellung verwalten",
+    "country": "Land",
+    "add": "Satz hinzufügen",
+    "add_new": "Neuer MwSt-Satz",
+    "edit": "MwSt-Satz bearbeiten",
+    "rate": "Satz",
+    "category": "Kategorie",
+    "standard": "Standard",
+    "reduced": "Ermäßigt",
+    "super_reduced": "Stark ermäßigt",
+    "zero": "Nullsatz",
+    "exempt": "Befreit",
+    "is_default": "Standardsatz",
+    "no_rates": "Keine MwSt-Sätze für dieses Land gefunden",
+    "delete_title": "MwSt-Satz löschen?",
+    "delete_description": "Sind Sie sicher, dass Sie diesen MwSt-Satz löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "active_description": "Aktiver Satz kann ausgewählt werden",
+    "default_description": "Automatisch auf neue Produkte angewendet"
+  },
+  "shipping": {
+    "title": "Versandarten",
+    "add": "Versandart hinzufügen",
+    "name": "Name",
+    "price": "Preis",
+    "free_above": "Kostenlos ab",
+    "estimated_delivery": "Geschätzte Lieferzeit",
+    "carrier": "Spediteur",
+    "costs": "Versandkosten",
+    "free": "Kostenloser Versand",
+    "standard": "Standardlieferung",
+    "express": "Expresslieferung",
+    "pickup": "Abholung im Geschäft",
+    "vat_rate": "MwSt-Satz"
+  },
+  "invoice": {
+    "vat": {
+      "intracom_goods": "Innergemeinschaftliche Lieferung umsatzsteuerfrei - Art. 138 MwSt-Richtlinie 2006/112/EG",
+      "intracom_services": "Steuerschuldnerschaft des Leistungsempfängers - Art. 196 MwSt-Richtlinie 2006/112/EG",
+      "export": "Ausfuhr umsatzsteuerfrei - Art. 146 MwSt-Richtlinie 2006/112/EG",
+      "oss_applied": "MwSt berechnet nach OSS-Regelung (One-Stop-Shop) - Steuersatz des Bestimmungslandes"
+    },
+    "vat_breakdown": "MwSt-Übersicht",
+    "taxable_amount": "Bemessungsgrundlage",
+    "vat_amount": "MwSt",
+    "total_excl_vat": "Gesamtbetrag exkl. MwSt",
+    "total_incl_vat": "Gesamtbetrag inkl. MwSt"
   }
 }

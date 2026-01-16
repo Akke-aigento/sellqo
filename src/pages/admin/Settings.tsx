@@ -1,4 +1,4 @@
-import { User, Building2, Store, CreditCard, Users, Receipt, FileCheck } from 'lucide-react';
+import { User, Building2, Store, CreditCard, Users, Receipt, FileCheck, Percent } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/admin/settings/AccountSettings';
 import { BusinessSettings } from '@/components/admin/settings/BusinessSettings';
@@ -7,6 +7,7 @@ import { PaymentSettings } from '@/components/admin/settings/PaymentSettings';
 import { TeamSettings } from '@/components/admin/settings/TeamSettings';
 import { TaxSettings } from '@/components/admin/settings/TaxSettings';
 import { InvoiceComplianceCard } from '@/components/admin/settings/InvoiceComplianceCard';
+import { VatRatesSettings } from '@/components/admin/settings/VatRatesSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
@@ -27,7 +28,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="account" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-auto gap-1 p-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 h-auto gap-1 p-1">
           <TabsTrigger value="account" className="flex items-center gap-2 py-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Account</span>
@@ -43,6 +44,10 @@ export default function SettingsPage() {
           <TabsTrigger value="tax" className="flex items-center gap-2 py-2">
             <Receipt className="h-4 w-4" />
             <span className="hidden sm:inline">BTW</span>
+          </TabsTrigger>
+          <TabsTrigger value="vat_rates" className="flex items-center gap-2 py-2">
+            <Percent className="h-4 w-4" />
+            <span className="hidden sm:inline">Tarieven</span>
           </TabsTrigger>
           <TabsTrigger value="compliance" className="flex items-center gap-2 py-2">
             <FileCheck className="h-4 w-4" />
@@ -74,6 +79,10 @@ export default function SettingsPage() {
 
         <TabsContent value="tax">
           <TaxSettings />
+        </TabsContent>
+
+        <TabsContent value="vat_rates">
+          <VatRatesSettings />
         </TabsContent>
 
         <TabsContent value="compliance">

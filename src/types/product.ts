@@ -17,6 +17,7 @@ export interface Product {
   images: string[];
   featured_image: string | null;
   category_id: string | null;
+  vat_rate_id: string | null;
   tags: string[];
   meta_title: string | null;
   meta_description: string | null;
@@ -26,7 +27,14 @@ export interface Product {
   requires_shipping: boolean;
   created_at: string;
   updated_at: string;
-  category?: Category;
+  category?: CategoryPartial | null;
+}
+
+// Partial category for product listing (only id, name, slug returned by query)
+export interface CategoryPartial {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 export interface Category {
@@ -62,6 +70,7 @@ export interface ProductFormData {
   images: string[];
   featured_image: string;
   category_id: string;
+  vat_rate_id: string | null;
   tags: string[];
   meta_title: string;
   meta_description: string;
