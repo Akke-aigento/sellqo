@@ -209,9 +209,12 @@
     "downloadUbl": "Download UBL XML",
     "download_ubl": "Download UBL XML",
     "pendingShipment": "Peppol shipment pending",
+    "status_pending": "Peppol shipment pending",
     "missingCustomerIdWarning": "Warning: This B2B customer does not have a Peppol ID yet. Request this from the customer.",
     "markAsSent": "Mark as sent via Peppol",
+    "mark_as_sent": "Mark as sent",
     "markedAsSent": "Marked as sent via Peppol",
+    "your_peppol_id": "Your Peppol ID",
     "customerPeppolId": "Customer Peppol ID",
     "customerPeppolIdPlaceholder": "e.g. 0208:0123456789",
     "customerPeppolIdHelp": "The customer's endpoint ID for receiving e-invoices",
@@ -311,5 +314,17 @@
     "vat_amount": "VAT",
     "total_excl_vat": "Total excl. VAT",
     "total_incl_vat": "Total incl. VAT"
+  },
+  "archive": {
+    "title": "Invoice Archive",
+    "description": "Documents are retained for 7 years in accordance with Belgian law",
+    "integrity_valid": "Integrity OK",
+    "integrity_invalid": "Integrity compromised!",
+    "retention_notice": "Documents are retained for 7 years in accordance with Belgian law",
+    "expires_on": "Expires on",
+    "download_original": "Download original",
+    "verify_integrity": "Verify integrity",
+    "archived_at": "Archived at",
+    "file_size": "File size"
   }
 }

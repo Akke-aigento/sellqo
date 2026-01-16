@@ -9,6 +9,7 @@ interface InvoiceFilters {
   search?: string;
   startDate?: Date;
   endDate?: Date;
+  peppolPending?: boolean;
 }
 
 interface InvoiceWithRelations extends Invoice {
@@ -65,6 +66,10 @@ export function useInvoices(filters?: InvoiceFilters) {
         query = query.lte('created_at', filters.endDate.toISOString());
       }
 
+      if (filters?.peppolPending) {
+        query = query.eq('peppol_status', 'pending');
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -114,6 +119,27 @@ export function useInvoices(filters?: InvoiceFilters) {
     },
   });
 
+  const markPeppolSent = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { error } = await supabase
+        .from('invoices')
+        .update({
+          peppol_status: 'sent',
+          peppol_sent_at: new Date().toISOString(),
+        })
+        .eq('id', invoiceId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Peppol status bijgewerkt naar verzonden');
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Fout bij bijwerken Peppol status', { description: error.message });
+    },
+  });
+
   return {
     invoices,
     isLoading,
@@ -121,6 +147,7 @@ export function useInvoices(filters?: InvoiceFilters) {
     refetch,
     resendInvoice,
     updateInvoiceStatus,
+    markPeppolSent,
   };
 }
 

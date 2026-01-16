@@ -1,4 +1,4 @@
-import { User, Building2, Store, CreditCard, Users, Receipt, FileCheck, Percent } from 'lucide-react';
+import { User, Building2, Store, CreditCard, Users, Receipt, FileCheck, Percent, Network } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/admin/settings/AccountSettings';
 import { BusinessSettings } from '@/components/admin/settings/BusinessSettings';
@@ -8,6 +8,7 @@ import { TeamSettings } from '@/components/admin/settings/TeamSettings';
 import { TaxSettings } from '@/components/admin/settings/TaxSettings';
 import { InvoiceComplianceCard } from '@/components/admin/settings/InvoiceComplianceCard';
 import { VatRatesSettings } from '@/components/admin/settings/VatRatesSettings';
+import { PeppolSettings } from '@/components/admin/settings/PeppolSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
@@ -28,7 +29,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="account" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 h-auto gap-1 p-1">
+        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9 h-auto gap-1 p-1">
           <TabsTrigger value="account" className="flex items-center gap-2 py-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Account</span>
@@ -48,6 +49,10 @@ export default function SettingsPage() {
           <TabsTrigger value="vat_rates" className="flex items-center gap-2 py-2">
             <Percent className="h-4 w-4" />
             <span className="hidden sm:inline">Tarieven</span>
+          </TabsTrigger>
+          <TabsTrigger value="peppol" className="flex items-center gap-2 py-2">
+            <Network className="h-4 w-4" />
+            <span className="hidden sm:inline">Peppol</span>
           </TabsTrigger>
           <TabsTrigger value="compliance" className="flex items-center gap-2 py-2">
             <FileCheck className="h-4 w-4" />
@@ -83,6 +88,10 @@ export default function SettingsPage() {
 
         <TabsContent value="vat_rates">
           <VatRatesSettings />
+        </TabsContent>
+
+        <TabsContent value="peppol">
+          <PeppolSettings />
         </TabsContent>
 
         <TabsContent value="compliance">
