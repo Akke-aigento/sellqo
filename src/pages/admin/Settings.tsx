@@ -1,19 +1,41 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield } from 'lucide-react';
+import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/hooks/useTenant';
 import { useStripeConnect } from '@/hooks/useStripeConnect';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
+
+const SUPPORTED_COUNTRIES = [
+  { code: 'NL', name: 'Nederland', flag: '🇳🇱' },
+  { code: 'BE', name: 'België', flag: '🇧🇪' },
+  { code: 'DE', name: 'Duitsland', flag: '🇩🇪' },
+  { code: 'FR', name: 'Frankrijk', flag: '🇫🇷' },
+  { code: 'AT', name: 'Oostenrijk', flag: '🇦🇹' },
+  { code: 'LU', name: 'Luxemburg', flag: '🇱🇺' },
+];
 
 export default function SettingsPage() {
-  const { currentTenant } = useTenant();
+  const { currentTenant, refreshTenants } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [isSavingCountry, setIsSavingCountry] = useState(false);
+  
+  // Initialize selected country from tenant
+  useEffect(() => {
+    if (currentTenant?.country) {
+      setSelectedCountry(currentTenant.country);
+    } else {
+      setSelectedCountry('NL');
+    }
+  }, [currentTenant?.country]);
   
   const {
     status,
@@ -231,13 +253,72 @@ export default function SettingsPage() {
                   We gebruiken Stripe Connect voor veilige betalingsverwerking met automatische uitbetalingen naar je bankrekening.
                 </p>
                 
+                {/* Country selector */}
+                <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium">Selecteer je land</p>
+                  </div>
+                  <Select
+                    value={selectedCountry}
+                    onValueChange={async (value) => {
+                      setSelectedCountry(value);
+                      setIsSavingCountry(true);
+                      try {
+                        const { error } = await supabase
+                          .from('tenants')
+                          .update({ country: value })
+                          .eq('id', currentTenant?.id);
+                        
+                        if (error) throw error;
+                        
+                        await refreshTenants();
+                        toast({
+                          title: 'Land opgeslagen',
+                          description: `Je land is ingesteld op ${SUPPORTED_COUNTRIES.find(c => c.code === value)?.name}.`,
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: 'Fout bij opslaan',
+                          description: error.message,
+                          variant: 'destructive',
+                        });
+                      } finally {
+                        setIsSavingCountry(false);
+                      }
+                    }}
+                    disabled={isSavingCountry}
+                  >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Selecteer land" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUPPORTED_COUNTRIES.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                          <span className="flex items-center gap-2">
+                            <span>{country.flag}</span>
+                            <span>{country.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ Let op: het land kan niet worden gewijzigd nadat Stripe Connect is geactiveerd.
+                  </p>
+                </div>
+
+                <Separator />
+                
                 <div className="grid sm:grid-cols-2 gap-4 py-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1.5 bg-green-100 rounded-full mt-0.5">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">iDEAL & Creditcards</p>
+                      <p className="text-sm font-medium">
+                        {selectedCountry === 'NL' ? 'iDEAL' : selectedCountry === 'BE' ? 'Bancontact' : 'SEPA'} & Creditcards
+                      </p>
                       <p className="text-xs text-muted-foreground">Ondersteun alle populaire betaalmethodes</p>
                     </div>
                   </div>
@@ -269,6 +350,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+
 
                 <Button
                   onClick={createConnectAccount}
