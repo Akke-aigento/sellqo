@@ -49,7 +49,7 @@ serve(async (req) => {
     // Verify user has access to this tenant
     const { data: tenantData, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("id, name, owner_email, stripe_account_id")
+      .select("id, name, owner_email, stripe_account_id, country")
       .eq("id", tenant_id)
       .single();
 
@@ -81,19 +81,32 @@ serve(async (req) => {
     }
 
     // Create new Stripe Express account
-    logStep("Creating new Stripe Express account");
+    const country = tenantData.country || "NL";
+    logStep("Creating new Stripe Express account", { country });
+    
+    // Build capabilities based on country
+    const capabilities: any = {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    };
+    
+    // Add country-specific payment methods
+    if (country === "NL") {
+      capabilities.ideal_payments = { requested: true };
+    }
+    if (country === "BE") {
+      capabilities.bancontact_payments = { requested: true };
+    }
+    // SEPA Direct Debit for all EU countries
+    capabilities.sepa_debit_payments = { requested: true };
+    
     let account;
     try {
       account = await stripe.accounts.create({
         type: "express",
-        country: "NL",
+        country: country,
         email: tenantData.owner_email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-          ideal_payments: { requested: true },
-          bancontact_payments: { requested: true },
-        },
+        capabilities,
         business_type: "individual",
         metadata: {
           tenant_id: tenant_id,
