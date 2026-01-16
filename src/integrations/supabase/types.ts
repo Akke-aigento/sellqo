@@ -617,6 +617,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrement_stock: {
+        Args: { p_product_id: string; p_quantity: number }
+        Returns: undefined
+      }
       generate_order_number: { Args: { _tenant_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
