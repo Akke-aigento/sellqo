@@ -34,10 +34,22 @@ export function useCustomers(search?: string) {
 
   const createCustomer = useMutation({
     mutationFn: async (data: { 
+      customer_type?: 'b2c' | 'b2b';
       first_name: string; 
       last_name: string; 
       email: string; 
       phone?: string;
+      company_name?: string;
+      vat_number?: string;
+      vat_verified?: boolean;
+      billing_street?: string;
+      billing_city?: string;
+      billing_postal_code?: string;
+      billing_country?: string;
+      shipping_street?: string;
+      shipping_city?: string;
+      shipping_postal_code?: string;
+      shipping_country?: string;
     }) => {
       if (!currentTenant?.id) throw new Error('Geen tenant geselecteerd');
 
@@ -45,10 +57,23 @@ export function useCustomers(search?: string) {
         .from('customers')
         .insert({
           tenant_id: currentTenant.id,
+          customer_type: data.customer_type || 'b2c',
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
           phone: data.phone || null,
+          company_name: data.company_name || null,
+          vat_number: data.vat_number || null,
+          vat_verified: data.vat_verified || false,
+          vat_verified_at: data.vat_verified ? new Date().toISOString() : null,
+          billing_street: data.billing_street || null,
+          billing_city: data.billing_city || null,
+          billing_postal_code: data.billing_postal_code || null,
+          billing_country: data.billing_country || 'NL',
+          shipping_street: data.shipping_street || null,
+          shipping_city: data.shipping_city || null,
+          shipping_postal_code: data.shipping_postal_code || null,
+          shipping_country: data.shipping_country || null,
         })
         .select()
         .single();

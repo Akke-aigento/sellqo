@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.create-manual-invoice]
 verify_jwt = false
+
+[functions.validate-vat]
+verify_jwt = false
+
+[functions.validate-address]
+verify_jwt = false
