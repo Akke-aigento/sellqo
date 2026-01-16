@@ -1,11 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import type { TenantSubscription, PlatformInvoice, TenantUsageWithLimits, PricingPlanFeatures } from '@/types/billing';
 
+import { TenantContext } from '@/hooks/useTenant';
+
 export function useTenantSubscription() {
-  const { currentTenant } = useTenant();
+  // Safely check if we're within TenantProvider - return null if not
+  const tenantContext = useContext(TenantContext);
+  const currentTenant = tenantContext?.currentTenant ?? null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

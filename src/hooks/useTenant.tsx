@@ -76,7 +76,7 @@ interface TenantContextType {
   refreshTenants: () => Promise<void>;
 }
 
-const TenantContext = createContext<TenantContextType | undefined>(undefined);
+export const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
 export function TenantProvider({ children }: { children: ReactNode }) {
   const { user, roles, loading: authLoading } = useAuth();
