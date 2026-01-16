@@ -1,29 +1,39 @@
-import { useState } from 'react';
-import { User, Lock, Camera } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { User, Lock, Camera, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/integrations/supabase/client';
 
 export function AccountSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { language, setLanguage, supportedLanguages, isLoading: isLanguageLoading } = useLanguage();
   
   const [fullName, setFullName] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // Fetch profile on mount
-  useState(() => {
+  useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
       const { data } = await supabase
@@ -36,7 +46,7 @@ export function AccountSettings() {
       }
     };
     fetchProfile();
-  });
+  }, [user]);
 
   const handleUpdateProfile = async () => {
     if (!user) return;
@@ -51,12 +61,12 @@ export function AccountSettings() {
       if (error) throw error;
       
       toast({
-        title: 'Profiel bijgewerkt',
-        description: 'Je profielgegevens zijn opgeslagen.',
+        title: t('settings.account.profileUpdated'),
+        description: t('settings.account.profileUpdatedDescription'),
       });
     } catch (error: any) {
       toast({
-        title: 'Fout bij opslaan',
+        title: t('settings.account.profileError'),
         description: error.message,
         variant: 'destructive',
       });
@@ -68,8 +78,8 @@ export function AccountSettings() {
   const handleUpdatePassword = async () => {
     if (newPassword !== confirmPassword) {
       toast({
-        title: 'Wachtwoorden komen niet overeen',
-        description: 'Controleer je nieuwe wachtwoord.',
+        title: t('settings.password.mismatch'),
+        description: t('settings.password.mismatchDescription'),
         variant: 'destructive',
       });
       return;
@@ -77,8 +87,8 @@ export function AccountSettings() {
 
     if (newPassword.length < 6) {
       toast({
-        title: 'Wachtwoord te kort',
-        description: 'Je wachtwoord moet minimaal 6 tekens zijn.',
+        title: t('settings.password.tooShort'),
+        description: t('settings.password.tooShortDescription'),
         variant: 'destructive',
       });
       return;
@@ -94,16 +104,15 @@ export function AccountSettings() {
       if (error) throw error;
       
       toast({
-        title: 'Wachtwoord bijgewerkt',
-        description: 'Je wachtwoord is succesvol gewijzigd.',
+        title: t('settings.password.updated'),
+        description: t('settings.password.updatedDescription'),
       });
       
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
       toast({
-        title: 'Fout bij wijzigen wachtwoord',
+        title: t('settings.password.error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -129,9 +138,9 @@ export function AccountSettings() {
               <User className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Profiel</CardTitle>
+              <CardTitle>{t('settings.account.profile')}</CardTitle>
               <CardDescription>
-                Beheer je persoonlijke gegevens
+                {t('settings.account.manageProfile')}
               </CardDescription>
             </div>
           </div>
@@ -153,7 +162,7 @@ export function AccountSettings() {
               </Button>
             </div>
             <div>
-              <p className="font-medium">{fullName || 'Geen naam ingesteld'}</p>
+              <p className="font-medium">{fullName || t('common.name')}</p>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
@@ -162,7 +171,7 @@ export function AccountSettings() {
 
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">E-mailadres</Label>
+              <Label htmlFor="email">{t('common.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -171,17 +180,17 @@ export function AccountSettings() {
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Je e-mailadres kan niet worden gewijzigd.
+                {t('settings.account.emailReadOnly')}
               </p>
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="fullName">Volledige naam</Label>
+              <Label htmlFor="fullName">{t('settings.account.fullName')}</Label>
               <Input
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Voer je naam in"
+                placeholder={t('settings.account.fullName')}
               />
             </div>
 
@@ -190,8 +199,48 @@ export function AccountSettings() {
               disabled={isUpdatingProfile}
               className="w-fit"
             >
-              {isUpdatingProfile ? 'Opslaan...' : 'Profiel opslaan'}
+              {isUpdatingProfile ? t('common.loading') : t('settings.account.saveProfile')}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Language Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Globe className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle>{t('settings.account.language')}</CardTitle>
+              <CardDescription>
+                {t('settings.account.languageDescription')}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-xs">
+            <Select 
+              value={language} 
+              onValueChange={setLanguage}
+              disabled={isLanguageLoading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {supportedLanguages.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    <span className="flex items-center gap-2">
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -204,9 +253,9 @@ export function AccountSettings() {
               <Lock className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Wachtwoord</CardTitle>
+              <CardTitle>{t('settings.password.title')}</CardTitle>
               <CardDescription>
-                Wijzig je wachtwoord voor extra beveiliging
+                {t('settings.password.description')}
               </CardDescription>
             </div>
           </div>
@@ -214,7 +263,7 @@ export function AccountSettings() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 max-w-md">
             <div className="grid gap-2">
-              <Label htmlFor="newPassword">Nieuw wachtwoord</Label>
+              <Label htmlFor="newPassword">{t('settings.password.new')}</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -225,7 +274,7 @@ export function AccountSettings() {
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">Bevestig wachtwoord</Label>
+              <Label htmlFor="confirmPassword">{t('settings.password.confirm')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -240,7 +289,7 @@ export function AccountSettings() {
               disabled={isUpdatingPassword || !newPassword || !confirmPassword}
               className="w-fit"
             >
-              {isUpdatingPassword ? 'Wijzigen...' : 'Wachtwoord wijzigen'}
+              {isUpdatingPassword ? t('common.loading') : t('settings.password.change')}
             </Button>
           </div>
         </CardContent>

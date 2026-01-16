@@ -1,0 +1,102 @@
+{
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "loading": "Laden...",
+    "search": "Zoeken...",
+    "add": "Toevoegen",
+    "close": "Sluiten",
+    "confirm": "Bevestigen",
+    "back": "Terug",
+    "next": "Volgende",
+    "yes": "Ja",
+    "no": "Nee",
+    "actions": "Acties",
+    "status": "Status",
+    "name": "Naam",
+    "email": "E-mailadres",
+    "phone": "Telefoon",
+    "address": "Adres",
+    "description": "Beschrijving",
+    "price": "Prijs",
+    "total": "Totaal",
+    "date": "Datum",
+    "noResults": "Geen resultaten gevonden"
+  },
+  "auth": {
+    "login": "Inloggen",
+    "logout": "Uitloggen",
+    "signUp": "Registreren",
+    "email": "E-mailadres",
+    "password": "Wachtwoord",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "resetPassword": "Wachtwoord resetten"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "products": "Producten",
+    "orders": "Bestellingen",
+    "customers": "Klanten",
+    "categories": "Categorieën",
+    "shipping": "Verzending",
+    "settings": "Instellingen",
+    "analytics": "Analytics",
+    "platform": "Platform",
+    "tenants": "Tenants"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "description": "Beheer je account, bedrijfsgegevens en winkelinstellingen.",
+    "tabs": {
+      "account": "Account",
+      "business": "Bedrijf",
+      "store": "Winkel",
+      "payments": "Betalingen",
+      "team": "Team"
+    },
+    "account": {
+      "title": "Account",
+      "profile": "Profiel",
+      "manageProfile": "Beheer je profielgegevens en voorkeuren.",
+      "fullName": "Volledige naam",
+      "emailReadOnly": "Je e-mailadres kan niet worden gewijzigd.",
+      "language": "Taal",
+      "languageDescription": "Kies je voorkeurstaal voor de interface.",
+      "saveProfile": "Profiel opslaan",
+      "profileUpdated": "Profiel bijgewerkt",
+      "profileUpdatedDescription": "Je profielgegevens zijn opgeslagen.",
+      "profileError": "Fout bij opslaan",
+      "profileErrorDescription": "Er is een fout opgetreden bij het opslaan van je profiel."
+    },
+    "password": {
+      "title": "Wachtwoord",
+      "description": "Wijzig je wachtwoord voor extra beveiliging.",
+      "new": "Nieuw wachtwoord",
+      "confirm": "Bevestig wachtwoord",
+      "change": "Wachtwoord wijzigen",
+      "mismatch": "Wachtwoorden komen niet overeen",
+      "mismatchDescription": "Het nieuwe wachtwoord en de bevestiging komen niet overeen.",
+      "tooShort": "Wachtwoord te kort",
+      "tooShortDescription": "Je wachtwoord moet minimaal 6 tekens bevatten.",
+      "updated": "Wachtwoord gewijzigd",
+      "updatedDescription": "Je wachtwoord is succesvol bijgewerkt.",
+      "error": "Fout bij wijzigen",
+      "errorDescription": "Er is een fout opgetreden bij het wijzigen van je wachtwoord."
+    }
+  },
+  "languages": {
+    "nl": "Nederlands",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
+  "toast": {
+    "success": "Gelukt",
+    "error": "Fout",
+    "saved": "Opgeslagen",
+    "deleted": "Verwijderd",
+    "updated": "Bijgewerkt"
+  }
+}
