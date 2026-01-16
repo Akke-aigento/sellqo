@@ -2,13 +2,15 @@ import { useTheme } from 'next-themes';
 import logoLight from '@/assets/logo-light.png';
 import logoDark from '@/assets/logo-dark.png';
 import logoIcon from '@/assets/logo-icon.png';
+import logoTagline from '@/assets/logo-tagline.png';
 
 interface SellqoLogoProps {
-  variant?: 'full' | 'icon';
+  variant?: 'full' | 'icon' | 'tagline';
   className?: string;
+  width?: number;
 }
 
-export function SellqoLogo({ variant = 'full', className = '' }: SellqoLogoProps) {
+export function SellqoLogo({ variant = 'full', className = '', width }: SellqoLogoProps) {
   const { resolvedTheme } = useTheme();
   
   if (variant === 'icon') {
@@ -16,7 +18,19 @@ export function SellqoLogo({ variant = 'full', className = '' }: SellqoLogoProps
       <img 
         src={logoIcon} 
         alt="Sellqo" 
-        className={`h-8 w-8 ${className}`}
+        className={className}
+        style={width ? { width: `${width}px`, height: 'auto' } : undefined}
+      />
+    );
+  }
+
+  if (variant === 'tagline') {
+    return (
+      <img 
+        src={logoTagline} 
+        alt="Sellqo - Jouw webshop. Simpel online." 
+        className={className}
+        style={width ? { width: `${width}px`, height: 'auto' } : undefined}
       />
     );
   }
@@ -27,7 +41,8 @@ export function SellqoLogo({ variant = 'full', className = '' }: SellqoLogoProps
     <img 
       src={logoSrc} 
       alt="Sellqo - Jouw webshop. Simpel online." 
-      className={`h-8 w-auto ${className}`}
+      className={className}
+      style={width ? { width: `${width}px`, height: 'auto' } : undefined}
     />
   );
 }

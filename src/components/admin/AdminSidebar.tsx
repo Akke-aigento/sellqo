@@ -78,8 +78,9 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b">
-        <div className="flex items-center gap-2 px-2 py-3">
-          <SellqoLogo variant="full" className="h-7" />
+        {/* Logo Area - proper padding as per brand guidelines */}
+        <div className="px-4 pt-6 pb-4">
+          <SellqoLogo variant="full" width={140} className="h-auto" />
         </div>
 
         {/* Tenant Switcher */}
