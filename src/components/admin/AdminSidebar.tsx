@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronRight,
   Store,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -191,6 +192,14 @@ export function AdminSidebar() {
                         <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/creditnotes')}>
                           <NavLink to="/admin/orders/creditnotes">
                             Creditnota's
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/subscriptions')}>
+                          <NavLink to="/admin/orders/subscriptions">
+                            <RefreshCw className="h-3 w-3 mr-1.5" />
+                            Abonnementen
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
