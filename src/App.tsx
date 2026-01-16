@@ -17,6 +17,7 @@ import OrderDetailPage from "./pages/admin/OrderDetail";
 import QuotesPage from "./pages/admin/Quotes";
 import QuoteFormPage from "./pages/admin/QuoteForm";
 import QuoteDetailPage from "./pages/admin/QuoteDetail";
+import InvoicesPage from "./pages/admin/Invoices";
 import CustomersPage from "./pages/admin/Customers";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="orders/quotes/new" element={<QuoteFormPage />} />
               <Route path="orders/quotes/:id" element={<QuoteDetailPage />} />
               <Route path="orders/quotes/:id/edit" element={<QuoteFormPage />} />
+              <Route path="orders/invoices" element={<InvoicesPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />

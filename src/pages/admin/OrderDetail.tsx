@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode } from 'lucide-react';
 import { useOrder, useOrders } from '@/hooks/useOrders';
+import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
+import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import type { OrderStatus, PaymentStatus, Address } from '@/types/order';
 import { useState } from 'react';
 
@@ -21,6 +23,7 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const { order, isLoading, error } = useOrder(id);
+  const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const [internalNotes, setInternalNotes] = useState('');
 
@@ -321,6 +324,66 @@ export default function OrderDetailPage() {
             </CardHeader>
             <CardContent className="text-sm">
               <p className="text-muted-foreground">{formatAddress(order.billing_address)}</p>
+            </CardContent>
+          </Card>
+
+          {/* Invoice Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Factuur
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {invoice ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{invoice.invoice_number}</span>
+                    <InvoiceStatusBadge status={invoice.status} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {invoice.pdf_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(invoice.pdf_url!, '_blank')}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    )}
+                    {invoice.ubl_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(invoice.ubl_url!, '_blank')}
+                      >
+                        <FileCode className="h-4 w-4 mr-2" />
+                        UBL
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resendInvoice.mutate(invoice.id)}
+                      disabled={resendInvoice.isPending}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Versturen
+                    </Button>
+                  </div>
+                  {invoice.sent_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Verstuurd op {format(new Date(invoice.sent_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Geen factuur beschikbaar voor deze bestelling
+                </p>
+              )}
             </CardContent>
           </Card>
 
