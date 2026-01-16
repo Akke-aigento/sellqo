@@ -215,11 +215,18 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    logStep("Sending email", { to: customer.email });
+    // Build recipients list
+    const toEmails = [customer.email];
+    const ccEmails = tenant.invoice_cc_email ? [tenant.invoice_cc_email] : undefined;
+    const bccEmails = tenant.invoice_bcc_email ? [tenant.invoice_bcc_email] : undefined;
+
+    logStep("Sending email", { to: customer.email, cc: ccEmails, bcc: bccEmails });
 
     const emailResponse = await resend.emails.send({
       from: `${tenant.name} <onboarding@resend.dev>`,
-      to: [customer.email],
+      to: toEmails,
+      cc: ccEmails,
+      bcc: bccEmails,
       subject: emailSubject,
       html: emailHtml,
     });

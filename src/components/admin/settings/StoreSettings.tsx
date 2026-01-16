@@ -50,6 +50,8 @@ export function StoreSettings() {
     invoice_prefix: 'INV',
     invoice_email_subject: '',
     invoice_email_body: '',
+    invoice_cc_email: '',
+    invoice_bcc_email: '',
   });
 
   useEffect(() => {
@@ -67,6 +69,8 @@ export function StoreSettings() {
         invoice_prefix: tenantData.invoice_prefix || 'INV',
         invoice_email_subject: tenantData.invoice_email_subject || '',
         invoice_email_body: tenantData.invoice_email_body || '',
+        invoice_cc_email: tenantData.invoice_cc_email || '',
+        invoice_bcc_email: tenantData.invoice_bcc_email || '',
       });
     }
   }, [currentTenant]);
@@ -90,6 +94,8 @@ export function StoreSettings() {
           invoice_prefix: formData.invoice_prefix,
           invoice_email_subject: formData.invoice_email_subject || null,
           invoice_email_body: formData.invoice_email_body || null,
+          invoice_cc_email: formData.invoice_cc_email || null,
+          invoice_bcc_email: formData.invoice_bcc_email || null,
         })
         .eq('id', currentTenant.id);
 
@@ -428,6 +434,42 @@ export function StoreSettings() {
             <p className="text-xs text-muted-foreground">
               Deze tekst wordt toegevoegd aan de standaard factuur e-mail
             </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="invoice_cc_email">CC e-mailadres (optioneel)</Label>
+              <Input
+                id="invoice_cc_email"
+                type="email"
+                value={formData.invoice_cc_email}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  invoice_cc_email: e.target.value 
+                }))}
+                placeholder="boekhouding@bedrijf.nl"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ontvangt een kopie van elke factuur e-mail
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="invoice_bcc_email">BCC e-mailadres (optioneel)</Label>
+              <Input
+                id="invoice_bcc_email"
+                type="email"
+                value={formData.invoice_bcc_email}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  invoice_bcc_email: e.target.value 
+                }))}
+                placeholder="archief@bedrijf.nl"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ontvangt een blinde kopie (onzichtbaar voor klant)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
