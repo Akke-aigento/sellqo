@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { UserPlus, Building2, User, MapPin, Truck, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { UserPlus, Building2, User, MapPin, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { VatInput } from './VatInput';
 import { AddressInput } from './AddressInput';
-import { cn } from '@/lib/utils';
+import { useTenant } from '@/hooks/useTenant';
 
 interface CustomerFormData {
   customer_type: 'b2c' | 'b2b';
@@ -45,6 +45,7 @@ interface CustomerFormDialogProps {
 }
 
 export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogProps) {
+  const { currentTenant } = useTenant();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<CustomerFormData>({
     customer_type: 'b2c',
@@ -59,14 +60,23 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
     billing_street: '',
     billing_city: '',
     billing_postal_code: '',
-    billing_country: 'NL',
+    billing_country: currentTenant?.country || 'NL',
     shipping_street: '',
     shipping_city: '',
     shipping_postal_code: '',
     shipping_country: '',
   });
   const [differentShipping, setDifferentShipping] = useState(false);
-  const [showAddress, setShowAddress] = useState(false);
+
+  // Update default country when tenant loads
+  useEffect(() => {
+    if (currentTenant?.country && !formData.billing_street) {
+      setFormData(prev => ({
+        ...prev,
+        billing_country: prev.billing_country || currentTenant.country,
+      }));
+    }
+  }, [currentTenant?.country]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,14 +112,13 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
       billing_street: '',
       billing_city: '',
       billing_postal_code: '',
-      billing_country: 'NL',
+      billing_country: currentTenant?.country || 'NL',
       shipping_street: '',
       shipping_city: '',
       shipping_postal_code: '',
       shipping_country: '',
     });
     setDifferentShipping(false);
-    setShowAddress(false);
   };
 
   const handleVatValidated = (result: { valid: boolean; company_name?: string | null }) => {
@@ -139,87 +148,6 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Customer Type Toggle */}
-          <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="customer-type" className="text-sm font-medium">Type klant:</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, customer_type: 'b2c' }))}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                  formData.customer_type === 'b2c'
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background hover:bg-accent"
-                )}
-              >
-                <User className="h-4 w-4" />
-                Particulier (B2C)
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, customer_type: 'b2b' }))}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                  formData.customer_type === 'b2b'
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background hover:bg-accent"
-                )}
-              >
-                <Building2 className="h-4 w-4" />
-                Zakelijk (B2B)
-              </button>
-            </div>
-          </div>
-
-          {/* B2B Fields */}
-          {formData.customer_type === 'b2b' && (
-            <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-              <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300">
-                <Building2 className="h-4 w-4" />
-                Bedrijfsgegevens
-              </div>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company_name">Bedrijfsnaam *</Label>
-                  <Input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
-                    placeholder="Bedrijf B.V."
-                    required={formData.customer_type === 'b2b'}
-                  />
-                </div>
-
-                <VatInput
-                  value={formData.vat_number || ''}
-                  onChange={(value) => setFormData(prev => ({ ...prev, vat_number: value }))}
-                  onValidated={handleVatValidated}
-                />
-
-                {/* Peppol ID Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="peppol_id" className="flex items-center gap-2">
-                    Peppol-ID
-                    <span className="text-xs text-muted-foreground font-normal">(optioneel)</span>
-                  </Label>
-                  <Input
-                    id="peppol_id"
-                    value={formData.peppol_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, peppol_id: e.target.value }))}
-                    placeholder="bijv. 0208:0123456789"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Endpoint-ID voor Peppol e-facturatie. Formaat: [scheme]:[identifier]
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Contact Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -272,63 +200,53 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
 
           <Separator />
 
-          {/* Address Section */}
-          <Collapsible open={showAddress} onOpenChange={setShowAddress}>
-            <CollapsibleTrigger asChild>
-              <Button type="button" variant="ghost" className="w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Adresgegevens (optioneel)
-                </div>
-                {showAddress ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-6 pt-4">
-              {/* Billing Address */}
-              <AddressInput
-                label="Factuuradres"
-                value={{
-                  street: formData.billing_street || '',
-                  city: formData.billing_city || '',
-                  postal_code: formData.billing_postal_code || '',
-                  country: formData.billing_country || 'NL',
-                }}
-                onChange={(address) => setFormData(prev => ({
-                  ...prev,
-                  billing_street: address.street,
-                  billing_city: address.city,
-                  billing_postal_code: address.postal_code,
-                  billing_country: address.country,
-                }))}
-                showValidation={true}
+          {/* Billing Address - Always visible */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <MapPin className="h-4 w-4" />
+              Factuuradres
+            </div>
+            
+            <AddressInput
+              value={{
+                street: formData.billing_street || '',
+                city: formData.billing_city || '',
+                postal_code: formData.billing_postal_code || '',
+                country: formData.billing_country || currentTenant?.country || 'NL',
+              }}
+              onChange={(address) => setFormData(prev => ({
+                ...prev,
+                billing_street: address.street,
+                billing_city: address.city,
+                billing_postal_code: address.postal_code,
+                billing_country: address.country,
+              }))}
+              showValidation={true}
+            />
+
+            {/* Different Shipping Address Toggle */}
+            <div className="flex items-center space-x-2 pt-2">
+              <Switch
+                id="different-shipping"
+                checked={differentShipping}
+                onCheckedChange={setDifferentShipping}
               />
+              <Label htmlFor="different-shipping" className="flex items-center gap-2 cursor-pointer">
+                <Truck className="h-4 w-4" />
+                Afleveradres wijkt af van factuuradres
+              </Label>
+            </div>
 
-              {/* Different Shipping Address Toggle */}
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="different-shipping"
-                  checked={differentShipping}
-                  onCheckedChange={setDifferentShipping}
-                />
-                <Label htmlFor="different-shipping" className="flex items-center gap-2 cursor-pointer">
-                  <Truck className="h-4 w-4" />
-                  Afleveradres wijkt af van factuuradres
-                </Label>
-              </div>
-
-              {/* Shipping Address */}
-              {differentShipping && (
+            {/* Shipping Address */}
+            {differentShipping && (
+              <div className="pt-4">
                 <AddressInput
                   label="Afleveradres"
                   value={{
                     street: formData.shipping_street || '',
                     city: formData.shipping_city || '',
                     postal_code: formData.shipping_postal_code || '',
-                    country: formData.shipping_country || formData.billing_country || 'NL',
+                    country: formData.shipping_country || formData.billing_country || currentTenant?.country || 'NL',
                   }}
                   onChange={(address) => setFormData(prev => ({
                     ...prev,
@@ -339,9 +257,76 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
                   }))}
                   showValidation={true}
                 />
-              )}
-            </CollapsibleContent>
-          </Collapsible>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* B2B Checkbox and Fields */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is-business"
+                checked={formData.customer_type === 'b2b'}
+                onCheckedChange={(checked) => 
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    customer_type: checked ? 'b2b' : 'b2c' 
+                  }))
+                }
+              />
+              <Label htmlFor="is-business" className="cursor-pointer font-medium">
+                Zakelijke klant (B2B)
+              </Label>
+            </div>
+
+            {/* B2B Fields */}
+            {formData.customer_type === 'b2b' && (
+              <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300">
+                  <Building2 className="h-4 w-4" />
+                  Bedrijfsgegevens
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company_name">Bedrijfsnaam *</Label>
+                    <Input
+                      id="company_name"
+                      value={formData.company_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                      placeholder="Bedrijf B.V."
+                      required={formData.customer_type === 'b2b'}
+                    />
+                  </div>
+
+                  <VatInput
+                    value={formData.vat_number || ''}
+                    onChange={(value) => setFormData(prev => ({ ...prev, vat_number: value }))}
+                    onValidated={handleVatValidated}
+                  />
+
+                  {/* Peppol ID Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="peppol_id" className="flex items-center gap-2">
+                      Peppol-ID
+                      <span className="text-xs text-muted-foreground font-normal">(optioneel)</span>
+                    </Label>
+                    <Input
+                      id="peppol_id"
+                      value={formData.peppol_id}
+                      onChange={(e) => setFormData(prev => ({ ...prev, peppol_id: e.target.value }))}
+                      placeholder="bijv. 0208:0123456789"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Endpoint-ID voor Peppol e-facturatie. Formaat: [scheme]:[identifier]
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
