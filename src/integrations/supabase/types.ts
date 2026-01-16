@@ -728,6 +728,8 @@ export type Database = {
           currency: string | null
           custom_domain: string | null
           id: string
+          invoice_bcc_email: string | null
+          invoice_cc_email: string | null
           invoice_email_body: string | null
           invoice_email_subject: string | null
           invoice_format: string | null
@@ -764,6 +766,8 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           id?: string
+          invoice_bcc_email?: string | null
+          invoice_cc_email?: string | null
           invoice_email_body?: string | null
           invoice_email_subject?: string | null
           invoice_format?: string | null
@@ -800,6 +804,8 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           id?: string
+          invoice_bcc_email?: string | null
+          invoice_cc_email?: string | null
           invoice_email_body?: string | null
           invoice_email_subject?: string | null
           invoice_format?: string | null
