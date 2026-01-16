@@ -103,9 +103,12 @@ serve(async (req) => {
       logStep("Stripe account created", { accountId: account.id });
     } catch (stripeError: any) {
       logStep("Stripe account creation failed", { error: stripeError.message });
-      // Provide helpful error message for Connect not enabled
+      // Provide helpful error messages for common Connect issues
       if (stripeError.message?.includes("signed up for Connect")) {
         throw new Error("Stripe Connect is niet geactiveerd. Ga naar je Stripe Dashboard > Settings > Connect om dit te activeren.");
+      }
+      if (stripeError.message?.includes("responsibilities") || stripeError.message?.includes("platform-profile") || stripeError.message?.includes("managing losses")) {
+        throw new Error("Stripe Connect platform-profiel is nog niet afgerond. Ga naar Stripe Dashboard > Settings > Connect > Platform profile en bevestig de verantwoordelijkheden. Probeer daarna opnieuw.");
       }
       throw new Error(`Stripe fout: ${stripeError.message}`);
     }

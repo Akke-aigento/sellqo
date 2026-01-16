@@ -179,7 +179,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []); // Fixed: empty dependency array to prevent re-adding listeners
 
   return {
     ...state,

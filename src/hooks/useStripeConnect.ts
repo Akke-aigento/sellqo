@@ -53,17 +53,53 @@ export function useStripeConnect(tenantId: string | undefined) {
         body: { tenant_id: tenantId },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract the actual error message from the response
+        let errorMessage = 'Kon betalingen niet activeren. Probeer het opnieuw.';
+        try {
+          // FunctionsHttpError has context with the response body
+          if (error.context?.body) {
+            const body = typeof error.context.body === 'string' 
+              ? JSON.parse(error.context.body) 
+              : error.context.body;
+            if (body?.error) {
+              errorMessage = body.error;
+            }
+          } else if (error.message) {
+            // Try to parse error message if it's JSON
+            try {
+              const parsed = JSON.parse(error.message);
+              if (parsed?.error) {
+                errorMessage = parsed.error;
+              }
+            } catch {
+              // If not JSON, use the message directly if it's meaningful
+              if (error.message && !error.message.includes('FunctionsHttpError')) {
+                errorMessage = error.message;
+              }
+            }
+          }
+        } catch {
+          // Keep default error message
+        }
+        
+        toast({
+          title: 'Fout bij activeren',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
 
       if (data.url) {
         // Redirect to Stripe onboarding
         window.location.href = data.url;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating Stripe account:', error);
       toast({
         title: 'Fout bij activeren',
-        description: 'Kon betalingen niet activeren. Probeer het opnieuw.',
+        description: error?.message || 'Kon betalingen niet activeren. Probeer het opnieuw.',
         variant: 'destructive',
       });
     } finally {
