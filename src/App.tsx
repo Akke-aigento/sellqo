@@ -29,6 +29,8 @@ import PricingPage from "./pages/Pricing";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
 import ImportPage from "./pages/admin/Import";
+import MarketplacesPage from "./pages/admin/Marketplaces";
+import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -76,6 +78,8 @@ const App = () => (
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/marketplaces" element={<MarketplacesPage />} />
+              <Route path="settings/marketplaces/:connectionId" element={<MarketplaceDetailPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="platform" element={
