@@ -64,6 +64,7 @@ export function ConnectMarketplaceDialog({
   const [autoImport, setAutoImport] = useState(true);
   const [syncInterval, setSyncInterval] = useState('15');
   const [importHistorical, setImportHistorical] = useState(true);
+  const [historicalPeriod, setHistoricalPeriod] = useState('90'); // dagen
   const [autoSyncInventory, setAutoSyncInventory] = useState(true);
   const [safetyStock, setSafetyStock] = useState('0');
   const [lowStockThreshold, setLowStockThreshold] = useState('5');
@@ -118,6 +119,7 @@ export function ConnectMarketplaceDialog({
           emailNotifySyncErrors,
           emailNotifyLowStock,
           importHistorical,
+          historicalPeriodDays: importHistorical ? (historicalPeriod === 'all' ? 730 : parseInt(historicalPeriod)) : 0,
         },
       });
       
@@ -426,11 +428,32 @@ export function ConnectMarketplaceDialog({
                   <div>
                     <p className="font-medium">Historische orders importeren</p>
                     <p className="text-sm text-muted-foreground">
-                      Importeer bestellingen van de afgelopen 30 dagen
+                      Eenmalig bij eerste synchronisatie
                     </p>
                   </div>
                   <Switch checked={importHistorical} onCheckedChange={setImportHistorical} />
                 </div>
+
+                {importHistorical && (
+                  <div>
+                    <Label>Import periode</Label>
+                    <Select value={historicalPeriod} onValueChange={setHistoricalPeriod}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">Afgelopen 30 dagen</SelectItem>
+                        <SelectItem value="90">Afgelopen 3 maanden</SelectItem>
+                        <SelectItem value="180">Afgelopen 6 maanden</SelectItem>
+                        <SelectItem value="365">Afgelopen jaar</SelectItem>
+                        <SelectItem value="all">Alles (max 2 jaar)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Langere periodes kunnen even duren bij veel orders
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
