@@ -34,6 +34,7 @@ export interface MarketplaceSettings {
   emailNotifySyncErrors?: boolean;
   emailNotifyLowStock?: boolean;
   importHistorical?: boolean;
+  historicalPeriodDays?: number; // 30, 90, 180, 365, or 730 for "all"
 }
 
 export interface MarketplaceStats {

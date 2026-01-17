@@ -143,28 +143,71 @@ Deno.serve(async (req) => {
         console.log(`Syncing connection: ${connection.id}`)
 
         const credentials = connection.credentials as BolCredentials
+        const settings = connection.settings as Record<string, unknown> || {}
+        const stats = (connection.stats as Record<string, unknown>) || {}
         
         // Get OAuth token
         const accessToken = await getBolAccessToken(credentials)
         console.log('Successfully obtained access token')
 
-        // Fetch orders from Bol.com (last 30 days)
-        const ordersResponse = await fetch(`${BOL_API_BASE}/orders?fulfilment-method=FBR&status=OPEN`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/vnd.retailer.v10+json'
+        // Determine if this is the first sync and if we should import historical orders
+        const isFirstSync = !connection.last_sync_at
+        const importHistorical = settings.importHistorical as boolean
+        const historicalPeriodDays = (settings.historicalPeriodDays as number) || 90
+        const historicalImportCompleted = stats.historicalImportCompleted as boolean
+
+        let bolOrders: BolOrder[] = []
+
+        if (isFirstSync && importHistorical && !historicalImportCompleted) {
+          // First sync with historical import enabled
+          console.log(`Performing historical import for the last ${historicalPeriodDays} days`)
+          
+          const startDate = new Date(Date.now() - historicalPeriodDays * 24 * 60 * 60 * 1000)
+          const statuses = ['OPEN', 'SHIPPED', 'CANCELLED', 'RETURNED']
+          
+          for (const status of statuses) {
+            const url = `${BOL_API_BASE}/orders?fulfilment-method=FBR&status=${status}&created-after=${startDate.toISOString()}`
+            console.log(`Fetching ${status} orders from: ${url}`)
+            
+            const ordersResponse = await fetch(url, {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Accept': 'application/vnd.retailer.v10+json'
+              }
+            })
+
+            if (!ordersResponse.ok) {
+              const errorText = await ordersResponse.text()
+              console.error(`Bol API error for status ${status}:`, errorText)
+              continue // Continue with other statuses
+            }
+
+            const ordersData = await ordersResponse.json()
+            const statusOrders: BolOrder[] = ordersData.orders || []
+            console.log(`Found ${statusOrders.length} ${status} orders`)
+            bolOrders = [...bolOrders, ...statusOrders]
           }
-        })
+          
+          console.log(`Total historical orders found: ${bolOrders.length}`)
+        } else {
+          // Regular sync - only fetch OPEN orders
+          const ordersResponse = await fetch(`${BOL_API_BASE}/orders?fulfilment-method=FBR&status=OPEN`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/vnd.retailer.v10+json'
+            }
+          })
 
-        if (!ordersResponse.ok) {
-          const errorText = await ordersResponse.text()
-          console.error('Bol API error:', errorText)
-          throw new Error(`Bol API error: ${ordersResponse.statusText}`)
+          if (!ordersResponse.ok) {
+            const errorText = await ordersResponse.text()
+            console.error('Bol API error:', errorText)
+            throw new Error(`Bol API error: ${ordersResponse.statusText}`)
+          }
+
+          const ordersData = await ordersResponse.json()
+          bolOrders = ordersData.orders || []
+          console.log(`Found ${bolOrders.length} open orders for connection ${connection.id}`)
         }
-
-        const ordersData = await ordersResponse.json()
-        const bolOrders: BolOrder[] = ordersData.orders || []
-        console.log(`Found ${bolOrders.length} orders for connection ${connection.id}`)
 
         // Process each order
         for (const bolOrder of bolOrders) {
@@ -263,6 +306,7 @@ Deno.serve(async (req) => {
 
         // Update connection stats
         const currentStats = (connection.stats as Record<string, unknown>) || {}
+        
         await supabase
           .from('marketplace_connections')
           .update({
@@ -271,7 +315,12 @@ Deno.serve(async (req) => {
             stats: {
               ...currentStats,
               totalOrders: ((currentStats.totalOrders as number) || 0) + totalImported,
-              lastSync: new Date().toISOString()
+              lastSync: new Date().toISOString(),
+              // Mark historical import as completed if this was a first sync with historical import
+              ...(isFirstSync && importHistorical ? {
+                historicalImportCompleted: true,
+                historicalImportDate: new Date().toISOString()
+              } : {})
             }
           })
           .eq('id', connection.id)
