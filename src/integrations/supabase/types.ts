@@ -584,6 +584,67 @@ export type Database = {
           },
         ]
       }
+      inventory_sync_log: {
+        Row: {
+          error_message: string | null
+          id: string
+          marketplace_connection_id: string | null
+          marketplace_type: string
+          new_quantity: number | null
+          old_quantity: number | null
+          product_id: string | null
+          sync_status: string | null
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          marketplace_connection_id?: string | null
+          marketplace_type: string
+          new_quantity?: number | null
+          old_quantity?: number | null
+          product_id?: string | null
+          sync_status?: string | null
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          marketplace_connection_id?: string | null
+          marketplace_type?: string
+          new_quantity?: number | null
+          old_quantity?: number | null
+          product_id?: string | null
+          sync_status?: string | null
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_sync_log_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_sync_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_archive: {
         Row: {
           archived_at: string
@@ -933,6 +994,59 @@ export type Database = {
           },
         ]
       }
+      marketplace_connections: {
+        Row: {
+          created_at: string | null
+          credentials: Json
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_sync_at: string | null
+          marketplace_name: string | null
+          marketplace_type: string
+          settings: Json | null
+          stats: Json | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credentials?: Json
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          marketplace_name?: string | null
+          marketplace_type: string
+          settings?: Json | null
+          stats?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credentials?: Json
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          marketplace_name?: string | null
+          marketplace_type?: string
+          settings?: Json | null
+          stats?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -999,11 +1113,16 @@ export type Database = {
           customer_phone: string | null
           delivered_at: string | null
           discount_amount: number | null
+          fulfillment_status: string | null
           id: string
           internal_notes: string | null
+          marketplace_connection_id: string | null
+          marketplace_order_id: string | null
+          marketplace_source: string | null
           notes: string | null
           order_number: string
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          raw_marketplace_data: Json | null
           shipped_at: string | null
           shipping_address: Json | null
           shipping_cost: number | null
@@ -1012,6 +1131,7 @@ export type Database = {
           stripe_checkout_session_id: string | null
           stripe_payment_intent_id: string | null
           subtotal: number
+          sync_status: string | null
           tax_amount: number | null
           tenant_id: string
           total: number
@@ -1030,11 +1150,16 @@ export type Database = {
           customer_phone?: string | null
           delivered_at?: string | null
           discount_amount?: number | null
+          fulfillment_status?: string | null
           id?: string
           internal_notes?: string | null
+          marketplace_connection_id?: string | null
+          marketplace_order_id?: string | null
+          marketplace_source?: string | null
           notes?: string | null
           order_number: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          raw_marketplace_data?: Json | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -1043,6 +1168,7 @@ export type Database = {
           stripe_checkout_session_id?: string | null
           stripe_payment_intent_id?: string | null
           subtotal?: number
+          sync_status?: string | null
           tax_amount?: number | null
           tenant_id: string
           total?: number
@@ -1061,11 +1187,16 @@ export type Database = {
           customer_phone?: string | null
           delivered_at?: string | null
           discount_amount?: number | null
+          fulfillment_status?: string | null
           id?: string
           internal_notes?: string | null
+          marketplace_connection_id?: string | null
+          marketplace_order_id?: string | null
+          marketplace_source?: string | null
           notes?: string | null
           order_number?: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          raw_marketplace_data?: Json | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -1074,6 +1205,7 @@ export type Database = {
           stripe_checkout_session_id?: string | null
           stripe_payment_intent_id?: string | null
           subtotal?: number
+          sync_status?: string | null
           tax_amount?: number | null
           tenant_id?: string
           total?: number
@@ -1087,6 +1219,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
             referencedColumns: ["id"]
           },
           {
@@ -1391,7 +1530,9 @@ export type Database = {
       products: {
         Row: {
           allow_backorder: boolean | null
+          amazon_asin: string | null
           barcode: string | null
+          bol_ean: string | null
           category_id: string | null
           compare_at_price: number | null
           cost_price: number | null
@@ -1405,7 +1546,9 @@ export type Database = {
           imported_at: string | null
           is_active: boolean | null
           is_featured: boolean | null
+          last_inventory_sync: string | null
           low_stock_threshold: number | null
+          marketplace_mappings: Json | null
           meta_description: string | null
           meta_title: string | null
           name: string
@@ -1416,6 +1559,7 @@ export type Database = {
           sku: string | null
           slug: string
           stock: number | null
+          sync_inventory: boolean | null
           tags: string[] | null
           tenant_id: string
           track_inventory: boolean | null
@@ -1425,7 +1569,9 @@ export type Database = {
         }
         Insert: {
           allow_backorder?: boolean | null
+          amazon_asin?: string | null
           barcode?: string | null
+          bol_ean?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -1439,7 +1585,9 @@ export type Database = {
           imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          last_inventory_sync?: string | null
           low_stock_threshold?: number | null
+          marketplace_mappings?: Json | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
@@ -1450,6 +1598,7 @@ export type Database = {
           sku?: string | null
           slug: string
           stock?: number | null
+          sync_inventory?: boolean | null
           tags?: string[] | null
           tenant_id: string
           track_inventory?: boolean | null
@@ -1459,7 +1608,9 @@ export type Database = {
         }
         Update: {
           allow_backorder?: boolean | null
+          amazon_asin?: string | null
           barcode?: string | null
+          bol_ean?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -1473,7 +1624,9 @@ export type Database = {
           imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          last_inventory_sync?: string | null
           low_stock_threshold?: number | null
+          marketplace_mappings?: Json | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
@@ -1484,6 +1637,7 @@ export type Database = {
           sku?: string | null
           slug?: string
           stock?: number | null
+          sync_inventory?: boolean | null
           tags?: string[] | null
           tenant_id?: string
           track_inventory?: boolean | null
@@ -2129,6 +2283,66 @@ export type Database = {
           },
           {
             foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          marketplace_connection_id: string | null
+          max_attempts: number | null
+          payload: Json | null
+          processed_at: string | null
+          scheduled_for: string | null
+          status: string | null
+          sync_type: string
+          tenant_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          marketplace_connection_id?: string | null
+          max_attempts?: number | null
+          payload?: Json | null
+          processed_at?: string | null
+          scheduled_for?: string | null
+          status?: string | null
+          sync_type: string
+          tenant_id: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          marketplace_connection_id?: string | null
+          max_attempts?: number | null
+          payload?: Json | null
+          processed_at?: string | null
+          scheduled_for?: string | null
+          status?: string | null
+          sync_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_queue_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_queue_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
