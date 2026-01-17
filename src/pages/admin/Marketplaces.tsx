@@ -70,7 +70,7 @@ export default function MarketplacesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Marktplaats Integraties</h1>
+        <h1 className="text-3xl font-bold tracking-tight">SellQo Connect</h1>
         <p className="text-muted-foreground mt-2">
           Verbind je verkoopkanalen en synchroniseer automatisch bestellingen en voorraad
         </p>

@@ -15,7 +15,8 @@ import {
   FileText,
   RefreshCw,
   Receipt,
-  Upload
+  Upload,
+  Cable
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -60,6 +61,7 @@ const mainNavItems = [
   { title: 'Klanten', url: '/admin/customers', icon: Users },
   { title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
   { title: 'Importeren', url: '/admin/import', icon: Upload },
+  { title: 'SellQo Connect', url: '/admin/connect', icon: Cable },
 ];
 
 const settingsNavItems = [
