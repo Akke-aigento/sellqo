@@ -42,7 +42,7 @@ export function DashboardMarketplaceWidget() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" />
-            Marktplaatsen
+            SellQo Connect
           </CardTitle>
           <CardDescription>
             Verbind je verkoopkanalen
@@ -57,7 +57,7 @@ export function DashboardMarketplaceWidget() {
               Verbind Bol.com of Amazon om orders automatisch te importeren
             </p>
             <Button asChild size="sm">
-              <Link to="/admin/marketplaces">
+              <Link to="/admin/connect">
                 Verbind Marktplaats
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -74,14 +74,14 @@ export function DashboardMarketplaceWidget() {
         <div>
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" />
-            Marktplaatsen
+            SellQo Connect
           </CardTitle>
           <CardDescription>
             {activeConnections.length} actieve {activeConnections.length === 1 ? 'connectie' : 'connecties'}
           </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
-          <Link to="/admin/marketplaces">
+          <Link to="/admin/connect">
             Beheer
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
@@ -138,7 +138,7 @@ export function DashboardMarketplaceWidget() {
 
         {activeConnections.length > 3 && (
           <Button asChild variant="ghost" size="sm" className="w-full">
-            <Link to="/admin/marketplaces">
+            <Link to="/admin/connect">
               +{activeConnections.length - 3} meer bekijken
             </Link>
           </Button>

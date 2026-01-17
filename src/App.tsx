@@ -78,8 +78,8 @@ const App = () => (
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="settings/marketplaces" element={<MarketplacesPage />} />
-              <Route path="settings/marketplaces/:connectionId" element={<MarketplaceDetailPage />} />
+              <Route path="connect" element={<MarketplacesPage />} />
+              <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="platform" element={
