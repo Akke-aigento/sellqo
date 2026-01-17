@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 import type { 
   MarketplaceConnection, 
   MarketplaceType, 
@@ -45,8 +46,8 @@ export function useMarketplaceConnections() {
           tenant_id: currentTenant.id,
           marketplace_type: params.marketplace_type,
           marketplace_name: params.marketplace_name || null,
-          credentials: params.credentials,
-          settings: params.settings,
+          credentials: params.credentials as Json,
+          settings: (params.settings || {}) as Json,
           is_active: true,
         }])
         .select()
@@ -73,8 +74,8 @@ export function useMarketplaceConnections() {
         .from('marketplace_connections')
         .update({
           marketplace_name: params.updates.marketplace_name,
-          credentials: params.updates.credentials,
-          settings: params.updates.settings,
+          credentials: params.updates.credentials as unknown as Json,
+          settings: params.updates.settings as unknown as Json,
           is_active: params.updates.is_active,
         })
         .eq('id', params.id)
