@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { OrderStatus, PaymentStatus, OrderFilters as OrderFiltersType } from '@/types/order';
+import type { OrderStatus, PaymentStatus, MarketplaceSource, OrderFilters as OrderFiltersType } from '@/types/order';
 
 interface OrderFiltersProps {
   filters: OrderFiltersType;
@@ -10,14 +10,14 @@ interface OrderFiltersProps {
 }
 
 export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
-  const hasFilters = filters.status || filters.payment_status || filters.search;
+  const hasFilters = filters.status || filters.payment_status || filters.search || filters.marketplace_source;
 
   const clearFilters = () => {
     onFiltersChange({});
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3">
+    <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
       {/* Search */}
       <div className="relative flex-1 max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -28,6 +28,25 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           className="pl-9"
         />
       </div>
+
+      {/* Marketplace Source Filter */}
+      <Select
+        value={filters.marketplace_source || 'all'}
+        onValueChange={(value) => onFiltersChange({ 
+          ...filters, 
+          marketplace_source: value === 'all' ? undefined : value as MarketplaceSource 
+        })}
+      >
+        <SelectTrigger className="w-[160px]">
+          <SelectValue placeholder="Bron" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Alle bronnen</SelectItem>
+          <SelectItem value="sellqo_webshop">SellQo Webshop</SelectItem>
+          <SelectItem value="bol_com">Bol.com</SelectItem>
+          <SelectItem value="amazon">Amazon</SelectItem>
+        </SelectContent>
+      </Select>
 
       {/* Order Status Filter */}
       <Select

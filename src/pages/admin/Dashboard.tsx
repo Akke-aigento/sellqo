@@ -10,9 +10,9 @@ import { Link } from 'react-router-dom';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/admin/StatsCard';
+import { DashboardMarketplaceWidget } from '@/components/admin/marketplace/DashboardMarketplaceWidget';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboard() {
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions & Recent Orders */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Quick Actions */}
         <Card>
           <CardHeader>
@@ -141,6 +141,9 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Marketplace Widget */}
+        <DashboardMarketplaceWidget />
       </div>
 
       {/* Low Stock Alerts */}
