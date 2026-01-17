@@ -44,3 +44,12 @@ verify_jwt = false
 
 [functions.platform-gift-month]
 verify_jwt = false
+
+[functions.sync-bol-orders]
+verify_jwt = false
+
+[functions.sync-bol-inventory]
+verify_jwt = false
+
+[functions.test-marketplace-connection]
+verify_jwt = false

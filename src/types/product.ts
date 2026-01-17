@@ -1,3 +1,14 @@
+export interface ProductMarketplaceMappings {
+  bol_com?: {
+    offerId: string;
+    lastSync?: string;
+  };
+  amazon?: {
+    sku: string;
+    lastSync?: string;
+  };
+}
+
 export interface Product {
   id: string;
   tenant_id: string;
@@ -28,6 +39,12 @@ export interface Product {
   created_at: string;
   updated_at: string;
   category?: CategoryPartial | null;
+  // Marketplace integration fields
+  bol_ean?: string | null;
+  amazon_asin?: string | null;
+  marketplace_mappings?: ProductMarketplaceMappings | null;
+  sync_inventory?: boolean;
+  last_inventory_sync?: string | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)

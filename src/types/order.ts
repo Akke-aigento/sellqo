@@ -46,6 +46,8 @@ export interface OrderItem {
   created_at: string;
 }
 
+export type MarketplaceSource = 'bol_com' | 'amazon' | 'sellqo_webshop' | null;
+
 export interface Order {
   id: string;
   tenant_id: string;
@@ -70,6 +72,15 @@ export interface Order {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  // Marketplace integration fields
+  marketplace_source?: MarketplaceSource;
+  marketplace_order_id?: string | null;
+  marketplace_connection_id?: string | null;
+  sync_status?: string | null;
+  fulfillment_status?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  raw_marketplace_data?: Json | null;
   // Joined data
   order_items?: OrderItem[];
   customer?: Customer;
@@ -78,6 +89,7 @@ export interface Order {
 export interface OrderFilters {
   status?: OrderStatus;
   payment_status?: PaymentStatus;
+  marketplace_source?: MarketplaceSource;
   search?: string;
   dateFrom?: Date;
   dateTo?: Date;
