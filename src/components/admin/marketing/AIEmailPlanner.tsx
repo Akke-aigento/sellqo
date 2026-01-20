@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Mail, Sparkles, Loader2, Check, Copy, 
   Users, TrendingUp, AlertTriangle, Gift, Package,
-  ChevronRight
+  ChevronRight, ShoppingCart
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
+import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 

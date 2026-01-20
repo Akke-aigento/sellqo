@@ -49,6 +49,53 @@ export type Database = {
           },
         ]
       }
+      ai_credit_purchases: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          credits_amount: number
+          currency: string | null
+          id: string
+          price_paid: number
+          status: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_amount: number
+          currency?: string | null
+          id?: string
+          price_paid: number
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_amount?: number
+          currency?: string | null
+          id?: string
+          price_paid?: number
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_purchases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_generated_content: {
         Row: {
           content_text: string | null
@@ -2987,6 +3034,7 @@ export type Database = {
           credits_used: number
           id: string
           last_purchase_at: string | null
+          stripe_customer_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -2998,6 +3046,7 @@ export type Database = {
           credits_used?: number
           id?: string
           last_purchase_at?: string | null
+          stripe_customer_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -3009,6 +3058,7 @@ export type Database = {
           credits_used?: number
           id?: string
           last_purchase_at?: string | null
+          stripe_customer_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -3571,20 +3621,27 @@ export type Database = {
         Returns: undefined
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
-      reset_monthly_ai_credits: {
-        Args: { p_monthly_credits: number; p_tenant_id: string }
-        Returns: undefined
-      }
-      use_ai_credits: {
-        Args: {
-          p_credits: number
-          p_feature: string
-          p_metadata?: Json
-          p_model?: string
-          p_tenant_id: string
-        }
-        Returns: boolean
-      }
+      reset_monthly_ai_credits:
+        | { Args: never; Returns: number }
+        | {
+            Args: { p_monthly_credits: number; p_tenant_id: string }
+            Returns: undefined
+          }
+      use_ai_credits:
+        | {
+            Args: {
+              p_credits: number
+              p_feature: string
+              p_metadata?: Json
+              p_model?: string
+              p_tenant_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: { p_credits_needed?: number; p_tenant_id: string }
+            Returns: boolean
+          }
     }
     Enums: {
       app_role: "platform_admin" | "tenant_admin" | "staff"
