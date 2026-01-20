@@ -295,6 +295,31 @@ Deno.serve(async (req) => {
               console.error(`Failed to insert order items for ${bolOrder.orderId}:`, itemsError)
             }
 
+            // Send marketplace order notification
+            try {
+              await supabase.functions.invoke('create-notification', {
+                body: {
+                  tenant_id: connection.tenant_id,
+                  category: 'orders',
+                  type: 'marketplace_order_new',
+                  title: `Bol.com bestelling: ${orderNumber}`,
+                  message: `Nieuwe Bol.com bestelling van €${subtotal.toFixed(2)} ontvangen`,
+                  priority: 'medium',
+                  action_url: `/admin/orders/${newOrder.id}`,
+                  data: {
+                    order_id: newOrder.id,
+                    order_number: orderNumber,
+                    marketplace_order_id: bolOrder.orderId,
+                    marketplace: 'bol_com',
+                    total: subtotal
+                  }
+                }
+              })
+            } catch (notificationError) {
+              console.error('Failed to send marketplace notification:', notificationError)
+              // Non-blocking - continue with sync
+            }
+
             console.log(`Successfully imported order ${bolOrder.orderId}`)
             totalImported++
 
