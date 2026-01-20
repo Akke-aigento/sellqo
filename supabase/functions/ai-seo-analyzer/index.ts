@@ -66,13 +66,24 @@ serve(async (req) => {
 
     if (productsError) throw productsError;
 
+    // Fetch all categories for the tenant
+    const { data: categories, error: categoriesError } = await supabase
+      .from("categories")
+      .select("id, name, description, meta_title, meta_description, slug, image_url, is_active")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true);
+
+    if (categoriesError) throw categoriesError;
+
     const issues: SEOIssue[] = [];
     const suggestions: SEOSuggestion[] = [];
     const productScores: Array<{ product_id: string; product_name: string; score: number; issues: SEOIssue[] }> = [];
+    const categoryScores: Array<{ category_id: string; category_name: string; score: number; issues: SEOIssue[] }> = [];
 
     let totalMetaScore = 0;
     let totalContentScore = 0;
     let productsAnalyzed = 0;
+    let categoriesAnalyzed = 0;
 
     // Analyze each product
     for (const product of products || []) {
@@ -210,9 +221,127 @@ serve(async (req) => {
       totalContentScore += product.description ? (product.description.length > 200 ? 100 : 50) : 0;
     }
 
+    // Analyze each category
+    for (const category of categories || []) {
+      const categoryIssues: SEOIssue[] = [];
+      let categoryScore = 100;
+
+      // Check meta title
+      if (!category.meta_title) {
+        categoryScore -= 15;
+        categoryIssues.push({
+          type: 'meta_title_missing',
+          severity: 'warning',
+          message: `Meta title ontbreekt`,
+          field: 'meta_title',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      } else if (category.meta_title.length > 60) {
+        categoryScore -= 5;
+        categoryIssues.push({
+          type: 'meta_title_too_long',
+          severity: 'info',
+          message: `Meta title te lang (${category.meta_title.length} tekens)`,
+          field: 'meta_title',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      }
+
+      // Check meta description
+      if (!category.meta_description) {
+        categoryScore -= 15;
+        categoryIssues.push({
+          type: 'meta_description_missing',
+          severity: 'warning',
+          message: `Meta description ontbreekt`,
+          field: 'meta_description',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      } else if (category.meta_description.length > 160) {
+        categoryScore -= 5;
+        categoryIssues.push({
+          type: 'meta_description_too_long',
+          severity: 'info',
+          message: `Meta description te lang (${category.meta_description.length} tekens)`,
+          field: 'meta_description',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      }
+
+      // Check category description
+      if (!category.description) {
+        categoryScore -= 20;
+        categoryIssues.push({
+          type: 'description_missing',
+          severity: 'warning',
+          message: `Categorie beschrijving ontbreekt`,
+          field: 'description',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      } else if (category.description.length < 50) {
+        categoryScore -= 10;
+        categoryIssues.push({
+          type: 'thin_content',
+          severity: 'info',
+          message: `Beschrijving te kort`,
+          field: 'description',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      }
+
+      // Check slug
+      if (!category.slug) {
+        categoryScore -= 5;
+        categoryIssues.push({
+          type: 'slug_missing',
+          severity: 'info',
+          message: `URL slug ontbreekt`,
+          field: 'slug',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      }
+
+      // Check image
+      if (!category.image_url) {
+        categoryScore -= 10;
+        categoryIssues.push({
+          type: 'image_missing',
+          severity: 'info',
+          message: `Geen afbeelding`,
+          field: 'image_url',
+          entity_id: category.id,
+          entity_name: category.name,
+        });
+      }
+
+      categoryScores.push({
+        category_id: category.id,
+        category_name: category.name,
+        score: Math.max(0, categoryScore),
+        issues: categoryIssues,
+      });
+
+      issues.push(...categoryIssues);
+      categoriesAnalyzed++;
+      
+      // Add to meta score
+      const hasGoodMeta = category.meta_title && category.meta_description;
+      totalMetaScore += hasGoodMeta ? 100 : (category.meta_title || category.meta_description ? 50 : 0);
+      totalContentScore += category.description ? (category.description.length > 100 ? 100 : 50) : 0;
+    }
+
+    const totalAnalyzed = productsAnalyzed + categoriesAnalyzed;
+
     // Calculate overall scores
-    const metaScore = productsAnalyzed > 0 ? Math.round(totalMetaScore / productsAnalyzed) : 0;
-    const contentScore = productsAnalyzed > 0 ? Math.round(totalContentScore / productsAnalyzed) : 0;
+    const metaScore = totalAnalyzed > 0 ? Math.round(totalMetaScore / totalAnalyzed) : 0;
+    const contentScore = totalAnalyzed > 0 ? Math.round(totalContentScore / totalAnalyzed) : 0;
     const technicalScore = 60; // Base technical score (sitemap, robots, etc. not yet implemented)
     const aiSearchScore = Math.round((contentScore * 0.4 + metaScore * 0.3 + technicalScore * 0.3));
     
@@ -227,13 +356,14 @@ serve(async (req) => {
     const missingMetaTitles = issues.filter(i => i.type === 'meta_title_missing').length;
     const missingMetaDescs = issues.filter(i => i.type === 'meta_description_missing').length;
     const thinContent = issues.filter(i => i.type === 'thin_content' || i.type === 'description_missing').length;
+    const missingCategoryMeta = categoryScores.filter(c => c.score < 70).length;
 
     if (missingMetaTitles > 0) {
       suggestions.push({
         type: 'bulk_generate_meta_titles',
         priority: 'high',
         title: `Genereer ${missingMetaTitles} meta titles`,
-        description: `Er zijn ${missingMetaTitles} producten zonder meta title. Genereer deze met AI voor betere zoekresultaten.`,
+        description: `Er zijn ${missingMetaTitles} items zonder meta title. Genereer deze met AI voor betere zoekresultaten.`,
         action: 'generate_meta',
         estimated_impact: 15,
       });
@@ -244,7 +374,7 @@ serve(async (req) => {
         type: 'bulk_generate_meta_descriptions',
         priority: 'high',
         title: `Genereer ${missingMetaDescs} meta descriptions`,
-        description: `Er zijn ${missingMetaDescs} producten zonder meta description. Dit beïnvloedt je click-through rate.`,
+        description: `Er zijn ${missingMetaDescs} items zonder meta description. Dit beïnvloedt je click-through rate.`,
         action: 'generate_meta',
         estimated_impact: 12,
       });
@@ -254,10 +384,21 @@ serve(async (req) => {
       suggestions.push({
         type: 'improve_content',
         priority: 'medium',
-        title: `Verbeter ${thinContent} productbeschrijvingen`,
-        description: `${thinContent} producten hebben te weinig content. Langere, kwalitatieve beschrijvingen scoren beter.`,
+        title: `Verbeter ${thinContent} beschrijvingen`,
+        description: `${thinContent} items hebben te weinig content. Langere, kwalitatieve beschrijvingen scoren beter.`,
         action: 'improve_content',
         estimated_impact: 20,
+      });
+    }
+
+    if (missingCategoryMeta > 0) {
+      suggestions.push({
+        type: 'optimize_categories',
+        priority: 'medium',
+        title: `Optimaliseer ${missingCategoryMeta} categorieën`,
+        description: `${missingCategoryMeta} categorieën scoren onder 70. Verbeter hun SEO voor betere navigatie.`,
+        action: 'optimize_categories',
+        estimated_impact: 10,
       });
     }
 
@@ -310,6 +451,22 @@ serve(async (req) => {
         });
     }
 
+    // Upsert category scores
+    for (const cs of categoryScores) {
+      await supabase
+        .from("seo_scores")
+        .upsert({
+          tenant_id: tenantId,
+          entity_type: 'category',
+          entity_id: cs.category_id,
+          overall_score: cs.score,
+          issues: cs.issues,
+          last_analyzed_at: new Date().toISOString(),
+        }, {
+          onConflict: 'tenant_id,entity_type,entity_id',
+        });
+    }
+
     // Add to history
     await supabase
       .from("seo_analysis_history")
@@ -327,6 +484,7 @@ serve(async (req) => {
         credits_used: 2,
         metadata: {
           products_analyzed: productsAnalyzed,
+          categories_analyzed: categoriesAnalyzed,
           issues_found: issues.length,
         },
       });
@@ -341,6 +499,7 @@ serve(async (req) => {
         issues,
         suggestions,
         product_scores: productScores,
+        category_scores: categoryScores,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
