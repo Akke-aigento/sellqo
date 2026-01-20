@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Search, 
   RefreshCw, 
@@ -17,10 +16,13 @@ import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
 import { SEOHealthChecklist } from '@/components/admin/seo/SEOHealthChecklist';
 import { SEOProductTable } from '@/components/admin/seo/SEOProductTable';
+import { StructuredDataPreview } from '@/components/admin/seo/StructuredDataPreview';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
+import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
+import type { ProductStructuredData, BusinessStructuredData } from '@/lib/structuredData';
 
 export default function SEODashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -39,6 +41,7 @@ export default function SEODashboard() {
     isGeneratingSitemap,
   } = useSEO();
   const { products, isLoading: isLoadingProducts } = useProducts();
+  const { currentTenant } = useTenant();
 
   // Merge product data with SEO scores
   const productsWithSEO = products?.map((product) => ({
@@ -46,6 +49,39 @@ export default function SEODashboard() {
     images: product.images || [],
     seo_score: productScores?.find((s) => s.entity_id === product.id) || null,
   })) || [];
+
+  // Convert products to structured data format
+  const structuredProducts: ProductStructuredData[] = products?.map((product) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    compareAtPrice: product.compare_at_price,
+    sku: product.sku,
+    images: product.images || [],
+    category: null,
+    inStock: (product.stock ?? 0) > 0,
+    brand: null,
+    rating: null,
+    reviewCount: null,
+  })) || [];
+
+  // Business data for structured data
+  const businessData: BusinessStructuredData | undefined = currentTenant ? {
+    name: currentTenant.name,
+    description: null,
+    url: window.location.origin,
+    logo: null,
+    address: currentTenant.address ? {
+      street: currentTenant.address,
+      city: currentTenant.city || undefined,
+      postalCode: currentTenant.postal_code || undefined,
+      country: currentTenant.country || undefined,
+    } : undefined,
+    phone: currentTenant.phone,
+    email: null,
+    vatNumber: currentTenant.btw_number || null,
+  } : undefined;
 
   // Calculate health checklist items based on products
   const totalProducts = products?.length || 0;
@@ -290,35 +326,11 @@ export default function SEODashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileCode className="h-5 w-5" />
-                    Structured Data
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg border bg-muted/30">
-                    <h4 className="font-medium mb-2">Product Schema (JSON-LD)</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Voeg gestructureerde data toe voor betere rich snippets in zoekresultaten.
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Schema Genereren
-                    </Button>
-                  </div>
-                  <div className="p-4 rounded-lg border bg-muted/30">
-                    <h4 className="font-medium mb-2">FAQ Schema</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Genereer FAQ structured data voor veelgestelde vragen.
-                    </p>
-                    <Button variant="outline" size="sm">
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      AI FAQ Genereren
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <StructuredDataPreview
+                products={structuredProducts}
+                business={businessData}
+                baseUrl={window.location.origin}
+              />
             </div>
           </TabsContent>
 
