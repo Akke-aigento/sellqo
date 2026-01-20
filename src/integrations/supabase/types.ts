@@ -3228,10 +3228,14 @@ export type Database = {
           cancelled_at: string | null
           carrier: string | null
           created_at: string | null
+          customer_company_name: string | null
           customer_email: string
           customer_id: string | null
           customer_name: string | null
           customer_phone: string | null
+          customer_type: string | null
+          customer_vat_number: string | null
+          customer_vat_verified: boolean | null
           delivered_at: string | null
           delivery_type: string | null
           discount_amount: number | null
@@ -3266,6 +3270,10 @@ export type Database = {
           tracking_number: string | null
           tracking_url: string | null
           updated_at: string | null
+          vat_country: string | null
+          vat_rate: number | null
+          vat_text: string | null
+          vat_type: string | null
         }
         Insert: {
           applied_gift_card_ids?: string[] | null
@@ -3273,10 +3281,14 @@ export type Database = {
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string | null
+          customer_company_name?: string | null
           customer_email: string
           customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          customer_type?: string | null
+          customer_vat_number?: string | null
+          customer_vat_verified?: boolean | null
           delivered_at?: string | null
           delivery_type?: string | null
           discount_amount?: number | null
@@ -3311,6 +3323,10 @@ export type Database = {
           tracking_number?: string | null
           tracking_url?: string | null
           updated_at?: string | null
+          vat_country?: string | null
+          vat_rate?: number | null
+          vat_text?: string | null
+          vat_type?: string | null
         }
         Update: {
           applied_gift_card_ids?: string[] | null
@@ -3318,10 +3334,14 @@ export type Database = {
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string | null
+          customer_company_name?: string | null
           customer_email?: string
           customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          customer_type?: string | null
+          customer_vat_number?: string | null
+          customer_vat_verified?: boolean | null
           delivered_at?: string | null
           delivery_type?: string | null
           discount_amount?: number | null
@@ -3356,6 +3376,10 @@ export type Database = {
           tracking_number?: string | null
           tracking_url?: string | null
           updated_at?: string | null
+          vat_country?: string | null
+          vat_rate?: number | null
+          vat_text?: string | null
+          vat_type?: string | null
         }
         Relationships: [
           {
