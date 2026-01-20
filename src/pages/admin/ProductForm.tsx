@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,7 +21,9 @@ import {
   Eye,
   Plus,
   CreditCard,
-  Gift
+  Gift,
+  Languages,
+  ExternalLink
 } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -58,6 +60,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
+import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
@@ -1588,6 +1591,17 @@ export default function ProductForm() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Primary language indicator */}
+                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border">
+                    <Badge variant="outline" className="gap-1">
+                      {TRANSLATION_LANGUAGES.find(l => l.code === ((currentTenant as any)?.language || 'nl'))?.flag || '🇳🇱'}
+                      <span className="text-xs">Invoer in: {TRANSLATION_LANGUAGES.find(l => l.code === ((currentTenant as any)?.language || 'nl'))?.label || 'Nederlands'}</span>
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      (ingesteld in Winkelinstellingen)
+                    </span>
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="meta_title"
@@ -1640,6 +1654,25 @@ export default function ProductForm() {
                         {form.watch('meta_description') || form.watch('short_description') || 'Productbeschrijving verschijnt hier in zoekresultaten...'}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Translation Hub Link */}
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <Languages className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-sm">Vertalingen</p>
+                        <p className="text-xs text-muted-foreground">
+                          {TRANSLATION_LANGUAGES.filter(l => l.code !== ((currentTenant as any)?.language || 'nl')).map(l => l.flag).join(' ')} via AI vertalen
+                        </p>
+                      </div>
+                    </div>
+                    <Link to="/admin/marketing/translations">
+                      <Button type="button" variant="outline" size="sm">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Vertaal Hub
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
