@@ -23,7 +23,8 @@ import {
   ClipboardList,
   FileBox,
   BellRing,
-  Bot
+  Bot,
+  Monitor,
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -64,6 +65,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
+  { title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor },
   { title: 'Producten', url: '/admin/products', icon: Package },
   { title: 'Klanten', url: '/admin/customers', icon: Users },
   { title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
