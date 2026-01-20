@@ -9,6 +9,7 @@ export interface PricingPlanFeatures {
   multiCurrency: boolean;
   facturX: boolean;
   peppol: boolean;
+  ai_marketing?: boolean;
 }
 
 export interface PricingPlan {
