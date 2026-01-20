@@ -5706,6 +5706,171 @@ export type Database = {
           },
         ]
       }
+      seo_analysis_history: {
+        Row: {
+          analyzed_at: string | null
+          id: string
+          overall_score: number | null
+          score_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          analyzed_at?: string | null
+          id?: string
+          overall_score?: number | null
+          score_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          analyzed_at?: string | null
+          id?: string
+          overall_score?: number | null
+          score_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_analysis_history_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "seo_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_analysis_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_keywords: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          difficulty_estimate: string | null
+          id: string
+          intent: string | null
+          is_primary: boolean | null
+          keyword: string
+          position_tracking: Json | null
+          product_id: string | null
+          search_volume_estimate: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          difficulty_estimate?: string | null
+          id?: string
+          intent?: string | null
+          is_primary?: boolean | null
+          keyword: string
+          position_tracking?: Json | null
+          product_id?: string | null
+          search_volume_estimate?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          difficulty_estimate?: string | null
+          id?: string
+          intent?: string | null
+          is_primary?: boolean | null
+          keyword?: string
+          position_tracking?: Json | null
+          product_id?: string | null
+          search_volume_estimate?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_keywords_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_keywords_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_keywords_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_scores: {
+        Row: {
+          ai_search_score: number | null
+          content_score: number | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          issues: Json | null
+          last_analyzed_at: string | null
+          meta_score: number | null
+          overall_score: number | null
+          suggestions: Json | null
+          technical_score: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_search_score?: number | null
+          content_score?: number | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          issues?: Json | null
+          last_analyzed_at?: string | null
+          meta_score?: number | null
+          overall_score?: number | null
+          suggestions?: Json | null
+          technical_score?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_search_score?: number | null
+          content_score?: number | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          issues?: Json | null
+          last_analyzed_at?: string | null
+          meta_score?: number | null
+          overall_score?: number | null
+          suggestions?: Json | null
+          technical_score?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_scores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_integrations: {
         Row: {
           api_key: string | null
