@@ -88,6 +88,50 @@ export type Database = {
           },
         ]
       }
+      admin_actions_log: {
+        Row: {
+          action_details: Json
+          action_type: string
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          target_tenant_id: string | null
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_details?: Json
+          action_type: string
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          target_tenant_id?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_details?: Json
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          target_tenant_id?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_log_target_tenant_id_fkey"
+            columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_billing_actions: {
         Row: {
           action: string
@@ -2253,6 +2297,53 @@ export type Database = {
           },
           {
             foreignKeyName: "email_unsubscribes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_usage_events: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          element_id: string | null
+          feature_name: string
+          id: string
+          metadata: Json | null
+          page_path: string
+          session_id: string | null
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          element_id?: string | null
+          feature_name: string
+          id?: string
+          metadata?: Json | null
+          page_path: string
+          session_id?: string | null
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          element_id?: string | null
+          feature_name?: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string
+          session_id?: string | null
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_usage_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5916,6 +6007,83 @@ export type Database = {
           },
         ]
       }
+      tenant_feature_overrides: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          extended_trial_until: string | null
+          id: string
+          limit_api_calls_override: number | null
+          limit_customers_override: number | null
+          limit_orders_override: number | null
+          limit_products_override: number | null
+          limit_storage_gb_override: number | null
+          limit_users_override: number | null
+          module_advanced_analytics: boolean | null
+          module_ai_marketing: boolean | null
+          module_api_access: boolean | null
+          module_facturx: boolean | null
+          module_multi_currency: boolean | null
+          module_peppol: boolean | null
+          module_webhooks: boolean | null
+          module_white_label: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          extended_trial_until?: string | null
+          id?: string
+          limit_api_calls_override?: number | null
+          limit_customers_override?: number | null
+          limit_orders_override?: number | null
+          limit_products_override?: number | null
+          limit_storage_gb_override?: number | null
+          limit_users_override?: number | null
+          module_advanced_analytics?: boolean | null
+          module_ai_marketing?: boolean | null
+          module_api_access?: boolean | null
+          module_facturx?: boolean | null
+          module_multi_currency?: boolean | null
+          module_peppol?: boolean | null
+          module_webhooks?: boolean | null
+          module_white_label?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          extended_trial_until?: string | null
+          id?: string
+          limit_api_calls_override?: number | null
+          limit_customers_override?: number | null
+          limit_orders_override?: number | null
+          limit_products_override?: number | null
+          limit_storage_gb_override?: number | null
+          limit_users_override?: number | null
+          module_advanced_analytics?: boolean | null
+          module_ai_marketing?: boolean | null
+          module_api_access?: boolean | null
+          module_facturx?: boolean | null
+          module_multi_currency?: boolean | null
+          module_peppol?: boolean | null
+          module_webhooks?: boolean | null
+          module_white_label?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_feature_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_notification_settings: {
         Row: {
           category: Database["public"]["Enums"]["notification_category"]
@@ -6594,6 +6762,10 @@ export type Database = {
         Args: { p_credits: number; p_tenant_id: string }
         Returns: undefined
       }
+      admin_adjust_ai_credits: {
+        Args: { p_adjustment: number; p_reason?: string; p_tenant_id: string }
+        Returns: boolean
+      }
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
@@ -6644,6 +6816,14 @@ export type Database = {
         Returns: undefined
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_admin_action: {
+        Args: {
+          p_action_details?: Json
+          p_action_type: string
+          p_target_tenant_id: string
+        }
+        Returns: string
+      }
       redeem_gift_card: {
         Args: { p_amount: number; p_gift_card_id: string; p_order_id?: string }
         Returns: number
