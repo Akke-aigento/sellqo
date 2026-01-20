@@ -36,6 +36,14 @@ import CampaignDetailPage from "./pages/admin/CampaignDetail";
 import AIMarketingHub from "./pages/admin/AIMarketingHub";
 import DiscountsPage from "./pages/admin/Discounts";
 import PromotionsPage from "./pages/admin/Promotions";
+import BundlesPage from "./pages/admin/Bundles";
+import VolumeDiscountsPage from "./pages/admin/VolumeDiscounts";
+import AutoDiscountsPage from "./pages/admin/AutoDiscounts";
+import GiftPromotionsPage from "./pages/admin/GiftPromotions";
+import CustomerGroupsPage from "./pages/admin/CustomerGroups";
+import BogoPromotionsPage from "./pages/admin/BogoPromotions";
+import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
+import StackingRulesPage from "./pages/admin/StackingRules";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -80,7 +88,14 @@ const App = () => (
               <Route path="orders/subscriptions" element={<SubscriptionsPage />} />
               <Route path="orders/discounts" element={<DiscountsPage />} />
               <Route path="promotions" element={<PromotionsPage />} />
-              <Route path="promotions/*" element={<PromotionsPage />} />
+              <Route path="promotions/bundles" element={<BundlesPage />} />
+              <Route path="promotions/volume" element={<VolumeDiscountsPage />} />
+              <Route path="promotions/auto" element={<AutoDiscountsPage />} />
+              <Route path="promotions/gifts" element={<GiftPromotionsPage />} />
+              <Route path="promotions/customer-groups" element={<CustomerGroupsPage />} />
+              <Route path="promotions/bogo" element={<BogoPromotionsPage />} />
+              <Route path="promotions/loyalty" element={<LoyaltyProgramsPage />} />
+              <Route path="promotions/stacking" element={<StackingRulesPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />

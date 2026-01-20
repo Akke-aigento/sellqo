@@ -103,14 +103,14 @@ export interface BogoPromotion {
   tenant_id: string;
   name: string;
   description: string | null;
-  promotion_type: 'bogo' | 'buy_x_get_y';
+  promotion_type: string;
   buy_quantity: number;
   get_quantity: number;
   buy_product_ids: string[] | null;
   buy_category_ids: string[] | null;
   get_product_ids: string[] | null;
   get_category_ids: string[] | null;
-  discount_type: 'percentage' | 'fixed_amount';
+  discount_type: string;
   discount_value: number;
   max_uses_per_order: number | null;
   is_active: boolean;
@@ -123,20 +123,20 @@ export interface BogoPromotion {
 
 export interface BogoPromotionFormData {
   name: string;
-  description?: string;
-  promotion_type: 'bogo' | 'buy_x_get_y';
+  description?: string | null;
+  promotion_type: string;
   buy_quantity: number;
   get_quantity: number;
   buy_product_ids?: string[];
   buy_category_ids?: string[];
   get_product_ids?: string[];
   get_category_ids?: string[];
-  discount_type: 'percentage' | 'fixed_amount';
+  discount_type: string;
   discount_value: number;
-  max_uses_per_order?: number;
+  max_uses_per_order?: number | null;
   is_active: boolean;
-  valid_from?: string;
-  valid_until?: string;
+  valid_from?: string | null;
+  valid_until?: string | null;
 }
 
 // Customer Groups
@@ -302,7 +302,7 @@ export interface LoyaltyProgram {
   description: string | null;
   points_per_euro: number;
   points_value: number;
-  min_redemption_points: number;
+  min_points_redeem: number;
   max_redemption_percentage: number | null;
   points_expiry_months: number | null;
   is_active: boolean;
@@ -353,10 +353,10 @@ export interface LoyaltyTransaction {
 
 export interface LoyaltyProgramFormData {
   name: string;
-  description?: string;
+  description?: string | null;
   points_per_euro: number;
   points_value: number;
-  min_redemption_points: number;
+  min_points_redeem: number;
   max_redemption_percentage?: number;
   points_expiry_months?: number;
   is_active: boolean;
@@ -376,7 +376,7 @@ export interface DiscountStackingRule {
   tenant_id: string;
   name: string;
   description: string | null;
-  rule_type: 'allow_all' | 'best_only' | 'priority' | 'custom';
+  rule_type: string;
   discount_types: string[] | null;
   max_stack_count: number | null;
   max_total_discount_percent: number | null;
@@ -388,11 +388,11 @@ export interface DiscountStackingRule {
 
 export interface StackingRuleFormData {
   name: string;
-  description?: string;
-  rule_type: 'allow_all' | 'best_only' | 'priority' | 'custom';
+  description?: string | null;
+  rule_type: string;
   discount_types?: string[];
-  max_stack_count?: number;
-  max_total_discount_percent?: number;
+  max_stack_count?: number | null;
+  max_total_discount_percent?: number | null;
   priority_order?: string[];
   is_active: boolean;
 }
