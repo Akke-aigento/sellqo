@@ -70,8 +70,9 @@ export function useCreateBundle() {
 
       const { data: bundle, error: bundleError } = await supabase
         .from('product_bundles')
-        .insert({
+        .insert([{
           name: bundleData.name,
+          slug: bundleData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
           description: bundleData.description,
           bundle_type: bundleData.bundle_type,
           discount_type: bundleData.discount_type,
@@ -82,7 +83,7 @@ export function useCreateBundle() {
           min_items: bundleData.min_items,
           max_items: bundleData.max_items,
           tenant_id: currentTenant.id,
-        })
+        }])
         .select()
         .single();
 
