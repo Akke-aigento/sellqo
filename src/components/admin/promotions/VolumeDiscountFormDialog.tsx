@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,11 +29,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2 } from 'lucide-react';
 import { useCreateVolumeDiscount, useUpdateVolumeDiscount } from '@/hooks/useVolumeDiscounts';
-import type { VolumeDiscount } from '@/types/promotions';
+import type { VolumeDiscount, VolumeDiscountFormData } from '@/types/promotions';
 
 const tierSchema = z.object({
-  min_value: z.coerce.number().min(0),
-  max_value: z.coerce.number().optional(),
+  min_quantity: z.coerce.number().min(0),
+  max_quantity: z.coerce.number().optional(),
   discount_type: z.enum(['percentage', 'fixed_amount']),
   discount_value: z.coerce.number().min(0),
 });
@@ -41,8 +41,7 @@ const tierSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   description: z.string().optional(),
-  trigger_type: z.enum(['order_total', 'product_quantity']),
-  applies_to: z.enum(['order', 'product', 'category']),
+  applies_to: z.enum(['all', 'product', 'category']),
   is_active: z.boolean(),
   valid_from: z.string().optional(),
   valid_until: z.string().optional(),
@@ -71,12 +70,11 @@ export function VolumeDiscountFormDialog({
     defaultValues: {
       name: '',
       description: '',
-      trigger_type: 'order_total',
-      applies_to: 'order',
+      applies_to: 'all',
       is_active: true,
       valid_from: '',
       valid_until: '',
-      tiers: [{ min_value: 50, discount_type: 'percentage', discount_value: 5 }],
+      tiers: [{ min_quantity: 5, discount_type: 'percentage', discount_value: 5 }],
     },
   });
 
@@ -90,40 +88,53 @@ export function VolumeDiscountFormDialog({
       form.reset({
         name: discount.name,
         description: discount.description || '',
-        trigger_type: discount.trigger_type,
         applies_to: discount.applies_to,
         is_active: discount.is_active,
         valid_from: discount.valid_from || '',
         valid_until: discount.valid_until || '',
         tiers: discount.tiers?.map(t => ({
-          min_value: t.min_value,
-          max_value: t.max_value,
-          discount_type: t.discount_type,
+          min_quantity: t.min_quantity,
+          max_quantity: t.max_quantity || undefined,
+          discount_type: t.discount_type as 'percentage' | 'fixed_amount',
           discount_value: t.discount_value,
-        })) || [{ min_value: 50, discount_type: 'percentage', discount_value: 5 }],
+        })) || [{ min_quantity: 5, discount_type: 'percentage' as const, discount_value: 5 }],
       });
     } else {
       form.reset({
         name: '',
         description: '',
-        trigger_type: 'order_total',
-        applies_to: 'order',
+        applies_to: 'all',
         is_active: true,
         valid_from: '',
         valid_until: '',
-        tiers: [{ min_value: 50, discount_type: 'percentage', discount_value: 5 }],
+        tiers: [{ min_quantity: 5, discount_type: 'percentage', discount_value: 5 }],
       });
     }
   }, [discount, form]);
 
   const onSubmit = (data: FormData) => {
+    const formData: VolumeDiscountFormData = {
+      name: data.name,
+      description: data.description,
+      applies_to: data.applies_to,
+      is_active: data.is_active,
+      valid_from: data.valid_from || undefined,
+      valid_until: data.valid_until || undefined,
+      tiers: data.tiers.map(t => ({
+        min_quantity: t.min_quantity,
+        max_quantity: t.max_quantity,
+        discount_type: t.discount_type,
+        discount_value: t.discount_value,
+      })),
+    };
+
     if (isEditing && discount) {
       updateDiscount.mutate(
-        { id: discount.id, formData: data },
+        { id: discount.id, formData },
         { onSuccess: () => onOpenChange(false) }
       );
     } else {
-      createDiscount.mutate(data, {
+      createDiscount.mutate(formData, {
         onSuccess: () => onOpenChange(false),
       });
     }
@@ -168,52 +179,28 @@ export function VolumeDiscountFormDialog({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="trigger_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trigger</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="order_total">Bestelwaarde</SelectItem>
-                        <SelectItem value="product_quantity">Aantal producten</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="applies_to"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Toepassen op</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="order">Hele bestelling</SelectItem>
-                        <SelectItem value="product">Specifieke producten</SelectItem>
-                        <SelectItem value="category">Categorie</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="applies_to"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Toepassen op</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="all">Alle producten</SelectItem>
+                      <SelectItem value="product">Specifieke producten</SelectItem>
+                      <SelectItem value="category">Categorie</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -223,7 +210,7 @@ export function VolumeDiscountFormDialog({
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    append({ min_value: 0, discount_type: 'percentage', discount_value: 0 })
+                    append({ min_quantity: 0, discount_type: 'percentage', discount_value: 0 })
                   }
                 >
                   <Plus className="mr-1 h-4 w-4" />
@@ -235,12 +222,10 @@ export function VolumeDiscountFormDialog({
                 <div key={field.id} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-lg">
                   <FormField
                     control={form.control}
-                    name={`tiers.${index}.min_value`}
+                    name={`tiers.${index}.min_quantity`}
                     render={({ field }) => (
                       <FormItem className="col-span-3">
-                        <FormLabel className="text-xs">
-                          {form.watch('trigger_type') === 'order_total' ? 'Min €' : 'Min stuks'}
-                        </FormLabel>
+                        <FormLabel className="text-xs">Min. stuks</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -249,7 +234,7 @@ export function VolumeDiscountFormDialog({
                   />
                   <FormField
                     control={form.control}
-                    name={`tiers.${index}.max_value`}
+                    name={`tiers.${index}.max_quantity`}
                     render={({ field }) => (
                       <FormItem className="col-span-3">
                         <FormLabel className="text-xs">Max (optioneel)</FormLabel>
@@ -265,7 +250,7 @@ export function VolumeDiscountFormDialog({
                     render={({ field }) => (
                       <FormItem className="col-span-3">
                         <FormLabel className="text-xs">Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />

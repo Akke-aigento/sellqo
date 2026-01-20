@@ -29,16 +29,16 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useCreateAutoDiscount, useUpdateAutoDiscount } from '@/hooks/useAutoDiscounts';
-import type { AutomaticDiscount } from '@/types/promotions';
+import type { AutomaticDiscount, AutomaticDiscountFormData } from '@/types/promotions';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   description: z.string().optional(),
-  trigger_type: z.enum(['cart_total', 'product_quantity', 'specific_products', 'category', 'first_order']),
+  trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
-  discount_type: z.enum(['percentage', 'fixed_amount', 'free_shipping', 'free_product']),
+  discount_type: z.string(),
   discount_value: z.coerce.number().optional(),
-  applies_to: z.enum(['order', 'products', 'cheapest_item', 'most_expensive_item']),
+  applies_to: z.string(),
   max_discount_amount: z.coerce.number().optional(),
   priority: z.coerce.number().min(1).default(10),
   is_active: z.boolean(),
@@ -72,7 +72,7 @@ export function AutoDiscountFormDialog({
       trigger_value: 50,
       discount_type: 'percentage',
       discount_value: 10,
-      applies_to: 'order',
+      applies_to: 'all',
       max_discount_amount: undefined,
       priority: 10,
       is_active: true,
@@ -86,11 +86,11 @@ export function AutoDiscountFormDialog({
       form.reset({
         name: discount.name,
         description: discount.description || '',
-        trigger_type: discount.trigger_type as FormData['trigger_type'],
+        trigger_type: discount.trigger_type,
         trigger_value: discount.trigger_value || undefined,
-        discount_type: discount.discount_type as FormData['discount_type'],
+        discount_type: discount.discount_type,
         discount_value: discount.discount_value || undefined,
-        applies_to: discount.applies_to as FormData['applies_to'],
+        applies_to: discount.applies_to,
         max_discount_amount: discount.max_discount_amount || undefined,
         priority: discount.priority,
         is_active: discount.is_active,
@@ -105,7 +105,7 @@ export function AutoDiscountFormDialog({
         trigger_value: 50,
         discount_type: 'percentage',
         discount_value: 10,
-        applies_to: 'order',
+        applies_to: 'all',
         max_discount_amount: undefined,
         priority: 10,
         is_active: true,
@@ -116,13 +116,28 @@ export function AutoDiscountFormDialog({
   }, [discount, form]);
 
   const onSubmit = (data: FormData) => {
+    const formData: AutomaticDiscountFormData = {
+      name: data.name,
+      description: data.description,
+      trigger_type: data.trigger_type,
+      trigger_value: data.trigger_value,
+      discount_type: data.discount_type,
+      discount_value: data.discount_value,
+      applies_to: data.applies_to,
+      max_discount_amount: data.max_discount_amount,
+      priority: data.priority,
+      is_active: data.is_active,
+      valid_from: data.valid_from || undefined,
+      valid_until: data.valid_until || undefined,
+    };
+
     if (isEditing && discount) {
       updateDiscount.mutate(
-        { id: discount.id, formData: data },
+        { id: discount.id, formData },
         { onSuccess: () => onOpenChange(false) }
       );
     } else {
-      createDiscount.mutate(data, {
+      createDiscount.mutate(formData, {
         onSuccess: () => onOpenChange(false),
       });
     }
@@ -185,9 +200,8 @@ export function AutoDiscountFormDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="cart_total">Winkelwagen totaal</SelectItem>
-                        <SelectItem value="product_quantity">Aantal producten</SelectItem>
+                        <SelectItem value="item_count">Aantal producten</SelectItem>
                         <SelectItem value="specific_products">Specifieke producten</SelectItem>
-                        <SelectItem value="category">Categorie</SelectItem>
                         <SelectItem value="first_order">Eerste bestelling</SelectItem>
                       </SelectContent>
                     </Select>
@@ -272,10 +286,9 @@ export function AutoDiscountFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="order">Hele bestelling</SelectItem>
-                      <SelectItem value="products">Specifieke producten</SelectItem>
-                      <SelectItem value="cheapest_item">Goedkoopste item</SelectItem>
-                      <SelectItem value="most_expensive_item">Duurste item</SelectItem>
+                      <SelectItem value="all">Hele bestelling</SelectItem>
+                      <SelectItem value="specific_products">Specifieke producten</SelectItem>
+                      <SelectItem value="specific_categories">Specifieke categorieën</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

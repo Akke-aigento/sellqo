@@ -29,11 +29,11 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useCreateCustomerGroup, useUpdateCustomerGroup } from '@/hooks/useCustomerGroups';
-import type { CustomerGroup } from '@/types/promotions';
+import type { CustomerGroup, CustomerGroupFormData } from '@/types/promotions';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
-  code: z.string().min(1, 'Code is verplicht').toUpperCase(),
+  code: z.string().min(1, 'Code is verplicht'),
   description: z.string().optional(),
   discount_type: z.enum(['percentage', 'fixed_amount']).optional(),
   discount_value: z.coerce.number().optional(),
@@ -81,7 +81,7 @@ export function CustomerGroupFormDialog({
         name: group.name,
         code: group.code,
         description: group.description || '',
-        discount_type: group.discount_type as FormData['discount_type'] || 'percentage',
+        discount_type: (group.discount_type as 'percentage' | 'fixed_amount') || 'percentage',
         discount_value: group.discount_value || undefined,
         min_order_amount: group.min_order_amount || undefined,
         tax_exempt: group.tax_exempt,
@@ -104,13 +104,25 @@ export function CustomerGroupFormDialog({
   }, [group, form]);
 
   const onSubmit = (data: FormData) => {
+    const formData: CustomerGroupFormData = {
+      name: data.name,
+      code: data.code.toUpperCase(),
+      description: data.description,
+      discount_type: data.discount_type,
+      discount_value: data.discount_value,
+      min_order_amount: data.min_order_amount,
+      tax_exempt: data.tax_exempt,
+      priority: data.priority,
+      is_active: data.is_active,
+    };
+
     if (isEditing && group) {
       updateGroup.mutate(
-        { id: group.id, formData: data },
+        { id: group.id, formData },
         { onSuccess: () => onOpenChange(false) }
       );
     } else {
-      createGroup.mutate(data, {
+      createGroup.mutate(formData, {
         onSuccess: () => onOpenChange(false),
       });
     }
