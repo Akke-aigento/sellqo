@@ -17,7 +17,8 @@ import {
   Upload,
   Cable,
   Megaphone,
-  Percent
+  Percent,
+  FileSpreadsheet
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -70,8 +71,9 @@ const mainNavItems = [
 const settingsNavItems = [
   { title: 'Verzending', url: '/admin/shipping', icon: Truck },
   { title: 'Facturatie', url: '/admin/billing', icon: Receipt },
-  { title: 'Instellingen', url: '/admin/settings', icon: Settings },
+  { title: 'Rapporten', url: '/admin/reports', icon: FileSpreadsheet },
   { title: 'Analytics', url: '/admin/analytics', icon: BarChart3 },
+  { title: 'Instellingen', url: '/admin/settings', icon: Settings },
 ];
 
 const platformNavItems = [
