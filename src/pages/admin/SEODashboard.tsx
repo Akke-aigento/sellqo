@@ -10,17 +10,22 @@ import {
   AlertTriangle,
   Bot,
   FileCode,
-  Globe
+  Globe,
+  FolderOpen
 } from 'lucide-react';
 import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
 import { SEOHealthChecklist } from '@/components/admin/seo/SEOHealthChecklist';
 import { SEOProductTable } from '@/components/admin/seo/SEOProductTable';
+import { SEOCategoryTable } from '@/components/admin/seo/SEOCategoryTable';
+import { SEOScoreHistoryChart } from '@/components/admin/seo/SEOScoreHistoryChart';
+import { SocialMediaPreview } from '@/components/admin/seo/SocialMediaPreview';
 import { StructuredDataPreview } from '@/components/admin/seo/StructuredDataPreview';
 import { KeywordResearchPanel } from '@/components/admin/seo/KeywordResearchPanel';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import type { ProductStructuredData, BusinessStructuredData } from '@/lib/structuredData';
@@ -45,7 +50,14 @@ export default function SEODashboard() {
     deleteKeyword,
   } = useSEO();
   const { products, isLoading: isLoadingProducts } = useProducts();
+  const { categories, isLoading: isLoadingCategories } = useCategories();
   const { currentTenant } = useTenant();
+
+  // Merge category data with SEO scores
+  const categoriesWithSEO = categories?.map((category) => ({
+    ...category,
+    seo_score: productScores?.find((s) => s.entity_type === 'category' && s.entity_id === category.id) || null,
+  })) || [];
 
   // Merge product data with SEO scores
   const productsWithSEO = products?.map((product) => ({
@@ -156,6 +168,15 @@ export default function SEODashboard() {
     });
   };
 
+  const handleGenerateCategoryContent = (type: string, categoryIds: string[]) => {
+    generateContent({ 
+      type: type as any, 
+      productIds: [],
+      categoryIds,
+      entityType: 'category'
+    } as any);
+  };
+
   // Get previous score from history
   const previousScore = history && history.length > 1 ? history[1]?.overall_score : null;
 
@@ -261,6 +282,8 @@ export default function SEODashboard() {
             <TabsTrigger value="overview">Overzicht</TabsTrigger>
             <TabsTrigger value="keywords">Keywords</TabsTrigger>
             <TabsTrigger value="products">Producten</TabsTrigger>
+            <TabsTrigger value="categories">Categorieën</TabsTrigger>
+            <TabsTrigger value="social">Social</TabsTrigger>
             <TabsTrigger value="technical">Technisch</TabsTrigger>
             <TabsTrigger value="ai-search">AI Zoeken</TabsTrigger>
           </TabsList>
@@ -276,19 +299,25 @@ export default function SEODashboard() {
                 previousScore={previousScore}
                 isLoading={isLoading}
               />
+              <SEOScoreHistoryChart
+                history={history || []}
+                isLoading={isLoading}
+              />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
               <SEOQuickWins
                 issues={tenantScore?.issues || []}
                 suggestions={tenantScore?.suggestions || []}
                 onAction={handleAction}
                 isLoading={isLoading}
               />
+              <SEOHealthChecklist 
+                items={healthItems} 
+                isLoading={isLoading}
+                onGenerateSitemap={generateSitemap}
+                isGeneratingSitemap={isGeneratingSitemap}
+              />
             </div>
-            <SEOHealthChecklist 
-              items={healthItems} 
-              isLoading={isLoading}
-              onGenerateSitemap={generateSitemap}
-              isGeneratingSitemap={isGeneratingSitemap}
-            />
           </TabsContent>
 
           <TabsContent value="keywords" className="mt-6">
@@ -307,6 +336,59 @@ export default function SEODashboard() {
               onGenerateContent={handleGenerateContent}
               isGenerating={isGenerating}
             />
+          </TabsContent>
+
+          <TabsContent value="categories" className="mt-6">
+            <SEOCategoryTable
+              categories={categoriesWithSEO}
+              isLoading={isLoadingCategories}
+              onGenerateContent={handleGenerateCategoryContent}
+              isGenerating={isGenerating}
+            />
+          </TabsContent>
+
+          <TabsContent value="social" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SocialMediaPreview
+                title={currentTenant?.name || 'Jouw Webshop'}
+                description={currentTenant?.description || 'Bekijk onze producten'}
+                url={window.location.origin}
+                isLoading={isLoading}
+              />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5" />
+                    Social Media Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Optimaliseer je content voor betere social media shares.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-lg border">
+                      <h4 className="font-medium text-sm">Open Graph Tags</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Essentieel voor Facebook, LinkedIn en andere platforms.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <h4 className="font-medium text-sm">Twitter Cards</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Speciale meta tags voor betere Twitter previews.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <h4 className="font-medium text-sm">Afbeelding Optimalisatie</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Gebruik 1200x630px voor optimale weergave.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="technical" className="mt-6">
