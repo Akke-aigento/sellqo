@@ -215,7 +215,7 @@ export function AIEmailPlanner() {
         {generatedContent && (
           <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
             <div className="flex items-center gap-2">
-              <selectedType?.icon className="h-5 w-5" />
+              {selectedType?.icon && <selectedType.icon className="h-5 w-5" />}
               <span className="font-medium">{selectedType?.name} Email</span>
               <Badge variant="secondary">Gegenereerd</Badge>
             </div>
