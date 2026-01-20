@@ -1,0 +1,854 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from './useTenant';
+import { 
+  generateCSV, 
+  generateExcel, 
+  downloadAsZip,
+  generateFilename,
+  commonColumns,
+  ExportFormat 
+} from '@/lib/exportUtils';
+import { toast } from 'sonner';
+
+interface DateRange {
+  from: Date;
+  to: Date;
+}
+
+// Hook for invoice exports
+export const useInvoiceExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportInvoices = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          orders!inner(customer_name, customer_email),
+          customers(first_name, last_name, company_name, email)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('issue_date', dateRange.from.toISOString())
+        .lte('issue_date', dateRange.to.toISOString())
+        .order('issue_date', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = data.map(inv => ({
+        ...inv,
+        customer_name: inv.orders?.customer_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim() || inv.customers?.company_name || '',
+        customer_email: inv.orders?.customer_email || inv.customers?.email || '',
+      }));
+
+      const filename = generateFilename('facturen', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, commonColumns.invoices, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, commonColumns.invoices, filename, 'Facturen');
+      }
+
+      toast.success(`${exportData.length} facturen geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportInvoices, isExporting };
+};
+
+// Hook for bulk PDF download
+export const useBulkPdfDownload = () => {
+  const { currentTenant } = useTenant();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  const downloadInvoicePdfs = async (dateRange: DateRange) => {
+    if (!currentTenant) return;
+    setIsDownloading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('invoice_number, pdf_url')
+        .eq('tenant_id', currentTenant.id)
+        .gte('issue_date', dateRange.from.toISOString())
+        .lte('issue_date', dateRange.to.toISOString())
+        .not('pdf_url', 'is', null);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.info('Geen facturen gevonden met PDF');
+        return;
+      }
+
+      const files = data.map(inv => ({
+        name: `${inv.invoice_number}.pdf`,
+        url: inv.pdf_url!,
+      }));
+
+      setProgress({ current: 0, total: files.length });
+
+      const filename = generateFilename('facturen_pdfs', dateRange.from, dateRange.to);
+      await downloadAsZip(files, filename, (current, total) => {
+        setProgress({ current, total });
+      });
+
+      toast.success(`${files.length} PDF's gedownload`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Download mislukt');
+    } finally {
+      setIsDownloading(false);
+      setProgress({ current: 0, total: 0 });
+    }
+  };
+
+  const downloadInvoiceUbls = async (dateRange: DateRange) => {
+    if (!currentTenant) return;
+    setIsDownloading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('invoice_number, ubl_url')
+        .eq('tenant_id', currentTenant.id)
+        .gte('issue_date', dateRange.from.toISOString())
+        .lte('issue_date', dateRange.to.toISOString())
+        .not('ubl_url', 'is', null);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.info('Geen facturen gevonden met UBL');
+        return;
+      }
+
+      const files = data.map(inv => ({
+        name: `${inv.invoice_number}.xml`,
+        url: inv.ubl_url!,
+      }));
+
+      setProgress({ current: 0, total: files.length });
+
+      const filename = generateFilename('facturen_ubl', dateRange.from, dateRange.to);
+      await downloadAsZip(files, filename, (current, total) => {
+        setProgress({ current, total });
+      });
+
+      toast.success(`${files.length} UBL bestanden gedownload`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Download mislukt');
+    } finally {
+      setIsDownloading(false);
+      setProgress({ current: 0, total: 0 });
+    }
+  };
+
+  return { downloadInvoicePdfs, downloadInvoiceUbls, isDownloading, progress };
+};
+
+// Hook for order exports
+export const useOrderExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportOrders = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const filename = generateFilename('bestellingen', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(data, commonColumns.orders, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(data, commonColumns.orders, filename, 'Bestellingen');
+      }
+
+      toast.success(`${data.length} bestellingen geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportOrders, isExporting };
+};
+
+// Hook for customer exports
+export const useCustomerExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportCustomers = async (format: ExportFormat, customerType?: 'b2b' | 'b2c' | 'all') => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      let query = supabase
+        .from('customers')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at', { ascending: false });
+
+      if (customerType === 'b2b') {
+        query = query.eq('customer_type', 'business');
+      } else if (customerType === 'b2c') {
+        query = query.eq('customer_type', 'individual');
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const typeLabel = customerType === 'b2b' ? '_b2b' : customerType === 'b2c' ? '_b2c' : '';
+      const filename = generateFilename(`klanten${typeLabel}`);
+
+      if (format === 'csv') {
+        generateCSV(data, commonColumns.customers, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(data, commonColumns.customers, filename, 'Klanten');
+      }
+
+      toast.success(`${data.length} klanten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportTopCustomers = async (dateRange: DateRange, format: ExportFormat, limit: number = 50) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select(`
+          total,
+          customer_id,
+          customers(id, first_name, last_name, company_name, email, customer_type, vat_number)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'paid')
+        .gte('issue_date', dateRange.from.toISOString())
+        .lte('issue_date', dateRange.to.toISOString());
+
+      if (error) throw error;
+
+      // Aggregate by customer
+      const customerTotals = new Map<string, { customer: any; total: number; orderCount: number }>();
+      
+      invoices.forEach(inv => {
+        if (!inv.customer_id || !inv.customers) return;
+        const existing = customerTotals.get(inv.customer_id);
+        if (existing) {
+          existing.total += inv.total || 0;
+          existing.orderCount += 1;
+        } else {
+          customerTotals.set(inv.customer_id, {
+            customer: inv.customers,
+            total: inv.total || 0,
+            orderCount: 1,
+          });
+        }
+      });
+
+      const totalRevenue = Array.from(customerTotals.values()).reduce((sum, c) => sum + c.total, 0);
+
+      const topCustomers = Array.from(customerTotals.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, limit)
+        .map((item, index) => ({
+          rank: index + 1,
+          customer_name: item.customer.company_name || `${item.customer.first_name || ''} ${item.customer.last_name || ''}`.trim(),
+          email: item.customer.email,
+          customer_type: item.customer.customer_type,
+          vat_number: item.customer.vat_number,
+          total_revenue: item.total,
+          order_count: item.orderCount,
+          percentage_of_total: (item.total / totalRevenue) * 100,
+        }));
+
+      const columns = [
+        { key: 'rank', header: 'Rang', format: 'number' as const },
+        { key: 'customer_name', header: 'Klant' },
+        { key: 'email', header: 'Email' },
+        { key: 'customer_type', header: 'Type' },
+        { key: 'vat_number', header: 'BTW-nummer' },
+        { key: 'total_revenue', header: 'Omzet', format: 'currency' as const },
+        { key: 'order_count', header: 'Aantal orders', format: 'number' as const },
+        { key: 'percentage_of_total', header: '% van totaal', format: 'percentage' as const },
+      ];
+
+      const filename = generateFilename('top_klanten', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(topCustomers, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(topCustomers, columns, filename, 'Top Klanten');
+      }
+
+      toast.success(`Top ${topCustomers.length} klanten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportCustomers, exportTopCustomers, isExporting };
+};
+
+// Hook for product exports
+export const useProductExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportProducts = async (format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories(name)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .order('name');
+
+      if (error) throw error;
+
+      const exportData = data.map(p => ({
+        ...p,
+        category_name: p.categories?.name || '',
+        vat_rate: (p as any).vat_rate || 21,
+      }));
+
+      const filename = generateFilename('producten');
+
+      if (format === 'csv') {
+        generateCSV(exportData, commonColumns.products, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, commonColumns.products, filename, 'Producten');
+      }
+
+      toast.success(`${data.length} producten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportLowStock = async (format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories(name)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('track_inventory', true)
+        .order('stock', { ascending: true });
+
+      if (error) throw error;
+
+      // Filter products where stock is below threshold
+      const lowStockProducts = data.filter(p => 
+        p.stock !== null && 
+        p.low_stock_threshold !== null && 
+        p.stock <= p.low_stock_threshold
+      ).map(p => ({
+        ...p,
+        category_name: p.categories?.name || '',
+        vat_rate: (p as any).vat_rate || 21,
+      }));
+
+      const filename = generateFilename('lage_voorraad');
+
+      if (format === 'csv') {
+        generateCSV(lowStockProducts, commonColumns.products, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(lowStockProducts, commonColumns.products, filename, 'Lage Voorraad');
+      }
+
+      toast.success(`${lowStockProducts.length} producten met lage voorraad geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportProducts, exportLowStock, isExporting };
+};
+
+// Hook for credit note exports
+export const useCreditNoteExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportCreditNotes = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('credit_notes')
+        .select(`
+          *,
+          invoices(invoice_number),
+          customers(first_name, last_name, company_name, email)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('issue_date', dateRange.from.toISOString())
+        .lte('issue_date', dateRange.to.toISOString())
+        .order('issue_date', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = data.map(cn => ({
+        ...cn,
+        original_invoice_number: cn.invoices?.invoice_number || '',
+        customer_name: cn.customers?.company_name || `${cn.customers?.first_name || ''} ${cn.customers?.last_name || ''}`.trim(),
+      }));
+
+      const filename = generateFilename('creditnotas', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, commonColumns.creditNotes, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, commonColumns.creditNotes, filename, 'Creditnota\'s');
+      }
+
+      toast.success(`${data.length} creditnota's geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportCreditNotes, isExporting };
+};
+
+// Hook for subscription exports
+export const useSubscriptionExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportSubscriptions = async (format: ExportFormat, status?: string) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      let query = supabase
+        .from('subscriptions')
+        .select(`
+          *,
+          customers(first_name, last_name, company_name, email)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at', { ascending: false });
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const exportData = data.map(sub => ({
+        ...sub,
+        customer_name: sub.customers?.company_name || `${sub.customers?.first_name || ''} ${sub.customers?.last_name || ''}`.trim(),
+        customer_email: sub.customers?.email || '',
+      }));
+
+      const statusLabel = status ? `_${status}` : '';
+      const filename = generateFilename(`abonnementen${statusLabel}`);
+
+      if (format === 'csv') {
+        generateCSV(exportData, commonColumns.subscriptions, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, commonColumns.subscriptions, filename, 'Abonnementen');
+      }
+
+      toast.success(`${data.length} abonnementen geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportSubscriptions, isExporting };
+};
+
+// Hook for aging report
+export const useAgingExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportAgingReport = async (format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          customers(first_name, last_name, company_name, email, phone)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'sent')
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      const now = new Date();
+      const agingData = data.map(inv => {
+        const dueDate = new Date(inv.due_date);
+        const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let agingBucket = '0-30 dagen';
+        if (daysOverdue > 90) agingBucket = '90+ dagen';
+        else if (daysOverdue > 60) agingBucket = '61-90 dagen';
+        else if (daysOverdue > 30) agingBucket = '31-60 dagen';
+        else if (daysOverdue < 0) agingBucket = 'Nog niet vervallen';
+
+        return {
+          invoice_number: inv.invoice_number,
+          issue_date: inv.created_at,
+          due_date: inv.due_date,
+          customer_name: inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim(),
+          customer_email: inv.customers?.email || '',
+          customer_phone: inv.customers?.phone || '',
+          total: inv.total,
+          days_overdue: Math.max(0, daysOverdue),
+          aging_bucket: agingBucket,
+          status: inv.status,
+        };
+      });
+
+      const columns = [
+        { key: 'invoice_number', header: 'Factuurnummer' },
+        { key: 'issue_date', header: 'Factuurdatum', format: 'date' as const },
+        { key: 'due_date', header: 'Vervaldatum', format: 'date' as const },
+        { key: 'customer_name', header: 'Klant' },
+        { key: 'customer_email', header: 'Email' },
+        { key: 'customer_phone', header: 'Telefoon' },
+        { key: 'total', header: 'Bedrag', format: 'currency' as const },
+        { key: 'days_overdue', header: 'Dagen over tijd', format: 'number' as const },
+        { key: 'aging_bucket', header: 'Categorie' },
+        { key: 'status', header: 'Status' },
+      ];
+
+      const filename = generateFilename('openstaande_facturen');
+
+      if (format === 'csv') {
+        generateCSV(agingData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(agingData, columns, filename, 'Openstaand');
+      }
+
+      toast.success(`${agingData.length} openstaande facturen geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportAgingReport, isExporting };
+};
+
+// Hook for VAT export
+export const useVatExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportVatReport = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          customers(customer_type, vat_number, billing_country)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'paid')
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString());
+
+      if (error) throw error;
+
+      // Group by VAT category
+      const vatData = {
+        domestic_21: { base: 0, vat: 0 },
+        domestic_12: { base: 0, vat: 0 },
+        domestic_6: { base: 0, vat: 0 },
+        domestic_0: { base: 0, vat: 0 },
+        eu_b2b: { base: 0, vat: 0 },
+        export: { base: 0, vat: 0 },
+      };
+
+      invoices.forEach(inv => {
+        const isB2B = inv.customers?.customer_type === 'business';
+        const hasVat = !!inv.customers?.vat_number;
+        const country = inv.customers?.billing_country?.toUpperCase();
+        const isEU = ['BE', 'NL', 'DE', 'FR', 'LU', 'AT', 'IT', 'ES', 'PT', 'IE', 'FI', 'SE', 'DK', 'PL', 'CZ', 'SK', 'HU', 'RO', 'BG', 'HR', 'SI', 'EE', 'LV', 'LT', 'CY', 'MT', 'GR'].includes(country);
+        
+        if (isB2B && hasVat && isEU && country !== 'BE') {
+          vatData.eu_b2b.base += inv.subtotal || 0;
+        } else if (!isEU && country !== 'BE') {
+          vatData.export.base += inv.subtotal || 0;
+        } else {
+          // Default to 21% domestic
+          vatData.domestic_21.base += inv.subtotal || 0;
+          vatData.domestic_21.vat += inv.tax_amount || 0;
+        }
+      });
+
+      const exportData = [
+        { category: 'Binnenland 21%', base_amount: vatData.domestic_21.base, vat_amount: vatData.domestic_21.vat },
+        { category: 'Binnenland 12%', base_amount: vatData.domestic_12.base, vat_amount: vatData.domestic_12.vat },
+        { category: 'Binnenland 6%', base_amount: vatData.domestic_6.base, vat_amount: vatData.domestic_6.vat },
+        { category: 'Binnenland 0%', base_amount: vatData.domestic_0.base, vat_amount: vatData.domestic_0.vat },
+        { category: 'IC-Leveringen (EU B2B)', base_amount: vatData.eu_b2b.base, vat_amount: 0 },
+        { category: 'Export (buiten EU)', base_amount: vatData.export.base, vat_amount: 0 },
+      ];
+
+      const columns = [
+        { key: 'category', header: 'Categorie' },
+        { key: 'base_amount', header: 'Maatstaf', format: 'currency' as const },
+        { key: 'vat_amount', header: 'BTW', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('btw_aangifte', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, columns, filename, 'BTW Aangifte');
+      }
+
+      toast.success('BTW-aangifte geëxporteerd');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportIcListing = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          customers(company_name, vat_number, billing_country)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'paid')
+        .gte('issue_date', dateRange.from.toISOString())
+        .lte('issue_date', dateRange.to.toISOString());
+
+      if (error) throw error;
+
+      // Filter EU B2B invoices and group by customer
+      const euCountries = ['NL', 'DE', 'FR', 'LU', 'AT', 'IT', 'ES', 'PT', 'IE', 'FI', 'SE', 'DK', 'PL', 'CZ', 'SK', 'HU', 'RO', 'BG', 'HR', 'SI', 'EE', 'LV', 'LT', 'CY', 'MT', 'GR'];
+      
+      const customerTotals = new Map<string, { customer: any; total: number }>();
+      
+      invoices.forEach(inv => {
+        const country = inv.customers?.billing_country?.toUpperCase();
+        const vatNumber = inv.customers?.vat_number;
+        
+        if (vatNumber && euCountries.includes(country)) {
+          const key = vatNumber;
+          const existing = customerTotals.get(key);
+          if (existing) {
+            existing.total += inv.subtotal || 0;
+          } else {
+            customerTotals.set(key, {
+              customer: inv.customers,
+              total: inv.subtotal || 0,
+            });
+          }
+        }
+      });
+
+      const icData = Array.from(customerTotals.values()).map(item => ({
+        vat_number: item.customer.vat_number,
+        company_name: item.customer.company_name,
+        country: item.customer.billing_country?.toUpperCase(),
+        total_amount: item.total,
+      }));
+
+      const columns = [
+        { key: 'vat_number', header: 'BTW-nummer' },
+        { key: 'company_name', header: 'Bedrijfsnaam' },
+        { key: 'country', header: 'Land' },
+        { key: 'total_amount', header: 'Bedrag', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('ic_listing', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(icData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(icData, columns, filename, 'IC-Listing');
+      }
+
+      toast.success(`IC-Listing met ${icData.length} klanten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportVatReport, exportIcListing, isExporting };
+};
+
+// Hook for revenue report
+export const useRevenueExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportRevenueReport = async (dateRange: DateRange, format: ExportFormat, granularity: 'day' | 'week' | 'month' = 'month') => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('created_at, subtotal, tax_amount, total, status')
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'paid')
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
+        .order('created_at');
+
+      if (error) throw error;
+
+      // Group by period
+      const periodTotals = new Map<string, { revenue: number; vat: number; count: number }>();
+      
+      invoices.forEach(inv => {
+        const date = new Date(inv.created_at);
+        let periodKey: string;
+        
+        if (granularity === 'day') {
+          periodKey = date.toISOString().split('T')[0];
+        } else if (granularity === 'week') {
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay() + 1);
+          periodKey = weekStart.toISOString().split('T')[0];
+        } else {
+          periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }
+        
+        const existing = periodTotals.get(periodKey);
+        if (existing) {
+          existing.revenue += inv.total || 0;
+          existing.vat += inv.tax_amount || 0;
+          existing.count += 1;
+        } else {
+          periodTotals.set(periodKey, {
+            revenue: inv.total || 0,
+            vat: inv.tax_amount || 0,
+            count: 1,
+          });
+        }
+      });
+
+      const revenueData = Array.from(periodTotals.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([period, data]) => ({
+          period,
+          revenue: data.revenue,
+          vat: data.vat,
+          net_revenue: data.revenue - data.vat,
+          invoice_count: data.count,
+          average_order: data.revenue / data.count,
+        }));
+
+      const columns = [
+        { key: 'period', header: 'Periode' },
+        { key: 'revenue', header: 'Bruto omzet', format: 'currency' as const },
+        { key: 'vat', header: 'BTW', format: 'currency' as const },
+        { key: 'net_revenue', header: 'Netto omzet', format: 'currency' as const },
+        { key: 'invoice_count', header: 'Aantal facturen', format: 'number' as const },
+        { key: 'average_order', header: 'Gem. orderbedrag', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename(`omzet_${granularity}`, dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(revenueData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(revenueData, columns, filename, 'Omzet');
+      }
+
+      toast.success('Omzetrapport geëxporteerd');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportRevenueReport, isExporting };
+};
