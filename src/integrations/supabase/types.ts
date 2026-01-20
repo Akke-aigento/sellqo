@@ -1170,6 +1170,77 @@ export type Database = {
           },
         ]
       }
+      content_translations: {
+        Row: {
+          auto_sync_enabled: boolean | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_name: string
+          id: string
+          is_auto_translated: boolean | null
+          is_locked: boolean | null
+          last_source_hash: string | null
+          source_content: string | null
+          source_language: string
+          target_language: string
+          tenant_id: string
+          translated_at: string | null
+          translated_by: string | null
+          translated_content: string | null
+          translation_quality_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_name: string
+          id?: string
+          is_auto_translated?: boolean | null
+          is_locked?: boolean | null
+          last_source_hash?: string | null
+          source_content?: string | null
+          source_language?: string
+          target_language: string
+          tenant_id: string
+          translated_at?: string | null
+          translated_by?: string | null
+          translated_content?: string | null
+          translation_quality_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_name?: string
+          id?: string
+          is_auto_translated?: boolean | null
+          is_locked?: boolean | null
+          last_source_hash?: string | null
+          source_content?: string | null
+          source_language?: string
+          target_language?: string
+          tenant_id?: string
+          translated_at?: string | null
+          translated_by?: string | null
+          translated_content?: string | null
+          translation_quality_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_translations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_note_lines: {
         Row: {
           created_at: string | null
@@ -7340,6 +7411,121 @@ export type Database = {
         }
         Relationships: []
       }
+      translation_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          credits_used: number | null
+          entity_types: string[]
+          error_log: Json | null
+          failed_items: number | null
+          id: string
+          job_type: string
+          processed_items: number | null
+          started_at: string | null
+          status: string
+          target_languages: string[]
+          tenant_id: string
+          total_items: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          credits_used?: number | null
+          entity_types?: string[]
+          error_log?: Json | null
+          failed_items?: number | null
+          id?: string
+          job_type: string
+          processed_items?: number | null
+          started_at?: string | null
+          status?: string
+          target_languages: string[]
+          tenant_id: string
+          total_items?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          credits_used?: number | null
+          entity_types?: string[]
+          error_log?: Json | null
+          failed_items?: number | null
+          id?: string
+          job_type?: string
+          processed_items?: number | null
+          started_at?: string | null
+          status?: string
+          target_languages?: string[]
+          tenant_id?: string
+          total_items?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translation_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      translation_settings: {
+        Row: {
+          ai_model_preference: string | null
+          auto_translate_categories: boolean | null
+          auto_translate_marketing: boolean | null
+          auto_translate_products: boolean | null
+          auto_translate_seo: boolean | null
+          created_at: string
+          excluded_fields: string[] | null
+          id: string
+          source_language: string
+          target_languages: string[]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_model_preference?: string | null
+          auto_translate_categories?: boolean | null
+          auto_translate_marketing?: boolean | null
+          auto_translate_products?: boolean | null
+          auto_translate_seo?: boolean | null
+          created_at?: string
+          excluded_fields?: string[] | null
+          id?: string
+          source_language?: string
+          target_languages?: string[]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_model_preference?: string | null
+          auto_translate_categories?: boolean | null
+          auto_translate_marketing?: boolean | null
+          auto_translate_products?: boolean | null
+          auto_translate_seo?: boolean | null
+          created_at?: string
+          excluded_fields?: string[] | null
+          id?: string
+          source_language?: string
+          target_languages?: string[]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translation_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -7698,6 +7884,7 @@ export type Database = {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
       }
+      generate_content_hash: { Args: { content: string }; Returns: string }
       generate_credit_note_number: {
         Args: { _tenant_id: string }
         Returns: string
