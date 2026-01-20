@@ -25,6 +25,7 @@ import {
   Tag,
   Percent,
   Gift,
+  ListOrdered,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,6 +55,8 @@ import { CashMovementDialog } from '@/components/admin/pos/CashMovementDialog';
 import { POSCustomerDialog } from '@/components/admin/pos/POSCustomerDialog';
 import { POSDiscountPanel, POSDiscount } from '@/components/admin/pos/POSDiscountPanel';
 import { POSMultiPaymentDialog, MultiPaymentData } from '@/components/admin/pos/POSMultiPaymentDialog';
+import { POSRefundDialog, RefundData } from '@/components/admin/pos/POSRefundDialog';
+import { POSTransactionHistory } from '@/components/admin/pos/POSTransactionHistory';
 import type { AppliedGiftCard } from '@/components/admin/pos/POSGiftCardInput';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { Product } from '@/types/product';
@@ -67,7 +70,7 @@ export default function POSTerminalPage() {
   // Hooks
   const { terminals, updateTerminal } = usePOSTerminals();
   const { activeSession, openSession, closeSession } = usePOSSessions(terminalId);
-  const { transactions, createTransaction } = usePOSTransactions(activeSession?.id);
+  const { transactions, createTransaction, refundTransaction } = usePOSTransactions(activeSession?.id);
   const { movements: cashMovements, createMovement } = usePOSCashMovements(activeSession?.id);
   const { buttons: quickButtons } = usePOSQuickButtons(terminalId);
   const { parkedCarts, parkCart, resumeCart } = usePOSParkedCarts(terminalId);
@@ -90,6 +93,9 @@ export default function POSTerminalPage() {
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [showDiscountPanel, setShowDiscountPanel] = useState(false);
   const [showMultiPaymentDialog, setShowMultiPaymentDialog] = useState(false);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [refundTxn, setRefundTxn] = useState<POSTransaction | null>(null);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
@@ -551,6 +557,14 @@ export default function POSTerminalPage() {
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Rapport
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowTransactionHistory(true)}
+              >
+                <ListOrdered className="mr-2 h-4 w-4" />
+                Retouren
               </Button>
             </>
           )}
@@ -1143,6 +1157,39 @@ export default function POSTerminalPage() {
         customerId={selectedCustomer?.id || null}
         onPaymentComplete={handleMultiPaymentComplete}
         isProcessing={createTransaction.isPending}
+      />
+
+      {/* Transaction History Dialog */}
+      <POSTransactionHistory
+        open={showTransactionHistory}
+        onOpenChange={setShowTransactionHistory}
+        transactions={transactions}
+        onViewReceipt={(txn) => {
+          setLastTransaction(txn);
+          setShowReceiptDialog(true);
+        }}
+        onRefund={(txn) => {
+          setRefundTxn(txn);
+          setShowRefundDialog(true);
+        }}
+      />
+
+      {/* Refund Dialog */}
+      <POSRefundDialog
+        open={showRefundDialog}
+        onOpenChange={setShowRefundDialog}
+        transaction={refundTxn}
+        onRefund={async (data) => {
+          await refundTransaction.mutateAsync({
+            id: data.transactionId,
+            reason: data.reason,
+            refundAmount: data.totalRefundAmount,
+            restockItems: data.restockItems,
+          });
+          setShowRefundDialog(false);
+          setRefundTxn(null);
+        }}
+        isProcessing={refundTransaction.isPending}
       />
     </div>
   );

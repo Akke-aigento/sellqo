@@ -367,12 +367,54 @@ export function usePOSTransactions(sessionId?: string) {
     },
   });
 
+  const refundTransaction = useMutation({
+    mutationFn: async ({ 
+      id, 
+      reason,
+      refundAmount,
+      restockItems = true,
+    }: { 
+      id: string; 
+      reason: string;
+      refundAmount: number;
+      restockItems?: boolean;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Update transaction status to refunded
+      // The database trigger will handle restocking if restockItems is true
+      const { error } = await supabase
+        .from('pos_transactions')
+        .update({
+          status: restockItems ? 'refunded' : 'voided',
+          refunded_at: new Date().toISOString(),
+          refunded_by: user.id,
+          voided_reason: reason,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // TODO: Handle Stripe refund if payment was by card
+      // This would be done via an edge function for card payments
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast({ title: 'Retour verwerkt', description: 'De transactie is succesvol geretourneerd.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout bij retour', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     transactions: transactionsQuery.data || [],
     isLoading: transactionsQuery.isLoading,
     error: transactionsQuery.error,
     createTransaction,
     voidTransaction,
+    refundTransaction,
     refetch: transactionsQuery.refetch,
   };
 }
