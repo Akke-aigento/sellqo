@@ -88,6 +88,15 @@ export interface Order {
   delivery_type?: DeliveryType | string;
   service_point_id?: string | null;
   service_point_data?: Json | null;
+  // VAT tracking fields
+  vat_type?: string | null;
+  vat_rate?: number | null;
+  vat_country?: string | null;
+  vat_text?: string | null;
+  customer_vat_number?: string | null;
+  customer_vat_verified?: boolean | null;
+  customer_company_name?: string | null;
+  customer_type?: string | null;
   // Joined data
   order_items?: OrderItem[];
   customer?: Customer;

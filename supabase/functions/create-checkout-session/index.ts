@@ -15,6 +15,22 @@ const logStep = (step: string, details?: any) => {
 // Platform fee percentage (e.g., 5%)
 const PLATFORM_FEE_PERCENT = 5;
 
+// EU country codes for VAT determination
+const EU_COUNTRIES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
+  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
+  'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
+];
+
+// EU VAT rates by country (standard rates)
+const EU_VAT_RATES: Record<string, number> = {
+  'AT': 20, 'BE': 21, 'BG': 20, 'HR': 25, 'CY': 19, 'CZ': 21,
+  'DK': 25, 'EE': 22, 'FI': 25.5, 'FR': 20, 'DE': 19, 'GR': 24,
+  'HU': 27, 'IE': 23, 'IT': 22, 'LV': 21, 'LT': 21, 'LU': 17,
+  'MT': 18, 'NL': 21, 'PL': 23, 'PT': 23, 'RO': 19, 'SK': 20,
+  'SI': 22, 'ES': 21, 'SE': 25
+};
+
 interface CartItem {
   product_id: string;
   product_name: string;
@@ -22,6 +38,7 @@ interface CartItem {
   product_image?: string;
   quantity: number;
   unit_price: number;
+  vat_rate?: number;
 }
 
 interface ServicePointData {
@@ -42,6 +59,13 @@ interface ServicePointData {
   opening_hours?: Record<string, string>;
 }
 
+interface BillingAddress {
+  street: string;
+  city: string;
+  postal_code: string;
+  country: string;
+}
+
 interface CheckoutRequest {
   tenant_id: string;
   items: CartItem[];
@@ -54,12 +78,186 @@ interface CheckoutRequest {
     postal_code: string;
     country: string;
   };
+  billing_address?: BillingAddress;
   shipping_method_id?: string;
   shipping_cost?: number;
   // Service point fields
   delivery_type?: 'home_delivery' | 'service_point';
   service_point_id?: string;
   service_point_data?: ServicePointData;
+  // NEW: Customer type and VAT fields for proper tax calculation
+  customer_id?: string;
+  customer_type?: 'b2b' | 'b2c';
+  vat_number?: string;
+  company_name?: string;
+}
+
+interface VatCalculation {
+  vatRate: number;
+  vatAmount: number;
+  vatType: 'standard' | 'reverse_charge' | 'export' | 'oss' | 'exempt';
+  vatText: string | null;
+  vatCountry: string;
+}
+
+interface TenantData {
+  id: string;
+  name: string;
+  stripe_account_id: string;
+  stripe_charges_enabled: boolean;
+  tax_percentage: number | null;
+  currency: string | null;
+  country: string | null;
+  oss_enabled: boolean | null;
+  oss_threshold_reached: boolean | null;
+  reverse_charge_text: string | null;
+  export_text: string | null;
+}
+
+// Validate VAT number via VIES (simplified - in production use the validate-vat function)
+async function validateVatNumber(vatNumber: string): Promise<boolean> {
+  try {
+    // Extract country code and number
+    const countryCode = vatNumber.substring(0, 2).toUpperCase();
+    const number = vatNumber.substring(2).replace(/[\s.-]/g, '');
+    
+    if (!EU_COUNTRIES.includes(countryCode)) {
+      return false;
+    }
+    
+    // Call VIES API
+    const response = await fetch(
+      `https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          countryCode,
+          vatNumber: number,
+        }),
+      }
+    );
+    
+    if (!response.ok) {
+      logStep("VIES API error", { status: response.status });
+      return false;
+    }
+    
+    const result = await response.json();
+    return result.valid === true;
+  } catch (error) {
+    logStep("VIES validation error", { error: String(error) });
+    return false;
+  }
+}
+
+// Calculate VAT based on customer type, location, and VAT number
+async function calculateVat(params: {
+  subtotal: number;
+  shippingCost: number;
+  tenant: TenantData;
+  customerType: 'b2b' | 'b2c';
+  customerCountry: string;
+  vatNumber?: string;
+}): Promise<VatCalculation> {
+  const { subtotal, shippingCost, tenant, customerType, customerCountry, vatNumber } = params;
+  
+  const tenantCountry = tenant.country?.toUpperCase() || 'BE';
+  const customerCountryUpper = customerCountry.toUpperCase();
+  const totalAmount = subtotal + shippingCost;
+  
+  const isEuCountry = EU_COUNTRIES.includes(customerCountryUpper);
+  const isSameCountry = tenantCountry === customerCountryUpper;
+  const defaultVatRate = tenant.tax_percentage || EU_VAT_RATES[tenantCountry] || 21;
+  
+  logStep("VAT calculation params", {
+    customerType,
+    customerCountry: customerCountryUpper,
+    tenantCountry,
+    isEuCountry,
+    isSameCountry,
+    vatNumber: vatNumber ? `${vatNumber.substring(0, 4)}...` : null,
+    ossEnabled: tenant.oss_enabled,
+    ossThresholdReached: tenant.oss_threshold_reached,
+  });
+  
+  // Case 1: Same country - always apply standard VAT
+  if (isSameCountry) {
+    const vatAmount = Math.round(totalAmount * (defaultVatRate / 100) * 100) / 100;
+    logStep("Same country - standard VAT", { vatRate: defaultVatRate, vatAmount });
+    return {
+      vatRate: defaultVatRate,
+      vatAmount,
+      vatType: 'standard',
+      vatText: null,
+      vatCountry: tenantCountry,
+    };
+  }
+  
+  // Case 2: Export outside EU - 0% VAT
+  if (!isEuCountry) {
+    logStep("Export outside EU - 0% VAT");
+    return {
+      vatRate: 0,
+      vatAmount: 0,
+      vatType: 'export',
+      vatText: tenant.export_text || 'Export levering - vrijgesteld van BTW (Art. 39 W.BTW)',
+      vatCountry: customerCountryUpper,
+    };
+  }
+  
+  // Case 3: B2B in other EU country with valid VAT number - Reverse Charge
+  if (customerType === 'b2b' && vatNumber) {
+    const isValidVat = await validateVatNumber(vatNumber);
+    
+    if (isValidVat) {
+      logStep("B2B EU with valid VAT - Reverse Charge");
+      return {
+        vatRate: 0,
+        vatAmount: 0,
+        vatType: 'reverse_charge',
+        vatText: tenant.reverse_charge_text || 'BTW verlegd naar afnemer (Art. 196 BTW-richtlijn 2006/112/EG)',
+        vatCountry: customerCountryUpper,
+      };
+    } else {
+      logStep("B2B EU with invalid VAT - apply standard rate");
+      // Invalid VAT number - apply seller's VAT rate
+      const vatAmount = Math.round(totalAmount * (defaultVatRate / 100) * 100) / 100;
+      return {
+        vatRate: defaultVatRate,
+        vatAmount,
+        vatType: 'standard',
+        vatText: 'BTW-nummer niet geldig - standaard tarief toegepast',
+        vatCountry: tenantCountry,
+      };
+    }
+  }
+  
+  // Case 4: B2C in other EU country - OSS rules
+  if (customerType === 'b2c' && tenant.oss_enabled && tenant.oss_threshold_reached) {
+    // Apply destination country VAT rate (OSS)
+    const destinationVatRate = EU_VAT_RATES[customerCountryUpper] || defaultVatRate;
+    const vatAmount = Math.round(totalAmount * (destinationVatRate / 100) * 100) / 100;
+    logStep("B2C EU - OSS destination rate", { destinationVatRate, vatAmount });
+    return {
+      vatRate: destinationVatRate,
+      vatAmount,
+      vatType: 'oss',
+      vatText: `OSS-regeling - BTW-tarief ${customerCountryUpper}: ${destinationVatRate}%`,
+      vatCountry: customerCountryUpper,
+    };
+  }
+  
+  // Case 5: Default - apply seller's standard VAT rate
+  const vatAmount = Math.round(totalAmount * (defaultVatRate / 100) * 100) / 100;
+  logStep("Default - seller's VAT rate", { vatRate: defaultVatRate, vatAmount });
+  return {
+    vatRate: defaultVatRate,
+    vatAmount,
+    vatType: 'standard',
+    vatText: null,
+    vatCountry: tenantCountry,
+  };
 }
 
 serve(async (req) => {
@@ -87,22 +285,33 @@ serve(async (req) => {
       customer_name, 
       customer_phone,
       shipping_address,
+      billing_address,
       shipping_method_id,
       shipping_cost = 0,
       delivery_type = 'home_delivery',
       service_point_id,
       service_point_data,
+      // NEW VAT fields
+      customer_id,
+      customer_type = 'b2c',
+      vat_number,
+      company_name,
     } = body;
 
     if (!tenant_id) throw new Error("tenant_id is required");
     if (!items || items.length === 0) throw new Error("items are required");
     if (!customer_email) throw new Error("customer_email is required");
-    logStep("Request validated", { tenant_id, itemCount: items.length });
+    logStep("Request validated", { tenant_id, itemCount: items.length, customerType: customer_type });
 
-    // Get tenant data with Stripe account
+    // Get tenant data with Stripe account and VAT settings
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("id, name, stripe_account_id, stripe_charges_enabled, tax_percentage, currency")
+      .select(`
+        id, name, stripe_account_id, stripe_charges_enabled, 
+        tax_percentage, currency, country,
+        oss_enabled, oss_threshold_reached,
+        reverse_charge_text, export_text
+      `)
       .eq("id", tenant_id)
       .single();
 
@@ -117,19 +326,63 @@ serve(async (req) => {
     if (!tenant.stripe_charges_enabled) {
       throw new Error("Tenant payment account is not fully activated");
     }
-    logStep("Tenant verified", { tenantName: tenant.name, stripeAccountId: tenant.stripe_account_id });
+    logStep("Tenant verified", { 
+      tenantName: tenant.name, 
+      stripeAccountId: tenant.stripe_account_id,
+      tenantCountry: tenant.country,
+      ossEnabled: tenant.oss_enabled,
+    });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Calculate totals
+    // Determine customer country for VAT calculation
+    // Priority: billing_address > shipping_address > service_point_data > tenant default
+    let customerCountry = tenant.country || 'BE';
+    if (billing_address?.country) {
+      customerCountry = billing_address.country;
+    } else if (shipping_address?.country) {
+      customerCountry = shipping_address.country;
+    } else if (service_point_data?.address?.country) {
+      customerCountry = service_point_data.address.country;
+    }
+    
+    logStep("Customer country determined", { customerCountry, source: billing_address ? 'billing' : shipping_address ? 'shipping' : 'default' });
+
+    // Calculate subtotal (in currency units, not cents)
     const subtotal = items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-    const taxPercentage = tenant.tax_percentage || 21;
-    const taxAmount = Math.round(subtotal * (taxPercentage / 100));
-    const total = subtotal + taxAmount + (shipping_cost * 100); // Convert shipping to cents
+    
+    // Calculate VAT based on customer type and location
+    const vatCalculation = await calculateVat({
+      subtotal,
+      shippingCost: shipping_cost,
+      tenant: tenant as TenantData,
+      customerType: customer_type,
+      customerCountry,
+      vatNumber: vat_number,
+    });
+    
+    logStep("VAT calculated", {
+      vatType: vatCalculation.vatType,
+      vatRate: vatCalculation.vatRate,
+      vatAmount: vatCalculation.vatAmount,
+      vatCountry: vatCalculation.vatCountry,
+    });
+
+    // Calculate totals (convert to cents for Stripe)
+    const subtotalCents = Math.round(subtotal * 100);
+    const shippingCents = Math.round(shipping_cost * 100);
+    const vatCents = Math.round(vatCalculation.vatAmount * 100);
+    const totalCents = subtotalCents + shippingCents + vatCents;
 
     // Calculate platform fee (in cents)
-    const platformFee = Math.round(total * (PLATFORM_FEE_PERCENT / 100));
-    logStep("Totals calculated", { subtotal, taxAmount, shipping: shipping_cost * 100, total, platformFee });
+    const platformFee = Math.round(totalCents * (PLATFORM_FEE_PERCENT / 100));
+    logStep("Totals calculated", { 
+      subtotalCents, 
+      shippingCents, 
+      vatCents, 
+      totalCents, 
+      platformFee 
+    });
 
     // Create line items for Stripe Checkout
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(item => ({
@@ -152,7 +405,21 @@ serve(async (req) => {
           product_data: {
             name: "Verzendkosten",
           },
-          unit_amount: Math.round(shipping_cost * 100),
+          unit_amount: shippingCents,
+        },
+        quantity: 1,
+      });
+    }
+
+    // Add VAT as a separate line item if applicable
+    if (vatCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: tenant.currency?.toLowerCase() || "eur",
+          product_data: {
+            name: `BTW (${vatCalculation.vatRate}%)`,
+          },
+          unit_amount: vatCents,
         },
         quantity: 1,
       });
@@ -175,26 +442,37 @@ serve(async (req) => {
         }
       : shipping_address;
 
-    // Create pending order in database
+    // Create pending order in database with VAT details
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
         tenant_id,
         order_number: orderNumber,
+        customer_id,
         customer_email,
-        customer_name,
+        customer_name: company_name || customer_name,
         customer_phone,
         shipping_address: effectiveShippingAddress,
-        subtotal: subtotal / 100, // Store in main currency units
-        tax_amount: taxAmount / 100,
+        billing_address: billing_address || effectiveShippingAddress,
+        subtotal: subtotal,
+        tax_amount: vatCalculation.vatAmount,
         shipping_cost: shipping_cost,
-        total: total / 100,
+        total: subtotal + shipping_cost + vatCalculation.vatAmount,
         status: "pending",
         payment_status: "pending",
         shipping_method_id,
         delivery_type,
         service_point_id,
         service_point_data,
+        // NEW VAT fields
+        vat_type: vatCalculation.vatType,
+        vat_rate: vatCalculation.vatRate,
+        vat_country: vatCalculation.vatCountry,
+        vat_text: vatCalculation.vatText,
+        customer_vat_number: vat_number || null,
+        customer_vat_verified: vat_number ? (vatCalculation.vatType === 'reverse_charge') : false,
+        customer_company_name: company_name || null,
+        customer_type: customer_type,
       })
       .select()
       .single();
@@ -203,7 +481,12 @@ serve(async (req) => {
       logStep("Error creating order", { error: orderError.message });
       throw new Error(`Failed to create order: ${orderError.message}`);
     }
-    logStep("Order created", { orderId: order.id, deliveryType: delivery_type });
+    logStep("Order created", { 
+      orderId: order.id, 
+      deliveryType: delivery_type,
+      vatType: vatCalculation.vatType,
+      customerType: customer_type,
+    });
 
     // Create order items
     const orderItems = items.map(item => ({
@@ -244,12 +527,17 @@ serve(async (req) => {
           order_id: order.id,
           tenant_id,
           order_number: orderNumber,
+          vat_type: vatCalculation.vatType,
+          vat_rate: String(vatCalculation.vatRate),
+          customer_type,
         },
       },
       metadata: {
         order_id: order.id,
         tenant_id,
         order_number: orderNumber,
+        vat_type: vatCalculation.vatType,
+        customer_type,
       },
     });
     logStep("Checkout session created", { sessionId: session.id });
@@ -265,6 +553,12 @@ serve(async (req) => {
       session_id: session.id,
       order_id: order.id,
       order_number: orderNumber,
+      vat_calculation: {
+        type: vatCalculation.vatType,
+        rate: vatCalculation.vatRate,
+        amount: vatCalculation.vatAmount,
+        text: vatCalculation.vatText,
+      },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
