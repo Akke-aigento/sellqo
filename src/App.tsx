@@ -53,6 +53,7 @@ import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
+import NotificationsPage from "./pages/admin/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
               <Route path="marketing/ai" element={<AIMarketingHub />} />
               <Route path="marketing/ai-center" element={<AIActionCenter />} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
