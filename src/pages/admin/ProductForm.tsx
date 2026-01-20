@@ -9,19 +9,30 @@ import {
   Loader2,
   Upload,
   X,
-  GripVertical,
-  Star
+  Star,
+  Package,
+  Download,
+  Briefcase,
+  RefreshCw,
+  Layers,
+  Key,
+  FileText,
+  Trash2,
+  Eye,
+  Plus
 } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { useProductFiles } from '@/hooks/useProductFiles';
+import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +53,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
-import type { ProductFormData } from '@/types/product';
+import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
+import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
@@ -68,9 +80,24 @@ const productSchema = z.object({
   is_featured: z.boolean().default(false),
   weight: z.coerce.number().min(0).nullable().optional(),
   requires_shipping: z.boolean().default(true),
+  // Digital product fields
+  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle']).default('physical'),
+  digital_delivery_type: z.enum(['download', 'license_key', 'access_url', 'email_attachment', 'qr_code', 'external_service']).nullable().optional(),
+  download_limit: z.coerce.number().int().min(0).nullable().optional(),
+  download_expiry_hours: z.coerce.number().int().min(1).nullable().optional(),
+  license_generator: z.enum(['manual', 'auto']).nullable().optional(),
+  access_duration_days: z.coerce.number().int().min(1).nullable().optional(),
 });
 
 type FormValues = z.infer<typeof productSchema>;
+
+const productTypeIcons: Record<ProductType, React.ReactNode> = {
+  physical: <Package className="h-6 w-6" />,
+  digital: <Download className="h-6 w-6" />,
+  service: <Briefcase className="h-6 w-6" />,
+  subscription: <RefreshCw className="h-6 w-6" />,
+  bundle: <Layers className="h-6 w-6" />,
+};
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -82,8 +109,12 @@ export default function ProductForm() {
   const { createProduct, updateProduct } = useProducts();
   const { categories } = useCategories();
   const { uploadImage, uploading } = useImageUpload();
+  const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
+  const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
   
   const [tagsInput, setTagsInput] = useState('');
+  const [licenseInput, setLicenseInput] = useState('');
+  const [uploadingDigital, setUploadingDigital] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -111,6 +142,12 @@ export default function ProductForm() {
       is_featured: false,
       weight: null,
       requires_shipping: true,
+      product_type: 'physical',
+      digital_delivery_type: null,
+      download_limit: null,
+      download_expiry_hours: 72,
+      license_generator: null,
+      access_duration_days: null,
     },
     values: product ? {
       name: product.name,
@@ -136,8 +173,18 @@ export default function ProductForm() {
       is_featured: product.is_featured,
       weight: product.weight,
       requires_shipping: product.requires_shipping,
+      product_type: product.product_type || 'physical',
+      digital_delivery_type: product.digital_delivery_type || null,
+      download_limit: product.download_limit || null,
+      download_expiry_hours: product.download_expiry_hours || 72,
+      license_generator: product.license_generator || null,
+      access_duration_days: product.access_duration_days || null,
     } : undefined,
   });
+
+  const productType = form.watch('product_type');
+  const digitalDeliveryType = form.watch('digital_delivery_type');
+  const isDigital = productType === 'digital';
 
   // Auto-generate slug from name
   const generateSlug = (name: string) => {
@@ -156,6 +203,32 @@ export default function ProductForm() {
     }
   };
 
+  // Handle product type change
+  const handleProductTypeChange = (type: ProductType) => {
+    form.setValue('product_type', type);
+    
+    // Auto-set related fields
+    if (type === 'digital' || type === 'service') {
+      form.setValue('requires_shipping', false);
+      form.setValue('track_inventory', false);
+    } else if (type === 'physical') {
+      form.setValue('requires_shipping', true);
+      form.setValue('track_inventory', true);
+    }
+
+    // Reset digital fields if not digital
+    if (type !== 'digital') {
+      form.setValue('digital_delivery_type', null);
+      form.setValue('download_limit', null);
+      form.setValue('download_expiry_hours', null);
+      form.setValue('license_generator', null);
+      form.setValue('access_duration_days', null);
+    } else {
+      form.setValue('digital_delivery_type', 'download');
+      form.setValue('download_expiry_hours', 72);
+    }
+  };
+
   // Image upload handler
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -167,7 +240,6 @@ export default function ProductForm() {
       const url = await uploadImage(file);
       if (url) {
         currentImages.push(url);
-        // Set first image as featured if none set
         if (!form.getValues('featured_image')) {
           form.setValue('featured_image', url);
         }
@@ -189,6 +261,37 @@ export default function ProductForm() {
 
   const setFeaturedImage = (url: string) => {
     form.setValue('featured_image', url);
+  };
+
+  // Digital file upload
+  const handleDigitalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || !id) return;
+
+    setUploadingDigital(true);
+    try {
+      for (const file of Array.from(fileList)) {
+        await uploadFile.mutateAsync({ file });
+      }
+    } finally {
+      setUploadingDigital(false);
+      e.target.value = '';
+    }
+  };
+
+  // License keys
+  const handleAddLicenseKeys = () => {
+    if (!licenseInput.trim()) return;
+    
+    const keys = licenseInput
+      .split('\n')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+    
+    if (keys.length > 0) {
+      addKeys.mutate(keys);
+      setLicenseInput('');
+    }
   };
 
   // Tags handler
@@ -215,6 +318,14 @@ export default function ProductForm() {
   };
 
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
+
+  // Format file size
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return 'Onbekend';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   if (!currentTenant) {
     return (
@@ -270,14 +381,215 @@ export default function ProductForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Tabs defaultValue="basic" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+          <Tabs defaultValue="type" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="type">Type</TabsTrigger>
               <TabsTrigger value="basic">Basis</TabsTrigger>
               <TabsTrigger value="pricing">Prijzen</TabsTrigger>
               <TabsTrigger value="inventory">Voorraad</TabsTrigger>
               <TabsTrigger value="images">Afbeeldingen</TabsTrigger>
+              {isDigital && <TabsTrigger value="digital">Bestanden</TabsTrigger>}
               <TabsTrigger value="seo">SEO</TabsTrigger>
             </TabsList>
+
+            {/* Product Type Tab */}
+            <TabsContent value="type" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product type</CardTitle>
+                  <CardDescription>
+                    Kies het type product dat je wilt verkopen
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+                    {(Object.keys(productTypeInfo) as ProductType[]).map((type) => {
+                      const info = productTypeInfo[type];
+                      const isSelected = productType === type;
+                      
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => handleProductTypeChange(type)}
+                          className={cn(
+                            "flex flex-col items-center gap-3 p-6 rounded-lg border-2 transition-all hover:border-primary/50",
+                            isSelected 
+                              ? "border-primary bg-primary/5" 
+                              : "border-muted"
+                          )}
+                        >
+                          <div className={cn(
+                            "p-3 rounded-full",
+                            isSelected ? "bg-primary text-primary-foreground" : "bg-muted"
+                          )}>
+                            {productTypeIcons[type]}
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium">{info.label}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {info.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Digital delivery options */}
+              {isDigital && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Leveringsmethode</CardTitle>
+                    <CardDescription>
+                      Hoe wordt het digitale product aan de klant geleverd?
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="digital_delivery_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Leveringsmethode</FormLabel>
+                          <Select 
+                            value={field.value || 'download'} 
+                            onValueChange={(value) => field.onChange(value as DigitalDeliveryType)}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecteer methode" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(Object.keys(digitalDeliveryTypeInfo) as DigitalDeliveryType[]).map((type) => {
+                                const info = digitalDeliveryTypeInfo[type];
+                                return (
+                                  <SelectItem key={type} value={type}>
+                                    <div>
+                                      <span>{info.label}</span>
+                                      <span className="text-muted-foreground ml-2 text-sm">
+                                        - {info.description}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {(digitalDeliveryType === 'download' || digitalDeliveryType === 'email_attachment') && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="download_limit"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Download limiet</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    value={field.value ?? ''}
+                                    type="number" 
+                                    min="0" 
+                                    placeholder="Onbeperkt"
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Max. aantal downloads per aankoop (leeg = onbeperkt)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="download_expiry_hours"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Geldigheid (uren)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    value={field.value ?? 72}
+                                    type="number" 
+                                    min="1" 
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Hoelang de download link geldig is
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
+
+                      {digitalDeliveryType === 'license_key' && (
+                        <FormField
+                          control={form.control}
+                          name="license_generator"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Licentiebeheer</FormLabel>
+                              <Select 
+                                value={field.value || 'manual'} 
+                                onValueChange={(value) => field.onChange(value as 'manual' | 'auto')}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="manual">Handmatig (voer codes in)</SelectItem>
+                                  <SelectItem value="auto">Automatisch genereren</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {(digitalDeliveryType === 'access_url' || digitalDeliveryType === 'external_service') && (
+                        <FormField
+                          control={form.control}
+                          name="access_duration_days"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Toegangsduur (dagen)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  value={field.value ?? ''}
+                                  type="number" 
+                                  min="1" 
+                                  placeholder="Permanent"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Hoelang klant toegang heeft (leeg = permanent)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
             {/* Basic Info Tab */}
             <TabsContent value="basic" className="space-y-6">
@@ -628,11 +940,15 @@ export default function ProductForm() {
                           <div>
                             <FormLabel>Voorraad bijhouden</FormLabel>
                             <FormDescription>
-                              Houd de voorraad automatisch bij
+                              {isDigital ? 'Niet van toepassing voor digitale producten' : 'Houd de voorraad automatisch bij'}
                             </FormDescription>
                           </div>
                           <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange} 
+                              disabled={isDigital && digitalDeliveryType !== 'license_key'}
+                            />
                           </FormControl>
                         </FormItem>
                       )}
@@ -706,11 +1022,15 @@ export default function ProductForm() {
                           <div>
                             <FormLabel>Verzending vereist</FormLabel>
                             <FormDescription>
-                              Dit is een fysiek product
+                              {isDigital ? 'Digitale producten vereisen geen verzending' : 'Dit is een fysiek product'}
                             </FormDescription>
                           </div>
                           <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              disabled={isDigital || productType === 'service'}
+                            />
                           </FormControl>
                         </FormItem>
                       )}
@@ -838,6 +1158,195 @@ export default function ProductForm() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Digital Files Tab - Only shown for digital products */}
+            {isDigital && (
+              <TabsContent value="digital" className="space-y-6">
+                {!id ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Download className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium">Sla eerst het product op</h3>
+                      <p className="text-muted-foreground mt-2">
+                        Je kunt digitale bestanden en licentiecodes toevoegen nadat het product is opgeslagen.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Digital Files */}
+                    {(digitalDeliveryType === 'download' || digitalDeliveryType === 'email_attachment') && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Digitale bestanden
+                          </CardTitle>
+                          <CardDescription>
+                            Upload de bestanden die klanten kunnen downloaden na aankoop
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* File upload */}
+                          <div className="flex items-center justify-center w-full">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                {uploadingDigital ? (
+                                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                ) : (
+                                  <>
+                                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                                    <p className="text-sm text-muted-foreground">
+                                      <span className="font-semibold">Klik om te uploaden</span> of sleep bestanden hierheen
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      PDF, ZIP, MP3, MP4, EPUB, etc. (max. 100MB)
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                className="hidden"
+                                multiple
+                                onChange={handleDigitalFileUpload}
+                                disabled={uploadingDigital}
+                              />
+                            </label>
+                          </div>
+
+                          {/* Files list */}
+                          {files.length > 0 && (
+                            <div className="border rounded-lg divide-y">
+                              {files.map((file) => (
+                                <div key={file.id} className="flex items-center gap-4 p-4">
+                                  <FileText className="h-8 w-8 text-muted-foreground" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{file.file_name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {formatFileSize(file.file_size)} • Versie {file.version}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {file.is_preview && (
+                                      <Badge variant="secondary">
+                                        <Eye className="h-3 w-3 mr-1" />
+                                        Preview
+                                      </Badge>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => deleteFile.mutate(file.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {files.length === 0 && !filesLoading && (
+                            <p className="text-center text-muted-foreground py-8">
+                              Nog geen bestanden geüpload
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* License Keys */}
+                    {digitalDeliveryType === 'license_key' && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Key className="h-5 w-5" />
+                            Licentiecodes
+                          </CardTitle>
+                          <CardDescription>
+                            Beheer de licentiecodes die worden toegewezen bij aankoop
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Stats */}
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-muted/50 rounded-lg p-4 text-center">
+                              <p className="text-2xl font-bold text-green-600">{availableCount}</p>
+                              <p className="text-sm text-muted-foreground">Beschikbaar</p>
+                            </div>
+                            <div className="bg-muted/50 rounded-lg p-4 text-center">
+                              <p className="text-2xl font-bold">{assignedCount}</p>
+                              <p className="text-sm text-muted-foreground">Toegewezen</p>
+                            </div>
+                            <div className="bg-muted/50 rounded-lg p-4 text-center">
+                              <p className="text-2xl font-bold">{keys.length}</p>
+                              <p className="text-sm text-muted-foreground">Totaal</p>
+                            </div>
+                          </div>
+
+                          {/* Add keys */}
+                          <div className="space-y-2">
+                            <Label>Licentiecodes toevoegen</Label>
+                            <Textarea
+                              value={licenseInput}
+                              onChange={(e) => setLicenseInput(e.target.value)}
+                              placeholder="Voer licentiecodes in, één per regel..."
+                              rows={4}
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleAddLicenseKeys}
+                              disabled={!licenseInput.trim() || addKeys.isPending}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Toevoegen
+                            </Button>
+                          </div>
+
+                          {/* Keys list */}
+                          {keys.length > 0 && (
+                            <div className="border rounded-lg divide-y max-h-[300px] overflow-y-auto">
+                              {keys.slice(0, 50).map((key) => (
+                                <div key={key.id} className="flex items-center gap-4 p-3">
+                                  <code className="flex-1 text-sm font-mono truncate">
+                                    {key.license_key}
+                                  </code>
+                                  <Badge variant={
+                                    key.status === 'available' ? 'default' :
+                                    key.status === 'assigned' ? 'secondary' : 'destructive'
+                                  }>
+                                    {key.status === 'available' ? 'Beschikbaar' :
+                                     key.status === 'assigned' ? 'Toegewezen' : 'Ingetrokken'}
+                                  </Badge>
+                                  {key.status === 'available' && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => deleteKey.mutate(key.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {keys.length === 0 && !keysLoading && (
+                            <p className="text-center text-muted-foreground py-8">
+                              Nog geen licentiecodes toegevoegd
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            )}
 
             {/* SEO Tab */}
             <TabsContent value="seo" className="space-y-6">
