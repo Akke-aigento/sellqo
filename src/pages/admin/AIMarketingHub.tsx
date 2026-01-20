@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Sparkles, Bot, Zap, ArrowLeft, 
   Instagram, Mail, Lightbulb, TrendingUp,
-  Library, ImageIcon, FlaskConical, BarChart3
+  Library, ImageIcon, FlaskConical, BarChart3,
+  Rocket
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { AIImageGenerator } from '@/components/admin/marketing/AIImageGenerator'
 import { ABTestingPanel } from '@/components/admin/marketing/ABTestingPanel';
 import { ContentEngagementStats } from '@/components/admin/marketing/ContentEngagementStats';
 import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchaseDialog';
+import { ProductPromoWizard } from '@/components/admin/marketing/ProductPromoWizard';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
@@ -38,7 +40,7 @@ export default function AIMarketingHub() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
-  
+  const [promoWizardOpen, setPromoWizardOpen] = useState(false);
   // Pre-fill state for generators
   const [emailCampaignType, setEmailCampaignType] = useState<string | undefined>();
   const [socialContentType, setSocialContentType] = useState<string | undefined>();
@@ -184,8 +186,37 @@ export default function AIMarketingHub() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Product Promo Wizard CTA */}
+            <button
+              onClick={() => setPromoWizardOpen(true)}
+              className="w-full p-6 rounded-xl border-2 border-dashed border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5 hover:border-purple-500/60 hover:from-purple-500/10 hover:to-pink-500/10 transition-all text-left group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg group-hover:scale-105 transition-transform">
+                  <Rocket className="h-8 w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    Product Promotie Wizard
+                    <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-normal">
+                      NIEUW
+                    </span>
+                  </h3>
+                  <p className="text-muted-foreground mt-1">
+                    Selecteer een product, kies de toon, en AI genereert een complete marketing kit:
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <span className="text-xs px-2 py-1 rounded-full bg-background border">📱 Social posts</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-background border">📧 Email content</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-background border">🖼️ Marketing afbeeldingen</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-background border">💬 Slogans</span>
+                  </div>
+                </div>
+                <Sparkles className="h-6 w-6 text-purple-500 group-hover:animate-pulse" />
+              </div>
+            </button>
+
             <div className="grid gap-6 lg:grid-cols-2">
               {/* AI Insights */}
               <AIInsightsCard onInsightClick={handleInsightClick} />
@@ -352,6 +383,12 @@ export default function AIMarketingHub() {
         <CreditPurchaseDialog
           open={purchaseDialogOpen}
           onOpenChange={setPurchaseDialogOpen}
+        />
+
+        {/* Product Promo Wizard */}
+        <ProductPromoWizard
+          open={promoWizardOpen}
+          onOpenChange={setPromoWizardOpen}
         />
       </div>
     </FeatureGate>

@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.ai-generate-ab-variant]
 verify_jwt = false
+
+[functions.ai-product-promo-kit]
+verify_jwt = false
