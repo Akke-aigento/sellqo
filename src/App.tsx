@@ -46,6 +46,9 @@ import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
 import ReportsPage from "./pages/admin/Reports";
+import SuppliersPage from "./pages/admin/Suppliers";
+import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
+import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
@@ -116,6 +119,9 @@ const App = () => (
               <Route path="import" element={<ImportPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="suppliers" element={<SuppliersPage />} />
+              <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+              <Route path="supplier-documents" element={<SupplierDocumentsPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />

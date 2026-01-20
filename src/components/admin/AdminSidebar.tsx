@@ -18,7 +18,10 @@ import {
   Cable,
   Megaphone,
   Percent,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Factory,
+  ClipboardList,
+  FileBox
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -66,6 +69,12 @@ const mainNavItems = [
   { title: 'Marketing', url: '/admin/marketing', icon: Megaphone },
   { title: 'Importeren', url: '/admin/import', icon: Upload },
   { title: 'SellQo Connect', url: '/admin/connect', icon: Cable },
+];
+
+const purchasingNavItems = [
+  { title: 'Leveranciers', url: '/admin/suppliers', icon: Factory },
+  { title: 'Inkooporders', url: '/admin/purchase-orders', icon: ClipboardList },
+  { title: 'Documenten', url: '/admin/supplier-documents', icon: FileBox },
 ];
 
 const settingsNavItems = [
@@ -218,6 +227,24 @@ export function AdminSidebar() {
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Inkoop</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {purchasingNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
