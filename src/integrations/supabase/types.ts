@@ -3381,6 +3381,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_campaign_bounced: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_clicked: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_delivered: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_opened: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
