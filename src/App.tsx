@@ -44,6 +44,7 @@ import CustomerGroupsPage from "./pages/admin/CustomerGroups";
 import BogoPromotionsPage from "./pages/admin/BogoPromotions";
 import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
+import GiftCardsPage from "./pages/admin/GiftCards";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="promotions/customer-groups" element={<CustomerGroupsPage />} />
               <Route path="promotions/bogo" element={<BogoPromotionsPage />} />
               <Route path="promotions/loyalty" element={<LoyaltyProgramsPage />} />
+              <Route path="promotions/gift-cards" element={<GiftCardsPage />} />
               <Route path="promotions/stacking" element={<StackingRulesPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
