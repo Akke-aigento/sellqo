@@ -72,14 +72,16 @@ export interface Order {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  // Shipping & tracking fields
+  carrier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
   // Marketplace integration fields
   marketplace_source?: MarketplaceSource;
   marketplace_order_id?: string | null;
   marketplace_connection_id?: string | null;
   sync_status?: string | null;
   fulfillment_status?: string | null;
-  tracking_number?: string | null;
-  tracking_url?: string | null;
   raw_marketplace_data?: Json | null;
   // Joined data
   order_items?: OrderItem[];

@@ -17,6 +17,7 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderSt
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog';
 import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
+import { TrackingInfoCard } from '@/components/admin/TrackingInfoCard';
 import type { OrderStatus, PaymentStatus, Address } from '@/types/order';
 import { useState } from 'react';
 
@@ -202,7 +203,11 @@ export default function OrderDetailPage() {
                 {order.shipped_at && (
                   <TimelineItem
                     icon={<Truck className="h-4 w-4" />}
-                    title="Verzonden"
+                    title={order.tracking_number 
+                      ? `Verzonden via ${order.carrier || 'carrier'}`
+                      : "Verzonden"
+                    }
+                    subtitle={order.tracking_number ? `Track: ${order.tracking_number}` : undefined}
                     date={order.shipped_at}
                     completed
                   />
@@ -324,6 +329,9 @@ export default function OrderDetailPage() {
               maxItems={3} 
             />
           )}
+
+          {/* Tracking Info */}
+          <TrackingInfoCard order={order} />
 
           {/* Shipping Address */}
           <Card>
@@ -460,12 +468,13 @@ export default function OrderDetailPage() {
 interface TimelineItemProps {
   icon: React.ReactNode;
   title: string;
+  subtitle?: string;
   date: string;
   completed?: boolean;
   variant?: 'default' | 'destructive';
 }
 
-function TimelineItem({ icon, title, date, completed, variant = 'default' }: TimelineItemProps) {
+function TimelineItem({ icon, title, subtitle, date, completed, variant = 'default' }: TimelineItemProps) {
   return (
     <div className="flex items-start gap-3">
       <div className={`p-2 rounded-full ${
@@ -479,6 +488,9 @@ function TimelineItem({ icon, title, date, completed, variant = 'default' }: Tim
       </div>
       <div className="flex-1">
         <div className="font-medium">{title}</div>
+        {subtitle && (
+          <div className="text-xs text-muted-foreground font-mono">{subtitle}</div>
+        )}
         <div className="text-sm text-muted-foreground">
           {format(new Date(date), "d MMM yyyy 'om' HH:mm", { locale: nl })}
         </div>
