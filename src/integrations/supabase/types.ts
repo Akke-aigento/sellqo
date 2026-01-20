@@ -4184,6 +4184,522 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_cash_movements: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          movement_type: string
+          notes: string | null
+          reason: string
+          session_id: string
+          tenant_id: string
+          terminal_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          movement_type: string
+          notes?: string | null
+          reason: string
+          session_id: string
+          tenant_id: string
+          terminal_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          reason?: string
+          session_id?: string
+          tenant_id?: string
+          terminal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_cash_movements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_cash_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_cash_movements_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_offline_queue: {
+        Row: {
+          created_at: string
+          created_offline_at: string
+          id: string
+          sync_attempts: number
+          sync_error: string | null
+          sync_status: string
+          synced_at: string | null
+          tenant_id: string
+          terminal_id: string
+          transaction_data: Json
+        }
+        Insert: {
+          created_at?: string
+          created_offline_at: string
+          id?: string
+          sync_attempts?: number
+          sync_error?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          tenant_id: string
+          terminal_id: string
+          transaction_data: Json
+        }
+        Update: {
+          created_at?: string
+          created_offline_at?: string
+          id?: string
+          sync_attempts?: number
+          sync_error?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          tenant_id?: string
+          terminal_id?: string
+          transaction_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_offline_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_offline_queue_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_parked_carts: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          id: string
+          items: Json
+          notes: string | null
+          parked_at: string
+          parked_by: string
+          resumed_at: string | null
+          resumed_by: string | null
+          session_id: string | null
+          status: string
+          tenant_id: string
+          terminal_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          parked_at?: string
+          parked_by: string
+          resumed_at?: string | null
+          resumed_by?: string | null
+          session_id?: string | null
+          status?: string
+          tenant_id: string
+          terminal_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          parked_at?: string
+          parked_by?: string
+          resumed_at?: string | null
+          resumed_by?: string | null
+          session_id?: string | null
+          status?: string
+          tenant_id?: string
+          terminal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_parked_carts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_parked_carts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_parked_carts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_parked_carts_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_quick_buttons: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          label: string
+          position: number
+          product_id: string
+          tenant_id: string
+          terminal_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          position?: number
+          product_id: string
+          tenant_id: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          position?: number
+          product_id?: string
+          tenant_id?: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_quick_buttons_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_quick_buttons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_quick_buttons_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_sessions: {
+        Row: {
+          cash_difference: number | null
+          closed_at: string | null
+          closed_by: string | null
+          closing_cash: number | null
+          created_at: string
+          expected_cash: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          opening_cash: number
+          status: string
+          tenant_id: string
+          terminal_id: string
+          updated_at: string
+        }
+        Insert: {
+          cash_difference?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_cash?: number | null
+          created_at?: string
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by: string
+          opening_cash?: number
+          status?: string
+          tenant_id: string
+          terminal_id: string
+          updated_at?: string
+        }
+        Update: {
+          cash_difference?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_cash?: number | null
+          created_at?: string
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string
+          opening_cash?: number
+          status?: string
+          tenant_id?: string
+          terminal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_terminals: {
+        Row: {
+          capabilities: Json | null
+          created_at: string
+          device_id: string | null
+          id: string
+          last_seen_at: string | null
+          location_name: string | null
+          name: string
+          settings: Json | null
+          status: string
+          stripe_location_id: string | null
+          stripe_reader_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: Json | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_seen_at?: string | null
+          location_name?: string | null
+          name: string
+          settings?: Json | null
+          status?: string
+          stripe_location_id?: string | null
+          stripe_reader_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: Json | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_seen_at?: string | null
+          location_name?: string | null
+          name?: string
+          settings?: Json | null
+          status?: string
+          stripe_location_id?: string | null
+          stripe_reader_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_terminals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_transactions: {
+        Row: {
+          card_brand: string | null
+          card_last4: string | null
+          cash_change: number | null
+          cash_received: number | null
+          cashier_id: string
+          created_at: string
+          customer_id: string | null
+          discount_total: number
+          id: string
+          items: Json
+          order_id: string | null
+          payments: Json
+          receipt_number: string | null
+          receipt_printed_at: string | null
+          refunded_at: string | null
+          refunded_by: string | null
+          session_id: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_reader_id: string | null
+          subtotal: number
+          tax_total: number
+          tenant_id: string
+          terminal_id: string
+          total: number
+          updated_at: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          card_brand?: string | null
+          card_last4?: string | null
+          cash_change?: number | null
+          cash_received?: number | null
+          cashier_id: string
+          created_at?: string
+          customer_id?: string | null
+          discount_total?: number
+          id?: string
+          items?: Json
+          order_id?: string | null
+          payments?: Json
+          receipt_number?: string | null
+          receipt_printed_at?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          session_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_reader_id?: string | null
+          subtotal?: number
+          tax_total?: number
+          tenant_id: string
+          terminal_id: string
+          total?: number
+          updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          card_brand?: string | null
+          card_last4?: string | null
+          cash_change?: number | null
+          cash_received?: number | null
+          cashier_id?: string
+          created_at?: string
+          customer_id?: string | null
+          discount_total?: number
+          id?: string
+          items?: Json
+          order_id?: string | null
+          payments?: Json
+          receipt_number?: string | null
+          receipt_printed_at?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          session_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_reader_id?: string | null
+          subtotal?: number
+          tax_total?: number
+          tenant_id?: string
+          terminal_id?: string
+          total?: number
+          updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_plans: {
         Row: {
           active: boolean | null
@@ -6978,6 +7494,10 @@ export type Database = {
       admin_adjust_ai_credits: {
         Args: { p_adjustment: number; p_reason?: string; p_tenant_id: string }
         Returns: boolean
+      }
+      calculate_session_expected_cash: {
+        Args: { p_session_id: string }
+        Returns: number
       }
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
