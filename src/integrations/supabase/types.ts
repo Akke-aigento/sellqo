@@ -5754,6 +5754,7 @@ export type Database = {
           intent: string | null
           is_primary: boolean | null
           keyword: string
+          language: string
           position_tracking: Json | null
           product_id: string | null
           search_volume_estimate: string | null
@@ -5768,6 +5769,7 @@ export type Database = {
           intent?: string | null
           is_primary?: boolean | null
           keyword: string
+          language?: string
           position_tracking?: Json | null
           product_id?: string | null
           search_volume_estimate?: string | null
@@ -5782,6 +5784,7 @@ export type Database = {
           intent?: string | null
           is_primary?: boolean | null
           keyword?: string
+          language?: string
           position_tracking?: Json | null
           product_id?: string | null
           search_volume_estimate?: string | null

@@ -17,6 +17,7 @@ import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
 import { SEOHealthChecklist } from '@/components/admin/seo/SEOHealthChecklist';
 import { SEOProductTable } from '@/components/admin/seo/SEOProductTable';
 import { StructuredDataPreview } from '@/components/admin/seo/StructuredDataPreview';
+import { KeywordResearchPanel } from '@/components/admin/seo/KeywordResearchPanel';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
@@ -29,6 +30,7 @@ export default function SEODashboard() {
   const { 
     tenantScore, 
     productScores,
+    keywords,
     history,
     quickWins,
     productsNeedingAttention,
@@ -39,6 +41,8 @@ export default function SEODashboard() {
     isGenerating,
     generateSitemap,
     isGeneratingSitemap,
+    addKeyword,
+    deleteKeyword,
   } = useSEO();
   const { products, isLoading: isLoadingProducts } = useProducts();
   const { currentTenant } = useTenant();
@@ -255,6 +259,7 @@ export default function SEODashboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="overview">Overzicht</TabsTrigger>
+            <TabsTrigger value="keywords">Keywords</TabsTrigger>
             <TabsTrigger value="products">Producten</TabsTrigger>
             <TabsTrigger value="technical">Technisch</TabsTrigger>
             <TabsTrigger value="ai-search">AI Zoeken</TabsTrigger>
@@ -283,6 +288,15 @@ export default function SEODashboard() {
               isLoading={isLoading}
               onGenerateSitemap={generateSitemap}
               isGeneratingSitemap={isGeneratingSitemap}
+            />
+          </TabsContent>
+
+          <TabsContent value="keywords" className="mt-6">
+            <KeywordResearchPanel
+              keywords={keywords || []}
+              onAddKeyword={addKeyword}
+              onDeleteKeyword={deleteKeyword}
+              isLoading={isLoading}
             />
           </TabsContent>
 
