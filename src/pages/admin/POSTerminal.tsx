@@ -42,7 +42,8 @@ import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
-import type { POSCartItem, POSPayment, POSPaymentMethod } from '@/types/pos';
+import { ReceiptDialog } from '@/components/admin/pos/ReceiptDialog';
+import type { POSCartItem, POSPayment, POSPaymentMethod, POSTransaction } from '@/types/pos';
 import type { Product } from '@/types/product';
 import { formatCurrency } from '@/lib/utils';
 
@@ -69,11 +70,12 @@ export default function POSTerminalPage() {
   const [showCardPaymentDialog, setShowCardPaymentDialog] = useState(false);
   const [showReaderDialog, setShowReaderDialog] = useState(false);
   const [showQuickButtonDialog, setShowQuickButtonDialog] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
   const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
-  
   const terminal = terminals.find(t => t.id === terminalId);
   
   // Load Stripe readers on mount
@@ -201,7 +203,7 @@ export default function POSTerminalPage() {
     }];
     
     try {
-      await createTransaction.mutateAsync({
+      const transaction = await createTransaction.mutateAsync({
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
@@ -214,6 +216,12 @@ export default function POSTerminalPage() {
       clearCart();
       setShowPaymentDialog(false);
       setCashReceived('');
+      
+      // Show receipt dialog
+      if (transaction) {
+        setLastTransaction(transaction as unknown as POSTransaction);
+        setShowReceiptDialog(true);
+      }
     } catch (error) {
       toast.error('Betaling mislukt');
     }
@@ -239,7 +247,7 @@ export default function POSTerminalPage() {
     }];
     
     try {
-      await createTransaction.mutateAsync({
+      const transaction = await createTransaction.mutateAsync({
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
@@ -252,6 +260,12 @@ export default function POSTerminalPage() {
       toast.success('Kaartbetaling succesvol!');
       clearCart();
       setShowCardPaymentDialog(false);
+      
+      // Show receipt dialog
+      if (transaction) {
+        setLastTransaction(transaction as unknown as POSTransaction);
+        setShowReceiptDialog(true);
+      }
     } catch (error) {
       toast.error('Fout bij opslaan transactie');
     }
@@ -853,6 +867,13 @@ export default function POSTerminalPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Receipt Dialog */}
+      <ReceiptDialog
+        open={showReceiptDialog}
+        onOpenChange={setShowReceiptDialog}
+        transaction={lastTransaction}
+      />
     </div>
   );
 }
