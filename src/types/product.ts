@@ -9,6 +9,12 @@ export interface ProductMarketplaceMappings {
   };
 }
 
+// Product type enum
+export type ProductType = 'physical' | 'digital' | 'service' | 'subscription' | 'bundle';
+
+// Digital delivery method enum
+export type DigitalDeliveryType = 'download' | 'license_key' | 'access_url' | 'email_attachment' | 'qr_code' | 'external_service';
+
 export interface Product {
   id: string;
   tenant_id: string;
@@ -45,6 +51,14 @@ export interface Product {
   marketplace_mappings?: ProductMarketplaceMappings | null;
   sync_inventory?: boolean;
   last_inventory_sync?: string | null;
+  // Digital product fields
+  product_type: ProductType;
+  digital_delivery_type?: DigitalDeliveryType | null;
+  download_limit?: number | null;
+  download_expiry_hours?: number | null;
+  license_generator?: 'manual' | 'auto' | null;
+  access_duration_days?: number | null;
+  file_size_bytes?: number | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)
@@ -95,6 +109,13 @@ export interface ProductFormData {
   is_featured: boolean;
   weight: number | null;
   requires_shipping: boolean;
+  // Digital product fields
+  product_type: ProductType;
+  digital_delivery_type?: DigitalDeliveryType | null;
+  download_limit?: number | null;
+  download_expiry_hours?: number | null;
+  license_generator?: 'manual' | 'auto' | null;
+  access_duration_days?: number | null;
 }
 
 export interface CategoryFormData {
@@ -109,3 +130,109 @@ export interface CategoryFormData {
 
 export type ProductStatus = 'all' | 'active' | 'inactive';
 export type StockStatus = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
+
+// Digital product file
+export interface ProductFile {
+  id: string;
+  product_id: string;
+  tenant_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  file_type: string | null;
+  version: string;
+  is_preview: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// License key for software products
+export interface LicenseKey {
+  id: string;
+  product_id: string;
+  tenant_id: string;
+  license_key: string;
+  status: 'available' | 'assigned' | 'revoked';
+  assigned_to_order_item_id?: string | null;
+  assigned_at?: string | null;
+  expires_at?: string | null;
+  created_at: string;
+}
+
+// Digital delivery tracking
+export interface DigitalDelivery {
+  id: string;
+  order_item_id: string;
+  tenant_id: string;
+  product_file_id?: string | null;
+  license_key_id?: string | null;
+  download_token?: string | null;
+  download_url?: string | null;
+  access_url?: string | null;
+  download_count: number;
+  download_limit?: number | null;
+  expires_at?: string | null;
+  first_accessed_at?: string | null;
+  last_accessed_at?: string | null;
+  status: 'pending' | 'active' | 'expired' | 'revoked';
+  delivery_data?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// Product type display info
+export const productTypeInfo: Record<ProductType, { label: string; description: string; icon: string }> = {
+  physical: {
+    label: 'Fysiek product',
+    description: 'Producten die verzonden moeten worden',
+    icon: 'Package',
+  },
+  digital: {
+    label: 'Digitaal product',
+    description: 'Downloads, licenties, e-books, software',
+    icon: 'Download',
+  },
+  service: {
+    label: 'Dienst',
+    description: 'Diensten zonder fysieke levering',
+    icon: 'Briefcase',
+  },
+  subscription: {
+    label: 'Abonnement',
+    description: 'Terugkerende betalingen en toegang',
+    icon: 'RefreshCw',
+  },
+  bundle: {
+    label: 'Bundel',
+    description: 'Combinatie van producten en/of diensten',
+    icon: 'Layers',
+  },
+};
+
+// Digital delivery type display info
+export const digitalDeliveryTypeInfo: Record<DigitalDeliveryType, { label: string; description: string }> = {
+  download: {
+    label: 'Download',
+    description: 'Directe bestandsdownload',
+  },
+  license_key: {
+    label: 'Licentiecode',
+    description: 'Software activeringscode',
+  },
+  access_url: {
+    label: 'Toegangs-URL',
+    description: 'Link naar content (streaming, SaaS)',
+  },
+  email_attachment: {
+    label: 'E-mail bijlage',
+    description: 'Bestand per e-mail verzenden',
+  },
+  qr_code: {
+    label: 'QR-code',
+    description: 'Tickets, evenementen, toegang',
+  },
+  external_service: {
+    label: 'Externe dienst',
+    description: 'Activering bij externe provider',
+  },
+};

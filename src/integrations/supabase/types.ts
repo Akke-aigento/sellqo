@@ -1480,6 +1480,92 @@ export type Database = {
           },
         ]
       }
+      digital_deliveries: {
+        Row: {
+          access_url: string | null
+          created_at: string | null
+          delivery_data: Json | null
+          download_count: number | null
+          download_limit: number | null
+          download_token: string | null
+          download_url: string | null
+          expires_at: string | null
+          first_accessed_at: string | null
+          id: string
+          last_accessed_at: string | null
+          license_key_id: string | null
+          order_item_id: string
+          product_file_id: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          access_url?: string | null
+          created_at?: string | null
+          delivery_data?: Json | null
+          download_count?: number | null
+          download_limit?: number | null
+          download_token?: string | null
+          download_url?: string | null
+          expires_at?: string | null
+          first_accessed_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          license_key_id?: string | null
+          order_item_id: string
+          product_file_id?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          access_url?: string | null
+          created_at?: string | null
+          delivery_data?: Json | null
+          download_count?: number | null
+          download_limit?: number | null
+          download_token?: string | null
+          download_url?: string | null
+          expires_at?: string | null
+          first_accessed_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          license_key_id?: string | null
+          order_item_id?: string
+          product_file_id?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digital_deliveries_license_key_id_fkey"
+            columns: ["license_key_id"]
+            isOneToOne: false
+            referencedRelation: "license_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_deliveries_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_deliveries_product_file_id_fkey"
+            columns: ["product_file_id"]
+            isOneToOne: false
+            referencedRelation: "product_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_deliveries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discount_code_usage: {
         Row: {
           created_at: string
@@ -2635,6 +2721,57 @@ export type Database = {
           },
         ]
       }
+      license_keys: {
+        Row: {
+          assigned_at: string | null
+          assigned_to_order_item_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          license_key: string
+          product_id: string
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to_order_item_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          license_key: string
+          product_id: string
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to_order_item_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          license_key?: string
+          product_id?: string
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_keys_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_programs: {
         Row: {
           created_at: string
@@ -3403,8 +3540,69 @@ export type Database = {
           },
         ]
       }
+      product_files: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          is_preview: boolean | null
+          product_id: string
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_preview?: boolean | null
+          product_id: string
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_preview?: boolean | null
+          product_id?: string
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_files_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_files_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
+          access_duration_days: number | null
           allow_backorder: boolean | null
           amazon_asin: string | null
           barcode: string | null
@@ -3414,8 +3612,14 @@ export type Database = {
           cost_price: number | null
           created_at: string | null
           description: string | null
+          digital_delivery_type:
+            | Database["public"]["Enums"]["digital_delivery_type"]
+            | null
+          download_expiry_hours: number | null
+          download_limit: number | null
           external_id: string | null
           featured_image: string | null
+          file_size_bytes: number | null
           id: string
           images: string[] | null
           import_job_id: string | null
@@ -3423,6 +3627,7 @@ export type Database = {
           is_active: boolean | null
           is_featured: boolean | null
           last_inventory_sync: string | null
+          license_generator: string | null
           low_stock_threshold: number | null
           marketplace_mappings: Json | null
           meta_description: string | null
@@ -3430,6 +3635,7 @@ export type Database = {
           name: string
           original_category_value: string | null
           price: number
+          product_type: Database["public"]["Enums"]["product_type"] | null
           requires_shipping: boolean | null
           short_description: string | null
           sku: string | null
@@ -3444,6 +3650,7 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          access_duration_days?: number | null
           allow_backorder?: boolean | null
           amazon_asin?: string | null
           barcode?: string | null
@@ -3453,8 +3660,14 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          digital_delivery_type?:
+            | Database["public"]["Enums"]["digital_delivery_type"]
+            | null
+          download_expiry_hours?: number | null
+          download_limit?: number | null
           external_id?: string | null
           featured_image?: string | null
+          file_size_bytes?: number | null
           id?: string
           images?: string[] | null
           import_job_id?: string | null
@@ -3462,6 +3675,7 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           last_inventory_sync?: string | null
+          license_generator?: string | null
           low_stock_threshold?: number | null
           marketplace_mappings?: Json | null
           meta_description?: string | null
@@ -3469,6 +3683,7 @@ export type Database = {
           name: string
           original_category_value?: string | null
           price: number
+          product_type?: Database["public"]["Enums"]["product_type"] | null
           requires_shipping?: boolean | null
           short_description?: string | null
           sku?: string | null
@@ -3483,6 +3698,7 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          access_duration_days?: number | null
           allow_backorder?: boolean | null
           amazon_asin?: string | null
           barcode?: string | null
@@ -3492,8 +3708,14 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          digital_delivery_type?:
+            | Database["public"]["Enums"]["digital_delivery_type"]
+            | null
+          download_expiry_hours?: number | null
+          download_limit?: number | null
           external_id?: string | null
           featured_image?: string | null
+          file_size_bytes?: number | null
           id?: string
           images?: string[] | null
           import_job_id?: string | null
@@ -3501,6 +3723,7 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           last_inventory_sync?: string | null
+          license_generator?: string | null
           low_stock_threshold?: number | null
           marketplace_mappings?: Json | null
           meta_description?: string | null
@@ -3508,6 +3731,7 @@ export type Database = {
           name?: string
           original_category_value?: string | null
           price?: number
+          product_type?: Database["public"]["Enums"]["product_type"] | null
           requires_shipping?: boolean | null
           short_description?: string | null
           sku?: string | null
@@ -5362,6 +5586,13 @@ export type Database = {
     }
     Enums: {
       app_role: "platform_admin" | "tenant_admin" | "staff"
+      digital_delivery_type:
+        | "download"
+        | "license_key"
+        | "access_url"
+        | "email_attachment"
+        | "qr_code"
+        | "external_service"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
       order_status:
         | "pending"
@@ -5370,6 +5601,12 @@ export type Database = {
         | "delivered"
         | "cancelled"
       payment_status: "pending" | "paid" | "refunded" | "failed"
+      product_type:
+        | "physical"
+        | "digital"
+        | "service"
+        | "subscription"
+        | "bundle"
       quote_status:
         | "draft"
         | "sent"
@@ -5505,6 +5742,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["platform_admin", "tenant_admin", "staff"],
+      digital_delivery_type: [
+        "download",
+        "license_key",
+        "access_url",
+        "email_attachment",
+        "qr_code",
+        "external_service",
+      ],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
       order_status: [
         "pending",
@@ -5514,6 +5759,13 @@ export const Constants = {
         "cancelled",
       ],
       payment_status: ["pending", "paid", "refunded", "failed"],
+      product_type: [
+        "physical",
+        "digital",
+        "service",
+        "subscription",
+        "bundle",
+      ],
       quote_status: [
         "draft",
         "sent",
