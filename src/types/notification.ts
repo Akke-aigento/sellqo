@@ -188,6 +188,7 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
     label: 'Systeem',
     icon: 'Settings',
     types: [
+      { type: 'platform_gift', label: 'Gratis geschenk', description: 'Ontvang meldingen wanneer je gratis credits, maanden of features krijgt', defaultInApp: true, defaultEmail: true },
       { type: 'platform_update', label: 'Platform update', description: 'Nieuwe platform update beschikbaar', defaultInApp: true, defaultEmail: false },
       { type: 'feature_new', label: 'Nieuwe functie', description: 'Nieuwe functie beschikbaar', defaultInApp: true, defaultEmail: false },
       { type: 'usage_limit_80', label: '80% limiet', description: '80% van plan limiet bereikt', defaultInApp: true, defaultEmail: true },
