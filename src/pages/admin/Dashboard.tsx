@@ -11,6 +11,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { DashboardMarketplaceWidget } from '@/components/admin/marketplace/DashboardMarketplaceWidget';
+import { DashboardAIWidget } from '@/components/admin/marketing/DashboardAIWidget';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -142,9 +143,12 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Marketplace Widget */}
-        <DashboardMarketplaceWidget />
+        {/* AI Marketing Widget */}
+        <DashboardAIWidget />
       </div>
+
+      {/* Marketplace Widget */}
+      <DashboardMarketplaceWidget />
 
       {/* Low Stock Alerts */}
       <Card>

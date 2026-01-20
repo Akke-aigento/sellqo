@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/hooks/useTenant';
@@ -25,12 +26,22 @@ const campaignSchema = z.object({
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
 
+interface CampaignDefaultValues {
+  name?: string;
+  subject?: string;
+  preview_text?: string;
+  segment_id?: string;
+  html_content?: string;
+}
+
 interface CampaignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaign?: EmailCampaign;
   onSave: (data: CampaignFormData & { tenant_id: string; status: string }) => void;
   isLoading?: boolean;
+  defaultValues?: CampaignDefaultValues;
+  isAIGenerated?: boolean;
 }
 
 const defaultHtmlContent = `<!DOCTYPE html>
@@ -64,7 +75,15 @@ const defaultHtmlContent = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export function CampaignDialog({ open, onOpenChange, campaign, onSave, isLoading }: CampaignDialogProps) {
+export function CampaignDialog({ 
+  open, 
+  onOpenChange, 
+  campaign, 
+  onSave, 
+  isLoading,
+  defaultValues,
+  isAIGenerated 
+}: CampaignDialogProps) {
   const { currentTenant } = useTenant();
   const { templates } = useEmailTemplates();
   const { segments } = useCustomerSegments();
@@ -72,14 +91,48 @@ export function CampaignDialog({ open, onOpenChange, campaign, onSave, isLoading
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
-      name: campaign?.name || '',
-      subject: campaign?.subject || '',
-      preview_text: campaign?.preview_text || '',
-      segment_id: campaign?.segment_id || '',
-      template_id: campaign?.template_id || '',
-      html_content: campaign?.html_content || defaultHtmlContent,
+      name: '',
+      subject: '',
+      preview_text: '',
+      segment_id: '',
+      template_id: '',
+      html_content: defaultHtmlContent,
     },
   });
+
+  // Reset form when dialog opens with new values
+  useEffect(() => {
+    if (open) {
+      if (campaign) {
+        form.reset({
+          name: campaign.name || '',
+          subject: campaign.subject || '',
+          preview_text: campaign.preview_text || '',
+          segment_id: campaign.segment_id || '',
+          template_id: campaign.template_id || '',
+          html_content: campaign.html_content || defaultHtmlContent,
+        });
+      } else if (defaultValues) {
+        form.reset({
+          name: defaultValues.name || '',
+          subject: defaultValues.subject || '',
+          preview_text: defaultValues.preview_text || '',
+          segment_id: defaultValues.segment_id || '',
+          template_id: '',
+          html_content: defaultValues.html_content || defaultHtmlContent,
+        });
+      } else {
+        form.reset({
+          name: '',
+          subject: '',
+          preview_text: '',
+          segment_id: '',
+          template_id: '',
+          html_content: defaultHtmlContent,
+        });
+      }
+    }
+  }, [open, campaign, defaultValues, form]);
 
   const selectedTemplateId = form.watch('template_id');
   const selectedSegmentId = form.watch('segment_id');
@@ -111,11 +164,20 @@ export function CampaignDialog({ open, onOpenChange, campaign, onSave, isLoading
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
             {campaign ? 'Campagne bewerken' : 'Nieuwe campagne aanmaken'}
+            {isAIGenerated && (
+              <Badge variant="secondary" className="ml-2 flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                AI gegenereerd
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Maak een email campagne aan om naar je klanten te versturen.
+            {isAIGenerated 
+              ? 'Deze campagne is door AI gegenereerd. Pas aan waar nodig.'
+              : 'Maak een email campagne aan om naar je klanten te versturen.'
+            }
           </DialogDescription>
         </DialogHeader>
 
