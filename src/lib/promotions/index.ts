@@ -92,6 +92,9 @@ export function calculateCartPromotions(options: CalculateCartOptions): CartCalc
     loyalty_points_redeemed: 0,
     loyalty_discount: 0,
     free_shipping: false,
+    applied_gift_cards: [],
+    gift_card_total: 0,
+    final_amount_due: originalSubtotal,
   };
 
   if (items.length === 0) return result;
