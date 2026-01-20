@@ -26,6 +26,9 @@ import {
   Percent,
   Gift,
   ListOrdered,
+  CloudOff,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,6 +49,9 @@ import { toast } from 'sonner';
 import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons, usePOSParkedCarts, usePOSCashMovements } from '@/hooks/usePOS';
 import { useProducts } from '@/hooks/useProducts';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
+import { usePOSOffline, OfflineTransaction } from '@/hooks/usePOSOffline';
+import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/hooks/useAuth';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
@@ -63,6 +69,7 @@ import type { Product } from '@/types/product';
 import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function POSTerminalPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
@@ -77,6 +84,55 @@ export default function POSTerminalPage() {
   const { parkedCarts, parkCart, resumeCart } = usePOSParkedCarts(terminalId);
   const { products } = useProducts();
   const { readers, listReaders, isProcessing: isStripeProcessing } = useStripeTerminal();
+  const { currentTenant } = useTenant();
+  const { user } = useAuth();
+  
+  // Offline sync handler
+  const handleSyncTransaction = useCallback(async (offlineTxn: OfflineTransaction): Promise<POSTransaction | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('pos_transactions')
+        .insert([{
+          tenant_id: offlineTxn.tenantId,
+          terminal_id: offlineTxn.terminalId,
+          session_id: offlineTxn.sessionId,
+          cashier_id: offlineTxn.cashierId,
+          customer_id: offlineTxn.customerId || null,
+          items: JSON.parse(JSON.stringify(offlineTxn.items)),
+          payments: JSON.parse(JSON.stringify(offlineTxn.payments)),
+          cash_received: offlineTxn.cashReceived || null,
+          cash_change: offlineTxn.cashChange || null,
+          subtotal: offlineTxn.subtotal,
+          discount_total: offlineTxn.discountTotal,
+          tax_total: offlineTxn.taxTotal,
+          total: offlineTxn.total,
+          status: 'completed',
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as POSTransaction;
+    } catch (error) {
+      console.error('Failed to sync offline transaction:', error);
+      throw error;
+    }
+  }, []);
+
+  // Offline queue hook
+  const { 
+    isOnline, 
+    pendingCount, 
+    isSyncing, 
+    saveForOffline, 
+    syncAll 
+  } = usePOSOffline({
+    terminalId,
+    tenantId: currentTenant?.id,
+    userId: user?.id,
+    onSyncTransaction: handleSyncTransaction,
+    enabled: !!activeSession,
+  });
   
   // Local State
   const [cart, setCart] = useState<POSCartItem[]>([]);
@@ -256,7 +312,7 @@ export default function POSTerminalPage() {
     toast.success(data.movement_type === 'in' ? 'Kasstorting geregistreerd' : 'Kasopname geregistreerd');
   };
   
-  // Handle cash payment
+  // Handle cash payment (with offline support)
   const handleCashPayment = async () => {
     if (!terminalId || cart.length === 0) return;
     
@@ -268,6 +324,37 @@ export default function POSTerminalPage() {
       amount: cartTotals.total,
     }];
     
+    // If offline, save to IndexedDB queue
+    if (!isOnline) {
+      try {
+        const offlineTxn = await saveForOffline({
+          items: cart,
+          payments,
+          sessionId: activeSession?.id || null,
+          cashReceived: cashReceivedAmount,
+          cashChange: cashChangeAmount,
+          customerId: selectedCustomer?.id,
+        });
+        
+        if (offlineTxn) {
+          toast.success(`Offline verkoop opgeslagen! Wisselgeld: ${formatCurrency(cashChangeAmount)}`, {
+            description: 'Wordt gesynchroniseerd wanneer online.',
+          });
+          clearCart();
+          setSelectedCustomer(null);
+          setCartDiscount(null);
+          setShowPaymentDialog(false);
+          setCashReceived('');
+        } else {
+          toast.error('Kon offline verkoop niet opslaan');
+        }
+      } catch (error) {
+        toast.error('Fout bij offline opslag');
+      }
+      return;
+    }
+    
+    // Online: proceed with normal transaction
     try {
       const transaction = await createTransaction.mutateAsync({
         terminalId,
@@ -533,6 +620,29 @@ export default function POSTerminalPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Offline/Sync Status */}
+          {!isOnline && (
+            <Badge variant="destructive" className="gap-1">
+              <CloudOff className="h-3 w-3" />
+              Offline
+            </Badge>
+          )}
+          {pendingCount > 0 && (
+            <Button
+              variant={isOnline ? 'outline' : 'secondary'}
+              size="sm"
+              onClick={() => isOnline && syncAll()}
+              disabled={isSyncing || !isOnline}
+            >
+              {isSyncing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              {pendingCount} wachtend
+            </Button>
+          )}
+          
           {/* Reader Status */}
           <Button
             variant="outline"
@@ -556,7 +666,6 @@ export default function POSTerminalPage() {
               </>
             )}
           </Button>
-          
           {parkedCarts.length > 0 && (
             <Button 
               variant="outline" 
