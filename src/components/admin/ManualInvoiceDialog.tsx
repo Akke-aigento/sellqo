@@ -169,12 +169,12 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
           {/* Customer Selection */}
           <div className="space-y-2">
             <Label>Klant (optioneel)</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
+            <Select value={customerId || "none"} onValueChange={(val) => setCustomerId(val === "none" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecteer een klant..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Geen klant geselecteerd</SelectItem>
+                <SelectItem value="none">Geen klant geselecteerd</SelectItem>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
                     {`${customer.first_name} ${customer.last_name}`.trim() || customer.email}

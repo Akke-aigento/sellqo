@@ -204,14 +204,14 @@ export function CampaignDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Template (optioneel)</FormLabel>
-                    <Select onValueChange={handleTemplateChange} value={field.value}>
+                    <Select onValueChange={(val) => handleTemplateChange(val === "none" ? "" : val)} value={field.value || "none"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecteer een template..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Geen template</SelectItem>
+                        <SelectItem value="none">Geen template</SelectItem>
                         {templates.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
                             {template.name}
@@ -230,14 +230,14 @@ export function CampaignDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Doelgroep</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(val) => field.onChange(val === "all" ? "" : val)} value={field.value || "all"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Alle klanten" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Alle geabonneerde klanten</SelectItem>
+                        <SelectItem value="all">Alle geabonneerde klanten</SelectItem>
                         {segments.map((segment) => (
                           <SelectItem key={segment.id} value={segment.id}>
                             {segment.name} ({segment.member_count} klanten)
