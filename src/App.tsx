@@ -31,6 +31,7 @@ import SettingsPage from "./pages/admin/Settings";
 import ImportPage from "./pages/admin/Import";
 import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
+import MarketingPage from "./pages/admin/Marketing";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="settings" element={<SettingsPage />} />
               <Route path="connect" element={<MarketplacesPage />} />
               <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
+              <Route path="marketing" element={<MarketingPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="platform" element={

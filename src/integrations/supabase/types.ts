@@ -49,6 +49,72 @@ export type Database = {
           },
         ]
       }
+      campaign_sends: {
+        Row: {
+          bounced_at: string | null
+          campaign_id: string
+          clicked_at: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string | null
+          delivered_at: string | null
+          email: string
+          error_message: string | null
+          id: string
+          opened_at: string | null
+          resend_id: string | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          bounced_at?: string | null
+          campaign_id: string
+          clicked_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          email: string
+          error_message?: string | null
+          id?: string
+          opened_at?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          bounced_at?: string | null
+          campaign_id?: string
+          clicked_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          email?: string
+          error_message?: string | null
+          id?: string
+          opened_at?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sends_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -244,6 +310,50 @@ export type Database = {
           },
         ]
       }
+      customer_segments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          filter_rules: Json
+          id: string
+          is_dynamic: boolean | null
+          member_count: number | null
+          name: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          filter_rules?: Json
+          id?: string
+          is_dynamic?: boolean | null
+          member_count?: number | null
+          name: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          filter_rules?: Json
+          id?: string
+          is_dynamic?: boolean | null
+          member_count?: number | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           billing_address_verified: boolean | null
@@ -257,11 +367,16 @@ export type Database = {
           default_billing_address: Json | null
           default_shipping_address: Json | null
           email: string
+          email_engagement_score: number | null
+          email_subscribed: boolean | null
+          email_subscribed_at: string | null
           external_id: string | null
           first_name: string | null
           id: string
           import_job_id: string | null
           imported_at: string | null
+          last_email_opened_at: string | null
+          last_email_sent_at: string | null
           last_name: string | null
           notes: string | null
           peppol_id: string | null
@@ -293,11 +408,16 @@ export type Database = {
           default_billing_address?: Json | null
           default_shipping_address?: Json | null
           email: string
+          email_engagement_score?: number | null
+          email_subscribed?: boolean | null
+          email_subscribed_at?: string | null
           external_id?: string | null
           first_name?: string | null
           id?: string
           import_job_id?: string | null
           imported_at?: string | null
+          last_email_opened_at?: string | null
+          last_email_sent_at?: string | null
           last_name?: string | null
           notes?: string | null
           peppol_id?: string | null
@@ -329,11 +449,16 @@ export type Database = {
           default_billing_address?: Json | null
           default_shipping_address?: Json | null
           email?: string
+          email_engagement_score?: number | null
+          email_subscribed?: boolean | null
+          email_subscribed_at?: string | null
           external_id?: string | null
           first_name?: string | null
           id?: string
           import_job_id?: string | null
           imported_at?: string | null
+          last_email_opened_at?: string | null
+          last_email_sent_at?: string | null
           last_name?: string | null
           notes?: string | null
           peppol_id?: string | null
@@ -363,6 +488,265 @@ export type Database = {
           },
           {
             foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_automations: {
+        Row: {
+          created_at: string | null
+          delay_hours: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          template_id: string | null
+          tenant_id: string
+          total_converted: number | null
+          total_sent: number | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delay_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          template_id?: string | null
+          tenant_id: string
+          total_converted?: number | null
+          total_sent?: number | null
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delay_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          template_id?: string | null
+          tenant_id?: string
+          total_converted?: number | null
+          total_sent?: number | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_automations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          html_content: string
+          id: string
+          name: string
+          preview_text: string | null
+          scheduled_at: string | null
+          segment_id: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          template_id: string | null
+          tenant_id: string
+          total_bounced: number | null
+          total_clicked: number | null
+          total_delivered: number | null
+          total_opened: number | null
+          total_recipients: number | null
+          total_sent: number | null
+          total_unsubscribed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          html_content: string
+          id?: string
+          name: string
+          preview_text?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          template_id?: string | null
+          tenant_id: string
+          total_bounced?: number | null
+          total_clicked?: number | null
+          total_delivered?: number | null
+          total_opened?: number | null
+          total_recipients?: number | null
+          total_sent?: number | null
+          total_unsubscribed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          html_content?: string
+          id?: string
+          name?: string
+          preview_text?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          template_id?: string | null
+          tenant_id?: string
+          total_bounced?: number | null
+          total_clicked?: number | null
+          total_delivered?: number | null
+          total_opened?: number | null
+          total_recipients?: number | null
+          total_sent?: number | null
+          total_unsubscribed?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          html_content: string
+          id: string
+          is_default: boolean | null
+          json_content: Json | null
+          name: string
+          subject: string
+          tenant_id: string
+          thumbnail_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          html_content: string
+          id?: string
+          is_default?: boolean | null
+          json_content?: Json | null
+          name: string
+          subject: string
+          tenant_id: string
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          html_content?: string
+          id?: string
+          is_default?: boolean | null
+          json_content?: Json | null
+          name?: string
+          subject?: string
+          tenant_id?: string
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_unsubscribes: {
+        Row: {
+          campaign_id: string | null
+          customer_id: string | null
+          email: string
+          id: string
+          reason: string | null
+          tenant_id: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          customer_id?: string | null
+          email: string
+          id?: string
+          reason?: string | null
+          tenant_id: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          customer_id?: string | null
+          email?: string
+          id?: string
+          reason?: string | null
+          tenant_id?: string
+          unsubscribed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_unsubscribes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2002,6 +2386,42 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      segment_members: {
+        Row: {
+          added_at: string | null
+          customer_id: string
+          id: string
+          segment_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          customer_id: string
+          id?: string
+          segment_id: string
+        }
+        Update: {
+          added_at?: string | null
+          customer_id?: string
+          id?: string
+          segment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "segment_members_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "segment_members_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
             referencedColumns: ["id"]
           },
         ]
