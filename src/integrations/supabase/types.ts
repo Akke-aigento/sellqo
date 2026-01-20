@@ -6654,6 +6654,19 @@ export type Database = {
             Args: { p_monthly_credits: number; p_tenant_id: string }
             Returns: undefined
           }
+      send_notification: {
+        Args: {
+          p_action_url?: string
+          p_category: string
+          p_data?: Json
+          p_message: string
+          p_priority?: string
+          p_tenant_id: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       update_ai_learning_pattern: {
         Args: {
           p_learned_value: Json
