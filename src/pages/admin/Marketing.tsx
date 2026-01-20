@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +50,12 @@ export default function MarketingPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link to="/admin/marketing/ai">
+            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI Marketing Hub
+            </Button>
+          </Link>
           <Button variant="outline" onClick={() => setSegmentDialogOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
             Nieuw segment
