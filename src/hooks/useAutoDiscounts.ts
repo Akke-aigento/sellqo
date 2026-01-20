@@ -60,7 +60,7 @@ export function useCreateAutoDiscount() {
 
       const { data, error } = await supabase
         .from('automatic_discounts')
-        .insert({
+        .insert([{
           name: formData.name,
           description: formData.description,
           trigger_type: formData.trigger_type,
@@ -72,13 +72,13 @@ export function useCreateAutoDiscount() {
           applies_to: formData.applies_to,
           product_ids: formData.product_ids,
           max_discount_amount: formData.max_discount_amount,
-          schedule: formData.schedule as unknown as Record<string, unknown>,
+          schedule: formData.schedule ? JSON.parse(JSON.stringify(formData.schedule)) : null,
           priority: formData.priority,
           is_active: formData.is_active,
           valid_from: formData.valid_from,
           valid_until: formData.valid_until,
           tenant_id: currentTenant.id,
-        })
+        }])
         .select()
         .single();
 
