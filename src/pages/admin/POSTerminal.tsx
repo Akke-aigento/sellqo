@@ -22,6 +22,8 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
+  Tag,
+  Percent,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,8 +50,11 @@ import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
 import { ReceiptDialog } from '@/components/admin/pos/ReceiptDialog';
 import { SessionReportDialog } from '@/components/admin/pos/SessionReportDialog';
 import { CashMovementDialog } from '@/components/admin/pos/CashMovementDialog';
+import { POSCustomerDialog } from '@/components/admin/pos/POSCustomerDialog';
+import { POSDiscountPanel, POSDiscount } from '@/components/admin/pos/POSDiscountPanel';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { Product } from '@/types/product';
+import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
 
 export default function POSTerminalPage() {
@@ -79,11 +84,15 @@ export default function POSTerminalPage() {
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [showSessionReportDialog, setShowSessionReportDialog] = useState(false);
   const [showCashMovementDialog, setShowCashMovementDialog] = useState(false);
+  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
+  const [showDiscountPanel, setShowDiscountPanel] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
   const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [cartDiscount, setCartDiscount] = useState<POSDiscount | null>(null);
   const terminal = terminals.find(t => t.id === terminalId);
   
   // Load Stripe readers on mount
@@ -105,14 +114,27 @@ export default function POSTerminalPage() {
   
   // Calculate totals
   const cartTotals = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const discount = cart.reduce((sum, item) => sum + item.discount, 0);
-    const taxRate = 21; // Default VAT
-    const taxTotal = (subtotal - discount) * (taxRate / 100);
-    const total = subtotal - discount + taxTotal;
+    const itemSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const itemDiscount = cart.reduce((sum, item) => sum + item.discount, 0);
     
-    return { subtotal, discount, taxTotal, total };
-  }, [cart]);
+    // Apply cart-level discount
+    let cartDiscountAmount = 0;
+    if (cartDiscount) {
+      if (cartDiscount.type === 'percentage') {
+        cartDiscountAmount = (itemSubtotal * cartDiscount.value) / 100;
+      } else {
+        cartDiscountAmount = cartDiscount.value;
+      }
+    }
+    
+    const totalDiscount = itemDiscount + cartDiscountAmount;
+    const subtotal = itemSubtotal;
+    const taxRate = 21; // Default VAT
+    const taxTotal = (subtotal - totalDiscount) * (taxRate / 100);
+    const total = subtotal - totalDiscount + taxTotal;
+    
+    return { subtotal, discount: totalDiscount, cartDiscountAmount, taxTotal, total };
+  }, [cart, cartDiscount]);
   
   // Add product to cart
   const addToCart = useCallback((product: Product) => {
@@ -243,10 +265,13 @@ export default function POSTerminalPage() {
         payments,
         cashReceived: cashReceivedAmount,
         cashChange: cashChangeAmount,
+        customerId: selectedCustomer?.id,
       });
       
       toast.success(`Betaling succesvol! Wisselgeld: ${formatCurrency(cashChangeAmount)}`);
       clearCart();
+      setSelectedCustomer(null);
+      setCartDiscount(null);
       setShowPaymentDialog(false);
       setCashReceived('');
       
@@ -288,10 +313,13 @@ export default function POSTerminalPage() {
         stripePaymentIntentId: paymentIntentId,
         cardBrand: cardDetails?.brand,
         cardLast4: cardDetails?.last4,
+        customerId: selectedCustomer?.id,
       });
       
       toast.success('Kaartbetaling succesvol!');
       clearCart();
+      setSelectedCustomer(null);
+      setCartDiscount(null);
       setShowCardPaymentDialog(false);
       
       // Show receipt dialog
@@ -584,6 +612,53 @@ export default function POSTerminalPage() {
             )}
           </div>
           
+          {/* Customer & Discount Bar */}
+          {(selectedCustomer || cartDiscount) && (
+            <div className="px-4 py-2 border-b bg-muted/30 space-y-1">
+              {selectedCustomer && (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate">
+                      {selectedCustomer.company_name || 
+                       `${selectedCustomer.first_name || ''} ${selectedCustomer.last_name || ''}`.trim() || 
+                       selectedCustomer.email}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5" 
+                    onClick={() => setSelectedCustomer(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              {cartDiscount && (
+                <div className="flex items-center justify-between text-sm text-green-600">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-3 w-3" />
+                    <span>
+                      {cartDiscount.type === 'percentage' 
+                        ? `${cartDiscount.value}% korting` 
+                        : `€${cartDiscount.value} korting`}
+                      {cartDiscount.reason && ` (${cartDiscount.reason})`}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5" 
+                    onClick={() => setCartDiscount(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Cart Items */}
           <ScrollArea className="flex-1">
             {cart.length === 0 ? (
@@ -672,7 +747,7 @@ export default function POSTerminalPage() {
             </div>
             
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button 
                 variant="outline" 
                 disabled={cart.length === 0}
@@ -682,11 +757,19 @@ export default function POSTerminalPage() {
                 Parkeren
               </Button>
               <Button 
-                variant="outline"
-                disabled={cart.length === 0}
+                variant={selectedCustomer ? 'secondary' : 'outline'}
+                onClick={() => setShowCustomerDialog(true)}
               >
                 <User className="mr-2 h-4 w-4" />
-                Klant
+                {selectedCustomer ? 'Klant ✓' : 'Klant'}
+              </Button>
+              <Button 
+                variant={cartDiscount ? 'secondary' : 'outline'}
+                disabled={cart.length === 0}
+                onClick={() => setShowDiscountPanel(true)}
+              >
+                <Percent className="mr-2 h-4 w-4" />
+                {cartDiscount ? 'Korting ✓' : 'Korting'}
               </Button>
             </div>
             
@@ -948,6 +1031,23 @@ export default function POSTerminalPage() {
         onOpenChange={setShowCashMovementDialog}
         onSubmit={handleCashMovement}
         isPending={createMovement.isPending}
+      />
+
+      {/* Customer Dialog */}
+      <POSCustomerDialog
+        open={showCustomerDialog}
+        onOpenChange={setShowCustomerDialog}
+        selectedCustomer={selectedCustomer}
+        onSelectCustomer={setSelectedCustomer}
+      />
+
+      {/* Discount Panel */}
+      <POSDiscountPanel
+        open={showDiscountPanel}
+        onOpenChange={setShowDiscountPanel}
+        currentDiscount={cartDiscount}
+        cartSubtotal={cartTotals.subtotal}
+        onApplyDiscount={setCartDiscount}
       />
     </div>
   );

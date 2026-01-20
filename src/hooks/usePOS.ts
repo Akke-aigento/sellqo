@@ -333,6 +333,8 @@ export function usePOSTransactions(sessionId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });
+      // Invalidate product queries to reflect stock changes from database trigger
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: 'Verkoop voltooid' });
     },
     onError: (error: Error) => {
