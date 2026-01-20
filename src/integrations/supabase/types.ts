@@ -3889,6 +3889,76 @@ export type Database = {
           },
         ]
       }
+      product_suppliers: {
+        Row: {
+          created_at: string
+          currency: string | null
+          id: string
+          is_primary: boolean | null
+          lead_time_days: number | null
+          minimum_order_quantity: number | null
+          notes: string | null
+          product_id: string
+          purchase_price: number
+          supplier_id: string
+          supplier_sku: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_primary?: boolean | null
+          lead_time_days?: number | null
+          minimum_order_quantity?: number | null
+          notes?: string | null
+          product_id: string
+          purchase_price: number
+          supplier_id: string
+          supplier_sku?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_primary?: boolean | null
+          lead_time_days?: number | null
+          minimum_order_quantity?: number | null
+          notes?: string | null
+          product_id?: string
+          purchase_price?: number
+          supplier_id?: string
+          supplier_sku?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_suppliers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_suppliers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           access_duration_days: number | null
@@ -4262,6 +4332,169 @@ export type Database = {
           },
           {
             foreignKeyName: "proforma_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total: number
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          product_supplier_id: string | null
+          purchase_order_id: string
+          quantity_ordered: number
+          quantity_received: number | null
+          supplier_sku: string | null
+          tax_rate: number | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total: number
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          product_supplier_id?: string | null
+          purchase_order_id: string
+          quantity_ordered: number
+          quantity_received?: number | null
+          supplier_sku?: string | null
+          tax_rate?: number | null
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total?: number
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_supplier_id?: string | null
+          purchase_order_id?: string
+          quantity_ordered?: number
+          quantity_received?: number | null
+          supplier_sku?: string | null
+          tax_rate?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_supplier_id_fkey"
+            columns: ["product_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "product_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          actual_delivery_date: string | null
+          cancelled_at: string | null
+          confirmed_at: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          expected_delivery_date: string | null
+          id: string
+          internal_notes: string | null
+          notes: string | null
+          order_date: string | null
+          order_number: string
+          received_at: string | null
+          sent_at: string | null
+          shipped_at: string | null
+          shipping_cost: number | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          subtotal: number | null
+          supplier_id: string
+          tax_amount: number | null
+          tenant_id: string
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          actual_delivery_date?: string | null
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_date?: string | null
+          order_number: string
+          received_at?: string | null
+          sent_at?: string | null
+          shipped_at?: string | null
+          shipping_cost?: number | null
+          status?: Database["public"]["Enums"]["purchase_order_status"] | null
+          subtotal?: number | null
+          supplier_id: string
+          tax_amount?: number | null
+          tenant_id: string
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actual_delivery_date?: string | null
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_date?: string | null
+          order_number?: string
+          received_at?: string | null
+          sent_at?: string | null
+          shipped_at?: string | null
+          shipping_cost?: number | null
+          status?: Database["public"]["Enums"]["purchase_order_status"] | null
+          subtotal?: number | null
+          supplier_id?: string
+          tax_amount?: number | null
+          tenant_id?: string
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5089,6 +5322,198 @@ export type Database = {
           },
           {
             foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_documents: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          document_date: string | null
+          document_number: string | null
+          document_type: Database["public"]["Enums"]["supplier_document_type"]
+          due_date: string | null
+          extracted_data: Json | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          notes: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          payment_status:
+            | Database["public"]["Enums"]["supplier_payment_status"]
+            | null
+          purchase_order_id: string | null
+          storage_path: string | null
+          supplier_id: string
+          tax_amount: number | null
+          tenant_id: string
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_type: Database["public"]["Enums"]["supplier_document_type"]
+          due_date?: string | null
+          extracted_data?: Json | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_status?:
+            | Database["public"]["Enums"]["supplier_payment_status"]
+            | null
+          purchase_order_id?: string | null
+          storage_path?: string | null
+          supplier_id: string
+          tax_amount?: number | null
+          tenant_id: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_type?: Database["public"]["Enums"]["supplier_document_type"]
+          due_date?: string | null
+          extracted_data?: Json | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_status?:
+            | Database["public"]["Enums"]["supplier_payment_status"]
+            | null
+          purchase_order_id?: string | null
+          storage_path?: string | null
+          supplier_id?: string
+          tax_amount?: number | null
+          tenant_id?: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_documents_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          bic: string | null
+          chamber_of_commerce: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          iban: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          payment_terms_days: number | null
+          phone: string | null
+          postal_code: string | null
+          rating: number | null
+          street: string | null
+          tags: string[] | null
+          tenant_id: string
+          updated_at: string
+          vat_number: string | null
+          website: string | null
+        }
+        Insert: {
+          bic?: string | null
+          chamber_of_commerce?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          payment_terms_days?: number | null
+          phone?: string | null
+          postal_code?: string | null
+          rating?: number | null
+          street?: string | null
+          tags?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Update: {
+          bic?: string | null
+          chamber_of_commerce?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          payment_terms_days?: number | null
+          phone?: string | null
+          postal_code?: string | null
+          rating?: number | null
+          street?: string | null
+          tags?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5940,6 +6365,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: string
       }
+      generate_po_number: { Args: { p_tenant_id: string }; Returns: string }
       generate_proforma_number: {
         Args: { _tenant_id: string }
         Returns: string
@@ -6048,6 +6474,14 @@ export type Database = {
         | "subscription"
         | "bundle"
         | "gift_card"
+      purchase_order_status:
+        | "draft"
+        | "sent"
+        | "confirmed"
+        | "shipped"
+        | "partially_received"
+        | "received"
+        | "cancelled"
       quote_status:
         | "draft"
         | "sent"
@@ -6055,6 +6489,19 @@ export type Database = {
         | "declined"
         | "expired"
         | "converted"
+      supplier_document_type:
+        | "invoice"
+        | "quote"
+        | "delivery_note"
+        | "credit_note"
+        | "contract"
+        | "other"
+      supplier_payment_status:
+        | "pending"
+        | "partial"
+        | "paid"
+        | "overdue"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6235,6 +6682,15 @@ export const Constants = {
         "bundle",
         "gift_card",
       ],
+      purchase_order_status: [
+        "draft",
+        "sent",
+        "confirmed",
+        "shipped",
+        "partially_received",
+        "received",
+        "cancelled",
+      ],
       quote_status: [
         "draft",
         "sent",
@@ -6242,6 +6698,21 @@ export const Constants = {
         "declined",
         "expired",
         "converted",
+      ],
+      supplier_document_type: [
+        "invoice",
+        "quote",
+        "delivery_note",
+        "credit_note",
+        "contract",
+        "other",
+      ],
+      supplier_payment_status: [
+        "pending",
+        "partial",
+        "paid",
+        "overdue",
+        "cancelled",
       ],
     },
   },
