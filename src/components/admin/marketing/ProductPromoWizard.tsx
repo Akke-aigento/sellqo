@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductSelectDialog } from './ProductSelectDialog';
-import { PromoKitResult } from './PromoKitResult';
+import { PromoKitResult, type PromoKit } from './PromoKitResult';
 import { useProducts } from '@/hooks/useProducts';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useTenant } from '@/hooks/useTenant';
@@ -43,37 +43,6 @@ const languageOptions: { value: Language; label: string; flag: string }[] = [
   { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
   { value: 'fr', label: 'Français', flag: '🇫🇷' },
 ];
-
-export interface PromoKit {
-  productId: string;
-  productName: string;
-  tone: Tone;
-  language: Language;
-  images: {
-    original: string | null;
-    enhanced: string | null;
-    generated: string | null;
-  };
-  social: {
-    instagram: { caption: string; hashtags: string[] };
-    facebook: { post: string };
-    linkedin: { post: string };
-    twitter: { tweet: string };
-  };
-  email: {
-    subjectLines: string[];
-    previewText: string;
-    bodySnippet: string;
-  };
-  slogans: string[];
-  suggestedTiming: {
-    bestDay: string;
-    bestTime: string;
-    reason: string;
-  };
-  creditsUsed: number;
-  generatedAt: string;
-}
 
 export function ProductPromoWizard({ open, onOpenChange }: ProductPromoWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);

@@ -1,51 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Sparkles, Bot, Zap, ArrowLeft, 
-  Instagram, Mail, Lightbulb, TrendingUp,
-  Library, ImageIcon, FlaskConical, BarChart3,
-  Rocket
-} from 'lucide-react';
+import { Bot, ArrowLeft, Library } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AICreditsBadge } from '@/components/admin/marketing/AICreditsBadge';
 import { AIInsightsCard } from '@/components/admin/marketing/AIInsightsCard';
-import { SocialPostGenerator } from '@/components/admin/marketing/SocialPostGenerator';
-import { AIEmailPlanner } from '@/components/admin/marketing/AIEmailPlanner';
-import { AICampaignSuggestions } from '@/components/admin/marketing/AICampaignSuggestions';
 import { AIContentLibrary } from '@/components/admin/marketing/AIContentLibrary';
-import { AIImageGenerator } from '@/components/admin/marketing/AIImageGenerator';
-import { ABTestingPanel } from '@/components/admin/marketing/ABTestingPanel';
-import { ContentEngagementStats } from '@/components/admin/marketing/ContentEngagementStats';
 import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchaseDialog';
-import { ProductPromoWizard } from '@/components/admin/marketing/ProductPromoWizard';
+import { InlinePromoWizard } from '@/components/admin/marketing/InlinePromoWizard';
+import { AdvancedToolsGrid } from '@/components/admin/marketing/AdvancedToolsGrid';
+import { RecentContentStrip } from '@/components/admin/marketing/RecentContentStrip';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
 import { toast } from 'sonner';
-import type { CampaignSuggestion } from '@/types/aiMarketing';
-
-// Map suggestion/insight types to campaign types
-const typeMapping: Record<string, string> = {
-  low_stock: 'low_stock',
-  win_back: 'win_back',
-  seasonal: 'newsletter',
-  new_product: 'new_product',
-  promotion: 'promotion',
-  newsletter: 'newsletter',
-};
 
 export default function AIMarketingHub() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('create');
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
-  const [promoWizardOpen, setPromoWizardOpen] = useState(false);
-  // Pre-fill state for generators
-  const [emailCampaignType, setEmailCampaignType] = useState<string | undefined>();
-  const [socialContentType, setSocialContentType] = useState<string | undefined>();
   
-  const { context, contextLoading, registerCreditCallback } = useAIMarketing();
+  const { registerCreditCallback } = useAIMarketing();
   const { refetch: refetchCredits } = useAICredits();
 
   // Register credit callback to open purchase dialog on credit errors
@@ -59,8 +35,8 @@ export default function AIMarketingHub() {
     const purchaseStatus = searchParams.get('purchase');
     const creditsAdded = searchParams.get('credits');
     
-    if (tab) {
-      setActiveTab(tab);
+    if (tab === 'library') {
+      setActiveTab('library');
     }
     
     if (purchaseStatus === 'success' && creditsAdded) {
@@ -86,40 +62,6 @@ export default function AIMarketingHub() {
     }
   }, [searchParams, refetchCredits, setSearchParams]);
 
-  // Handle suggestion click from AICampaignSuggestions
-  const handleSuggestionClick = (suggestion: CampaignSuggestion) => {
-    const mappedType = typeMapping[suggestion.type] || 'newsletter';
-    
-    if (suggestion.type === 'seasonal') {
-      // Seasonal -> Social media
-      setSocialContentType('seasonal');
-      setActiveTab('social');
-    } else {
-      // All others -> Email
-      setEmailCampaignType(mappedType);
-      setActiveTab('email');
-    }
-  };
-
-  // Handle insight click from AIInsightsCard
-  const handleInsightClick = (insight: { type: string }) => {
-    const mappedType = typeMapping[insight.type] || 'newsletter';
-    
-    if (insight.type === 'seasonal') {
-      setSocialContentType('seasonal');
-      setActiveTab('social');
-    } else {
-      setEmailCampaignType(mappedType);
-      setActiveTab('email');
-    }
-  };
-
-  // Reset prefill state when tab changes manually
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    // Don't reset if we just set it from a suggestion/insight
-  };
-
   return (
     <FeatureGate feature="ai_marketing">
       <div className="space-y-6">
@@ -136,10 +78,10 @@ export default function AIMarketingHub() {
                 <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
                   <Bot className="h-5 w-5 text-white" />
                 </div>
-                Sellqo AI Marketing
+                Sellqo AI
               </h1>
               <p className="text-muted-foreground">
-                Je persoonlijke AI marketing assistent
+                Genereer marketing content met één klik
               </p>
             </div>
           </div>
@@ -149,228 +91,34 @@ export default function AIMarketingHub() {
           />
         </div>
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="overview" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Overzicht</span>
+        {/* Minimal Tabs: Create | Library */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="w-full max-w-xs">
+            <TabsTrigger value="create" className="flex-1">
+              Creëren
             </TabsTrigger>
-            <TabsTrigger value="social" className="gap-2">
-              <Instagram className="h-4 w-4" />
-              <span className="hidden sm:inline">Social</span>
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2">
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Email</span>
-            </TabsTrigger>
-            <TabsTrigger value="images" className="gap-2">
-              <ImageIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Afbeeldingen</span>
-            </TabsTrigger>
-            <TabsTrigger value="abtesting" className="gap-2">
-              <FlaskConical className="h-4 w-4" />
-              <span className="hidden sm:inline">A/B Test</span>
-            </TabsTrigger>
-            <TabsTrigger value="suggestions" className="gap-2">
-              <Lightbulb className="h-4 w-4" />
-              <span className="hidden sm:inline">Suggesties</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="library" className="gap-2">
+            <TabsTrigger value="library" className="flex-1 gap-2">
               <Library className="h-4 w-4" />
-              <span className="hidden sm:inline">Bibliotheek</span>
+              Bibliotheek
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Product Promo Wizard CTA */}
-            <button
-              onClick={() => setPromoWizardOpen(true)}
-              className="w-full p-6 rounded-xl border-2 border-dashed border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5 hover:border-purple-500/60 hover:from-purple-500/10 hover:to-pink-500/10 transition-all text-left group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg group-hover:scale-105 transition-transform">
-                  <Rocket className="h-8 w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    Product Promotie Wizard
-                    <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-normal">
-                      NIEUW
-                    </span>
-                  </h3>
-                  <p className="text-muted-foreground mt-1">
-                    Selecteer een product, kies de toon, en AI genereert een complete marketing kit:
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="text-xs px-2 py-1 rounded-full bg-background border">📱 Social posts</span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-background border">📧 Email content</span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-background border">🖼️ Marketing afbeeldingen</span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-background border">💬 Slogans</span>
-                  </div>
-                </div>
-                <Sparkles className="h-6 w-6 text-purple-500 group-hover:animate-pulse" />
-              </div>
-            </button>
+          {/* Create Tab - Main Content */}
+          <TabsContent value="create" className="space-y-8">
+            {/* Hero: Inline Promo Wizard */}
+            <InlinePromoWizard onNeedCredits={() => setPurchaseDialogOpen(true)} />
 
+            {/* Two Column Layout: Insights + Advanced Tools */}
             <div className="grid gap-6 lg:grid-cols-2">
-              {/* AI Insights */}
-              <AIInsightsCard onInsightClick={handleInsightClick} />
+              {/* Left: AI Insights */}
+              <AIInsightsCard />
 
-              {/* Quick Actions */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">AI Acties</h3>
-                <div className="grid gap-3">
-                  <button
-                    onClick={() => setActiveTab('social')}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:border-pink-500/50 hover:bg-pink-500/5 transition-all text-left group"
-                  >
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500">
-                      <Instagram className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium group-hover:text-pink-600 transition-colors">
-                        Social Media Post Genereren
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Maak posts voor Instagram, Facebook, LinkedIn & X
-                      </p>
-                    </div>
-                    <Zap className="h-5 w-5 text-muted-foreground group-hover:text-pink-500" />
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('email')}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-left group"
-                  >
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500">
-                      <Mail className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium group-hover:text-blue-600 transition-colors">
-                        Email Campagne Content
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Laat AI je nieuwsbrief of promotie schrijven
-                      </p>
-                    </div>
-                    <Zap className="h-5 w-5 text-muted-foreground group-hover:text-blue-500" />
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('suggestions')}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left group"
-                  >
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
-                      <Lightbulb className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium group-hover:text-amber-600 transition-colors">
-                        Campagne Suggesties
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        AI analyseert je data en suggereert campagnes
-                      </p>
-                    </div>
-                    <Zap className="h-5 w-5 text-muted-foreground group-hover:text-amber-500" />
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('library')}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:border-green-500/50 hover:bg-green-500/5 transition-all text-left group"
-                  >
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-teal-500">
-                      <Library className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium group-hover:text-green-600 transition-colors">
-                        Content Bibliotheek
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Bekijk en hergebruik eerder gegenereerde content
-                      </p>
-                    </div>
-                    <Zap className="h-5 w-5 text-muted-foreground group-hover:text-green-500" />
-                  </button>
-                </div>
-              </div>
+              {/* Right: Recent Content */}
+              <RecentContentStrip />
             </div>
 
-            {/* Data Summary */}
-            {context && (
-              <div className="p-4 rounded-lg border bg-muted/30">
-                <h4 className="font-medium mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  Je Marketing Context
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  <div>
-                    <p className="text-2xl font-bold">{context.products.total}</p>
-                    <p className="text-xs text-muted-foreground">Producten</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{context.customers.subscribers}</p>
-                    <p className="text-xs text-muted-foreground">Abonnees</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{context.orders.lastMonth}</p>
-                    <p className="text-xs text-muted-foreground">Orders (30d)</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">€{context.orders.avgOrderValue}</p>
-                    <p className="text-xs text-muted-foreground">Gem. order</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{context.campaigns.avgOpenRate}%</p>
-                    <p className="text-xs text-muted-foreground">Open rate</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{context.products.lowStock.length}</p>
-                    <p className="text-xs text-muted-foreground">Lage voorraad</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Social Media Tab */}
-          <TabsContent value="social">
-            <SocialPostGenerator 
-              initialContentType={socialContentType as any}
-              key={socialContentType || 'social'} 
-            />
-          </TabsContent>
-
-          {/* Email Tab */}
-          <TabsContent value="email">
-            <AIEmailPlanner 
-              initialCampaignType={emailCampaignType as any}
-              key={emailCampaignType || 'email'}
-            />
-          </TabsContent>
-
-          {/* Suggestions Tab */}
-          <TabsContent value="suggestions">
-            <AICampaignSuggestions onSuggestionClick={handleSuggestionClick} />
-          </TabsContent>
-
-          {/* Images Tab */}
-          <TabsContent value="images">
-            <AIImageGenerator />
-          </TabsContent>
-
-          {/* A/B Testing Tab */}
-          <TabsContent value="abtesting">
-            <ABTestingPanel />
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics">
-            <ContentEngagementStats />
+            {/* Advanced Tools - Collapsible */}
+            <AdvancedToolsGrid />
           </TabsContent>
 
           {/* Library Tab */}
@@ -383,12 +131,6 @@ export default function AIMarketingHub() {
         <CreditPurchaseDialog
           open={purchaseDialogOpen}
           onOpenChange={setPurchaseDialogOpen}
-        />
-
-        {/* Product Promo Wizard */}
-        <ProductPromoWizard
-          open={promoWizardOpen}
-          onOpenChange={setPromoWizardOpen}
         />
       </div>
     </FeatureGate>
