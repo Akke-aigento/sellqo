@@ -62,6 +62,7 @@ import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { Product } from '@/types/product';
 import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 
 export default function POSTerminalPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
@@ -456,17 +457,43 @@ export default function POSTerminalPage() {
     setShowParkedCartsDialog(false);
   };
   
-  // Filtered products
+  // Filtered products (including barcode search)
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return [];
     const query = searchQuery.toLowerCase();
     return products
       .filter(p => 
         p.name.toLowerCase().includes(query) ||
-        p.sku?.toLowerCase().includes(query)
+        p.sku?.toLowerCase().includes(query) ||
+        p.barcode?.toLowerCase().includes(query)
       )
       .slice(0, 10);
   }, [products, searchQuery]);
+
+  // Find product by exact barcode match
+  const findProductByBarcode = useCallback((barcode: string): Product | undefined => {
+    return products.find(p => 
+      p.barcode?.toLowerCase() === barcode.toLowerCase() ||
+      p.sku?.toLowerCase() === barcode.toLowerCase()
+    );
+  }, [products]);
+
+  // Barcode scanner integration
+  useBarcodeScanner({
+    onScan: (barcode) => {
+      const product = findProductByBarcode(barcode);
+      if (product) {
+        addToCart(product);
+        toast.success(`${product.name} toegevoegd`);
+        setSearchQuery('');
+      } else {
+        // Show barcode in search so user can see what was scanned
+        setSearchQuery(barcode);
+        toast.error(`Product niet gevonden: ${barcode}`);
+      }
+    },
+    enabled: !!activeSession, // Only scan when session is active
+  });
   
   // Check if session needed
   useEffect(() => {
