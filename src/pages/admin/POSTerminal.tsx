@@ -18,6 +18,7 @@ import {
   Receipt,
   Wifi,
   WifiOff,
+  Grid3X3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +41,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
+import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
 import type { POSCartItem, POSPayment, POSPaymentMethod } from '@/types/pos';
 import type { Product } from '@/types/product';
 import { formatCurrency } from '@/lib/utils';
@@ -66,6 +68,7 @@ export default function POSTerminalPage() {
   const [showParkedCartsDialog, setShowParkedCartsDialog] = useState(false);
   const [showCardPaymentDialog, setShowCardPaymentDialog] = useState(false);
   const [showReaderDialog, setShowReaderDialog] = useState(false);
+  const [showQuickButtonDialog, setShowQuickButtonDialog] = useState(false);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
@@ -448,7 +451,18 @@ export default function POSTerminalPage() {
           
           {/* Quick Buttons */}
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Snelknoppen</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Snelknoppen</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowQuickButtonDialog(true)}
+                className="h-7 text-xs"
+              >
+                <Grid3X3 className="mr-1 h-3 w-3" />
+                Configureren
+              </Button>
+            </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
               {quickButtons.map((button) => (
                 <button
@@ -468,9 +482,13 @@ export default function POSTerminalPage() {
                 </button>
               ))}
               {quickButtons.length === 0 && (
-                <p className="col-span-full text-sm text-muted-foreground text-center py-4">
-                  Nog geen snelknoppen geconfigureerd
-                </p>
+                <button
+                  className="col-span-2 aspect-[2/1] rounded-lg border-2 border-dashed flex flex-col items-center justify-center p-2 hover:bg-muted transition-colors text-muted-foreground"
+                  onClick={() => setShowQuickButtonDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mb-1" />
+                  <span className="text-xs">Snelknop toevoegen</span>
+                </button>
               )}
             </div>
           </div>
@@ -784,6 +802,13 @@ export default function POSTerminalPage() {
         open={showReaderDialog}
         onOpenChange={setShowReaderDialog}
         onReaderSelect={handleReaderSelect}
+      />
+      
+      {/* Quick Button Configuration Dialog */}
+      <QuickButtonDialog
+        open={showQuickButtonDialog}
+        onOpenChange={setShowQuickButtonDialog}
+        terminalId={terminalId}
       />
       
       {/* Parked Carts Dialog */}
