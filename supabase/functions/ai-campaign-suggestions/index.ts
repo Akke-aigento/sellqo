@@ -119,6 +119,15 @@ Baseer je suggesties op de data. Prioriteer op basis van potentiële impact en u
     });
 
     if (!response.ok) {
+      console.error("AI Gateway error:", response.status);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit overschreden. Probeer het over een minuut opnieuw.' }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
