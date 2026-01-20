@@ -67,6 +67,8 @@ interface CheckoutFormProps {
   tenantVatRate?: number;
   ossEnabled?: boolean;
   ossThresholdReached?: boolean;
+  enableB2bCheckout?: boolean;
+  simplifiedVatMode?: boolean;
   onCustomerDataChange?: (data: CustomerFormData) => void;
 }
 
@@ -103,10 +105,13 @@ export function CheckoutForm({
   tenantVatRate = 21,
   ossEnabled = false,
   ossThresholdReached = false,
+  enableB2bCheckout = true,
+  simplifiedVatMode = false,
   onCustomerDataChange,
 }: CheckoutFormProps) {
   const { t } = useTranslation();
   
+  // Force B2C if B2B checkout is disabled
   const [customerType, setCustomerType] = useState<'b2b' | 'b2c'>('b2c');
   const [formData, setFormData] = useState<CustomerFormData>({
     customer_type: 'b2c',
@@ -146,6 +151,17 @@ export function CheckoutForm({
   }, [customerType, formData.billing_address.country, formData.vat_number, vatValidation.status, subtotal, shippingCost]);
 
   const calculateVatPreview = (): VatPreview => {
+    // Simplified VAT mode - always apply standard rate
+    if (simplifiedVatMode) {
+      const totalAmount = subtotal + shippingCost;
+      return {
+        type: 'standard',
+        rate: tenantVatRate,
+        amount: Math.round(totalAmount * (tenantVatRate / 100) * 100) / 100,
+        text: null,
+      };
+    }
+
     const customerCountry = formData.billing_address.country.toUpperCase();
     const isEuCountry = EU_COUNTRIES.some(c => c.code === customerCountry);
     const isSameCountry = tenantCountry.toUpperCase() === customerCountry;
@@ -259,40 +275,43 @@ export function CheckoutForm({
 
   return (
     <div className="space-y-6">
-      {/* Customer Type Toggle */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Klanttype</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Button
-              type="button"
-              variant={customerType === 'b2c' ? 'default' : 'outline'}
-              onClick={() => {
-                setCustomerType('b2c');
-                setVatValidation({ status: 'idle' });
-              }}
-              className="flex-1"
-            >
-              <User className="h-4 w-4 mr-2" />
-              Particulier
-            </Button>
-            <Button
-              type="button"
-              variant={customerType === 'b2b' ? 'default' : 'outline'}
-              onClick={() => setCustomerType('b2b')}
-              className="flex-1"
-            >
-              <Building2 className="h-4 w-4 mr-2" />
-              Zakelijk
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Customer Type Toggle - Only show if B2B is enabled and not in simplified mode */}
+      {enableB2bCheckout && !simplifiedVatMode && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Klanttype</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant={customerType === 'b2c' ? 'default' : 'outline'}
+                onClick={() => {
+                  setCustomerType('b2c');
+                  setVatValidation({ status: 'idle' });
+                }}
+                className="flex-1"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Particulier
+              </Button>
+              <Button
+                type="button"
+                variant={customerType === 'b2b' ? 'default' : 'outline'}
+                onClick={() => setCustomerType('b2b')}
+                className="flex-1"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                Zakelijk
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* B2B Fields */}
-      {customerType === 'b2b' && (
+      {/* B2B Fields - Only show if B2B enabled and customer type is B2B */}
+      {enableB2bCheckout && !simplifiedVatMode && customerType === 'b2b' && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Bedrijfsgegevens</CardTitle>

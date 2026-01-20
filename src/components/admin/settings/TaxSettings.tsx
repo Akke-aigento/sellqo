@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert, Send, CheckCircle2 } from 'lucide-react';
+import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert, Send, CheckCircle2, Building2, User, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useOssRevenue, OSS_THRESHOLD_AMOUNT } from '@/hooks/useOssRevenue';
@@ -29,7 +31,7 @@ export function TaxSettings() {
 
   const { data: ossRevenue, isLoading: ossLoading } = useOssRevenue();
 
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     default_vat_handling: 'inclusive',
     apply_oss_rules: false,
     oss_registration_date: '',
@@ -37,7 +39,12 @@ export function TaxSettings() {
     require_vies_validation: true,
     block_invalid_vat_orders: false,
     peppol_id: '',
+    enable_b2b_checkout: true,
+    simplified_vat_mode: false,
   });
+  
+  const [showSimplifiedDialog, setShowSimplifiedDialog] = useState(false);
+  const [simplifiedCheckbox, setSimplifiedCheckbox] = useState(false);
 
   useEffect(() => {
     if (currentTenant) {
@@ -50,6 +57,8 @@ export function TaxSettings() {
         require_vies_validation: tenantData.require_vies_validation ?? true,
         block_invalid_vat_orders: tenantData.block_invalid_vat_orders ?? false,
         peppol_id: tenantData.peppol_id || '',
+        enable_b2b_checkout: tenantData.enable_b2b_checkout ?? true,
+        simplified_vat_mode: tenantData.simplified_vat_mode ?? false,
       });
     }
   }, [currentTenant]);
@@ -69,6 +78,9 @@ export function TaxSettings() {
           require_vies_validation: formData.require_vies_validation,
           block_invalid_vat_orders: formData.block_invalid_vat_orders,
           peppol_id: formData.peppol_id || null,
+          enable_b2b_checkout: formData.enable_b2b_checkout,
+          simplified_vat_mode: formData.simplified_vat_mode,
+          simplified_vat_acknowledged_at: formData.simplified_vat_mode ? new Date().toISOString() : null,
         })
         .eq('id', currentTenant.id);
 
@@ -113,6 +125,173 @@ export function TaxSettings() {
           </ul>
         </AlertDescription>
       </Alert>
+
+      {/* B2B Checkout Toggle */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <CardTitle>B2B Verkoop</CardTitle>
+              <CardDescription>
+                Zakelijke klanten toestaan met BTW-nummer
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-1">
+              <p className="font-medium">B2B checkout inschakelen</p>
+              <p className="text-sm text-muted-foreground">
+                Zakelijke klanten kunnen hun BTW-nummer invoeren voor reverse charge
+              </p>
+            </div>
+            <Switch
+              checked={formData.enable_b2b_checkout}
+              onCheckedChange={(checked) => 
+                setFormData(prev => ({ ...prev, enable_b2b_checkout: checked }))
+              }
+            />
+          </div>
+
+          {!formData.enable_b2b_checkout && (
+            <Alert>
+              <User className="h-4 w-4" />
+              <AlertTitle>Alleen B2C modus</AlertTitle>
+              <AlertDescription>
+                Alle klanten worden als particulier behandeld. Zakelijke velden en BTW-verlegging zijn uitgeschakeld.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Simplified VAT Mode */}
+      <Card className="border-amber-200 dark:border-amber-800">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+              <Zap className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <CardTitle>Vereenvoudigde BTW-modus</CardTitle>
+              <CardDescription>
+                Pas altijd je standaard BTW-tarief toe, ongeacht klantlocatie
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-1">
+              <p className="font-medium">Vereenvoudigde modus activeren</p>
+              <p className="text-sm text-muted-foreground">
+                Alleen geschikt als je uitsluitend in je eigen land verkoopt
+              </p>
+            </div>
+            <Switch
+              checked={formData.simplified_vat_mode}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setShowSimplifiedDialog(true);
+                } else {
+                  setFormData(prev => ({ ...prev, simplified_vat_mode: false }));
+                }
+              }}
+            />
+          </div>
+
+          {formData.simplified_vat_mode && (
+            <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800 dark:text-amber-200">Vereenvoudigde modus actief</AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                Alle bestellingen krijgen je standaard BTW-tarief van {(currentTenant as any)?.tax_percentage || 21}% 
+                toegepast, ongeacht klanttype of locatie. OSS, Reverse Charge en Export regels zijn uitgeschakeld.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!formData.simplified_vat_mode && (
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>Volledige BTW-compliance actief</AlertTitle>
+              <AlertDescription>
+                Alle EU BTW-regels worden automatisch toegepast: Reverse Charge voor B2B, OSS voor B2C, 
+                en 0% voor export buiten de EU.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Simplified VAT Confirmation Dialog */}
+      <Dialog open={showSimplifiedDialog} onOpenChange={setShowSimplifiedDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Bevestig vereenvoudigde BTW-modus
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              <div className="space-y-4 pt-4">
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Juridische waarschuwing</AlertTitle>
+                  <AlertDescription>
+                    Deze modus kan leiden tot:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Naheffingen bij grensoverschrijdende verkoop</li>
+                      <li>Boetes van de Belastingdienst</li>
+                      <li>Onjuiste facturen die je klanten niet kunnen aftrekken</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+                <p className="text-sm">
+                  Gebruik deze modus <strong>alleen</strong> als je uitsluitend aan klanten in je eigen land verkoopt.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-start space-x-3 p-4 bg-muted/50 rounded-lg">
+            <Checkbox
+              id="simplified-confirm"
+              checked={simplifiedCheckbox}
+              onCheckedChange={(checked) => setSimplifiedCheckbox(checked === true)}
+            />
+            <Label htmlFor="simplified-confirm" className="text-sm leading-relaxed cursor-pointer">
+              Ik begrijp dat deze modus niet voldoet aan EU BTW-wetgeving voor grensoverschrijdende verkoop 
+              en accepteer het risico.
+            </Label>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSimplifiedDialog(false);
+                setSimplifiedCheckbox(false);
+              }}
+            >
+              Annuleren
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!simplifiedCheckbox}
+              onClick={() => {
+                setFormData(prev => ({ ...prev, simplified_vat_mode: true }));
+                setShowSimplifiedDialog(false);
+                setSimplifiedCheckbox(false);
+              }}
+            >
+              Bevestigen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* VAT Handling Card */}
       <Card>
