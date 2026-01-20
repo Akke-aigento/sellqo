@@ -35,7 +35,7 @@ serve(async (req) => {
     // Get tenant's Stripe Connect account
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("stripe_account_id, stripe_account_status")
+      .select("stripe_account_id, stripe_charges_enabled")
       .eq("id", tenant_id)
       .single();
 
@@ -43,7 +43,7 @@ serve(async (req) => {
       throw new Error("Tenant niet gevonden");
     }
 
-    if (!tenant.stripe_account_id || tenant.stripe_account_status !== "active") {
+    if (!tenant.stripe_account_id || !tenant.stripe_charges_enabled) {
       throw new Error("Stripe account niet actief. Configureer eerst Stripe in instellingen.");
     }
 
