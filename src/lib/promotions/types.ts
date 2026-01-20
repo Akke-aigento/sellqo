@@ -27,6 +27,14 @@ export interface AppliedDiscount {
   description?: string;
 }
 
+// Applied gift card
+export interface AppliedGiftCard {
+  gift_card_id: string;
+  code: string;
+  applied_amount: number;
+  remaining_balance: number;
+}
+
 // Gift item added to cart
 export interface CartGift {
   product_id: string;
@@ -60,6 +68,10 @@ export interface CartCalculationResult {
   loyalty_discount: number;
   free_shipping: boolean;
   free_shipping_reason?: string;
+  // Gift card payment
+  applied_gift_cards: AppliedGiftCard[];
+  gift_card_total: number;
+  final_amount_due: number;
 }
 
 // Stacking configuration

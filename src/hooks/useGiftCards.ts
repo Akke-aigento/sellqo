@@ -301,3 +301,29 @@ export function useValidateGiftCardCode() {
     },
   });
 }
+
+export function useSendGiftCardEmail() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (giftCardId: string) => {
+      const { data, error } = await supabase.functions.invoke('send-gift-card-email', {
+        body: { gift_card_id: giftCardId },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gift-cards'] });
+      toast({ title: 'Email verzonden' });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fout bij verzenden email',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}

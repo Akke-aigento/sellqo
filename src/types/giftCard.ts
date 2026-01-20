@@ -43,6 +43,8 @@ export interface GiftCard {
   design_id?: string | null;
   expires_at?: string | null;
   activated_at?: string | null;
+  email_sent_at?: string | null;
+  email_resent_count?: number;
   created_at: string;
   updated_at: string;
   // Joined data
