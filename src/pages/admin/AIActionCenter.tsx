@@ -13,7 +13,6 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -83,9 +82,8 @@ export default function AIActionCenter() {
 
   return (
     <FeatureGate feature="ai_marketing">
-      <AdminLayout>
-        <div className="space-y-6">
-          {/* Header */}
+      <div className="space-y-6">
+        {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold flex items-center gap-2">
@@ -294,12 +292,11 @@ export default function AIActionCenter() {
           </Tabs>
         </div>
 
-        <AIActionPreviewDialog
-          suggestion={selectedSuggestion}
-          open={previewOpen}
-          onOpenChange={setPreviewOpen}
-        />
-      </AdminLayout>
+      <AIActionPreviewDialog
+        suggestion={selectedSuggestion}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </FeatureGate>
   );
 }
