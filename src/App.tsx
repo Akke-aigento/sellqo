@@ -45,6 +45,7 @@ import BogoPromotionsPage from "./pages/admin/BogoPromotions";
 import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
+import ReportsPage from "./pages/admin/Reports";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="marketing/ai" element={<AIMarketingHub />} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="import" element={<ImportPage />} />
+              <Route path="reports" element={<ReportsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
