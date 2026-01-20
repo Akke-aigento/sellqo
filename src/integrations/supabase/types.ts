@@ -123,6 +123,139 @@ export type Database = {
           },
         ]
       }
+      ai_action_suggestions: {
+        Row: {
+          action_data: Json
+          confidence_score: number | null
+          created_at: string
+          description: string | null
+          executed_at: string | null
+          executed_by: string | null
+          expires_at: string | null
+          id: string
+          notification_id: string | null
+          priority: string
+          reasoning: string | null
+          status: string
+          suggestion_type: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          user_modifications: Json | null
+        }
+        Insert: {
+          action_data?: Json
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_id?: string | null
+          priority?: string
+          reasoning?: string | null
+          status?: string
+          suggestion_type: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          user_modifications?: Json | null
+        }
+        Update: {
+          action_data?: Json
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_id?: string | null
+          priority?: string
+          reasoning?: string | null
+          status?: string
+          suggestion_type?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          user_modifications?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_action_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_content_edits: {
+        Row: {
+          after_value: string | null
+          before_value: string | null
+          content_id: string | null
+          created_at: string
+          edit_type: string
+          feedback_id: string | null
+          field_changed: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          after_value?: string | null
+          before_value?: string | null
+          content_id?: string | null
+          created_at?: string
+          edit_type: string
+          feedback_id?: string | null
+          field_changed?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          after_value?: string | null
+          before_value?: string | null
+          content_id?: string | null
+          created_at?: string
+          edit_type?: string
+          feedback_id?: string | null
+          field_changed?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_content_edits_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_engagement_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_content_edits_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_content_edits_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "ai_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_content_edits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_credit_purchases: {
         Row: {
           completed_at: string | null
@@ -163,6 +296,76 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_credit_purchases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_feedback: {
+        Row: {
+          comments: string | null
+          content_id: string | null
+          content_type: string | null
+          created_at: string
+          edit_reason: string | null
+          edited_content: string | null
+          feedback_type: string
+          id: string
+          metadata: Json | null
+          original_content: string | null
+          rating: number | null
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          comments?: string | null
+          content_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          edit_reason?: string | null
+          edited_content?: string | null
+          feedback_type: string
+          id?: string
+          metadata?: Json | null
+          original_content?: string | null
+          rating?: number | null
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          comments?: string | null
+          content_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          edit_reason?: string | null
+          edited_content?: string | null
+          feedback_type?: string
+          id?: string
+          metadata?: Json | null
+          original_content?: string | null
+          rating?: number | null
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_feedback_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_engagement_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -336,6 +539,47 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_generated_images_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_learning_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          last_updated_at: string | null
+          learned_value: Json
+          pattern_type: string
+          sample_count: number | null
+          tenant_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          last_updated_at?: string | null
+          learned_value?: Json
+          pattern_type: string
+          sample_count?: number | null
+          tenant_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          last_updated_at?: string | null
+          learned_value?: Json
+          pattern_type?: string
+          sample_count?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_learning_patterns_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6410,6 +6654,14 @@ export type Database = {
             Args: { p_monthly_credits: number; p_tenant_id: string }
             Returns: undefined
           }
+      update_ai_learning_pattern: {
+        Args: {
+          p_learned_value: Json
+          p_pattern_type: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
       use_ai_credits:
         | {
             Args: {
