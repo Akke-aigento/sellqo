@@ -259,10 +259,16 @@ export type Database = {
           content_id: string | null
           created_at: string | null
           credits_used: number | null
+          enhancement_type: string | null
           height: number | null
           id: string
           image_url: string
+          marketing_text: string | null
+          platform_preset: string | null
           prompt: string
+          setting_preset: string | null
+          source_image_url: string | null
+          source_product_id: string | null
           storage_path: string | null
           style: string | null
           tenant_id: string
@@ -272,10 +278,16 @@ export type Database = {
           content_id?: string | null
           created_at?: string | null
           credits_used?: number | null
+          enhancement_type?: string | null
           height?: number | null
           id?: string
           image_url: string
+          marketing_text?: string | null
+          platform_preset?: string | null
           prompt: string
+          setting_preset?: string | null
+          source_image_url?: string | null
+          source_product_id?: string | null
           storage_path?: string | null
           style?: string | null
           tenant_id: string
@@ -285,10 +297,16 @@ export type Database = {
           content_id?: string | null
           created_at?: string | null
           credits_used?: number | null
+          enhancement_type?: string | null
           height?: number | null
           id?: string
           image_url?: string
+          marketing_text?: string | null
+          platform_preset?: string | null
           prompt?: string
+          setting_preset?: string | null
+          source_image_url?: string | null
+          source_product_id?: string | null
           storage_path?: string | null
           style?: string | null
           tenant_id?: string
@@ -307,6 +325,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "ai_generated_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generated_images_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
