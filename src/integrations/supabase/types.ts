@@ -3956,6 +3956,124 @@ export type Database = {
           },
         ]
       }
+      platform_coupon_redemptions: {
+        Row: {
+          applied_by: string | null
+          coupon_id: string | null
+          discount_applied: number | null
+          id: string
+          redeemed_at: string | null
+          subscription_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          applied_by?: string | null
+          coupon_id?: string | null
+          discount_applied?: number | null
+          id?: string
+          redeemed_at?: string | null
+          subscription_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          applied_by?: string | null
+          coupon_id?: string | null
+          discount_applied?: number | null
+          id?: string
+          redeemed_at?: string | null
+          subscription_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_coupon_redemptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_coupon_redemptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_coupons: {
+        Row: {
+          applicable_plan_ids: string[] | null
+          applies_to: string | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          max_uses_per_tenant: number | null
+          min_subscription_months: number | null
+          name: string
+          stripe_coupon_id: string | null
+          updated_at: string | null
+          used_count: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applicable_plan_ids?: string[] | null
+          applies_to?: string | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          max_uses_per_tenant?: number | null
+          min_subscription_months?: number | null
+          name: string
+          stripe_coupon_id?: string | null
+          updated_at?: string | null
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applicable_plan_ids?: string[] | null
+          applies_to?: string | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          max_uses_per_tenant?: number | null
+          min_subscription_months?: number | null
+          name?: string
+          stripe_coupon_id?: string | null
+          updated_at?: string | null
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       platform_invoices: {
         Row: {
           amount: number
@@ -4020,6 +4138,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_quick_actions: {
+        Row: {
+          action_config: Json
+          action_type: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requires_confirmation: boolean | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requires_confirmation?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requires_confirmation?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       pricing_plans: {
         Row: {
@@ -6079,6 +6242,56 @@ export type Database = {
             foreignKeyName: "tenant_feature_overrides_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_loyalty_rewards: {
+        Row: {
+          applied: boolean | null
+          applied_at: string | null
+          applied_by: string | null
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          name: string
+          reward_type: string
+          tenant_id: string | null
+          value: Json
+        }
+        Insert: {
+          applied?: boolean | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          name: string
+          reward_type: string
+          tenant_id?: string | null
+          value: Json
+        }
+        Update: {
+          applied?: boolean | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          name?: string
+          reward_type?: string
+          tenant_id?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_loyalty_rewards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },

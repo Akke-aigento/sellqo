@@ -54,6 +54,7 @@ import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 import TenantDetailPage from "./pages/platform/TenantDetail";
+import PlatformCouponsPage from "./pages/platform/PlatformCoupons";
 import NotificationsPage from "./pages/admin/Notifications";
 
 const queryClient = new QueryClient();
@@ -140,6 +141,11 @@ const App = () => (
               <Route path="platform/tenants/:tenantId" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantDetailPage />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/coupons" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformCouponsPage />
                 </ProtectedRoute>
               } />
             </Route>
