@@ -250,6 +250,8 @@ export function useExecuteQuickAction() {
       if (actionError) throw actionError;
       
       const config = action.action_config as Record<string, unknown>;
+      let notificationTitle = '';
+      let notificationMessage = '';
       
       // Execute based on action type
       switch (action.action_type) {
@@ -262,6 +264,9 @@ export function useExecuteQuickAction() {
             p_adjustment: amount,
             p_reason: reason,
           });
+          
+          notificationTitle = '🎁 Gratis AI Credits Ontvangen!';
+          notificationMessage = `Je hebt ${amount} gratis AI credits ontvangen. ${reason ? `Reden: ${reason}` : ''}`;
           break;
         }
         
@@ -273,6 +278,9 @@ export function useExecuteQuickAction() {
           });
           
           if (error) throw error;
+          
+          notificationTitle = '🎉 Gratis Maand(en) Ontvangen!';
+          notificationMessage = `Je abonnement is verlengd met ${months} gratis ${months === 1 ? 'maand' : 'maanden'}. Geniet ervan!`;
           break;
         }
         
@@ -306,6 +314,19 @@ export function useExecuteQuickAction() {
                 extended_trial_until: expiresAt.toISOString(),
               });
           }
+          
+          const featureNames: Record<string, string> = {
+            'module_ai_marketing': 'AI Marketing',
+            'module_peppol': 'Peppol e-Facturatie',
+            'module_multi_currency': 'Multi-Currency',
+            'module_advanced_analytics': 'Geavanceerde Analytics',
+            'module_api_access': 'API Access',
+            'module_webhooks': 'Webhooks',
+            'module_white_label': 'White Label',
+          };
+          
+          notificationTitle = '🔓 Nieuwe Module Geactiveerd!';
+          notificationMessage = `${featureNames[feature] || feature} is ${days} dagen gratis voor je geactiveerd. Probeer het uit!`;
           break;
         }
         
@@ -326,11 +347,34 @@ export function useExecuteQuickAction() {
             .from('tenant_subscriptions')
             .update({ trial_end: currentEnd.toISOString() })
             .eq('tenant_id', tenantId);
+          
+          notificationTitle = '⏰ Trial Verlengd!';
+          notificationMessage = `Je trial periode is verlengd met ${days} dagen. Blijf ontdekken!`;
           break;
         }
         
         default:
           throw new Error('Onbekend actie type: ' + action.action_type);
+      }
+      
+      // Send notification to tenant
+      if (notificationTitle && notificationMessage) {
+        await supabase.functions.invoke('create-notification', {
+          body: {
+            tenant_id: tenantId,
+            category: 'system',
+            type: 'platform_gift',
+            title: notificationTitle,
+            message: notificationMessage,
+            priority: 'high',
+            action_url: '/admin/billing',
+            data: {
+              action_type: action.action_type,
+              action_name: action.name,
+              action_config: config,
+            },
+          },
+        });
       }
       
       // Log the action
