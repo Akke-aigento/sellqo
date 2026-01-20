@@ -49,6 +49,128 @@ export type Database = {
           },
         ]
       }
+      ai_generated_content: {
+        Row: {
+          content_text: string | null
+          content_type: string
+          created_at: string
+          html_content: string | null
+          id: string
+          image_urls: string[] | null
+          is_used: boolean | null
+          metadata: Json | null
+          platform: string | null
+          product_ids: string[] | null
+          scheduled_at: string | null
+          segment_id: string | null
+          tenant_id: string
+          title: string | null
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          content_text?: string | null
+          content_type: string
+          created_at?: string
+          html_content?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_used?: boolean | null
+          metadata?: Json | null
+          platform?: string | null
+          product_ids?: string[] | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          content_text?: string | null
+          content_type?: string
+          created_at?: string
+          html_content?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_used?: boolean | null
+          metadata?: Json | null
+          platform?: string | null
+          product_ids?: string[] | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generated_content_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generated_content_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_log: {
+        Row: {
+          created_at: string
+          credits_used: number
+          feature: string
+          id: string
+          input_tokens: number | null
+          metadata: Json | null
+          model_used: string | null
+          output_tokens: number | null
+          prompt_summary: string | null
+          result_summary: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number
+          feature: string
+          id?: string
+          input_tokens?: number | null
+          metadata?: Json | null
+          model_used?: string | null
+          output_tokens?: number | null
+          prompt_summary?: string | null
+          result_summary?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          metadata?: Json | null
+          model_used?: string | null
+          output_tokens?: number | null
+          prompt_summary?: string | null
+          result_summary?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_link_clicks: {
         Row: {
           campaign_id: string
@@ -1925,6 +2047,7 @@ export type Database = {
       pricing_plans: {
         Row: {
           active: boolean | null
+          ai_credits_monthly: number | null
           created_at: string | null
           currency: string | null
           features: Json
@@ -1948,6 +2071,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          ai_credits_monthly?: number | null
           created_at?: string | null
           currency?: string | null
           features?: Json
@@ -1971,6 +2095,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          ai_credits_monthly?: number | null
           created_at?: string | null
           currency?: string | null
           features?: Json
@@ -2853,6 +2978,50 @@ export type Database = {
           },
         ]
       }
+      tenant_ai_credits: {
+        Row: {
+          created_at: string
+          credits_purchased: number
+          credits_reset_at: string | null
+          credits_total: number
+          credits_used: number
+          id: string
+          last_purchase_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_purchased?: number
+          credits_reset_at?: string | null
+          credits_total?: number
+          credits_used?: number
+          id?: string
+          last_purchase_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_purchased?: number
+          credits_reset_at?: string | null
+          credits_total?: number
+          credits_used?: number
+          id?: string
+          last_purchase_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_ai_credits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_subscriptions: {
         Row: {
           billing_interval: string
@@ -3350,6 +3519,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_ai_credits: {
+        Args: { p_credits: number; p_tenant_id: string }
+        Returns: undefined
+      }
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
@@ -3398,6 +3571,20 @@ export type Database = {
         Returns: undefined
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      reset_monthly_ai_credits: {
+        Args: { p_monthly_credits: number; p_tenant_id: string }
+        Returns: undefined
+      }
+      use_ai_credits: {
+        Args: {
+          p_credits: number
+          p_feature: string
+          p_metadata?: Json
+          p_model?: string
+          p_tenant_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "platform_admin" | "tenant_admin" | "staff"
