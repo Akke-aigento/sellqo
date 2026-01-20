@@ -24,6 +24,7 @@ import {
   BarChart3,
   Tag,
   Percent,
+  Gift,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,6 +53,8 @@ import { SessionReportDialog } from '@/components/admin/pos/SessionReportDialog'
 import { CashMovementDialog } from '@/components/admin/pos/CashMovementDialog';
 import { POSCustomerDialog } from '@/components/admin/pos/POSCustomerDialog';
 import { POSDiscountPanel, POSDiscount } from '@/components/admin/pos/POSDiscountPanel';
+import { POSMultiPaymentDialog, MultiPaymentData } from '@/components/admin/pos/POSMultiPaymentDialog';
+import type { AppliedGiftCard } from '@/components/admin/pos/POSGiftCardInput';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { Product } from '@/types/product';
 import type { Customer } from '@/types/order';
@@ -86,6 +89,7 @@ export default function POSTerminalPage() {
   const [showCashMovementDialog, setShowCashMovementDialog] = useState(false);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [showDiscountPanel, setShowDiscountPanel] = useState(false);
+  const [showMultiPaymentDialog, setShowMultiPaymentDialog] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
@@ -329,6 +333,78 @@ export default function POSTerminalPage() {
       }
     } catch (error) {
       toast.error('Fout bij opslaan transactie');
+    }
+  };
+
+  // Handle multi-payment (gift cards, loyalty, etc.)
+  const handleMultiPaymentComplete = async (paymentData: MultiPaymentData) => {
+    if (!terminalId) return;
+
+    const payments: POSPayment[] = [];
+
+    // Add gift card payments
+    for (const gc of paymentData.giftCards) {
+      if (gc.amountToUse > 0) {
+        payments.push({
+          method: 'gift_card',
+          amount: gc.amountToUse,
+          reference: gc.code,
+        });
+      }
+    }
+
+    // Add loyalty points payment
+    if (paymentData.loyaltyEuroValue > 0) {
+      payments.push({
+        method: 'loyalty_points',
+        amount: paymentData.loyaltyEuroValue,
+        reference: `${paymentData.loyaltyPoints} punten`,
+      });
+    }
+
+    // Add final payment method
+    if (paymentData.finalPaymentMethod === 'cash' && paymentData.cashAmount > 0) {
+      payments.push({
+        method: 'cash',
+        amount: paymentData.cashAmount,
+      });
+    } else if (paymentData.finalPaymentMethod === 'card' && paymentData.cardAmount > 0) {
+      // For card, we'll need to process via Stripe first
+      setShowMultiPaymentDialog(false);
+      setShowCardPaymentDialog(true);
+      return; // Card payment will complete separately
+    }
+
+    try {
+      const transaction = await createTransaction.mutateAsync({
+        terminalId,
+        sessionId: activeSession?.id || null,
+        items: cart,
+        payments,
+        cashReceived: paymentData.cashReceived || undefined,
+        cashChange: paymentData.cashChange || undefined,
+        customerId: selectedCustomer?.id,
+      });
+
+      // TODO: Redeem gift cards and loyalty points via database updates
+      // This would typically be done in a database trigger or edge function
+
+      toast.success(
+        paymentData.cashChange > 0
+          ? `Betaling succesvol! Wisselgeld: ${formatCurrency(paymentData.cashChange)}`
+          : 'Betaling succesvol!'
+      );
+      clearCart();
+      setSelectedCustomer(null);
+      setCartDiscount(null);
+      setShowMultiPaymentDialog(false);
+
+      if (transaction) {
+        setLastTransaction(transaction as unknown as POSTransaction);
+        setShowReceiptDialog(true);
+      }
+    } catch (error) {
+      toast.error('Betaling mislukt');
     }
   };
   
@@ -773,9 +849,9 @@ export default function POSTerminalPage() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button 
-                className="h-14 text-lg"
+                className="h-14 text-base"
                 disabled={cart.length === 0}
                 onClick={() => setShowPaymentDialog(true)}
               >
@@ -783,12 +859,21 @@ export default function POSTerminalPage() {
                 Contant
               </Button>
               <Button 
-                className="h-14 text-lg"
+                className="h-14 text-base"
                 disabled={cart.length === 0 || isStripeProcessing}
                 onClick={handleCardPaymentStart}
               >
                 <CreditCard className="mr-2 h-5 w-5" />
                 PIN
+              </Button>
+              <Button 
+                variant="secondary"
+                className="h-14 text-base"
+                disabled={cart.length === 0}
+                onClick={() => setShowMultiPaymentDialog(true)}
+              >
+                <Gift className="mr-2 h-4 w-4" />
+                Meer
               </Button>
             </div>
           </div>
@@ -1048,6 +1133,16 @@ export default function POSTerminalPage() {
         currentDiscount={cartDiscount}
         cartSubtotal={cartTotals.subtotal}
         onApplyDiscount={setCartDiscount}
+      />
+
+      {/* Multi-Payment Dialog (Gift Cards, Loyalty) */}
+      <POSMultiPaymentDialog
+        open={showMultiPaymentDialog}
+        onOpenChange={setShowMultiPaymentDialog}
+        total={cartTotals.total}
+        customerId={selectedCustomer?.id || null}
+        onPaymentComplete={handleMultiPaymentComplete}
+        isProcessing={createTransaction.isPending}
       />
     </div>
   );
