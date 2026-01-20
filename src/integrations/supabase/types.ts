@@ -3026,6 +3026,156 @@ export type Database = {
           },
         ]
       }
+      shipping_integrations: {
+        Row: {
+          api_key: string | null
+          api_secret: string | null
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          last_sync_at: string | null
+          provider: string
+          settings: Json | null
+          tenant_id: string
+          updated_at: string | null
+          webhook_secret: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_sync_at?: string | null
+          provider: string
+          settings?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+          webhook_secret?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_sync_at?: string | null
+          provider?: string
+          settings?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+          webhook_secret?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_labels: {
+        Row: {
+          carrier: string | null
+          created_at: string | null
+          dimensions: Json | null
+          error_message: string | null
+          external_id: string | null
+          external_parcel_id: string | null
+          id: string
+          integration_id: string | null
+          label_format: string | null
+          label_url: string | null
+          metadata: Json | null
+          order_id: string
+          provider: string
+          service_type: string | null
+          shipping_cost: number | null
+          status: string
+          tenant_id: string
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          carrier?: string | null
+          created_at?: string | null
+          dimensions?: Json | null
+          error_message?: string | null
+          external_id?: string | null
+          external_parcel_id?: string | null
+          id?: string
+          integration_id?: string | null
+          label_format?: string | null
+          label_url?: string | null
+          metadata?: Json | null
+          order_id: string
+          provider: string
+          service_type?: string | null
+          shipping_cost?: number | null
+          status?: string
+          tenant_id: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          carrier?: string | null
+          created_at?: string | null
+          dimensions?: Json | null
+          error_message?: string | null
+          external_id?: string | null
+          external_parcel_id?: string | null
+          id?: string
+          integration_id?: string | null
+          label_format?: string | null
+          label_url?: string | null
+          metadata?: Json | null
+          order_id?: string
+          provider?: string
+          service_type?: string | null
+          shipping_cost?: number | null
+          status?: string
+          tenant_id?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_labels_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_labels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_labels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_methods: {
         Row: {
           created_at: string
@@ -3100,6 +3250,76 @@ export type Database = {
             columns: ["vat_rate_id"]
             isOneToOne: false
             referencedRelation: "vat_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_status_updates: {
+        Row: {
+          carrier_status: string | null
+          created_at: string | null
+          event_timestamp: string | null
+          external_event_id: string | null
+          id: string
+          label_id: string | null
+          location: string | null
+          order_id: string | null
+          provider: string
+          raw_payload: Json | null
+          status: string
+          status_message: string | null
+          tenant_id: string
+        }
+        Insert: {
+          carrier_status?: string | null
+          created_at?: string | null
+          event_timestamp?: string | null
+          external_event_id?: string | null
+          id?: string
+          label_id?: string | null
+          location?: string | null
+          order_id?: string | null
+          provider: string
+          raw_payload?: Json | null
+          status: string
+          status_message?: string | null
+          tenant_id: string
+        }
+        Update: {
+          carrier_status?: string | null
+          created_at?: string | null
+          event_timestamp?: string | null
+          external_event_id?: string | null
+          id?: string
+          label_id?: string | null
+          location?: string | null
+          order_id?: string | null
+          provider?: string
+          raw_payload?: Json | null
+          status?: string
+          status_message?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_status_updates_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_status_updates_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_status_updates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
