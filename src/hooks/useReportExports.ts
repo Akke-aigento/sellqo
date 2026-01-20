@@ -1201,3 +1201,297 @@ export const useBulkSupplierDocumentDownload = () => {
 
   return { downloadSupplierDocuments, isDownloading, progress };
 };
+
+// Hook for POS session exports
+export const usePOSSessionExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportSessions = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('pos_sessions')
+        .select(`
+          *,
+          pos_terminals(name, location_name)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('opened_at', dateRange.from.toISOString())
+        .lte('opened_at', dateRange.to.toISOString())
+        .order('opened_at', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = data.map(session => ({
+        terminal_name: session.pos_terminals?.name || '',
+        location: session.pos_terminals?.location_name || '',
+        opened_at: session.opened_at,
+        closed_at: session.closed_at,
+        status: session.status,
+        opening_cash: session.opening_cash,
+        closing_cash: session.closing_cash,
+        expected_cash: session.expected_cash,
+        cash_difference: session.cash_difference,
+        notes: session.notes,
+      }));
+
+      const columns = [
+        { key: 'terminal_name', header: 'Terminal' },
+        { key: 'location', header: 'Locatie' },
+        { key: 'opened_at', header: 'Geopend', format: 'datetime' as const },
+        { key: 'closed_at', header: 'Gesloten', format: 'datetime' as const },
+        { key: 'status', header: 'Status' },
+        { key: 'opening_cash', header: 'Startbedrag', format: 'currency' as const },
+        { key: 'closing_cash', header: 'Eindbedrag', format: 'currency' as const },
+        { key: 'expected_cash', header: 'Verwacht', format: 'currency' as const },
+        { key: 'cash_difference', header: 'Verschil', format: 'currency' as const },
+        { key: 'notes', header: 'Opmerkingen' },
+      ];
+
+      const filename = generateFilename('kassa_sessies', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, columns, filename, 'Kassa Sessies');
+      }
+
+      toast.success(`${exportData.length} sessies geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportSessions, isExporting };
+};
+
+// Hook for POS transaction exports
+export const usePOSTransactionExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportTransactions = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('pos_transactions')
+        .select(`
+          *,
+          pos_terminals(name)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = data.map(tx => {
+        const payments = tx.payments as Array<{ method: string; amount: number }> | null;
+        const cashPayment = payments?.find((p: { method: string }) => p.method === 'cash')?.amount || 0;
+        const cardPayment = payments?.find((p: { method: string }) => p.method === 'card')?.amount || 0;
+        
+        return {
+          receipt_number: tx.receipt_number,
+          terminal_name: tx.pos_terminals?.name || '',
+          created_at: tx.created_at,
+          status: tx.status,
+          subtotal: tx.subtotal,
+          discount_total: tx.discount_total,
+          tax_total: tx.tax_total,
+          total: tx.total,
+          cash_payment: cashPayment,
+          card_payment: cardPayment,
+          card_brand: tx.card_brand,
+          card_last4: tx.card_last4,
+          items_count: (tx.items as unknown[])?.length || 0,
+        };
+      });
+
+      const columns = [
+        { key: 'receipt_number', header: 'Bonnummer' },
+        { key: 'terminal_name', header: 'Terminal' },
+        { key: 'created_at', header: 'Datum/Tijd', format: 'datetime' as const },
+        { key: 'status', header: 'Status' },
+        { key: 'subtotal', header: 'Subtotaal', format: 'currency' as const },
+        { key: 'discount_total', header: 'Korting', format: 'currency' as const },
+        { key: 'tax_total', header: 'BTW', format: 'currency' as const },
+        { key: 'total', header: 'Totaal', format: 'currency' as const },
+        { key: 'cash_payment', header: 'Contant', format: 'currency' as const },
+        { key: 'card_payment', header: 'PIN/Kaart', format: 'currency' as const },
+        { key: 'card_brand', header: 'Kaartmerk' },
+        { key: 'card_last4', header: 'Laatste 4' },
+        { key: 'items_count', header: 'Aantal items', format: 'number' as const },
+      ];
+
+      const filename = generateFilename('kassa_transacties', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, columns, filename, 'Transacties');
+      }
+
+      toast.success(`${exportData.length} transacties geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportDailySummary = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('pos_transactions')
+        .select(`
+          created_at,
+          total,
+          payments,
+          status
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'completed')
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString());
+
+      if (error) throw error;
+
+      // Group by date
+      const dailyData = new Map<string, { 
+        date: string; 
+        transactions: number; 
+        total: number; 
+        cash: number; 
+        card: number 
+      }>();
+
+      data.forEach(tx => {
+        const date = new Date(tx.created_at).toISOString().split('T')[0];
+        const existing = dailyData.get(date) || { 
+          date, 
+          transactions: 0, 
+          total: 0, 
+          cash: 0, 
+          card: 0 
+        };
+
+        const payments = tx.payments as Array<{ method: string; amount: number }> | null;
+        const cashPayment = payments?.find((p: { method: string }) => p.method === 'cash')?.amount || 0;
+        const cardPayment = payments?.find((p: { method: string }) => p.method === 'card')?.amount || 0;
+
+        existing.transactions += 1;
+        existing.total += tx.total || 0;
+        existing.cash += cashPayment;
+        existing.card += cardPayment;
+
+        dailyData.set(date, existing);
+      });
+
+      const exportData = Array.from(dailyData.values()).sort((a, b) => 
+        a.date.localeCompare(b.date)
+      );
+
+      const columns = [
+        { key: 'date', header: 'Datum', format: 'date' as const },
+        { key: 'transactions', header: 'Transacties', format: 'number' as const },
+        { key: 'total', header: 'Totale Omzet', format: 'currency' as const },
+        { key: 'cash', header: 'Contant', format: 'currency' as const },
+        { key: 'card', header: 'PIN/Kaart', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('kassa_dagoverzicht', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, columns, filename, 'Dagoverzicht');
+      }
+
+      toast.success(`${exportData.length} dagen geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportTransactions, exportDailySummary, isExporting };
+};
+
+// Hook for POS cash movement exports
+export const usePOSCashMovementExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportCashMovements = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('pos_cash_movements')
+        .select(`
+          *,
+          pos_terminals(name),
+          pos_sessions(opened_at)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = data.map(movement => ({
+        terminal_name: movement.pos_terminals?.name || '',
+        session_date: movement.pos_sessions?.opened_at,
+        created_at: movement.created_at,
+        movement_type: movement.movement_type === 'in' ? 'Storting' : 'Opname',
+        amount: movement.amount,
+        reason: movement.reason,
+        notes: movement.notes,
+      }));
+
+      const columns = [
+        { key: 'terminal_name', header: 'Terminal' },
+        { key: 'session_date', header: 'Sessiedatum', format: 'date' as const },
+        { key: 'created_at', header: 'Datum/Tijd', format: 'datetime' as const },
+        { key: 'movement_type', header: 'Type' },
+        { key: 'amount', header: 'Bedrag', format: 'currency' as const },
+        { key: 'reason', header: 'Reden' },
+        { key: 'notes', header: 'Opmerkingen' },
+      ];
+
+      const filename = generateFilename('kassa_mutaties', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, columns, filename, 'Kasmutaties');
+      }
+
+      toast.success(`${exportData.length} mutaties geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportCashMovements, isExporting };
+};
