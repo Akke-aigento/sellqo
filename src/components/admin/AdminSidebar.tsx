@@ -13,12 +13,10 @@ import {
   ChevronRight,
   Store,
   FileText,
-  RefreshCw,
   Receipt,
   Upload,
   Cable,
   Megaphone,
-  Tag,
   Percent
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
@@ -210,16 +208,7 @@ export function AdminSidebar() {
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/subscriptions')}>
                           <NavLink to="/admin/orders/subscriptions">
-                            <RefreshCw className="h-3 w-3 mr-1.5" />
                             Abonnementen
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/discounts')}>
-                          <NavLink to="/admin/orders/discounts">
-                            <Tag className="h-3 w-3 mr-1.5" />
-                            Kortingscodes
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
