@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Store, ExternalLink } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Store, ExternalLink, Eye } from 'lucide-react';
 import { useTenants, Tenant, TenantFormData } from '@/hooks/useTenants';
 import { TenantFormDialog } from '@/components/admin/TenantFormDialog';
 import { format } from 'date-fns';
@@ -61,6 +62,7 @@ function getPlanBadge(plan: string | null) {
 }
 
 export default function TenantsPage() {
+  const navigate = useNavigate();
   const { tenants, isLoading, createTenant, updateTenant, deleteTenant } = useTenants();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -206,6 +208,10 @@ export default function TenantsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/admin/platform/tenants/${tenant.id}`)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Bekijk details
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(tenant)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Bewerken
