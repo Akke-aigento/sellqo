@@ -155,7 +155,11 @@ export function useSEO() {
       
       const { data, error } = await supabase
         .from('seo_keywords')
-        .insert([{ ...keyword, tenant_id: tenantId }])
+        .insert([{ 
+          ...keyword, 
+          tenant_id: tenantId,
+          language: keyword.language || 'nl',
+        }])
         .select()
         .single();
       
