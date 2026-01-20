@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,18 +74,24 @@ serve(async (req) => {
       throw new Error("Tenant not found");
     }
 
-    // Check if already a member
-    const { data: existingRole } = await supabase
-      .from("user_roles")
+    // Check if already a member - first find the user by email
+    const { data: existingProfile } = await supabase
+      .from("profiles")
       .select("id")
-      .eq("tenant_id", tenantId)
-      .in("user_id", 
-        supabase.from("profiles").select("id").eq("email", email.toLowerCase())
-      )
+      .eq("email", email.toLowerCase())
       .maybeSingle();
 
-    if (existingRole) {
-      throw new Error("Deze gebruiker is al lid van dit team");
+    if (existingProfile) {
+      const { data: existingRole } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("user_id", existingProfile.id)
+        .maybeSingle();
+
+      if (existingRole) {
+        throw new Error("Deze gebruiker is al lid van dit team");
+      }
     }
 
     // Check for existing pending invitation
