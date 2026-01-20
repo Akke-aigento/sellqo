@@ -33,6 +33,7 @@ import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import MarketingPage from "./pages/admin/Marketing";
 import CampaignDetailPage from "./pages/admin/CampaignDetail";
+import AIMarketingHub from "./pages/admin/AIMarketingHub";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -83,6 +84,7 @@ const App = () => (
               <Route path="connect" element={<MarketplacesPage />} />
               <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
               <Route path="marketing" element={<MarketingPage />} />
+              <Route path="marketing/ai" element={<AIMarketingHub />} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
