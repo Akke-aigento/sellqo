@@ -1,11 +1,21 @@
 // SEO Module Types
 
+export type SEOLanguage = 'nl' | 'en' | 'de' | 'fr';
+
+export const SEO_LANGUAGES: { code: SEOLanguage; label: string; flag: string }[] = [
+  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+];
+
 export interface SEOKeyword {
   id: string;
   tenant_id: string;
   product_id?: string | null;
   category_id?: string | null;
   keyword: string;
+  language: SEOLanguage;
   search_volume_estimate: 'high' | 'medium' | 'low' | null;
   difficulty_estimate: 'easy' | 'medium' | 'hard' | null;
   intent: 'informational' | 'commercial' | 'transactional' | 'navigational' | null;
