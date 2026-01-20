@@ -47,7 +47,7 @@ export function useAIFeedback() {
           rating: params.rating,
           comments: params.comments,
           content_type: params.contentType,
-          metadata: params.metadata || {},
+          metadata: (params.metadata || {}) as Record<string, string | number | boolean | null>,
         }])
         .select()
         .single();

@@ -34,6 +34,7 @@ import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import MarketingPage from "./pages/admin/Marketing";
 import CampaignDetailPage from "./pages/admin/CampaignDetail";
 import AIMarketingHub from "./pages/admin/AIMarketingHub";
+import AIActionCenter from "./pages/admin/AIActionCenter";
 import DiscountsPage from "./pages/admin/Discounts";
 import PromotionsPage from "./pages/admin/Promotions";
 import BundlesPage from "./pages/admin/Bundles";
@@ -115,6 +116,7 @@ const App = () => (
               <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
               <Route path="marketing" element={<MarketingPage />} />
               <Route path="marketing/ai" element={<AIMarketingHub />} />
+              <Route path="marketing/ai-center" element={<AIActionCenter />} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="reports" element={<ReportsPage />} />
