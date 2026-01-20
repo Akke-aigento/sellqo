@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
@@ -46,10 +46,59 @@ interface MarketingContext {
   };
 }
 
+// Error type classification
+type AIErrorType = 'insufficient_credits' | 'rate_limit' | 'unknown';
+
+interface AIError {
+  type: AIErrorType;
+  message: string;
+}
+
+function classifyError(error: Error | { message?: string; status?: number }): AIError {
+  const msg = error.message || '';
+  
+  if (msg.includes('402') || msg.includes('credits') || msg.includes('Onvoldoende')) {
+    return { type: 'insufficient_credits', message: 'Onvoldoende AI credits' };
+  }
+  if (msg.includes('429') || msg.includes('Rate limit') || msg.includes('rate limit')) {
+    return { type: 'rate_limit', message: 'Te veel verzoeken. Wacht even en probeer opnieuw.' };
+  }
+  return { type: 'unknown', message: msg || 'Er ging iets mis' };
+}
+
 export function useAIMarketing() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Callback for when credits are needed
+  const [onNeedCredits, setOnNeedCredits] = useState<(() => void) | null>(null);
+
+  // Register callback for credit errors
+  const registerCreditCallback = useCallback((callback: () => void) => {
+    setOnNeedCredits(() => callback);
+  }, []);
+
+  // Unified error handler
+  const handleAIError = useCallback((error: Error) => {
+    const classified = classifyError(error);
+    
+    if (classified.type === 'insufficient_credits') {
+      toast.error('Onvoldoende AI credits', {
+        description: 'Koop extra credits om door te gaan.',
+        action: onNeedCredits ? {
+          label: 'Credits kopen',
+          onClick: onNeedCredits,
+        } : undefined,
+      });
+    } else if (classified.type === 'rate_limit') {
+      toast.error('Te veel verzoeken', {
+        description: 'Wacht even en probeer opnieuw.',
+      });
+    } else {
+      toast.error('Fout bij genereren', { description: classified.message });
+    }
+  }, [onNeedCredits]);
 
   // Fetch marketing context
   const { data: context, isLoading: contextLoading, refetch: refetchContext } = useQuery({
@@ -98,15 +147,7 @@ export function useAIMarketing() {
       queryClient.invalidateQueries({ queryKey: ['ai-credits'] });
       toast.success('Social media post gegenereerd!');
     },
-    onError: (error: Error) => {
-      if (error.message.includes('credits')) {
-        toast.error('Onvoldoende AI credits', { 
-          description: 'Koop extra credits om door te gaan.' 
-        });
-      } else {
-        toast.error('Fout bij genereren', { description: error.message });
-      }
-    },
+    onError: handleAIError,
     onSettled: () => {
       setIsGenerating(false);
     },
@@ -140,13 +181,7 @@ export function useAIMarketing() {
       queryClient.invalidateQueries({ queryKey: ['ai-credits'] });
       toast.success('Email content gegenereerd!');
     },
-    onError: (error: Error) => {
-      if (error.message.includes('credits')) {
-        toast.error('Onvoldoende AI credits');
-      } else {
-        toast.error('Fout bij genereren', { description: error.message });
-      }
-    },
+    onError: handleAIError,
     onSettled: () => {
       setIsGenerating(false);
     },
@@ -170,9 +205,7 @@ export function useAIMarketing() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-credits'] });
     },
-    onError: (error: Error) => {
-      toast.error('Fout bij ophalen suggesties', { description: error.message });
-    },
+    onError: handleAIError,
   });
 
   // Fetch saved AI content
@@ -203,5 +236,6 @@ export function useAIMarketing() {
     getCampaignSuggestions,
     savedContent,
     isGenerating,
+    registerCreditCallback,
   };
 }

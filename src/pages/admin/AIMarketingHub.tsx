@@ -40,8 +40,13 @@ export default function AIMarketingHub() {
   const [emailCampaignType, setEmailCampaignType] = useState<string | undefined>();
   const [socialContentType, setSocialContentType] = useState<string | undefined>();
   
-  const { context, contextLoading } = useAIMarketing();
+  const { context, contextLoading, registerCreditCallback } = useAIMarketing();
   const { refetch: refetchCredits } = useAICredits();
+
+  // Register credit callback to open purchase dialog on credit errors
+  useEffect(() => {
+    registerCreditCallback(() => setPurchaseDialogOpen(true));
+  }, [registerCreditCallback]);
 
   // Handle URL params for tab navigation and purchase dialog
   useEffect(() => {
