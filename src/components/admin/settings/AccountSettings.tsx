@@ -207,7 +207,7 @@ export function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* Language Card */}
+      {/* Interface Language Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export function AccountSettings() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="max-w-xs">
             <Select 
               value={language} 
@@ -244,6 +244,9 @@ export function AccountSettings() {
               </SelectContent>
             </Select>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Dit wijzigt alleen hoe Sellqo eruitziet voor jou. De taal voor content invoer stel je in bij Winkelinstellingen.
+          </p>
         </CardContent>
       </Card>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Store, Palette, Save, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Store, Palette, Save, FileText, Languages, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -179,7 +181,7 @@ export function StoreSettings() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="language">Taal</Label>
+              <Label htmlFor="language">Primaire Contenttaal</Label>
               <Select
                 value={formData.language}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}
@@ -198,7 +200,29 @@ export function StoreSettings() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                De taal waarin je producten, categorieën en content invoert. Andere talen worden automatisch vertaald.
+              </p>
             </div>
+          </div>
+
+          {/* Translation Hub Link */}
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center gap-3">
+              <Languages className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium">Vertalingen beheren</p>
+                <p className="text-sm text-muted-foreground">
+                  AI-vertalingen naar Engels, Duits en Frans
+                </p>
+              </div>
+            </div>
+            <Link to="/admin/marketing/translations">
+              <Button variant="outline" size="sm">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Vertaal Hub
+              </Button>
+            </Link>
           </div>
 
           <div className="flex items-center justify-between p-4 border rounded-lg">

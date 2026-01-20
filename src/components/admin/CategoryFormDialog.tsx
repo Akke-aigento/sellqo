@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Link } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -35,10 +36,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Upload, X, Globe, Image as ImageIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Upload, X, Globe, Image as ImageIcon, Languages, ExternalLink } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { useTenant } from '@/hooks/useTenant';
 import type { Category } from '@/types/product';
-import { SEO_LANGUAGES, type SEOLanguage } from '@/types/seo';
+import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(100, 'Naam mag maximaal 100 tekens zijn'),
@@ -83,9 +86,13 @@ export function CategoryFormDialog({
 }: CategoryFormDialogProps) {
   const isEditing = !!category;
   const [activeTab, setActiveTab] = useState('general');
-  const [seoLang, setSeoLang] = useState<SEOLanguage>('nl');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadImage, uploading } = useImageUpload();
+  const { currentTenant } = useTenant();
+  
+  // Get primary content language from tenant
+  const sourceLang = ((currentTenant as any)?.language || 'nl') as TranslationLanguage;
+  const targetLanguages = TRANSLATION_LANGUAGES.filter(l => l.code !== sourceLang);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -425,165 +432,79 @@ export function CategoryFormDialog({
                 </div>
               </TabsContent>
 
-              {/* SEO Tab */}
+              {/* SEO Tab - Simplified */}
               <TabsContent value="seo" className="space-y-4 mt-4">
-                {/* Language Selector */}
-                <div className="flex gap-2">
-                  {SEO_LANGUAGES.map((lang) => (
-                    <Button
-                      key={lang.code}
-                      type="button"
-                      variant={seoLang === lang.code ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSeoLang(lang.code as SEOLanguage)}
-                      className="gap-1"
-                    >
-                      <span>{lang.flag}</span>
-                      <span>{lang.code.toUpperCase()}</span>
-                    </Button>
-                  ))}
+                {/* Primary language indicator */}
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border">
+                  <Badge variant="outline" className="gap-1">
+                    {TRANSLATION_LANGUAGES.find(l => l.code === sourceLang)?.flag}
+                    <span className="text-xs">Invoer in: {TRANSLATION_LANGUAGES.find(l => l.code === sourceLang)?.label}</span>
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    (ingesteld in Winkelinstellingen)
+                  </span>
                 </div>
 
-                {seoLang === 'nl' && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="meta_title_nl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta titel (Nederlands)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="SEO titel in Nederlands..." {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/60 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="meta_description_nl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta beschrijving (Nederlands)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="SEO beschrijving in Nederlands..." rows={3} className="resize-none" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/160 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-                {seoLang === 'en' && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="meta_title_en"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta titel (English)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="SEO title in English..." {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/60 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="meta_description_en"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta beschrijving (English)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="SEO description in English..." rows={3} className="resize-none" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/160 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-                {seoLang === 'de' && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="meta_title_de"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta titel (Deutsch)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="SEO Titel auf Deutsch..." {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/60 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="meta_description_de"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta beschrijving (Deutsch)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="SEO Beschreibung auf Deutsch..." rows={3} className="resize-none" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/160 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-                {seoLang === 'fr' && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="meta_title_fr"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta titel (Français)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Titre SEO en français..." {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/60 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="meta_description_fr"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meta beschrijving (Français)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Description SEO en français..." rows={3} className="resize-none" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormDescription>{(field.value || '').length}/160 tekens</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
+                {/* Primary language SEO fields */}
+                <FormField
+                  control={form.control}
+                  name={`meta_title_${sourceLang}` as 'meta_title_nl'}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Meta titel</FormLabel>
+                      <FormControl>
+                        <Input placeholder={`SEO titel in ${TRANSLATION_LANGUAGES.find(l => l.code === sourceLang)?.label}...`} {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormDescription>{(field.value || '').length}/60 tekens</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`meta_description_${sourceLang}` as 'meta_description_nl'}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Meta beschrijving</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder={`SEO beschrijving in ${TRANSLATION_LANGUAGES.find(l => l.code === sourceLang)?.label}...`} rows={3} className="resize-none" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormDescription>{(field.value || '').length}/160 tekens</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* SEO Preview */}
                 <div className="p-4 bg-muted rounded-lg space-y-1">
                   <p className="text-sm font-medium text-primary">
-                    {form.watch(`meta_title_${seoLang}` as 'meta_title_nl') || form.watch('name') || 'Categorie titel'}
+                    {form.watch(`meta_title_${sourceLang}` as 'meta_title_nl') || form.watch('name') || 'Categorie titel'}
                   </p>
                   <p className="text-xs text-green-600">
                     https://jouwwinkel.nl/categorie/{form.watch('slug') || 'categorie-slug'}
                   </p>
                   <p className="text-sm text-muted-foreground line-clamp-2">
-                    {form.watch(`meta_description_${seoLang}` as 'meta_description_nl') || form.watch('description') || 'Beschrijving van de categorie...'}
+                    {form.watch(`meta_description_${sourceLang}` as 'meta_description_nl') || form.watch('description') || 'Beschrijving van de categorie...'}
                   </p>
+                </div>
+
+                {/* Translation Hub Link */}
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <Languages className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">Vertalingen</p>
+                      <p className="text-xs text-muted-foreground">
+                        {targetLanguages.map(l => l.flag).join(' ')} via AI vertalen
+                      </p>
+                    </div>
+                  </div>
+                  <Link to="/admin/marketing/translations">
+                    <Button type="button" variant="outline" size="sm">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Vertaal Hub
+                    </Button>
+                  </Link>
                 </div>
               </TabsContent>
             </Tabs>
