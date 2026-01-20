@@ -150,7 +150,7 @@ export function useSEO() {
 
   // Add keyword
   const addKeywordMutation = useMutation({
-    mutationFn: async (keyword: Partial<SEOKeyword>) => {
+    mutationFn: async (keyword: Omit<SEOKeyword, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>) => {
       if (!tenantId) throw new Error('No tenant');
       
       const { data, error } = await supabase
