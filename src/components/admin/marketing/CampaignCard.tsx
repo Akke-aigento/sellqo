@@ -42,15 +42,20 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
     : '0';
 
   return (
-    <Card>
+    <Card 
+      className="transition-all hover:shadow-md cursor-pointer group"
+      onClick={() => navigate(`/admin/marketing/campaigns/${campaign.id}`)}
+    >
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="space-y-1">
-          <CardTitle className="text-base font-semibold">{campaign.name}</CardTitle>
+          <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors">
+            {campaign.name}
+          </CardTitle>
           <CardDescription className="text-sm">
             {campaign.subject}
           </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <Badge variant={status.variant}>{status.label}</Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -61,7 +66,7 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate(`/admin/marketing/campaigns/${campaign.id}`)}>
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Bekijk details
+                Bekijk analytics
               </DropdownMenuItem>
               {campaign.status === 'draft' && (
                 <>
@@ -108,10 +113,19 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
           </div>
           
           {campaign.status === 'sent' && (
-            <div className="flex items-center gap-4 text-muted-foreground">
-              <span>{campaign.total_sent} verzonden</span>
-              <span>{openRate}% open</span>
-              <span>{clickRate}% clicks</span>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-lg font-bold text-foreground">{campaign.total_sent}</div>
+                <div className="text-xs text-muted-foreground">verzonden</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">{openRate}%</div>
+                <div className="text-xs text-muted-foreground">open rate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-orange-600">{clickRate}%</div>
+                <div className="text-xs text-muted-foreground">click rate</div>
+              </div>
             </div>
           )}
         </div>

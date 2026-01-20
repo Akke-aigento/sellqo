@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.test-marketplace-connection]
 verify_jwt = false
+
+[functions.send-campaign-batch]
+verify_jwt = false
+
+[functions.process-email-webhook]
+verify_jwt = false

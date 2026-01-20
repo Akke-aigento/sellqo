@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Mail, Users, FileText, Megaphone } from 'lucide-react';
+import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,17 +8,19 @@ import { CampaignCard } from '@/components/admin/marketing/CampaignCard';
 import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
 import { TemplateDialog } from '@/components/admin/marketing/TemplateDialog';
 import { SegmentDialog } from '@/components/admin/marketing/SegmentDialog';
+import { RealtimeActivityFeed } from '@/components/admin/marketing/RealtimeActivityFeed';
+import { MarketingOverviewChart } from '@/components/admin/marketing/MarketingOverviewChart';
 import { useMarketingStats, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
@@ -30,39 +32,167 @@ export default function MarketingPage() {
     avgOpenRate: 0, avgClickRate: 0, subscriberCount: 0, subscriberGrowth: 0, unsubscribeCount: 0,
   };
 
+  const recentCampaigns = campaigns.slice(0, 5);
+  const draftCampaigns = campaigns.filter(c => c.status === 'draft');
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Megaphone className="h-6 w-6" />
-            Marketing
+            Marketing Command Center
           </h1>
           <p className="text-muted-foreground">
-            Email campagnes, templates en klantsegmenten beheren
+            Email campagnes, analytics en klant engagement
           </p>
         </div>
-        <Button onClick={() => setCampaignDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nieuwe campagne
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setSegmentDialogOpen(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            Nieuw segment
+          </Button>
+          <Button onClick={() => setCampaignDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nieuwe campagne
+          </Button>
+        </div>
       </div>
 
+      {/* KPI Stats */}
       <MarketingStatsCards stats={stats || defaultStats} isLoading={statsLoading} />
 
+      {/* Main Dashboard Grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Chart - takes 2 columns */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-base">Performance Over Tijd</CardTitle>
+              <CardDescription>Verzonden, geopend en geklikt emails</CardDescription>
+            </div>
+            <Select value={chartPeriod} onValueChange={(v) => setChartPeriod(v as '7d' | '30d' | '90d')}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">7 dagen</SelectItem>
+                <SelectItem value="30d">30 dagen</SelectItem>
+                <SelectItem value="90d">90 dagen</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardHeader>
+          <CardContent>
+            <MarketingOverviewChart period={chartPeriod} />
+          </CardContent>
+        </Card>
+
+        {/* Realtime Activity Feed */}
+        <RealtimeActivityFeed />
+      </div>
+
+      {/* Quick Actions + Recent Campaigns */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Snelle Acties
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => setCampaignDialogOpen(true)}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Nieuwe campagne starten
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => setTemplateDialogOpen(true)}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Template maken
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => setSegmentDialogOpen(true)}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Segment aanmaken
+            </Button>
+            
+            {draftCampaigns.length > 0 && (
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground mb-2">Concept campagnes</p>
+                {draftCampaigns.slice(0, 3).map(c => (
+                  <Badge key={c.id} variant="secondary" className="mr-1 mb-1">
+                    {c.name}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Campaigns */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Recente Campagnes
+              </CardTitle>
+              <CardDescription>Je laatste email campagnes</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {campaignsLoading ? (
+              <div className="text-center py-4 text-muted-foreground">Laden...</div>
+            ) : recentCampaigns.length === 0 ? (
+              <div className="text-center py-8">
+                <Mail className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">Nog geen campagnes</p>
+                <Button size="sm" className="mt-2" onClick={() => setCampaignDialogOpen(true)}>
+                  Eerste campagne maken
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentCampaigns.map((campaign) => (
+                  <CampaignCard
+                    key={campaign.id}
+                    campaign={campaign}
+                    onDelete={(id) => deleteCampaign.mutate(id)}
+                    onSend={(id) => sendCampaign.mutate(id)}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Full Tab Section */}
       <Tabs defaultValue="campaigns" className="space-y-4">
         <TabsList>
           <TabsTrigger value="campaigns" className="gap-2">
             <Mail className="h-4 w-4" />
-            Campagnes
+            Alle Campagnes ({campaigns.length})
           </TabsTrigger>
           <TabsTrigger value="templates" className="gap-2">
             <FileText className="h-4 w-4" />
-            Templates
+            Templates ({templates.length})
           </TabsTrigger>
           <TabsTrigger value="segments" className="gap-2">
             <Users className="h-4 w-4" />
-            Segmenten
+            Segmenten ({segments.length})
           </TabsTrigger>
         </TabsList>
 
@@ -119,7 +249,7 @@ export default function MarketingPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {templates.map((template) => (
-                <Card key={template.id}>
+                <Card key={template.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="text-base">{template.name}</CardTitle>
                     <CardDescription>{template.subject}</CardDescription>
@@ -157,14 +287,14 @@ export default function MarketingPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {segments.map((segment) => (
-                <Card key={segment.id}>
+                <Card key={segment.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="text-base">{segment.name}</CardTitle>
                     <CardDescription>{segment.description || 'Geen beschrijving'}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{segment.member_count}</div>
-                    <p className="text-xs text-muted-foreground">klanten</p>
+                    <p className="text-xs text-muted-foreground">klanten in dit segment</p>
                   </CardContent>
                 </Card>
               ))}
@@ -173,6 +303,7 @@ export default function MarketingPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Dialogs */}
       <CampaignDialog
         open={campaignDialogOpen}
         onOpenChange={setCampaignDialogOpen}
