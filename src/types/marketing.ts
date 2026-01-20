@@ -49,6 +49,19 @@ export type CustomerSegmentUpdate = Partial<CustomerSegmentInsert>;
 // Email Campaign Types
 export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'cancelled';
 
+// Partial segment info for joined queries
+export interface SegmentInfo {
+  id: string;
+  name: string;
+  member_count: number;
+}
+
+// Partial template info for joined queries
+export interface TemplateInfo {
+  id: string;
+  name: string;
+}
+
 export interface EmailCampaign {
   id: string;
   tenant_id: string;
@@ -72,9 +85,14 @@ export interface EmailCampaign {
   created_by?: string;
   created_at: string;
   updated_at: string;
-  // Joined relations
-  segment?: CustomerSegment;
-  template?: EmailTemplate;
+  // A/B Testing fields
+  ab_variant_of?: string;
+  variant_label?: string;
+  is_ab_test?: boolean;
+  ab_test_winner_selected_at?: string;
+  // Joined relations (partial info)
+  segment?: SegmentInfo;
+  template?: TemplateInfo;
 }
 
 export type EmailCampaignInsert = Omit<EmailCampaign, 
