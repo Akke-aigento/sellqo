@@ -19,7 +19,9 @@ import {
   FileText,
   Trash2,
   Eye,
-  Plus
+  Plus,
+  CreditCard,
+  Gift
 } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -27,6 +29,7 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
+import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,12 +84,19 @@ const productSchema = z.object({
   weight: z.coerce.number().min(0).nullable().optional(),
   requires_shipping: z.boolean().default(true),
   // Digital product fields
-  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle']).default('physical'),
+  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card']).default('physical'),
   digital_delivery_type: z.enum(['download', 'license_key', 'access_url', 'email_attachment', 'qr_code', 'external_service']).nullable().optional(),
   download_limit: z.coerce.number().int().min(0).nullable().optional(),
   download_expiry_hours: z.coerce.number().int().min(1).nullable().optional(),
   license_generator: z.enum(['manual', 'auto']).nullable().optional(),
   access_duration_days: z.coerce.number().int().min(1).nullable().optional(),
+  // Gift card fields
+  gift_card_denominations: z.array(z.number()).nullable().optional(),
+  gift_card_min_amount: z.coerce.number().min(0).nullable().optional(),
+  gift_card_max_amount: z.coerce.number().min(0).nullable().optional(),
+  gift_card_allow_custom: z.boolean().default(false),
+  gift_card_expiry_months: z.coerce.number().int().min(1).nullable().optional(),
+  gift_card_design_id: z.string().nullable().optional(),
 });
 
 type FormValues = z.infer<typeof productSchema>;
@@ -97,6 +107,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
   service: <Briefcase className="h-6 w-6" />,
   subscription: <RefreshCw className="h-6 w-6" />,
   bundle: <Layers className="h-6 w-6" />,
+  gift_card: <CreditCard className="h-6 w-6" />,
 };
 
 export default function ProductForm() {
@@ -111,10 +122,12 @@ export default function ProductForm() {
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
+  const { data: giftCardDesigns = [] } = useGiftCardDesigns();
   
   const [tagsInput, setTagsInput] = useState('');
   const [licenseInput, setLicenseInput] = useState('');
   const [uploadingDigital, setUploadingDigital] = useState(false);
+  const [denominationInput, setDenominationInput] = useState('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -148,6 +161,12 @@ export default function ProductForm() {
       download_expiry_hours: 72,
       license_generator: null,
       access_duration_days: null,
+      gift_card_denominations: null,
+      gift_card_min_amount: 10,
+      gift_card_max_amount: 500,
+      gift_card_allow_custom: false,
+      gift_card_expiry_months: null,
+      gift_card_design_id: null,
     },
     values: product ? {
       name: product.name,
@@ -179,12 +198,19 @@ export default function ProductForm() {
       download_expiry_hours: product.download_expiry_hours || 72,
       license_generator: product.license_generator || null,
       access_duration_days: product.access_duration_days || null,
+      gift_card_denominations: product.gift_card_denominations || null,
+      gift_card_min_amount: product.gift_card_min_amount || 10,
+      gift_card_max_amount: product.gift_card_max_amount || 500,
+      gift_card_allow_custom: product.gift_card_allow_custom || false,
+      gift_card_expiry_months: product.gift_card_expiry_months || null,
+      gift_card_design_id: product.gift_card_design_id || null,
     } : undefined,
   });
 
   const productType = form.watch('product_type');
   const digitalDeliveryType = form.watch('digital_delivery_type');
   const isDigital = productType === 'digital';
+  const isGiftCard = productType === 'gift_card';
 
   // Auto-generate slug from name
   const generateSlug = (name: string) => {
@@ -208,7 +234,7 @@ export default function ProductForm() {
     form.setValue('product_type', type);
     
     // Auto-set related fields
-    if (type === 'digital' || type === 'service') {
+    if (type === 'digital' || type === 'service' || type === 'gift_card') {
       form.setValue('requires_shipping', false);
       form.setValue('track_inventory', false);
     } else if (type === 'physical') {
@@ -226,6 +252,14 @@ export default function ProductForm() {
     } else {
       form.setValue('digital_delivery_type', 'download');
       form.setValue('download_expiry_hours', 72);
+    }
+
+    // Reset gift card fields if not gift card
+    if (type !== 'gift_card') {
+      form.setValue('gift_card_denominations', null);
+      form.setValue('gift_card_allow_custom', false);
+      form.setValue('gift_card_design_id', null);
+      form.setValue('gift_card_expiry_months', null);
     }
   };
 
@@ -382,13 +416,14 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="type" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="type">Type</TabsTrigger>
               <TabsTrigger value="basic">Basis</TabsTrigger>
               <TabsTrigger value="pricing">Prijzen</TabsTrigger>
               <TabsTrigger value="inventory">Voorraad</TabsTrigger>
               <TabsTrigger value="images">Afbeeldingen</TabsTrigger>
               {isDigital && <TabsTrigger value="digital">Bestanden</TabsTrigger>}
+              {isGiftCard && <TabsTrigger value="giftcard">Cadeaukaart</TabsTrigger>}
               <TabsTrigger value="seo">SEO</TabsTrigger>
             </TabsList>
 
@@ -590,6 +625,201 @@ export default function ProductForm() {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Gift Card Tab */}
+            {isGiftCard && (
+              <TabsContent value="giftcard" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="h-5 w-5" />
+                      Cadeaukaart configuratie
+                    </CardTitle>
+                    <CardDescription>
+                      Stel de beschikbare bedragen en opties in voor deze cadeaukaart
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Denominations */}
+                    <div className="space-y-3">
+                      <Label>Vaste bedragen</Label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(form.watch('gift_card_denominations') || []).map((amount: number, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-sm py-1 px-3">
+                            €{amount.toFixed(2)}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = form.getValues('gift_card_denominations') || [];
+                                form.setValue('gift_card_denominations', current.filter((_, i) => i !== index));
+                              }}
+                              className="ml-2 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          placeholder="Nieuw bedrag (bijv. 25)"
+                          value={denominationInput}
+                          onChange={(e) => setDenominationInput(e.target.value)}
+                          className="max-w-[200px]"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const amount = parseFloat(denominationInput);
+                            if (amount > 0) {
+                              const current = form.getValues('gift_card_denominations') || [];
+                              if (!current.includes(amount)) {
+                                form.setValue('gift_card_denominations', [...current, amount].sort((a, b) => a - b));
+                              }
+                              setDenominationInput('');
+                            }
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Toevoegen
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Voeg de vaste bedragen toe die klanten kunnen kiezen
+                      </p>
+                    </div>
+
+                    {/* Custom amount toggle */}
+                    <FormField
+                      control={form.control}
+                      name="gift_card_allow_custom"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Vrij bedrag toestaan</FormLabel>
+                            <FormDescription>
+                              Laat klanten een eigen bedrag kiezen binnen de grenzen
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Min/Max amounts */}
+                    {form.watch('gift_card_allow_custom') && (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="gift_card_min_amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Minimum bedrag</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  min="1"
+                                  step="0.01"
+                                  value={field.value ?? 10}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="gift_card_max_amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Maximum bedrag</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  min="1"
+                                  step="0.01"
+                                  value={field.value ?? 500}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    {/* Design selector */}
+                    <FormField
+                      control={form.control}
+                      name="gift_card_design_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Standaard ontwerp</FormLabel>
+                          <Select 
+                            value={field.value || 'none'} 
+                            onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecteer een ontwerp" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Geen standaard ontwerp</SelectItem>
+                              {giftCardDesigns.filter(d => d.is_active).map((design) => (
+                                <SelectItem key={design.id} value={design.id}>
+                                  {design.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Klanten kunnen bij aankoop ook een ander ontwerp kiezen
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Expiry months */}
+                    <FormField
+                      control={form.control}
+                      name="gift_card_expiry_months"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Geldigheid (maanden)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              min="1"
+                              placeholder="Onbeperkt geldig"
+                              value={field.value ?? ''}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Laat leeg voor onbeperkte geldigheid
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
 
             {/* Basic Info Tab */}
             <TabsContent value="basic" className="space-y-6">

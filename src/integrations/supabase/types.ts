@@ -2116,6 +2116,8 @@ export type Database = {
           currency: string
           current_balance: number
           design_id: string | null
+          email_resent_count: number | null
+          email_sent_at: string | null
           expires_at: string | null
           id: string
           initial_balance: number
@@ -2136,6 +2138,8 @@ export type Database = {
           currency?: string
           current_balance: number
           design_id?: string | null
+          email_resent_count?: number | null
+          email_sent_at?: string | null
           expires_at?: string | null
           id?: string
           initial_balance: number
@@ -2156,6 +2160,8 @@ export type Database = {
           currency?: string
           current_balance?: number
           design_id?: string | null
+          email_resent_count?: number | null
+          email_sent_at?: string | null
           expires_at?: string | null
           id?: string
           initial_balance?: number
@@ -3154,6 +3160,7 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string | null
+          gift_card_id: string | null
           id: string
           order_id: string
           product_id: string | null
@@ -3166,6 +3173,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          gift_card_id?: string | null
           id?: string
           order_id: string
           product_id?: string | null
@@ -3178,6 +3186,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          gift_card_id?: string | null
           id?: string
           order_id?: string
           product_id?: string | null
@@ -3189,6 +3198,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "gift_cards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -3207,6 +3223,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          applied_gift_card_ids: string[] | null
           billing_address: Json | null
           cancelled_at: string | null
           carrier: string | null
@@ -3251,6 +3268,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          applied_gift_card_ids?: string[] | null
           billing_address?: Json | null
           cancelled_at?: string | null
           carrier?: string | null
@@ -3295,6 +3313,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          applied_gift_card_ids?: string[] | null
           billing_address?: Json | null
           cancelled_at?: string | null
           carrier?: string | null
@@ -3810,6 +3829,12 @@ export type Database = {
           external_id: string | null
           featured_image: string | null
           file_size_bytes: number | null
+          gift_card_allow_custom: boolean | null
+          gift_card_denominations: number[] | null
+          gift_card_design_id: string | null
+          gift_card_expiry_months: number | null
+          gift_card_max_amount: number | null
+          gift_card_min_amount: number | null
           id: string
           images: string[] | null
           import_job_id: string | null
@@ -3858,6 +3883,12 @@ export type Database = {
           external_id?: string | null
           featured_image?: string | null
           file_size_bytes?: number | null
+          gift_card_allow_custom?: boolean | null
+          gift_card_denominations?: number[] | null
+          gift_card_design_id?: string | null
+          gift_card_expiry_months?: number | null
+          gift_card_max_amount?: number | null
+          gift_card_min_amount?: number | null
           id?: string
           images?: string[] | null
           import_job_id?: string | null
@@ -3906,6 +3937,12 @@ export type Database = {
           external_id?: string | null
           featured_image?: string | null
           file_size_bytes?: number | null
+          gift_card_allow_custom?: boolean | null
+          gift_card_denominations?: number[] | null
+          gift_card_design_id?: string | null
+          gift_card_expiry_months?: number | null
+          gift_card_max_amount?: number | null
+          gift_card_min_amount?: number | null
           id?: string
           images?: string[] | null
           import_job_id?: string | null
@@ -3941,6 +3978,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_gift_card_design_id_fkey"
+            columns: ["gift_card_design_id"]
+            isOneToOne: false
+            referencedRelation: "gift_card_designs"
             referencedColumns: ["id"]
           },
           {

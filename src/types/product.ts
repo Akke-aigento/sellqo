@@ -10,7 +10,7 @@ export interface ProductMarketplaceMappings {
 }
 
 // Product type enum
-export type ProductType = 'physical' | 'digital' | 'service' | 'subscription' | 'bundle';
+export type ProductType = 'physical' | 'digital' | 'service' | 'subscription' | 'bundle' | 'gift_card';
 
 // Digital delivery method enum
 export type DigitalDeliveryType = 'download' | 'license_key' | 'access_url' | 'email_attachment' | 'qr_code' | 'external_service';
@@ -59,6 +59,13 @@ export interface Product {
   license_generator?: 'manual' | 'auto' | null;
   access_duration_days?: number | null;
   file_size_bytes?: number | null;
+  // Gift card specific fields
+  gift_card_denominations?: number[] | null;
+  gift_card_min_amount?: number | null;
+  gift_card_max_amount?: number | null;
+  gift_card_allow_custom?: boolean | null;
+  gift_card_expiry_months?: number | null;
+  gift_card_design_id?: string | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)
@@ -116,6 +123,13 @@ export interface ProductFormData {
   download_expiry_hours?: number | null;
   license_generator?: 'manual' | 'auto' | null;
   access_duration_days?: number | null;
+  // Gift card specific fields
+  gift_card_denominations?: number[] | null;
+  gift_card_min_amount?: number | null;
+  gift_card_max_amount?: number | null;
+  gift_card_allow_custom?: boolean | null;
+  gift_card_expiry_months?: number | null;
+  gift_card_design_id?: string | null;
 }
 
 export interface CategoryFormData {
@@ -206,6 +220,11 @@ export const productTypeInfo: Record<ProductType, { label: string; description: 
     label: 'Bundel',
     description: 'Combinatie van producten en/of diensten',
     icon: 'Layers',
+  },
+  gift_card: {
+    label: 'Cadeaukaart',
+    description: 'Digitale cadeaukaart met waarde',
+    icon: 'CreditCard',
   },
 };
 
