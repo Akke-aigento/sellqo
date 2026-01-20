@@ -3157,6 +3157,62 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_url: string | null
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          data: Json | null
+          email_sent_at: string | null
+          id: string
+          message: string
+          priority: Database["public"]["Enums"]["notification_priority"] | null
+          read_at: string | null
+          tenant_id: string
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          action_url?: string | null
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          data?: Json | null
+          email_sent_at?: string | null
+          id?: string
+          message: string
+          priority?: Database["public"]["Enums"]["notification_priority"] | null
+          read_at?: string | null
+          tenant_id: string
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          action_url?: string | null
+          category?: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          data?: Json | null
+          email_sent_at?: string | null
+          id?: string
+          message?: string
+          priority?: Database["public"]["Enums"]["notification_priority"] | null
+          read_at?: string | null
+          tenant_id?: string
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -5191,6 +5247,50 @@ export type Database = {
           },
         ]
       }
+      tenant_notification_settings: {
+        Row: {
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          email_enabled: boolean | null
+          email_recipients: string[] | null
+          id: string
+          in_app_enabled: boolean | null
+          notification_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          email_enabled?: boolean | null
+          email_recipients?: string[] | null
+          id?: string
+          in_app_enabled?: boolean | null
+          notification_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          email_enabled?: boolean | null
+          email_recipients?: string[] | null
+          id?: string
+          in_app_enabled?: boolean | null
+          notification_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_notification_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_subscriptions: {
         Row: {
           billing_interval: string
@@ -5922,6 +6022,18 @@ export type Database = {
         | "refund"
         | "adjustment"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
+      notification_category:
+        | "orders"
+        | "invoices"
+        | "payments"
+        | "customers"
+        | "products"
+        | "quotes"
+        | "subscriptions"
+        | "marketing"
+        | "team"
+        | "system"
+      notification_priority: "low" | "medium" | "high" | "urgent"
       order_status:
         | "pending"
         | "processing"
@@ -6094,6 +6206,19 @@ export const Constants = {
         "adjustment",
       ],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
+      notification_category: [
+        "orders",
+        "invoices",
+        "payments",
+        "customers",
+        "products",
+        "quotes",
+        "subscriptions",
+        "marketing",
+        "team",
+        "system",
+      ],
+      notification_priority: ["low", "medium", "high", "urgent"],
       order_status: [
         "pending",
         "processing",
