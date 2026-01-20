@@ -50,6 +50,7 @@ import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons
 import { useProducts } from '@/hooks/useProducts';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { usePOSOffline, OfflineTransaction } from '@/hooks/usePOSOffline';
+import { usePOSLoyalty } from '@/hooks/usePOSLoyalty';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
@@ -84,6 +85,7 @@ export default function POSTerminalPage() {
   const { parkedCarts, parkCart, resumeCart } = usePOSParkedCarts(terminalId);
   const { products } = useProducts();
   const { readers, listReaders, isProcessing: isStripeProcessing } = useStripeTerminal();
+  const { earnPoints, redeemPoints } = usePOSLoyalty();
   const { currentTenant } = useTenant();
   const { user } = useAuth();
   
@@ -367,6 +369,15 @@ export default function POSTerminalPage() {
         customerId: selectedCustomer?.id,
       });
       
+      // Award loyalty points if customer is linked
+      if (selectedCustomer?.id && cartTotals.total > 0) {
+        earnPoints.mutate({
+          customerId: selectedCustomer.id,
+          orderTotal: cartTotals.total,
+          description: `POS transactie #${transaction?.receipt_number || 'onbekend'}`,
+        });
+      }
+      
       toast.success(`Betaling succesvol! Wisselgeld: ${formatCurrency(cashChangeAmount)}`);
       clearCart();
       setSelectedCustomer(null);
@@ -415,6 +426,15 @@ export default function POSTerminalPage() {
         cardLast4: cardDetails?.last4,
         customerId: selectedCustomer?.id,
       });
+      
+      // Award loyalty points if customer is linked
+      if (selectedCustomer?.id && cartTotals.total > 0) {
+        earnPoints.mutate({
+          customerId: selectedCustomer.id,
+          orderTotal: cartTotals.total,
+          description: `POS transactie #${transaction?.receipt_number || 'onbekend'}`,
+        });
+      }
       
       toast.success('Kaartbetaling succesvol!');
       clearCart();
@@ -483,8 +503,26 @@ export default function POSTerminalPage() {
         customerId: selectedCustomer?.id,
       });
 
-      // TODO: Redeem gift cards and loyalty points via database updates
-      // This would typically be done in a database trigger or edge function
+      // Redeem loyalty points if used
+      if (selectedCustomer?.id && paymentData.loyaltyPoints > 0) {
+        await redeemPoints.mutateAsync({
+          customerId: selectedCustomer.id,
+          points: paymentData.loyaltyPoints,
+          euroValue: paymentData.loyaltyEuroValue,
+          description: `POS inwisseling transactie #${transaction?.receipt_number || 'onbekend'}`,
+        });
+      }
+
+      // Award loyalty points for the remaining payment (excluding points used)
+      // Only award on the actual money spent, not the loyalty points value
+      const actualSpent = cartTotals.total - paymentData.loyaltyEuroValue;
+      if (selectedCustomer?.id && actualSpent > 0) {
+        earnPoints.mutate({
+          customerId: selectedCustomer.id,
+          orderTotal: actualSpent,
+          description: `POS transactie #${transaction?.receipt_number || 'onbekend'}`,
+        });
+      }
 
       toast.success(
         paymentData.cashChange > 0
