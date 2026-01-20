@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Sparkles, Bot, Zap, ArrowLeft, 
   Instagram, Mail, Lightbulb, TrendingUp,
-  Library
+  Library, ImageIcon, FlaskConical, BarChart3
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,9 @@ import { SocialPostGenerator } from '@/components/admin/marketing/SocialPostGene
 import { AIEmailPlanner } from '@/components/admin/marketing/AIEmailPlanner';
 import { AICampaignSuggestions } from '@/components/admin/marketing/AICampaignSuggestions';
 import { AIContentLibrary } from '@/components/admin/marketing/AIContentLibrary';
+import { AIImageGenerator } from '@/components/admin/marketing/AIImageGenerator';
+import { ABTestingPanel } from '@/components/admin/marketing/ABTestingPanel';
+import { ContentEngagementStats } from '@/components/admin/marketing/ContentEngagementStats';
 import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchaseDialog';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
@@ -146,7 +149,7 @@ export default function AIMarketingHub() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview" className="gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Overzicht</span>
@@ -159,9 +162,21 @@ export default function AIMarketingHub() {
               <Mail className="h-4 w-4" />
               <span className="hidden sm:inline">Email</span>
             </TabsTrigger>
+            <TabsTrigger value="images" className="gap-2">
+              <ImageIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Afbeeldingen</span>
+            </TabsTrigger>
+            <TabsTrigger value="abtesting" className="gap-2">
+              <FlaskConical className="h-4 w-4" />
+              <span className="hidden sm:inline">A/B Test</span>
+            </TabsTrigger>
             <TabsTrigger value="suggestions" className="gap-2">
               <Lightbulb className="h-4 w-4" />
               <span className="hidden sm:inline">Suggesties</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="library" className="gap-2">
               <Library className="h-4 w-4" />
@@ -310,6 +325,21 @@ export default function AIMarketingHub() {
           {/* Suggestions Tab */}
           <TabsContent value="suggestions">
             <AICampaignSuggestions onSuggestionClick={handleSuggestionClick} />
+          </TabsContent>
+
+          {/* Images Tab */}
+          <TabsContent value="images">
+            <AIImageGenerator />
+          </TabsContent>
+
+          {/* A/B Testing Tab */}
+          <TabsContent value="abtesting">
+            <ABTestingPanel />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <ContentEngagementStats />
           </TabsContent>
 
           {/* Library Tab */}
