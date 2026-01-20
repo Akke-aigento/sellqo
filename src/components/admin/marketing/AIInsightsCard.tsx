@@ -7,7 +7,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { cn } from '@/lib/utils';
 
-export function AIInsightsCard() {
+interface AIInsight {
+  icon: any;
+  color: string;
+  title: string;
+  description: string;
+  action: string;
+  type: string;
+}
+
+interface AIInsightsCardProps {
+  onInsightClick?: (insight: AIInsight) => void;
+}
+
+export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
   const { context, contextLoading, refetchContext } = useAIMarketing();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -15,6 +28,12 @@ export function AIInsightsCard() {
     setIsRefreshing(true);
     await refetchContext();
     setIsRefreshing(false);
+  };
+
+  const handleInsightClick = (insight: AIInsight) => {
+    if (onInsightClick) {
+      onInsightClick(insight);
+    }
   };
 
   if (contextLoading) {
@@ -45,7 +64,7 @@ export function AIInsightsCard() {
     );
   }
 
-  const insights = [];
+  const insights: AIInsight[] = [];
 
   // Low stock insight
   if (context.insights.lowStockAlert) {
@@ -137,9 +156,10 @@ export function AIInsightsCard() {
           insights.slice(0, 3).map((insight, i) => (
             <div
               key={i}
-              className="flex items-start gap-3 p-3 rounded-lg bg-card border hover:border-purple-500/30 transition-colors"
+              className="flex items-start gap-3 p-3 rounded-lg bg-card border hover:border-purple-500/30 hover:bg-primary/5 transition-colors cursor-pointer group"
+              onClick={() => handleInsightClick(insight)}
             >
-              <div className={cn('p-2 rounded-lg', insight.color)}>
+              <div className={cn('p-2 rounded-lg transition-colors', insight.color)}>
                 <insight.icon className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -152,7 +172,7 @@ export function AIInsightsCard() {
               </div>
               <Badge
                 variant="secondary"
-                className="shrink-0 cursor-pointer hover:bg-purple-500/20"
+                className="shrink-0 cursor-pointer hover:bg-purple-500/20 group-hover:bg-purple-500/20 transition-colors"
               >
                 {insight.action}
               </Badge>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Lightbulb, Loader2, RefreshCw, ChevronRight,
   Mail, Users, Package, AlertTriangle, Gift, TrendingUp
@@ -27,7 +27,21 @@ const urgencyColors: Record<string, string> = {
   low: 'bg-green-500',
 };
 
-export function AICampaignSuggestions() {
+// Map suggestion types to tab/generator types
+const typeToTab: Record<string, string> = {
+  newsletter: 'email',
+  promotion: 'email',
+  win_back: 'email',
+  new_product: 'email',
+  low_stock: 'email',
+  seasonal: 'social',
+};
+
+interface AICampaignSuggestionsProps {
+  onSuggestionClick?: (suggestion: CampaignSuggestion) => void;
+}
+
+export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<CampaignSuggestion[]>([]);
   const { getCampaignSuggestions, context } = useAIMarketing();
   const { hasCredits, getCreditCost } = useAICredits();
@@ -40,12 +54,11 @@ export function AICampaignSuggestions() {
     setSuggestions(result || []);
   };
 
-  // Auto-load on first mount if we have context
-  useEffect(() => {
-    if (context && suggestions.length === 0 && canGenerate) {
-      // Don't auto-load to save credits
+  const handleSuggestionClick = (suggestion: CampaignSuggestion) => {
+    if (onSuggestionClick) {
+      onSuggestionClick(suggestion);
     }
-  }, [context]);
+  };
 
   return (
     <Card>
@@ -106,10 +119,11 @@ export function AICampaignSuggestions() {
               return (
                 <div
                   key={index}
-                  className="p-4 rounded-lg border hover:border-primary/50 transition-colors cursor-pointer group"
+                  className="p-4 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer group"
+                  onClick={() => handleSuggestionClick(suggestion)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-lg bg-muted">
+                    <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -147,7 +161,7 @@ export function AICampaignSuggestions() {
                         <span className="text-xs font-medium">{suggestion.confidenceScore}%</span>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
               );

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Sparkles, Bot, Zap, ArrowLeft, 
   Instagram, Mail, Lightbulb, TrendingUp,
-  Image as ImageIcon, Library
+  Library
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,18 +19,39 @@ import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
 import { toast } from 'sonner';
+import type { CampaignSuggestion } from '@/types/aiMarketing';
+
+// Map suggestion/insight types to campaign types
+const typeMapping: Record<string, string> = {
+  low_stock: 'low_stock',
+  win_back: 'win_back',
+  seasonal: 'newsletter',
+  new_product: 'new_product',
+  promotion: 'promotion',
+  newsletter: 'newsletter',
+};
 
 export default function AIMarketingHub() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  
+  // Pre-fill state for generators
+  const [emailCampaignType, setEmailCampaignType] = useState<string | undefined>();
+  const [socialContentType, setSocialContentType] = useState<string | undefined>();
+  
   const { context, contextLoading } = useAIMarketing();
   const { refetch: refetchCredits } = useAICredits();
 
-  // Handle purchase success/cancel from Stripe redirect
+  // Handle URL params for tab navigation and purchase dialog
   useEffect(() => {
+    const tab = searchParams.get('tab');
     const purchaseStatus = searchParams.get('purchase');
     const creditsAdded = searchParams.get('credits');
+    
+    if (tab) {
+      setActiveTab(tab);
+    }
     
     if (purchaseStatus === 'success' && creditsAdded) {
       toast.success(`${creditsAdded} AI credits toegevoegd!`, {
@@ -38,12 +59,56 @@ export default function AIMarketingHub() {
       });
       refetchCredits();
       // Clean up URL params
-      window.history.replaceState({}, '', '/admin/marketing/ai');
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('purchase');
+      newParams.delete('credits');
+      setSearchParams(newParams, { replace: true });
     } else if (purchaseStatus === 'cancelled') {
       toast.info('Aankoop geannuleerd');
-      window.history.replaceState({}, '', '/admin/marketing/ai');
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('purchase');
+      setSearchParams(newParams, { replace: true });
+    } else if (purchaseStatus === 'open') {
+      setPurchaseDialogOpen(true);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('purchase');
+      setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams, refetchCredits]);
+  }, [searchParams, refetchCredits, setSearchParams]);
+
+  // Handle suggestion click from AICampaignSuggestions
+  const handleSuggestionClick = (suggestion: CampaignSuggestion) => {
+    const mappedType = typeMapping[suggestion.type] || 'newsletter';
+    
+    if (suggestion.type === 'seasonal') {
+      // Seasonal -> Social media
+      setSocialContentType('seasonal');
+      setActiveTab('social');
+    } else {
+      // All others -> Email
+      setEmailCampaignType(mappedType);
+      setActiveTab('email');
+    }
+  };
+
+  // Handle insight click from AIInsightsCard
+  const handleInsightClick = (insight: { type: string }) => {
+    const mappedType = typeMapping[insight.type] || 'newsletter';
+    
+    if (insight.type === 'seasonal') {
+      setSocialContentType('seasonal');
+      setActiveTab('social');
+    } else {
+      setEmailCampaignType(mappedType);
+      setActiveTab('email');
+    }
+  };
+
+  // Reset prefill state when tab changes manually
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Don't reset if we just set it from a suggestion/insight
+  };
 
   return (
     <FeatureGate feature="ai_marketing">
@@ -75,7 +140,7 @@ export default function AIMarketingHub() {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview" className="gap-2">
               <Sparkles className="h-4 w-4" />
@@ -103,7 +168,7 @@ export default function AIMarketingHub() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
               {/* AI Insights */}
-              <AIInsightsCard />
+              <AIInsightsCard onInsightClick={handleInsightClick} />
 
               {/* Quick Actions */}
               <div className="space-y-4">
@@ -223,17 +288,23 @@ export default function AIMarketingHub() {
 
           {/* Social Media Tab */}
           <TabsContent value="social">
-            <SocialPostGenerator />
+            <SocialPostGenerator 
+              initialContentType={socialContentType as any}
+              key={socialContentType || 'social'} 
+            />
           </TabsContent>
 
           {/* Email Tab */}
           <TabsContent value="email">
-            <AIEmailPlanner />
+            <AIEmailPlanner 
+              initialCampaignType={emailCampaignType as any}
+              key={emailCampaignType || 'email'}
+            />
           </TabsContent>
 
           {/* Suggestions Tab */}
           <TabsContent value="suggestions">
-            <AICampaignSuggestions />
+            <AICampaignSuggestions onSuggestionClick={handleSuggestionClick} />
           </TabsContent>
 
           {/* Library Tab */}
