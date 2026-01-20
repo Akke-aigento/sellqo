@@ -60,6 +60,7 @@ import POSPage from "./pages/admin/POS";
 import POSTerminalPage from "./pages/admin/POSTerminal";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
+import TranslationHub from "./pages/admin/TranslationHub";
 
 const queryClient = new QueryClient();
 
@@ -126,6 +127,7 @@ const App = () => (
               <Route path="marketing/ai-center" element={<AIActionCenter />} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="marketing/seo" element={<SEODashboard />} />
+              <Route path="marketing/translations" element={<TranslationHub />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="reports" element={<ReportsPage />} />

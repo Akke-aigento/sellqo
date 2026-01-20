@@ -25,6 +25,7 @@ import {
   BellRing,
   Bot,
   Monitor,
+  Globe,
   Search,
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
@@ -221,6 +222,14 @@ export function AdminSidebar() {
                           <NavLink to="/admin/marketing/seo">
                             <Search className="h-3 w-3 mr-1.5" />
                             SEO Optimalisatie
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/marketing/translations'}>
+                          <NavLink to="/admin/marketing/translations">
+                            <Globe className="h-3 w-3 mr-1.5" />
+                            Vertaal Hub
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
