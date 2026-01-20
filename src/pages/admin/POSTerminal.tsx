@@ -19,6 +19,9 @@ import {
   Wifi,
   WifiOff,
   Grid3X3,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,14 +39,16 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons, usePOSParkedCarts } from '@/hooks/usePOS';
+import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons, usePOSParkedCarts, usePOSCashMovements } from '@/hooks/usePOS';
 import { useProducts } from '@/hooks/useProducts';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
 import { ReceiptDialog } from '@/components/admin/pos/ReceiptDialog';
-import type { POSCartItem, POSPayment, POSPaymentMethod, POSTransaction } from '@/types/pos';
+import { SessionReportDialog } from '@/components/admin/pos/SessionReportDialog';
+import { CashMovementDialog } from '@/components/admin/pos/CashMovementDialog';
+import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { Product } from '@/types/product';
 import { formatCurrency } from '@/lib/utils';
 
@@ -54,7 +59,8 @@ export default function POSTerminalPage() {
   // Hooks
   const { terminals, updateTerminal } = usePOSTerminals();
   const { activeSession, openSession, closeSession } = usePOSSessions(terminalId);
-  const { createTransaction } = usePOSTransactions(activeSession?.id);
+  const { transactions, createTransaction } = usePOSTransactions(activeSession?.id);
+  const { movements: cashMovements, createMovement } = usePOSCashMovements(activeSession?.id);
   const { buttons: quickButtons } = usePOSQuickButtons(terminalId);
   const { parkedCarts, parkCart, resumeCart } = usePOSParkedCarts(terminalId);
   const { products } = useProducts();
@@ -71,6 +77,8 @@ export default function POSTerminalPage() {
   const [showReaderDialog, setShowReaderDialog] = useState(false);
   const [showQuickButtonDialog, setShowQuickButtonDialog] = useState(false);
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [showSessionReportDialog, setShowSessionReportDialog] = useState(false);
+  const [showCashMovementDialog, setShowCashMovementDialog] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
@@ -188,6 +196,31 @@ export default function POSTerminalPage() {
     
     setShowCloseSessionDialog(false);
     setClosingCash('');
+    // Show session report after closing
+    setShowSessionReportDialog(true);
+  };
+
+  // Handle cash movement
+  const handleCashMovement = async (data: {
+    movement_type: 'in' | 'out' | 'adjustment';
+    amount: number;
+    reason: string;
+    notes?: string;
+  }) => {
+    if (!activeSession || !terminalId) return;
+    
+    await createMovement.mutateAsync({
+      sessionId: activeSession.id,
+      terminalId,
+      data: {
+        movement_type: data.movement_type,
+        amount: data.amount,
+        reason: data.reason,
+        notes: data.notes,
+      },
+    });
+    
+    toast.success(data.movement_type === 'in' ? 'Kasstorting geregistreerd' : 'Kasopname geregistreerd');
   };
   
   // Handle cash payment
@@ -396,6 +429,26 @@ export default function POSTerminalPage() {
               <PauseCircle className="mr-2 h-4 w-4" />
               Geparkeerd ({parkedCarts.length})
             </Button>
+          )}
+          {activeSession && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowCashMovementDialog(true)}
+              >
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Kas +/-
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowSessionReportDialog(true)}
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Rapport
+              </Button>
+            </>
           )}
           <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}>
             <Settings className="h-4 w-4" />
@@ -873,6 +926,28 @@ export default function POSTerminalPage() {
         open={showReceiptDialog}
         onOpenChange={setShowReceiptDialog}
         transaction={lastTransaction}
+      />
+
+      {/* Session Report Dialog */}
+      <SessionReportDialog
+        open={showSessionReportDialog}
+        onOpenChange={setShowSessionReportDialog}
+        session={activeSession}
+        transactions={transactions}
+        cashMovements={cashMovements}
+        onClose={() => {
+          if (activeSession?.status !== 'open') {
+            navigate('/admin/pos');
+          }
+        }}
+      />
+
+      {/* Cash Movement Dialog */}
+      <CashMovementDialog
+        open={showCashMovementDialog}
+        onOpenChange={setShowCashMovementDialog}
+        onSubmit={handleCashMovement}
+        isPending={createMovement.isPending}
       />
     </div>
   );
