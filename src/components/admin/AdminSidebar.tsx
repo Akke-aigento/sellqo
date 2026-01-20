@@ -21,7 +21,9 @@ import {
   FileSpreadsheet,
   Factory,
   ClipboardList,
-  FileBox
+  FileBox,
+  BellRing,
+  Bot
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -66,7 +68,6 @@ const mainNavItems = [
   { title: 'Klanten', url: '/admin/customers', icon: Users },
   { title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
   { title: 'Promoties', url: '/admin/promotions', icon: Percent },
-  { title: 'Marketing', url: '/admin/marketing', icon: Megaphone },
   { title: 'Importeren', url: '/admin/import', icon: Upload },
   { title: 'SellQo Connect', url: '/admin/connect', icon: Cable },
 ];
@@ -78,6 +79,7 @@ const purchasingNavItems = [
 ];
 
 const settingsNavItems = [
+  { title: 'Notificaties', url: '/admin/notifications', icon: BellRing },
   { title: 'Verzending', url: '/admin/shipping', icon: Truck },
   { title: 'Facturatie', url: '/admin/billing', icon: Receipt },
   { title: 'Rapporten', url: '/admin/reports', icon: FileSpreadsheet },
@@ -103,6 +105,7 @@ export function AdminSidebar() {
   };
 
   const isOrdersActive = location.pathname.startsWith('/admin/orders');
+  const isMarketingActive = location.pathname.startsWith('/admin/marketing');
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -175,6 +178,45 @@ export function AdminSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Marketing with submenu */}
+              <Collapsible defaultOpen={isMarketingActive} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={isMarketingActive}>
+                      <Megaphone className="h-4 w-4" />
+                      <span>Marketing</span>
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/marketing'}>
+                          <NavLink to="/admin/marketing">
+                            Campagnes
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/marketing/ai'}>
+                          <NavLink to="/admin/marketing/ai">
+                            AI Content Hub
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/marketing/ai-center'}>
+                          <NavLink to="/admin/marketing/ai-center">
+                            <Bot className="h-3 w-3 mr-1.5" />
+                            AI Actie Centrum
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
               
               {/* Orders with submenu */}
               <Collapsible defaultOpen={isOrdersActive} className="group/collapsible">
