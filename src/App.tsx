@@ -58,6 +58,7 @@ import PlatformCouponsPage from "./pages/platform/PlatformCoupons";
 import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import POSTerminalPage from "./pages/admin/POSTerminal";
+import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,7 @@ const App = () => (
               <Route path="supplier-documents" element={<SupplierDocumentsPage />} />
               <Route path="pos" element={<POSPage />} />
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
+              <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />
