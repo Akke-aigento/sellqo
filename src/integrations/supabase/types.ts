@@ -1073,6 +1073,125 @@ export type Database = {
           },
         ]
       }
+      discount_code_usage: {
+        Row: {
+          created_at: string
+          customer_email: string
+          discount_amount: number
+          discount_code_id: string
+          id: string
+          order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          discount_amount: number
+          discount_code_id: string
+          id?: string
+          order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          discount_amount?: number
+          discount_code_id?: string
+          id?: string
+          order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_code_usage_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_code_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_codes: {
+        Row: {
+          applies_to: string
+          category_ids: string[] | null
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          first_order_only: boolean
+          id: string
+          is_active: boolean
+          maximum_discount_amount: number | null
+          minimum_order_amount: number | null
+          product_ids: string[] | null
+          tenant_id: string
+          updated_at: string
+          usage_count: number
+          usage_limit: number | null
+          usage_limit_per_customer: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applies_to?: string
+          category_ids?: string[] | null
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          first_order_only?: boolean
+          id?: string
+          is_active?: boolean
+          maximum_discount_amount?: number | null
+          minimum_order_amount?: number | null
+          product_ids?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+          usage_limit_per_customer?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applies_to?: string
+          category_ids?: string[] | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          first_order_only?: boolean
+          id?: string
+          is_active?: boolean
+          maximum_discount_amount?: number | null
+          minimum_order_amount?: number | null
+          product_ids?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+          usage_limit_per_customer?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_codes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_automations: {
         Row: {
           created_at: string | null
@@ -2095,6 +2214,8 @@ export type Database = {
           delivered_at: string | null
           delivery_type: string | null
           discount_amount: number | null
+          discount_code: string | null
+          discount_code_id: string | null
           fulfillment_status: string | null
           id: string
           internal_notes: string | null
@@ -2135,6 +2256,8 @@ export type Database = {
           delivered_at?: string | null
           delivery_type?: string | null
           discount_amount?: number | null
+          discount_code?: string | null
+          discount_code_id?: string | null
           fulfillment_status?: string | null
           id?: string
           internal_notes?: string | null
@@ -2175,6 +2298,8 @@ export type Database = {
           delivered_at?: string | null
           delivery_type?: string | null
           discount_amount?: number | null
+          discount_code?: string | null
+          discount_code_id?: string | null
           fulfillment_status?: string | null
           id?: string
           internal_notes?: string | null
@@ -2209,6 +2334,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
             referencedColumns: ["id"]
           },
           {

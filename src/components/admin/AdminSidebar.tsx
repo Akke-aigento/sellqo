@@ -17,7 +17,8 @@ import {
   Receipt,
   Upload,
   Cable,
-  Megaphone
+  Megaphone,
+  Tag
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -209,6 +210,14 @@ export function AdminSidebar() {
                           <NavLink to="/admin/orders/subscriptions">
                             <RefreshCw className="h-3 w-3 mr-1.5" />
                             Abonnementen
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith('/admin/orders/discounts')}>
+                          <NavLink to="/admin/orders/discounts">
+                            <Tag className="h-3 w-3 mr-1.5" />
+                            Kortingscodes
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
