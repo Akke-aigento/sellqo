@@ -18,7 +18,11 @@ import {
   Zap,
   Factory,
   ClipboardList,
-  FileBox
+  FileBox,
+  Monitor,
+  Receipt,
+  Banknote,
+  Calendar,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -46,6 +50,9 @@ import {
   useSupplierDocumentExport,
   useTopSuppliersExport,
   useBulkSupplierDocumentDownload,
+  usePOSSessionExport,
+  usePOSTransactionExport,
+  usePOSCashMovementExport,
 } from '@/hooks/useReportExports';
 
 const Reports = () => {
@@ -74,6 +81,11 @@ const Reports = () => {
   const { exportTopSuppliers, isExporting: isExportingTopSuppliers } = useTopSuppliersExport();
   const { downloadSupplierDocuments, isDownloading: isDownloadingSupplierDocs, progress: supplierDocsProgress } = useBulkSupplierDocumentDownload();
 
+  // POS export hooks
+  const { exportSessions, isExporting: isExportingSessions } = usePOSSessionExport();
+  const { exportTransactions, exportDailySummary, isExporting: isExportingTransactions } = usePOSTransactionExport();
+  const { exportCashMovements, isExporting: isExportingCashMovements } = usePOSCashMovementExport();
+
   // Fetch counts for display
   const { data: counts } = useQuery({
     queryKey: ['report-counts', currentTenant?.id, dateRange],
@@ -92,7 +104,10 @@ const Reports = () => {
         suppliers,
         purchaseOrders,
         supplierDocuments,
-        openSupplierInvoices
+        openSupplierInvoices,
+        posSessions,
+        posTransactions,
+        posCashMovements
       ] = await Promise.all([
         supabase
           .from('invoices')
@@ -160,6 +175,25 @@ const Reports = () => {
           .eq('tenant_id', currentTenant.id)
           .eq('document_type', 'invoice')
           .eq('payment_status', 'pending'),
+        // POS counts
+        supabase
+          .from('pos_sessions')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('opened_at', dateRange.from.toISOString())
+          .lte('opened_at', dateRange.to.toISOString()),
+        supabase
+          .from('pos_transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString()),
+        supabase
+          .from('pos_cash_movements')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString()),
       ]);
 
       return {
@@ -175,6 +209,9 @@ const Reports = () => {
         purchaseOrders: purchaseOrders.count || 0,
         supplierDocuments: supplierDocuments.count || 0,
         openSupplierInvoices: openSupplierInvoices.count || 0,
+        posSessions: posSessions.count || 0,
+        posTransactions: posTransactions.count || 0,
+        posCashMovements: posCashMovements.count || 0,
       };
     },
     enabled: !!currentTenant,
@@ -217,7 +254,7 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="financial" className="gap-2">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
@@ -245,6 +282,10 @@ const Reports = () => {
           <TabsTrigger value="purchasing" className="gap-2">
             <Factory className="h-4 w-4 hidden sm:block" />
             Inkoop
+          </TabsTrigger>
+          <TabsTrigger value="pos" className="gap-2">
+            <Monitor className="h-4 w-4 hidden sm:block" />
+            Kassa
           </TabsTrigger>
         </TabsList>
 
@@ -489,6 +530,43 @@ const Reports = () => {
             />
           </div>
         </TabsContent>
+
+        {/* POS Reports */}
+        <TabsContent value="pos" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ReportCard
+              title="Kassa Transacties"
+              description="Alle kassaverkopen met betalingsdetails"
+              icon={<Receipt className="h-5 w-5" />}
+              recordCount={counts?.posTransactions}
+              onExport={(format) => exportTransactions(dateRange, format)}
+              isLoading={isExportingTransactions}
+            />
+            <ReportCard
+              title="Dagoverzicht"
+              description="Omzet per dag met contant/PIN opsplitsing"
+              icon={<Calendar className="h-5 w-5" />}
+              onExport={(format) => exportDailySummary(dateRange, format)}
+              isLoading={isExportingTransactions}
+            />
+            <ReportCard
+              title="Kassasessies"
+              description="Alle dagafsluitingen met kascontrole"
+              icon={<Monitor className="h-5 w-5" />}
+              recordCount={counts?.posSessions}
+              onExport={(format) => exportSessions(dateRange, format)}
+              isLoading={isExportingSessions}
+            />
+            <ReportCard
+              title="Kasmutaties"
+              description="Stortingen en opnames uit de kassa"
+              icon={<Banknote className="h-5 w-5" />}
+              recordCount={counts?.posCashMovements}
+              onExport={(format) => exportCashMovements(dateRange, format)}
+              isLoading={isExportingCashMovements}
+            />
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Quick Actions */}
@@ -534,6 +612,17 @@ const Reports = () => {
             >
               <Download className="h-4 w-4 mr-2" />
               Download Crediteuren Pakket
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                exportTransactions(dateRange, 'xlsx');
+                exportDailySummary(dateRange, 'xlsx');
+                exportSessions(dateRange, 'xlsx');
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Kassa Pakket
             </Button>
           </div>
         </CardContent>
