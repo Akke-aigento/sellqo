@@ -279,6 +279,9 @@ export function usePOSTransactions(sessionId?: string) {
       cashReceived,
       cashChange,
       customerId,
+      stripePaymentIntentId,
+      cardBrand,
+      cardLast4,
     }: {
       terminalId: string;
       sessionId: string | null;
@@ -287,6 +290,9 @@ export function usePOSTransactions(sessionId?: string) {
       cashReceived?: number;
       cashChange?: number;
       customerId?: string;
+      stripePaymentIntentId?: string;
+      cardBrand?: string;
+      cardLast4?: string;
     }) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
@@ -310,6 +316,9 @@ export function usePOSTransactions(sessionId?: string) {
           payments: JSON.parse(JSON.stringify(payments)),
           cash_received: cashReceived || null,
           cash_change: cashChange || null,
+          stripe_payment_intent_id: stripePaymentIntentId || null,
+          card_brand: cardBrand || null,
+          card_last4: cardLast4 || null,
           subtotal,
           discount_total: discountTotal,
           tax_total: taxTotal,

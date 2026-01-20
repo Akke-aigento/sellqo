@@ -9,7 +9,6 @@ import {
   User,
   CreditCard,
   Banknote,
-  Gift,
   PauseCircle,
   Clock,
   ShoppingCart,
@@ -17,9 +16,11 @@ import {
   Settings,
   LogOut,
   Receipt,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,22 +34,28 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons, usePOSParkedCarts } from '@/hooks/usePOS';
 import { useProducts } from '@/hooks/useProducts';
+import { useStripeTerminal } from '@/hooks/useStripeTerminal';
+import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
+import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import type { POSCartItem, POSPayment, POSPaymentMethod } from '@/types/pos';
 import type { Product } from '@/types/product';
+import { formatCurrency } from '@/lib/utils';
 
 export default function POSTerminalPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   
   // Hooks
-  const { terminals } = usePOSTerminals();
+  const { terminals, updateTerminal } = usePOSTerminals();
   const { activeSession, openSession, closeSession } = usePOSSessions(terminalId);
   const { createTransaction } = usePOSTransactions(activeSession?.id);
   const { buttons: quickButtons } = usePOSQuickButtons(terminalId);
   const { parkedCarts, parkCart, resumeCart } = usePOSParkedCarts(terminalId);
   const { products } = useProducts();
+  const { readers, listReaders, isProcessing: isStripeProcessing } = useStripeTerminal();
   
   // Local State
   const [cart, setCart] = useState<POSCartItem[]>([]);
@@ -57,11 +64,31 @@ export default function POSTerminalPage() {
   const [showCloseSessionDialog, setShowCloseSessionDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showParkedCartsDialog, setShowParkedCartsDialog] = useState(false);
+  const [showCardPaymentDialog, setShowCardPaymentDialog] = useState(false);
+  const [showReaderDialog, setShowReaderDialog] = useState(false);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
+  const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
   
   const terminal = terminals.find(t => t.id === terminalId);
+  
+  // Load Stripe readers on mount
+  useEffect(() => {
+    listReaders();
+  }, [listReaders]);
+  
+  // Set selected reader from terminal settings
+  useEffect(() => {
+    if (terminal?.stripe_reader_id) {
+      setSelectedReaderId(terminal.stripe_reader_id);
+    }
+  }, [terminal?.stripe_reader_id]);
+  
+  // Find connected reader
+  const connectedReader = useMemo(() => {
+    return readers.find(r => r.id === selectedReaderId);
+  }, [readers, selectedReaderId]);
   
   // Calculate totals
   const cartTotals = useMemo(() => {
@@ -158,35 +185,91 @@ export default function POSTerminalPage() {
     setClosingCash('');
   };
   
-  // Handle payment
-  const handlePayment = async (method: POSPaymentMethod) => {
+  // Handle cash payment
+  const handleCashPayment = async () => {
     if (!terminalId || cart.length === 0) return;
     
+    const cashReceivedAmount = parseFloat(cashReceived) || cartTotals.total;
+    const cashChangeAmount = Math.max(0, cashReceivedAmount - cartTotals.total);
+    
     const payments: POSPayment[] = [{
-      method,
+      method: 'cash',
       amount: cartTotals.total,
     }];
     
-    let cashReceivedAmount: number | undefined;
-    let cashChangeAmount: number | undefined;
-    
-    if (method === 'cash') {
-      cashReceivedAmount = parseFloat(cashReceived) || cartTotals.total;
-      cashChangeAmount = Math.max(0, cashReceivedAmount - cartTotals.total);
+    try {
+      await createTransaction.mutateAsync({
+        terminalId,
+        sessionId: activeSession?.id || null,
+        items: cart,
+        payments,
+        cashReceived: cashReceivedAmount,
+        cashChange: cashChangeAmount,
+      });
+      
+      toast.success(`Betaling succesvol! Wisselgeld: ${formatCurrency(cashChangeAmount)}`);
+      clearCart();
+      setShowPaymentDialog(false);
+      setCashReceived('');
+    } catch (error) {
+      toast.error('Betaling mislukt');
     }
+  };
+  
+  // Handle card payment initiation
+  const handleCardPaymentStart = () => {
+    if (cart.length === 0) return;
+    setShowCardPaymentDialog(true);
+  };
+  
+  // Handle card payment success
+  const handleCardPaymentSuccess = async (
+    paymentIntentId: string,
+    cardDetails?: { brand: string; last4: string }
+  ) => {
+    if (!terminalId) return;
     
-    await createTransaction.mutateAsync({
-      terminalId,
-      sessionId: activeSession?.id || null,
-      items: cart,
-      payments,
-      cashReceived: cashReceivedAmount,
-      cashChange: cashChangeAmount,
-    });
+    const payments: POSPayment[] = [{
+      method: 'card',
+      amount: cartTotals.total,
+      reference: paymentIntentId,
+    }];
     
-    clearCart();
-    setShowPaymentDialog(false);
-    setCashReceived('');
+    try {
+      await createTransaction.mutateAsync({
+        terminalId,
+        sessionId: activeSession?.id || null,
+        items: cart,
+        payments,
+        stripePaymentIntentId: paymentIntentId,
+        cardBrand: cardDetails?.brand,
+        cardLast4: cardDetails?.last4,
+      });
+      
+      toast.success('Kaartbetaling succesvol!');
+      clearCart();
+      setShowCardPaymentDialog(false);
+    } catch (error) {
+      toast.error('Fout bij opslaan transactie');
+    }
+  };
+  
+  // Handle reader selection
+  const handleReaderSelect = async (readerId: string) => {
+    setSelectedReaderId(readerId);
+    
+    // Save reader to terminal settings
+    if (terminalId) {
+      try {
+        await updateTerminal.mutateAsync({
+          id: terminalId,
+          data: { stripe_reader_id: readerId } as unknown as { name?: string },
+        });
+        toast.success('Reader gekoppeld aan terminal');
+      } catch (error) {
+        // Silent fail - reader is still selected locally
+      }
+    }
   };
   
   // Handle park cart
@@ -199,6 +282,7 @@ export default function POSTerminalPage() {
       items: cart,
     });
     
+    toast.success('Winkelwagen geparkeerd');
     clearCart();
   };
   
@@ -207,6 +291,7 @@ export default function POSTerminalPage() {
     const resumed = await resumeCart.mutateAsync(cartId);
     if (resumed) {
       setCart(resumed.items);
+      toast.success('Winkelwagen hervat');
     }
     setShowParkedCartsDialog(false);
   };
@@ -261,6 +346,30 @@ export default function POSTerminalPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Reader Status */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowReaderDialog(true)}
+            className={connectedReader?.status === 'online' ? 'border-green-500' : ''}
+          >
+            {connectedReader ? (
+              <>
+                {connectedReader.status === 'online' ? (
+                  <Wifi className="mr-2 h-4 w-4 text-green-500" />
+                ) : (
+                  <WifiOff className="mr-2 h-4 w-4 text-muted-foreground" />
+                )}
+                {connectedReader.label}
+              </>
+            ) : (
+              <>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Geen reader
+              </>
+            )}
+          </Button>
+          
           {parkedCarts.length > 0 && (
             <Button 
               variant="outline" 
@@ -271,7 +380,7 @@ export default function POSTerminalPage() {
               Geparkeerd ({parkedCarts.length})
             </Button>
           )}
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}>
             <Settings className="h-4 w-4" />
           </Button>
           {activeSession && (
@@ -329,7 +438,7 @@ export default function POSTerminalPage() {
                         <p className="font-medium truncate">{product.name}</p>
                         <p className="text-sm text-muted-foreground">{product.sku}</p>
                       </div>
-                      <p className="font-semibold">€{product.price.toFixed(2)}</p>
+                      <p className="font-semibold">{formatCurrency(product.price)}</p>
                     </button>
                   ))}
                 </CardContent>
@@ -353,7 +462,7 @@ export default function POSTerminalPage() {
                   </span>
                   {button.product && (
                     <span className="text-xs text-muted-foreground mt-1">
-                      €{button.product.price.toFixed(2)}
+                      {formatCurrency(button.product.price)}
                     </span>
                   )}
                 </button>
@@ -416,7 +525,7 @@ export default function POSTerminalPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        €{item.price.toFixed(2)} × {item.quantity}
+                        {formatCurrency(item.price)} × {item.quantity}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -458,22 +567,22 @@ export default function POSTerminalPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotaal</span>
-                <span>€{cartTotals.subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(cartTotals.subtotal)}</span>
               </div>
               {cartTotals.discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Korting</span>
-                  <span>-€{cartTotals.discount.toFixed(2)}</span>
+                  <span>-{formatCurrency(cartTotals.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">BTW (21%)</span>
-                <span>€{cartTotals.taxTotal.toFixed(2)}</span>
+                <span>{formatCurrency(cartTotals.taxTotal)}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Totaal</span>
-                <span>€{cartTotals.total.toFixed(2)}</span>
+                <span>{formatCurrency(cartTotals.total)}</span>
               </div>
             </div>
             
@@ -507,8 +616,8 @@ export default function POSTerminalPage() {
               </Button>
               <Button 
                 className="h-14 text-lg"
-                disabled={cart.length === 0}
-                onClick={() => handlePayment('card')}
+                disabled={cart.length === 0 || isStripeProcessing}
+                onClick={handleCardPaymentStart}
               >
                 <CreditCard className="mr-2 h-5 w-5" />
                 PIN
@@ -562,7 +671,7 @@ export default function POSTerminalPage() {
           <div className="py-4 space-y-4">
             <div>
               <Label>Startbedrag</Label>
-              <p className="text-lg font-semibold">€{activeSession?.opening_cash.toFixed(2)}</p>
+              <p className="text-lg font-semibold">{formatCurrency(activeSession?.opening_cash || 0)}</p>
             </div>
             <div>
               <Label htmlFor="closingCash">Eindbedrag (€)</Label>
@@ -588,13 +697,13 @@ export default function POSTerminalPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Payment Dialog */}
+      {/* Cash Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Contante Betaling</DialogTitle>
             <DialogDescription>
-              Totaal te betalen: €{cartTotals.total.toFixed(2)}
+              Totaal te betalen: {formatCurrency(cartTotals.total)}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -608,13 +717,14 @@ export default function POSTerminalPage() {
                 value={cashReceived}
                 onChange={(e) => setCashReceived(e.target.value)}
                 className="mt-2 text-lg"
+                autoFocus
               />
             </div>
             {parseFloat(cashReceived) > cartTotals.total && (
-              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                <p className="text-sm text-green-700">Wisselgeld</p>
-                <p className="text-2xl font-bold text-green-700">
-                  €{(parseFloat(cashReceived) - cartTotals.total).toFixed(2)}
+              <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-700 dark:text-green-300">Wisselgeld</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                  {formatCurrency(parseFloat(cashReceived) - cartTotals.total)}
                 </p>
               </div>
             )}
@@ -631,13 +741,24 @@ export default function POSTerminalPage() {
                 </Button>
               ))}
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[100, 200, 500].map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  onClick={() => setCashReceived(amount.toString())}
+                >
+                  €{amount}
+                </Button>
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
               Annuleren
             </Button>
             <Button 
-              onClick={() => handlePayment('cash')} 
+              onClick={handleCashPayment} 
               disabled={createTransaction.isPending}
             >
               <Receipt className="mr-2 h-4 w-4" />
@@ -646,6 +767,24 @@ export default function POSTerminalPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Card Payment Dialog */}
+      <CardPaymentDialog
+        open={showCardPaymentDialog}
+        onOpenChange={setShowCardPaymentDialog}
+        amount={cartTotals.total}
+        terminalId={terminalId || ''}
+        readerId={selectedReaderId || undefined}
+        onSuccess={handleCardPaymentSuccess}
+        onCancel={() => setShowCardPaymentDialog(false)}
+      />
+      
+      {/* Stripe Reader Management Dialog */}
+      <StripeReaderDialog
+        open={showReaderDialog}
+        onOpenChange={setShowReaderDialog}
+        onReaderSelect={handleReaderSelect}
+      />
       
       {/* Parked Carts Dialog */}
       <Dialog open={showParkedCartsDialog} onOpenChange={setShowParkedCartsDialog}>
@@ -676,7 +815,7 @@ export default function POSTerminalPage() {
                     </p>
                   </div>
                   <p className="font-semibold">
-                    €{parked.items.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2)}
+                    {formatCurrency(parked.items.reduce((sum, i) => sum + i.price * i.quantity, 0))}
                   </p>
                 </div>
               </button>
