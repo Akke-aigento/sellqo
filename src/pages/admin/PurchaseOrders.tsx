@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,8 +61,7 @@ export default function PurchaseOrders() {
   const { data: suppliers } = useSuppliers({ isActive: true });
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -260,6 +258,5 @@ export default function PurchaseOrders() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   );
 }
