@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { DashboardMarketplaceWidget } from '@/components/admin/marketplace/DashboardMarketplaceWidget';
 import { DashboardAIWidget } from '@/components/admin/marketing/DashboardAIWidget';
+import { DashboardPOSWidget } from '@/components/admin/pos/DashboardPOSWidget';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -145,6 +146,9 @@ export default function AdminDashboard() {
 
         {/* AI Marketing Widget */}
         <DashboardAIWidget />
+
+        {/* POS Widget */}
+        <DashboardPOSWidget />
       </div>
 
       {/* Marketplace Widget */}
