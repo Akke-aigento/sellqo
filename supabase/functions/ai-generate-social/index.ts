@@ -17,7 +17,15 @@ interface GenerateSocialRequest {
   productIds?: string[];
   customPrompt?: string;
   tone?: 'professional' | 'casual' | 'playful' | 'urgent';
+  language?: 'nl' | 'en' | 'de' | 'fr';
 }
+
+const languageInstructions: Record<string, string> = {
+  nl: 'Schrijf in het Nederlands (informeel, Vlaams/Nederlands)',
+  en: 'Write in English (British English preferred)',
+  de: 'Schreibe auf Deutsch (Sie-Form)',
+  fr: 'Écris en français (vouvoiement)',
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -38,7 +46,7 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const body: GenerateSocialRequest = await req.json();
-    const { tenantId, context, platform, contentType, productIds, customPrompt, tone = 'casual' } = body;
+    const { tenantId, context, platform, contentType, productIds, customPrompt, tone = 'casual', language = 'nl' } = body;
 
     // Check credits
     const { data: hasCredits } = await supabase.rpc('use_ai_credits', {
@@ -156,7 +164,7 @@ Twitter/X richtlijnen:
     };
 
     const systemPrompt = `Je bent een expert social media marketeer voor ${context.business.name}.
-Je schrijft posts in het Nederlands (of Vlaams).
+${languageInstructions[language] || languageInstructions.nl}
 Je kent de doelgroep en weet wat werkt op social media.
 
 Bedrijfscontext:
@@ -216,9 +224,11 @@ Antwoord ALLEEN met de post tekst, zonder extra uitleg of quotes.`;
         title: `${platform} - ${contentType}`,
         content_text: generatedContent,
         product_ids: productIds || [],
+        language,
         metadata: {
           contentType,
           tone,
+          language,
           context: {
             businessName: context.business.name,
             productCount: selectedProducts.length,

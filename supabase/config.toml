@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.process-email-webhook]
 verify_jwt = false
+
+[functions.ai-generate-image]
+verify_jwt = false
+
+[functions.ai-generate-ab-variant]
+verify_jwt = false
