@@ -114,13 +114,21 @@ export function GiftCardDesignDialog({
   };
 
   const onSubmit = async (data: FormValues) => {
+    const formData = {
+      name: data.name,
+      theme: data.theme,
+      image_url: data.image_url ?? null,
+      is_active: data.is_active,
+      sort_order: data.sort_order,
+    };
+    
     if (isEditing && design) {
       await updateDesign.mutateAsync({
         id: design.id,
-        formData: data,
+        formData,
       });
     } else {
-      await createDesign.mutateAsync(data);
+      await createDesign.mutateAsync(formData);
     }
     onOpenChange(false);
   };
