@@ -53,6 +53,7 @@ import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
+import TenantDetailPage from "./pages/platform/TenantDetail";
 import NotificationsPage from "./pages/admin/Notifications";
 
 const queryClient = new QueryClient();
@@ -134,6 +135,11 @@ const App = () => (
               <Route path="platform/billing" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <PlatformBillingPage />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/tenants/:tenantId" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <TenantDetailPage />
                 </ProtectedRoute>
               } />
             </Route>
