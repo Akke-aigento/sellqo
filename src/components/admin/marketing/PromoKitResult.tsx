@@ -10,8 +10,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import type { PromoKit } from './ProductPromoWizard';
 import { cn } from '@/lib/utils';
+
+// PromoKit type - shared between components
+export interface PromoKit {
+  productId: string;
+  productName: string;
+  tone: 'urgent' | 'casual' | 'professional' | 'playful';
+  language: 'nl' | 'en' | 'de' | 'fr';
+  images: {
+    original: string | null;
+    enhanced: string | null;
+    generated: string | null;
+  };
+  social: {
+    instagram: { caption: string; hashtags: string[] };
+    facebook: { post: string };
+    linkedin: { post: string };
+    twitter: { tweet: string };
+  };
+  email: {
+    subjectLines: string[];
+    previewText: string;
+    bodySnippet: string;
+  };
+  slogans: string[];
+  suggestedTiming: {
+    bestDay: string;
+    bestTime: string;
+    reason: string;
+  };
+  creditsUsed: number;
+  generatedAt: string;
+}
 
 interface PromoKitResultProps {
   kit: PromoKit;
