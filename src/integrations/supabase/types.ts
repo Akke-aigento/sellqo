@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_test_configs: {
+        Row: {
+          auto_select_winner: boolean | null
+          campaign_a_id: string
+          campaign_b_id: string
+          created_at: string | null
+          id: string
+          status: string | null
+          tenant_id: string
+          test_metric: string | null
+          test_percentage: number | null
+          updated_at: string | null
+          winner_id: string | null
+          winner_threshold: number | null
+        }
+        Insert: {
+          auto_select_winner?: boolean | null
+          campaign_a_id: string
+          campaign_b_id: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          tenant_id: string
+          test_metric?: string | null
+          test_percentage?: number | null
+          updated_at?: string | null
+          winner_id?: string | null
+          winner_threshold?: number | null
+        }
+        Update: {
+          auto_select_winner?: boolean | null
+          campaign_a_id?: string
+          campaign_b_id?: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          tenant_id?: string
+          test_metric?: string | null
+          test_percentage?: number | null
+          updated_at?: string | null
+          winner_id?: string | null
+          winner_threshold?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_configs_campaign_a_id_fkey"
+            columns: ["campaign_a_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_test_configs_campaign_b_id_fkey"
+            columns: ["campaign_b_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_test_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_test_configs_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_billing_actions: {
         Row: {
           action: string
@@ -105,9 +179,13 @@ export type Database = {
           id: string
           image_urls: string[] | null
           is_used: boolean | null
+          language: string | null
           metadata: Json | null
           platform: string | null
           product_ids: string[] | null
+          publish_error: string | null
+          publish_status: string | null
+          published_at: string | null
           scheduled_at: string | null
           segment_id: string | null
           tenant_id: string
@@ -123,9 +201,13 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           is_used?: boolean | null
+          language?: string | null
           metadata?: Json | null
           platform?: string | null
           product_ids?: string[] | null
+          publish_error?: string | null
+          publish_status?: string | null
+          published_at?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
           tenant_id: string
@@ -141,9 +223,13 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           is_used?: boolean | null
+          language?: string | null
           metadata?: Json | null
           platform?: string | null
           product_ids?: string[] | null
+          publish_error?: string | null
+          publish_status?: string | null
+          published_at?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
           tenant_id?: string
@@ -161,6 +247,117 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_generated_content_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_generated_images: {
+        Row: {
+          content_id: string | null
+          created_at: string | null
+          credits_used: number | null
+          height: number | null
+          id: string
+          image_url: string
+          prompt: string
+          storage_path: string | null
+          style: string | null
+          tenant_id: string
+          width: number | null
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          height?: number | null
+          id?: string
+          image_url: string
+          prompt: string
+          storage_path?: string | null
+          style?: string | null
+          tenant_id: string
+          width?: number | null
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          height?: number | null
+          id?: string
+          image_url?: string
+          prompt?: string
+          storage_path?: string | null
+          style?: string | null
+          tenant_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generated_images_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_engagement_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generated_images_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generated_images_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_prompt_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          prompt_text: string
+          prompt_type: string
+          settings: Json | null
+          tenant_id: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          prompt_text: string
+          prompt_type: string
+          settings?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          prompt_text?: string
+          prompt_type?: string
+          settings?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_prompt_favorites_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -809,11 +1006,14 @@ export type Database = {
       }
       email_campaigns: {
         Row: {
+          ab_test_winner_selected_at: string | null
+          ab_variant_of: string | null
           completed_at: string | null
           created_at: string | null
           created_by: string | null
           html_content: string
           id: string
+          is_ab_test: boolean | null
           name: string
           preview_text: string | null
           scheduled_at: string | null
@@ -831,13 +1031,17 @@ export type Database = {
           total_sent: number | null
           total_unsubscribed: number | null
           updated_at: string | null
+          variant_label: string | null
         }
         Insert: {
+          ab_test_winner_selected_at?: string | null
+          ab_variant_of?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
           html_content: string
           id?: string
+          is_ab_test?: boolean | null
           name: string
           preview_text?: string | null
           scheduled_at?: string | null
@@ -855,13 +1059,17 @@ export type Database = {
           total_sent?: number | null
           total_unsubscribed?: number | null
           updated_at?: string | null
+          variant_label?: string | null
         }
         Update: {
+          ab_test_winner_selected_at?: string | null
+          ab_variant_of?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
           html_content?: string
           id?: string
+          is_ab_test?: boolean | null
           name?: string
           preview_text?: string | null
           scheduled_at?: string | null
@@ -879,8 +1087,16 @@ export type Database = {
           total_sent?: number | null
           total_unsubscribed?: number | null
           updated_at?: string | null
+          variant_label?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_campaigns_ab_variant_of_fkey"
+            columns: ["ab_variant_of"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_campaigns_segment_id_fkey"
             columns: ["segment_id"]
@@ -2759,6 +2975,142 @@ export type Database = {
           },
         ]
       }
+      social_connections: {
+        Row: {
+          access_token: string
+          account_avatar: string | null
+          account_id: string | null
+          account_name: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          platform: string
+          refresh_token: string | null
+          tenant_id: string
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token: string
+          account_avatar?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform: string
+          refresh_token?: string | null
+          tenant_id: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          account_avatar?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform?: string
+          refresh_token?: string | null
+          tenant_id?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          connection_id: string | null
+          content_id: string | null
+          created_at: string | null
+          engagement_data: Json | null
+          error_message: string | null
+          id: string
+          image_urls: string[] | null
+          platform: string
+          platform_post_id: string | null
+          post_text: string
+          posted_at: string | null
+          scheduled_for: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          connection_id?: string | null
+          content_id?: string | null
+          created_at?: string | null
+          engagement_data?: Json | null
+          error_message?: string | null
+          id?: string
+          image_urls?: string[] | null
+          platform: string
+          platform_post_id?: string | null
+          post_text: string
+          posted_at?: string | null
+          scheduled_for?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          connection_id?: string | null
+          content_id?: string | null
+          created_at?: string | null
+          engagement_data?: Json | null
+          error_message?: string | null
+          id?: string
+          image_urls?: string[] | null
+          platform?: string
+          platform_post_id?: string | null
+          post_text?: string
+          posted_at?: string | null
+          scheduled_for?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_engagement_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_invoices: {
         Row: {
           generated_at: string | null
@@ -3566,7 +3918,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_content_engagement_stats: {
+        Row: {
+          comments: number | null
+          content_type: string | null
+          created_at: string | null
+          engagement_data: Json | null
+          id: string | null
+          impressions: number | null
+          is_used: boolean | null
+          language: string | null
+          likes: number | null
+          platform: string | null
+          publish_status: string | null
+          published_at: string | null
+          shares: number | null
+          social_post_id: string | null
+          social_status: string | null
+          tenant_id: string | null
+          title: string | null
+          used_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generated_content_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_ai_credits: {
