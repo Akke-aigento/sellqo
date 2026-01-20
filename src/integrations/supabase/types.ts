@@ -784,6 +784,110 @@ export type Database = {
           },
         ]
       }
+      customer_messages: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          context_data: Json | null
+          context_type: string | null
+          created_at: string
+          customer_id: string | null
+          delivered_at: string | null
+          direction: string
+          error_message: string | null
+          from_email: string
+          id: string
+          opened_at: string | null
+          order_id: string | null
+          quote_id: string | null
+          reply_to_email: string | null
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          tenant_id: string
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          context_data?: Json | null
+          context_type?: string | null
+          created_at?: string
+          customer_id?: string | null
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          from_email: string
+          id?: string
+          opened_at?: string | null
+          order_id?: string | null
+          quote_id?: string | null
+          reply_to_email?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          tenant_id: string
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          context_data?: Json | null
+          context_type?: string | null
+          created_at?: string
+          customer_id?: string | null
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          from_email?: string
+          id?: string
+          opened_at?: string | null
+          order_id?: string | null
+          quote_id?: string | null
+          reply_to_email?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          tenant_id?: string
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_messages_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_segments: {
         Row: {
           created_at: string | null

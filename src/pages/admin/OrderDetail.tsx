@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode } from 'lucide-react';
+import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare } from 'lucide-react';
 import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
+import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog';
+import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
 import type { OrderStatus, PaymentStatus, Address } from '@/types/order';
 import { useState } from 'react';
 
@@ -26,6 +28,7 @@ export default function OrderDetailPage() {
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const [internalNotes, setInternalNotes] = useState('');
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -288,18 +291,39 @@ export default function OrderDetailPage() {
                   <div className="text-muted-foreground">{order.customer_phone}</div>
                 )}
               </div>
-              {order.customer_id && (
+              <div className="flex gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full"
-                  onClick={() => navigate(`/admin/customers/${order.customer_id}`)}
+                  className="flex-1"
+                  onClick={() => setShowMessageDialog(true)}
                 >
-                  Bekijk klantprofiel
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Email
                 </Button>
-              )}
+                {order.customer_id && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => navigate(`/admin/customers/${order.customer_id}`)}
+                  >
+                    Profiel
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Message History */}
+          {order.id && (
+            <MessageHistoryPanel 
+              entityType="order" 
+              entityId={order.id} 
+              compact 
+              maxItems={3} 
+            />
+          )}
 
           {/* Shipping Address */}
           <Card>
@@ -417,6 +441,18 @@ export default function OrderDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Customer Message Dialog */}
+      <CustomerMessageDialog
+        open={showMessageDialog}
+        onOpenChange={setShowMessageDialog}
+        customerEmail={order.customer_email}
+        customerName={order.customer_name || ''}
+        contextType="order"
+        orderId={order.id}
+        customerId={order.customer_id || undefined}
+        orderNumber={order.order_number}
+      />
     </div>
   );
 }

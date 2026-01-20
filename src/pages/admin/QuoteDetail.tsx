@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Send, Link2, Copy, Trash2, Loader2, User, Calendar, Clock, Mail, Phone, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Edit, Send, Link2, Copy, Trash2, Loader2, User, Calendar, Clock, Mail, Phone, ExternalLink, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { QuoteStatusBadge } from '@/components/admin/QuoteStatusBadge';
+import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog';
+import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
 import { useQuote, useQuotes } from '@/hooks/useQuotes';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -37,6 +39,7 @@ export default function QuoteDetailPage() {
   const { sendQuote, generatePaymentLink, deleteQuote } = useQuotes();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
@@ -269,12 +272,31 @@ export default function QuoteDetailPage() {
                       </div>
                     )}
                   </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setShowMessageDialog(true)}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Email klant
+                  </Button>
                 </div>
               ) : (
                 <p className="text-muted-foreground">Geen klant gekoppeld</p>
               )}
             </CardContent>
           </Card>
+
+          {/* Message History */}
+          {quote.id && (
+            <MessageHistoryPanel 
+              entityType="quote" 
+              entityId={quote.id} 
+              compact 
+              maxItems={3} 
+            />
+          )}
 
           {/* Details */}
           <Card>
@@ -381,6 +403,20 @@ export default function QuoteDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Customer Message Dialog */}
+      {quote.customer && (
+        <CustomerMessageDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          customerEmail={quote.customer.email}
+          customerName={getCustomerName()}
+          contextType="quote"
+          quoteId={quote.id}
+          customerId={quote.customer.id}
+          quoteNumber={quote.quote_number}
+        />
+      )}
     </div>
   );
 }
