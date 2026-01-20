@@ -49,6 +49,74 @@ export type Database = {
           },
         ]
       }
+      campaign_link_clicks: {
+        Row: {
+          campaign_id: string
+          clicked_at: string | null
+          customer_id: string | null
+          id: string
+          ip_country: string | null
+          link_text: string | null
+          link_url: string
+          send_id: string | null
+          tenant_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          campaign_id: string
+          clicked_at?: string | null
+          customer_id?: string | null
+          id?: string
+          ip_country?: string | null
+          link_text?: string | null
+          link_url: string
+          send_id?: string | null
+          tenant_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          clicked_at?: string | null
+          customer_id?: string | null
+          id?: string
+          ip_country?: string | null
+          link_text?: string | null
+          link_url?: string
+          send_id?: string | null
+          tenant_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_link_clicks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_link_clicks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_link_clicks_send_id_fkey"
+            columns: ["send_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sends"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_link_clicks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_sends: {
         Row: {
           bounced_at: string | null
@@ -60,11 +128,16 @@ export type Database = {
           delivered_at: string | null
           email: string
           error_message: string | null
+          first_clicked_at: string | null
+          first_opened_at: string | null
           id: string
+          ip_country: string | null
+          link_clicks: number | null
           opened_at: string | null
           resend_id: string | null
           sent_at: string | null
           status: string | null
+          user_agent: string | null
         }
         Insert: {
           bounced_at?: string | null
@@ -76,11 +149,16 @@ export type Database = {
           delivered_at?: string | null
           email: string
           error_message?: string | null
+          first_clicked_at?: string | null
+          first_opened_at?: string | null
           id?: string
+          ip_country?: string | null
+          link_clicks?: number | null
           opened_at?: string | null
           resend_id?: string | null
           sent_at?: string | null
           status?: string | null
+          user_agent?: string | null
         }
         Update: {
           bounced_at?: string | null
@@ -92,11 +170,16 @@ export type Database = {
           delivered_at?: string | null
           email?: string
           error_message?: string | null
+          first_clicked_at?: string | null
+          first_opened_at?: string | null
           id?: string
+          ip_country?: string | null
+          link_clicks?: number | null
           opened_at?: string | null
           resend_id?: string | null
           sent_at?: string | null
           status?: string | null
+          user_agent?: string | null
         }
         Relationships: [
           {
