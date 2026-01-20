@@ -11,7 +11,9 @@ import {
   Bot,
   FileCode,
   Globe,
-  FolderOpen
+  FolderOpen,
+  Image as ImageIcon,
+  Link2,
 } from 'lucide-react';
 import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
@@ -22,6 +24,11 @@ import { SEOScoreHistoryChart } from '@/components/admin/seo/SEOScoreHistoryChar
 import { SocialMediaPreview } from '@/components/admin/seo/SocialMediaPreview';
 import { StructuredDataPreview } from '@/components/admin/seo/StructuredDataPreview';
 import { KeywordResearchPanel } from '@/components/admin/seo/KeywordResearchPanel';
+import { ImageAltTextPanel } from '@/components/admin/seo/ImageAltTextPanel';
+import { RobotsTxtEditor } from '@/components/admin/seo/RobotsTxtEditor';
+import { AISearchOptimizer } from '@/components/admin/seo/AISearchOptimizer';
+import { SlugManager } from '@/components/admin/seo/SlugManager';
+import { SEOTranslationStatus } from '@/components/admin/seo/SEOTranslationStatus';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
@@ -177,6 +184,13 @@ export default function SEODashboard() {
     } as any);
   };
 
+  const handleGenerateAltText = (productIds: string[]) => {
+    generateContent({
+      type: 'alt_text',
+      productIds,
+    });
+  };
+
   // Get previous score from history
   const previousScore = history && history.length > 1 ? history[1]?.overall_score : null;
 
@@ -278,11 +292,12 @@ export default function SEODashboard() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="overview">Overzicht</TabsTrigger>
             <TabsTrigger value="keywords">Keywords</TabsTrigger>
             <TabsTrigger value="products">Producten</TabsTrigger>
             <TabsTrigger value="categories">Categorieën</TabsTrigger>
+            <TabsTrigger value="images">Afbeeldingen</TabsTrigger>
             <TabsTrigger value="social">Social</TabsTrigger>
             <TabsTrigger value="technical">Technisch</TabsTrigger>
             <TabsTrigger value="ai-search">AI Zoeken</TabsTrigger>
@@ -347,6 +362,15 @@ export default function SEODashboard() {
             />
           </TabsContent>
 
+          <TabsContent value="images" className="mt-6">
+            <ImageAltTextPanel
+              products={products || []}
+              isLoading={isLoadingProducts}
+              onGenerateAltText={handleGenerateAltText}
+              isGenerating={isGenerating}
+            />
+          </TabsContent>
+
           <TabsContent value="social" className="mt-6">
             <div className="grid gap-6 lg:grid-cols-2">
               <SocialMediaPreview
@@ -391,128 +415,38 @@ export default function SEODashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="technical" className="mt-6">
+          <TabsContent value="technical" className="mt-6 space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-5 w-5" />
-                    Sitemap & Robots
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg border bg-muted/30">
-                    <h4 className="font-medium mb-2">Sitemap.xml</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Genereer een dynamische sitemap met al je producten en categorieën.
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Sitemap Genereren
-                    </Button>
-                  </div>
-                  <div className="p-4 rounded-lg border bg-muted/30">
-                    <h4 className="font-medium mb-2">Robots.txt</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Configureer welke pagina's zoekmachines mogen indexeren.
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Configureren
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
+              <RobotsTxtEditor baseUrl={window.location.origin} />
               <StructuredDataPreview
                 products={structuredProducts}
                 business={businessData}
                 baseUrl={window.location.origin}
               />
             </div>
+            <SlugManager
+              products={products || []}
+              categories={categories || []}
+              isLoading={isLoadingProducts || isLoadingCategories}
+            />
           </TabsContent>
 
           <TabsContent value="ai-search" className="mt-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bot className="h-5 w-5" />
-                    AI Search Optimalisatie
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Optimaliseer je content voor AI-zoekmachines zoals ChatGPT, Perplexity en Google AI Overview.
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <div className="p-4 rounded-lg border">
-                      <h4 className="font-medium mb-1">E-E-A-T Signalen</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Experience, Expertise, Authority, Trust - essentieel voor AI-zoekmachines.
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg border">
-                      <h4 className="font-medium mb-1">Conversational Content</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Content die antwoord geeft op natuurlijke vragen.
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg border">
-                      <h4 className="font-medium mb-1">Citatie-waardigheid</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Content die AI's graag citeren als bron.
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button className="w-full">
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    AI Content Suggesties Genereren
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>AI Search Readiness Score</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center py-8">
-                    <div className="relative w-32 h-32 mb-4">
-                      <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
-                        <circle
-                          className="text-muted stroke-current"
-                          strokeWidth="8"
-                          fill="transparent"
-                          r="42"
-                          cx="50"
-                          cy="50"
-                        />
-                        <circle
-                          className="text-blue-500 stroke-current transition-all duration-500"
-                          strokeWidth="8"
-                          strokeLinecap="round"
-                          fill="transparent"
-                          r="42"
-                          cx="50"
-                          cy="50"
-                          strokeDasharray={`${((tenantScore?.ai_search_score || 0) / 100) * 264} 264`}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold text-blue-500">
-                          {tenantScore?.ai_search_score ?? '-'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">/100</span>
-                      </div>
-                    </div>
-                    <p className="text-center text-sm text-muted-foreground max-w-xs">
-                      Je AI Search Readiness Score geeft aan hoe goed je content is geoptimaliseerd voor AI-zoekmachines.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <AISearchOptimizer
+              aiSearchScore={tenantScore?.ai_search_score ?? null}
+              products={products || []}
+              isLoading={isLoading}
+              onGenerateFAQ={(productIds) => {
+                toast.info('FAQ generatie wordt binnenkort toegevoegd');
+              }}
+              onGenerateLongForm={(productIds) => {
+                generateContent({
+                  type: 'product_description',
+                  productIds,
+                });
+              }}
+              isGenerating={isGenerating}
+            />
           </TabsContent>
         </Tabs>
       </div>
