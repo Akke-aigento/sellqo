@@ -98,21 +98,43 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
 
-    const { data, error } = await supabase
+    // Fetch tenants with their active subscription data
+    const { data: tenantsData, error: tenantsError } = await supabase
       .from('tenants')
       .select('*')
       .order('name');
 
-    if (error) {
-      console.error('Error fetching tenants:', error);
+    if (tenantsError) {
+      console.error('Error fetching tenants:', tenantsError);
       setTenants([]);
-    } else {
-      setTenants(data || []);
-      
-      // Auto-select first tenant if none selected
-      if (!currentTenant && data && data.length > 0) {
-        setCurrentTenant(data[0]);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch subscription data for all tenants
+    const { data: subscriptionsData } = await supabase
+      .from('tenant_subscriptions')
+      .select('tenant_id, plan_id, status, pricing_plans(name)')
+      .in('tenant_id', tenantsData?.map(t => t.id) || []);
+
+    // Merge subscription data into tenants
+    const enrichedTenants = (tenantsData || []).map(tenant => {
+      const subscription = subscriptionsData?.find(s => s.tenant_id === tenant.id);
+      if (subscription) {
+        return {
+          ...tenant,
+          subscription_plan: (subscription.pricing_plans as any)?.name || tenant.subscription_plan,
+          subscription_status: subscription.status || tenant.subscription_status,
+        };
       }
+      return tenant;
+    });
+
+    setTenants(enrichedTenants);
+    
+    // Auto-select first tenant if none selected
+    if (!currentTenant && enrichedTenants.length > 0) {
+      setCurrentTenant(enrichedTenants[0]);
     }
 
     setLoading(false);
