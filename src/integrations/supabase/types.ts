@@ -440,6 +440,218 @@ export type Database = {
           },
         ]
       }
+      automatic_discounts: {
+        Row: {
+          applies_to: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number | null
+          free_product_id: string | null
+          id: string
+          is_active: boolean
+          max_discount_amount: number | null
+          name: string
+          priority: number
+          product_ids: string[] | null
+          schedule: Json | null
+          tenant_id: string
+          trigger_product_ids: string[] | null
+          trigger_type: string
+          trigger_value: number | null
+          updated_at: string
+          usage_count: number
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applies_to?: string
+          created_at?: string
+          description?: string | null
+          discount_type: string
+          discount_value?: number | null
+          free_product_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          name: string
+          priority?: number
+          product_ids?: string[] | null
+          schedule?: Json | null
+          tenant_id: string
+          trigger_product_ids?: string[] | null
+          trigger_type: string
+          trigger_value?: number | null
+          updated_at?: string
+          usage_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applies_to?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number | null
+          free_product_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          name?: string
+          priority?: number
+          product_ids?: string[] | null
+          schedule?: Json | null
+          tenant_id?: string
+          trigger_product_ids?: string[] | null
+          trigger_type?: string
+          trigger_value?: number | null
+          updated_at?: string
+          usage_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatic_discounts_free_product_id_fkey"
+            columns: ["free_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automatic_discounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bogo_promotions: {
+        Row: {
+          buy_category_ids: string[] | null
+          buy_product_ids: string[] | null
+          buy_quantity: number
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          get_category_ids: string[] | null
+          get_product_ids: string[] | null
+          get_quantity: number
+          id: string
+          is_active: boolean
+          max_uses_per_order: number | null
+          name: string
+          promotion_type: string
+          tenant_id: string
+          updated_at: string
+          usage_count: number
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          buy_category_ids?: string[] | null
+          buy_product_ids?: string[] | null
+          buy_quantity?: number
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          get_category_ids?: string[] | null
+          get_product_ids?: string[] | null
+          get_quantity?: number
+          id?: string
+          is_active?: boolean
+          max_uses_per_order?: number | null
+          name: string
+          promotion_type?: string
+          tenant_id: string
+          updated_at?: string
+          usage_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          buy_category_ids?: string[] | null
+          buy_product_ids?: string[] | null
+          buy_quantity?: number
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          get_category_ids?: string[] | null
+          get_product_ids?: string[] | null
+          get_quantity?: number
+          id?: string
+          is_active?: boolean
+          max_uses_per_order?: number | null
+          name?: string
+          promotion_type?: string
+          tenant_id?: string
+          updated_at?: string
+          usage_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bogo_promotions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bundle_products: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          group_name: string | null
+          id: string
+          is_required: boolean
+          product_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          group_name?: string | null
+          id?: string
+          is_required?: boolean
+          product_id: string
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          group_name?: string | null
+          id?: string
+          is_required?: boolean
+          product_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_products_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "product_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_link_clicks: {
         Row: {
           campaign_id: string
@@ -780,6 +992,201 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_group_members: {
+        Row: {
+          customer_group_id: string
+          customer_id: string
+          expires_at: string | null
+          id: string
+          joined_at: string
+        }
+        Insert: {
+          customer_group_id: string
+          customer_id: string
+          expires_at?: string | null
+          id?: string
+          joined_at?: string
+        }
+        Update: {
+          customer_group_id?: string
+          customer_id?: string
+          expires_at?: string | null
+          id?: string
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_group_members_customer_group_id_fkey"
+            columns: ["customer_group_id"]
+            isOneToOne: false
+            referencedRelation: "customer_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_group_members_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_group_product_prices: {
+        Row: {
+          created_at: string
+          custom_price: number | null
+          customer_group_id: string
+          discount_percentage: number | null
+          id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_price?: number | null
+          customer_group_id: string
+          discount_percentage?: number | null
+          id?: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_price?: number | null
+          customer_group_id?: string
+          discount_percentage?: number | null
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_group_product_prices_customer_group_id_fkey"
+            columns: ["customer_group_id"]
+            isOneToOne: false
+            referencedRelation: "customer_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_group_product_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_groups: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string | null
+          discount_value: number | null
+          id: string
+          is_active: boolean
+          min_order_amount: number | null
+          name: string
+          priority: number
+          tax_exempt: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number | null
+          name: string
+          priority?: number
+          tax_exempt?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number | null
+          name?: string
+          priority?: number
+          tax_exempt?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_loyalty: {
+        Row: {
+          current_tier_id: string | null
+          customer_id: string
+          id: string
+          joined_at: string
+          last_activity_at: string | null
+          loyalty_program_id: string
+          points_balance: number
+          points_earned_total: number
+          points_spent_total: number
+        }
+        Insert: {
+          current_tier_id?: string | null
+          customer_id: string
+          id?: string
+          joined_at?: string
+          last_activity_at?: string | null
+          loyalty_program_id: string
+          points_balance?: number
+          points_earned_total?: number
+          points_spent_total?: number
+        }
+        Update: {
+          current_tier_id?: string | null
+          customer_id?: string
+          id?: string
+          joined_at?: string
+          last_activity_at?: string | null
+          loyalty_program_id?: string
+          points_balance?: number
+          points_earned_total?: number
+          points_spent_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_loyalty_current_tier_id_fkey"
+            columns: ["current_tier_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_loyalty_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_loyalty_loyalty_program_id_fkey"
+            columns: ["loyalty_program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
             referencedColumns: ["id"]
           },
         ]
@@ -1192,6 +1599,59 @@ export type Database = {
           },
         ]
       }
+      discount_stacking_rules: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_types: string[] | null
+          id: string
+          is_active: boolean
+          max_stack_count: number | null
+          max_total_discount_percent: number | null
+          name: string
+          priority_order: string[] | null
+          rule_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_types?: string[] | null
+          id?: string
+          is_active?: boolean
+          max_stack_count?: number | null
+          max_total_discount_percent?: number | null
+          name: string
+          priority_order?: string[] | null
+          rule_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_types?: string[] | null
+          id?: string
+          is_active?: boolean
+          max_stack_count?: number | null
+          max_total_discount_percent?: number | null
+          name?: string
+          priority_order?: string[] | null
+          rule_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_stacking_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_automations: {
         Row: {
           created_at: string | null
@@ -1463,6 +1923,87 @@ export type Database = {
           },
           {
             foreignKeyName: "email_unsubscribes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_promotions: {
+        Row: {
+          created_at: string
+          description: string | null
+          gift_product_id: string
+          gift_quantity: number
+          id: string
+          is_active: boolean
+          is_stackable: boolean
+          max_per_order: number | null
+          name: string
+          stock_limit: number | null
+          stock_used: number
+          tenant_id: string
+          trigger_category_ids: string[] | null
+          trigger_product_ids: string[] | null
+          trigger_type: string
+          trigger_value: number | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          gift_product_id: string
+          gift_quantity?: number
+          id?: string
+          is_active?: boolean
+          is_stackable?: boolean
+          max_per_order?: number | null
+          name: string
+          stock_limit?: number | null
+          stock_used?: number
+          tenant_id: string
+          trigger_category_ids?: string[] | null
+          trigger_product_ids?: string[] | null
+          trigger_type: string
+          trigger_value?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          gift_product_id?: string
+          gift_quantity?: number
+          id?: string
+          is_active?: boolean
+          is_stackable?: boolean
+          max_per_order?: number | null
+          name?: string
+          stock_limit?: number | null
+          stock_used?: number
+          tenant_id?: string
+          trigger_category_ids?: string[] | null
+          trigger_product_ids?: string[] | null
+          trigger_type?: string
+          trigger_value?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_promotions_gift_product_id_fkey"
+            columns: ["gift_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_promotions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2094,6 +2635,148 @@ export type Database = {
           },
         ]
       }
+      loyalty_programs: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          min_redemption_points: number
+          name: string
+          point_value: number
+          points_expiry_days: number | null
+          points_per_euro: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_redemption_points?: number
+          name: string
+          point_value?: number
+          points_expiry_days?: number | null
+          points_per_euro?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_redemption_points?: number
+          name?: string
+          point_value?: number
+          points_expiry_days?: number | null
+          points_per_euro?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_programs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_tiers: {
+        Row: {
+          benefits: Json | null
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          loyalty_program_id: string
+          min_points: number
+          name: string
+          points_multiplier: number
+          sort_order: number
+        }
+        Insert: {
+          benefits?: Json | null
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          loyalty_program_id: string
+          min_points?: number
+          name: string
+          points_multiplier?: number
+          sort_order?: number
+        }
+        Update: {
+          benefits?: Json | null
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          loyalty_program_id?: string
+          min_points?: number
+          name?: string
+          points_multiplier?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_tiers_loyalty_program_id_fkey"
+            columns: ["loyalty_program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_transactions: {
+        Row: {
+          created_at: string
+          customer_loyalty_id: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          order_id: string | null
+          points: number
+          transaction_type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_loyalty_id: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          order_id?: string | null
+          points: number
+          transaction_type: string
+        }
+        Update: {
+          created_at?: string
+          customer_loyalty_id?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          order_id?: string | null
+          points?: number
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_customer_loyalty_id_fkey"
+            columns: ["customer_loyalty_id"]
+            isOneToOne: false
+            referencedRelation: "customer_loyalty"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_connections: {
         Row: {
           created_at: string | null
@@ -2651,6 +3334,74 @@ export type Database = {
           yearly_price?: number
         }
         Relationships: []
+      }
+      product_bundles: {
+        Row: {
+          bundle_type: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          max_items: number | null
+          min_items: number | null
+          name: string
+          slug: string
+          tenant_id: string
+          updated_at: string
+          usage_count: number
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          bundle_type?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          max_items?: number | null
+          min_items?: number | null
+          name: string
+          slug: string
+          tenant_id: string
+          updated_at?: string
+          usage_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          bundle_type?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          max_items?: number | null
+          min_items?: number | null
+          name?: string
+          slug?: string
+          tenant_id?: string
+          updated_at?: string
+          usage_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_bundles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -4399,6 +5150,100 @@ export type Database = {
           },
           {
             foreignKeyName: "vat_validations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      volume_discount_tiers: {
+        Row: {
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          max_quantity: number | null
+          min_quantity: number
+          sort_order: number
+          volume_discount_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount_type?: string
+          discount_value: number
+          id?: string
+          max_quantity?: number | null
+          min_quantity: number
+          sort_order?: number
+          volume_discount_id: string
+        }
+        Update: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number
+          sort_order?: number
+          volume_discount_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volume_discount_tiers_volume_discount_id_fkey"
+            columns: ["volume_discount_id"]
+            isOneToOne: false
+            referencedRelation: "volume_discounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      volume_discounts: {
+        Row: {
+          applies_to: string
+          category_ids: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          product_ids: string[] | null
+          tenant_id: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applies_to?: string
+          category_ids?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          product_ids?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applies_to?: string
+          category_ids?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          product_ids?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volume_discounts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

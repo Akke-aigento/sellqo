@@ -18,7 +18,8 @@ import {
   Upload,
   Cable,
   Megaphone,
-  Tag
+  Tag,
+  Percent
 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -62,6 +63,7 @@ const mainNavItems = [
   { title: 'Producten', url: '/admin/products', icon: Package },
   { title: 'Klanten', url: '/admin/customers', icon: Users },
   { title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
+  { title: 'Promoties', url: '/admin/promotions', icon: Percent },
   { title: 'Marketing', url: '/admin/marketing', icon: Megaphone },
   { title: 'Importeren', url: '/admin/import', icon: Upload },
   { title: 'SellQo Connect', url: '/admin/connect', icon: Cable },
