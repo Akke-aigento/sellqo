@@ -3,10 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 
+export type AppRole = 'platform_admin' | 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer';
+
 export interface TeamMember {
   id: string;
   user_id: string;
-  role: 'platform_admin' | 'tenant_admin' | 'staff';
+  role: AppRole;
   email: string | null;
   full_name: string | null;
   avatar_url: string | null;
@@ -82,7 +84,7 @@ export function useTeamMembers() {
     fetchMembers();
   }, [fetchMembers]);
 
-  const updateMemberRole = async (memberId: string, newRole: 'tenant_admin' | 'staff') => {
+  const updateMemberRole = async (memberId: string, newRole: AppRole) => {
     try {
       const { error } = await supabase
         .from('user_roles')

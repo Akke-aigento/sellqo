@@ -45,6 +45,7 @@ import BogoPromotionsPage from "./pages/admin/BogoPromotions";
 import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
+import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -67,6 +68,9 @@ const App = () => (
             
             {/* Auth routes */}
             <Route path="/auth" element={<Auth />} />
+            
+            {/* Invitation accept route */}
+            <Route path="/invite/:token" element={<AcceptInvitation />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={
