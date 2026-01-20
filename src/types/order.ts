@@ -2,6 +2,7 @@ import type { Json } from '@/integrations/supabase/types';
 
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
+export type DeliveryType = 'home_delivery' | 'service_point';
 
 export interface Address {
   street: string;
@@ -83,6 +84,10 @@ export interface Order {
   sync_status?: string | null;
   fulfillment_status?: string | null;
   raw_marketplace_data?: Json | null;
+  // Service point / pickup fields
+  delivery_type?: DeliveryType | string;
+  service_point_id?: string | null;
+  service_point_data?: Json | null;
   // Joined data
   order_items?: OrderItem[];
   customer?: Customer;

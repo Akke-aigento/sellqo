@@ -24,6 +24,24 @@ interface CartItem {
   unit_price: number;
 }
 
+interface ServicePointData {
+  id: string;
+  name: string;
+  carrier: string;
+  type: string;
+  address: {
+    street: string;
+    house_number?: string;
+    city: string;
+    postal_code: string;
+    country: string;
+  };
+  distance?: number;
+  latitude?: number;
+  longitude?: number;
+  opening_hours?: Record<string, string>;
+}
+
 interface CheckoutRequest {
   tenant_id: string;
   items: CartItem[];
@@ -38,6 +56,10 @@ interface CheckoutRequest {
   };
   shipping_method_id?: string;
   shipping_cost?: number;
+  // Service point fields
+  delivery_type?: 'home_delivery' | 'service_point';
+  service_point_id?: string;
+  service_point_data?: ServicePointData;
 }
 
 serve(async (req) => {
@@ -66,7 +88,10 @@ serve(async (req) => {
       customer_phone,
       shipping_address,
       shipping_method_id,
-      shipping_cost = 0
+      shipping_cost = 0,
+      delivery_type = 'home_delivery',
+      service_point_id,
+      service_point_data,
     } = body;
 
     if (!tenant_id) throw new Error("tenant_id is required");
@@ -140,6 +165,16 @@ serve(async (req) => {
     const orderNumber = orderNumberData || `#${Date.now()}`;
     logStep("Order number generated", { orderNumber });
 
+    // Determine effective shipping address (use service point address if selected)
+    const effectiveShippingAddress = delivery_type === 'service_point' && service_point_data
+      ? {
+          street: `${service_point_data.address.street}${service_point_data.address.house_number ? ' ' + service_point_data.address.house_number : ''}`,
+          city: service_point_data.address.city,
+          postal_code: service_point_data.address.postal_code,
+          country: service_point_data.address.country,
+        }
+      : shipping_address;
+
     // Create pending order in database
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
@@ -149,7 +184,7 @@ serve(async (req) => {
         customer_email,
         customer_name,
         customer_phone,
-        shipping_address,
+        shipping_address: effectiveShippingAddress,
         subtotal: subtotal / 100, // Store in main currency units
         tax_amount: taxAmount / 100,
         shipping_cost: shipping_cost,
@@ -157,6 +192,9 @@ serve(async (req) => {
         status: "pending",
         payment_status: "pending",
         shipping_method_id,
+        delivery_type,
+        service_point_id,
+        service_point_data,
       })
       .select()
       .single();
@@ -165,7 +203,7 @@ serve(async (req) => {
       logStep("Error creating order", { error: orderError.message });
       throw new Error(`Failed to create order: ${orderError.message}`);
     }
-    logStep("Order created", { orderId: order.id });
+    logStep("Order created", { orderId: order.id, deliveryType: delivery_type });
 
     // Create order items
     const orderItems = items.map(item => ({

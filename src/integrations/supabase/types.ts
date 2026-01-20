@@ -2093,6 +2093,7 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           delivered_at: string | null
+          delivery_type: string | null
           discount_amount: number | null
           fulfillment_status: string | null
           id: string
@@ -2104,6 +2105,8 @@ export type Database = {
           order_number: string
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data: Json | null
+          service_point_data: Json | null
+          service_point_id: string | null
           shipped_at: string | null
           shipping_address: Json | null
           shipping_cost: number | null
@@ -2130,6 +2133,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
+          delivery_type?: string | null
           discount_amount?: number | null
           fulfillment_status?: string | null
           id?: string
@@ -2141,6 +2145,8 @@ export type Database = {
           order_number: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
+          service_point_data?: Json | null
+          service_point_id?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -2167,6 +2173,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
+          delivery_type?: string | null
           discount_amount?: number | null
           fulfillment_status?: string | null
           id?: string
@@ -2178,6 +2185,8 @@ export type Database = {
           order_number?: string
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
+          service_point_data?: Json | null
+          service_point_id?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
