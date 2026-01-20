@@ -40,7 +40,18 @@ export function useAIImages() {
   });
 
   const generateImage = useMutation({
-    mutationFn: async (params: { prompt: string; style?: string; width?: number; height?: number }) => {
+    mutationFn: async (params: { 
+      prompt: string; 
+      style?: string; 
+      width?: number; 
+      height?: number;
+      sourceImageUrl?: string;
+      sourceProductId?: string;
+      settingPreset?: string;
+      marketingText?: string;
+      platformPreset?: string;
+      enhancementType?: 'generate' | 'enhance' | 'background_remove' | 'overlay';
+    }) => {
       const response = await supabase.functions.invoke('ai-generate-image', {
         body: {
           tenantId: currentTenant?.id,
