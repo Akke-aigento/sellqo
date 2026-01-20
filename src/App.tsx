@@ -56,6 +56,8 @@ import PlatformBillingPage from "./pages/platform/PlatformBilling";
 import TenantDetailPage from "./pages/platform/TenantDetail";
 import PlatformCouponsPage from "./pages/platform/PlatformCoupons";
 import NotificationsPage from "./pages/admin/Notifications";
+import POSPage from "./pages/admin/POS";
+import POSTerminalPage from "./pages/admin/POSTerminal";
 
 const queryClient = new QueryClient();
 
@@ -128,6 +130,8 @@ const App = () => (
               <Route path="suppliers" element={<SuppliersPage />} />
               <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
               <Route path="supplier-documents" element={<SupplierDocumentsPage />} />
+              <Route path="pos" element={<POSPage />} />
+              <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />
