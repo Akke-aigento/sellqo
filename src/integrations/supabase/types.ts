@@ -2016,6 +2016,190 @@ export type Database = {
           },
         ]
       }
+      gift_card_designs: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+          theme: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+          theme?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          theme?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_designs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_card_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          gift_card_id: string
+          id: string
+          order_id: string | null
+          transaction_type: Database["public"]["Enums"]["gift_card_transaction_type"]
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          gift_card_id: string
+          id?: string
+          order_id?: string | null
+          transaction_type: Database["public"]["Enums"]["gift_card_transaction_type"]
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          gift_card_id?: string
+          id?: string
+          order_id?: string | null
+          transaction_type?: Database["public"]["Enums"]["gift_card_transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_transactions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_cards: {
+        Row: {
+          activated_at: string | null
+          code: string
+          created_at: string
+          currency: string
+          current_balance: number
+          design_id: string | null
+          expires_at: string | null
+          id: string
+          initial_balance: number
+          order_id: string | null
+          personal_message: string | null
+          purchased_by_customer_id: string | null
+          purchased_by_email: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          status: Database["public"]["Enums"]["gift_card_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          code: string
+          created_at?: string
+          currency?: string
+          current_balance: number
+          design_id?: string | null
+          expires_at?: string | null
+          id?: string
+          initial_balance: number
+          order_id?: string | null
+          personal_message?: string | null
+          purchased_by_customer_id?: string | null
+          purchased_by_email?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          status?: Database["public"]["Enums"]["gift_card_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          code?: string
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          design_id?: string | null
+          expires_at?: string | null
+          id?: string
+          initial_balance?: number
+          order_id?: string | null
+          personal_message?: string | null
+          purchased_by_customer_id?: string | null
+          purchased_by_email?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          status?: Database["public"]["Enums"]["gift_card_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_cards_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "gift_card_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_purchased_by_customer_id_fkey"
+            columns: ["purchased_by_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_promotions: {
         Row: {
           created_at: string
@@ -3037,6 +3221,8 @@ export type Database = {
           discount_code: string | null
           discount_code_id: string | null
           fulfillment_status: string | null
+          gift_card_amount: number | null
+          gift_card_ids: string[] | null
           id: string
           internal_notes: string | null
           marketplace_connection_id: string | null
@@ -3079,6 +3265,8 @@ export type Database = {
           discount_code?: string | null
           discount_code_id?: string | null
           fulfillment_status?: string | null
+          gift_card_amount?: number | null
+          gift_card_ids?: string[] | null
           id?: string
           internal_notes?: string | null
           marketplace_connection_id?: string | null
@@ -3121,6 +3309,8 @@ export type Database = {
           discount_code?: string | null
           discount_code_id?: string | null
           fulfillment_status?: string | null
+          gift_card_amount?: number | null
+          gift_card_ids?: string[] | null
           id?: string
           internal_notes?: string | null
           marketplace_connection_id?: string | null
@@ -5522,6 +5712,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: string
       }
+      generate_gift_card_code: { Args: never; Returns: string }
       generate_invoice_number: { Args: { _tenant_id: string }; Returns: string }
       generate_order_number: { Args: { _tenant_id: string }; Returns: string }
       generate_packing_slip_number: {
@@ -5562,6 +5753,10 @@ export type Database = {
         Returns: undefined
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      redeem_gift_card: {
+        Args: { p_amount: number; p_gift_card_id: string; p_order_id?: string }
+        Returns: number
+      }
       reset_monthly_ai_credits:
         | { Args: never; Returns: number }
         | {
@@ -5593,6 +5788,12 @@ export type Database = {
         | "email_attachment"
         | "qr_code"
         | "external_service"
+      gift_card_status: "active" | "depleted" | "expired" | "disabled"
+      gift_card_transaction_type:
+        | "purchase"
+        | "redeem"
+        | "refund"
+        | "adjustment"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
       order_status:
         | "pending"
@@ -5607,6 +5808,7 @@ export type Database = {
         | "service"
         | "subscription"
         | "bundle"
+        | "gift_card"
       quote_status:
         | "draft"
         | "sent"
@@ -5750,6 +5952,13 @@ export const Constants = {
         "qr_code",
         "external_service",
       ],
+      gift_card_status: ["active", "depleted", "expired", "disabled"],
+      gift_card_transaction_type: [
+        "purchase",
+        "redeem",
+        "refund",
+        "adjustment",
+      ],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
       order_status: [
         "pending",
@@ -5765,6 +5974,7 @@ export const Constants = {
         "service",
         "subscription",
         "bundle",
+        "gift_card",
       ],
       quote_status: [
         "draft",

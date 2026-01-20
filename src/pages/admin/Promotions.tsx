@@ -10,9 +10,9 @@ import {
   Zap, 
   Heart, 
   Settings2,
-  TrendingUp,
   ArrowRight,
-  Tag
+  Tag,
+  CreditCard
 } from 'lucide-react';
 import { useBundles } from '@/hooks/useBundles';
 import { useVolumeDiscounts } from '@/hooks/useVolumeDiscounts';
@@ -22,6 +22,7 @@ import { useAutoDiscounts } from '@/hooks/useAutoDiscounts';
 import { useGiftPromotions } from '@/hooks/useGiftPromotions';
 import { useLoyaltyPrograms } from '@/hooks/useLoyalty';
 import { useDiscountCodes } from '@/hooks/useDiscountCodes';
+import { useGiftCards } from '@/hooks/useGiftCards';
 
 const promotionModules = [
   {
@@ -89,6 +90,14 @@ const promotionModules = [
     color: 'bg-red-500',
   },
   {
+    id: 'gift-cards',
+    title: 'Cadeaukaarten',
+    description: 'Digitale cadeaukaarten als betaalmiddel',
+    icon: CreditCard,
+    href: '/admin/promotions/gift-cards',
+    color: 'bg-teal-500',
+  },
+  {
     id: 'stacking',
     title: 'Stapelregels',
     description: 'Bepaal welke kortingen mogen combineren',
@@ -107,6 +116,7 @@ export default function Promotions() {
   const { data: giftPromotions = [] } = useGiftPromotions();
   const { data: loyaltyPrograms = [] } = useLoyaltyPrograms();
   const { data: discountCodes = [] } = useDiscountCodes({});
+  const { data: giftCards = [] } = useGiftCards();
 
   const getCounts = (id: string) => {
     switch (id) {
@@ -126,6 +136,8 @@ export default function Promotions() {
         return { active: giftPromotions.filter(g => g.is_active).length, total: giftPromotions.length };
       case 'loyalty':
         return { active: loyaltyPrograms.filter(l => l.is_active).length, total: loyaltyPrograms.length };
+      case 'gift-cards':
+        return { active: giftCards.filter(g => g.status === 'active').length, total: giftCards.length };
       default:
         return { active: 0, total: 0 };
     }
