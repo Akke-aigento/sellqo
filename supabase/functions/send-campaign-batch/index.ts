@@ -1,4 +1,4 @@
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
           email: recipient.email,
           customer_name: customerName,
           status: "bounced",
-          error_message: emailError.message,
+          error_message: emailError instanceof Error ? emailError.message : String(emailError),
         });
       }
     }
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in send-campaign-batch:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
