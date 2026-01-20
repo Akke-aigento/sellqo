@@ -381,6 +381,34 @@ export function usePOSTransactions(sessionId?: string) {
     }) => {
       if (!user) throw new Error('Not authenticated');
 
+      // First, get the transaction to check if it has a Stripe payment
+      const { data: transaction, error: fetchError } = await supabase
+        .from('pos_transactions')
+        .select('stripe_payment_intent_id, status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (transaction.status === 'refunded') {
+        throw new Error('Transactie is al terugbetaald');
+      }
+
+      // If this was a card payment, process Stripe refund first
+      if (transaction.stripe_payment_intent_id) {
+        const { error: refundError } = await supabase.functions.invoke('pos-refund-payment', {
+          body: {
+            transaction_id: id,
+            amount: Math.round(refundAmount * 100), // Convert to cents
+            reason: reason,
+          },
+        });
+
+        if (refundError) {
+          throw new Error(`Stripe refund mislukt: ${refundError.message}`);
+        }
+      }
+
       // Update transaction status to refunded
       // The database trigger will handle restocking if restockItems is true
       const { error } = await supabase
@@ -394,9 +422,6 @@ export function usePOSTransactions(sessionId?: string) {
         .eq('id', id);
 
       if (error) throw error;
-
-      // TODO: Handle Stripe refund if payment was by card
-      // This would be done via an edge function for card payments
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });

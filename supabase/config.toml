@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.ai-product-promo-kit]
 verify_jwt = false
+
+[functions.pos-refund-payment]
+verify_jwt = false
