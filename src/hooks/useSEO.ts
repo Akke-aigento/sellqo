@@ -187,6 +187,31 @@ export function useSEO() {
     },
   });
 
+  // Generate sitemap
+  const generateSitemapMutation = useMutation({
+    mutationFn: async (baseUrl: string) => {
+      if (!tenantId) throw new Error('No tenant');
+      
+      const { data, error } = await supabase.functions.invoke('generate-sitemap', {
+        body: { tenantId, baseUrl },
+      });
+      
+      if (error) throw error;
+      return data as {
+        sitemap: string;
+        imageSitemap: string;
+        sitemapIndex: string;
+        stats: { totalUrls: number; products: number; categories: number; productsWithImages: number };
+      };
+    },
+    onSuccess: (data) => {
+      toast.success(`Sitemap gegenereerd met ${data.stats.totalUrls} URLs`);
+    },
+    onError: (error: Error) => {
+      toast.error('Sitemap genereren mislukt', { description: error.message });
+    },
+  });
+
   // Calculate quick wins from issues
   const quickWins = tenantScore?.issues
     ?.filter((issue: SEOIssue) => issue.severity === 'warning' || issue.severity === 'error')
@@ -211,5 +236,7 @@ export function useSEO() {
     isGenerating: generateContentMutation.isPending,
     addKeyword: addKeywordMutation.mutate,
     deleteKeyword: deleteKeywordMutation.mutate,
+    generateSitemap: generateSitemapMutation.mutateAsync,
+    isGeneratingSitemap: generateSitemapMutation.isPending,
   };
 }

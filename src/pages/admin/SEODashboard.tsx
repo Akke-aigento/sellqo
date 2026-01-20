@@ -35,6 +35,8 @@ export default function SEODashboard() {
     isAnalyzing,
     generateContent,
     isGenerating,
+    generateSitemap,
+    isGeneratingSitemap,
   } = useSEO();
   const { products, isLoading: isLoadingProducts } = useProducts();
 
@@ -240,7 +242,12 @@ export default function SEODashboard() {
                 isLoading={isLoading}
               />
             </div>
-            <SEOHealthChecklist items={healthItems} isLoading={isLoading} />
+            <SEOHealthChecklist 
+              items={healthItems} 
+              isLoading={isLoading}
+              onGenerateSitemap={generateSitemap}
+              isGeneratingSitemap={isGeneratingSitemap}
+            />
           </TabsContent>
 
           <TabsContent value="products" className="mt-6">
