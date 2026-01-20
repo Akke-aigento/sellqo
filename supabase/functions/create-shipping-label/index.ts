@@ -124,6 +124,15 @@ const handler = async (req: Request): Promise<Response> => {
       error?: string;
     };
 
+    // Check if order has service point
+    const isServicePoint = order.delivery_type === 'service_point' && order.service_point_id;
+    const servicePointData = order.service_point_data as { 
+      id: string; 
+      name: string; 
+      carrier: string;
+      address: { street: string; city: string; postal_code: string; country: string; house_number?: string };
+    } | null;
+
     switch (integration.provider) {
       case "sendcloud": {
         const apiKey = integration.api_key;
@@ -137,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
         const credentials = btoa(`${apiKey}:${apiSecret}`);
 
         // Create parcel in Sendcloud
-        const parcelData = {
+        const parcelData: Record<string, unknown> = {
           parcel: {
             name: order.customer_name || shippingAddress.name,
             company_name: shippingAddress.company_name || "",
@@ -155,6 +164,11 @@ const handler = async (req: Request): Promise<Response> => {
             },
           },
         };
+
+        // Add service point if selected
+        if (isServicePoint && order.service_point_id) {
+          (parcelData.parcel as Record<string, unknown>).to_service_point = parseInt(order.service_point_id);
+        }
 
         const response = await fetch("https://panel.sendcloud.sc/api/v2/parcels", {
           method: "POST",
@@ -195,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         // MyParcel API format
-        const shipmentData = {
+        const shipmentData: Record<string, unknown> = {
           data: {
             shipments: [
               {
@@ -217,6 +231,19 @@ const handler = async (req: Request): Promise<Response> => {
             ],
           },
         };
+
+        // Add pickup location if service point selected
+        if (isServicePoint && servicePointData) {
+          const shipments = (shipmentData.data as Record<string, unknown>).shipments as Record<string, unknown>[];
+          shipments[0].pickup = {
+            postal_code: servicePointData.address.postal_code,
+            street: servicePointData.address.street,
+            city: servicePointData.address.city,
+            number: servicePointData.address.house_number || "1",
+            location_name: servicePointData.name,
+            location_code: order.service_point_id,
+          };
+        }
 
         const response = await fetch("https://api.myparcel.nl/shipments", {
           method: "POST",

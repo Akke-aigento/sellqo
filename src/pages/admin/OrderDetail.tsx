@@ -18,7 +18,9 @@ import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog';
 import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
 import { TrackingInfoCard } from '@/components/admin/TrackingInfoCard';
-import type { OrderStatus, PaymentStatus, Address } from '@/types/order';
+import { ServicePointCard } from '@/components/admin/ServicePointCard';
+import type { OrderStatus, PaymentStatus } from '@/types/order';
+import type { ServicePointData } from '@/types/servicePoint';
 import { useState } from 'react';
 
 export default function OrderDetailPage() {
@@ -333,12 +335,19 @@ export default function OrderDetailPage() {
           {/* Tracking Info */}
           <TrackingInfoCard order={order} />
 
+          {/* Service Point Info - Show if delivery_type is service_point */}
+          {order.delivery_type === 'service_point' && order.service_point_data && (
+            <ServicePointCard 
+              servicePoint={order.service_point_data as unknown as ServicePointData} 
+            />
+          )}
+
           {/* Shipping Address */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Verzendadres
+                {order.delivery_type === 'service_point' ? 'Klantadres' : 'Verzendadres'}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm">
