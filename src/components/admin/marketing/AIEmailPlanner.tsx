@@ -166,12 +166,12 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
           {/* Segment Selection */}
           <div className="space-y-2">
             <Label>Doelgroep Segment (optioneel)</Label>
-            <Select value={segmentId} onValueChange={setSegmentId}>
+            <Select value={segmentId || "all"} onValueChange={(val) => setSegmentId(val === "all" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Alle abonnees" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle abonnees</SelectItem>
+                <SelectItem value="all">Alle abonnees</SelectItem>
                 {segments.map((seg) => (
                   <SelectItem key={seg.id} value={seg.id}>
                     {seg.name} ({seg.member_count} klanten)
