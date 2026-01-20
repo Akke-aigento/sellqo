@@ -15,7 +15,10 @@ import {
   User,
   AlertTriangle,
   RefreshCw,
-  Zap
+  Zap,
+  Factory,
+  ClipboardList,
+  FileBox
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -38,6 +41,11 @@ import {
   useAgingExport,
   useVatExport,
   useRevenueExport,
+  useSupplierExport,
+  usePurchaseOrderExport,
+  useSupplierDocumentExport,
+  useTopSuppliersExport,
+  useBulkSupplierDocumentDownload,
 } from '@/hooks/useReportExports';
 
 const Reports = () => {
@@ -58,6 +66,13 @@ const Reports = () => {
   const { exportAgingReport, isExporting: isExportingAging } = useAgingExport();
   const { exportVatReport, exportIcListing, isExporting: isExportingVat } = useVatExport();
   const { exportRevenueReport, isExporting: isExportingRevenue } = useRevenueExport();
+  
+  // Purchasing export hooks
+  const { exportSuppliers, isExporting: isExportingSuppliers } = useSupplierExport();
+  const { exportPurchaseOrders, isExporting: isExportingPurchaseOrders } = usePurchaseOrderExport();
+  const { exportSupplierDocuments, exportCreditorAging, isExporting: isExportingSupplierDocs } = useSupplierDocumentExport();
+  const { exportTopSuppliers, isExporting: isExportingTopSuppliers } = useTopSuppliersExport();
+  const { downloadSupplierDocuments, isDownloading: isDownloadingSupplierDocs, progress: supplierDocsProgress } = useBulkSupplierDocumentDownload();
 
   // Fetch counts for display
   const { data: counts } = useQuery({
@@ -65,7 +80,20 @@ const Reports = () => {
     queryFn: async () => {
       if (!currentTenant) return null;
 
-      const [invoices, orders, customers, products, creditNotes, subscriptions, openInvoices, invoicesWithPdf] = await Promise.all([
+      const [
+        invoices, 
+        orders, 
+        customers, 
+        products, 
+        creditNotes, 
+        subscriptions, 
+        openInvoices, 
+        invoicesWithPdf,
+        suppliers,
+        purchaseOrders,
+        supplierDocuments,
+        openSupplierInvoices
+      ] = await Promise.all([
         supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
@@ -109,6 +137,29 @@ const Reports = () => {
           .not('pdf_url', 'is', null)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString()),
+        // Purchasing counts
+        supabase
+          .from('suppliers')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id),
+        supabase
+          .from('purchase_orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('order_date', dateRange.from.toISOString())
+          .lte('order_date', dateRange.to.toISOString()),
+        supabase
+          .from('supplier_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('document_date', dateRange.from.toISOString())
+          .lte('document_date', dateRange.to.toISOString()),
+        supabase
+          .from('supplier_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .eq('document_type', 'invoice')
+          .eq('payment_status', 'pending'),
       ]);
 
       return {
@@ -120,6 +171,10 @@ const Reports = () => {
         subscriptions: subscriptions.count || 0,
         openInvoices: openInvoices.count || 0,
         invoicesWithPdf: invoicesWithPdf.count || 0,
+        suppliers: suppliers.count || 0,
+        purchaseOrders: purchaseOrders.count || 0,
+        supplierDocuments: supplierDocuments.count || 0,
+        openSupplierInvoices: openSupplierInvoices.count || 0,
       };
     },
     enabled: !!currentTenant,
@@ -162,7 +217,7 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
           <TabsTrigger value="financial" className="gap-2">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
@@ -186,6 +241,10 @@ const Reports = () => {
           <TabsTrigger value="subscriptions" className="gap-2">
             <RefreshCw className="h-4 w-4 hidden sm:block" />
             Abonnementen
+          </TabsTrigger>
+          <TabsTrigger value="purchasing" className="gap-2">
+            <Factory className="h-4 w-4 hidden sm:block" />
+            Inkoop
           </TabsTrigger>
         </TabsList>
 
@@ -362,6 +421,74 @@ const Reports = () => {
             />
           </div>
         </TabsContent>
+
+        {/* Purchasing Reports */}
+        <TabsContent value="purchasing" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ReportCard
+              title="Leveranciersbestand"
+              description="Alle leveranciers met contactgegevens en financiële info"
+              icon={<Factory className="h-5 w-5" />}
+              recordCount={counts?.suppliers}
+              onExport={(format) => exportSuppliers(format)}
+              isLoading={isExportingSuppliers}
+            />
+            <ReportCard
+              title="Inkooporders"
+              description="Alle inkooporders in de geselecteerde periode"
+              icon={<ClipboardList className="h-5 w-5" />}
+              recordCount={counts?.purchaseOrders}
+              onExport={(format) => exportPurchaseOrders(dateRange, format)}
+              isLoading={isExportingPurchaseOrders}
+            />
+            <ReportCard
+              title="Openstaande Crediteuren"
+              description="Leveranciersfacturen per verouderingsbucket"
+              icon={<AlertTriangle className="h-5 w-5" />}
+              recordCount={counts?.openSupplierInvoices}
+              onExport={(format) => exportCreditorAging(format)}
+              isLoading={isExportingSupplierDocs}
+            />
+            <ReportCard
+              title="Top Leveranciers"
+              description="Gerangschikt op inkoopvolume met percentage"
+              icon={<TrendingUp className="h-5 w-5" />}
+              onExport={(format) => exportTopSuppliers(dateRange, format)}
+              isLoading={isExportingTopSuppliers}
+            />
+            <ReportCard
+              title="Leveranciersfacturen"
+              description="Alle inkoopfacturen in de periode"
+              icon={<FileText className="h-5 w-5" />}
+              onExport={(format) => exportSupplierDocuments(dateRange, format)}
+              isLoading={isExportingSupplierDocs}
+            />
+            <ReportCard
+              title="Alle Inkoopdocumenten"
+              description="Facturen, offertes, pakbonnen en meer"
+              icon={<FileBox className="h-5 w-5" />}
+              recordCount={counts?.supplierDocuments}
+              onExport={(format) => exportSupplierDocuments(dateRange, format)}
+              isLoading={isExportingSupplierDocs}
+            />
+          </div>
+
+          <Separator />
+
+          <h3 className="text-lg font-medium">Bulk Downloads</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <BulkDownloadCard
+              title="Leveranciersdocumenten Downloaden"
+              description="Download alle inkoopdocumenten als ZIP"
+              icon={<Download className="h-5 w-5" />}
+              count={counts?.supplierDocuments}
+              estimatedSize={`~${Math.round((counts?.supplierDocuments || 0) * 0.15)} MB`}
+              onDownload={() => downloadSupplierDocuments(dateRange)}
+              isDownloading={isDownloadingSupplierDocs}
+              progress={supplierDocsProgress}
+            />
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Quick Actions */}
@@ -397,6 +524,16 @@ const Reports = () => {
             >
               <Download className="h-4 w-4 mr-2" />
               Download Stamgegevens
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                exportSupplierDocuments(dateRange, 'xlsx');
+                exportCreditorAging('xlsx');
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Crediteuren Pakket
             </Button>
           </div>
         </CardContent>
