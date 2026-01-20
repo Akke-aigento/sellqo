@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,123 +46,123 @@ export default function VolumeDiscounts() {
     }
   };
 
-  return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Staffelkortingen</h1>
-            <p className="text-muted-foreground">
-              Geef korting op basis van bestelwaarde of aantal
-            </p>
-          </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nieuwe Staffel
-          </Button>
-        </div>
+  const appliesToLabels: Record<string, string> = {
+    all: 'Alles',
+    product: 'Product',
+    category: 'Categorie',
+  };
 
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader className="h-24 bg-muted" />
-                <CardContent className="h-32" />
-              </Card>
-            ))}
-          </div>
-        ) : discounts.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Layers className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Geen staffelkortingen</h3>
-              <p className="text-muted-foreground mb-4">
-                Maak je eerste staffelkorting aan
-              </p>
-              <Button onClick={() => setShowCreate(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Staffel Aanmaken
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {discounts.map((discount) => (
-              <Card key={discount.id}>
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-base">{discount.name}</CardTitle>
-                    <div className="flex gap-2">
-                      <Badge variant={discount.is_active ? 'default' : 'secondary'}>
-                        {discount.is_active ? 'Actief' : 'Inactief'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {discount.applies_to === 'order' ? 'Bestelling' : 'Product'}
-                      </Badge>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditDiscount(discount)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Bewerken
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => setDeleteId(discount.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Verwijderen
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {discount.description || 'Geen beschrijving'}
-                  </p>
-                  <div className="space-y-1">
-                    <span className="text-sm text-muted-foreground">Staffels:</span>
-                    <div className="space-y-1">
-                      {discount.tiers?.slice(0, 3).map((tier, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span>
-                            {discount.trigger_type === 'order_total'
-                              ? `≥ €${tier.min_value}`
-                              : `≥ ${tier.min_value} stuks`}
-                          </span>
-                          <span className="font-medium">
-                            {tier.discount_type === 'percentage'
-                              ? `${tier.discount_value}%`
-                              : `€${tier.discount_value}`}
-                          </span>
-                        </div>
-                      ))}
-                      {(discount.tiers?.length || 0) > 3 && (
-                        <span className="text-xs text-muted-foreground">
-                          +{(discount.tiers?.length || 0) - 3} meer...
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <span className="text-sm text-muted-foreground">Actief</span>
-                    <Switch
-                      checked={discount.is_active}
-                      onCheckedChange={() => handleToggleActive(discount)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Staffelkortingen</h1>
+          <p className="text-muted-foreground">
+            Geef korting op basis van bestelwaarde of aantal
+          </p>
+        </div>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nieuwe Staffel
+        </Button>
       </div>
+
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="h-24 bg-muted" />
+              <CardContent className="h-32" />
+            </Card>
+          ))}
+        </div>
+      ) : discounts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Layers className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">Geen staffelkortingen</h3>
+            <p className="text-muted-foreground mb-4">
+              Maak je eerste staffelkorting aan
+            </p>
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Staffel Aanmaken
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {discounts.map((discount) => (
+            <Card key={discount.id}>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-base">{discount.name}</CardTitle>
+                  <div className="flex gap-2">
+                    <Badge variant={discount.is_active ? 'default' : 'secondary'}>
+                      {discount.is_active ? 'Actief' : 'Inactief'}
+                    </Badge>
+                    <Badge variant="outline">
+                      {appliesToLabels[discount.applies_to] || discount.applies_to}
+                    </Badge>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setEditDiscount(discount)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Bewerken
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => setDeleteId(discount.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Verwijderen
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  {discount.description || 'Geen beschrijving'}
+                </p>
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Staffels:</span>
+                  <div className="space-y-1">
+                    {discount.tiers?.slice(0, 3).map((tier, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span>≥ {tier.min_quantity} stuks</span>
+                        <span className="font-medium">
+                          {tier.discount_type === 'percentage'
+                            ? `${tier.discount_value}%`
+                            : `€${tier.discount_value}`}
+                        </span>
+                      </div>
+                    ))}
+                    {(discount.tiers?.length || 0) > 3 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{(discount.tiers?.length || 0) - 3} meer...
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <span className="text-sm text-muted-foreground">Actief</span>
+                  <Switch
+                    checked={discount.is_active}
+                    onCheckedChange={() => handleToggleActive(discount)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <VolumeDiscountFormDialog
         open={showCreate || !!editDiscount}
@@ -190,6 +189,6 @@ export default function VolumeDiscounts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AdminLayout>
+    </div>
   );
 }

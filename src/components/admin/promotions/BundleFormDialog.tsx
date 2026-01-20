@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useCreateBundle, useUpdateBundle } from '@/hooks/useBundles';
-import type { ProductBundle } from '@/types/promotions';
+import type { ProductBundle, ProductBundleFormData } from '@/types/promotions';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
@@ -107,13 +107,22 @@ export function BundleFormDialog({
   }, [bundle, form]);
 
   const onSubmit = (data: FormData) => {
-    const formData = {
-      ...data,
+    const formData: ProductBundleFormData = {
+      name: data.name,
+      description: data.description,
+      bundle_type: data.bundle_type,
+      discount_type: data.discount_type,
+      discount_value: data.discount_value,
+      is_active: data.is_active,
+      valid_from: data.valid_from || undefined,
+      valid_until: data.valid_until || undefined,
+      min_items: data.min_items,
+      max_items: data.max_items,
       products: bundle?.products?.map(p => ({
         product_id: p.product_id,
         quantity: p.quantity,
         is_required: p.is_required,
-        group_name: p.group_name,
+        group_name: p.group_name || undefined,
       })) || [],
     };
 
@@ -180,7 +189,7 @@ export function BundleFormDialog({
                     <FormLabel>Type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -205,7 +214,7 @@ export function BundleFormDialog({
                     <FormLabel>Korting type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>

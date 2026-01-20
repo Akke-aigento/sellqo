@@ -30,12 +30,12 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateGiftPromotion, useUpdateGiftPromotion } from '@/hooks/useGiftPromotions';
 import { useProducts } from '@/hooks/useProducts';
-import type { GiftPromotion } from '@/types/promotions';
+import type { GiftPromotion, GiftPromotionFormData } from '@/types/promotions';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   description: z.string().optional(),
-  trigger_type: z.enum(['order_total', 'product_quantity', 'specific_products', 'category']),
+  trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
   gift_product_id: z.string().min(1, 'Cadeau product is verplicht'),
   gift_quantity: z.coerce.number().min(1).default(1),
@@ -62,7 +62,7 @@ export function GiftPromotionFormDialog({
 }: GiftPromotionFormDialogProps) {
   const createPromotion = useCreateGiftPromotion();
   const updatePromotion = useUpdateGiftPromotion();
-  const { data: products = [] } = useProducts();
+  const { products = [] } = useProducts();
   const isEditing = !!promotion;
 
   const form = useForm<FormData>({
@@ -70,7 +70,7 @@ export function GiftPromotionFormDialog({
     defaultValues: {
       name: '',
       description: '',
-      trigger_type: 'order_total',
+      trigger_type: 'cart_total',
       trigger_value: 50,
       gift_product_id: '',
       gift_quantity: 1,
@@ -88,7 +88,7 @@ export function GiftPromotionFormDialog({
       form.reset({
         name: promotion.name,
         description: promotion.description || '',
-        trigger_type: promotion.trigger_type as FormData['trigger_type'],
+        trigger_type: promotion.trigger_type,
         trigger_value: promotion.trigger_value || undefined,
         gift_product_id: promotion.gift_product_id,
         gift_quantity: promotion.gift_quantity,
@@ -103,7 +103,7 @@ export function GiftPromotionFormDialog({
       form.reset({
         name: '',
         description: '',
-        trigger_type: 'order_total',
+        trigger_type: 'cart_total',
         trigger_value: 50,
         gift_product_id: '',
         gift_quantity: 1,
@@ -118,13 +118,28 @@ export function GiftPromotionFormDialog({
   }, [promotion, form]);
 
   const onSubmit = (data: FormData) => {
+    const formData: GiftPromotionFormData = {
+      name: data.name,
+      description: data.description,
+      trigger_type: data.trigger_type,
+      trigger_value: data.trigger_value,
+      gift_product_id: data.gift_product_id,
+      gift_quantity: data.gift_quantity,
+      max_per_order: data.max_per_order,
+      stock_limit: data.stock_limit,
+      is_stackable: data.is_stackable,
+      is_active: data.is_active,
+      valid_from: data.valid_from || undefined,
+      valid_until: data.valid_until || undefined,
+    };
+
     if (isEditing && promotion) {
       updatePromotion.mutate(
-        { id: promotion.id, formData: data },
+        { id: promotion.id, formData },
         { onSuccess: () => onOpenChange(false) }
       );
     } else {
-      createPromotion.mutate(data, {
+      createPromotion.mutate(formData, {
         onSuccess: () => onOpenChange(false),
       });
     }
@@ -185,10 +200,9 @@ export function GiftPromotionFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="order_total">Bestelwaarde</SelectItem>
-                        <SelectItem value="product_quantity">Aantal producten</SelectItem>
+                        <SelectItem value="cart_total">Bestelwaarde</SelectItem>
+                        <SelectItem value="quantity">Aantal producten</SelectItem>
                         <SelectItem value="specific_products">Specifieke producten</SelectItem>
-                        <SelectItem value="category">Categorie</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -202,7 +216,7 @@ export function GiftPromotionFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {watchTriggerType === 'order_total' ? 'Min. bedrag (€)' : 'Min. aantal'}
+                      {watchTriggerType === 'cart_total' ? 'Min. bedrag (€)' : 'Min. aantal'}
                     </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />

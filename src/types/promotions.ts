@@ -75,7 +75,7 @@ export interface VolumeDiscountTier {
   volume_discount_id: string;
   min_quantity: number;
   max_quantity: number | null;
-  discount_type: 'percentage' | 'fixed_per_item' | 'fixed_price';
+  discount_type: 'percentage' | 'fixed_amount';
   discount_value: number;
   created_at: string;
 }
@@ -92,7 +92,7 @@ export interface VolumeDiscountFormData {
   tiers: {
     min_quantity: number;
     max_quantity?: number;
-    discount_type: 'percentage' | 'fixed_per_item' | 'fixed_price';
+    discount_type: 'percentage' | 'fixed_amount';
     discount_value: number;
   }[];
 }
@@ -210,13 +210,13 @@ export interface AutomaticDiscount {
   tenant_id: string;
   name: string;
   description: string | null;
-  trigger_type: 'cart_total' | 'item_count' | 'specific_products' | 'first_order' | 'schedule';
+  trigger_type: string;
   trigger_value: number | null;
   trigger_product_ids: string[] | null;
-  discount_type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'free_product';
+  discount_type: string;
   discount_value: number | null;
   free_product_id: string | null;
-  applies_to: 'all' | 'specific_products' | 'specific_categories';
+  applies_to: string;
   product_ids: string[] | null;
   max_discount_amount: number | null;
   schedule: AutoDiscountSchedule | null;
@@ -232,13 +232,13 @@ export interface AutomaticDiscount {
 export interface AutomaticDiscountFormData {
   name: string;
   description?: string;
-  trigger_type: 'cart_total' | 'item_count' | 'specific_products' | 'first_order' | 'schedule';
+  trigger_type: string;
   trigger_value?: number;
   trigger_product_ids?: string[];
-  discount_type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'free_product';
+  discount_type: string;
   discount_value?: number;
   free_product_id?: string;
-  applies_to: 'all' | 'specific_products' | 'specific_categories';
+  applies_to: string;
   product_ids?: string[];
   max_discount_amount?: number;
   schedule?: AutoDiscountSchedule;
@@ -254,17 +254,19 @@ export interface GiftPromotion {
   tenant_id: string;
   name: string;
   description: string | null;
-  trigger_type: 'cart_total' | 'specific_products' | 'quantity';
+  trigger_type: string;
   trigger_value: number | null;
   trigger_product_ids: string[] | null;
+  trigger_category_ids: string[] | null;
   gift_product_id: string;
   gift_quantity: number;
+  max_per_order: number | null;
+  stock_limit: number | null;
+  stock_used: number;
+  is_stackable: boolean;
   is_active: boolean;
   valid_from: string | null;
   valid_until: string | null;
-  max_claims_total: number | null;
-  max_claims_per_customer: number | null;
-  usage_count: number;
   created_at: string;
   updated_at: string;
   gift_product?: {
@@ -278,16 +280,18 @@ export interface GiftPromotion {
 export interface GiftPromotionFormData {
   name: string;
   description?: string;
-  trigger_type: 'cart_total' | 'specific_products' | 'quantity';
+  trigger_type: string;
   trigger_value?: number;
   trigger_product_ids?: string[];
+  trigger_category_ids?: string[];
   gift_product_id: string;
   gift_quantity: number;
+  max_per_order?: number;
+  stock_limit?: number;
+  is_stackable: boolean;
   is_active: boolean;
   valid_from?: string;
   valid_until?: string;
-  max_claims_total?: number;
-  max_claims_per_customer?: number;
 }
 
 // Loyalty System
