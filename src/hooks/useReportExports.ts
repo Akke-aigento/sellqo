@@ -852,3 +852,352 @@ export const useRevenueExport = () => {
 
   return { exportRevenueReport, isExporting };
 };
+
+// Hook for supplier exports
+export const useSupplierExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportSuppliers = async (format: ExportFormat, onlyActive: boolean = false) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      let query = supabase
+        .from('suppliers')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .order('name');
+
+      if (onlyActive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const filename = generateFilename(onlyActive ? 'leveranciers_actief' : 'leveranciers');
+
+      if (format === 'csv') {
+        generateCSV(data, commonColumns.suppliers, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(data, commonColumns.suppliers, filename, 'Leveranciers');
+      }
+
+      toast.success(`${data.length} leveranciers geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportSuppliers, isExporting };
+};
+
+// Hook for purchase order exports
+export const usePurchaseOrderExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportPurchaseOrders = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select(`
+          *,
+          suppliers(name)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('order_date', dateRange.from.toISOString())
+        .lte('order_date', dateRange.to.toISOString())
+        .order('order_date', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = (data || []).map(po => ({
+        ...po,
+        supplier_name: po.suppliers?.name || '',
+      }));
+
+      const filename = generateFilename('inkooporders', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, commonColumns.purchaseOrders, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, commonColumns.purchaseOrders, filename, 'Inkooporders');
+      }
+
+      toast.success(`${exportData.length} inkooporders geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportPurchaseOrders, isExporting };
+};
+
+// Hook for supplier document exports
+export const useSupplierDocumentExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportSupplierDocuments = async (dateRange: DateRange, format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('supplier_documents')
+        .select(`
+          *,
+          suppliers(name)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .gte('document_date', dateRange.from.toISOString())
+        .lte('document_date', dateRange.to.toISOString())
+        .order('document_date', { ascending: false });
+
+      if (error) throw error;
+
+      const exportData = (data || []).map(doc => ({
+        ...doc,
+        supplier_name: doc.suppliers?.name || '',
+      }));
+
+      const filename = generateFilename('inkoop_documenten', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(exportData, commonColumns.supplierDocuments, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(exportData, commonColumns.supplierDocuments, filename, 'Documenten');
+      }
+
+      toast.success(`${exportData.length} documenten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportCreditorAging = async (format: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('supplier_documents')
+        .select(`
+          *,
+          suppliers(name, email, phone)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .eq('document_type', 'invoice')
+        .in('payment_status', ['pending', 'partial'])
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      const now = new Date();
+      const agingData = data.map(doc => {
+        const dueDate = doc.due_date ? new Date(doc.due_date) : now;
+        const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let agingBucket = '0-30 dagen';
+        if (daysOverdue > 90) agingBucket = '90+ dagen';
+        else if (daysOverdue > 60) agingBucket = '61-90 dagen';
+        else if (daysOverdue > 30) agingBucket = '31-60 dagen';
+        else if (daysOverdue < 0) agingBucket = 'Nog niet vervallen';
+
+        return {
+          document_number: doc.document_number,
+          supplier_name: doc.suppliers?.name || '',
+          supplier_email: doc.suppliers?.email || '',
+          document_date: doc.document_date,
+          due_date: doc.due_date,
+          total_amount: doc.total_amount,
+          days_overdue: Math.max(0, daysOverdue),
+          aging_bucket: agingBucket,
+          payment_status: doc.payment_status,
+        };
+      });
+
+      const columns = [
+        { key: 'document_number', header: 'Documentnummer' },
+        { key: 'supplier_name', header: 'Leverancier' },
+        { key: 'supplier_email', header: 'Email' },
+        { key: 'document_date', header: 'Factuurdatum', format: 'date' as const },
+        { key: 'due_date', header: 'Vervaldatum', format: 'date' as const },
+        { key: 'total_amount', header: 'Bedrag', format: 'currency' as const },
+        { key: 'days_overdue', header: 'Dagen over tijd', format: 'number' as const },
+        { key: 'aging_bucket', header: 'Categorie' },
+        { key: 'payment_status', header: 'Status' },
+      ];
+
+      const filename = generateFilename('openstaande_crediteuren');
+
+      if (format === 'csv') {
+        generateCSV(agingData, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(agingData, columns, filename, 'Crediteuren');
+      }
+
+      toast.success(`${agingData.length} openstaande crediteuren geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportSupplierDocuments, exportCreditorAging, isExporting };
+};
+
+// Hook for top suppliers export
+export const useTopSuppliersExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportTopSuppliers = async (dateRange: DateRange, format: ExportFormat, limit: number = 50) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+
+    try {
+      const { data: purchaseOrders, error } = await supabase
+        .from('purchase_orders')
+        .select(`
+          total,
+          supplier_id,
+          suppliers(id, name, email, contact_person)
+        `)
+        .eq('tenant_id', currentTenant.id)
+        .in('status', ['received', 'partially_received'] as const)
+        .gte('order_date', dateRange.from.toISOString())
+        .lte('order_date', dateRange.to.toISOString());
+
+      if (error) throw error;
+
+      // Aggregate by supplier
+      const supplierTotals = new Map<string, { supplier: any; total: number; orderCount: number }>();
+      
+      purchaseOrders.forEach(po => {
+        if (!po.supplier_id || !po.suppliers) return;
+        const existing = supplierTotals.get(po.supplier_id);
+        if (existing) {
+          existing.total += po.total || 0;
+          existing.orderCount += 1;
+        } else {
+          supplierTotals.set(po.supplier_id, {
+            supplier: po.suppliers,
+            total: po.total || 0,
+            orderCount: 1,
+          });
+        }
+      });
+
+      const totalPurchases = Array.from(supplierTotals.values()).reduce((sum, s) => sum + s.total, 0);
+
+      const topSuppliers = Array.from(supplierTotals.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, limit)
+        .map((item, index) => ({
+          rank: index + 1,
+          supplier_name: item.supplier.name,
+          contact_person: item.supplier.contact_person,
+          email: item.supplier.email,
+          total_purchases: item.total,
+          order_count: item.orderCount,
+          percentage_of_total: totalPurchases > 0 ? (item.total / totalPurchases) * 100 : 0,
+        }));
+
+      const columns = [
+        { key: 'rank', header: 'Rang', format: 'number' as const },
+        { key: 'supplier_name', header: 'Leverancier' },
+        { key: 'contact_person', header: 'Contactpersoon' },
+        { key: 'email', header: 'Email' },
+        { key: 'total_purchases', header: 'Inkoopvolume', format: 'currency' as const },
+        { key: 'order_count', header: 'Aantal orders', format: 'number' as const },
+        { key: 'percentage_of_total', header: '% van totaal', format: 'percentage' as const },
+      ];
+
+      const filename = generateFilename('top_leveranciers', dateRange.from, dateRange.to);
+
+      if (format === 'csv') {
+        generateCSV(topSuppliers, columns, filename);
+      } else if (format === 'xlsx') {
+        generateExcel(topSuppliers, columns, filename, 'Top Leveranciers');
+      }
+
+      toast.success(`Top ${topSuppliers.length} leveranciers geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportTopSuppliers, isExporting };
+};
+
+// Hook for bulk supplier document download
+export const useBulkSupplierDocumentDownload = () => {
+  const { currentTenant } = useTenant();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  const downloadSupplierDocuments = async (dateRange: DateRange) => {
+    if (!currentTenant) return;
+    setIsDownloading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('supplier_documents')
+        .select('document_number, file_url, suppliers(name)')
+        .eq('tenant_id', currentTenant.id)
+        .gte('document_date', dateRange.from.toISOString())
+        .lte('document_date', dateRange.to.toISOString())
+        .not('file_url', 'is', null);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.info('Geen documenten gevonden met bestanden');
+        return;
+      }
+
+      const files = data.map(doc => ({
+        name: `${doc.suppliers?.name || 'onbekend'}_${doc.document_number}.pdf`,
+        url: doc.file_url!,
+      }));
+
+      setProgress({ current: 0, total: files.length });
+
+      const filename = generateFilename('leveranciersdocumenten', dateRange.from, dateRange.to);
+      await downloadAsZip(files, filename, (current, total) => {
+        setProgress({ current, total });
+      });
+
+      toast.success(`${files.length} documenten gedownload`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Download mislukt');
+    } finally {
+      setIsDownloading(false);
+      setProgress({ current: 0, total: 0 });
+    }
+  };
+
+  return { downloadSupplierDocuments, isDownloading, progress };
+};
