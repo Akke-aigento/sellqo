@@ -112,6 +112,8 @@ interface TenantData {
   oss_threshold_reached: boolean | null;
   reverse_charge_text: string | null;
   export_text: string | null;
+  enable_b2b_checkout: boolean | null;
+  simplified_vat_mode: boolean | null;
 }
 
 // Validate VAT number via VIES (simplified - in production use the validate-vat function)
@@ -165,10 +167,23 @@ async function calculateVat(params: {
   const tenantCountry = tenant.country?.toUpperCase() || 'BE';
   const customerCountryUpper = customerCountry.toUpperCase();
   const totalAmount = subtotal + shippingCost;
+  const defaultVatRate = tenant.tax_percentage || EU_VAT_RATES[tenantCountry] || 21;
+  
+  // SIMPLIFIED VAT MODE: Always apply default rate, skip all complex logic
+  if (tenant.simplified_vat_mode) {
+    const vatAmount = Math.round(totalAmount * (defaultVatRate / 100) * 100) / 100;
+    logStep("Simplified VAT mode - always default rate", { vatRate: defaultVatRate, vatAmount });
+    return {
+      vatRate: defaultVatRate,
+      vatAmount,
+      vatType: 'standard',
+      vatText: null,
+      vatCountry: tenantCountry,
+    };
+  }
   
   const isEuCountry = EU_COUNTRIES.includes(customerCountryUpper);
   const isSameCountry = tenantCountry === customerCountryUpper;
-  const defaultVatRate = tenant.tax_percentage || EU_VAT_RATES[tenantCountry] || 21;
   
   logStep("VAT calculation params", {
     customerType,
@@ -310,7 +325,8 @@ serve(async (req) => {
         id, name, stripe_account_id, stripe_charges_enabled, 
         tax_percentage, currency, country,
         oss_enabled, oss_threshold_reached,
-        reverse_charge_text, export_text
+        reverse_charge_text, export_text,
+        enable_b2b_checkout, simplified_vat_mode
       `)
       .eq("id", tenant_id)
       .single();
@@ -331,7 +347,18 @@ serve(async (req) => {
       stripeAccountId: tenant.stripe_account_id,
       tenantCountry: tenant.country,
       ossEnabled: tenant.oss_enabled,
+      enableB2bCheckout: tenant.enable_b2b_checkout,
+      simplifiedVatMode: tenant.simplified_vat_mode,
     });
+
+    // Apply B2B checkout setting - force B2C if B2B is disabled
+    const effectiveCustomerType = tenant.enable_b2b_checkout === false 
+      ? 'b2c' 
+      : customer_type;
+    
+    const effectiveVatNumber = tenant.enable_b2b_checkout === false
+      ? undefined
+      : vat_number;
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -351,14 +378,14 @@ serve(async (req) => {
     // Calculate subtotal (in currency units, not cents)
     const subtotal = items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
     
-    // Calculate VAT based on customer type and location
+    // Calculate VAT based on customer type and location (using effective values after B2B check)
     const vatCalculation = await calculateVat({
       subtotal,
       shippingCost: shipping_cost,
       tenant: tenant as TenantData,
-      customerType: customer_type,
+      customerType: effectiveCustomerType,
       customerCountry,
-      vatNumber: vat_number,
+      vatNumber: effectiveVatNumber,
     });
     
     logStep("VAT calculated", {
@@ -464,15 +491,15 @@ serve(async (req) => {
         delivery_type,
         service_point_id,
         service_point_data,
-        // NEW VAT fields
+        // NEW VAT fields (using effective values)
         vat_type: vatCalculation.vatType,
         vat_rate: vatCalculation.vatRate,
         vat_country: vatCalculation.vatCountry,
         vat_text: vatCalculation.vatText,
-        customer_vat_number: vat_number || null,
-        customer_vat_verified: vat_number ? (vatCalculation.vatType === 'reverse_charge') : false,
-        customer_company_name: company_name || null,
-        customer_type: customer_type,
+        customer_vat_number: effectiveVatNumber || null,
+        customer_vat_verified: effectiveVatNumber ? (vatCalculation.vatType === 'reverse_charge') : false,
+        customer_company_name: tenant.enable_b2b_checkout === false ? null : (company_name || null),
+        customer_type: effectiveCustomerType,
       })
       .select()
       .single();
@@ -485,7 +512,7 @@ serve(async (req) => {
       orderId: order.id, 
       deliveryType: delivery_type,
       vatType: vatCalculation.vatType,
-      customerType: customer_type,
+      customerType: effectiveCustomerType,
     });
 
     // Create order items

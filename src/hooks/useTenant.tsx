@@ -47,6 +47,10 @@ interface Tenant {
   default_vat_handling?: string | null;
   reverse_charge_text?: string | null;
   export_text?: string | null;
+  // VAT flexibility settings
+  enable_b2b_checkout?: boolean;
+  simplified_vat_mode?: boolean;
+  simplified_vat_acknowledged_at?: string | null;
   // Reminder settings
   reminders_enabled?: boolean;
   reminder_level1_days?: number;

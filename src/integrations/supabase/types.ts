@@ -5242,6 +5242,7 @@ export type Database = {
           currency: string | null
           custom_domain: string | null
           default_vat_handling: string | null
+          enable_b2b_checkout: boolean | null
           export_text: string | null
           iban: string | null
           id: string
@@ -5280,6 +5281,8 @@ export type Database = {
           reverse_charge_text: string | null
           secondary_color: string | null
           shipping_enabled: boolean | null
+          simplified_vat_acknowledged_at: string | null
+          simplified_vat_mode: boolean | null
           slug: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
@@ -5309,6 +5312,7 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
+          enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
           id?: string
@@ -5347,6 +5351,8 @@ export type Database = {
           reverse_charge_text?: string | null
           secondary_color?: string | null
           shipping_enabled?: boolean | null
+          simplified_vat_acknowledged_at?: string | null
+          simplified_vat_mode?: boolean | null
           slug: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
@@ -5376,6 +5382,7 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
+          enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
           id?: string
@@ -5414,6 +5421,8 @@ export type Database = {
           reverse_charge_text?: string | null
           secondary_color?: string | null
           shipping_enabled?: boolean | null
+          simplified_vat_acknowledged_at?: string | null
+          simplified_vat_mode?: boolean | null
           slug?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
