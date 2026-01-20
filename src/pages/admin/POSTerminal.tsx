@@ -154,6 +154,7 @@ export default function POSTerminalPage() {
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundTxn, setRefundTxn] = useState<POSTransaction | null>(null);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
+  const [lastPaymentWasCash, setLastPaymentWasCash] = useState(false);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
@@ -376,6 +377,7 @@ export default function POSTerminalPage() {
       // Show receipt dialog
       if (transaction) {
         setLastTransaction(transaction as unknown as POSTransaction);
+        setLastPaymentWasCash(true);
         setShowReceiptDialog(true);
       }
     } catch (error) {
@@ -423,6 +425,7 @@ export default function POSTerminalPage() {
       // Show receipt dialog
       if (transaction) {
         setLastTransaction(transaction as unknown as POSTransaction);
+        setLastPaymentWasCash(false);
         setShowReceiptDialog(true);
       }
     } catch (error) {
@@ -495,6 +498,7 @@ export default function POSTerminalPage() {
 
       if (transaction) {
         setLastTransaction(transaction as unknown as POSTransaction);
+        setLastPaymentWasCash(paymentData.finalPaymentMethod === 'cash');
         setShowReceiptDialog(true);
       }
     } catch (error) {
@@ -1242,8 +1246,13 @@ export default function POSTerminalPage() {
       {/* Receipt Dialog */}
       <ReceiptDialog
         open={showReceiptDialog}
-        onOpenChange={setShowReceiptDialog}
+        onOpenChange={(open) => {
+          setShowReceiptDialog(open);
+          if (!open) setLastPaymentWasCash(false);
+        }}
         transaction={lastTransaction}
+        autoPrint={terminal?.settings?.auto_print === true}
+        openCashDrawer={lastPaymentWasCash}
       />
 
       {/* Session Report Dialog */}
