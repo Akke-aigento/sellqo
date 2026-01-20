@@ -77,7 +77,28 @@ export const WOOCOMMERCE_PRODUCT_MAPPING: FieldMapping = {
   'images': { target: 'images', transform: 'wcImages' },
 };
 
-// Platform detection based on CSV headers
+// Shopify Category Mapping
+export const SHOPIFY_CATEGORY_MAPPING: FieldMapping = {
+  'Collection ID': { target: 'external_id' },
+  'Handle': { target: 'slug', required: true },
+  'Title': { target: 'name', required: true },
+  'Body (HTML)': { target: 'description', transform: 'html' },
+  'Image Src': { target: 'image_url' },
+  'Sort Order': { target: 'sort_order', transform: 'number' },
+  'SEO Title': { target: 'meta_title_nl' },
+  'SEO Description': { target: 'meta_description_nl' },
+};
+
+// WooCommerce Category Mapping
+export const WOOCOMMERCE_CATEGORY_MAPPING: FieldMapping = {
+  'id': { target: 'external_id' },
+  'name': { target: 'name', required: true },
+  'slug': { target: 'slug', required: true },
+  'parent': { target: 'parent_id' },
+  'description': { target: 'description', transform: 'html' },
+  'image': { target: 'image_url' },
+  'menu_order': { target: 'sort_order', transform: 'number' },
+};
 export function detectPlatform(headers: string[]): string {
   const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
   
@@ -145,10 +166,12 @@ export function getDefaultMapping(platform: string, dataType: string): FieldMapp
     shopify: {
       customers: SHOPIFY_CUSTOMER_MAPPING,
       products: SHOPIFY_PRODUCT_MAPPING,
+      categories: SHOPIFY_CATEGORY_MAPPING,
     },
     woocommerce: {
       customers: WOOCOMMERCE_CUSTOMER_MAPPING,
       products: WOOCOMMERCE_PRODUCT_MAPPING,
+      categories: WOOCOMMERCE_CATEGORY_MAPPING,
     },
   };
   
