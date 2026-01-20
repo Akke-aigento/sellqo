@@ -170,5 +170,25 @@ export const PRODUCT_TARGET_FIELDS = [
   'external_id',
 ] as const;
 
+export const CATEGORY_TARGET_FIELDS = [
+  'name',
+  'slug',
+  'description',
+  'parent_id',
+  'image_url',
+  'sort_order',
+  'is_active',
+  'meta_title_nl',
+  'meta_title_en',
+  'meta_title_de',
+  'meta_title_fr',
+  'meta_description_nl',
+  'meta_description_en',
+  'meta_description_de',
+  'meta_description_fr',
+  'external_id',
+] as const;
+
 export type CustomerTargetField = typeof CUSTOMER_TARGET_FIELDS[number];
 export type ProductTargetField = typeof PRODUCT_TARGET_FIELDS[number];
+export type CategoryTargetField = typeof CATEGORY_TARGET_FIELDS[number];

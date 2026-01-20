@@ -1096,6 +1096,14 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          meta_description_de: string | null
+          meta_description_en: string | null
+          meta_description_fr: string | null
+          meta_description_nl: string | null
+          meta_title_de: string | null
+          meta_title_en: string | null
+          meta_title_fr: string | null
+          meta_title_nl: string | null
           name: string
           parent_id: string | null
           slug: string
@@ -1109,6 +1117,14 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          meta_description_de?: string | null
+          meta_description_en?: string | null
+          meta_description_fr?: string | null
+          meta_description_nl?: string | null
+          meta_title_de?: string | null
+          meta_title_en?: string | null
+          meta_title_fr?: string | null
+          meta_title_nl?: string | null
           name: string
           parent_id?: string | null
           slug: string
@@ -1122,6 +1138,14 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          meta_description_de?: string | null
+          meta_description_en?: string | null
+          meta_description_fr?: string | null
+          meta_description_nl?: string | null
+          meta_title_de?: string | null
+          meta_title_en?: string | null
+          meta_title_fr?: string | null
+          meta_title_nl?: string | null
           name?: string
           parent_id?: string | null
           slug?: string
