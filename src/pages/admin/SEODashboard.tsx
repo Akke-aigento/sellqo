@@ -351,7 +351,7 @@ export default function SEODashboard() {
             <div className="grid gap-6 lg:grid-cols-2">
               <SocialMediaPreview
                 title={currentTenant?.name || 'Jouw Webshop'}
-                description={currentTenant?.description || 'Bekijk onze producten'}
+                description={'Ontdek onze producten en aanbiedingen'}
                 url={window.location.origin}
                 isLoading={isLoading}
               />
