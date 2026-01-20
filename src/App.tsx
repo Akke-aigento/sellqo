@@ -34,6 +34,7 @@ import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import MarketingPage from "./pages/admin/Marketing";
 import CampaignDetailPage from "./pages/admin/CampaignDetail";
 import AIMarketingHub from "./pages/admin/AIMarketingHub";
+import DiscountsPage from "./pages/admin/Discounts";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="orders/invoices" element={<InvoicesPage />} />
               <Route path="orders/creditnotes" element={<CreditNotesPage />} />
               <Route path="orders/subscriptions" element={<SubscriptionsPage />} />
+              <Route path="orders/discounts" element={<DiscountsPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
