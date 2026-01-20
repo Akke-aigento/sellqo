@@ -3,6 +3,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTenant } from '@/hooks/useTenant';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { NotificationCenter } from '@/components/admin/NotificationCenter';
 
 export function AdminHeader() {
   const { currentTenant } = useTenant();
@@ -27,6 +28,7 @@ export function AdminHeader() {
         )}
       </div>
 
+      <NotificationCenter />
       <ThemeToggle />
     </header>
   );
