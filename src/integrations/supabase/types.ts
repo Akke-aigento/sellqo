@@ -4590,6 +4590,7 @@ export type Database = {
           status: string
           stripe_payment_intent_id: string | null
           stripe_reader_id: string | null
+          stripe_refund_id: string | null
           subtotal: number
           tax_total: number
           tenant_id: string
@@ -4621,6 +4622,7 @@ export type Database = {
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_reader_id?: string | null
+          stripe_refund_id?: string | null
           subtotal?: number
           tax_total?: number
           tenant_id: string
@@ -4652,6 +4654,7 @@ export type Database = {
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_reader_id?: string | null
+          stripe_refund_id?: string | null
           subtotal?: number
           tax_total?: number
           tenant_id?: string
