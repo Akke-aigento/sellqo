@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.test-woocommerce-connection]
 verify_jwt = false
+
+[functions.sync-woocommerce-products]
+verify_jwt = false

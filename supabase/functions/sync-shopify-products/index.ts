@@ -86,6 +86,11 @@ Deno.serve(async (req) => {
           .or(`shopify_product_id.eq.${shopifyProduct.id},sku.eq.${mainVariant?.sku || ''}`)
           .single()
 
+        // Extract SEO data from Shopify product
+        // Shopify stores SEO in metafields_global_title_tag and metafields_global_description_tag
+        const seoTitle = shopifyProduct.metafields_global_title_tag || null
+        const seoDescription = shopifyProduct.metafields_global_description_tag || null
+
         const productData = {
           tenant_id: connection.tenant_id,
           name: shopifyProduct.title,
@@ -99,6 +104,13 @@ Deno.serve(async (req) => {
           images: shopifyProduct.images?.map((img: any) => img.src) || [],
           tags: shopifyProduct.tags ? shopifyProduct.tags.split(',').map((t: string) => t.trim()) : [],
           is_active: shopifyProduct.status === 'active',
+          // SEO fields
+          meta_title: seoTitle,
+          meta_description: seoDescription,
+          // Shopify-specific optimized titles (use SEO data if available)
+          shopify_optimized_title: seoTitle || shopifyProduct.title,
+          shopify_optimized_description: seoDescription || shopifyProduct.body_html?.replace(/<[^>]*>/g, '').substring(0, 160) || null,
+          // Shopify IDs and sync status
           shopify_product_id: shopifyProduct.id.toString(),
           shopify_variant_id: mainVariant?.id?.toString() || null,
           shopify_listing_status: 'synced',
@@ -144,7 +156,7 @@ Deno.serve(async (req) => {
         try {
           const shopifyProductData = {
             product: {
-              title: product.name,
+              title: product.shopify_optimized_title || product.name,
               body_html: product.description || '',
               vendor: '',
               product_type: '',
@@ -163,6 +175,9 @@ Deno.serve(async (req) => {
                 },
               ],
               images: product.images?.map((url: string) => ({ src: url })) || [],
+              // SEO metafields
+              metafields_global_title_tag: product.meta_title || product.shopify_optimized_title || undefined,
+              metafields_global_description_tag: product.meta_description || product.shopify_optimized_description || undefined,
             },
           }
 

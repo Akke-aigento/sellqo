@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Table, 
   TableBody, 
@@ -14,7 +16,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Check, AlertTriangle, X } from 'lucide-react';
+import { Check, AlertTriangle, X, Sparkles, Search } from 'lucide-react';
 import { transformRecord, validateRecord } from '@/lib/importMappings';
 import type { 
   ImportDataType, 
@@ -82,6 +84,23 @@ export function PreviewValidation({
       }
     });
   }, [dataTypes, uploadedFiles, mappings, previewData, onPreviewChange]);
+
+  // Calculate SEO statistics for products
+  const getSEOStats = () => {
+    const productRecords = previewData.get('products') || [];
+    const withSEO = productRecords.filter(r => 
+      r.data.meta_title && r.data.meta_description
+    ).length;
+    const withPartialSEO = productRecords.filter(r => 
+      (r.data.meta_title || r.data.meta_description) && 
+      !(r.data.meta_title && r.data.meta_description)
+    ).length;
+    const withoutSEO = productRecords.length - withSEO - withPartialSEO;
+    
+    return { withSEO, withPartialSEO, withoutSEO, total: productRecords.length };
+  };
+
+  const seoStats = getSEOStats();
 
   const getStats = (dataType: ImportDataType) => {
     const records = previewData.get(dataType) || [];
@@ -152,6 +171,32 @@ export function PreviewValidation({
           })}
         </div>
       </Card>
+
+      {/* SEO Import Feedback */}
+      {dataTypes.includes('products') && seoStats.total > 0 && seoStats.withoutSEO > 0 && (
+        <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
+          <Search className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <strong>{seoStats.withoutSEO} producten</strong> hebben geen SEO data (meta titel/beschrijving).
+            {seoStats.withPartialSEO > 0 && (
+              <span> Daarnaast hebben <strong>{seoStats.withPartialSEO} producten</strong> onvolledige SEO data.</span>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span>
+                Gebruik na import de{' '}
+                <Link 
+                  to="/admin/marketing/seo" 
+                  className="font-medium underline hover:text-yellow-900 dark:hover:text-yellow-100"
+                >
+                  AI SEO Generator
+                </Link>{' '}
+                om automatisch geoptimaliseerde meta titels en beschrijvingen te genereren.
+              </span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Preview Table */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ImportDataType)}>
