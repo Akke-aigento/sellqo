@@ -2,15 +2,26 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Store, Package, TrendingUp, FileText, Users, Zap, Check, Sparkles, Gift, Globe, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { LucideIcon } from 'lucide-react';
 
-const features = [
+interface Feature {
+  icon: LucideIcon;
+  title: string;
+  subtitle: string;
+  description: string;
+  badge?: string;
+  features?: string[];
+  gridSpan: 1 | 2;
+}
+
+const features: Feature[] = [
   {
     icon: Store,
     title: 'Verkoop Overal, Beheer Centraal',
     subtitle: 'Multi-Channel Verkoop',
     description: 'Koppel je Shopify, WooCommerce, Bol.com en Amazon. Alle bestellingen, voorraad en klanten op één dashboard.',
     badge: '16+ integraties',
-    size: 'large',
+    gridSpan: 2,
   },
   {
     icon: Sparkles,
@@ -18,14 +29,14 @@ const features = [
     subtitle: 'Sellqo AI',
     description: 'Genereer social posts, email content en complete productpromoties met één klik. A/B test automatisch je campagnes.',
     badge: 'Pro feature',
-    size: 'medium',
+    gridSpan: 1,
   },
   {
     icon: Package,
     title: 'Nooit Meer Uitverkocht Door Fout',
     subtitle: 'Real-Time Voorraadsync',
     description: 'Automatische voorraadsynchronisatie tussen al je kanalen. Verkoop je iets op Bol? Je Shopify wordt direct bijgewerkt.',
-    size: 'medium',
+    gridSpan: 1,
   },
   {
     icon: Gift,
@@ -37,7 +48,7 @@ const features = [
       'Klantgroepen met speciale prijzen',
       'Stapelbare kortingen met prioriteiten',
     ],
-    size: 'large',
+    gridSpan: 2,
   },
   {
     icon: Globe,
@@ -45,7 +56,7 @@ const features = [
     subtitle: 'Drag & Drop Builder',
     description: 'Bouw je eigen webshop met themes, homepage secties en custom domeinen. Geen code nodig.',
     badge: '3 premium themes',
-    size: 'medium',
+    gridSpan: 1,
   },
   {
     icon: Monitor,
@@ -53,7 +64,15 @@ const features = [
     subtitle: 'Touch-Optimized POS',
     description: 'Complete kassa met barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Offline-first design.',
     badge: 'Add-on module',
-    size: 'medium',
+    gridSpan: 1,
+  },
+  {
+    icon: FileText,
+    title: "Factur-X PDF's in 4 Talen",
+    subtitle: 'Professionele Facturen',
+    description: 'Automatische facturen die Odoo en andere boekhoudpakketten direct kunnen inlezen. Nederlands, Engels, Frans, Duits.',
+    badge: 'Compliance guaranteed',
+    gridSpan: 1,
   },
   {
     icon: TrendingUp,
@@ -65,31 +84,77 @@ const features = [
       'Winstmarge per product en kanaal',
       'Peppol e-invoicing ready (verplicht vanaf 2026)',
     ],
-    size: 'large',
-  },
-  {
-    icon: FileText,
-    title: "Factur-X PDF's in 4 Talen",
-    subtitle: 'Professionele Facturen',
-    description: 'Automatische facturen die Odoo en andere boekhoudpakketten direct kunnen inlezen. Nederlands, Engels, Frans, Duits.',
-    badge: 'Compliance guaranteed',
-    size: 'medium',
+    gridSpan: 2,
   },
   {
     icon: Users,
     title: 'Ken Je Klanten',
     subtitle: 'Klantenmanagement + SEO',
     description: 'Volledige klantprofielen, aankoopgeschiedenis, en geautomatiseerde follow-ups. Plus ingebouwde SEO tools voor je webshop.',
-    size: 'medium',
+    gridSpan: 1,
   },
   {
     icon: Zap,
     title: 'Datagedreven Groeien',
     subtitle: 'Groei-Insights',
     description: 'Ontdek je best verkopende producten, optimale prijspunten en seizoenstrends met AI-gestuurde analyses.',
-    size: 'medium',
+    gridSpan: 2,
   },
 ];
+
+interface FeatureCardProps {
+  feature: Feature;
+  index: number;
+  isIntersecting: boolean;
+}
+
+function FeatureCard({ feature, index, isIntersecting }: FeatureCardProps) {
+  const Icon = feature.icon;
+  
+  return (
+    <div
+      className={cn(
+        'group p-6 md:p-8 bg-card rounded-2xl border border-border shadow-sellqo',
+        'hover:shadow-sellqo-lg hover:-translate-y-1 transition-all duration-300',
+        'flex flex-col h-full',
+        feature.gridSpan === 2 && 'lg:col-span-2',
+        isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
+      )}
+      style={{ animationDelay: `${index * 0.1}s` }}
+    >
+      <div className="flex items-start gap-4 mb-4">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+          <Icon className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground mb-1">{feature.subtitle}</p>
+          <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
+        </div>
+      </div>
+      
+      <p className="text-muted-foreground mb-4 flex-grow">{feature.description}</p>
+      
+      {feature.features && (
+        <ul className="space-y-2 mb-4">
+          {feature.features.map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+              <span className="text-foreground">{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      
+      {feature.badge && (
+        <div className="mt-auto pt-2">
+          <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
+            {feature.badge}
+          </Badge>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FeaturesSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
@@ -112,48 +177,15 @@ export function FeaturesSection() {
           </p>
         </div>
 
-        {/* Bento Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Bento Grid - Structured Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
-            <div
+            <FeatureCard
               key={index}
-              className={cn(
-                'group p-6 md:p-8 bg-card rounded-2xl border border-border shadow-sellqo',
-                'hover:shadow-sellqo-lg hover:-translate-y-1 transition-all duration-300',
-                feature.size === 'large' && 'lg:col-span-2',
-                isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-              )}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{feature.subtitle}</p>
-                  <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
-                </div>
-              </div>
-              
-              <p className="text-muted-foreground mb-4">{feature.description}</p>
-              
-              {feature.features && (
-                <ul className="space-y-2 mb-4">
-                  {feature.features.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                      <span className="text-foreground">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              
-              {feature.badge && (
-                <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
-                  {feature.badge}
-                </Badge>
-              )}
-            </div>
+              feature={feature}
+              index={index}
+              isIntersecting={isIntersecting}
+            />
           ))}
         </div>
       </div>
