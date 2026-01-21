@@ -40,6 +40,7 @@ export interface MarketplaceSettings {
   bol_ean?: string;
   bol_delivery_code?: string;
   bol_condition?: string;
+  bol_fulfilment_method?: 'FBR' | 'FBB';
   bol_optimized_title?: string;
   bol_bullets?: string[];
   amazon_asin?: string;

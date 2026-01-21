@@ -164,12 +164,40 @@ Deno.serve(async (req) => {
           
           const startDate = new Date(Date.now() - historicalPeriodDays * 24 * 60 * 60 * 1000)
           const statuses = ['OPEN', 'SHIPPED', 'CANCELLED', 'RETURNED']
+          const fulfillmentMethods = ['FBR', 'FBB'] // FBB = LVB (Logistiek via Bol)
           
-          for (const status of statuses) {
-            const url = `${BOL_API_BASE}/orders?fulfilment-method=FBR&status=${status}&created-after=${startDate.toISOString()}`
-            console.log(`Fetching ${status} orders from: ${url}`)
-            
-            const ordersResponse = await fetch(url, {
+          for (const fulfillmentMethod of fulfillmentMethods) {
+            for (const status of statuses) {
+              const url = `${BOL_API_BASE}/orders?fulfilment-method=${fulfillmentMethod}&status=${status}&created-after=${startDate.toISOString()}`
+              console.log(`Fetching ${fulfillmentMethod} ${status} orders from: ${url}`)
+              
+              const ordersResponse = await fetch(url, {
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Accept': 'application/vnd.retailer.v10+json'
+                }
+              })
+
+              if (!ordersResponse.ok) {
+                const errorText = await ordersResponse.text()
+                console.error(`Bol API error for ${fulfillmentMethod} ${status}:`, errorText)
+                continue // Continue with other statuses/methods
+              }
+
+              const ordersData = await ordersResponse.json()
+              const statusOrders: BolOrder[] = ordersData.orders || []
+              console.log(`Found ${statusOrders.length} ${fulfillmentMethod} ${status} orders`)
+              bolOrders = [...bolOrders, ...statusOrders]
+            }
+          }
+          
+          console.log(`Total historical orders found: ${bolOrders.length}`)
+        } else {
+          // Regular sync - fetch OPEN orders for both FBR and FBB (LVB)
+          const fulfillmentMethods = ['FBR', 'FBB']
+          
+          for (const fulfillmentMethod of fulfillmentMethods) {
+            const ordersResponse = await fetch(`${BOL_API_BASE}/orders?fulfilment-method=${fulfillmentMethod}&status=OPEN`, {
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/vnd.retailer.v10+json'
@@ -178,35 +206,17 @@ Deno.serve(async (req) => {
 
             if (!ordersResponse.ok) {
               const errorText = await ordersResponse.text()
-              console.error(`Bol API error for status ${status}:`, errorText)
-              continue // Continue with other statuses
+              console.error(`Bol API error for ${fulfillmentMethod}:`, errorText)
+              continue // Continue with other fulfillment method
             }
 
             const ordersData = await ordersResponse.json()
-            const statusOrders: BolOrder[] = ordersData.orders || []
-            console.log(`Found ${statusOrders.length} ${status} orders`)
-            bolOrders = [...bolOrders, ...statusOrders]
+            const methodOrders: BolOrder[] = ordersData.orders || []
+            console.log(`Found ${methodOrders.length} open ${fulfillmentMethod} orders for connection ${connection.id}`)
+            bolOrders = [...bolOrders, ...methodOrders]
           }
           
-          console.log(`Total historical orders found: ${bolOrders.length}`)
-        } else {
-          // Regular sync - only fetch OPEN orders
-          const ordersResponse = await fetch(`${BOL_API_BASE}/orders?fulfilment-method=FBR&status=OPEN`, {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Accept': 'application/vnd.retailer.v10+json'
-            }
-          })
-
-          if (!ordersResponse.ok) {
-            const errorText = await ordersResponse.text()
-            console.error('Bol API error:', errorText)
-            throw new Error(`Bol API error: ${ordersResponse.statusText}`)
-          }
-
-          const ordersData = await ordersResponse.json()
-          bolOrders = ordersData.orders || []
-          console.log(`Found ${bolOrders.length} open orders for connection ${connection.id}`)
+          console.log(`Total open orders found: ${bolOrders.length}`)
         }
 
         // Process each order

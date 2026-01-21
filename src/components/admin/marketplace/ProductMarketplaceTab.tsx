@@ -46,6 +46,11 @@ const BOL_CONDITIONS = [
   { value: 'MODERATE', label: 'Matig' },
 ];
 
+const BOL_FULFILLMENT = [
+  { value: 'FBR', label: 'Zelf verzenden (FBR)' },
+  { value: 'FBB', label: 'Logistiek via Bol (LVB)' },
+];
+
 const AMAZON_CONDITIONS = [
   { value: 'new', label: 'Nieuw' },
   { value: 'used_like_new', label: 'Gebruikt - Als nieuw' },
@@ -87,6 +92,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [bolEan, setBolEan] = useState(product.bol_ean || product.barcode || '');
   const [bolDeliveryCode, setBolDeliveryCode] = useState(product.bol_delivery_code || '24uurs-21');
   const [bolCondition, setBolCondition] = useState(product.bol_condition || 'NEW');
+  const [bolFulfillment, setBolFulfillment] = useState<'FBR' | 'FBB'>((product.bol_fulfilment_method as 'FBR' | 'FBB') || 'FBR');
   const [bolOptimizedTitle, setBolOptimizedTitle] = useState(product.bol_optimized_title || '');
   const [bolBullets, setBolBullets] = useState<string[]>(product.bol_bullets || []);
   
@@ -113,6 +119,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     setBolEan(product.bol_ean || product.barcode || '');
     setBolDeliveryCode(product.bol_delivery_code || '24uurs-21');
     setBolCondition(product.bol_condition || 'NEW');
+    setBolFulfillment((product.bol_fulfilment_method as 'FBR' | 'FBB') || 'FBR');
     setBolOptimizedTitle(product.bol_optimized_title || '');
     setBolBullets(product.bol_bullets || []);
     
@@ -147,6 +154,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
           bol_ean: bolEan,
           bol_delivery_code: bolDeliveryCode,
           bol_condition: bolCondition,
+          bol_fulfilment_method: bolFulfillment,
           bol_optimized_title: bolOptimizedTitle,
           bol_bullets: bolBullets.filter(Boolean),
         },
@@ -218,7 +226,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       price: product.price,
       stock: product.stock ?? 0,
       delivery_code: bolDeliveryCode,
-      fulfilment_method: 'FBR',
+      fulfilment_method: bolFulfillment,
       title: bolOptimizedTitle || product.name,
     };
 
@@ -514,6 +522,28 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Verzendmethode</Label>
+                <Select 
+                  value={bolFulfillment} 
+                  onValueChange={(value) => handleFieldChange(setBolFulfillment, value as 'FBR' | 'FBB')}
+                  disabled={isListed}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BOL_FULFILLMENT.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  FBR = zelf verzenden, LVB = Bol.com verzorgt logistiek
+                </p>
               </div>
             </div>
 
