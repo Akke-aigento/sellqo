@@ -1093,6 +1093,7 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          hide_from_storefront: boolean | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -1114,6 +1115,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
+          hide_from_storefront?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -1135,6 +1137,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string | null
+          hide_from_storefront?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -5446,6 +5449,7 @@ export type Database = {
           gift_card_expiry_months: number | null
           gift_card_max_amount: number | null
           gift_card_min_amount: number | null
+          hide_from_storefront: boolean | null
           id: string
           images: string[] | null
           import_job_id: string | null
@@ -5538,6 +5542,7 @@ export type Database = {
           gift_card_expiry_months?: number | null
           gift_card_max_amount?: number | null
           gift_card_min_amount?: number | null
+          hide_from_storefront?: boolean | null
           id?: string
           images?: string[] | null
           import_job_id?: string | null
@@ -5630,6 +5635,7 @@ export type Database = {
           gift_card_expiry_months?: number | null
           gift_card_max_amount?: number | null
           gift_card_min_amount?: number | null
+          hide_from_storefront?: boolean | null
           id?: string
           images?: string[] | null
           import_job_id?: string | null

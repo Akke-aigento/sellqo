@@ -92,6 +92,7 @@ export default function CategoriesPage() {
     updateSortOrder,
     reparentCategory,
     bulkUpdateActive,
+    bulkUpdateStorefrontVisibility,
     bulkDelete,
   } = useCategories();
 
@@ -158,6 +159,16 @@ export default function CategoriesPage() {
 
   const handleBulkDeactivate = () => {
     bulkUpdateActive.mutate({ ids: Array.from(selectedIds), isActive: false });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkShowOnStorefront = () => {
+    bulkUpdateStorefrontVisibility.mutate({ ids: Array.from(selectedIds), hideFromStorefront: false });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkHideFromStorefront = () => {
+    bulkUpdateStorefrontVisibility.mutate({ ids: Array.from(selectedIds), hideFromStorefront: true });
     setSelectedIds(new Set());
   };
 
@@ -371,9 +382,11 @@ export default function CategoriesPage() {
             onDeselectAll={handleDeselectAll}
             onActivate={handleBulkActivate}
             onDeactivate={handleBulkDeactivate}
+            onShowOnStorefront={handleBulkShowOnStorefront}
+            onHideFromStorefront={handleBulkHideFromStorefront}
             onDelete={handleBulkDelete}
             isDeleting={bulkDelete.isPending}
-            isUpdating={bulkUpdateActive.isPending}
+            isUpdating={bulkUpdateActive.isPending || bulkUpdateStorefrontVisibility.isPending}
           />
 
           {filteredTree.length === 0 && searchQuery ? (

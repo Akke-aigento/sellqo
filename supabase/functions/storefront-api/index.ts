@@ -116,11 +116,12 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   let query = supabase
     .from('products')
     .select(`
-      id, name, slug, description, price, compare_at_price, images, is_active,
-      track_inventory, stock, sku, category_id, categories(id, name, slug)
+      id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront,
+      track_inventory, stock, sku, category_id, categories(id, name, slug, hide_from_storefront)
     `)
     .eq('tenant_id', tenantId)
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .eq('hide_from_storefront', false);
 
   if (params?.category_id) query = query.eq('category_id', params.category_id);
   if (params?.search) query = query.ilike('name', `%${params.search}%`);
@@ -129,7 +130,13 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   const { data, error } = await query.order('created_at', { ascending: false });
   if (error) throw error;
 
-  return data.map((product: any) => ({
+  // Filter out products whose category is hidden from storefront
+  const visibleProducts = data.filter((product: any) => {
+    if (product.categories && product.categories.hide_from_storefront) return false;
+    return true;
+  });
+
+  return visibleProducts.map((product: any) => ({
     id: product.id,
     name: product.name,
     slug: product.slug,

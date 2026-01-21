@@ -54,7 +54,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import type { Product, ProductStatus, StockStatus } from '@/types/product';
+import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
@@ -63,6 +63,7 @@ export default function ProductsPage() {
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatus>('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityStatus>('all');
   const [stockFilter, setStockFilter] = useState<StockStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -86,6 +87,12 @@ export default function ProductsPage() {
       if (statusFilter === 'active' && !product.is_active) return false;
       if (statusFilter === 'inactive' && product.is_active) return false;
 
+      // Visibility filter
+      const hideFromStorefront = (product as any).hide_from_storefront || false;
+      if (visibilityFilter === 'online' && (hideFromStorefront || !product.is_active)) return false;
+      if (visibilityFilter === 'store_only' && (!hideFromStorefront || !product.is_active)) return false;
+      if (visibilityFilter === 'hidden' && product.is_active) return false;
+
       // Stock filter
       if (stockFilter === 'out_of_stock' && product.stock > 0) return false;
       if (stockFilter === 'low_stock' && (product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
@@ -96,7 +103,7 @@ export default function ProductsPage() {
 
       return true;
     });
-  }, [products, search, statusFilter, stockFilter, categoryFilter]);
+  }, [products, search, statusFilter, visibilityFilter, stockFilter, categoryFilter]);
 
   // Selection handlers
   const toggleSelectAll = () => {
@@ -150,6 +157,18 @@ export default function ProductsPage() {
       return <Badge className="bg-amber-500 hover:bg-amber-600">{product.stock} stuks</Badge>;
     }
     return <Badge variant="secondary">{product.stock} stuks</Badge>;
+  };
+
+  // Visibility badge
+  const getVisibilityBadge = (product: Product) => {
+    const hideFromStorefront = (product as any).hide_from_storefront || false;
+    if (!product.is_active) {
+      return <Badge variant="secondary">Inactief</Badge>;
+    }
+    if (hideFromStorefront) {
+      return <Badge className="bg-amber-500 hover:bg-amber-600">Alleen winkel</Badge>;
+    }
+    return <Badge variant="default">Online</Badge>;
   };
 
   // Format price
@@ -206,6 +225,17 @@ export default function ProductsPage() {
               <SelectItem value="all">Alle statussen</SelectItem>
               <SelectItem value="active">Actief</SelectItem>
               <SelectItem value="inactive">Inactief</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={visibilityFilter} onValueChange={(v) => setVisibilityFilter(v as VisibilityStatus)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Zichtbaarheid" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle zichtbaarheid</SelectItem>
+              <SelectItem value="online">Online zichtbaar</SelectItem>
+              <SelectItem value="store_only">Alleen winkel</SelectItem>
+              <SelectItem value="hidden">Verborgen</SelectItem>
             </SelectContent>
           </Select>
           <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as StockStatus)}>
@@ -273,7 +303,7 @@ export default function ProductsPage() {
               <TableHead>Categorie</TableHead>
               <TableHead className="text-right">Prijs</TableHead>
               <TableHead>Voorraad</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Zichtbaarheid</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -369,11 +399,7 @@ export default function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell>{getStockBadge(product)}</TableCell>
-                  <TableCell>
-                    <Badge variant={product.is_active ? 'default' : 'secondary'}>
-                      {product.is_active ? 'Actief' : 'Inactief'}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{getVisibilityBadge(product)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

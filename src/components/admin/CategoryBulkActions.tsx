@@ -1,4 +1,4 @@
-import { CheckSquare, Square, Trash2, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { CheckSquare, Square, Trash2, ToggleLeft, ToggleRight, X, Eye, EyeOff, Store, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -9,6 +9,8 @@ interface CategoryBulkActionsProps {
   onDeselectAll: () => void;
   onActivate: () => void;
   onDeactivate: () => void;
+  onShowOnStorefront: () => void;
+  onHideFromStorefront: () => void;
   onDelete: () => void;
   isDeleting?: boolean;
   isUpdating?: boolean;
@@ -21,6 +23,8 @@ export function CategoryBulkActions({
   onDeselectAll,
   onActivate,
   onDeactivate,
+  onShowOnStorefront,
+  onHideFromStorefront,
   onDelete,
   isDeleting,
   isUpdating,
@@ -81,6 +85,32 @@ export function CategoryBulkActions({
             <ToggleLeft className="h-4 w-4" />
             Deactiveren
           </Button>
+
+          <div className="h-4 w-px bg-border" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onShowOnStorefront}
+            disabled={isUpdating}
+            className="gap-2"
+          >
+            <Globe className="h-4 w-4" />
+            Online tonen
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onHideFromStorefront}
+            disabled={isUpdating}
+            className="gap-2"
+          >
+            <Store className="h-4 w-4" />
+            Alleen winkel
+          </Button>
+
+          <div className="h-4 w-px bg-border" />
 
           <Button
             variant="outline"
