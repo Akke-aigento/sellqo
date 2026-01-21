@@ -1872,6 +1872,50 @@ export type Database = {
           },
         ]
       }
+      dashboard_preferences: {
+        Row: {
+          created_at: string
+          hidden_widgets: string[] | null
+          id: string
+          layout_type: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          widget_order: Json | null
+          widget_sizes: Json | null
+        }
+        Insert: {
+          created_at?: string
+          hidden_widgets?: string[] | null
+          id?: string
+          layout_type?: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          widget_order?: Json | null
+          widget_sizes?: Json | null
+        }
+        Update: {
+          created_at?: string
+          hidden_widgets?: string[] | null
+          id?: string
+          layout_type?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          widget_order?: Json | null
+          widget_sizes?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       digital_deliveries: {
         Row: {
           access_url: string | null

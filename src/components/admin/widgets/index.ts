@@ -1,0 +1,7 @@
+export { StatsGridWidget } from './StatsGridWidget';
+export { QuickActionsWidget } from './QuickActionsWidget';
+export { RecentOrdersWidget } from './RecentOrdersWidget';
+export { AIMarketingWidget } from './AIMarketingWidget';
+export { POSOverviewWidget } from './POSOverviewWidget';
+export { MarketplaceWidget } from './MarketplaceWidget';
+export { LowStockWidget } from './LowStockWidget';
