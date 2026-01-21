@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useStorefront } from '@/hooks/useStorefront';
+import { RichTextEditor } from './RichTextEditor';
 import type { StorefrontPage } from '@/types/storefront';
 
 interface PageFormData {
@@ -174,15 +174,11 @@ export function StorefrontPagesManager() {
 
                 <div className="space-y-2">
                   <Label>Inhoud</Label>
-                  <Textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    rows={10}
-                    placeholder="Schrijf je pagina inhoud hier... (Markdown ondersteund)"
+                  <RichTextEditor
+                    content={formData.content}
+                    onChange={(html) => setFormData({ ...formData, content: html })}
+                    placeholder="Schrijf je pagina inhoud hier..."
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Tip: Je kunt Markdown gebruiken voor opmaak
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

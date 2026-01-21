@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Palette, Type, Layout, Code, Save } from 'lucide-react';
+import { Palette, Type, Layout, Code, Save, Image as ImageIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useStorefront } from '@/hooks/useStorefront';
 import { GOOGLE_FONTS, HEADER_STYLES, PRODUCT_CARD_STYLES } from '@/types/storefront';
+import { BrandingUploader } from './BrandingUploader';
 
 export function ThemeCustomizer() {
   const { themeSettings, themes, saveThemeSettings } = useStorefront();
@@ -18,6 +19,8 @@ export function ThemeCustomizer() {
   const defaults = selectedTheme?.default_settings;
 
   const [formData, setFormData] = useState({
+    logo_url: null as string | null,
+    favicon_url: null as string | null,
     primary_color: '',
     secondary_color: '',
     accent_color: '',
@@ -37,6 +40,8 @@ export function ThemeCustomizer() {
   useEffect(() => {
     if (themeSettings && defaults) {
       setFormData({
+        logo_url: themeSettings.logo_url || null,
+        favicon_url: themeSettings.favicon_url || null,
         primary_color: themeSettings.primary_color || defaults.primary_color,
         secondary_color: themeSettings.secondary_color || defaults.secondary_color,
         accent_color: themeSettings.accent_color || defaults.accent_color,
@@ -62,6 +67,8 @@ export function ThemeCustomizer() {
   const handleResetToDefaults = () => {
     if (defaults) {
       setFormData({
+        logo_url: null,
+        favicon_url: null,
         primary_color: defaults.primary_color,
         secondary_color: defaults.secondary_color,
         accent_color: defaults.accent_color,
@@ -105,8 +112,12 @@ export function ThemeCustomizer() {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="colors" className="space-y-6">
+        <Tabs defaultValue="branding" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="branding" className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Branding
+            </TabsTrigger>
             <TabsTrigger value="colors" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
               Kleuren
@@ -124,6 +135,15 @@ export function ThemeCustomizer() {
               Geavanceerd
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="branding" className="space-y-6">
+            <BrandingUploader
+              logoUrl={formData.logo_url}
+              faviconUrl={formData.favicon_url}
+              onLogoChange={(url) => setFormData({ ...formData, logo_url: url })}
+              onFaviconChange={(url) => setFormData({ ...formData, favicon_url: url })}
+            />
+          </TabsContent>
 
           <TabsContent value="colors" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

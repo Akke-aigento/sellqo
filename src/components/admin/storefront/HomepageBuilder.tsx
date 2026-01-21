@@ -12,7 +12,9 @@ import {
   LayoutList,
   Mail,
   MessageSquare,
-  Play
+  Play,
+  PanelRightOpen,
+  PanelRightClose
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useStorefront } from '@/hooks/useStorefront';
 import { SECTION_TYPES, type HomepageSectionType, type HomepageSection } from '@/types/storefront';
 import { SectionEditor } from './SectionEditor';
+import { PreviewPanel } from './PreviewPanel';
 import {
   DndContext,
   closestCenter,
@@ -144,6 +147,7 @@ export function HomepageBuilder() {
   const { sections, sectionsLoading, createSection, updateSection, deleteSection, reorderSections } = useStorefront();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -199,8 +203,9 @@ export function HomepageBuilder() {
   };
 
   return (
-    <>
-      <Card>
+    <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-2' : ''}`}>
+      <div>
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -209,7 +214,25 @@ export function HomepageBuilder() {
                 Versleep secties om de volgorde aan te passen. Klik op bewerken om de inhoud te wijzigen.
               </CardDescription>
             </div>
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                {showPreview ? (
+                  <>
+                    <PanelRightClose className="h-4 w-4 mr-2" />
+                    Verberg Preview
+                  </>
+                ) : (
+                  <>
+                    <PanelRightOpen className="h-4 w-4 mr-2" />
+                    Toon Preview
+                  </>
+                )}
+              </Button>
+              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
@@ -239,6 +262,7 @@ export function HomepageBuilder() {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -280,6 +304,14 @@ export function HomepageBuilder() {
           )}
         </CardContent>
       </Card>
+      </div>
+
+      {/* Preview Panel */}
+      {showPreview && (
+        <div className="hidden lg:block">
+          <PreviewPanel />
+        </div>
+      )}
 
       {/* Section Editor Dialog */}
       <Dialog open={!!editingSection} onOpenChange={(open) => !open && setEditingSection(null)}>
@@ -296,6 +328,6 @@ export function HomepageBuilder() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
