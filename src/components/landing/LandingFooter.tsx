@@ -53,7 +53,7 @@ export function LandingFooter() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Brand column */}
           <div>
-            <SellqoLogo variant="full" width={120} className="mb-4" />
+            <SellqoLogo variant="tagline" width={200} className="mb-4" />
             <p className="text-muted-foreground text-sm mb-6">
               E-commerce management, zoals het hoort.
             </p>
