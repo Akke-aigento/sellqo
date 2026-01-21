@@ -98,3 +98,24 @@ verify_jwt = false
 
 [functions.check-amazon-listing-status]
 verify_jwt = false
+
+[functions.test-shopify-connection]
+verify_jwt = false
+
+[functions.sync-shopify-orders]
+verify_jwt = false
+
+[functions.sync-shopify-inventory]
+verify_jwt = false
+
+[functions.sync-shopify-products]
+verify_jwt = false
+
+[functions.sync-shopify-customers]
+verify_jwt = false
+
+[functions.create-shopify-product]
+verify_jwt = false
+
+[functions.update-shopify-product]
+verify_jwt = false

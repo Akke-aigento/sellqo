@@ -82,15 +82,24 @@ export function ConnectMarketplaceDialog({
   const { createConnection } = useMarketplaceConnections();
   const info = MARKETPLACE_INFO[marketplaceType];
 
+  // Shopify-specific state
+  const [storeUrl, setStoreUrl] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
     
     try {
+      // Build credentials based on marketplace type
+      const credentials = marketplaceType === 'shopify' 
+        ? { storeUrl, accessToken }
+        : { clientId, clientSecret };
+
       const { data, error } = await supabase.functions.invoke('test-marketplace-connection', {
         body: { 
           marketplaceType, 
-          credentials: { clientId, clientSecret } 
+          credentials,
         }
       });
       
@@ -115,13 +124,15 @@ export function ConnectMarketplaceDialog({
     setConnecting(true);
     
     try {
+      // Build credentials based on marketplace type
+      const credentials = marketplaceType === 'shopify' 
+        ? { storeUrl, accessToken }
+        : { clientId, clientSecret };
+
       const newConnection = await createConnection.mutateAsync({
         marketplace_type: marketplaceType,
         marketplace_name: connectionName || undefined,
-        credentials: {
-          clientId,
-          clientSecret,
-        },
+        credentials,
         settings: {
           syncInterval: parseInt(syncInterval),
           autoImport,
@@ -141,8 +152,35 @@ export function ConnectMarketplaceDialog({
       // Start the actual first sync based on marketplace type
       setSyncProgress(10);
       
+      let syncOrdersFunction: string;
+      let syncInventoryFunction: string;
+      
+      if (marketplaceType === 'shopify') {
+        syncOrdersFunction = 'sync-shopify-orders';
+        syncInventoryFunction = 'sync-shopify-inventory';
+      } else if (marketplaceType === 'amazon') {
+        syncOrdersFunction = 'sync-amazon-orders';
+        syncInventoryFunction = 'sync-amazon-inventory';
+      } else {
+        syncOrdersFunction = 'sync-bol-orders';
+        syncInventoryFunction = 'sync-bol-inventory';
+      }
+      
+      // Start the actual first sync based on marketplace type
+      setSyncProgress(10);
+      
       const syncOrdersFunction = marketplaceType === 'amazon' ? 'sync-amazon-orders' : 'sync-bol-orders';
       const syncInventoryFunction = marketplaceType === 'amazon' ? 'sync-amazon-inventory' : 'sync-bol-inventory';
+      // Shopify also syncs customers
+      if (marketplaceType === 'shopify') {
+        try {
+          await supabase.functions.invoke('sync-shopify-customers', {
+            body: { connectionId: newConnection.id }
+          });
+        } catch (err) {
+          console.error('Customer sync failed:', err);
+        }
+      }
       
       // Trigger order import
       try {
@@ -189,6 +227,8 @@ export function ConnectMarketplaceDialog({
       setConnectionName('');
       setClientId('');
       setClientSecret('');
+      setStoreUrl('');
+      setAccessToken('');
       setTestResult(null);
       setSyncProgress(0);
       setSyncSteps({ orders: false, products: false, inventory: false });
@@ -222,6 +262,17 @@ export function ConnectMarketplaceDialog({
             'Ga naar Apps and Services → Develop Apps',
             'Registreer een nieuwe applicatie',
             'Kopieer je credentials',
+          ],
+        };
+      case 'shopify':
+        return {
+          title: 'Shopify Admin',
+          url: 'https://admin.shopify.com',
+          steps: [
+            'Log in op je Shopify Admin',
+            'Ga naar Settings → Apps and sales channels → Develop apps',
+            'Maak een nieuwe app aan en configureer Admin API scopes',
+            'Installeer de app en kopieer je Admin API access token',
           ],
         };
       default:
@@ -328,44 +379,95 @@ export function ConnectMarketplaceDialog({
               </p>
             </div>
 
-            <div>
-              <Label>Client ID *</Label>
-              <Input
-                type="text"
-                required
-                placeholder="Bijv: 1234567890abcdef"
-                className="mt-1 font-mono text-sm"
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-              />
-            </div>
+            {/* Shopify credentials */}
+            {marketplaceType === 'shopify' ? (
+              <>
+                <div>
+                  <Label>Store URL *</Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="mijn-winkel.myshopify.com"
+                    className="mt-1 font-mono text-sm"
+                    value={storeUrl}
+                    onChange={(e) => setStoreUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Je Shopify store URL (bijv: mijn-winkel.myshopify.com)
+                  </p>
+                </div>
 
-            <div>
-              <Label>Client Secret *</Label>
-              <div className="relative mt-1">
-                <Input
-                  type={showSecret ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••••••••••"
-                  className="pr-10 font-mono text-sm"
-                  value={clientSecret}
-                  onChange={(e) => setClientSecret(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSecret(!showSecret)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
+                <div>
+                  <Label>Admin API Access Token *</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showSecret ? 'text' : 'password'}
+                      required
+                      placeholder="shpat_••••••••••••••••"
+                      className="pr-10 font-mono text-sm"
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vind deze onder Apps → Develop apps → [Jouw app] → API credentials
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Bol.com / Amazon credentials */}
+                <div>
+                  <Label>Client ID *</Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="Bijv: 1234567890abcdef"
+                    className="mt-1 font-mono text-sm"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Client Secret *</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showSecret ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••••••••••"
+                      className="pr-10 font-mono text-sm"
+                      value={clientSecret}
+                      onChange={(e) => setClientSecret(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
             <Button
               type="button"
               variant="outline"
               onClick={handleTestConnection}
-              disabled={!clientId || !clientSecret || testing}
+              disabled={
+                marketplaceType === 'shopify' 
+                  ? !storeUrl || !accessToken || testing
+                  : !clientId || !clientSecret || testing
+              }
               className="w-full"
             >
               {testing ? (
@@ -404,7 +506,11 @@ export function ConnectMarketplaceDialog({
             </Button>
             <Button
               onClick={() => setStep('settings')}
-              disabled={!clientId || !clientSecret}
+              disabled={
+                marketplaceType === 'shopify' 
+                  ? !storeUrl || !accessToken
+                  : !clientId || !clientSecret
+              }
             >
               Volgende
             </Button>

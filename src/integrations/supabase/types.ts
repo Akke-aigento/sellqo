@@ -1754,6 +1754,8 @@ export type Database = {
           shipping_country: string | null
           shipping_postal_code: string | null
           shipping_street: string | null
+          shopify_customer_id: string | null
+          shopify_last_synced_at: string | null
           tax_exempt: boolean | null
           tax_exempt_reason: string | null
           tenant_id: string
@@ -1795,6 +1797,8 @@ export type Database = {
           shipping_country?: string | null
           shipping_postal_code?: string | null
           shipping_street?: string | null
+          shopify_customer_id?: string | null
+          shopify_last_synced_at?: string | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
           tenant_id: string
@@ -1836,6 +1840,8 @@ export type Database = {
           shipping_country?: string | null
           shipping_postal_code?: string | null
           shipping_street?: string | null
+          shopify_customer_id?: string | null
+          shopify_last_synced_at?: string | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
           tenant_id?: string
@@ -5200,6 +5206,11 @@ export type Database = {
           price: number
           product_type: Database["public"]["Enums"]["product_type"] | null
           requires_shipping: boolean | null
+          shopify_last_synced_at: string | null
+          shopify_listing_error: string | null
+          shopify_listing_status: string | null
+          shopify_product_id: string | null
+          shopify_variant_id: string | null
           short_description: string | null
           sku: string | null
           slug: string
@@ -5271,6 +5282,11 @@ export type Database = {
           price: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           requires_shipping?: boolean | null
+          shopify_last_synced_at?: string | null
+          shopify_listing_error?: string | null
+          shopify_listing_status?: string | null
+          shopify_product_id?: string | null
+          shopify_variant_id?: string | null
           short_description?: string | null
           sku?: string | null
           slug: string
@@ -5342,6 +5358,11 @@ export type Database = {
           price?: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           requires_shipping?: boolean | null
+          shopify_last_synced_at?: string | null
+          shopify_listing_error?: string | null
+          shopify_listing_status?: string | null
+          shopify_product_id?: string | null
+          shopify_variant_id?: string | null
           short_description?: string | null
           sku?: string | null
           slug?: string
