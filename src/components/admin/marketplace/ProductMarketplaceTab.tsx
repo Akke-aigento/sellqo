@@ -90,6 +90,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const hasAmazonConnection = !!amazonConnection;
   const shopifyConnection = getConnectionByType('shopify');
   const hasShopifyConnection = !!shopifyConnection;
+  const woocommerceConnection = getConnectionByType('woocommerce');
+  const hasWooCommerceConnection = !!woocommerceConnection;
 
   // Bol.com state - initialized from product
   const [bolEnabled, setBolEnabled] = useState(product.bol_listing_status !== 'not_listed');
@@ -116,14 +118,26 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [shopifyOptimizedTitle, setShopifyOptimizedTitle] = useState(product.shopify_optimized_title || '');
   const [shopifyOptimizedDescription, setShopifyOptimizedDescription] = useState(product.shopify_optimized_description || '');
   
+  // WooCommerce state - initialized from product
+  const [woocommerceEnabled, setWoocommerceEnabled] = useState(
+    product.woocommerce_listing_status !== null && product.woocommerce_listing_status !== 'not_listed'
+  );
+  const [woocommerceOptimizedTitle, setWoocommerceOptimizedTitle] = useState(product.woocommerce_optimized_title || '');
+  const [woocommerceOptimizedDescription, setWoocommerceOptimizedDescription] = useState(product.woocommerce_optimized_description || '');
+  
   // Track if settings have changed
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasAmazonUnsavedChanges, setHasAmazonUnsavedChanges] = useState(false);
   const [hasShopifyUnsavedChanges, setHasShopifyUnsavedChanges] = useState(false);
+  const [hasWooCommerceUnsavedChanges, setHasWooCommerceUnsavedChanges] = useState(false);
   
   // Shopify action states
   const [isPublishingShopify, setIsPublishingShopify] = useState(false);
   const [isSyncingShopify, setIsSyncingShopify] = useState(false);
+  
+  // WooCommerce action states
+  const [isPublishingWooCommerce, setIsPublishingWooCommerce] = useState(false);
+  const [isSyncingWooCommerce, setIsSyncingWooCommerce] = useState(false);
 
   // Validations
   const eanValidation = getEANValidationStatus(bolEan);
@@ -151,9 +165,15 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     setShopifyOptimizedTitle(product.shopify_optimized_title || '');
     setShopifyOptimizedDescription(product.shopify_optimized_description || '');
     
+    // WooCommerce state
+    setWoocommerceEnabled(product.woocommerce_listing_status !== null && product.woocommerce_listing_status !== 'not_listed');
+    setWoocommerceOptimizedTitle(product.woocommerce_optimized_title || '');
+    setWoocommerceOptimizedDescription(product.woocommerce_optimized_description || '');
+    
     setHasUnsavedChanges(false);
     setHasAmazonUnsavedChanges(false);
     setHasShopifyUnsavedChanges(false);
+    setHasWooCommerceUnsavedChanges(false);
   }, [product]);
 
   // Track Bol.com changes
@@ -172,6 +192,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const handleShopifyFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
     setter(value);
     setHasShopifyUnsavedChanges(true);
+  }, []);
+
+  // Track WooCommerce changes
+  const handleWooCommerceFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    setHasWooCommerceUnsavedChanges(true);
   }, []);
 
   const handleSaveSettings = async () => {
@@ -222,6 +248,22 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
         },
       });
       setHasShopifyUnsavedChanges(false);
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleSaveWooCommerceSettings = async () => {
+    try {
+      await saveMarketplaceSettings.mutateAsync({
+        productId: product.id,
+        settings: {
+          woocommerce_optimized_title: woocommerceOptimizedTitle,
+          woocommerce_optimized_description: woocommerceOptimizedDescription,
+        },
+      });
+      setHasWooCommerceUnsavedChanges(false);
       onRefresh?.();
     } catch (error) {
       // Error handled by mutation
@@ -487,6 +529,88 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     }
   };
 
+  // WooCommerce handlers
+  const handleOptimizeWooCommerce = async () => {
+    const content = await optimizeContent(product, 'woocommerce');
+    if (content) {
+      setWoocommerceOptimizedTitle(content.title);
+      setWoocommerceOptimizedDescription(content.description);
+      setHasWooCommerceUnsavedChanges(true);
+      
+      // Auto-save optimized content
+      saveOptimizedContent.mutate({
+        productId: product.id,
+        marketplace: 'woocommerce',
+        content,
+      });
+    }
+  };
+
+  const handlePublishToWooCommerce = async () => {
+    if (!woocommerceConnection) return;
+    
+    setIsPublishingWooCommerce(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-woocommerce-product', {
+        body: {
+          product_id: product.id,
+          tenant_id: product.tenant_id,
+          connection_id: woocommerceConnection.id,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'WooCommerce API fout');
+
+      toast({
+        title: 'Product gepubliceerd!',
+        description: 'Je product is succesvol gepubliceerd naar WooCommerce',
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: 'Publicatie mislukt',
+        description: error instanceof Error ? error.message : 'Kon product niet publiceren',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPublishingWooCommerce(false);
+    }
+  };
+
+  const handleSyncWooCommerce = async () => {
+    if (!woocommerceConnection) return;
+    
+    setIsSyncingWooCommerce(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-woocommerce-product', {
+        body: {
+          product_id: product.id,
+          tenant_id: product.tenant_id,
+          connection_id: woocommerceConnection.id,
+          update_type: 'all',
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'WooCommerce sync fout');
+
+      toast({
+        title: 'Gesynchroniseerd!',
+        description: 'Je product is bijgewerkt in WooCommerce',
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: 'Synchronisatie mislukt',
+        description: error instanceof Error ? error.message : 'Kon product niet synchroniseren',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingWooCommerce(false);
+    }
+  };
+
   const isListed = product.bol_listing_status === 'listed';
   const isPending = product.bol_listing_status === 'pending';
   const hasError = product.bol_listing_status === 'error';
@@ -498,6 +622,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const isShopifyListed = product.shopify_listing_status === 'listed';
   const isShopifyPending = product.shopify_listing_status === 'pending';
   const hasShopifyError = product.shopify_listing_status === 'error';
+
+  const isWooCommerceListed = product.woocommerce_listing_status === 'listed';
+  const isWooCommercePending = product.woocommerce_listing_status === 'pending';
+  const hasWooCommerceError = product.woocommerce_listing_status === 'error';
 
   return (
     <div className="space-y-6">
@@ -1351,6 +1479,211 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
                 Verbind eerst je Shopify winkel om producten te kunnen publiceren
+              </p>
+              <Button variant="outline" asChild>
+                <a href="/admin/connect">Naar Connect</a>
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* WooCommerce Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                <Store className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">WooCommerce</CardTitle>
+                <CardDescription>
+                  {hasWooCommerceConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {getStatusBadge(product.woocommerce_listing_status)}
+              <Switch
+                checked={woocommerceEnabled}
+                onCheckedChange={(checked) => handleWooCommerceFieldChange(setWoocommerceEnabled, checked)}
+                disabled={!hasWooCommerceConnection}
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+        {woocommerceEnabled && hasWooCommerceConnection && (
+          <CardContent className="space-y-6">
+            {/* Unsaved changes alert */}
+            {hasWooCommerceUnsavedChanges && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <Button 
+                    size="sm" 
+                    onClick={handleSaveWooCommerceSettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1" />
+                    )}
+                    Opslaan
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error message if any */}
+            {hasWooCommerceError && product.woocommerce_listing_error && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>{product.woocommerce_listing_error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Pending status */}
+            {isWooCommercePending && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Je product wordt verwerkt door WooCommerce...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* AI Optimization */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Laat AI je productcontent optimaliseren voor WooCommerce SEO
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleOptimizeWooCommerce}
+                  disabled={isOptimizing}
+                >
+                  {isOptimizing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Optimaliseer met AI
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>SEO-geoptimaliseerde titel</Label>
+                  <Input
+                    value={woocommerceOptimizedTitle}
+                    onChange={(e) => handleWooCommerceFieldChange(setWoocommerceOptimizedTitle, e.target.value)}
+                    placeholder="AI-geoptimaliseerde titel voor WooCommerce"
+                    maxLength={70}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {woocommerceOptimizedTitle.length}/70 tekens
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>SEO-geoptimaliseerde beschrijving (HTML)</Label>
+                  <Textarea
+                    value={woocommerceOptimizedDescription}
+                    onChange={(e) => handleWooCommerceFieldChange(setWoocommerceOptimizedDescription, e.target.value)}
+                    placeholder="Uitgebreide productomschrijving voor WooCommerce..."
+                    rows={6}
+                    maxLength={5000}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {woocommerceOptimizedDescription.length}/5000 tekens
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Actions */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {product.woocommerce_last_synced_at && (
+                  <span>
+                    Laatst gesynchroniseerd:{' '}
+                    {new Date(product.woocommerce_last_synced_at).toLocaleString('nl-NL')}
+                  </span>
+                )}
+                {product.woocommerce_product_id && (
+                  <span className="ml-3">
+                    Product ID: <code className="bg-muted px-1 py-0.5 rounded text-xs">{product.woocommerce_product_id}</code>
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {/* Save button */}
+                {hasWooCommerceUnsavedChanges && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveWooCommerceSettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Opslaan
+                  </Button>
+                )}
+                
+                {/* Sync button for listed products */}
+                {isWooCommerceListed && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSyncWooCommerce}
+                    disabled={isSyncingWooCommerce}
+                  >
+                    {isSyncingWooCommerce ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Synchroniseren
+                  </Button>
+                )}
+                
+                {/* Publish button for non-listed products */}
+                {!isWooCommerceListed && !isWooCommercePending && (
+                  <Button
+                    onClick={handlePublishToWooCommerce}
+                    disabled={isPublishingWooCommerce}
+                  >
+                    {isPublishingWooCommerce ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                    )}
+                    Publiceer naar WooCommerce
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        )}
+
+        {!hasWooCommerceConnection && (
+          <CardContent>
+            <div className="text-center py-6">
+              <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground mb-4">
+                Verbind eerst je WooCommerce webshop om producten te kunnen publiceren
               </p>
               <Button variant="outline" asChild>
                 <a href="/admin/connect">Naar Connect</a>
