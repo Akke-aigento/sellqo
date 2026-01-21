@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -140,9 +140,12 @@ export function AdminSidebar() {
     <>
       <Sidebar>
         <SidebarHeader className="border-b">
-          <div className="px-4 py-3 flex items-center justify-center">
+          <Link 
+            to="/admin" 
+            className="px-4 py-3 flex items-center justify-center hover:opacity-80 transition-opacity"
+          >
             <SellqoLogo variant="full" width={140} className="h-auto" />
-          </div>
+          </Link>
 
           {(isPlatformAdmin || tenants.length > 1) && (
             <div className="px-2 pb-2">

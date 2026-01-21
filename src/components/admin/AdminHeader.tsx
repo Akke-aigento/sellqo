@@ -1,19 +1,44 @@
-import { Menu } from 'lucide-react';
+import { Menu, ArrowLeft } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTenant } from '@/hooks/useTenant';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/admin/NotificationCenter';
+import { SellqoLogo } from '@/components/SellqoLogo';
+import { Button } from '@/components/ui/button';
 
 export function AdminHeader() {
   const { currentTenant } = useTenant();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const isOnDashboard = location.pathname === '/admin';
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4 lg:px-6">
       <SidebarTrigger className="lg:hidden">
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle menu</span>
       </SidebarTrigger>
+
+      {/* Back button - only on mobile/tablet and not on dashboard */}
+      {!isOnDashboard && (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate(-1)}
+          className="lg:hidden h-8 w-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">Terug</span>
+        </Button>
+      )}
+
+      {/* Logo as home link - only on mobile/tablet */}
+      <Link to="/admin" className="lg:hidden hover:opacity-80 transition-opacity">
+        <SellqoLogo variant="icon" width={28} className="h-auto" />
+      </Link>
 
       <div className="flex-1">
         {currentTenant && (
