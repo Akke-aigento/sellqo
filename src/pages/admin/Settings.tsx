@@ -77,13 +77,20 @@ const settingsGroups: SettingsGroup[] = [
     ],
   },
   {
-    id: 'integrations',
-    title: 'Betalingen & Notificaties',
-    description: 'Betalingsmethoden en meldingsvoorkeuren',
+    id: 'payments',
+    title: 'Betalingen',
+    description: 'Betalingsmethoden configureren',
     sections: [
       { id: 'payments', title: 'Betalingsmethoden', icon: CreditCard, component: PaymentSettings },
-      { id: 'notifications', title: 'Notificaties', icon: Bell, component: NotificationSettings },
+    ],
+  },
+  {
+    id: 'channels',
+    title: 'Koppelingen & Kanalen',
+    description: 'Social media, notificaties en externe koppelingen',
+    sections: [
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
+      { id: 'notifications', title: 'Notificaties', icon: Bell, component: NotificationSettings },
     ],
   },
 ];
