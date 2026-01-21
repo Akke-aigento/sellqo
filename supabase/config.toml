@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.sync-amazon-inventory]
 verify_jwt = false
+
+[functions.check-amazon-listing-status]
+verify_jwt = false

@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -15,9 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useMarketplaceListing, type OptimizedContent, type BolOfferData } from '@/hooks/useMarketplaceListing';
+import { useMarketplaceListing, type OptimizedContent, type BolOfferData, type AmazonOfferData } from '@/hooks/useMarketplaceListing';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { getEANValidationStatus } from '@/lib/eanValidation';
+import { getASINValidationStatus } from '@/lib/asinValidation';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/types/product';
 
@@ -44,6 +46,19 @@ const BOL_CONDITIONS = [
   { value: 'MODERATE', label: 'Matig' },
 ];
 
+const AMAZON_CONDITIONS = [
+  { value: 'new', label: 'Nieuw' },
+  { value: 'used_like_new', label: 'Gebruikt - Als nieuw' },
+  { value: 'used_very_good', label: 'Gebruikt - Zeer goed' },
+  { value: 'used_good', label: 'Gebruikt - Goed' },
+  { value: 'used_acceptable', label: 'Gebruikt - Acceptabel' },
+];
+
+const AMAZON_FULFILLMENT = [
+  { value: 'MFN', label: 'Zelf verzenden (FBM)' },
+  { value: 'AFN', label: 'Door Amazon (FBA)' },
+];
+
 export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplaceTabProps) {
   const { getConnectionByType } = useMarketplaceConnections();
   const { 
@@ -55,11 +70,17 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     updateBolOffer,
     checkBolProcessStatus,
     isCheckingStatus,
+    createAmazonOffer,
+    updateAmazonOffer,
+    checkAmazonListingStatus,
+    isCheckingAmazonStatus,
   } = useMarketplaceListing();
   const { toast } = useToast();
 
   const bolConnection = getConnectionByType('bol_com');
   const hasBolConnection = !!bolConnection;
+  const amazonConnection = getConnectionByType('amazon');
+  const hasAmazonConnection = !!amazonConnection;
 
   // Bol.com state - initialized from product
   const [bolEnabled, setBolEnabled] = useState(product.bol_listing_status !== 'not_listed');
@@ -69,11 +90,22 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [bolOptimizedTitle, setBolOptimizedTitle] = useState(product.bol_optimized_title || '');
   const [bolBullets, setBolBullets] = useState<string[]>(product.bol_bullets || []);
   
+  // Amazon state - initialized from product
+  const [amazonEnabled, setAmazonEnabled] = useState(product.amazon_listing_status !== 'not_listed' && product.amazon_listing_status !== null);
+  const [amazonAsin, setAmazonAsin] = useState(product.amazon_asin || '');
+  const [amazonCondition, setAmazonCondition] = useState('new');
+  const [amazonFulfillment, setAmazonFulfillment] = useState<'MFN' | 'AFN'>('MFN');
+  const [amazonOptimizedTitle, setAmazonOptimizedTitle] = useState(product.amazon_optimized_title || '');
+  const [amazonOptimizedDescription, setAmazonOptimizedDescription] = useState(product.amazon_optimized_description || '');
+  const [amazonBullets, setAmazonBullets] = useState<string[]>(product.amazon_bullets || []);
+  
   // Track if settings have changed
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasAmazonUnsavedChanges, setHasAmazonUnsavedChanges] = useState(false);
 
-  // EAN validation
+  // Validations
   const eanValidation = getEANValidationStatus(bolEan);
+  const asinValidation = getASINValidationStatus(amazonAsin);
 
   // Update local state when product changes
   useEffect(() => {
@@ -83,13 +115,28 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     setBolCondition(product.bol_condition || 'NEW');
     setBolOptimizedTitle(product.bol_optimized_title || '');
     setBolBullets(product.bol_bullets || []);
+    
+    // Amazon state
+    setAmazonEnabled(product.amazon_listing_status !== 'not_listed' && product.amazon_listing_status !== null);
+    setAmazonAsin(product.amazon_asin || '');
+    setAmazonOptimizedTitle(product.amazon_optimized_title || '');
+    setAmazonOptimizedDescription(product.amazon_optimized_description || '');
+    setAmazonBullets(product.amazon_bullets || []);
+    
     setHasUnsavedChanges(false);
+    setHasAmazonUnsavedChanges(false);
   }, [product]);
 
-  // Track changes
+  // Track Bol.com changes
   const handleFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
     setter(value);
     setHasUnsavedChanges(true);
+  }, []);
+
+  // Track Amazon changes
+  const handleAmazonFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    setHasAmazonUnsavedChanges(true);
   }, []);
 
   const handleSaveSettings = async () => {
@@ -105,6 +152,24 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
         },
       });
       setHasUnsavedChanges(false);
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleSaveAmazonSettings = async () => {
+    try {
+      await saveMarketplaceSettings.mutateAsync({
+        productId: product.id,
+        settings: {
+          amazon_asin: amazonAsin,
+          amazon_optimized_title: amazonOptimizedTitle,
+          amazon_optimized_description: amazonOptimizedDescription,
+          amazon_bullets: amazonBullets.filter(Boolean),
+        },
+      });
+      setHasAmazonUnsavedChanges(false);
       onRefresh?.();
     } catch (error) {
       // Error handled by mutation
@@ -214,9 +279,87 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     }
   };
 
+  // Amazon handlers
+  const handleOptimizeAmazon = async () => {
+    const content = await optimizeContent(product, 'amazon');
+    if (content) {
+      setAmazonOptimizedTitle(content.title);
+      setAmazonBullets(content.bullets);
+      setAmazonOptimizedDescription(content.description);
+      setHasAmazonUnsavedChanges(true);
+      
+      // Auto-save optimized content
+      saveOptimizedContent.mutate({
+        productId: product.id,
+        marketplace: 'amazon',
+        content,
+      });
+    }
+  };
+
+  const handlePublishToAmazon = async () => {
+    // Warn about zero stock
+    if ((product.stock ?? 0) === 0) {
+      toast({
+        title: 'Waarschuwing',
+        description: 'Je publiceert met 0 voorraad. Het product wordt direct als uitverkocht getoond.',
+        variant: 'default',
+      });
+    }
+
+    // Generate SKU from product SKU or id
+    const sku = product.sku || `SKU-${product.id.slice(0, 8)}`;
+
+    const offerData: AmazonOfferData = {
+      asin: amazonAsin || undefined,
+      sku,
+      price: product.price,
+      quantity: product.stock ?? 0,
+      condition: amazonCondition as AmazonOfferData['condition'],
+      fulfilment_channel: amazonFulfillment,
+      title: amazonOptimizedTitle || product.name,
+      bullets: amazonBullets.filter(Boolean),
+      description: amazonOptimizedDescription || product.description || undefined,
+    };
+
+    try {
+      await createAmazonOffer.mutateAsync({ product, offerData });
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleCheckAmazonStatus = async () => {
+    const result = await checkAmazonListingStatus(product);
+    if (result.success) {
+      onRefresh?.();
+    }
+  };
+
+  const handleSyncAmazon = async () => {
+    try {
+      await updateAmazonOffer.mutateAsync({
+        product,
+        updateType: 'all',
+        updateData: {
+          price: product.price,
+          quantity: product.stock ?? 0,
+        },
+      });
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
   const isListed = product.bol_listing_status === 'listed';
   const isPending = product.bol_listing_status === 'pending';
   const hasError = product.bol_listing_status === 'error';
+
+  const isAmazonListed = product.amazon_listing_status === 'listed';
+  const isAmazonPending = product.amazon_listing_status === 'pending';
+  const hasAmazonError = product.amazon_listing_status === 'error';
 
   return (
     <div className="space-y-6">
@@ -527,7 +670,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       </Card>
 
       {/* Amazon Section */}
-      <Card className={!getConnectionByType('amazon') ? 'opacity-60' : ''}>
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -537,18 +680,307 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div>
                 <CardTitle className="text-lg">Amazon</CardTitle>
                 <CardDescription>
-                  {getConnectionByType('amazon') ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasAmazonConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
                 </CardDescription>
               </div>
             </div>
-            {!getConnectionByType('amazon') ? (
-              <Badge variant="secondary">Niet verbonden</Badge>
-            ) : (
-              <Badge className="bg-green-500">Verbonden</Badge>
-            )}
+            <div className="flex items-center gap-3">
+              {getStatusBadge(product.amazon_listing_status)}
+              <Switch
+                checked={amazonEnabled}
+                onCheckedChange={(checked) => handleAmazonFieldChange(setAmazonEnabled, checked)}
+                disabled={!hasAmazonConnection}
+              />
+            </div>
           </div>
         </CardHeader>
-        {!getConnectionByType('amazon') && (
+
+        {amazonEnabled && hasAmazonConnection && (
+          <CardContent className="space-y-6">
+            {/* Unsaved changes alert */}
+            {hasAmazonUnsavedChanges && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <Button 
+                    size="sm" 
+                    onClick={handleSaveAmazonSettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1" />
+                    )}
+                    Opslaan
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error message if any */}
+            {hasAmazonError && product.amazon_listing_error && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>{product.amazon_listing_error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Pending status - show check button */}
+            {isAmazonPending && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je aanbieding wordt verwerkt door Amazon</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleCheckAmazonStatus}
+                    disabled={isCheckingAmazonStatus}
+                  >
+                    {isCheckingAmazonStatus ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                    )}
+                    Status controleren
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* ASIN & Settings */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="amazon-asin">ASIN (optioneel)</Label>
+                <div className="relative">
+                  <Input
+                    id="amazon-asin"
+                    value={amazonAsin}
+                    onChange={(e) => handleAmazonFieldChange(setAmazonAsin, e.target.value.toUpperCase())}
+                    placeholder="B0XXXXXXXXX"
+                    className={`pr-10 ${
+                      amazonAsin 
+                        ? asinValidation.isValid 
+                          ? 'border-green-500 focus-visible:ring-green-500' 
+                          : 'border-destructive focus-visible:ring-destructive'
+                        : ''
+                    }`}
+                    disabled={isAmazonListed}
+                    maxLength={10}
+                  />
+                  {amazonAsin && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {asinValidation.isValid ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                <p className={`text-xs ${amazonAsin && !asinValidation.isValid ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {amazonAsin ? asinValidation.message : 'Laat leeg voor nieuw product'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Conditie</Label>
+                <Select 
+                  value={amazonCondition} 
+                  onValueChange={(value) => handleAmazonFieldChange(setAmazonCondition, value)}
+                  disabled={isAmazonListed}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AMAZON_CONDITIONS.map((cond) => (
+                      <SelectItem key={cond.value} value={cond.value}>
+                        {cond.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Verzendmethode</Label>
+                <Select 
+                  value={amazonFulfillment} 
+                  onValueChange={(value) => handleAmazonFieldChange(setAmazonFulfillment, value as 'MFN' | 'AFN')}
+                  disabled={isAmazonListed}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AMAZON_FULFILLMENT.map((ful) => (
+                      <SelectItem key={ful.value} value={ful.value}>
+                        {ful.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* AI Optimization */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Laat AI je productcontent optimaliseren voor Amazon
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleOptimizeAmazon}
+                  disabled={isOptimizing}
+                >
+                  {isOptimizing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Optimaliseer met AI
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Geoptimaliseerde titel</Label>
+                  <Input
+                    value={amazonOptimizedTitle}
+                    onChange={(e) => handleAmazonFieldChange(setAmazonOptimizedTitle, e.target.value)}
+                    placeholder="AI-geoptimaliseerde titel voor Amazon"
+                    maxLength={200}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {amazonOptimizedTitle.length}/200 tekens
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Bullet points (max 5)</Label>
+                  {[0, 1, 2, 3, 4].map((index) => (
+                    <Input
+                      key={index}
+                      value={amazonBullets[index] || ''}
+                      onChange={(e) => {
+                        const newBullets = [...amazonBullets];
+                        newBullets[index] = e.target.value;
+                        handleAmazonFieldChange(setAmazonBullets, newBullets.filter((b, i) => b || i < index));
+                      }}
+                      placeholder={`Bullet point ${index + 1}`}
+                      maxLength={500}
+                    />
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Productomschrijving</Label>
+                  <Textarea
+                    value={amazonOptimizedDescription}
+                    onChange={(e) => handleAmazonFieldChange(setAmazonOptimizedDescription, e.target.value)}
+                    placeholder="Uitgebreide productomschrijving voor Amazon..."
+                    rows={4}
+                    maxLength={2000}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {amazonOptimizedDescription.length}/2000 tekens
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Actions */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {product.amazon_last_synced_at && (
+                  <span>
+                    Laatst gesynchroniseerd:{' '}
+                    {new Date(product.amazon_last_synced_at).toLocaleString('nl-NL')}
+                  </span>
+                )}
+                {product.amazon_asin && (
+                  <span className="ml-3">
+                    ASIN: <code className="bg-muted px-1 py-0.5 rounded text-xs">{product.amazon_asin}</code>
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {/* Save button */}
+                {hasAmazonUnsavedChanges && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveAmazonSettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Opslaan
+                  </Button>
+                )}
+                
+                {/* Sync button for listed products */}
+                {isAmazonListed && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSyncAmazon}
+                    disabled={updateAmazonOffer.isPending}
+                  >
+                    {updateAmazonOffer.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Synchroniseren
+                  </Button>
+                )}
+                
+                {/* Publish button for non-listed products */}
+                {!isAmazonListed && !isAmazonPending && (
+                  <Button
+                    onClick={handlePublishToAmazon}
+                    disabled={createAmazonOffer.isPending}
+                  >
+                    {createAmazonOffer.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                    )}
+                    Publiceer naar Amazon
+                  </Button>
+                )}
+
+                {/* Check status button for pending */}
+                {isAmazonPending && (
+                  <Button
+                    onClick={handleCheckAmazonStatus}
+                    disabled={isCheckingAmazonStatus}
+                  >
+                    {isCheckingAmazonStatus ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Status controleren
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        )}
+
+        {!hasAmazonConnection && (
           <CardContent>
             <div className="text-center py-6">
               <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
