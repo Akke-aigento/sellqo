@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Check, Star, Sparkles, Monitor, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 const plans = [
   {
@@ -107,6 +109,7 @@ const addons = [
 
 export function PricingSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const [isYearly, setIsYearly] = useState(false);
 
   return (
     <section id="pricing" className="py-20 md:py-28 bg-background">
@@ -114,16 +117,42 @@ export function PricingSection() {
         <div
           ref={ref}
           className={cn(
-            'text-center mb-16',
+            'text-center mb-12',
             isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
           )}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Transparante Prijzen, Schaalbaar Met Jouw Groei
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground mb-8">
             Begin gratis, upgrade wanneer je wilt. Geen verborgen kosten.
           </p>
+          
+          {/* Monthly/Yearly Toggle */}
+          <div className="flex items-center justify-center gap-4">
+            <span className={cn(
+              'text-sm font-medium transition-colors',
+              !isYearly ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              Maandelijks
+            </span>
+            <Switch
+              checked={isYearly}
+              onCheckedChange={setIsYearly}
+              className="data-[state=checked]:bg-accent"
+            />
+            <span className={cn(
+              'text-sm font-medium transition-colors',
+              isYearly ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              Jaarlijks
+            </span>
+            {isYearly && (
+              <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                Bespaar 2 maanden
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-16">
@@ -154,12 +183,23 @@ export function PricingSection() {
                   <Badge variant="secondary" className="mb-4">{plan.badge}</Badge>
                 )}
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-foreground">
-                    {plan.price === 0 ? 'Gratis' : `€${plan.price}`}
-                  </span>
-                  {plan.price > 0 && <span className="text-muted-foreground">/maand</span>}
+                  {isYearly && plan.yearlyPrice > 0 ? (
+                    <>
+                      <span className="text-4xl font-bold text-foreground">
+                        €{plan.yearlyPrice}
+                      </span>
+                      <span className="text-muted-foreground">/jaar</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-bold text-foreground">
+                        {plan.price === 0 ? 'Gratis' : `€${plan.price}`}
+                      </span>
+                      {plan.price > 0 && <span className="text-muted-foreground">/maand</span>}
+                    </>
+                  )}
                 </div>
-                {plan.yearlyPrice > 0 && (
+                {!isYearly && plan.yearlyPrice > 0 && (
                   <p className="text-sm text-muted-foreground">
                     €{plan.yearlyPrice} per jaar (bespaar 2 maanden)
                   </p>

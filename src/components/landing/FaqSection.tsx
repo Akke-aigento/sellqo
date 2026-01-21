@@ -88,6 +88,11 @@ export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const { ref, isIntersecting } = useIntersectionObserver();
 
+  // Split FAQs into two columns for desktop
+  const midPoint = Math.ceil(faqs.length / 2);
+  const leftColumnFaqs = faqs.slice(0, midPoint);
+  const rightColumnFaqs = faqs.slice(midPoint);
+
   return (
     <section id="faq" className="py-20 md:py-28 bg-secondary/20">
       <div className="container mx-auto px-4">
@@ -105,20 +110,39 @@ export function FaqSection() {
 
         <div
           className={cn(
-            'max-w-3xl mx-auto bg-card rounded-2xl border border-border shadow-sellqo p-6 md:p-8',
+            'max-w-6xl mx-auto grid md:grid-cols-2 gap-6',
             isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
           )}
           style={{ animationDelay: '0.2s' }}
         >
-          {faqs.map((faq, index) => (
-            <FaqItem
-              key={index}
-              question={faq.question}
-              answer={faq.answer}
-              isOpen={openIndex === index}
-              onToggle={() => setOpenIndex(openIndex === index ? null : index)}
-            />
-          ))}
+          {/* Left Column */}
+          <div className="bg-card rounded-2xl border border-border shadow-sellqo p-6 md:p-8">
+            {leftColumnFaqs.map((faq, index) => (
+              <FaqItem
+                key={index}
+                question={faq.question}
+                answer={faq.answer}
+                isOpen={openIndex === index}
+                onToggle={() => setOpenIndex(openIndex === index ? null : index)}
+              />
+            ))}
+          </div>
+          
+          {/* Right Column */}
+          <div className="bg-card rounded-2xl border border-border shadow-sellqo p-6 md:p-8">
+            {rightColumnFaqs.map((faq, index) => {
+              const actualIndex = index + midPoint;
+              return (
+                <FaqItem
+                  key={actualIndex}
+                  question={faq.question}
+                  answer={faq.answer}
+                  isOpen={openIndex === actualIndex}
+                  onToggle={() => setOpenIndex(openIndex === actualIndex ? null : actualIndex)}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
