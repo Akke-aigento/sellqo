@@ -1,11 +1,14 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
+import { ShoppingCart, Menu, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
-import { useState } from 'react';
+import { usePublicReviews } from '@/hooks/useReviewsHub';
+import { ReviewsFloatingWidget } from '@/components/storefront/reviews/ReviewsFloatingWidget';
+import { ReviewsTrustBar } from '@/components/storefront/reviews/ReviewsTrustBar';
+import { ReviewsStructuredData } from '@/components/storefront/reviews/ReviewsStructuredData';
+import type { ReviewPlatform } from '@/types/reviews-hub';
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -14,8 +17,12 @@ interface ShopLayoutProps {
 export function ShopLayout({ children }: ShopLayoutProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { tenant, themeSettings, navPages, categories, isLoading, error } = usePublicStorefront(tenantSlug || '');
+  const { aggregate, reviews, connections } = usePublicReviews(tenant?.id);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  
+  // Extract enabled platforms from connections
+  const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
 
   // Apply theme colors as CSS variables
   useEffect(() => {
@@ -217,11 +224,44 @@ export function ShopLayout({ children }: ShopLayoutProps) {
             )}
           </div>
 
+          {/* Trust Bar in Footer */}
+          {(themeSettings as any)?.reviews_hub_enabled && 
+           (themeSettings as any)?.reviews_trust_bar_enabled && 
+           aggregate && aggregate.total_reviews > 0 && (
+            <div className="mt-8 pt-8 border-t flex justify-center">
+              <ReviewsTrustBar 
+                averageRating={aggregate.average_rating}
+                totalReviews={aggregate.total_reviews}
+                platforms={enabledPlatforms}
+                variant="light"
+              />
+            </div>
+          )}
+
           <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} {tenant.name}. Alle rechten voorbehouden.</p>
           </div>
         </div>
       </footer>
+
+      {/* Floating Reviews Widget */}
+      {(themeSettings as any)?.reviews_hub_enabled && 
+       (themeSettings as any)?.reviews_widget_position === 'floating' && 
+       aggregate && aggregate.total_reviews > 0 && (
+        <ReviewsFloatingWidget 
+          averageRating={aggregate.average_rating}
+          totalReviews={aggregate.total_reviews}
+          reviews={reviews || []}
+          platforms={enabledPlatforms}
+          position={(themeSettings as any)?.reviews_floating_position || 'bottom-right'}
+          style={(themeSettings as any)?.reviews_floating_style || 'badge'}
+        />
+      )}
+
+      {/* Reviews Schema.org Structured Data */}
+      {(themeSettings as any)?.reviews_hub_enabled && aggregate && aggregate.total_reviews > 0 && (
+        <ReviewsStructuredData aggregate={aggregate} businessName={tenant.name} />
+      )}
 
       {/* Custom CSS */}
       {themeSettings?.custom_css && (

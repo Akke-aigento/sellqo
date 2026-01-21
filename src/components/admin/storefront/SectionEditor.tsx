@@ -308,6 +308,67 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
         );
       }
 
+      case 'external_reviews': {
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Weergave stijl</Label>
+              <Select
+                value={(formData.content as any).display_style || 'carousel'}
+                onValueChange={(value) => handleContentChange('display_style', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="carousel">Carousel</SelectItem>
+                  <SelectItem value="grid">Grid</SelectItem>
+                  <SelectItem value="list">Lijst</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Maximum aantal reviews</Label>
+              <Select
+                value={String((formData.content as any).max_reviews || 6)}
+                onValueChange={(value) => handleContentChange('max_reviews', parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3 reviews</SelectItem>
+                  <SelectItem value="6">6 reviews</SelectItem>
+                  <SelectItem value="9">9 reviews</SelectItem>
+                  <SelectItem value="12">12 reviews</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Alleen uitgelichte reviews</Label>
+              <Switch
+                checked={(formData.content as any).featured_only === true}
+                onCheckedChange={(checked) => handleContentChange('featured_only', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Toon platform badges</Label>
+              <Switch
+                checked={(formData.content as any).show_platform_badges !== false}
+                onCheckedChange={(checked) => handleContentChange('show_platform_badges', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Toon aggregate score</Label>
+              <Switch
+                checked={(formData.content as any).show_aggregate_score !== false}
+                onCheckedChange={(checked) => handleContentChange('show_aggregate_score', checked)}
+              />
+            </div>
+          </div>
+        );
+      }
+
       default:
         return (
           <p className="text-muted-foreground">
