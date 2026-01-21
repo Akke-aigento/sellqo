@@ -63,6 +63,13 @@ import SEODashboard from "./pages/admin/SEODashboard";
 import TranslationHub from "./pages/admin/TranslationHub";
 import StorefrontPage from "./pages/admin/Storefront";
 
+// Public Storefront Pages
+import ShopHome from "./pages/storefront/ShopHome";
+import ShopProducts from "./pages/storefront/ShopProducts";
+import ShopProductDetail from "./pages/storefront/ShopProductDetail";
+import ShopPage from "./pages/storefront/ShopPage";
+import ShopCart from "./pages/storefront/ShopCart";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -85,6 +92,13 @@ const App = () => (
             
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
+            
+            {/* Public Storefront routes */}
+            <Route path="/shop/:tenantSlug" element={<ShopHome />} />
+            <Route path="/shop/:tenantSlug/products" element={<ShopProducts />} />
+            <Route path="/shop/:tenantSlug/product/:productSlug" element={<ShopProductDetail />} />
+            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<ShopPage />} />
+            <Route path="/shop/:tenantSlug/cart" element={<ShopCart />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={
