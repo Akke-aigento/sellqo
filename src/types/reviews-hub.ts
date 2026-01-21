@@ -157,6 +157,16 @@ export const REVIEW_PLATFORMS: PlatformInfo[] = [
   },
 ];
 
+// Quick lookup object for platform info
+export const PLATFORM_INFO: Record<ReviewPlatform, { name: string; logo: string; color: string; url: string }> = {
+  google: { name: 'Google', logo: 'https://www.google.com/favicon.ico', color: '#4285F4', url: 'https://google.com' },
+  trustpilot: { name: 'Trustpilot', logo: 'https://cdn.trustpilot.net/brand-assets/4.1.0/logo-black.svg', color: '#00B67A', url: 'https://trustpilot.com' },
+  kiyoh: { name: 'Kiyoh', logo: 'https://www.kiyoh.com/favicon.ico', color: '#FF6B00', url: 'https://kiyoh.com' },
+  webwinkelkeur: { name: 'WebwinkelKeur', logo: 'https://www.webwinkelkeur.nl/favicon.ico', color: '#1E88E5', url: 'https://webwinkelkeur.nl' },
+  trusted_shops: { name: 'Trusted Shops', logo: 'https://www.trustedshops.com/favicon.ico', color: '#FFDC0F', url: 'https://trustedshops.com' },
+  facebook: { name: 'Facebook', logo: 'https://www.facebook.com/favicon.ico', color: '#1877F2', url: 'https://facebook.com' },
+};
+
 export const getPlatformInfo = (platform: ReviewPlatform): PlatformInfo => {
   return REVIEW_PLATFORMS.find(p => p.id === platform) || REVIEW_PLATFORMS[0];
 };

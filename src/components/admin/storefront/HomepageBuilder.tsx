@@ -51,6 +51,7 @@ const sectionIcons: Record<HomepageSectionType, React.ReactNode> = {
   testimonials: <MessageSquare className="h-4 w-4" />,
   video: <Play className="h-4 w-4" />,
   announcement: <MessageSquare className="h-4 w-4" />,
+  external_reviews: <Star className="h-4 w-4" />,
 };
 
 interface SortableSectionProps {
