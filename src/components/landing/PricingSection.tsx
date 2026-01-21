@@ -155,12 +155,12 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-16 items-stretch">
           {plans.map((plan, index) => (
             <div
               key={index}
               className={cn(
-                'relative p-6 md:p-8 rounded-2xl border transition-all duration-300',
+                'relative p-6 md:p-8 rounded-2xl border transition-all duration-300 flex flex-col',
                 plan.highlighted
                   ? 'bg-card border-accent shadow-lg scale-105 z-10'
                   : 'bg-card border-border shadow-sellqo hover:shadow-sellqo-lg hover:-translate-y-1',
@@ -206,40 +206,46 @@ export function PricingSection() {
                 )}
               </div>
 
-              <ul className="space-y-3 mb-6">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                    <span className="text-foreground">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {plan.limitations && (
-                <ul className="space-y-2 mb-6 pt-4 border-t border-border">
-                  {plan.limitations.map((limitation, i) => (
-                    <li key={i} className="text-sm text-muted-foreground">
-                      {limitation}
+              {/* Features list with flex-grow to push button to bottom */}
+              <div className="flex-grow">
+                <ul className="space-y-3 mb-6">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                      <span className="text-foreground">{feature}</span>
                     </li>
                   ))}
                 </ul>
-              )}
 
-              <Button
-                asChild
-                className={cn(
-                  'w-full',
-                  plan.highlighted
-                    ? 'bg-accent hover:bg-accent/90 text-accent-foreground'
-                    : ''
+                {plan.limitations && (
+                  <ul className="space-y-2 mb-6 pt-4 border-t border-border">
+                    {plan.limitations.map((limitation, i) => (
+                      <li key={i} className="text-sm text-muted-foreground">
+                        {limitation}
+                      </li>
+                    ))}
+                  </ul>
                 )}
-                variant={plan.highlighted ? 'default' : 'outline'}
-                size="lg"
-              >
-                <Link to={plan.name === 'Enterprise' ? '/contact' : '/auth?mode=register'}>
-                  {plan.cta}
-                </Link>
-              </Button>
+              </div>
+
+              {/* Button always at bottom */}
+              <div className="mt-auto pt-4">
+                <Button
+                  asChild
+                  className={cn(
+                    'w-full',
+                    plan.highlighted
+                      ? 'bg-accent hover:bg-accent/90 text-accent-foreground'
+                      : ''
+                  )}
+                  variant={plan.highlighted ? 'default' : 'outline'}
+                  size="lg"
+                >
+                  <Link to={plan.name === 'Enterprise' ? '/contact' : '/auth?mode=register'}>
+                    {plan.cta}
+                  </Link>
+                </Button>
+              </div>
             </div>
           ))}
         </div>
