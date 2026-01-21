@@ -140,7 +140,7 @@ export function AdminSidebar() {
     <>
       <Sidebar>
         <SidebarHeader className="border-b">
-          <div className="px-4 pt-6 pb-4">
+          <div className="px-4 py-2 flex items-center justify-start">
             <SellqoLogo variant="full" width={140} className="h-auto" />
           </div>
 
