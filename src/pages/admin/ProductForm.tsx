@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -117,6 +118,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEditing = !!id;
   
   const { currentTenant } = useTenant();
@@ -1683,7 +1685,10 @@ export default function ProductForm() {
             {/* Marketplaces Tab */}
             <TabsContent value="marketplaces">
               {isEditing && product ? (
-                <ProductMarketplaceTab product={product} onRefresh={() => {}} />
+                <ProductMarketplaceTab 
+                  product={product} 
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ['product', id] })} 
+                />
               ) : (
                 <Card>
                   <CardContent className="py-12 text-center">

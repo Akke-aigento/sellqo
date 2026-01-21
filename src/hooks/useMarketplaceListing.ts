@@ -24,12 +24,21 @@ export interface BolOfferData {
   title?: string;
 }
 
+export interface MarketplaceSettings {
+  bol_ean?: string;
+  bol_delivery_code?: string;
+  bol_condition?: string;
+  bol_optimized_title?: string;
+  bol_bullets?: string[];
+}
+
 export function useMarketplaceListing() {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getConnectionByType } = useMarketplaceConnections();
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon'): Promise<OptimizedContent | null> => {
     if (!currentTenant) return null;
@@ -100,10 +109,44 @@ export function useMarketplaceListing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
       toast({ title: 'Content opgeslagen' });
     },
     onError: (error: Error) => {
       toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Save marketplace settings (EAN, delivery code, condition, etc.)
+  const saveMarketplaceSettings = useMutation({
+    mutationFn: async ({
+      productId,
+      settings,
+    }: {
+      productId: string;
+      settings: MarketplaceSettings;
+    }) => {
+      const { error } = await supabase
+        .from('products')
+        .update(settings)
+        .eq('id', productId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      toast({
+        title: 'Instellingen opgeslagen',
+        description: 'Marketplace instellingen zijn bijgewerkt',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Opslaan mislukt',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -120,6 +163,21 @@ export function useMarketplaceListing() {
       const connection = getConnectionByType('bol_com');
       if (!connection) throw new Error('Geen Bol.com connectie gevonden');
 
+      // Validate EAN
+      if (!offerData.ean || offerData.ean.length < 8) {
+        throw new Error('Vul een geldige EAN code in (minimaal 8 cijfers)');
+      }
+
+      // Validate stock
+      if (offerData.stock < 0) {
+        throw new Error('Voorraad kan niet negatief zijn');
+      }
+
+      // Validate price
+      if (offerData.price <= 0) {
+        throw new Error('Prijs moet groter dan 0 zijn');
+      }
+
       const { data, error } = await supabase.functions.invoke('create-bol-offer', {
         body: {
           product_id: product.id,
@@ -130,13 +188,16 @@ export function useMarketplaceListing() {
       });
 
       if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Bol.com API fout');
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
       toast({ 
-        title: 'Aanbod aangemaakt', 
-        description: 'Het product wordt verwerkt door Bol.com' 
+        title: 'Publicatie gestart', 
+        description: 'Je product wordt naar Bol.com verzonden. Controleer de status over enkele minuten.' 
       });
     },
     onError: (error: Error) => {
@@ -160,6 +221,7 @@ export function useMarketplaceListing() {
         price?: number;
         stock?: number;
         delivery_code?: string;
+        on_hold?: boolean;
       };
     }) => {
       if (!currentTenant) throw new Error('Geen tenant geselecteerd');
@@ -180,26 +242,128 @@ export function useMarketplaceListing() {
       });
 
       if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Bol.com update fout');
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({ title: 'Aanbod bijgewerkt' });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      toast({ title: 'Synchronisatie gestart', description: 'Je wijzigingen worden naar Bol.com verzonden' });
     },
     onError: (error: Error) => {
       toast({ 
-        title: 'Update mislukt', 
+        title: 'Synchronisatie mislukt', 
         description: error.message, 
         variant: 'destructive' 
       });
     },
   });
 
+  // Check Bol.com process status
+  const checkBolProcessStatus = async (product: Product): Promise<{
+    success: boolean;
+    status?: string;
+    listing_status?: string;
+    offer_id?: string;
+    error_message?: string;
+  }> => {
+    if (!currentTenant) {
+      toast({
+        title: 'Fout',
+        description: 'Geen tenant gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    const connection = getConnectionByType('bol_com');
+    if (!connection) {
+      toast({
+        title: 'Fout',
+        description: 'Geen Bol.com verbinding gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    // The bol_offer_id initially contains the process status ID
+    if (!product.bol_offer_id) {
+      toast({
+        title: 'Fout',
+        description: 'Geen process status ID gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    setIsCheckingStatus(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-bol-process-status', {
+        body: {
+          product_id: product.id,
+          tenant_id: currentTenant.id,
+          connection_id: connection.id,
+          process_status_id: product.bol_offer_id,
+        },
+      });
+
+      if (error) throw error;
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+
+      if (data.success) {
+        if (data.listing_status === 'listed') {
+          toast({
+            title: 'Product gepubliceerd!',
+            description: 'Je product is succesvol gepubliceerd op Bol.com',
+          });
+        } else if (data.listing_status === 'error') {
+          toast({
+            title: 'Publicatie mislukt',
+            description: data.error_message || 'Er is een fout opgetreden bij Bol.com',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Nog in verwerking',
+            description: 'Bol.com verwerkt je aanbieding nog. Probeer het later opnieuw.',
+          });
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Check process status error:', error);
+      toast({
+        title: 'Status controle mislukt',
+        description: error instanceof Error ? error.message : 'Kon de status niet ophalen',
+        variant: 'destructive',
+      });
+      return { success: false };
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
   return {
+    // AI Optimization
     optimizeContent,
     isOptimizing,
     saveOptimizedContent,
+    
+    // Settings
+    saveMarketplaceSettings,
+    
+    // Bol.com offers
     createBolOffer,
     updateBolOffer,
+    
+    // Status checking
+    checkBolProcessStatus,
+    isCheckingStatus,
   };
 }

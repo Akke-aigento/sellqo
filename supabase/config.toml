@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.pos-refund-payment]
 verify_jwt = false
+
+[functions.check-bol-process-status]
+verify_jwt = false
