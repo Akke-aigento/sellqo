@@ -1,4 +1,4 @@
-export type MarketplaceType = 'bol_com' | 'amazon' | 'shopify' | 'woocommerce';
+export type MarketplaceType = 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo';
 
 export interface MarketplaceConnection {
   id: string;
@@ -28,6 +28,11 @@ export interface MarketplaceCredentials {
   siteUrl?: string;
   consumerKey?: string;
   consumerSecret?: string;
+  // Odoo-specific
+  odooUrl?: string;
+  odooDatabase?: string;
+  odooUsername?: string;
+  odooApiKey?: string;
 }
 
 export interface MarketplaceSettings {
@@ -41,6 +46,12 @@ export interface MarketplaceSettings {
   emailNotifyLowStock?: boolean;
   importHistorical?: boolean;
   historicalPeriodDays?: number; // 30, 90, 180, 365, or 730 for "all"
+  // Odoo-specific settings
+  odooSyncInvoices?: boolean;
+  odooSyncCustomers?: boolean;
+  odooDefaultJournalId?: string;
+  odooDefaultTaxId?: string;
+  odooAutoConfirmInvoices?: boolean;
 }
 
 export interface MarketplaceStats {
@@ -143,6 +154,22 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
       { text: 'Automatische order import', available: true },
       { text: 'Realtime voorraad sync', available: true },
       { text: 'Bi-directionele product sync', available: true },
+      { text: 'AI Product listing', available: true },
+    ],
+  },
+  odoo: {
+    type: 'odoo',
+    name: 'Odoo',
+    icon: 'Building2',
+    color: 'text-violet-600',
+    bgColor: 'bg-violet-100',
+    description: 'Complete integratie met Odoo ERP: webshop én boekhouding',
+    features: [
+      { text: 'Automatische order import', available: true },
+      { text: 'Realtime voorraad sync', available: true },
+      { text: 'Factuur export naar Odoo Accounting', available: true },
+      { text: 'Klant synchronisatie (res.partner)', available: true },
+      { text: 'BTW mapping', available: true },
       { text: 'AI Product listing', available: true },
     ],
   },

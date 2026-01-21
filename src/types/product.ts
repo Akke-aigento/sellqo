@@ -101,6 +101,14 @@ export interface Product {
   woocommerce_optimized_title?: string | null;
   woocommerce_optimized_description?: string | null;
   woocommerce_last_synced_at?: string | null;
+  // Odoo listing fields
+  odoo_product_id?: string | null;
+  odoo_variant_id?: string | null;
+  odoo_listing_status?: string | null;
+  odoo_listing_error?: string | null;
+  odoo_optimized_title?: string | null;
+  odoo_optimized_description?: string | null;
+  odoo_last_synced_at?: string | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)
