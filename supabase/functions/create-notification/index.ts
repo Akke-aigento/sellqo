@@ -78,22 +78,26 @@ serve(async (req: Request): Promise<Response> => {
     const shouldSendEmail = settings?.email_enabled ?? (priority === 'urgent' || priority === 'high');
 
     if (shouldSendEmail && resendApiKey) {
-      // Get tenant info for email
+      // Get tenant info for email including branding
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('name, email')
+        .select('name, owner_email, logo_url, primary_color')
         .eq('id', notification.tenant_id)
         .single();
 
-      if (tenant?.email) {
+      const tenantEmail = tenant?.owner_email;
+      if (tenantEmail) {
         const resend = new Resend(resendApiKey);
 
-        const recipients = [tenant.email];
+        const recipients = [tenantEmail];
         if (settings?.email_recipients?.length) {
           recipients.push(...settings.email_recipients);
         }
 
         const emailSubject = `${prioritySubjects[priority]}${notification.title}`;
+        const primaryColor = tenant?.primary_color || '#18181b';
+        const tenantName = tenant?.name || 'Sellqo';
+        const logoUrl = tenant?.logo_url;
 
         const htmlContent = `
           <!DOCTYPE html>
@@ -106,7 +110,15 @@ serve(async (req: Request): Promise<Response> => {
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 20px;">
               <tr>
                 <td>
-                  <div style="background-color: white; border-radius: 8px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <!-- Header with logo/branding -->
+                  <div style="background-color: ${primaryColor}; border-radius: 8px 8px 0 0; padding: 24px; text-align: center;">
+                    ${logoUrl 
+                      ? `<img src="${logoUrl}" alt="${tenantName}" style="max-height: 48px; max-width: 200px;">`
+                      : `<span style="color: white; font-size: 24px; font-weight: 600;">${tenantName}</span>`
+                    }
+                  </div>
+                  
+                  <div style="background-color: white; border-radius: 0 0 8px 8px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                     ${priority === 'urgent' ? '<div style="background-color: #fee2e2; color: #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; font-weight: 500;">⚠️ Dit is een urgente melding die directe aandacht vereist</div>' : ''}
                     ${priority === 'high' ? '<div style="background-color: #ffedd5; color: #ea580c; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; font-weight: 500;">Deze melding heeft hoge prioriteit</div>' : ''}
                     
@@ -119,7 +131,7 @@ serve(async (req: Request): Promise<Response> => {
                     </p>
                     
                     ${notification.action_url ? `
-                      <a href="${notification.action_url}" style="display: inline-block; background-color: #18181b; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+                      <a href="${notification.action_url}" style="display: inline-block; background-color: ${primaryColor}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
                         Bekijk details →
                       </a>
                     ` : ''}
@@ -129,7 +141,8 @@ serve(async (req: Request): Promise<Response> => {
                     <p style="color: #a1a1aa; font-size: 12px; margin: 0;">
                       Je ontvangt deze email omdat je notificaties hebt ingeschakeld voor ${notification.category}.
                       <br>
-                      <a href="#" style="color: #a1a1aa;">Notificatie voorkeuren aanpassen</a>
+                      Met vriendelijke groet,<br>
+                      <strong>${tenantName}</strong>
                     </p>
                   </div>
                 </td>

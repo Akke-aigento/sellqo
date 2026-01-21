@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Building2, Upload, Save, Landmark, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Building2, Upload, Save, Landmark, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -46,9 +47,45 @@ const EU_COUNTRIES = [
 export function BusinessSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
+  const { uploadImage, uploading } = useImageUpload();
   const { isCompliant, errorCount } = useInvoiceCompliance();
   const [isSaving, setIsSaving] = useState(false);
   const [ibanError, setIbanError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentTenant) return;
+
+    const url = await uploadImage(file, 'tenant-logos', `${currentTenant.id}/logo`);
+    
+    if (url) {
+      // Update tenant with new logo URL
+      const { error } = await supabase
+        .from('tenants')
+        .update({ logo_url: url })
+        .eq('id', currentTenant.id);
+
+      if (error) {
+        toast({
+          title: 'Fout bij opslaan logo',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        await refreshTenants();
+        toast({
+          title: 'Logo geüpload',
+          description: 'Je bedrijfslogo is succesvol bijgewerkt.',
+        });
+      }
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -186,11 +223,27 @@ export function BusinessSettings() {
           <div>
             <p className="font-medium">Winkellogo</p>
             <p className="text-sm text-muted-foreground mb-2">
-              Aanbevolen: 200x200px, PNG of JPG
+              Aanbevolen: 200x200px, PNG of JPG. Dit logo verschijnt op alle e-mails naar klanten.
             </p>
-            <Button variant="outline" size="sm" disabled>
-              <Upload className="h-4 w-4 mr-2" />
-              Logo uploaden
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleLogoUpload}
+              className="hidden"
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-2" />
+              )}
+              {uploading ? 'Uploaden...' : 'Logo uploaden'}
             </Button>
           </div>
         </div>
