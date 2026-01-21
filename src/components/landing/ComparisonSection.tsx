@@ -2,20 +2,28 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Check, X } from 'lucide-react';
 
-const comparisonData = [
+type CellValueType = boolean | string | 'partial';
+
+const comparisonData: Array<{
+  feature: string;
+  sellqo: CellValueType;
+  shopify: CellValueType;
+  lightspeed: CellValueType;
+  custom: CellValueType;
+}> = [
   { feature: 'Setup tijd', sellqo: '5 minuten', shopify: '1-2 uur', lightspeed: '2-4 uur', custom: 'Weken' },
   { feature: 'Maandelijkse kosten', sellqo: 'Vanaf €29', shopify: 'Vanaf €36', lightspeed: 'Vanaf €59', custom: 'Variabel' },
   { feature: 'Transactiekosten', sellqo: true, shopify: false, lightspeed: false, custom: true },
-  { feature: 'Multi-channel management', sellqo: true, shopify: false, lightspeed: true, custom: false },
-  { feature: 'Voorraadsync', sellqo: true, shopify: false, lightspeed: true, custom: false },
+  { feature: 'Multi-channel management', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { feature: 'Voorraadsync', sellqo: true, shopify: 'partial', lightspeed: true, custom: false },
   { feature: 'AI Marketing Tools', sellqo: true, shopify: false, lightspeed: false, custom: false },
   { feature: 'Ingebouwde Webshop Builder', sellqo: true, shopify: true, lightspeed: false, custom: true },
   { feature: 'POS Kassasysteem', sellqo: true, shopify: true, lightspeed: true, custom: false },
-  { feature: 'Loyaliteitsprogramma', sellqo: true, shopify: false, lightspeed: true, custom: false },
-  { feature: 'Cadeaubonnen systeem', sellqo: true, shopify: true, lightspeed: true, custom: false },
-  { feature: 'BTW/OSS compliance', sellqo: true, shopify: false, lightspeed: true, custom: false },
-  { feature: 'Peppol e-invoicing', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'Nederlandse support', sellqo: true, shopify: false, lightspeed: true, custom: false },
+  { feature: 'Loyaliteitsprogramma', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { feature: 'Cadeaubonnen systeem', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { feature: 'BTW/OSS compliance', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { feature: 'Peppol e-invoicing', sellqo: true, shopify: false, lightspeed: false, custom: 'partial' },
+  { feature: 'Nederlandse support', sellqo: true, shopify: false, lightspeed: true, custom: 'partial' },
   { feature: 'Gratis migratie', sellqo: true, shopify: false, lightspeed: false, custom: false },
 ];
 
@@ -26,7 +34,15 @@ const platforms = [
   { key: 'custom', name: 'Custom', highlight: false },
 ];
 
-function CellValue({ value }: { value: boolean | string }) {
+function CellValue({ value }: { value: CellValueType }) {
+  if (value === 'partial') {
+    return (
+      <div className="flex flex-col items-center">
+        <Check className="w-5 h-5 text-amber-500" />
+        <span className="text-xs text-amber-600">(via app)</span>
+      </div>
+    );
+  }
   if (typeof value === 'boolean') {
     return value ? (
       <Check className="w-5 h-5 text-green-500 mx-auto" />
@@ -101,6 +117,28 @@ export function ComparisonSection() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Legend */}
+        <div
+          className={cn(
+            'flex flex-wrap justify-center gap-6 mt-6 text-sm',
+            isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
+          )}
+          style={{ animationDelay: '0.3s' }}
+        >
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-green-500" />
+            <span className="text-muted-foreground">Inbegrepen</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-amber-500" />
+            <span className="text-muted-foreground">Via betaalde app</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <X className="w-4 h-4 text-red-400" />
+            <span className="text-muted-foreground">Niet beschikbaar</span>
+          </div>
         </div>
       </div>
     </section>

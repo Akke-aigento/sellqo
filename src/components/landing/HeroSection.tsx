@@ -26,12 +26,12 @@ export function HeroSection() {
 
   return (
     <section className="relative pt-24 md:pt-32 pb-16 md:pb-24 overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/30 -z-10" />
+      {/* Background gradient - enhanced navy to lighter blue */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10 -z-10" />
       
-      {/* Abstract shapes */}
-      <div className="absolute top-20 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -z-10" />
+      {/* Abstract shapes - stronger */}
+      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10" />
 
       <div className="container mx-auto px-4">
         <div
@@ -43,13 +43,13 @@ export function HeroSection() {
         >
           {/* Left column - Text content */}
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6">
               <span className="gradient-text">Jouw Online Imperium,</span>
               <br />
               <span className="text-foreground">Volledig Onder Controle</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0">
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Het complete e-commerce platform dat verkopen, voorraad, financiën en groei samenbrengt. 
               Speciaal gebouwd voor ondernemers in België en Nederland.
             </p>
@@ -59,7 +59,7 @@ export function HeroSection() {
               <Button
                 size="lg"
                 asChild
-                className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-4 px-8 h-auto min-h-[44px] shadow-lg hover:shadow-xl hover:brightness-110 transition-all rounded-lg"
               >
                 <Link to="/auth?mode=register" className="flex items-center gap-2">
                   Start 14 Dagen Gratis
@@ -70,7 +70,7 @@ export function HeroSection() {
                 size="lg"
                 variant="outline"
                 onClick={handleDemoScroll}
-                className="text-lg px-8 py-6"
+                className="text-lg py-4 px-8 h-auto min-h-[44px] border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all rounded-lg"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Bekijk Live Demo
