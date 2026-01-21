@@ -95,7 +95,7 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
       { text: 'Automatische order import', available: true },
       { text: 'Realtime voorraad sync', available: true },
       { text: 'Track & Trace updates', available: true },
-      { text: 'Product listing', available: false },
+      { text: 'AI Product listing', available: true },
     ],
   },
   amazon: {

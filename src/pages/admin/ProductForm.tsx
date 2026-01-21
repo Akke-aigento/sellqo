@@ -28,6 +28,7 @@ import {
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
@@ -419,7 +420,7 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="type" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="type">Type</TabsTrigger>
               <TabsTrigger value="basic">Basis</TabsTrigger>
               <TabsTrigger value="pricing">Prijzen</TabsTrigger>
@@ -427,6 +428,7 @@ export default function ProductForm() {
               <TabsTrigger value="images">Afbeeldingen</TabsTrigger>
               {isDigital && <TabsTrigger value="digital">Bestanden</TabsTrigger>}
               {isGiftCard && <TabsTrigger value="giftcard">Cadeaukaart</TabsTrigger>}
+              <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
             </TabsList>
 
@@ -1676,6 +1678,21 @@ export default function ProductForm() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Marketplaces Tab */}
+            <TabsContent value="marketplaces">
+              {isEditing && product ? (
+                <ProductMarketplaceTab product={product} onRefresh={() => {}} />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">
+                      Sla het product eerst op om marketplace instellingen te configureren
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </form>

@@ -69,5 +69,14 @@ verify_jwt = false
 [functions.ai-product-promo-kit]
 verify_jwt = false
 
+[functions.ai-optimize-marketplace-content]
+verify_jwt = false
+
+[functions.create-bol-offer]
+verify_jwt = false
+
+[functions.update-bol-offer]
+verify_jwt = false
+
 [functions.pos-refund-payment]
 verify_jwt = false

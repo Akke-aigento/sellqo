@@ -3587,6 +3587,75 @@ export type Database = {
           },
         ]
       }
+      marketplace_listing_queue: {
+        Row: {
+          action: string
+          ai_optimized_content: Json | null
+          attempts: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          marketplace_type: string
+          max_attempts: number | null
+          payload: Json | null
+          processed_at: string | null
+          product_id: string
+          scheduled_for: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          action: string
+          ai_optimized_content?: Json | null
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          marketplace_type: string
+          max_attempts?: number | null
+          payload?: Json | null
+          processed_at?: string | null
+          product_id: string
+          scheduled_for?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          action?: string
+          ai_optimized_content?: Json | null
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          marketplace_type?: string
+          max_attempts?: number | null
+          payload?: Json | null
+          processed_at?: string | null
+          product_id?: string
+          scheduled_for?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_listing_queue_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_listing_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
