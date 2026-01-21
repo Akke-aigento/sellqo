@@ -3,13 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 
+type BucketName = 'product-images' | 'tenant-logos' | 'invoices' | 'ai-images';
+
 export function useImageUpload() {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImage = async (
+    file: File, 
+    bucket: BucketName = 'product-images',
+    customPath?: string
+  ): Promise<string | null> => {
     if (!currentTenant) {
       toast({ title: 'Fout', description: 'Geen winkel geselecteerd', variant: 'destructive' });
       return null;
@@ -41,19 +47,21 @@ export function useImageUpload() {
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${currentTenant.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = customPath 
+        ? `${customPath}.${fileExt}`
+        : `${currentTenant.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from(bucket)
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false,
+          upsert: true, // Allow overwriting for logos
         });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
+        .from(bucket)
         .getPublicUrl(fileName);
 
       setProgress(100);
