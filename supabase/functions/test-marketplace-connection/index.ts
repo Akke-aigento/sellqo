@@ -117,6 +117,70 @@ async function testAmazonConnection(credentials: AmazonCredentials): Promise<{ s
   }
 }
 
+// Shopify connection test
+interface ShopifyCredentials {
+  storeUrl: string
+  accessToken: string
+}
+
+function normalizeStoreUrl(url: string): string {
+  let normalized = url.trim().toLowerCase()
+  normalized = normalized.replace(/^https?:\/\//, '')
+  normalized = normalized.replace(/\/+$/, '')
+  if (!normalized.includes('.')) {
+    normalized = `${normalized}.myshopify.com`
+  }
+  return normalized
+}
+
+async function testShopifyConnection(credentials: ShopifyCredentials): Promise<{ success: boolean; error?: string; shopName?: string }> {
+  const { storeUrl, accessToken } = credentials
+
+  if (!storeUrl || !accessToken) {
+    return { success: false, error: 'Store URL en Access Token zijn verplicht' }
+  }
+
+  const normalizedUrl = normalizeStoreUrl(storeUrl)
+
+  try {
+    const apiUrl = `https://${normalizedUrl}/admin/api/2024-01/shop.json`
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Access Token is onjuist of verlopen' }
+      }
+      if (response.status === 403) {
+        return { success: false, error: 'Geen toegang. Controleer of de app de juiste permissies heeft.' }
+      }
+      if (response.status === 404) {
+        return { success: false, error: 'Store niet gevonden. Controleer de URL.' }
+      }
+      return { success: false, error: `Shopify API fout: ${response.status}` }
+    }
+
+    const shopData = await response.json()
+    return { 
+      success: true, 
+      shopName: shopData.shop?.name || normalizedUrl 
+    }
+
+  } catch (error) {
+    console.error('Shopify connection test error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Verbinding met Shopify mislukt' 
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -191,6 +255,26 @@ Deno.serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             message: `Verbinding met ${result.marketplaceName} succesvol!`,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } else {
+        return new Response(
+          JSON.stringify({ success: false, error: result.error }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // Shopify testing
+    if (marketplaceType === 'shopify') {
+      const result = await testShopifyConnection(credentials as ShopifyCredentials)
+      
+      if (result.success) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Verbinding met ${result.shopName} succesvol!`,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
