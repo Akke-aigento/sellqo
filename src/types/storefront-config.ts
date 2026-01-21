@@ -41,6 +41,14 @@ export interface NavigationConfig {
   mobile_bottom_nav: boolean;
 }
 
+// Multilingual Configuration
+export interface MultilingualConfig {
+  enabled: boolean;
+  languages: string[];
+  default_language: string;
+  language_selector_style: 'dropdown' | 'flags' | 'text';
+}
+
 // Conversion Features
 export interface ConversionConfig {
   show_stock_count: boolean;
@@ -57,6 +65,7 @@ export interface StorefrontConfig {
   trust: TrustConfig;
   navigation: NavigationConfig;
   conversion: ConversionConfig;
+  multilingual: MultilingualConfig;
 }
 
 // Default values
@@ -94,6 +103,13 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   header_sticky: true,
   search_display: 'visible',
   mobile_bottom_nav: false,
+};
+
+export const DEFAULT_MULTILINGUAL_CONFIG: MultilingualConfig = {
+  enabled: false,
+  languages: ['nl'],
+  default_language: 'nl',
+  language_selector_style: 'dropdown',
 };
 
 export const DEFAULT_CONVERSION_CONFIG: ConversionConfig = {

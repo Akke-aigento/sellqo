@@ -3470,6 +3470,95 @@ export type Database = {
           },
         ]
       }
+      legal_pages: {
+        Row: {
+          content_de: string | null
+          content_en: string | null
+          content_fr: string | null
+          content_nl: string | null
+          created_at: string | null
+          id: string
+          is_auto_generated: boolean | null
+          is_published: boolean | null
+          last_auto_generated_at: string | null
+          meta_description_de: string | null
+          meta_description_en: string | null
+          meta_description_fr: string | null
+          meta_description_nl: string | null
+          meta_title_de: string | null
+          meta_title_en: string | null
+          meta_title_fr: string | null
+          meta_title_nl: string | null
+          page_type: string
+          tenant_id: string
+          title_de: string | null
+          title_en: string | null
+          title_fr: string | null
+          title_nl: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_de?: string | null
+          content_en?: string | null
+          content_fr?: string | null
+          content_nl?: string | null
+          created_at?: string | null
+          id?: string
+          is_auto_generated?: boolean | null
+          is_published?: boolean | null
+          last_auto_generated_at?: string | null
+          meta_description_de?: string | null
+          meta_description_en?: string | null
+          meta_description_fr?: string | null
+          meta_description_nl?: string | null
+          meta_title_de?: string | null
+          meta_title_en?: string | null
+          meta_title_fr?: string | null
+          meta_title_nl?: string | null
+          page_type: string
+          tenant_id: string
+          title_de?: string | null
+          title_en?: string | null
+          title_fr?: string | null
+          title_nl?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_de?: string | null
+          content_en?: string | null
+          content_fr?: string | null
+          content_nl?: string | null
+          created_at?: string | null
+          id?: string
+          is_auto_generated?: boolean | null
+          is_published?: boolean | null
+          last_auto_generated_at?: string | null
+          meta_description_de?: string | null
+          meta_description_en?: string | null
+          meta_description_fr?: string | null
+          meta_description_nl?: string | null
+          meta_title_de?: string | null
+          meta_title_en?: string | null
+          meta_title_fr?: string | null
+          meta_title_nl?: string | null
+          page_type?: string
+          tenant_id?: string
+          title_de?: string | null
+          title_en?: string | null
+          title_fr?: string | null
+          title_nl?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_keys: {
         Row: {
           assigned_at: string | null
@@ -8194,6 +8283,10 @@ export type Database = {
           show_viewers_count: boolean | null
           show_wishlist: boolean | null
           social_links: Json | null
+          storefront_default_language: string | null
+          storefront_language_selector_style: string | null
+          storefront_languages: Json | null
+          storefront_multilingual_enabled: boolean | null
           tenant_id: string
           text_color: string | null
           theme_id: string | null
@@ -8251,6 +8344,10 @@ export type Database = {
           show_viewers_count?: boolean | null
           show_wishlist?: boolean | null
           social_links?: Json | null
+          storefront_default_language?: string | null
+          storefront_language_selector_style?: string | null
+          storefront_languages?: Json | null
+          storefront_multilingual_enabled?: boolean | null
           tenant_id: string
           text_color?: string | null
           theme_id?: string | null
@@ -8308,6 +8405,10 @@ export type Database = {
           show_viewers_count?: boolean | null
           show_wishlist?: boolean | null
           social_links?: Json | null
+          storefront_default_language?: string | null
+          storefront_language_selector_style?: string | null
+          storefront_languages?: Json | null
+          storefront_multilingual_enabled?: boolean | null
           tenant_id?: string
           text_color?: string | null
           theme_id?: string | null

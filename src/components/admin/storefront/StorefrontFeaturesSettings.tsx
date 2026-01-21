@@ -8,6 +8,7 @@ import {
   TrendingUp,
   ChevronDown,
   Info,
+  Globe,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -51,7 +52,10 @@ import {
   DEFAULT_TRUST_CONFIG,
   DEFAULT_NAVIGATION_CONFIG,
   DEFAULT_CONVERSION_CONFIG,
+  DEFAULT_MULTILINGUAL_CONFIG,
 } from '@/types/storefront-config';
+import { SUPPORTED_LANGUAGES, LANGUAGE_SELECTOR_STYLES } from '@/types/legal-pages';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function StorefrontFeaturesSettings() {
   const { themeSettings, saveThemeSettings } = useStorefront();
@@ -92,6 +96,12 @@ export function StorefrontFeaturesSettings() {
     show_viewers_count: DEFAULT_CONVERSION_CONFIG.show_viewers_count,
     show_recent_purchases: DEFAULT_CONVERSION_CONFIG.show_recent_purchases,
     exit_intent_popup: DEFAULT_CONVERSION_CONFIG.exit_intent_popup,
+    
+    // Multilingual
+    storefront_multilingual_enabled: DEFAULT_MULTILINGUAL_CONFIG.enabled,
+    storefront_languages: DEFAULT_MULTILINGUAL_CONFIG.languages as string[],
+    storefront_default_language: DEFAULT_MULTILINGUAL_CONFIG.default_language,
+    storefront_language_selector_style: DEFAULT_MULTILINGUAL_CONFIG.language_selector_style,
   });
 
   // Load settings from themeSettings
@@ -124,6 +134,10 @@ export function StorefrontFeaturesSettings() {
         show_viewers_count: settings.show_viewers_count ?? prev.show_viewers_count,
         show_recent_purchases: settings.show_recent_purchases ?? prev.show_recent_purchases,
         exit_intent_popup: settings.exit_intent_popup ?? prev.exit_intent_popup,
+        storefront_multilingual_enabled: settings.storefront_multilingual_enabled ?? prev.storefront_multilingual_enabled,
+        storefront_languages: settings.storefront_languages ?? prev.storefront_languages,
+        storefront_default_language: settings.storefront_default_language ?? prev.storefront_default_language,
+        storefront_language_selector_style: settings.storefront_language_selector_style ?? prev.storefront_language_selector_style,
       }));
     }
   }, [themeSettings]);
@@ -138,6 +152,21 @@ export function StorefrontFeaturesSettings() {
 
   const updateField = <K extends keyof typeof formData>(key: K, value: typeof formData[K]) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const toggleLanguage = (langCode: string) => {
+    setFormData(prev => {
+      const currentLangs = prev.storefront_languages;
+      if (currentLangs.includes(langCode)) {
+        // Don't remove if it's the only language or the default
+        if (currentLangs.length === 1 || langCode === prev.storefront_default_language) {
+          return prev;
+        }
+        return { ...prev, storefront_languages: currentLangs.filter(l => l !== langCode) };
+      } else {
+        return { ...prev, storefront_languages: [...currentLangs, langCode] };
+      }
+    });
   };
 
   const InfoTooltip = ({ text }: { text: string }) => (
@@ -644,6 +673,129 @@ export function StorefrontFeaturesSettings() {
                 onCheckedChange={(checked) => updateField('exit_intent_popup', checked)}
               />
             </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Multilingual Section */}
+        <AccordionItem value="multilingual" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-sky-500/10">
+                <Globe className="h-5 w-5 text-sky-600" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold">Meertalige Webshop</h3>
+                <p className="text-sm text-muted-foreground">Bied je webshop aan in meerdere talen</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="multilingual_enabled">Meertalige webshop activeren</Label>
+                <InfoTooltip text="Schakel meertalige ondersteuning in zodat klanten hun voorkeurstaal kunnen kiezen" />
+              </div>
+              <Switch
+                id="multilingual_enabled"
+                checked={formData.storefront_multilingual_enabled}
+                onCheckedChange={(checked) => updateField('storefront_multilingual_enabled', checked)}
+              />
+            </div>
+
+            {formData.storefront_multilingual_enabled && (
+              <>
+                <div className="space-y-3">
+                  <Label>Beschikbare talen</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <div
+                        key={lang.code}
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                          formData.storefront_languages.includes(lang.code)
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted hover:border-muted-foreground/30'
+                        }`}
+                        onClick={() => toggleLanguage(lang.code)}
+                      >
+                        <Checkbox
+                          checked={formData.storefront_languages.includes(lang.code)}
+                          disabled={
+                            formData.storefront_languages.includes(lang.code) && 
+                            (formData.storefront_languages.length === 1 || lang.code === formData.storefront_default_language)
+                          }
+                        />
+                        <span className="text-xl">{lang.flag}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{lang.name}</p>
+                          <p className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</p>
+                        </div>
+                        {lang.code === formData.storefront_default_language && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Standaard</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Standaardtaal</Label>
+                  <Select
+                    value={formData.storefront_default_language}
+                    onValueChange={(value) => {
+                      // Ensure the default language is in the selected languages
+                      if (!formData.storefront_languages.includes(value)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          storefront_languages: [...prev.storefront_languages, value],
+                          storefront_default_language: value,
+                        }));
+                      } else {
+                        updateField('storefront_default_language', value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUPPORTED_LANGUAGES.filter(l => formData.storefront_languages.includes(l.code)).map((lang) => (
+                        <SelectItem key={lang.code} value={lang.code}>
+                          <div className="flex items-center gap-2">
+                            <span>{lang.flag}</span>
+                            <span>{lang.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    De taal die wordt gebruikt wanneer een bezoeker nog geen voorkeur heeft gekozen
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Taalwisselaar stijl</Label>
+                  <Select
+                    value={formData.storefront_language_selector_style}
+                    onValueChange={(value) => updateField('storefront_language_selector_style', value as any)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGE_SELECTOR_STYLES.map((style) => (
+                        <SelectItem key={style.value} value={style.value}>
+                          <div>
+                            <div className="font-medium">{style.label}</div>
+                            <div className="text-xs text-muted-foreground">{style.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </AccordionContent>
         </AccordionItem>
       </Accordion>
