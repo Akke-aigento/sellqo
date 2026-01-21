@@ -1,0 +1,179 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface OptimizeRequest {
+  product: {
+    id: string;
+    name: string;
+    description?: string;
+    short_description?: string;
+    price: number;
+    sku?: string;
+    barcode?: string;
+    category_name?: string;
+    tags?: string[];
+    images?: string[];
+  };
+  marketplace: 'bol_com' | 'amazon';
+  language?: string;
+}
+
+interface OptimizedContent {
+  title: string;
+  bullets: string[];
+  description: string;
+  category_suggestion?: string;
+  keywords: string[];
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { product, marketplace, language = 'nl' }: OptimizeRequest = await req.json();
+    
+    if (!product?.name) {
+      return new Response(
+        JSON.stringify({ error: 'Product name is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      return new Response(
+        JSON.stringify({ error: 'AI service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Build prompt based on marketplace
+    const marketplaceRules = marketplace === 'bol_com' 
+      ? `
+        - Title: Max 150 characters, include brand + product type + key feature
+        - 5 bullet points max 150 chars each, start with benefit/feature
+        - Description for Dutch consumers, clear and professional
+        - SEO keywords for Dutch market
+      `
+      : `
+        - Title: Max 200 characters, brand + product + features + size
+        - 5 bullet points max 500 chars each, start with CAPS keyword
+        - A+ Content style description
+        - SEO keywords for the specific Amazon marketplace
+      `;
+
+    const prompt = `You are an e-commerce optimization expert. Optimize this product for ${marketplace === 'bol_com' ? 'Bol.com (Dutch marketplace)' : 'Amazon'}.
+
+Product Information:
+- Name: ${product.name}
+- Description: ${product.description || 'Not provided'}
+- Short Description: ${product.short_description || 'Not provided'}
+- Price: €${product.price}
+- Category: ${product.category_name || 'Unknown'}
+- Tags: ${product.tags?.join(', ') || 'None'}
+- SKU: ${product.sku || 'N/A'}
+- EAN/Barcode: ${product.barcode || 'N/A'}
+
+Marketplace Rules:
+${marketplaceRules}
+
+Language: ${language === 'nl' ? 'Dutch' : language === 'de' ? 'German' : language === 'fr' ? 'French' : 'English'}
+
+Return a JSON object with this exact structure:
+{
+  "title": "optimized marketplace title",
+  "bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5"],
+  "description": "optimized product description paragraph",
+  "category_suggestion": "suggested marketplace category path",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
+}
+
+Only return valid JSON, no markdown or explanation.`;
+
+    const response = await fetch('https://api.lovable.ai/v0/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${lovableApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('AI API error:', error);
+      return new Response(
+        JSON.stringify({ error: 'AI optimization failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const aiResponse = await response.json();
+    const content = aiResponse.choices?.[0]?.message?.content || '';
+    
+    // Parse AI response
+    let optimizedContent: OptimizedContent;
+    try {
+      // Clean up potential markdown code blocks
+      const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      optimizedContent = JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', content);
+      // Fallback: create basic optimization
+      optimizedContent = {
+        title: product.name.substring(0, 150),
+        bullets: [
+          product.short_description || product.description?.substring(0, 150) || 'Hoogwaardige kwaliteit',
+          `Prijs: €${product.price}`,
+          product.category_name ? `Categorie: ${product.category_name}` : 'Direct beschikbaar',
+          'Snelle levering',
+          'Uitstekende klantenservice',
+        ].filter(Boolean),
+        description: product.description || product.short_description || product.name,
+        keywords: product.tags || [product.name.toLowerCase()],
+      };
+    }
+
+    // Validate and clean response
+    const validatedContent: OptimizedContent = {
+      title: (optimizedContent.title || product.name).substring(0, marketplace === 'bol_com' ? 150 : 200),
+      bullets: (optimizedContent.bullets || []).slice(0, 5).map(b => 
+        typeof b === 'string' ? b.substring(0, marketplace === 'bol_com' ? 150 : 500) : String(b)
+      ),
+      description: optimizedContent.description || product.description || '',
+      category_suggestion: optimizedContent.category_suggestion,
+      keywords: (optimizedContent.keywords || []).slice(0, 10),
+    };
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        optimized: validatedContent,
+        marketplace,
+        product_id: product.id 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    console.error('Error optimizing content:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to optimize content';
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

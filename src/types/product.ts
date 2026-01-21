@@ -51,6 +51,25 @@ export interface Product {
   marketplace_mappings?: ProductMarketplaceMappings | null;
   sync_inventory?: boolean;
   last_inventory_sync?: string | null;
+  // Bol.com listing fields
+  bol_listing_status?: string | null;
+  bol_offer_id?: string | null;
+  bol_optimized_title?: string | null;
+  bol_optimized_description?: string | null;
+  bol_bullets?: string[] | null;
+  bol_delivery_code?: string | null;
+  bol_condition?: string | null;
+  bol_fulfilment_method?: string | null;
+  bol_last_synced_at?: string | null;
+  bol_listing_error?: string | null;
+  // Amazon listing fields
+  amazon_listing_status?: string | null;
+  amazon_offer_id?: string | null;
+  amazon_optimized_title?: string | null;
+  amazon_optimized_description?: string | null;
+  amazon_bullets?: string[] | null;
+  amazon_last_synced_at?: string | null;
+  amazon_listing_error?: string | null;
   // Digital product fields
   product_type: ProductType;
   digital_delivery_type?: DigitalDeliveryType | null;
