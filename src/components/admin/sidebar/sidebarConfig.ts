@@ -87,7 +87,7 @@ const salesItems: NavItem[] = [
       { id: 'promo-giftcards', title: 'Cadeaubonnen', url: '/admin/promotions/gift-cards' },
     ],
   },
-  { id: 'marketplaces', title: 'Marketplaces', url: '/admin/marketplaces', icon: Store, featureKey: 'marketplaces' },
+  { id: 'marketplaces', title: 'Marketplaces', url: '/admin/connect', icon: Store, featureKey: 'marketplaces' },
 ];
 
 // MARKETING - Campagnes en content
