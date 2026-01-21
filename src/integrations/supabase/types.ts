@@ -5840,6 +5840,161 @@ export type Database = {
           },
         ]
       }
+      seo_audit_results: {
+        Row: {
+          audit_type: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          issues_fixed: number | null
+          issues_found: number | null
+          overall_score: number | null
+          results: Json | null
+          scheduled_audit_id: string | null
+          started_at: string
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          audit_type: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          issues_fixed?: number | null
+          issues_found?: number | null
+          overall_score?: number | null
+          results?: Json | null
+          scheduled_audit_id?: string | null
+          started_at?: string
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          audit_type?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          issues_fixed?: number | null
+          issues_found?: number | null
+          overall_score?: number | null
+          results?: Json | null
+          scheduled_audit_id?: string | null
+          started_at?: string
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_audit_results_scheduled_audit_id_fkey"
+            columns: ["scheduled_audit_id"]
+            isOneToOne: false
+            referencedRelation: "seo_scheduled_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_audit_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_competitor_keywords: {
+        Row: {
+          competitor_id: string | null
+          competitor_position: number | null
+          created_at: string
+          difficulty_score: number | null
+          id: string
+          keyword: string
+          our_position: number | null
+          search_volume: number | null
+          tenant_id: string
+          tracked_at: string
+        }
+        Insert: {
+          competitor_id?: string | null
+          competitor_position?: number | null
+          created_at?: string
+          difficulty_score?: number | null
+          id?: string
+          keyword: string
+          our_position?: number | null
+          search_volume?: number | null
+          tenant_id: string
+          tracked_at?: string
+        }
+        Update: {
+          competitor_id?: string | null
+          competitor_position?: number | null
+          created_at?: string
+          difficulty_score?: number | null
+          id?: string
+          keyword?: string
+          our_position?: number | null
+          search_volume?: number | null
+          tenant_id?: string
+          tracked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_competitor_keywords_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "seo_competitors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_competitor_keywords_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_competitors: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          keywords: string[] | null
+          name: string
+          tenant_id: string
+          tracked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          keywords?: string[] | null
+          name: string
+          tenant_id: string
+          tracked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          keywords?: string[] | null
+          name?: string
+          tenant_id?: string
+          tracked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_competitors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_keywords: {
         Row: {
           category_id: string | null
@@ -5910,6 +6065,56 @@ export type Database = {
           },
         ]
       }
+      seo_scheduled_audits: {
+        Row: {
+          audit_type: string
+          created_at: string
+          frequency: string
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          next_run_at: string
+          notify_email: string | null
+          notify_on_issues: boolean | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          audit_type?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string
+          notify_email?: string | null
+          notify_on_issues?: boolean | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          audit_type?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string
+          notify_email?: string | null
+          notify_on_issues?: boolean | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_scheduled_audits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_scores: {
         Row: {
           ai_search_score: number | null
@@ -5962,6 +6167,112 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "seo_scores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_search_console_data: {
+        Row: {
+          clicks: number | null
+          country: string | null
+          created_at: string
+          ctr: number | null
+          date: string
+          device: string | null
+          id: string
+          impressions: number | null
+          page: string | null
+          position: number | null
+          query: string
+          tenant_id: string
+        }
+        Insert: {
+          clicks?: number | null
+          country?: string | null
+          created_at?: string
+          ctr?: number | null
+          date: string
+          device?: string | null
+          id?: string
+          impressions?: number | null
+          page?: string | null
+          position?: number | null
+          query: string
+          tenant_id: string
+        }
+        Update: {
+          clicks?: number | null
+          country?: string | null
+          created_at?: string
+          ctr?: number | null
+          date?: string
+          device?: string | null
+          id?: string
+          impressions?: number | null
+          page?: string | null
+          position?: number | null
+          query?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_search_console_data_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_web_vitals: {
+        Row: {
+          cls_value: number | null
+          created_at: string
+          device_type: string | null
+          fid_value: number | null
+          id: string
+          inp_value: number | null
+          lcp_value: number | null
+          measured_at: string
+          performance_score: number | null
+          tenant_id: string
+          ttfb_value: number | null
+          url: string
+        }
+        Insert: {
+          cls_value?: number | null
+          created_at?: string
+          device_type?: string | null
+          fid_value?: number | null
+          id?: string
+          inp_value?: number | null
+          lcp_value?: number | null
+          measured_at?: string
+          performance_score?: number | null
+          tenant_id: string
+          ttfb_value?: number | null
+          url: string
+        }
+        Update: {
+          cls_value?: number | null
+          created_at?: string
+          device_type?: string | null
+          fid_value?: number | null
+          id?: string
+          inp_value?: number | null
+          lcp_value?: number | null
+          measured_at?: string
+          performance_score?: number | null
+          tenant_id?: string
+          ttfb_value?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_web_vitals_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
