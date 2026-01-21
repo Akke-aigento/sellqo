@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   Search, 
   RefreshCw, 
@@ -11,12 +13,21 @@ import {
   Bot,
   FileCode,
   Globe,
-  FolderOpen,
-  Image as ImageIcon,
-  Link2,
+  ChevronDown,
+  ChevronRight,
   Gauge,
   Users,
   Calendar,
+  Image as ImageIcon,
+  FolderOpen,
+  Package,
+  Target,
+  Zap,
+  CheckCircle,
+  ArrowRight,
+  Sparkles,
+  Settings2,
+  BarChart3,
 } from 'lucide-react';
 import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
@@ -31,7 +42,6 @@ import { ImageAltTextPanel } from '@/components/admin/seo/ImageAltTextPanel';
 import { RobotsTxtEditor } from '@/components/admin/seo/RobotsTxtEditor';
 import { AISearchOptimizer } from '@/components/admin/seo/AISearchOptimizer';
 import { SlugManager } from '@/components/admin/seo/SlugManager';
-import { SEOTranslationStatus } from '@/components/admin/seo/SEOTranslationStatus';
 import { CoreWebVitalsPanel } from '@/components/admin/seo/CoreWebVitalsPanel';
 import { CompetitorAnalysisPanel } from '@/components/admin/seo/CompetitorAnalysisPanel';
 import { SearchConsolePanel } from '@/components/admin/seo/SearchConsolePanel';
@@ -44,8 +54,60 @@ import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import type { ProductStructuredData, BusinessStructuredData } from '@/lib/structuredData';
 
+interface SectionCardProps {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  badge?: string;
+  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
+}
+
+function SectionCard({ title, description, icon: Icon, children, defaultOpen = false, badge, badgeVariant = 'secondary' }: SectionCardProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base">{title}</CardTitle>
+                    {badge && (
+                      <Badge variant={badgeVariant} className="text-xs">
+                        {badge}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription className="text-sm">{description}</CardDescription>
+                </div>
+              </div>
+              {isOpen ? (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0 pb-6">
+            {children}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
 export default function SEODashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
   const { 
     tenantScore, 
     productScores,
@@ -67,20 +129,19 @@ export default function SEODashboard() {
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const { currentTenant } = useTenant();
 
-  // Merge category data with SEO scores
+  // Merge data with SEO scores
   const categoriesWithSEO = categories?.map((category) => ({
     ...category,
     seo_score: productScores?.find((s) => s.entity_type === 'category' && s.entity_id === category.id) || null,
   })) || [];
 
-  // Merge product data with SEO scores
   const productsWithSEO = products?.map((product) => ({
     ...product,
     images: product.images || [],
     seo_score: productScores?.find((s) => s.entity_id === product.id) || null,
   })) || [];
 
-  // Convert products to structured data format
+  // Structured data
   const structuredProducts: ProductStructuredData[] = products?.map((product) => ({
     id: product.id,
     name: product.name,
@@ -96,7 +157,6 @@ export default function SEODashboard() {
     reviewCount: null,
   })) || [];
 
-  // Business data for structured data
   const businessData: BusinessStructuredData | undefined = currentTenant ? {
     name: currentTenant.name,
     description: null,
@@ -113,7 +173,7 @@ export default function SEODashboard() {
     vatNumber: currentTenant.btw_number || null,
   } : undefined;
 
-  // Calculate health checklist items based on products
+  // Health metrics
   const totalProducts = products?.length || 0;
   const productsWithMeta = products?.filter((p) => p.meta_title).length || 0;
   const productsWithDesc = products?.filter((p) => p.meta_description).length || 0;
@@ -127,367 +187,312 @@ export default function SEODashboard() {
   };
 
   const healthItems = [
-    {
-      id: 'meta_titles',
-      label: 'Meta Titles',
-      description: 'Alle producten hebben een meta title',
-      status: getStatus(productsWithMeta, totalProducts),
-      count: { done: productsWithMeta, total: totalProducts },
-    },
-    {
-      id: 'meta_descriptions',
-      label: 'Meta Descriptions',
-      description: 'Alle producten hebben een meta description',
-      status: getStatus(productsWithDesc, totalProducts),
-      count: { done: productsWithDesc, total: totalProducts },
-    },
-    {
-      id: 'product_images',
-      label: 'Product Afbeeldingen',
-      description: 'Alle producten hebben afbeeldingen',
-      status: getStatus(productsWithImages, totalProducts),
-      count: { done: productsWithImages, total: totalProducts },
-    },
-    {
-      id: 'structured_data',
-      label: 'Structured Data',
-      description: 'JSON-LD Product schema aanwezig',
-      status: 'incomplete' as const,
-    },
-    {
-      id: 'sitemap',
-      label: 'Sitemap.xml',
-      description: 'Dynamische sitemap met alle producten',
-      status: 'incomplete' as const,
-    },
-    {
-      id: 'robots',
-      label: 'Robots.txt',
-      description: 'Geconfigureerd voor zoekmachines',
-      status: 'incomplete' as const,
-    },
+    { id: 'meta_titles', label: 'Meta Titles', description: 'Alle producten hebben een meta title', status: getStatus(productsWithMeta, totalProducts), count: { done: productsWithMeta, total: totalProducts } },
+    { id: 'meta_descriptions', label: 'Meta Descriptions', description: 'Alle producten hebben een meta description', status: getStatus(productsWithDesc, totalProducts), count: { done: productsWithDesc, total: totalProducts } },
+    { id: 'product_images', label: 'Product Afbeeldingen', description: 'Alle producten hebben afbeeldingen', status: getStatus(productsWithImages, totalProducts), count: { done: productsWithImages, total: totalProducts } },
+    { id: 'structured_data', label: 'Structured Data', description: 'JSON-LD Product schema aanwezig', status: 'incomplete' as const },
+    { id: 'sitemap', label: 'Sitemap.xml', description: 'Dynamische sitemap met alle producten', status: 'incomplete' as const },
+    { id: 'robots', label: 'Robots.txt', description: 'Geconfigureerd voor zoekmachines', status: 'incomplete' as const },
   ];
 
-  const handleAction = (action: string, entityId?: string) => {
-    if (action === 'generate_meta') {
-      generateContent({ type: 'meta_title', productIds: entityId ? [entityId] : [] });
-    }
-    toast.info(`Actie: ${action}`);
-  };
-
   const handleGenerateContent = (type: string, productIds: string[]) => {
-    generateContent({ 
-      type: type as any, 
-      productIds 
-    });
+    generateContent({ type: type as any, productIds });
   };
 
   const handleGenerateCategoryContent = (type: string, categoryIds: string[]) => {
-    generateContent({ 
-      type: type as any, 
-      productIds: [],
-      categoryIds,
-      entityType: 'category'
-    } as any);
+    generateContent({ type: type as any, productIds: [], categoryIds, entityType: 'category' } as any);
   };
 
-  const handleGenerateAltText = (productIds: string[]) => {
-    generateContent({
-      type: 'alt_text',
-      productIds,
-    });
-  };
-
-  // Get previous score from history
   const previousScore = history && history.length > 1 ? history[1]?.overall_score : null;
+  const overallScore = tenantScore?.overall_score ?? 0;
+  const scoreColor = overallScore >= 80 ? 'text-green-500' : overallScore >= 50 ? 'text-yellow-500' : 'text-red-500';
 
   return (
     <FeatureGate feature="ai_marketing">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                <Search className="h-5 w-5 text-white" />
-              </div>
-              SEO Optimalisatie
-            </h1>
-            <p className="text-muted-foreground">
-              Verbeter je vindbaarheid in Google en AI-zoekmachines
-            </p>
-          </div>
-          <Button 
-            onClick={() => analyzeSEO()} 
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Analyseren...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4 mr-2" />
-                Nieuwe Analyse
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {tenantScore?.overall_score ?? '-'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">SEO Score</p>
+      <div className="space-y-6 max-w-6xl mx-auto">
+        {/* Hero Header */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {/* Score Circle */}
+              <div className="relative w-20 h-20 flex-shrink-0">
+                <svg className="w-20 h-20 -rotate-90">
+                  <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="8" fill="none" className="text-muted/30" />
+                  <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="8" fill="none"
+                    strokeDasharray={`${overallScore * 2.136} 213.6`}
+                    className={scoreColor}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className={`text-2xl font-bold ${scoreColor}`}>{overallScore || '--'}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-yellow-500/10">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{productsNeedingAttention}</p>
-                  <p className="text-sm text-muted-foreground">Aandacht nodig</p>
-                </div>
+              
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">SEO Dashboard</h1>
+                <p className="text-muted-foreground">
+                  {overallScore >= 80 
+                    ? 'Uitstekend! Je SEO is goed op orde.' 
+                    : overallScore >= 50 
+                    ? 'Er zijn verbeterpunten voor je SEO.'
+                    : 'Start met de quick wins hieronder.'}
+                </p>
+                {productsNeedingAttention > 0 && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm text-yellow-600">{productsNeedingAttention} producten hebben aandacht nodig</span>
+                  </div>
+                )}
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-500/10">
-                  <Bot className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {tenantScore?.ai_search_score ?? '-'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">AI Search Score</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-500/10">
-                  <FileCode className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {tenantScore?.technical_score ?? '-'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Technisch</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="overview">Overzicht</TabsTrigger>
-            <TabsTrigger value="keywords">Keywords</TabsTrigger>
-            <TabsTrigger value="products">Producten</TabsTrigger>
-            <TabsTrigger value="categories">Categorieën</TabsTrigger>
-            <TabsTrigger value="images">Afbeeldingen</TabsTrigger>
-            <TabsTrigger value="social">Social</TabsTrigger>
-            <TabsTrigger value="technical">Technisch</TabsTrigger>
-            <TabsTrigger value="ai-search">AI Zoeken</TabsTrigger>
-            <TabsTrigger value="vitals" className="gap-1">
-              <Gauge className="h-3 w-3" />
-              Web Vitals
-            </TabsTrigger>
-            <TabsTrigger value="competitors" className="gap-1">
-              <Users className="h-3 w-3" />
-              Concurrenten
-            </TabsTrigger>
-            <TabsTrigger value="search-console" className="gap-1">
-              <Globe className="h-3 w-3" />
-              Search Console
-            </TabsTrigger>
-            <TabsTrigger value="audits" className="gap-1">
-              <Calendar className="h-3 w-3" />
-              Audits
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6 mt-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SEOScoreCard
-                overallScore={tenantScore?.overall_score ?? null}
-                metaScore={tenantScore?.meta_score ?? null}
-                contentScore={tenantScore?.content_score ?? null}
-                technicalScore={tenantScore?.technical_score ?? null}
-                aiSearchScore={tenantScore?.ai_search_score ?? null}
-                previousScore={previousScore}
-                isLoading={isLoading}
-              />
-              <SEOScoreHistoryChart
-                history={history || []}
-                isLoading={isLoading}
-              />
             </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SEOQuickWins
-                issues={tenantScore?.issues || []}
-                suggestions={tenantScore?.suggestions || []}
-                onAction={handleAction}
-                isLoading={isLoading}
-              />
+            
+            <Button 
+              onClick={() => analyzeSEO()} 
+              disabled={isAnalyzing}
+              size="lg"
+              className="gap-2"
+            >
+              {isAnalyzing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Analyseren...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  AI Analyse starten
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <TrendingUp className="h-4 w-4" />
+                Meta Score
+              </div>
+              <p className="text-xl font-bold">{tenantScore?.meta_score ?? '--'}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <FileCode className="h-4 w-4" />
+                Technisch
+              </div>
+              <p className="text-xl font-bold">{tenantScore?.technical_score ?? '--'}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <Bot className="h-4 w-4" />
+                AI Search
+              </div>
+              <p className="text-xl font-bold">{tenantScore?.ai_search_score ?? '--'}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <Package className="h-4 w-4" />
+                Producten
+              </div>
+              <p className="text-xl font-bold">{totalProducts}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Priority Section: Quick Wins */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              <CardTitle>Start hier: Quick Wins</CardTitle>
+            </div>
+            <CardDescription>
+              De belangrijkste verbeterpunten om je SEO score snel te verhogen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SEOQuickWins
+              issues={tenantScore?.issues || []}
+              suggestions={tenantScore?.suggestions || []}
+              onAction={(action, entityId) => {
+                if (action === 'generate_meta') {
+                  generateContent({ type: 'meta_title', productIds: entityId ? [entityId] : [] });
+                }
+                toast.info(`Actie: ${action}`);
+              }}
+              isLoading={isLoading}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Main Content Sections */}
+        <div className="space-y-4">
+          {/* Content Optimalisatie */}
+          <SectionCard
+            title="Content Optimalisatie"
+            description="Optimaliseer meta tags, beschrijvingen en afbeeldingen"
+            icon={Package}
+            defaultOpen={true}
+            badge={`${productsWithMeta}/${totalProducts} compleet`}
+            badgeVariant={productsWithMeta === totalProducts ? 'default' : 'secondary'}
+          >
+            <div className="space-y-6">
               <SEOHealthChecklist 
                 items={healthItems} 
                 isLoading={isLoading}
                 onGenerateSitemap={generateSitemap}
                 isGeneratingSitemap={isGeneratingSitemap}
               />
+              
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Product SEO
+                </h4>
+                <SEOProductTable
+                  products={productsWithSEO}
+                  isLoading={isLoadingProducts}
+                  onGenerateContent={handleGenerateContent}
+                  isGenerating={isGenerating}
+                />
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Categorie SEO
+                </h4>
+                <SEOCategoryTable
+                  categories={categoriesWithSEO}
+                  isLoading={isLoadingCategories}
+                  onGenerateContent={handleGenerateCategoryContent}
+                  isGenerating={isGenerating}
+                />
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Afbeelding Alt-teksten
+                </h4>
+                <ImageAltTextPanel
+                  products={products || []}
+                  isLoading={isLoadingProducts}
+                  onGenerateAltText={(productIds) => generateContent({ type: 'alt_text', productIds })}
+                  isGenerating={isGenerating}
+                />
+              </div>
             </div>
-          </TabsContent>
+          </SectionCard>
 
-          <TabsContent value="keywords" className="mt-6">
-            <KeywordResearchPanel
-              keywords={keywords || []}
-              onAddKeyword={addKeyword}
-              onDeleteKeyword={deleteKeyword}
-              isLoading={isLoading}
-            />
-          </TabsContent>
+          {/* Technische SEO */}
+          <SectionCard
+            title="Technische SEO"
+            description="Web Vitals, Structured Data, Robots.txt en Sitemap"
+            icon={FileCode}
+            badge={`Score: ${tenantScore?.technical_score ?? '--'}`}
+          >
+            <div className="space-y-6">
+              <CoreWebVitalsPanel />
+              
+              <div className="border-t pt-6">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <RobotsTxtEditor baseUrl={window.location.origin} />
+                  <StructuredDataPreview
+                    products={structuredProducts}
+                    business={businessData}
+                    baseUrl={window.location.origin}
+                  />
+                </div>
+              </div>
 
-          <TabsContent value="products" className="mt-6">
-            <SEOProductTable
-              products={productsWithSEO}
-              isLoading={isLoadingProducts}
-              onGenerateContent={handleGenerateContent}
-              isGenerating={isGenerating}
-            />
-          </TabsContent>
+              <div className="border-t pt-6">
+                <SlugManager
+                  products={products || []}
+                  categories={categories || []}
+                  isLoading={isLoadingProducts || isLoadingCategories}
+                />
+              </div>
+            </div>
+          </SectionCard>
 
-          <TabsContent value="categories" className="mt-6">
-            <SEOCategoryTable
-              categories={categoriesWithSEO}
-              isLoading={isLoadingCategories}
-              onGenerateContent={handleGenerateCategoryContent}
-              isGenerating={isGenerating}
-            />
-          </TabsContent>
-
-          <TabsContent value="images" className="mt-6">
-            <ImageAltTextPanel
-              products={products || []}
-              isLoading={isLoadingProducts}
-              onGenerateAltText={handleGenerateAltText}
-              isGenerating={isGenerating}
-            />
-          </TabsContent>
-
-          <TabsContent value="social" className="mt-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SocialMediaPreview
-                title={currentTenant?.name || 'Jouw Webshop'}
-                description={'Ontdek onze producten en aanbiedingen'}
-                url={window.location.origin}
+          {/* AI & Zoekprestaties */}
+          <SectionCard
+            title="AI & Zoekprestaties"
+            description="AI Search optimalisatie en Google Search Console"
+            icon={Bot}
+            badge={`AI Score: ${tenantScore?.ai_search_score ?? '--'}`}
+          >
+            <div className="space-y-6">
+              <AISearchOptimizer
+                aiSearchScore={tenantScore?.ai_search_score ?? null}
+                products={products || []}
                 isLoading={isLoading}
+                onGenerateFAQ={(productIds) => {
+                  toast.info('FAQ generatie wordt binnenkort toegevoegd');
+                }}
+                onGenerateLongForm={(productIds) => {
+                  generateContent({ type: 'product_description', productIds });
+                }}
+                isGenerating={isGenerating}
               />
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderOpen className="h-5 w-5" />
-                    Social Media Tips
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Optimaliseer je content voor betere social media shares.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="p-3 rounded-lg border">
-                      <h4 className="font-medium text-sm">Open Graph Tags</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Essentieel voor Facebook, LinkedIn en andere platforms.
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg border">
-                      <h4 className="font-medium text-sm">Twitter Cards</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Speciale meta tags voor betere Twitter previews.
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg border">
-                      <h4 className="font-medium text-sm">Afbeelding Optimalisatie</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Gebruik 1200x630px voor optimale weergave.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              
+              <div className="border-t pt-6">
+                <SearchConsolePanel />
+              </div>
             </div>
-          </TabsContent>
+          </SectionCard>
 
-          <TabsContent value="technical" className="mt-6 space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <RobotsTxtEditor baseUrl={window.location.origin} />
-              <StructuredDataPreview
-                products={structuredProducts}
-                business={businessData}
-                baseUrl={window.location.origin}
-              />
+          {/* Geavanceerde Tools */}
+          <SectionCard
+            title="Geavanceerde Tools"
+            description="Keyword research, concurrent analyse en automatische audits"
+            icon={Settings2}
+          >
+            <div className="space-y-6">
+              <div>
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Keywords
+                </h4>
+                <KeywordResearchPanel
+                  keywords={keywords || []}
+                  onAddKeyword={addKeyword}
+                  onDeleteKeyword={deleteKeyword}
+                  isLoading={isLoading}
+                />
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Concurrent Analyse
+                </h4>
+                <CompetitorAnalysisPanel />
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Automatische Audits
+                </h4>
+                <ScheduledAuditsPanel />
+              </div>
             </div>
-            <SlugManager
-              products={products || []}
-              categories={categories || []}
-              isLoading={isLoadingProducts || isLoadingCategories}
-            />
-          </TabsContent>
+          </SectionCard>
 
-          <TabsContent value="ai-search" className="mt-6">
-            <AISearchOptimizer
-              aiSearchScore={tenantScore?.ai_search_score ?? null}
-              products={products || []}
+          {/* Score Geschiedenis */}
+          <SectionCard
+            title="Score Geschiedenis"
+            description="Bekijk de ontwikkeling van je SEO score over tijd"
+            icon={BarChart3}
+          >
+            <SEOScoreHistoryChart
+              history={history || []}
               isLoading={isLoading}
-              onGenerateFAQ={(productIds) => {
-                toast.info('FAQ generatie wordt binnenkort toegevoegd');
-              }}
-              onGenerateLongForm={(productIds) => {
-                generateContent({
-                  type: 'product_description',
-                  productIds,
-                });
-              }}
-              isGenerating={isGenerating}
             />
-          </TabsContent>
-
-          <TabsContent value="vitals" className="mt-6">
-            <CoreWebVitalsPanel />
-          </TabsContent>
-
-          <TabsContent value="competitors" className="mt-6">
-            <CompetitorAnalysisPanel />
-          </TabsContent>
-
-          <TabsContent value="search-console" className="mt-6">
-            <SearchConsolePanel />
-          </TabsContent>
-
-          <TabsContent value="audits" className="mt-6">
-            <ScheduledAuditsPanel />
-          </TabsContent>
-        </Tabs>
+          </SectionCard>
+        </div>
       </div>
     </FeatureGate>
   );
