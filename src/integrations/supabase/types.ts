@@ -2452,6 +2452,93 @@ export type Database = {
           },
         ]
       }
+      external_reviews: {
+        Row: {
+          author_avatar_url: string | null
+          author_name: string | null
+          connection_id: string
+          created_at: string | null
+          external_review_id: string
+          id: string
+          is_featured: boolean | null
+          is_verified: boolean | null
+          is_visible: boolean | null
+          language: string | null
+          metadata: Json | null
+          platform: string
+          rating: number | null
+          reply: string | null
+          reply_date: string | null
+          review_date: string | null
+          synced_at: string | null
+          tenant_id: string
+          text: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_avatar_url?: string | null
+          author_name?: string | null
+          connection_id: string
+          created_at?: string | null
+          external_review_id: string
+          id?: string
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          is_visible?: boolean | null
+          language?: string | null
+          metadata?: Json | null
+          platform: string
+          rating?: number | null
+          reply?: string | null
+          reply_date?: string | null
+          review_date?: string | null
+          synced_at?: string | null
+          tenant_id: string
+          text?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_avatar_url?: string | null
+          author_name?: string | null
+          connection_id?: string
+          created_at?: string | null
+          external_review_id?: string
+          id?: string
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          is_visible?: boolean | null
+          language?: string | null
+          metadata?: Json | null
+          platform?: string
+          rating?: number | null
+          reply?: string | null
+          reply_date?: string | null
+          review_date?: string | null
+          synced_at?: string | null
+          tenant_id?: string
+          text?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_reviews_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "review_platform_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_usage_events: {
         Row: {
           action_type: string
@@ -6400,6 +6487,77 @@ export type Database = {
           },
         ]
       }
+      review_platform_connections: {
+        Row: {
+          api_key: string | null
+          api_secret: string | null
+          cached_rating: number | null
+          cached_review_count: number | null
+          created_at: string | null
+          display_name: string | null
+          external_id: string | null
+          external_url: string | null
+          id: string
+          is_enabled: boolean | null
+          last_synced_at: string | null
+          platform: string
+          settings: Json | null
+          sync_error: string | null
+          sync_frequency: string | null
+          sync_status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_secret?: string | null
+          cached_rating?: number | null
+          cached_review_count?: number | null
+          created_at?: string | null
+          display_name?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_synced_at?: string | null
+          platform: string
+          settings?: Json | null
+          sync_error?: string | null
+          sync_frequency?: string | null
+          sync_status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_secret?: string | null
+          cached_rating?: number | null
+          cached_review_count?: number | null
+          created_at?: string | null
+          display_name?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_synced_at?: string | null
+          platform?: string
+          settings?: Json | null
+          sync_error?: string | null
+          sync_frequency?: string | null
+          sync_status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_platform_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       segment_members: {
         Row: {
           added_at: string | null
@@ -8274,6 +8432,15 @@ export type Database = {
           product_variant_style: string | null
           products_per_row: number | null
           published_at: string | null
+          reviews_aggregate_display: boolean | null
+          reviews_auto_feature_threshold: number | null
+          reviews_display_platforms: Json | null
+          reviews_floating_style: string | null
+          reviews_homepage_section: boolean | null
+          reviews_hub_enabled: boolean | null
+          reviews_min_rating_filter: number | null
+          reviews_trust_bar_enabled: boolean | null
+          reviews_widget_position: string | null
           search_display: string | null
           secondary_color: string | null
           show_announcement_bar: boolean | null
@@ -8335,6 +8502,15 @@ export type Database = {
           product_variant_style?: string | null
           products_per_row?: number | null
           published_at?: string | null
+          reviews_aggregate_display?: boolean | null
+          reviews_auto_feature_threshold?: number | null
+          reviews_display_platforms?: Json | null
+          reviews_floating_style?: string | null
+          reviews_homepage_section?: boolean | null
+          reviews_hub_enabled?: boolean | null
+          reviews_min_rating_filter?: number | null
+          reviews_trust_bar_enabled?: boolean | null
+          reviews_widget_position?: string | null
           search_display?: string | null
           secondary_color?: string | null
           show_announcement_bar?: boolean | null
@@ -8396,6 +8572,15 @@ export type Database = {
           product_variant_style?: string | null
           products_per_row?: number | null
           published_at?: string | null
+          reviews_aggregate_display?: boolean | null
+          reviews_auto_feature_threshold?: number | null
+          reviews_display_platforms?: Json | null
+          reviews_floating_style?: string | null
+          reviews_homepage_section?: boolean | null
+          reviews_hub_enabled?: boolean | null
+          reviews_min_rating_filter?: number | null
+          reviews_trust_bar_enabled?: boolean | null
+          reviews_widget_position?: string | null
           search_display?: string | null
           secondary_color?: string | null
           show_announcement_bar?: boolean | null
