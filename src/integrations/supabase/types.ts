@@ -2796,6 +2796,56 @@ export type Database = {
           },
         ]
       }
+      homepage_sections: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          id: string
+          is_visible: boolean | null
+          section_type: string
+          settings: Json | null
+          sort_order: number | null
+          subtitle: string | null
+          tenant_id: string
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          is_visible?: boolean | null
+          section_type: string
+          settings?: Json | null
+          sort_order?: number | null
+          subtitle?: string | null
+          tenant_id: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          is_visible?: boolean | null
+          section_type?: string
+          settings?: Json | null
+          sort_order?: number | null
+          subtitle?: string | null
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homepage_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_category_mappings: {
         Row: {
           confidence: number | null
@@ -7245,6 +7295,59 @@ export type Database = {
           },
         ]
       }
+      storefront_pages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          nav_order: number | null
+          show_in_nav: boolean | null
+          slug: string
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          nav_order?: number | null
+          show_in_nav?: boolean | null
+          slug: string
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          nav_order?: number | null
+          show_in_nav?: boolean | null
+          slug?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_invoices: {
         Row: {
           generated_at: string | null
@@ -8040,6 +8143,120 @@ export type Database = {
           },
         ]
       }
+      tenant_theme_settings: {
+        Row: {
+          accent_color: string | null
+          announcement_link: string | null
+          announcement_text: string | null
+          background_color: string | null
+          body_font: string | null
+          created_at: string | null
+          custom_css: string | null
+          custom_frontend_url: string | null
+          custom_head_scripts: string | null
+          favicon_url: string | null
+          footer_text: string | null
+          header_style: string | null
+          heading_font: string | null
+          id: string
+          is_published: boolean | null
+          logo_url: string | null
+          primary_color: string | null
+          product_card_style: string | null
+          products_per_row: number | null
+          published_at: string | null
+          secondary_color: string | null
+          show_announcement_bar: boolean | null
+          show_breadcrumbs: boolean | null
+          show_wishlist: boolean | null
+          social_links: Json | null
+          tenant_id: string
+          text_color: string | null
+          theme_id: string | null
+          updated_at: string | null
+          use_custom_frontend: boolean | null
+        }
+        Insert: {
+          accent_color?: string | null
+          announcement_link?: string | null
+          announcement_text?: string | null
+          background_color?: string | null
+          body_font?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          custom_frontend_url?: string | null
+          custom_head_scripts?: string | null
+          favicon_url?: string | null
+          footer_text?: string | null
+          header_style?: string | null
+          heading_font?: string | null
+          id?: string
+          is_published?: boolean | null
+          logo_url?: string | null
+          primary_color?: string | null
+          product_card_style?: string | null
+          products_per_row?: number | null
+          published_at?: string | null
+          secondary_color?: string | null
+          show_announcement_bar?: boolean | null
+          show_breadcrumbs?: boolean | null
+          show_wishlist?: boolean | null
+          social_links?: Json | null
+          tenant_id: string
+          text_color?: string | null
+          theme_id?: string | null
+          updated_at?: string | null
+          use_custom_frontend?: boolean | null
+        }
+        Update: {
+          accent_color?: string | null
+          announcement_link?: string | null
+          announcement_text?: string | null
+          background_color?: string | null
+          body_font?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          custom_frontend_url?: string | null
+          custom_head_scripts?: string | null
+          favicon_url?: string | null
+          footer_text?: string | null
+          header_style?: string | null
+          heading_font?: string | null
+          id?: string
+          is_published?: boolean | null
+          logo_url?: string | null
+          primary_color?: string | null
+          product_card_style?: string | null
+          products_per_row?: number | null
+          published_at?: string | null
+          secondary_color?: string | null
+          show_announcement_bar?: boolean | null
+          show_breadcrumbs?: boolean | null
+          show_wishlist?: boolean | null
+          social_links?: Json | null
+          tenant_id?: string
+          text_color?: string | null
+          theme_id?: string | null
+          updated_at?: string | null
+          use_custom_frontend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_theme_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_theme_settings_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           address: string | null
@@ -8060,6 +8277,8 @@ export type Database = {
           currency: string | null
           custom_domain: string | null
           default_vat_handling: string | null
+          domain_verification_token: string | null
+          domain_verified: boolean | null
           enable_b2b_checkout: boolean | null
           export_text: string | null
           iban: string | null
@@ -8130,6 +8349,8 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
+          domain_verification_token?: string | null
+          domain_verified?: boolean | null
           enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
@@ -8200,6 +8421,8 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
+          domain_verification_token?: string | null
+          domain_verified?: boolean | null
           enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
@@ -8250,6 +8473,42 @@ export type Database = {
           subscription_status?: string | null
           tax_percentage?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      themes: {
+        Row: {
+          created_at: string | null
+          default_settings: Json | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_premium: boolean | null
+          name: string
+          preview_image_url: string | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          default_settings?: Json | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          name: string
+          preview_image_url?: string | null
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          default_settings?: Json | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          name?: string
+          preview_image_url?: string | null
+          slug?: string
         }
         Relationships: []
       }
