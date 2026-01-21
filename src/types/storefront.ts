@@ -181,6 +181,15 @@ export interface VideoContent {
   loop?: boolean;
 }
 
+export interface ExternalReviewsContent {
+  display_style?: 'carousel' | 'grid' | 'list';
+  max_reviews?: number;
+  featured_only?: boolean;
+  show_platform_badges?: boolean;
+  show_aggregate_score?: boolean;
+  platforms?: string[];
+}
+
 export type HomepageSectionContent = 
   | HeroContent 
   | FeaturedProductsContent 
@@ -189,6 +198,7 @@ export type HomepageSectionContent =
   | NewsletterContent 
   | TestimonialsContent
   | VideoContent
+  | ExternalReviewsContent
   | Record<string, unknown>;
 
 export interface HomepageSectionSettings {
