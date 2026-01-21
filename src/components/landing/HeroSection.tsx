@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, Check, TrendingUp, Sparkles, Gift } from 'lucide-react';
+import { ArrowRight, Play, Check, Zap, TrendingUp, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
@@ -13,9 +13,9 @@ const trustBadges = [
 ];
 
 const floatingCards = [
-  { icon: TrendingUp, text: '€12.453 omzet', color: 'bg-green-500' },
-  { icon: Sparkles, text: 'AI genereert content', color: 'bg-purple-500' },
-  { icon: Gift, text: '8 promotietypen', color: 'bg-accent' },
+  { icon: Zap, text: 'Live data sync', color: 'bg-blue-500' },
+  { icon: TrendingUp, text: '+23% conversie', color: 'bg-green-500' },
+  { icon: FileText, text: 'Auto facturatie', color: 'bg-accent' },
 ];
 
 export function HeroSection() {
@@ -90,7 +90,7 @@ export function HeroSection() {
           </div>
 
           {/* Right column - Dashboard mockup */}
-          <div className="relative">
+          <div className="relative overflow-visible lg:overflow-visible md:overflow-hidden">
             {/* Main dashboard mockup */}
             <div className="relative animate-float">
               <HeroDashboardMockup />
@@ -102,10 +102,10 @@ export function HeroSection() {
                 key={index}
                 className={cn(
                   'absolute bg-card rounded-xl shadow-lg border border-border p-3 flex items-center gap-3',
-                  'animate-float-delayed',
-                  index === 0 && '-top-4 -left-4 md:-left-8',
-                  index === 1 && 'top-1/2 -right-4 md:-right-8',
-                  index === 2 && '-bottom-4 left-8'
+                  'animate-float-delayed hidden md:flex',
+                  index === 0 && 'top-2 left-2 lg:-top-4 lg:-left-8',
+                  index === 1 && 'top-1/3 right-2 lg:-right-8',
+                  index === 2 && 'bottom-2 left-4 lg:-bottom-4 lg:left-8'
                 )}
                 style={{ animationDelay: `${index * 0.5}s` }}
               >
