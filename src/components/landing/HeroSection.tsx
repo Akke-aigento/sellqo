@@ -3,6 +3,7 @@ import { ArrowRight, Play, Check, TrendingUp, Sparkles, Gift } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
+import { HeroDashboardMockup } from './HeroDashboardMockup';
 
 const trustBadges = [
   { icon: Check, text: 'Geen creditcard nodig' },
@@ -90,29 +91,9 @@ export function HeroSection() {
 
           {/* Right column - Dashboard mockup */}
           <div className="relative">
-            {/* Main dashboard placeholder */}
-            <div className="relative bg-card rounded-2xl shadow-sellqo-lg border border-border p-6 animate-float">
-              <div className="aspect-video bg-secondary/50 rounded-xl flex items-center justify-center">
-                <div className="text-center p-8">
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="w-8 h-8 text-primary" />
-                  </div>
-                  <p className="text-muted-foreground">SellQo Dashboard Preview</p>
-                </div>
-              </div>
-              
-              {/* Dashboard header mock */}
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <div className="flex gap-4">
-                  <div className="h-2 w-20 bg-secondary rounded" />
-                  <div className="h-2 w-16 bg-secondary rounded" />
-                </div>
-              </div>
+            {/* Main dashboard mockup */}
+            <div className="relative animate-float">
+              <HeroDashboardMockup />
             </div>
 
             {/* Floating cards */}

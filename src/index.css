@@ -194,3 +194,17 @@
     transform: translateX(-50%);
   }
 }
+
+@keyframes drawLine {
+  from {
+    stroke-dashoffset: 250;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.chart-line {
+  stroke-dasharray: 250;
+  animation: drawLine 1.5s ease-out forwards;
+}
