@@ -85,6 +85,14 @@ export interface Product {
   gift_card_allow_custom?: boolean | null;
   gift_card_expiry_months?: number | null;
   gift_card_design_id?: string | null;
+  // Shopify listing fields
+  shopify_product_id?: string | null;
+  shopify_variant_id?: string | null;
+  shopify_listing_status?: string | null;
+  shopify_listing_error?: string | null;
+  shopify_optimized_title?: string | null;
+  shopify_optimized_description?: string | null;
+  shopify_last_synced_at?: string | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)

@@ -5209,6 +5209,8 @@ export type Database = {
           shopify_last_synced_at: string | null
           shopify_listing_error: string | null
           shopify_listing_status: string | null
+          shopify_optimized_description: string | null
+          shopify_optimized_title: string | null
           shopify_product_id: string | null
           shopify_variant_id: string | null
           short_description: string | null
@@ -5285,6 +5287,8 @@ export type Database = {
           shopify_last_synced_at?: string | null
           shopify_listing_error?: string | null
           shopify_listing_status?: string | null
+          shopify_optimized_description?: string | null
+          shopify_optimized_title?: string | null
           shopify_product_id?: string | null
           shopify_variant_id?: string | null
           short_description?: string | null
@@ -5361,6 +5365,8 @@ export type Database = {
           shopify_last_synced_at?: string | null
           shopify_listing_error?: string | null
           shopify_listing_status?: string | null
+          shopify_optimized_description?: string | null
+          shopify_optimized_title?: string | null
           shopify_product_id?: string | null
           shopify_variant_id?: string | null
           short_description?: string | null

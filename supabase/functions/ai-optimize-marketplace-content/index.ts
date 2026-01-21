@@ -18,7 +18,7 @@ interface OptimizeRequest {
     tags?: string[];
     images?: string[];
   };
-  marketplace: 'bol_com' | 'amazon';
+  marketplace: 'bol_com' | 'amazon' | 'shopify';
   language?: string;
 }
 
@@ -54,21 +54,38 @@ serve(async (req) => {
     }
 
     // Build prompt based on marketplace
-    const marketplaceRules = marketplace === 'bol_com' 
-      ? `
+    let marketplaceRules: string;
+    let marketplaceName: string;
+    
+    if (marketplace === 'bol_com') {
+      marketplaceName = 'Bol.com (Dutch marketplace)';
+      marketplaceRules = `
         - Title: Max 150 characters, include brand + product type + key feature
         - 5 bullet points max 150 chars each, start with benefit/feature
         - Description for Dutch consumers, clear and professional
         - SEO keywords for Dutch market
-      `
-      : `
+      `;
+    } else if (marketplace === 'amazon') {
+      marketplaceName = 'Amazon';
+      marketplaceRules = `
         - Title: Max 200 characters, brand + product + features + size
         - 5 bullet points max 500 chars each, start with CAPS keyword
         - A+ Content style description
         - SEO keywords for the specific Amazon marketplace
       `;
+    } else {
+      marketplaceName = 'Shopify';
+      marketplaceRules = `
+        - Title: Max 255 characters, SEO-optimized with primary keyword at start
+        - 5 bullet points for key product features and benefits
+        - Description: Rich HTML-formatted, SEO-friendly with proper headings
+        - Tags: Comma-separated product tags for Shopify collections
+        - Meta description optimized for search engines (max 160 chars)
+        - Focus on conversion-oriented copywriting
+      `;
+    }
 
-    const prompt = `You are an e-commerce optimization expert. Optimize this product for ${marketplace === 'bol_com' ? 'Bol.com (Dutch marketplace)' : 'Amazon'}.
+    const prompt = `You are an e-commerce optimization expert. Optimize this product for ${marketplaceName}.
 
 Product Information:
 - Name: ${product.name}
@@ -147,11 +164,14 @@ Only return valid JSON, no markdown or explanation.`;
       };
     }
 
-    // Validate and clean response
+    // Validate and clean response based on marketplace
+    const titleMaxLength = marketplace === 'bol_com' ? 150 : marketplace === 'amazon' ? 200 : 255;
+    const bulletMaxLength = marketplace === 'bol_com' ? 150 : 500;
+    
     const validatedContent: OptimizedContent = {
-      title: (optimizedContent.title || product.name).substring(0, marketplace === 'bol_com' ? 150 : 200),
+      title: (optimizedContent.title || product.name).substring(0, titleMaxLength),
       bullets: (optimizedContent.bullets || []).slice(0, 5).map(b => 
-        typeof b === 'string' ? b.substring(0, marketplace === 'bol_com' ? 150 : 500) : String(b)
+        typeof b === 'string' ? b.substring(0, bulletMaxLength) : String(b)
       ),
       description: optimizedContent.description || product.description || '',
       category_suggestion: optimizedContent.category_suggestion,

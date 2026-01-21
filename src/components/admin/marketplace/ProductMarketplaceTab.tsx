@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Sparkles, ShoppingBag, Package, RefreshCw, Loader2, Check, AlertCircle, ExternalLink, Save, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useMarketplaceListing, type OptimizedContent, type BolOfferData, type AmazonOfferData } from '@/hooks/useMarketplaceListing';
+import { Store } from 'lucide-react';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { getEANValidationStatus } from '@/lib/eanValidation';
 import { getASINValidationStatus } from '@/lib/asinValidation';
@@ -86,6 +88,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const hasBolConnection = !!bolConnection;
   const amazonConnection = getConnectionByType('amazon');
   const hasAmazonConnection = !!amazonConnection;
+  const shopifyConnection = getConnectionByType('shopify');
+  const hasShopifyConnection = !!shopifyConnection;
 
   // Bol.com state - initialized from product
   const [bolEnabled, setBolEnabled] = useState(product.bol_listing_status !== 'not_listed');
@@ -105,9 +109,21 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [amazonOptimizedDescription, setAmazonOptimizedDescription] = useState(product.amazon_optimized_description || '');
   const [amazonBullets, setAmazonBullets] = useState<string[]>(product.amazon_bullets || []);
   
+  // Shopify state - initialized from product
+  const [shopifyEnabled, setShopifyEnabled] = useState(
+    product.shopify_listing_status !== null && product.shopify_listing_status !== 'not_listed'
+  );
+  const [shopifyOptimizedTitle, setShopifyOptimizedTitle] = useState(product.shopify_optimized_title || '');
+  const [shopifyOptimizedDescription, setShopifyOptimizedDescription] = useState(product.shopify_optimized_description || '');
+  
   // Track if settings have changed
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasAmazonUnsavedChanges, setHasAmazonUnsavedChanges] = useState(false);
+  const [hasShopifyUnsavedChanges, setHasShopifyUnsavedChanges] = useState(false);
+  
+  // Shopify action states
+  const [isPublishingShopify, setIsPublishingShopify] = useState(false);
+  const [isSyncingShopify, setIsSyncingShopify] = useState(false);
 
   // Validations
   const eanValidation = getEANValidationStatus(bolEan);
@@ -130,8 +146,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     setAmazonOptimizedDescription(product.amazon_optimized_description || '');
     setAmazonBullets(product.amazon_bullets || []);
     
+    // Shopify state
+    setShopifyEnabled(product.shopify_listing_status !== null && product.shopify_listing_status !== 'not_listed');
+    setShopifyOptimizedTitle(product.shopify_optimized_title || '');
+    setShopifyOptimizedDescription(product.shopify_optimized_description || '');
+    
     setHasUnsavedChanges(false);
     setHasAmazonUnsavedChanges(false);
+    setHasShopifyUnsavedChanges(false);
   }, [product]);
 
   // Track Bol.com changes
@@ -144,6 +166,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const handleAmazonFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
     setter(value);
     setHasAmazonUnsavedChanges(true);
+  }, []);
+
+  // Track Shopify changes
+  const handleShopifyFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    setHasShopifyUnsavedChanges(true);
   }, []);
 
   const handleSaveSettings = async () => {
@@ -178,6 +206,22 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
         },
       });
       setHasAmazonUnsavedChanges(false);
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleSaveShopifySettings = async () => {
+    try {
+      await saveMarketplaceSettings.mutateAsync({
+        productId: product.id,
+        settings: {
+          shopify_optimized_title: shopifyOptimizedTitle,
+          shopify_optimized_description: shopifyOptimizedDescription,
+        },
+      });
+      setHasShopifyUnsavedChanges(false);
       onRefresh?.();
     } catch (error) {
       // Error handled by mutation
@@ -361,6 +405,88 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     }
   };
 
+  // Shopify handlers
+  const handleOptimizeShopify = async () => {
+    const content = await optimizeContent(product, 'shopify');
+    if (content) {
+      setShopifyOptimizedTitle(content.title);
+      setShopifyOptimizedDescription(content.description);
+      setHasShopifyUnsavedChanges(true);
+      
+      // Auto-save optimized content
+      saveOptimizedContent.mutate({
+        productId: product.id,
+        marketplace: 'shopify',
+        content,
+      });
+    }
+  };
+
+  const handlePublishToShopify = async () => {
+    if (!shopifyConnection) return;
+    
+    setIsPublishingShopify(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-shopify-product', {
+        body: {
+          product_id: product.id,
+          tenant_id: product.tenant_id,
+          connection_id: shopifyConnection.id,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Shopify API fout');
+
+      toast({
+        title: 'Product gepubliceerd!',
+        description: 'Je product is succesvol gepubliceerd naar Shopify',
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: 'Publicatie mislukt',
+        description: error instanceof Error ? error.message : 'Kon product niet publiceren',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPublishingShopify(false);
+    }
+  };
+
+  const handleSyncShopify = async () => {
+    if (!shopifyConnection) return;
+    
+    setIsSyncingShopify(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-shopify-product', {
+        body: {
+          product_id: product.id,
+          tenant_id: product.tenant_id,
+          connection_id: shopifyConnection.id,
+          update_type: 'all',
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Shopify sync fout');
+
+      toast({
+        title: 'Gesynchroniseerd!',
+        description: 'Je product is bijgewerkt in Shopify',
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: 'Synchronisatie mislukt',
+        description: error instanceof Error ? error.message : 'Kon product niet synchroniseren',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingShopify(false);
+    }
+  };
+
   const isListed = product.bol_listing_status === 'listed';
   const isPending = product.bol_listing_status === 'pending';
   const hasError = product.bol_listing_status === 'error';
@@ -368,6 +494,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const isAmazonListed = product.amazon_listing_status === 'listed';
   const isAmazonPending = product.amazon_listing_status === 'pending';
   const hasAmazonError = product.amazon_listing_status === 'error';
+
+  const isShopifyListed = product.shopify_listing_status === 'listed';
+  const isShopifyPending = product.shopify_listing_status === 'pending';
+  const hasShopifyError = product.shopify_listing_status === 'error';
 
   return (
     <div className="space-y-6">
@@ -1016,6 +1146,211 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
                 Verbind eerst je Amazon Seller Central account om producten te kunnen publiceren
+              </p>
+              <Button variant="outline" asChild>
+                <a href="/admin/connect">Naar Connect</a>
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Shopify Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <Store className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Shopify</CardTitle>
+                <CardDescription>
+                  {hasShopifyConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {getStatusBadge(product.shopify_listing_status)}
+              <Switch
+                checked={shopifyEnabled}
+                onCheckedChange={(checked) => handleShopifyFieldChange(setShopifyEnabled, checked)}
+                disabled={!hasShopifyConnection}
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+        {shopifyEnabled && hasShopifyConnection && (
+          <CardContent className="space-y-6">
+            {/* Unsaved changes alert */}
+            {hasShopifyUnsavedChanges && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <Button 
+                    size="sm" 
+                    onClick={handleSaveShopifySettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1" />
+                    )}
+                    Opslaan
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error message if any */}
+            {hasShopifyError && product.shopify_listing_error && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>{product.shopify_listing_error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Pending status */}
+            {isShopifyPending && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Je product wordt verwerkt door Shopify...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* AI Optimization */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Laat AI je productcontent optimaliseren voor Shopify SEO
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleOptimizeShopify}
+                  disabled={isOptimizing}
+                >
+                  {isOptimizing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Optimaliseer met AI
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>SEO-geoptimaliseerde titel</Label>
+                  <Input
+                    value={shopifyOptimizedTitle}
+                    onChange={(e) => handleShopifyFieldChange(setShopifyOptimizedTitle, e.target.value)}
+                    placeholder="AI-geoptimaliseerde titel voor Shopify"
+                    maxLength={255}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {shopifyOptimizedTitle.length}/255 tekens
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>SEO-geoptimaliseerde beschrijving</Label>
+                  <Textarea
+                    value={shopifyOptimizedDescription}
+                    onChange={(e) => handleShopifyFieldChange(setShopifyOptimizedDescription, e.target.value)}
+                    placeholder="Uitgebreide productomschrijving voor Shopify..."
+                    rows={4}
+                    maxLength={5000}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {shopifyOptimizedDescription.length}/5000 tekens
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Actions */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {product.shopify_last_synced_at && (
+                  <span>
+                    Laatst gesynchroniseerd:{' '}
+                    {new Date(product.shopify_last_synced_at).toLocaleString('nl-NL')}
+                  </span>
+                )}
+                {product.shopify_product_id && (
+                  <span className="ml-3">
+                    Product ID: <code className="bg-muted px-1 py-0.5 rounded text-xs">{product.shopify_product_id}</code>
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {/* Save button */}
+                {hasShopifyUnsavedChanges && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveShopifySettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Opslaan
+                  </Button>
+                )}
+                
+                {/* Sync button for listed products */}
+                {isShopifyListed && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSyncShopify}
+                    disabled={isSyncingShopify}
+                  >
+                    {isSyncingShopify ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Synchroniseren
+                  </Button>
+                )}
+                
+                {/* Publish button for non-listed products */}
+                {!isShopifyListed && !isShopifyPending && (
+                  <Button
+                    onClick={handlePublishToShopify}
+                    disabled={isPublishingShopify}
+                  >
+                    {isPublishingShopify ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                    )}
+                    Publiceer naar Shopify
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        )}
+
+        {!hasShopifyConnection && (
+          <CardContent>
+            <div className="text-center py-6">
+              <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground mb-4">
+                Verbind eerst je Shopify winkel om producten te kunnen publiceren
               </p>
               <Button variant="outline" asChild>
                 <a href="/admin/connect">Naar Connect</a>
