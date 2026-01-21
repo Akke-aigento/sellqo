@@ -65,7 +65,12 @@ export default function ShopPage() {
 
           {page.content && (
             <div 
-              className="prose prose-lg max-w-none"
+              className="prose prose-lg max-w-none dark:prose-invert
+                         prose-headings:font-bold prose-headings:text-foreground
+                         prose-p:text-muted-foreground prose-a:text-primary
+                         prose-ul:list-disc prose-ol:list-decimal
+                         prose-img:rounded-lg prose-img:max-w-full"
+              style={{ fontFamily: themeSettings?.body_font ? `"${themeSettings.body_font}", sans-serif` : undefined }}
               dangerouslySetInnerHTML={{ __html: page.content }}
             />
           )}
