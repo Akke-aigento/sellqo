@@ -94,6 +94,17 @@ Deno.serve(async (req) => {
       updatePayload.stock_quantity = stockToSync
     }
 
+    // SEO update - sync Yoast SEO and RankMath meta_data
+    if (update_type === 'all' || update_type === 'seo') {
+      updatePayload.meta_data = [
+        ...(product.meta_title ? [{ key: '_yoast_wpseo_title', value: product.meta_title }] : []),
+        ...(product.meta_description ? [{ key: '_yoast_wpseo_metadesc', value: product.meta_description }] : []),
+        // Also add RankMath keys for compatibility
+        ...(product.meta_title ? [{ key: 'rank_math_title', value: product.meta_title }] : []),
+        ...(product.meta_description ? [{ key: 'rank_math_description', value: product.meta_description }] : []),
+      ]
+    }
+
     console.log(`Updating WooCommerce product ${product.woocommerce_product_id}:`, update_type)
 
     // Update product in WooCommerce

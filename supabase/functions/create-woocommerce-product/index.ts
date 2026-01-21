@@ -73,6 +73,14 @@ Deno.serve(async (req) => {
       manage_stock: product.track_inventory,
       stock_quantity: product.stock || 0,
       status: product.is_active ? 'publish' : 'draft',
+      // Yoast SEO meta_data - compatible with Yoast SEO and RankMath plugins
+      meta_data: [
+        ...(product.meta_title ? [{ key: '_yoast_wpseo_title', value: product.meta_title }] : []),
+        ...(product.meta_description ? [{ key: '_yoast_wpseo_metadesc', value: product.meta_description }] : []),
+        // Also add RankMath keys for compatibility
+        ...(product.meta_title ? [{ key: 'rank_math_title', value: product.meta_title }] : []),
+        ...(product.meta_description ? [{ key: 'rank_math_description', value: product.meta_description }] : []),
+      ],
     }
 
     // Add images if available

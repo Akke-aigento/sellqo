@@ -75,6 +75,21 @@ export const WOOCOMMERCE_PRODUCT_MAPPING: FieldMapping = {
   'categories': { target: 'category_id', transform: 'wcCategories' },
   'tags': { target: 'tags', transform: 'wcTags' },
   'images': { target: 'images', transform: 'wcImages' },
+  // Yoast SEO fields (most common WooCommerce SEO plugin)
+  'yoast_wpseo_title': { target: 'meta_title' },
+  'yoast_wpseo_metadesc': { target: 'meta_description' },
+  '_yoast_wpseo_title': { target: 'meta_title' },
+  '_yoast_wpseo_metadesc': { target: 'meta_description' },
+  // RankMath SEO fields (second most popular)
+  'rank_math_title': { target: 'meta_title' },
+  'rank_math_description': { target: 'meta_description' },
+  // Generic SEO fields (some exports use these)
+  'meta_title': { target: 'meta_title' },
+  'meta_description': { target: 'meta_description' },
+  'seo_title': { target: 'meta_title' },
+  'seo_description': { target: 'meta_description' },
+  'Meta: _yoast_wpseo_title': { target: 'meta_title' },
+  'Meta: _yoast_wpseo_metadesc': { target: 'meta_description' },
 };
 
 // Shopify Category Mapping
@@ -98,6 +113,11 @@ export const WOOCOMMERCE_CATEGORY_MAPPING: FieldMapping = {
   'description': { target: 'description', transform: 'html' },
   'image': { target: 'image_url' },
   'menu_order': { target: 'sort_order', transform: 'number' },
+  // Yoast SEO category fields
+  'wpseo_title': { target: 'meta_title_nl' },
+  'wpseo_desc': { target: 'meta_description_nl' },
+  'yoast_wpseo_title': { target: 'meta_title_nl' },
+  'yoast_wpseo_metadesc': { target: 'meta_description_nl' },
 };
 export function detectPlatform(headers: string[]): string {
   const normalizedHeaders = headers.map(h => h.toLowerCase().trim());

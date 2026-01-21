@@ -95,6 +95,9 @@ Deno.serve(async (req) => {
           },
         ],
         images: product.images?.map((url: string) => ({ src: url })) || [],
+        // SEO metafields - Shopify uses these for SEO title/description
+        metafields_global_title_tag: product.meta_title || product.shopify_optimized_title || undefined,
+        metafields_global_description_tag: product.meta_description || product.shopify_optimized_description || undefined,
       },
     }
 
