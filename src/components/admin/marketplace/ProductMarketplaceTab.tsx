@@ -526,8 +526,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
         )}
       </Card>
 
-      {/* Amazon Section (placeholder) */}
-      <Card className="opacity-60">
+      {/* Amazon Section */}
+      <Card className={!getConnectionByType('amazon') ? 'opacity-60' : ''}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -536,12 +536,31 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
               <div>
                 <CardTitle className="text-lg">Amazon</CardTitle>
-                <CardDescription>Binnenkort beschikbaar</CardDescription>
+                <CardDescription>
+                  {getConnectionByType('amazon') ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                </CardDescription>
               </div>
             </div>
-            <Badge variant="secondary">Coming Soon</Badge>
+            {!getConnectionByType('amazon') ? (
+              <Badge variant="secondary">Niet verbonden</Badge>
+            ) : (
+              <Badge className="bg-green-500">Verbonden</Badge>
+            )}
           </div>
         </CardHeader>
+        {!getConnectionByType('amazon') && (
+          <CardContent>
+            <div className="text-center py-6">
+              <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground mb-4">
+                Verbind eerst je Amazon Seller Central account om producten te kunnen publiceren
+              </p>
+              <Button variant="outline" asChild>
+                <a href="/admin/connect">Naar Connect</a>
+              </Button>
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );

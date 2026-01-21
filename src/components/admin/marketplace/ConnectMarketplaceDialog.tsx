@@ -138,13 +138,16 @@ export function ConnectMarketplaceDialog({
       
       setStep('success');
       
-      // Start the actual first sync
+      // Start the actual first sync based on marketplace type
       setSyncProgress(10);
+      
+      const syncOrdersFunction = marketplaceType === 'amazon' ? 'sync-amazon-orders' : 'sync-bol-orders';
+      const syncInventoryFunction = marketplaceType === 'amazon' ? 'sync-amazon-inventory' : 'sync-bol-inventory';
       
       // Trigger order import
       try {
         setSyncProgress(20);
-        const orderSyncResult = await supabase.functions.invoke('sync-bol-orders', {
+        const orderSyncResult = await supabase.functions.invoke(syncOrdersFunction, {
           body: { connectionId: newConnection.id }
         });
         setSyncSteps(prev => ({ ...prev, orders: true }));
@@ -158,7 +161,7 @@ export function ConnectMarketplaceDialog({
       // Trigger inventory sync
       try {
         setSyncProgress(70);
-        const inventorySyncResult = await supabase.functions.invoke('sync-bol-inventory', {
+        const inventorySyncResult = await supabase.functions.invoke(syncInventoryFunction, {
           body: { connectionId: newConnection.id }
         });
         setSyncSteps(prev => ({ ...prev, inventory: true }));
