@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale } from 'lucide-react';
+import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { StorefrontPagesManager } from '@/components/admin/storefront/Storefront
 import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSettings';
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
+import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
 
 export default function StorefrontPage() {
   const { currentTenant } = useTenant();
@@ -127,7 +128,7 @@ export default function StorefrontPage() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="theme" className="flex items-center gap-2">
             <Paintbrush className="h-4 w-4" />
             <span className="hidden sm:inline">Theme</span>
@@ -139,6 +140,10 @@ export default function StorefrontPage() {
           <TabsTrigger value="pages" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Pagina's</span>
+          </TabsTrigger>
+          <TabsTrigger value="reviews" className="flex items-center gap-2">
+            <Star className="h-4 w-4" />
+            <span className="hidden sm:inline">Reviews</span>
           </TabsTrigger>
           <TabsTrigger value="legal" className="flex items-center gap-2">
             <Scale className="h-4 w-4" />
@@ -165,6 +170,10 @@ export default function StorefrontPage() {
 
         <TabsContent value="pages">
           <StorefrontPagesManager />
+        </TabsContent>
+
+        <TabsContent value="reviews">
+          <ReviewsHub />
         </TabsContent>
 
         <TabsContent value="legal">

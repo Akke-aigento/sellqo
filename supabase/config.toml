@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.sync-woocommerce-products]
 verify_jwt = false
+
+[functions.sync-platform-reviews]
+verify_jwt = false
