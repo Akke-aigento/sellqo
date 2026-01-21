@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Instagram, Facebook, Linkedin, Twitter, 
   Sparkles, Copy, Check, RefreshCw, ImageIcon,
-  Loader2, ChevronDown, Wand2, Package
+  Loader2, ChevronDown, Wand2, Package, Send, Calendar, Link2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,11 @@ import {
 } from '@/components/ui/collapsible';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
+import { useSocialConnections } from '@/hooks/useSocialConnections';
+import { useTenant } from '@/hooks/useTenant';
+import { supabase } from '@/integrations/supabase/client';
 import { ProductSelectDialog } from './ProductSelectDialog';
+import { SchedulePublishButton } from './SchedulePublishButton';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -70,14 +75,18 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(initialProductIds || []);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const { generateSocialPost, context } = useAIMarketing();
   const { hasCredits, getCreditCost } = useAICredits();
+  const { getConnectionByPlatform } = useSocialConnections();
+  const { currentTenant } = useTenant();
 
   const creditCost = getCreditCost('social_post');
   const canGenerate = hasCredits(creditCost);
   const selectedType = contentTypes.find(ct => ct.id === contentType);
   const needsProducts = selectedType?.needsProducts;
+  const platformConnection = getConnectionByPlatform(platform);
 
   const handleGenerate = async () => {
     if (!canGenerate) {
@@ -279,6 +288,79 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
 
               <div className="whitespace-pre-wrap text-sm bg-background p-4 rounded-md border">
                 {generatedContent}
+              </div>
+
+              {/* Publish Actions */}
+              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                {platformConnection ? (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!currentTenant?.id) return;
+                        setIsPublishing(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('social-post-publish', {
+                            body: {
+                              tenantId: currentTenant.id,
+                              platform,
+                              text: generatedContent,
+                              imageUrls: suggestedImages.length > 0 ? suggestedImages : undefined,
+                            },
+                          });
+                          if (error) throw error;
+                          if (data.success) {
+                            toast.success(`Gepost naar ${selectedPlatform?.name}!`);
+                            setGeneratedContent(null);
+                          } else {
+                            toast.error(data.error || 'Publiceren mislukt');
+                          }
+                        } catch (err: any) {
+                          toast.error(err.message || 'Publiceren mislukt');
+                        } finally {
+                          setIsPublishing(false);
+                        }
+                      }}
+                      disabled={isPublishing}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    >
+                      {isPublishing ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-1" />
+                      )}
+                      Nu Publiceren
+                    </Button>
+                    <SchedulePublishButton
+                      onSchedule={async (scheduledAt) => {
+                        if (!currentTenant?.id) return;
+                        const { data, error } = await supabase.functions.invoke('social-post-publish', {
+                          body: {
+                            tenantId: currentTenant.id,
+                            platform,
+                            text: generatedContent,
+                            imageUrls: suggestedImages.length > 0 ? suggestedImages : undefined,
+                            scheduledFor: scheduledAt.toISOString(),
+                          },
+                        });
+                        if (error) throw error;
+                        if (data.success || data.scheduled) {
+                          toast.success(`Ingepland voor ${scheduledAt.toLocaleString('nl-NL')}`);
+                          setGeneratedContent(null);
+                        } else {
+                          throw new Error(data.error || 'Inplannen mislukt');
+                        }
+                      }}
+                    />
+                  </>
+                ) : (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/admin/settings?section=social">
+                      <Link2 className="h-4 w-4 mr-1" />
+                      Koppel {selectedPlatform?.name}
+                    </Link>
+                  </Button>
+                )}
               </div>
 
               {/* Suggested Images */}
