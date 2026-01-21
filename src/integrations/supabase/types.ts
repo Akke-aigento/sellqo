@@ -4017,6 +4017,44 @@ export type Database = {
           },
         ]
       }
+      oauth_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string | null
+          expires_at: string
+          platform: string
+          redirect_url: string
+          state: string
+          tenant_id: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at?: string | null
+          expires_at: string
+          platform: string
+          redirect_url: string
+          state: string
+          tenant_id: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string | null
+          expires_at?: string
+          platform?: string
+          redirect_url?: string
+          state?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       odoo_customer_sync_log: {
         Row: {
           created_at: string
