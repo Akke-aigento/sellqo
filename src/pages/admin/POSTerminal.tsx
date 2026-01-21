@@ -64,8 +64,10 @@ import { POSDiscountPanel, POSDiscount } from '@/components/admin/pos/POSDiscoun
 import { POSMultiPaymentDialog, MultiPaymentData } from '@/components/admin/pos/POSMultiPaymentDialog';
 import { POSRefundDialog, RefundData } from '@/components/admin/pos/POSRefundDialog';
 import { POSTransactionHistory } from '@/components/admin/pos/POSTransactionHistory';
+import { POSGiftCardSellDialog } from '@/components/admin/pos/POSGiftCardSellDialog';
 import type { AppliedGiftCard } from '@/components/admin/pos/POSGiftCardInput';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
+import type { GiftCard } from '@/types/giftCard';
 import type { Product } from '@/types/product';
 import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
@@ -154,6 +156,8 @@ export default function POSTerminalPage() {
   const [showMultiPaymentDialog, setShowMultiPaymentDialog] = useState(false);
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [showGiftCardSellDialog, setShowGiftCardSellDialog] = useState(false);
+  const [pendingGiftCard, setPendingGiftCard] = useState<{ giftCard: GiftCard; amount: number } | null>(null);
   const [refundTxn, setRefundTxn] = useState<POSTransaction | null>(null);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
   const [lastPaymentWasCash, setLastPaymentWasCash] = useState(false);
@@ -844,6 +848,17 @@ export default function POSTerminalPage() {
                   )}
                 </button>
               ))}
+              {/* Gift Card Sell Button - Always visible */}
+              <button
+                className="aspect-square rounded-lg border-2 flex flex-col items-center justify-center p-2 hover:bg-muted transition-colors"
+                style={{ borderColor: 'hsl(var(--primary))' }}
+                onClick={() => setShowGiftCardSellDialog(true)}
+                disabled={!activeSession}
+              >
+                <Gift className="h-5 w-5 mb-1 text-primary" />
+                <span className="text-xs font-medium text-center">Cadeaukaart</span>
+                <span className="text-[10px] text-muted-foreground">Verkopen</span>
+              </button>
               {quickButtons.length === 0 && (
                 <button
                   className="col-span-2 aspect-[2/1] rounded-lg border-2 border-dashed flex flex-col items-center justify-center p-2 hover:bg-muted transition-colors text-muted-foreground"
@@ -1374,6 +1389,31 @@ export default function POSTerminalPage() {
         }}
         isProcessing={refundTransaction.isPending}
       />
+
+      {/* Gift Card Sell Dialog */}
+      {terminalId && (
+        <POSGiftCardSellDialog
+          open={showGiftCardSellDialog}
+          onOpenChange={setShowGiftCardSellDialog}
+          terminalId={terminalId}
+          onGiftCardCreated={(giftCard, amount) => {
+            // Add gift card to cart as an item
+            const giftCardItem: POSCartItem = {
+              id: crypto.randomUUID(),
+              product_id: giftCard.id, // Use gift card ID as product reference
+              name: `Cadeaukaart ${giftCard.code}`,
+              sku: giftCard.code,
+              price: amount,
+              quantity: 1,
+              tax_rate: 0, // Gift cards are typically tax-exempt
+              discount: 0,
+              total: amount,
+            };
+            setCart(prev => [...prev, giftCardItem]);
+            setPendingGiftCard({ giftCard, amount });
+          }}
+        />
+      )}
     </div>
   );
 }
