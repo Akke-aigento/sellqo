@@ -14,6 +14,9 @@ import {
   FolderOpen,
   Image as ImageIcon,
   Link2,
+  Gauge,
+  Users,
+  Calendar,
 } from 'lucide-react';
 import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
@@ -29,6 +32,10 @@ import { RobotsTxtEditor } from '@/components/admin/seo/RobotsTxtEditor';
 import { AISearchOptimizer } from '@/components/admin/seo/AISearchOptimizer';
 import { SlugManager } from '@/components/admin/seo/SlugManager';
 import { SEOTranslationStatus } from '@/components/admin/seo/SEOTranslationStatus';
+import { CoreWebVitalsPanel } from '@/components/admin/seo/CoreWebVitalsPanel';
+import { CompetitorAnalysisPanel } from '@/components/admin/seo/CompetitorAnalysisPanel';
+import { SearchConsolePanel } from '@/components/admin/seo/SearchConsolePanel';
+import { ScheduledAuditsPanel } from '@/components/admin/seo/ScheduledAuditsPanel';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
@@ -301,6 +308,22 @@ export default function SEODashboard() {
             <TabsTrigger value="social">Social</TabsTrigger>
             <TabsTrigger value="technical">Technisch</TabsTrigger>
             <TabsTrigger value="ai-search">AI Zoeken</TabsTrigger>
+            <TabsTrigger value="vitals" className="gap-1">
+              <Gauge className="h-3 w-3" />
+              Web Vitals
+            </TabsTrigger>
+            <TabsTrigger value="competitors" className="gap-1">
+              <Users className="h-3 w-3" />
+              Concurrenten
+            </TabsTrigger>
+            <TabsTrigger value="search-console" className="gap-1">
+              <Globe className="h-3 w-3" />
+              Search Console
+            </TabsTrigger>
+            <TabsTrigger value="audits" className="gap-1">
+              <Calendar className="h-3 w-3" />
+              Audits
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
@@ -447,6 +470,22 @@ export default function SEODashboard() {
               }}
               isGenerating={isGenerating}
             />
+          </TabsContent>
+
+          <TabsContent value="vitals" className="mt-6">
+            <CoreWebVitalsPanel />
+          </TabsContent>
+
+          <TabsContent value="competitors" className="mt-6">
+            <CompetitorAnalysisPanel />
+          </TabsContent>
+
+          <TabsContent value="search-console" className="mt-6">
+            <SearchConsolePanel />
+          </TabsContent>
+
+          <TabsContent value="audits" className="mt-6">
+            <ScheduledAuditsPanel />
           </TabsContent>
         </Tabs>
       </div>
