@@ -3961,6 +3961,68 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string | null
+          email: string
+          external_id: string | null
+          first_name: string | null
+          id: string
+          metadata: Json | null
+          source: string | null
+          status: string | null
+          subscribed_at: string | null
+          sync_error: string | null
+          sync_status: string | null
+          tenant_id: string
+          unsubscribed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string | null
+          email: string
+          external_id?: string | null
+          first_name?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          status?: string | null
+          subscribed_at?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
+          tenant_id: string
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string | null
+          email?: string
+          external_id?: string | null
+          first_name?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          status?: string | null
+          subscribed_at?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
+          tenant_id?: string
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_subscribers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -8304,6 +8366,59 @@ export type Database = {
             foreignKeyName: "tenant_loyalty_rewards_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_newsletter_config: {
+        Row: {
+          created_at: string | null
+          double_optin: boolean | null
+          id: string
+          klaviyo_api_key: string | null
+          klaviyo_list_id: string | null
+          mailchimp_api_key: string | null
+          mailchimp_audience_id: string | null
+          mailchimp_server_prefix: string | null
+          provider: string
+          tenant_id: string
+          updated_at: string | null
+          welcome_email_enabled: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          double_optin?: boolean | null
+          id?: string
+          klaviyo_api_key?: string | null
+          klaviyo_list_id?: string | null
+          mailchimp_api_key?: string | null
+          mailchimp_audience_id?: string | null
+          mailchimp_server_prefix?: string | null
+          provider?: string
+          tenant_id: string
+          updated_at?: string | null
+          welcome_email_enabled?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          double_optin?: boolean | null
+          id?: string
+          klaviyo_api_key?: string | null
+          klaviyo_list_id?: string | null
+          mailchimp_api_key?: string | null
+          mailchimp_audience_id?: string | null
+          mailchimp_server_prefix?: string | null
+          provider?: string
+          tenant_id?: string
+          updated_at?: string | null
+          welcome_email_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_newsletter_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
