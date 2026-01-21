@@ -47,6 +47,9 @@ export interface MarketplaceSettings {
   amazon_optimized_title?: string;
   amazon_optimized_description?: string;
   amazon_bullets?: string[];
+  // Shopify fields
+  shopify_optimized_title?: string;
+  shopify_optimized_description?: string;
 }
 
 export function useMarketplaceListing() {
@@ -58,7 +61,7 @@ export function useMarketplaceListing() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isCheckingAmazonStatus, setIsCheckingAmazonStatus] = useState(false);
 
-  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon'): Promise<OptimizedContent | null> => {
+  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify'): Promise<OptimizedContent | null> => {
     if (!currentTenant) return null;
 
     setIsOptimizing(true);
@@ -103,20 +106,29 @@ export function useMarketplaceListing() {
       content 
     }: { 
       productId: string; 
-      marketplace: 'bol_com' | 'amazon'; 
+      marketplace: 'bol_com' | 'amazon' | 'shopify'; 
       content: OptimizedContent;
     }) => {
-      const updateData = marketplace === 'bol_com' 
-        ? {
-            bol_optimized_title: content.title,
-            bol_optimized_description: content.description,
-            bol_bullets: content.bullets,
-          }
-        : {
-            amazon_optimized_title: content.title,
-            amazon_optimized_description: content.description,
-            amazon_bullets: content.bullets,
-          };
+      let updateData: Record<string, unknown>;
+      
+      if (marketplace === 'bol_com') {
+        updateData = {
+          bol_optimized_title: content.title,
+          bol_optimized_description: content.description,
+          bol_bullets: content.bullets,
+        };
+      } else if (marketplace === 'amazon') {
+        updateData = {
+          amazon_optimized_title: content.title,
+          amazon_optimized_description: content.description,
+          amazon_bullets: content.bullets,
+        };
+      } else {
+        updateData = {
+          shopify_optimized_title: content.title,
+          shopify_optimized_description: content.description,
+        };
+      }
 
       const { error } = await supabase
         .from('products')

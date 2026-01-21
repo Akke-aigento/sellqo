@@ -125,7 +125,7 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
       { text: 'Automatische order import', available: true },
       { text: 'Realtime voorraad sync', available: true },
       { text: 'Bi-directionele product sync', available: true },
-      { text: 'Klant synchronisatie', available: true },
+      { text: 'AI Product listing', available: true },
     ],
   },
   woocommerce: {
