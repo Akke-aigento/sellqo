@@ -8150,29 +8150,54 @@ export type Database = {
           announcement_text: string | null
           background_color: string | null
           body_font: string | null
+          checkout_address_autocomplete: boolean | null
+          checkout_company_field: string | null
+          checkout_guest_enabled: boolean | null
+          checkout_phone_required: boolean | null
+          cookie_banner_enabled: boolean | null
+          cookie_banner_style: string | null
           created_at: string | null
           custom_css: string | null
           custom_frontend_url: string | null
           custom_head_scripts: string | null
+          exit_intent_popup: boolean | null
           favicon_url: string | null
           footer_text: string | null
+          header_sticky: boolean | null
           header_style: string | null
           heading_font: string | null
           id: string
           is_published: boolean | null
           logo_url: string | null
+          mobile_bottom_nav: boolean | null
+          nav_style: string | null
+          newsletter_enabled: boolean | null
+          newsletter_incentive_text: string | null
+          newsletter_popup_delay_seconds: number | null
+          newsletter_popup_enabled: boolean | null
+          newsletter_provider: string | null
           primary_color: string | null
           product_card_style: string | null
+          product_image_zoom: string | null
+          product_related_mode: string | null
+          product_reviews_display: string | null
+          product_stock_indicator: boolean | null
+          product_variant_style: string | null
           products_per_row: number | null
           published_at: string | null
+          search_display: string | null
           secondary_color: string | null
           show_announcement_bar: boolean | null
           show_breadcrumbs: boolean | null
+          show_recent_purchases: boolean | null
+          show_stock_count: boolean | null
+          show_viewers_count: boolean | null
           show_wishlist: boolean | null
           social_links: Json | null
           tenant_id: string
           text_color: string | null
           theme_id: string | null
+          trust_badges: Json | null
           updated_at: string | null
           use_custom_frontend: boolean | null
         }
@@ -8182,29 +8207,54 @@ export type Database = {
           announcement_text?: string | null
           background_color?: string | null
           body_font?: string | null
+          checkout_address_autocomplete?: boolean | null
+          checkout_company_field?: string | null
+          checkout_guest_enabled?: boolean | null
+          checkout_phone_required?: boolean | null
+          cookie_banner_enabled?: boolean | null
+          cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
           custom_frontend_url?: string | null
           custom_head_scripts?: string | null
+          exit_intent_popup?: boolean | null
           favicon_url?: string | null
           footer_text?: string | null
+          header_sticky?: boolean | null
           header_style?: string | null
           heading_font?: string | null
           id?: string
           is_published?: boolean | null
           logo_url?: string | null
+          mobile_bottom_nav?: boolean | null
+          nav_style?: string | null
+          newsletter_enabled?: boolean | null
+          newsletter_incentive_text?: string | null
+          newsletter_popup_delay_seconds?: number | null
+          newsletter_popup_enabled?: boolean | null
+          newsletter_provider?: string | null
           primary_color?: string | null
           product_card_style?: string | null
+          product_image_zoom?: string | null
+          product_related_mode?: string | null
+          product_reviews_display?: string | null
+          product_stock_indicator?: boolean | null
+          product_variant_style?: string | null
           products_per_row?: number | null
           published_at?: string | null
+          search_display?: string | null
           secondary_color?: string | null
           show_announcement_bar?: boolean | null
           show_breadcrumbs?: boolean | null
+          show_recent_purchases?: boolean | null
+          show_stock_count?: boolean | null
+          show_viewers_count?: boolean | null
           show_wishlist?: boolean | null
           social_links?: Json | null
           tenant_id: string
           text_color?: string | null
           theme_id?: string | null
+          trust_badges?: Json | null
           updated_at?: string | null
           use_custom_frontend?: boolean | null
         }
@@ -8214,29 +8264,54 @@ export type Database = {
           announcement_text?: string | null
           background_color?: string | null
           body_font?: string | null
+          checkout_address_autocomplete?: boolean | null
+          checkout_company_field?: string | null
+          checkout_guest_enabled?: boolean | null
+          checkout_phone_required?: boolean | null
+          cookie_banner_enabled?: boolean | null
+          cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
           custom_frontend_url?: string | null
           custom_head_scripts?: string | null
+          exit_intent_popup?: boolean | null
           favicon_url?: string | null
           footer_text?: string | null
+          header_sticky?: boolean | null
           header_style?: string | null
           heading_font?: string | null
           id?: string
           is_published?: boolean | null
           logo_url?: string | null
+          mobile_bottom_nav?: boolean | null
+          nav_style?: string | null
+          newsletter_enabled?: boolean | null
+          newsletter_incentive_text?: string | null
+          newsletter_popup_delay_seconds?: number | null
+          newsletter_popup_enabled?: boolean | null
+          newsletter_provider?: string | null
           primary_color?: string | null
           product_card_style?: string | null
+          product_image_zoom?: string | null
+          product_related_mode?: string | null
+          product_reviews_display?: string | null
+          product_stock_indicator?: boolean | null
+          product_variant_style?: string | null
           products_per_row?: number | null
           published_at?: string | null
+          search_display?: string | null
           secondary_color?: string | null
           show_announcement_bar?: boolean | null
           show_breadcrumbs?: boolean | null
+          show_recent_purchases?: boolean | null
+          show_stock_count?: boolean | null
+          show_viewers_count?: boolean | null
           show_wishlist?: boolean | null
           social_links?: Json | null
           tenant_id?: string
           text_color?: string | null
           theme_id?: string | null
+          trust_badges?: Json | null
           updated_at?: string | null
           use_custom_frontend?: boolean | null
         }

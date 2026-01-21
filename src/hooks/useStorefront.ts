@@ -135,7 +135,22 @@ export function useStorefront() {
         'body_font', 'header_style', 'show_announcement_bar', 'announcement_text',
         'announcement_link', 'show_breadcrumbs', 'show_wishlist', 'product_card_style',
         'products_per_row', 'footer_text', 'custom_css', 'custom_head_scripts',
-        'is_published', 'published_at'
+        'is_published', 'published_at',
+        // Newsletter settings
+        'newsletter_enabled', 'newsletter_provider', 'newsletter_popup_enabled',
+        'newsletter_popup_delay_seconds', 'newsletter_incentive_text',
+        // Checkout settings
+        'checkout_guest_enabled', 'checkout_phone_required', 'checkout_company_field',
+        'checkout_address_autocomplete',
+        // Product display settings
+        'product_image_zoom', 'product_variant_style', 'product_reviews_display',
+        'product_stock_indicator', 'product_related_mode',
+        // Trust settings
+        'cookie_banner_enabled', 'cookie_banner_style', 'trust_badges',
+        // Navigation settings
+        'nav_style', 'header_sticky', 'search_display', 'mobile_bottom_nav',
+        // Conversion settings
+        'show_stock_count', 'show_viewers_count', 'show_recent_purchases', 'exit_intent_popup',
       ];
 
       for (const key of allowedFields) {
