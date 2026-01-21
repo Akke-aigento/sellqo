@@ -112,7 +112,8 @@ export type HomepageSectionType =
   | 'newsletter'
   | 'testimonials'
   | 'video'
-  | 'announcement';
+  | 'announcement'
+  | 'external_reviews';
 
 export interface HomepageSection {
   id: string;
@@ -270,4 +271,5 @@ export const SECTION_TYPES: Array<{ type: HomepageSectionType; label: string; ic
   { type: 'newsletter', label: 'Nieuwsbrief', icon: 'Mail', description: 'Email aanmeldformulier' },
   { type: 'testimonials', label: 'Testimonials', icon: 'MessageSquare', description: 'Klantreviews' },
   { type: 'video', label: 'Video', icon: 'Play', description: 'Video sectie' },
+  { type: 'external_reviews', label: 'Externe Reviews', icon: 'StarHalf', description: 'Reviews van Google, Trustpilot, etc.' },
 ];
