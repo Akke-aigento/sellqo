@@ -53,6 +53,9 @@ export interface MarketplaceSettings {
   // WooCommerce fields
   woocommerce_optimized_title?: string;
   woocommerce_optimized_description?: string;
+  // Odoo fields
+  odoo_optimized_title?: string;
+  odoo_optimized_description?: string;
 }
 
 export function useMarketplaceListing() {
@@ -64,7 +67,7 @@ export function useMarketplaceListing() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isCheckingAmazonStatus, setIsCheckingAmazonStatus] = useState(false);
 
-  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce'): Promise<OptimizedContent | null> => {
+  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo'): Promise<OptimizedContent | null> => {
     if (!currentTenant) return null;
 
     setIsOptimizing(true);
@@ -109,7 +112,7 @@ export function useMarketplaceListing() {
       content 
     }: { 
       productId: string; 
-      marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce'; 
+      marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo'; 
       content: OptimizedContent;
     }) => {
       let updateData: Record<string, unknown>;
@@ -130,6 +133,11 @@ export function useMarketplaceListing() {
         updateData = {
           shopify_optimized_title: content.title,
           shopify_optimized_description: content.description,
+        };
+      } else if (marketplace === 'odoo') {
+        updateData = {
+          odoo_optimized_title: content.title,
+          odoo_optimized_description: content.description,
         };
       } else {
         updateData = {

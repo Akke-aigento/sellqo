@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Sparkles, ShoppingBag, Package, RefreshCw, Loader2, Check, AlertCircle, ExternalLink, Save, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Sparkles, ShoppingBag, Package, RefreshCw, Loader2, Check, AlertCircle, ExternalLink, Save, CheckCircle2, XCircle, Clock, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,6 +92,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const hasShopifyConnection = !!shopifyConnection;
   const woocommerceConnection = getConnectionByType('woocommerce');
   const hasWooCommerceConnection = !!woocommerceConnection;
+  const odooConnection = getConnectionByType('odoo');
+  const hasOdooConnection = !!odooConnection;
 
   // Bol.com state - initialized from product
   const [bolEnabled, setBolEnabled] = useState(product.bol_listing_status !== 'not_listed');
@@ -125,11 +127,19 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [woocommerceOptimizedTitle, setWoocommerceOptimizedTitle] = useState(product.woocommerce_optimized_title || '');
   const [woocommerceOptimizedDescription, setWoocommerceOptimizedDescription] = useState(product.woocommerce_optimized_description || '');
   
+  // Odoo state - initialized from product
+  const [odooEnabled, setOdooEnabled] = useState(
+    product.odoo_listing_status !== null && product.odoo_listing_status !== 'not_listed'
+  );
+  const [odooOptimizedTitle, setOdooOptimizedTitle] = useState(product.odoo_optimized_title || '');
+  const [odooOptimizedDescription, setOdooOptimizedDescription] = useState(product.odoo_optimized_description || '');
+  
   // Track if settings have changed
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasAmazonUnsavedChanges, setHasAmazonUnsavedChanges] = useState(false);
   const [hasShopifyUnsavedChanges, setHasShopifyUnsavedChanges] = useState(false);
   const [hasWooCommerceUnsavedChanges, setHasWooCommerceUnsavedChanges] = useState(false);
+  const [hasOdooUnsavedChanges, setHasOdooUnsavedChanges] = useState(false);
   
   // Shopify action states
   const [isPublishingShopify, setIsPublishingShopify] = useState(false);
@@ -138,6 +148,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   // WooCommerce action states
   const [isPublishingWooCommerce, setIsPublishingWooCommerce] = useState(false);
   const [isSyncingWooCommerce, setIsSyncingWooCommerce] = useState(false);
+
+  // Odoo action states
+  const [isPublishingOdoo, setIsPublishingOdoo] = useState(false);
+  const [isSyncingOdoo, setIsSyncingOdoo] = useState(false);
 
   // Validations
   const eanValidation = getEANValidationStatus(bolEan);
@@ -170,10 +184,16 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     setWoocommerceOptimizedTitle(product.woocommerce_optimized_title || '');
     setWoocommerceOptimizedDescription(product.woocommerce_optimized_description || '');
     
+    // Odoo state
+    setOdooEnabled(product.odoo_listing_status !== null && product.odoo_listing_status !== 'not_listed');
+    setOdooOptimizedTitle(product.odoo_optimized_title || '');
+    setOdooOptimizedDescription(product.odoo_optimized_description || '');
+    
     setHasUnsavedChanges(false);
     setHasAmazonUnsavedChanges(false);
     setHasShopifyUnsavedChanges(false);
     setHasWooCommerceUnsavedChanges(false);
+    setHasOdooUnsavedChanges(false);
   }, [product]);
 
   // Track Bol.com changes
@@ -198,6 +218,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const handleWooCommerceFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
     setter(value);
     setHasWooCommerceUnsavedChanges(true);
+  }, []);
+
+  // Track Odoo changes
+  const handleOdooFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    setHasOdooUnsavedChanges(true);
   }, []);
 
   const handleSaveSettings = async () => {
@@ -264,6 +290,22 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
         },
       });
       setHasWooCommerceUnsavedChanges(false);
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleSaveOdooSettings = async () => {
+    try {
+      await saveMarketplaceSettings.mutateAsync({
+        productId: product.id,
+        settings: {
+          odoo_optimized_title: odooOptimizedTitle,
+          odoo_optimized_description: odooOptimizedDescription,
+        },
+      });
+      setHasOdooUnsavedChanges(false);
       onRefresh?.();
     } catch (error) {
       // Error handled by mutation
@@ -611,6 +653,87 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     }
   };
 
+  // Odoo handlers
+  const handleOptimizeOdoo = async () => {
+    const content = await optimizeContent(product, 'odoo');
+    if (content) {
+      setOdooOptimizedTitle(content.title);
+      setOdooOptimizedDescription(content.description);
+      setHasOdooUnsavedChanges(true);
+      
+      // Auto-save optimized content
+      saveOptimizedContent.mutate({
+        productId: product.id,
+        marketplace: 'odoo',
+        content,
+      });
+    }
+  };
+
+  const handlePublishToOdoo = async () => {
+    if (!odooConnection) return;
+    
+    setIsPublishingOdoo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-odoo-product', {
+        body: {
+          product_id: product.id,
+          tenant_id: product.tenant_id,
+          connection_id: odooConnection.id,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Odoo API fout');
+
+      toast({
+        title: 'Product gepubliceerd!',
+        description: 'Je product is succesvol gepubliceerd naar Odoo',
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: 'Publicatie mislukt',
+        description: error instanceof Error ? error.message : 'Kon product niet publiceren',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPublishingOdoo(false);
+    }
+  };
+
+  const handleSyncOdoo = async () => {
+    if (!odooConnection) return;
+    
+    setIsSyncingOdoo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-odoo-product', {
+        body: {
+          product_id: product.id,
+          tenant_id: product.tenant_id,
+          connection_id: odooConnection.id,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Odoo sync fout');
+
+      toast({
+        title: 'Gesynchroniseerd!',
+        description: 'Je product is bijgewerkt in Odoo',
+      });
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: 'Synchronisatie mislukt',
+        description: error instanceof Error ? error.message : 'Kon product niet synchroniseren',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingOdoo(false);
+    }
+  };
+
   const isListed = product.bol_listing_status === 'listed';
   const isPending = product.bol_listing_status === 'pending';
   const hasError = product.bol_listing_status === 'error';
@@ -626,6 +749,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const isWooCommerceListed = product.woocommerce_listing_status === 'listed';
   const isWooCommercePending = product.woocommerce_listing_status === 'pending';
   const hasWooCommerceError = product.woocommerce_listing_status === 'error';
+
+  const isOdooListed = product.odoo_listing_status === 'listed';
+  const isOdooPending = product.odoo_listing_status === 'pending';
+  const hasOdooError = product.odoo_listing_status === 'error';
 
   return (
     <div className="space-y-6">
@@ -1684,6 +1811,211 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
                 Verbind eerst je WooCommerce webshop om producten te kunnen publiceren
+              </p>
+              <Button variant="outline" asChild>
+                <a href="/admin/connect">Naar Connect</a>
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Odoo Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Odoo</CardTitle>
+                <CardDescription>
+                  {hasOdooConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {getStatusBadge(product.odoo_listing_status)}
+              <Switch
+                checked={odooEnabled}
+                onCheckedChange={(checked) => handleOdooFieldChange(setOdooEnabled, checked)}
+                disabled={!hasOdooConnection}
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+        {odooEnabled && hasOdooConnection && (
+          <CardContent className="space-y-6">
+            {/* Unsaved changes alert */}
+            {hasOdooUnsavedChanges && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <Button 
+                    size="sm" 
+                    onClick={handleSaveOdooSettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1" />
+                    )}
+                    Opslaan
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error message if any */}
+            {hasOdooError && product.odoo_listing_error && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>{product.odoo_listing_error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Pending status */}
+            {isOdooPending && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Je product wordt verwerkt door Odoo...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* AI Optimization */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Laat AI je productcontent optimaliseren voor Odoo
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleOptimizeOdoo}
+                  disabled={isOptimizing}
+                >
+                  {isOptimizing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Optimaliseer met AI
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Geoptimaliseerde titel</Label>
+                  <Input
+                    value={odooOptimizedTitle}
+                    onChange={(e) => handleOdooFieldChange(setOdooOptimizedTitle, e.target.value)}
+                    placeholder="AI-geoptimaliseerde titel voor Odoo"
+                    maxLength={200}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {odooOptimizedTitle.length}/200 tekens
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Geoptimaliseerde beschrijving</Label>
+                  <Textarea
+                    value={odooOptimizedDescription}
+                    onChange={(e) => handleOdooFieldChange(setOdooOptimizedDescription, e.target.value)}
+                    placeholder="Uitgebreide productomschrijving voor Odoo..."
+                    rows={6}
+                    maxLength={5000}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {odooOptimizedDescription.length}/5000 tekens
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Actions */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {product.odoo_last_synced_at && (
+                  <span>
+                    Laatst gesynchroniseerd:{' '}
+                    {new Date(product.odoo_last_synced_at).toLocaleString('nl-NL')}
+                  </span>
+                )}
+                {product.odoo_product_id && (
+                  <span className="ml-3">
+                    Product ID: <code className="bg-muted px-1 py-0.5 rounded text-xs">{product.odoo_product_id}</code>
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {/* Save button */}
+                {hasOdooUnsavedChanges && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveOdooSettings}
+                    disabled={saveMarketplaceSettings.isPending}
+                  >
+                    {saveMarketplaceSettings.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Opslaan
+                  </Button>
+                )}
+                
+                {/* Sync button for listed products */}
+                {isOdooListed && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSyncOdoo}
+                    disabled={isSyncingOdoo}
+                  >
+                    {isSyncingOdoo ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Synchroniseren
+                  </Button>
+                )}
+                
+                {/* Publish button for non-listed products */}
+                {!isOdooListed && !isOdooPending && (
+                  <Button
+                    onClick={handlePublishToOdoo}
+                    disabled={isPublishingOdoo}
+                  >
+                    {isPublishingOdoo ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                    )}
+                    Publiceer naar Odoo
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        )}
+
+        {!hasOdooConnection && (
+          <CardContent>
+            <div className="text-center py-6">
+              <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground mb-4">
+                Verbind eerst je Odoo ERP om producten te kunnen publiceren
               </p>
               <Button variant="outline" asChild>
                 <a href="/admin/connect">Naar Connect</a>
