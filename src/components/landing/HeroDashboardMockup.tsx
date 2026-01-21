@@ -28,7 +28,22 @@ const statusStyles = {
 
 export function HeroDashboardMockup() {
   return (
-    <div className="relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
+    <div className="relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden max-w-2xl mx-auto">
+      {/* Desktop Mini-Sidebar - only visible on lg screens */}
+      <div className="hidden lg:flex absolute left-0 top-0 bottom-0 w-12 bg-secondary/30 border-r border-border flex-col items-center py-4 gap-3 z-10">
+        <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
+          <Euro className="w-3 h-3 text-primary" />
+        </div>
+        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
+          <ShoppingBag className="w-3 h-3 text-muted-foreground" />
+        </div>
+        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
+          <Package className="w-3 h-3 text-muted-foreground" />
+        </div>
+        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
+          <TrendingUp className="w-3 h-3 text-muted-foreground" />
+        </div>
+      </div>
       {/* Browser Chrome Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-secondary/50 border-b border-border">
         <div className="flex items-center gap-2">
@@ -46,8 +61,8 @@ export function HeroDashboardMockup() {
         </div>
       </div>
 
-      {/* Dashboard Content */}
-      <div className="p-4 space-y-4">
+      {/* Dashboard Content - offset for sidebar on desktop */}
+      <div className="p-4 space-y-4 lg:pl-16">
         {/* Stat Cards Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statsData.map((stat, index) => (
@@ -86,7 +101,7 @@ export function HeroDashboardMockup() {
               <span className="text-[10px] text-muted-foreground">7 dagen</span>
             </div>
             <div className="h-24 relative">
-              <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
+              <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="xMidYMid meet">
                 {/* Gradient fill under line */}
                 <defs>
                   <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
