@@ -166,11 +166,6 @@ export function ConnectMarketplaceDialog({
         syncInventoryFunction = 'sync-bol-inventory';
       }
       
-      // Start the actual first sync based on marketplace type
-      setSyncProgress(10);
-      
-      const syncOrdersFunction = marketplaceType === 'amazon' ? 'sync-amazon-orders' : 'sync-bol-orders';
-      const syncInventoryFunction = marketplaceType === 'amazon' ? 'sync-amazon-inventory' : 'sync-bol-inventory';
       // Shopify also syncs customers
       if (marketplaceType === 'shopify') {
         try {
