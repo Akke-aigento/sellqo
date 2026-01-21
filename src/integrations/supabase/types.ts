@@ -5076,8 +5076,25 @@ export type Database = {
           access_duration_days: number | null
           allow_backorder: boolean | null
           amazon_asin: string | null
+          amazon_bullets: string[] | null
+          amazon_last_synced_at: string | null
+          amazon_listing_error: string | null
+          amazon_listing_status: string | null
+          amazon_offer_id: string | null
+          amazon_optimized_description: string | null
+          amazon_optimized_title: string | null
           barcode: string | null
+          bol_bullets: string[] | null
+          bol_condition: string | null
+          bol_delivery_code: string | null
           bol_ean: string | null
+          bol_fulfilment_method: string | null
+          bol_last_synced_at: string | null
+          bol_listing_error: string | null
+          bol_listing_status: string | null
+          bol_offer_id: string | null
+          bol_optimized_description: string | null
+          bol_optimized_title: string | null
           category_id: string | null
           compare_at_price: number | null
           cost_price: number | null
@@ -5130,8 +5147,25 @@ export type Database = {
           access_duration_days?: number | null
           allow_backorder?: boolean | null
           amazon_asin?: string | null
+          amazon_bullets?: string[] | null
+          amazon_last_synced_at?: string | null
+          amazon_listing_error?: string | null
+          amazon_listing_status?: string | null
+          amazon_offer_id?: string | null
+          amazon_optimized_description?: string | null
+          amazon_optimized_title?: string | null
           barcode?: string | null
+          bol_bullets?: string[] | null
+          bol_condition?: string | null
+          bol_delivery_code?: string | null
           bol_ean?: string | null
+          bol_fulfilment_method?: string | null
+          bol_last_synced_at?: string | null
+          bol_listing_error?: string | null
+          bol_listing_status?: string | null
+          bol_offer_id?: string | null
+          bol_optimized_description?: string | null
+          bol_optimized_title?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -5184,8 +5218,25 @@ export type Database = {
           access_duration_days?: number | null
           allow_backorder?: boolean | null
           amazon_asin?: string | null
+          amazon_bullets?: string[] | null
+          amazon_last_synced_at?: string | null
+          amazon_listing_error?: string | null
+          amazon_listing_status?: string | null
+          amazon_offer_id?: string | null
+          amazon_optimized_description?: string | null
+          amazon_optimized_title?: string | null
           barcode?: string | null
+          bol_bullets?: string[] | null
+          bol_condition?: string | null
+          bol_delivery_code?: string | null
           bol_ean?: string | null
+          bol_fulfilment_method?: string | null
+          bol_last_synced_at?: string | null
+          bol_listing_error?: string | null
+          bol_listing_status?: string | null
+          bol_offer_id?: string | null
+          bol_optimized_description?: string | null
+          bol_optimized_title?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
