@@ -83,3 +83,15 @@ verify_jwt = false
 
 [functions.check-bol-process-status]
 verify_jwt = false
+
+[functions.create-amazon-offer]
+verify_jwt = false
+
+[functions.update-amazon-offer]
+verify_jwt = false
+
+[functions.sync-amazon-orders]
+verify_jwt = false
+
+[functions.sync-amazon-inventory]
+verify_jwt = false

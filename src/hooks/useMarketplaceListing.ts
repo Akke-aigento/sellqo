@@ -24,12 +24,28 @@ export interface BolOfferData {
   title?: string;
 }
 
+export interface AmazonOfferData {
+  asin?: string;
+  sku: string;
+  price: number;
+  quantity: number;
+  condition: 'new' | 'used_like_new' | 'used_very_good' | 'used_good' | 'used_acceptable';
+  fulfilment_channel: 'MFN' | 'AFN';
+  title?: string;
+  bullets?: string[];
+  description?: string;
+}
+
 export interface MarketplaceSettings {
   bol_ean?: string;
   bol_delivery_code?: string;
   bol_condition?: string;
   bol_optimized_title?: string;
   bol_bullets?: string[];
+  amazon_asin?: string;
+  amazon_optimized_title?: string;
+  amazon_optimized_description?: string;
+  amazon_bullets?: string[];
 }
 
 export function useMarketplaceListing() {
@@ -349,6 +365,105 @@ export function useMarketplaceListing() {
     }
   };
 
+  // Amazon mutations
+  const createAmazonOffer = useMutation({
+    mutationFn: async ({ 
+      product, 
+      offerData 
+    }: { 
+      product: Product; 
+      offerData: AmazonOfferData;
+    }) => {
+      if (!currentTenant) throw new Error('Geen tenant geselecteerd');
+
+      const connection = getConnectionByType('amazon');
+      if (!connection) throw new Error('Geen Amazon connectie gevonden');
+
+      // Validate price
+      if (offerData.price <= 0) {
+        throw new Error('Prijs moet groter dan 0 zijn');
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-amazon-offer', {
+        body: {
+          product_id: product.id,
+          tenant_id: currentTenant.id,
+          connection_id: connection.id,
+          offer_data: offerData,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Amazon API fout');
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      toast({ 
+        title: 'Publicatie gestart', 
+        description: 'Je product wordt naar Amazon verzonden. Controleer de status over enkele minuten.' 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Publicatie mislukt', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const updateAmazonOffer = useMutation({
+    mutationFn: async ({ 
+      product, 
+      updateType, 
+      updateData 
+    }: { 
+      product: Product; 
+      updateType: 'price' | 'quantity' | 'all';
+      updateData: {
+        price?: number;
+        quantity?: number;
+      };
+    }) => {
+      if (!currentTenant) throw new Error('Geen tenant geselecteerd');
+      if (!product.amazon_offer_id) throw new Error('Product heeft geen Amazon SKU');
+
+      const connection = getConnectionByType('amazon');
+      if (!connection) throw new Error('Geen Amazon connectie gevonden');
+
+      const { data, error } = await supabase.functions.invoke('update-amazon-offer', {
+        body: {
+          product_id: product.id,
+          tenant_id: currentTenant.id,
+          connection_id: connection.id,
+          sku: product.amazon_offer_id,
+          update_type: updateType,
+          update_data: updateData,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Amazon update fout');
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      toast({ title: 'Synchronisatie gestart', description: 'Je wijzigingen worden naar Amazon verzonden' });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Synchronisatie mislukt', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
   return {
     // AI Optimization
     optimizeContent,
@@ -361,6 +476,10 @@ export function useMarketplaceListing() {
     // Bol.com offers
     createBolOffer,
     updateBolOffer,
+    
+    // Amazon offers
+    createAmazonOffer,
+    updateAmazonOffer,
     
     // Status checking
     checkBolProcessStatus,

@@ -6,10 +6,115 @@ const corsHeaders = {
 }
 
 const BOL_TOKEN_URL = 'https://login.bol.com/token'
+const AMAZON_LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token'
 
 interface BolCredentials {
   clientId: string
   clientSecret: string
+}
+
+interface AmazonCredentials {
+  sellerId: string
+  clientId: string
+  clientSecret: string
+  refreshToken: string
+  marketplaceId?: string
+}
+
+// Amazon Marketplace IDs
+const AMAZON_MARKETPLACES: Record<string, { id: string; endpoint: string; name: string }> = {
+  'nl': { id: 'A1805IZSGTT6HS', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.nl' },
+  'de': { id: 'A1PA6795UKMFR9', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.de' },
+  'fr': { id: 'A13V1IB3VIYZZH', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.fr' },
+  'be': { id: 'AMEN7PMS3EDWL', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.be' },
+  'uk': { id: 'A1F83G8C2ARO7P', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.co.uk' },
+  'es': { id: 'A1RKKUPIHCS9HS', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.es' },
+  'it': { id: 'APJ6JRA9NG5V4', endpoint: 'sellingpartnerapi-eu.amazon.com', name: 'Amazon.it' },
+  'us': { id: 'ATVPDKIKX0DER', endpoint: 'sellingpartnerapi-na.amazon.com', name: 'Amazon.com' },
+}
+
+async function testAmazonConnection(credentials: AmazonCredentials): Promise<{ success: boolean; error?: string; marketplaceName?: string }> {
+  const { clientId, clientSecret, refreshToken, marketplaceId = 'nl' } = credentials
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    return { success: false, error: 'Client ID, Client Secret en Refresh Token zijn verplicht' }
+  }
+
+  const marketplace = AMAZON_MARKETPLACES[marketplaceId] || AMAZON_MARKETPLACES['nl']
+
+  try {
+    // Step 1: Get LWA access token using refresh token
+    const tokenResponse = await fetch(AMAZON_LWA_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+    })
+
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.json().catch(() => ({}))
+      console.error('Amazon LWA token error:', errorData)
+      
+      if (errorData.error === 'invalid_client') {
+        return { success: false, error: 'Client ID of Client Secret is onjuist' }
+      }
+      if (errorData.error === 'invalid_grant') {
+        return { success: false, error: 'Refresh Token is ongeldig of verlopen. Genereer een nieuwe in Seller Central.' }
+      }
+      
+      return { success: false, error: `LWA authenticatie mislukt: ${errorData.error_description || errorData.error || 'Onbekende fout'}` }
+    }
+
+    const tokenData = await tokenResponse.json()
+    const accessToken = tokenData.access_token
+
+    // Step 2: Test SP-API with a simple call (get marketplace participations)
+    const spApiUrl = `https://${marketplace.endpoint}/sellers/v1/marketplaceParticipations`
+    
+    const spApiResponse = await fetch(spApiUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'x-amz-access-token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!spApiResponse.ok) {
+      const errorText = await spApiResponse.text()
+      console.error('Amazon SP-API error:', errorText)
+      
+      if (spApiResponse.status === 403) {
+        return { success: false, error: 'Geen toegang tot de SP-API. Controleer je app permissies in Seller Central.' }
+      }
+      if (spApiResponse.status === 401) {
+        return { success: false, error: 'Authenticatie mislukt. Controleer je credentials.' }
+      }
+      
+      return { success: false, error: `SP-API fout (${spApiResponse.status}): ${errorText.substring(0, 200)}` }
+    }
+
+    // Success!
+    console.log('Amazon connection test successful for marketplace:', marketplace.name)
+    
+    return { 
+      success: true, 
+      marketplaceName: marketplace.name 
+    }
+
+  } catch (error) {
+    console.error('Amazon connection test error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Verbinding met Amazon mislukt' 
+    }
+  }
 }
 
 Deno.serve(async (req) => {
@@ -77,13 +182,24 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Amazon testing (placeholder)
+    // Amazon SP-API testing
     if (marketplaceType === 'amazon') {
-      // TODO: Implement Amazon SP-API testing
-      return new Response(
-        JSON.stringify({ success: false, error: 'Amazon integratie komt binnenkort' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      const result = await testAmazonConnection(credentials as AmazonCredentials)
+      
+      if (result.success) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Verbinding met ${result.marketplaceName} succesvol!`,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } else {
+        return new Response(
+          JSON.stringify({ success: false, error: result.error }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     return new Response(
