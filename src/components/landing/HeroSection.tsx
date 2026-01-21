@@ -90,7 +90,7 @@ export function HeroSection() {
           </div>
 
           {/* Right column - Dashboard mockup */}
-          <div className="relative overflow-visible lg:overflow-visible md:overflow-hidden">
+          <div className="relative overflow-visible">
             {/* Main dashboard mockup */}
             <div className="relative animate-float">
               <HeroDashboardMockup />
@@ -103,7 +103,7 @@ export function HeroSection() {
                 className={cn(
                   'absolute bg-card rounded-xl shadow-lg border border-border p-3 flex items-center gap-3',
                   'animate-float-delayed hidden md:flex',
-                  index === 0 && 'top-2 left-2 lg:-top-4 lg:-left-8',
+                  index === 0 && 'top-8 left-0 lg:top-4 lg:-left-4',
                   index === 1 && 'top-1/3 right-2 lg:-right-8',
                   index === 2 && 'bottom-2 left-4 lg:-bottom-4 lg:left-8'
                 )}
