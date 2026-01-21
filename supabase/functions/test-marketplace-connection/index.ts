@@ -181,6 +181,76 @@ async function testShopifyConnection(credentials: ShopifyCredentials): Promise<{
   }
 }
 
+// WooCommerce connection test
+interface WooCommerceCredentials {
+  siteUrl: string
+  consumerKey: string
+  consumerSecret: string
+}
+
+function normalizeSiteUrl(url: string): string {
+  let normalized = url.trim()
+  normalized = normalized.replace(/\/+$/, '')
+  if (!normalized.startsWith('http')) {
+    normalized = `https://${normalized}`
+  }
+  return normalized
+}
+
+async function testWooCommerceConnection(credentials: WooCommerceCredentials): Promise<{ success: boolean; error?: string; shopName?: string }> {
+  const { siteUrl, consumerKey, consumerSecret } = credentials
+
+  if (!siteUrl || !consumerKey || !consumerSecret) {
+    return { success: false, error: 'Site URL, Consumer Key en Consumer Secret zijn verplicht' }
+  }
+
+  const normalizedUrl = normalizeSiteUrl(siteUrl)
+
+  try {
+    // Test with /wp-json/wc/v3/system_status (requires read permissions)
+    const apiUrl = `${normalizedUrl}/wp-json/wc/v3/system_status`
+    
+    // WooCommerce uses Basic Auth with consumer key/secret
+    const authString = btoa(`${consumerKey}:${consumerSecret}`)
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Consumer Key of Secret is onjuist' }
+      }
+      if (response.status === 403) {
+        return { success: false, error: 'Geen toegang. Controleer de API permissies (Lezen/Schrijven vereist).' }
+      }
+      if (response.status === 404) {
+        return { success: false, error: 'WooCommerce API niet gevonden. Is WooCommerce actief op deze site?' }
+      }
+      return { success: false, error: `WooCommerce API fout: ${response.status}` }
+    }
+
+    const data = await response.json()
+    console.log('WooCommerce connection test successful')
+    
+    return { 
+      success: true, 
+      shopName: data.environment?.site_url || normalizedUrl 
+    }
+
+  } catch (error) {
+    console.error('WooCommerce connection test error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Verbinding met WooCommerce mislukt' 
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -269,6 +339,26 @@ Deno.serve(async (req) => {
     // Shopify testing
     if (marketplaceType === 'shopify') {
       const result = await testShopifyConnection(credentials as ShopifyCredentials)
+      
+      if (result.success) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Verbinding met ${result.shopName} succesvol!`,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } else {
+        return new Response(
+          JSON.stringify({ success: false, error: result.error }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // WooCommerce testing
+    if (marketplaceType === 'woocommerce') {
+      const result = await testWooCommerceConnection(credentials as WooCommerceCredentials)
       
       if (result.success) {
         return new Response(

@@ -119,3 +119,21 @@ verify_jwt = false
 
 [functions.update-shopify-product]
 verify_jwt = false
+
+[functions.sync-woocommerce-orders]
+verify_jwt = false
+
+[functions.sync-woocommerce-inventory]
+verify_jwt = false
+
+[functions.sync-woocommerce-products]
+verify_jwt = false
+
+[functions.create-woocommerce-product]
+verify_jwt = false
+
+[functions.update-woocommerce-product]
+verify_jwt = false
+
+[functions.test-woocommerce-connection]
+verify_jwt = false

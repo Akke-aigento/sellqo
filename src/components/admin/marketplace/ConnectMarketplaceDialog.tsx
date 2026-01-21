@@ -85,6 +85,11 @@ export function ConnectMarketplaceDialog({
   // Shopify-specific state
   const [storeUrl, setStoreUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
+  
+  // WooCommerce-specific state
+  const [siteUrl, setSiteUrl] = useState('');
+  const [consumerKey, setConsumerKey] = useState('');
+  const [consumerSecret, setConsumerSecret] = useState('');
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -94,6 +99,8 @@ export function ConnectMarketplaceDialog({
       // Build credentials based on marketplace type
       const credentials = marketplaceType === 'shopify' 
         ? { storeUrl, accessToken }
+        : marketplaceType === 'woocommerce'
+        ? { siteUrl, consumerKey, consumerSecret }
         : { clientId, clientSecret };
 
       const { data, error } = await supabase.functions.invoke('test-marketplace-connection', {
@@ -127,6 +134,8 @@ export function ConnectMarketplaceDialog({
       // Build credentials based on marketplace type
       const credentials = marketplaceType === 'shopify' 
         ? { storeUrl, accessToken }
+        : marketplaceType === 'woocommerce'
+        ? { siteUrl, consumerKey, consumerSecret }
         : { clientId, clientSecret };
 
       const newConnection = await createConnection.mutateAsync({
@@ -158,6 +167,9 @@ export function ConnectMarketplaceDialog({
       if (marketplaceType === 'shopify') {
         syncOrdersFunction = 'sync-shopify-orders';
         syncInventoryFunction = 'sync-shopify-inventory';
+      } else if (marketplaceType === 'woocommerce') {
+        syncOrdersFunction = 'sync-woocommerce-orders';
+        syncInventoryFunction = 'sync-woocommerce-inventory';
       } else if (marketplaceType === 'amazon') {
         syncOrdersFunction = 'sync-amazon-orders';
         syncInventoryFunction = 'sync-amazon-inventory';
@@ -224,6 +236,9 @@ export function ConnectMarketplaceDialog({
       setClientSecret('');
       setStoreUrl('');
       setAccessToken('');
+      setSiteUrl('');
+      setConsumerKey('');
+      setConsumerSecret('');
       setTestResult(null);
       setSyncProgress(0);
       setSyncSteps({ orders: false, products: false, inventory: false });
@@ -268,6 +283,18 @@ export function ConnectMarketplaceDialog({
             'Ga naar Settings → Apps and sales channels → Develop apps',
             'Maak een nieuwe app aan en configureer Admin API scopes',
             'Installeer de app en kopieer je Admin API access token',
+          ],
+        };
+      case 'woocommerce':
+        return {
+          title: 'WordPress Admin',
+          url: 'https://jouw-site.nl/wp-admin',
+          steps: [
+            'Log in op je WordPress Admin',
+            'Ga naar WooCommerce → Instellingen → Geavanceerd → REST API',
+            'Klik op "Sleutel toevoegen"',
+            'Geef de sleutel een naam en kies "Lezen/Schrijven" permissies',
+            'Kopieer de Consumer Key en Consumer Secret',
           ],
         };
       default:
@@ -416,6 +443,59 @@ export function ConnectMarketplaceDialog({
                   </p>
                 </div>
               </>
+            ) : marketplaceType === 'woocommerce' ? (
+              <>
+                <div>
+                  <Label>Site URL *</Label>
+                  <Input
+                    type="url"
+                    required
+                    placeholder="https://mijn-webshop.nl"
+                    className="mt-1 font-mono text-sm"
+                    value={siteUrl}
+                    onChange={(e) => setSiteUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Je WordPress/WooCommerce site URL
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Consumer Key *</Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="ck_••••••••••••••••"
+                    className="mt-1 font-mono text-sm"
+                    value={consumerKey}
+                    onChange={(e) => setConsumerKey(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Consumer Secret *</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showSecret ? 'text' : 'password'}
+                      required
+                      placeholder="cs_••••••••••••••••"
+                      className="pr-10 font-mono text-sm"
+                      value={consumerSecret}
+                      onChange={(e) => setConsumerSecret(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vind deze onder WooCommerce → Instellingen → REST API
+                  </p>
+                </div>
+              </>
             ) : (
               <>
                 {/* Bol.com / Amazon credentials */}
@@ -461,6 +541,8 @@ export function ConnectMarketplaceDialog({
               disabled={
                 marketplaceType === 'shopify' 
                   ? !storeUrl || !accessToken || testing
+                  : marketplaceType === 'woocommerce'
+                  ? !siteUrl || !consumerKey || !consumerSecret || testing
                   : !clientId || !clientSecret || testing
               }
               className="w-full"
@@ -504,6 +586,8 @@ export function ConnectMarketplaceDialog({
               disabled={
                 marketplaceType === 'shopify' 
                   ? !storeUrl || !accessToken
+                  : marketplaceType === 'woocommerce'
+                  ? !siteUrl || !consumerKey || !consumerSecret
                   : !clientId || !clientSecret
               }
             >
