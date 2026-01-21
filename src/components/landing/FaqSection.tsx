@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     question: 'Kan ik mijn bestaande webshop migreren?',
-    answer: 'Ja! We hebben import tools voor Shopify, WooCommerce en andere platforms. Business plan klanten krijgen gratis migratie hulp ter waarde van €2000.',
+    answer: 'Ja! We hebben import tools voor Shopify, WooCommerce en andere platforms. Enterprise plan klanten krijgen gratis migratie hulp ter waarde van €2000.',
   },
   {
     question: 'Welke betaalmethoden worden ondersteund?',
@@ -21,20 +21,32 @@ const faqs = [
     answer: 'Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-invoicing voor zakelijke klanten.',
   },
   {
-    question: 'Wat gebeurt er met mijn data als ik stop?',
-    answer: 'Je data blijft van jou. Je kunt alles exporteren (producten, klanten, bestellingen) in CSV, Excel of via API. We verwijderen je data pas 30 dagen na opzegging.',
+    question: 'Hoe werken de AI credits?',
+    answer: 'AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise onbeperkt. Extra credits kun je bijkopen voor €9 per 500 credits.',
+  },
+  {
+    question: 'Kan ik ook fysiek verkopen met SellQo?',
+    answer: 'Ja! Met onze POS module heb je een complete kassa met touch-interface, barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Beschikbaar als add-on voor €29/maand of €15/maand bij Pro.',
+  },
+  {
+    question: 'Welke promoties kan ik instellen?',
+    answer: 'SellQo ondersteunt 8 promotietypen: kortingscodes, staffelkorting, BOGO (buy one get one), productbundels, klantgroepen met speciale prijzen, automatische kortingen, cadeaubonnen en een compleet loyaliteitsprogramma met punten.',
+  },
+  {
+    question: 'Hoe bouw ik mijn eigen webshop?',
+    answer: 'Met de ingebouwde Webshop Builder kies je een theme, pas je secties aan via drag & drop, en koppel je je eigen domein. Starter krijgt basis themes, Pro krijgt 1 premium theme, Enterprise alle themes.',
   },
   {
     question: 'Zijn er extra kosten bovenop het abonnement?',
-    answer: 'Nee. Het enige wat je betaalt zijn de standaard Stripe betaalkosten (1,5% + €0,25 per transactie). Wij rekenen geen extra transactiekosten zoals Shopify doet.',
+    answer: 'Nee. Het enige wat je betaalt zijn de standaard Stripe betaalkosten (1,5% + €0,25 per transactie). Wij rekenen geen extra transactiekosten. Add-ons zoals POS zijn optioneel.',
   },
   {
     question: 'Wat is Peppol en waarom is het belangrijk?',
     answer: 'Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. SellQo genereert automatisch Peppol-compliant facturen, zodat jij klaar bent voor de toekomst.',
   },
   {
-    question: 'Kan ik SellQo gebruiken als ik nog geen webshop heb?',
-    answer: 'Ja! SellQo heeft een ingebouwde webshop builder. Of koppel je bestaande Shopify/WooCommerce en gebruik SellQo als je centrale management systeem.',
+    question: 'Wat gebeurt er met mijn data als ik stop?',
+    answer: 'Je data blijft van jou. Je kunt alles exporteren (producten, klanten, bestellingen) in CSV, Excel of via API. We verwijderen je data pas 30 dagen na opzegging.',
   },
 ];
 

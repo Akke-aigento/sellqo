@@ -4,10 +4,15 @@ import { Check, X } from 'lucide-react';
 
 const comparisonData = [
   { feature: 'Setup tijd', sellqo: '5 minuten', shopify: '1-2 uur', lightspeed: '2-4 uur', custom: 'Weken' },
-  { feature: 'Maandelijkse kosten', sellqo: 'Vanaf €19', shopify: 'Vanaf €36', lightspeed: 'Vanaf €59', custom: 'Variabel' },
+  { feature: 'Maandelijkse kosten', sellqo: 'Vanaf €29', shopify: 'Vanaf €36', lightspeed: 'Vanaf €59', custom: 'Variabel' },
   { feature: 'Transactiekosten', sellqo: true, shopify: false, lightspeed: false, custom: true },
   { feature: 'Multi-channel management', sellqo: true, shopify: false, lightspeed: true, custom: false },
   { feature: 'Voorraadsync', sellqo: true, shopify: false, lightspeed: true, custom: false },
+  { feature: 'AI Marketing Tools', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { feature: 'Ingebouwde Webshop Builder', sellqo: true, shopify: true, lightspeed: false, custom: true },
+  { feature: 'POS Kassasysteem', sellqo: true, shopify: true, lightspeed: true, custom: false },
+  { feature: 'Loyaliteitsprogramma', sellqo: true, shopify: false, lightspeed: true, custom: false },
+  { feature: 'Cadeaubonnen systeem', sellqo: true, shopify: true, lightspeed: true, custom: false },
   { feature: 'BTW/OSS compliance', sellqo: true, shopify: false, lightspeed: true, custom: false },
   { feature: 'Peppol e-invoicing', sellqo: true, shopify: false, lightspeed: false, custom: false },
   { feature: 'Nederlandse support', sellqo: true, shopify: false, lightspeed: true, custom: false },

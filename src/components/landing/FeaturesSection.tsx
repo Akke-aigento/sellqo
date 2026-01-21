@@ -1,6 +1,6 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Store, Package, TrendingUp, FileText, Users, Zap, Check } from 'lucide-react';
+import { Store, Package, TrendingUp, FileText, Users, Zap, Check, Sparkles, Gift, Globe, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const features = [
@@ -13,10 +13,46 @@ const features = [
     size: 'large',
   },
   {
+    icon: Sparkles,
+    title: 'AI Die Je Marketing Doet',
+    subtitle: 'Sellqo AI',
+    description: 'Genereer social posts, email content en complete productpromoties met één klik. A/B test automatisch je campagnes.',
+    badge: 'Pro feature',
+    size: 'medium',
+  },
+  {
     icon: Package,
     title: 'Nooit Meer Uitverkocht Door Fout',
     subtitle: 'Real-Time Voorraadsync',
     description: 'Automatische voorraadsynchronisatie tussen al je kanalen. Verkoop je iets op Bol? Je Shopify wordt direct bijgewerkt.',
+    size: 'medium',
+  },
+  {
+    icon: Gift,
+    title: 'Klanten Die Terugkomen',
+    subtitle: '8 Promotietypen + Loyaliteit',
+    description: 'Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen en een compleet loyaliteitsprogramma met punten en tiers.',
+    features: [
+      'Automatische cadeaubonnen met QR',
+      'Klantgroepen met speciale prijzen',
+      'Stapelbare kortingen met prioriteiten',
+    ],
+    size: 'large',
+  },
+  {
+    icon: Globe,
+    title: 'Jouw Merk, Jouw Webshop',
+    subtitle: 'Drag & Drop Builder',
+    description: 'Bouw je eigen webshop met themes, homepage secties en custom domeinen. Geen code nodig.',
+    badge: '3 premium themes',
+    size: 'medium',
+  },
+  {
+    icon: Monitor,
+    title: 'Verkoop Ook In De Winkel',
+    subtitle: 'Touch-Optimized POS',
+    description: 'Complete kassa met barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Offline-first design.',
+    badge: 'Add-on module',
     size: 'medium',
   },
   {
@@ -41,16 +77,16 @@ const features = [
   },
   {
     icon: Users,
-    title: 'Klanten Die Terugkomen',
-    subtitle: 'Klantenmanagement',
-    description: 'Volledige klantprofielen, aankoopgeschiedenis, en geautomatiseerde follow-ups.',
+    title: 'Ken Je Klanten',
+    subtitle: 'Klantenmanagement + SEO',
+    description: 'Volledige klantprofielen, aankoopgeschiedenis, en geautomatiseerde follow-ups. Plus ingebouwde SEO tools voor je webshop.',
     size: 'medium',
   },
   {
     icon: Zap,
     title: 'Datagedreven Groeien',
     subtitle: 'Groei-Insights',
-    description: 'Ontdek je best verkopende producten, optimale prijspunten en seizoenstrends.',
+    description: 'Ontdek je best verkopende producten, optimale prijspunten en seizoenstrends met AI-gestuurde analyses.',
     size: 'medium',
   },
 ];
