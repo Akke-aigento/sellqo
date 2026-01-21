@@ -68,6 +68,7 @@ import { useMarketplaceConnection, useMarketplaceConnections } from '@/hooks/use
 import { MARKETPLACE_INFO } from '@/types/marketplace';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock data for demonstration
 const mockActivities = [
@@ -115,11 +116,44 @@ export default function MarketplaceDetailPage() {
   const info = connection ? MARKETPLACE_INFO[connection.marketplace_type] : null;
 
   const handleSyncNow = async () => {
+    if (!connection) return;
+    
     setSyncing(true);
-    // Simulate sync
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    toast.success('Synchronisatie voltooid!');
-    setSyncing(false);
+    
+    try {
+      // Sync orders
+      toast.info('Orders synchroniseren...');
+      const orderResult = await supabase.functions.invoke('sync-bol-orders', {
+        body: { connectionId: connection.id }
+      });
+      
+      if (orderResult.error) {
+        console.error('Order sync error:', orderResult.error);
+        toast.error('Order sync mislukt: ' + orderResult.error.message);
+      } else {
+        toast.success(`${orderResult.data?.ordersImported || 0} orders geïmporteerd`);
+      }
+      
+      // Sync inventory
+      toast.info('Voorraad synchroniseren...');
+      const inventoryResult = await supabase.functions.invoke('sync-bol-inventory', {
+        body: { connectionId: connection.id }
+      });
+      
+      if (inventoryResult.error) {
+        console.error('Inventory sync error:', inventoryResult.error);
+        toast.error('Voorraad sync mislukt: ' + inventoryResult.error.message);
+      } else {
+        toast.success(`${inventoryResult.data?.productsSynced || 0} producten gesynchroniseerd`);
+      }
+      
+      toast.success('Synchronisatie voltooid!');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Onbekende fout';
+      toast.error('Synchronisatie mislukt: ' + message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSaveSettings = async () => {
