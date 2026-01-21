@@ -96,7 +96,20 @@ Deno.serve(async (req) => {
     if (connError || !connection) throw new Error('Connection not found')
 
     const credentials = connection.credentials as OdooCredentials
-    const settings = connection.settings as { odooDefaultJournalId?: string; odooAutoConfirmInvoices?: boolean }
+    const settings = connection.settings as { 
+      odooDefaultJournalId?: string
+      odooAutoConfirmInvoices?: boolean
+      odooModuleAccounting?: boolean
+    }
+
+    // Check if accounting module is enabled
+    if (settings.odooModuleAccounting === false) {
+      console.log('Odoo accounting module not enabled, skipping invoice sync')
+      return new Response(
+        JSON.stringify({ success: true, invoicesSynced: 0, message: 'Accounting module not enabled' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Authenticate with Odoo
     const auth = await odooAuthenticate(credentials)

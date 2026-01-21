@@ -46,6 +46,9 @@ export interface MarketplaceSettings {
   emailNotifyLowStock?: boolean;
   importHistorical?: boolean;
   historicalPeriodDays?: number; // 30, 90, 180, 365, or 730 for "all"
+  // Odoo module selection
+  odooModuleEcommerce?: boolean;  // Orders, producten, voorraad sync
+  odooModuleAccounting?: boolean; // Facturen push, klanten sync, BTW mapping
   // Odoo-specific settings
   odooSyncInvoices?: boolean;
   odooSyncCustomers?: boolean;

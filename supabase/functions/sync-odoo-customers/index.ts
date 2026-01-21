@@ -96,6 +96,16 @@ Deno.serve(async (req) => {
     if (connError || !connection) throw new Error('Connection not found')
 
     const credentials = connection.credentials as OdooCredentials
+    const settings = connection.settings as Record<string, unknown>
+
+    // Check if accounting module is enabled (customers sync is part of accounting)
+    if (settings.odooModuleAccounting === false) {
+      console.log('Odoo accounting module not enabled, skipping customer sync')
+      return new Response(
+        JSON.stringify({ success: true, customersSynced: 0, direction, message: 'Accounting module not enabled' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Authenticate with Odoo
     const auth = await odooAuthenticate(credentials)

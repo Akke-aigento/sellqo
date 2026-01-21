@@ -31,6 +31,9 @@ import {
   ShoppingCart,
   Package,
   Bell,
+  Calculator,
+  Building2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import type { MarketplaceType, MarketplaceSettings } from '@/types/marketplace';
@@ -44,7 +47,7 @@ interface ConnectMarketplaceDialogProps {
   onSuccess?: () => void;
 }
 
-type Step = 'intro' | 'credentials' | 'settings' | 'success';
+type Step = 'intro' | 'credentials' | 'modules' | 'settings' | 'success';
 
 export function ConnectMarketplaceDialog({
   open,
@@ -96,6 +99,10 @@ export function ConnectMarketplaceDialog({
   const [odooDatabase, setOdooDatabase] = useState('');
   const [odooUsername, setOdooUsername] = useState('');
   const [odooApiKey, setOdooApiKey] = useState('');
+
+  // Odoo module selection
+  const [odooModuleEcommerce, setOdooModuleEcommerce] = useState(true);
+  const [odooModuleAccounting, setOdooModuleAccounting] = useState(false);
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -163,6 +170,9 @@ export function ConnectMarketplaceDialog({
           emailNotifyLowStock,
           importHistorical,
           historicalPeriodDays: importHistorical ? (historicalPeriod === 'all' ? 730 : parseInt(historicalPeriod)) : 0,
+          // Odoo module settings
+          odooModuleEcommerce: marketplaceType === 'odoo' ? odooModuleEcommerce : undefined,
+          odooModuleAccounting: marketplaceType === 'odoo' ? odooModuleAccounting : undefined,
         },
       });
       
@@ -202,8 +212,8 @@ export function ConnectMarketplaceDialog({
         }
       }
       
-      // Odoo also syncs customers
-      if (marketplaceType === 'odoo') {
+      // Odoo syncs based on selected modules
+      if (marketplaceType === 'odoo' && odooModuleAccounting) {
         try {
           await supabase.functions.invoke('sync-odoo-customers', {
             body: { connectionId: newConnection.id }
@@ -213,32 +223,44 @@ export function ConnectMarketplaceDialog({
         }
       }
       
-      // Trigger order import
-      try {
-        setSyncProgress(20);
-        const orderSyncResult = await supabase.functions.invoke(syncOrdersFunction, {
-          body: { connectionId: newConnection.id }
-        });
+      // Trigger order import (only for Odoo e-commerce module or other platforms)
+      const shouldSyncOrders = marketplaceType !== 'odoo' || odooModuleEcommerce;
+      if (shouldSyncOrders) {
+        try {
+          setSyncProgress(20);
+          const orderSyncResult = await supabase.functions.invoke(syncOrdersFunction, {
+            body: { connectionId: newConnection.id }
+          });
+          setSyncSteps(prev => ({ ...prev, orders: true }));
+          setOrdersImported(orderSyncResult.data?.ordersImported || 0);
+          setSyncProgress(50);
+        } catch (err) {
+          console.error('Order sync failed:', err);
+          setSyncSteps(prev => ({ ...prev, orders: true }));
+        }
+      } else {
         setSyncSteps(prev => ({ ...prev, orders: true }));
-        setOrdersImported(orderSyncResult.data?.ordersImported || 0);
         setSyncProgress(50);
-      } catch (err) {
-        console.error('Order sync failed:', err);
-        setSyncSteps(prev => ({ ...prev, orders: true }));
       }
       
-      // Trigger inventory sync
-      try {
-        setSyncProgress(70);
-        const inventorySyncResult = await supabase.functions.invoke(syncInventoryFunction, {
-          body: { connectionId: newConnection.id }
-        });
+      // Trigger inventory sync (only for Odoo e-commerce module or other platforms)
+      const shouldSyncInventory = marketplaceType !== 'odoo' || odooModuleEcommerce;
+      if (shouldSyncInventory) {
+        try {
+          setSyncProgress(70);
+          const inventorySyncResult = await supabase.functions.invoke(syncInventoryFunction, {
+            body: { connectionId: newConnection.id }
+          });
+          setSyncSteps(prev => ({ ...prev, inventory: true }));
+          setProductsMatched(inventorySyncResult.data?.productsSynced || 0);
+          setSyncProgress(100);
+        } catch (err) {
+          console.error('Inventory sync failed:', err);
+          setSyncSteps(prev => ({ ...prev, inventory: true }));
+        }
+      } else {
         setSyncSteps(prev => ({ ...prev, inventory: true }));
-        setProductsMatched(inventorySyncResult.data?.productsSynced || 0);
         setSyncProgress(100);
-      } catch (err) {
-        console.error('Inventory sync failed:', err);
-        setSyncSteps(prev => ({ ...prev, inventory: true }));
       }
       
       setSyncSteps(prev => ({ ...prev, products: true }));
@@ -267,6 +289,8 @@ export function ConnectMarketplaceDialog({
       setOdooDatabase('');
       setOdooUsername('');
       setOdooApiKey('');
+      setOdooModuleEcommerce(true);
+      setOdooModuleAccounting(false);
       setTestResult(null);
       setSyncProgress(0);
       setSyncSteps({ orders: false, products: false, inventory: false });
@@ -690,7 +714,7 @@ export function ConnectMarketplaceDialog({
               Terug
             </Button>
             <Button
-              onClick={() => setStep('settings')}
+              onClick={() => setStep(marketplaceType === 'odoo' ? 'modules' : 'settings')}
               disabled={
                 marketplaceType === 'shopify' 
                   ? !storeUrl || !accessToken
@@ -707,6 +731,121 @@ export function ConnectMarketplaceDialog({
         </DialogContent>
       )}
 
+      {/* Odoo Module Selection Step */}
+      {step === 'modules' && marketplaceType === 'odoo' && (
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Welke Odoo modules wil je koppelen?</DialogTitle>
+            <DialogDescription>
+              Bespreek dit met je boekhouder om conflicten te voorkomen
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* E-commerce module */}
+              <div
+                onClick={() => {
+                  setOdooModuleEcommerce(true);
+                  setOdooModuleAccounting(false);
+                }}
+                className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                  odooModuleEcommerce && !odooModuleAccounting
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2 rounded-lg ${odooModuleEcommerce && !odooModuleAccounting ? 'bg-primary/10' : 'bg-muted'}`}>
+                    <ShoppingCart className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="font-semibold">E-commerce</span>
+                </div>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li>• Orders importeren</li>
+                  <li>• Producten beheren</li>
+                  <li>• Voorraad synchroniseren</li>
+                </ul>
+              </div>
+
+              {/* Accounting module */}
+              <div
+                onClick={() => {
+                  setOdooModuleEcommerce(false);
+                  setOdooModuleAccounting(true);
+                }}
+                className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                  !odooModuleEcommerce && odooModuleAccounting
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2 rounded-lg ${!odooModuleEcommerce && odooModuleAccounting ? 'bg-primary/10' : 'bg-muted'}`}>
+                    <Calculator className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="font-semibold">Boekhouding</span>
+                </div>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li>• Facturen exporteren</li>
+                  <li>• Klanten synchen</li>
+                  <li>• BTW mapping</li>
+                </ul>
+              </div>
+
+              {/* Both modules */}
+              <div
+                onClick={() => {
+                  setOdooModuleEcommerce(true);
+                  setOdooModuleAccounting(true);
+                }}
+                className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                  odooModuleEcommerce && odooModuleAccounting
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2 rounded-lg ${odooModuleEcommerce && odooModuleAccounting ? 'bg-primary/10' : 'bg-muted'}`}>
+                    <Building2 className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="font-semibold">Beide</span>
+                </div>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li>• Volledige ERP</li>
+                  <li>• Alles synchroon</li>
+                  <li>• Maximale automatisering</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Warning for accounting */}
+            {odooModuleAccounting && (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">Let op: Boekhouding module</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  Facturen worden automatisch naar Odoo Accounting gepusht. Overleg met je boekhouder of dit past binnen jullie workflow.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="text-sm text-muted-foreground bg-muted rounded-lg p-3">
+              <p>💡 <strong>Tip:</strong> Je kunt dit later nog aanpassen in de verbindingsinstellingen.</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStep('credentials')}>
+              Terug
+            </Button>
+            <Button onClick={() => setStep('settings')}>
+              Volgende
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      )}
+
       {step === 'settings' && (
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -717,121 +856,163 @@ export function ConnectMarketplaceDialog({
           </DialogHeader>
 
           <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-            {/* Order Sync Settings */}
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Bestellingen
-              </h4>
-              <div className="space-y-4 ml-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Automatisch importeren</p>
-                    <p className="text-sm text-muted-foreground">
-                      Nieuwe orders worden automatisch opgehaald
-                    </p>
+            {/* Order Sync Settings - only show for non-Odoo or Odoo e-commerce */}
+            {(marketplaceType !== 'odoo' || odooModuleEcommerce) && (
+              <div>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  Bestellingen
+                </h4>
+                <div className="space-y-4 ml-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Automatisch importeren</p>
+                      <p className="text-sm text-muted-foreground">
+                        Nieuwe orders worden automatisch opgehaald
+                      </p>
+                    </div>
+                    <Switch checked={autoImport} onCheckedChange={setAutoImport} />
                   </div>
-                  <Switch checked={autoImport} onCheckedChange={setAutoImport} />
+
+                  {autoImport && (
+                    <div>
+                      <Label>Sync interval</Label>
+                      <Select value={syncInterval} onValueChange={setSyncInterval}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">Elke 5 minuten (Business plan)</SelectItem>
+                          <SelectItem value="15">Elke 15 minuten (Pro plan)</SelectItem>
+                          <SelectItem value="30">Elke 30 minuten</SelectItem>
+                          <SelectItem value="60">Elk uur</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Historische orders importeren</p>
+                      <p className="text-sm text-muted-foreground">
+                        Eenmalig bij eerste synchronisatie
+                      </p>
+                    </div>
+                    <Switch checked={importHistorical} onCheckedChange={setImportHistorical} />
+                  </div>
+
+                  {importHistorical && (
+                    <div>
+                      <Label>Import periode</Label>
+                      <Select value={historicalPeriod} onValueChange={setHistoricalPeriod}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">Afgelopen 30 dagen</SelectItem>
+                          <SelectItem value="90">Afgelopen 3 maanden</SelectItem>
+                          <SelectItem value="180">Afgelopen 6 maanden</SelectItem>
+                          <SelectItem value="365">Afgelopen jaar</SelectItem>
+                          <SelectItem value="all">Alles (max 2 jaar)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Langere periodes kunnen even duren bij veel orders
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                {autoImport && (
-                  <div>
-                    <Label>Sync interval</Label>
-                    <Select value={syncInterval} onValueChange={setSyncInterval}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">Elke 5 minuten (Business plan)</SelectItem>
-                        <SelectItem value="15">Elke 15 minuten (Pro plan)</SelectItem>
-                        <SelectItem value="30">Elke 30 minuten</SelectItem>
-                        <SelectItem value="60">Elk uur</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Historische orders importeren</p>
-                    <p className="text-sm text-muted-foreground">
-                      Eenmalig bij eerste synchronisatie
-                    </p>
-                  </div>
-                  <Switch checked={importHistorical} onCheckedChange={setImportHistorical} />
-                </div>
-
-                {importHistorical && (
-                  <div>
-                    <Label>Import periode</Label>
-                    <Select value={historicalPeriod} onValueChange={setHistoricalPeriod}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30">Afgelopen 30 dagen</SelectItem>
-                        <SelectItem value="90">Afgelopen 3 maanden</SelectItem>
-                        <SelectItem value="180">Afgelopen 6 maanden</SelectItem>
-                        <SelectItem value="365">Afgelopen jaar</SelectItem>
-                        <SelectItem value="all">Alles (max 2 jaar)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Langere periodes kunnen even duren bij veel orders
-                    </p>
-                  </div>
-                )}
               </div>
-            </div>
+            )}
 
-            {/* Inventory Sync Settings */}
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Voorraad
-              </h4>
-              <div className="space-y-4 ml-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Automatisch synchroniseren</p>
-                    <p className="text-sm text-muted-foreground">
-                      Voorraad wordt automatisch bijgewerkt op {info.name}
-                    </p>
+            {/* Inventory Sync Settings - only show for non-Odoo or Odoo e-commerce */}
+            {(marketplaceType !== 'odoo' || odooModuleEcommerce) && (
+              <div>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Voorraad
+                </h4>
+                <div className="space-y-4 ml-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Automatisch synchroniseren</p>
+                      <p className="text-sm text-muted-foreground">
+                        Voorraad wordt automatisch bijgewerkt op {info.name}
+                      </p>
+                    </div>
+                    <Switch checked={autoSyncInventory} onCheckedChange={setAutoSyncInventory} />
                   </div>
-                  <Switch checked={autoSyncInventory} onCheckedChange={setAutoSyncInventory} />
-                </div>
 
-                {autoSyncInventory && (
+                  {autoSyncInventory && (
+                    <div>
+                      <Label>Veiligheidsvoorraad (optioneel)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        className="mt-1"
+                        value={safetyStock}
+                        onChange={(e) => setSafetyStock(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Trek dit aantal af van je werkelijke voorraad. Bijv: Je hebt 10 stuks, safety stock = 2, {info.name} ziet 8 stuks.
+                      </p>
+                    </div>
+                  )}
+
                   <div>
-                    <Label>Veiligheidsvoorraad (optioneel)</Label>
+                    <Label>Waarschuwing bij lage voorraad</Label>
                     <Input
                       type="number"
-                      placeholder="0"
+                      placeholder="5"
                       className="mt-1"
-                      value={safetyStock}
-                      onChange={(e) => setSafetyStock(e.target.value)}
+                      value={lowStockThreshold}
+                      onChange={(e) => setLowStockThreshold(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Trek dit aantal af van je werkelijke voorraad. Bijv: Je hebt 10 stuks, safety stock = 2, {info.name} ziet 8 stuks.
+                      Ontvang een melding als voorraad onder dit aantal komt
                     </p>
                   </div>
-                )}
-
-                <div>
-                  <Label>Waarschuwing bij lage voorraad</Label>
-                  <Input
-                    type="number"
-                    placeholder="5"
-                    className="mt-1"
-                    value={lowStockThreshold}
-                    onChange={(e) => setLowStockThreshold(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Ontvang een melding als voorraad onder dit aantal komt
-                  </p>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Accounting Settings - only show for Odoo accounting module */}
+            {marketplaceType === 'odoo' && odooModuleAccounting && (
+              <div>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <Calculator className="w-4 h-4" />
+                  Boekhouding
+                </h4>
+                <div className="space-y-4 ml-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Facturen exporteren naar Odoo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Nieuwe facturen worden automatisch naar Odoo Accounting gepusht
+                      </p>
+                    </div>
+                    <Switch checked={true} disabled />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Klanten synchroniseren</p>
+                      <p className="text-sm text-muted-foreground">
+                        Klanten worden automatisch aangemaakt in Odoo (res.partner)
+                      </p>
+                    </div>
+                    <Switch checked={true} disabled />
+                  </div>
+
+                  <Alert className="bg-muted border-border">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription className="text-sm">
+                      BTW mapping en journal configuratie kunnen later worden ingesteld via de verbindingsinstellingen.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </div>
+            )}
 
             {/* Notifications */}
             <div>
@@ -840,24 +1021,28 @@ export function ConnectMarketplaceDialog({
                 Notificaties
               </h4>
               <div className="space-y-3 ml-6">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Email bij nieuwe orders</p>
-                  <Switch checked={emailNotifyNewOrders} onCheckedChange={setEmailNotifyNewOrders} />
-                </div>
+                {(marketplaceType !== 'odoo' || odooModuleEcommerce) && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm">Email bij nieuwe orders</p>
+                    <Switch checked={emailNotifyNewOrders} onCheckedChange={setEmailNotifyNewOrders} />
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <p className="text-sm">Email bij sync fouten</p>
                   <Switch checked={emailNotifySyncErrors} onCheckedChange={setEmailNotifySyncErrors} />
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Email bij lage voorraad</p>
-                  <Switch checked={emailNotifyLowStock} onCheckedChange={setEmailNotifyLowStock} />
-                </div>
+                {(marketplaceType !== 'odoo' || odooModuleEcommerce) && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm">Email bij lage voorraad</p>
+                    <Switch checked={emailNotifyLowStock} onCheckedChange={setEmailNotifyLowStock} />
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setStep('credentials')}>
+            <Button variant="outline" onClick={() => setStep(marketplaceType === 'odoo' ? 'modules' : 'credentials')}>
               Terug
             </Button>
             <Button onClick={handleConnect} disabled={connecting}>
