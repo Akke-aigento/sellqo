@@ -376,6 +376,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Odoo testing - delegate to separate function
+    if (marketplaceType === 'odoo') {
+      // Forward to dedicated Odoo test function
+      const odooTestUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/test-odoo-connection`
+      const response = await fetch(odooTestUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({ credentials }),
+      })
+      const data = await response.json()
+      return new Response(JSON.stringify(data), {
+        status: response.ok ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: 'Onbekend marketplace type' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

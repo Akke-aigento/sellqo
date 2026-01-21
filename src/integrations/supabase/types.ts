@@ -3718,6 +3718,237 @@ export type Database = {
           },
         ]
       }
+      odoo_customer_sync_log: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          error_message: string | null
+          id: string
+          marketplace_connection_id: string
+          odoo_partner_id: string | null
+          sync_direction: string
+          sync_status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          error_message?: string | null
+          id?: string
+          marketplace_connection_id: string
+          odoo_partner_id?: string | null
+          sync_direction?: string
+          sync_status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          error_message?: string | null
+          id?: string
+          marketplace_connection_id?: string
+          odoo_partner_id?: string | null
+          sync_direction?: string
+          sync_status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odoo_customer_sync_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_customer_sync_log_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_customer_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      odoo_invoice_sync_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          invoice_id: string | null
+          marketplace_connection_id: string
+          odoo_move_id: string | null
+          sync_direction: string
+          sync_status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          invoice_id?: string | null
+          marketplace_connection_id: string
+          odoo_move_id?: string | null
+          sync_direction?: string
+          sync_status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          invoice_id?: string | null
+          marketplace_connection_id?: string
+          odoo_move_id?: string | null
+          sync_direction?: string
+          sync_status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odoo_invoice_sync_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_invoice_sync_log_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_invoice_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      odoo_journal_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_type: string
+          is_active: boolean
+          marketplace_connection_id: string
+          odoo_journal_id: string
+          odoo_journal_name: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_type: string
+          is_active?: boolean
+          marketplace_connection_id: string
+          odoo_journal_id: string
+          odoo_journal_name?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_type?: string
+          is_active?: boolean
+          marketplace_connection_id?: string
+          odoo_journal_id?: string
+          odoo_journal_name?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odoo_journal_mappings_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_journal_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      odoo_tax_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          marketplace_connection_id: string
+          odoo_tax_id: string
+          odoo_tax_name: string | null
+          sellqo_vat_percentage: number | null
+          sellqo_vat_rate_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          marketplace_connection_id: string
+          odoo_tax_id: string
+          odoo_tax_name?: string | null
+          sellqo_vat_percentage?: number | null
+          sellqo_vat_rate_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          marketplace_connection_id?: string
+          odoo_tax_id?: string
+          odoo_tax_name?: string | null
+          sellqo_vat_percentage?: number | null
+          sellqo_vat_rate_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odoo_tax_mappings_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_tax_mappings_sellqo_vat_rate_id_fkey"
+            columns: ["sellqo_vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_tax_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -5202,6 +5433,13 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           name: string
+          odoo_last_synced_at: string | null
+          odoo_listing_error: string | null
+          odoo_listing_status: string | null
+          odoo_optimized_description: string | null
+          odoo_optimized_title: string | null
+          odoo_product_id: string | null
+          odoo_variant_id: string | null
           original_category_value: string | null
           price: number
           product_type: Database["public"]["Enums"]["product_type"] | null
@@ -5287,6 +5525,13 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           name: string
+          odoo_last_synced_at?: string | null
+          odoo_listing_error?: string | null
+          odoo_listing_status?: string | null
+          odoo_optimized_description?: string | null
+          odoo_optimized_title?: string | null
+          odoo_product_id?: string | null
+          odoo_variant_id?: string | null
           original_category_value?: string | null
           price: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
@@ -5372,6 +5617,13 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           name?: string
+          odoo_last_synced_at?: string | null
+          odoo_listing_error?: string | null
+          odoo_listing_status?: string | null
+          odoo_optimized_description?: string | null
+          odoo_optimized_title?: string | null
+          odoo_product_id?: string | null
+          odoo_variant_id?: string | null
           original_category_value?: string | null
           price?: number
           product_type?: Database["public"]["Enums"]["product_type"] | null

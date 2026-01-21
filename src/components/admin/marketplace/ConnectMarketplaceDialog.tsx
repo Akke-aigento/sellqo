@@ -91,6 +91,12 @@ export function ConnectMarketplaceDialog({
   const [consumerKey, setConsumerKey] = useState('');
   const [consumerSecret, setConsumerSecret] = useState('');
 
+  // Odoo-specific state
+  const [odooUrl, setOdooUrl] = useState('');
+  const [odooDatabase, setOdooDatabase] = useState('');
+  const [odooUsername, setOdooUsername] = useState('');
+  const [odooApiKey, setOdooApiKey] = useState('');
+
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
@@ -101,6 +107,8 @@ export function ConnectMarketplaceDialog({
         ? { storeUrl, accessToken }
         : marketplaceType === 'woocommerce'
         ? { siteUrl, consumerKey, consumerSecret }
+        : marketplaceType === 'odoo'
+        ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
         : { clientId, clientSecret };
 
       const { data, error } = await supabase.functions.invoke('test-marketplace-connection', {
@@ -136,6 +144,8 @@ export function ConnectMarketplaceDialog({
         ? { storeUrl, accessToken }
         : marketplaceType === 'woocommerce'
         ? { siteUrl, consumerKey, consumerSecret }
+        : marketplaceType === 'odoo'
+        ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
         : { clientId, clientSecret };
 
       const newConnection = await createConnection.mutateAsync({
@@ -173,6 +183,9 @@ export function ConnectMarketplaceDialog({
       } else if (marketplaceType === 'amazon') {
         syncOrdersFunction = 'sync-amazon-orders';
         syncInventoryFunction = 'sync-amazon-inventory';
+      } else if (marketplaceType === 'odoo') {
+        syncOrdersFunction = 'sync-odoo-orders';
+        syncInventoryFunction = 'sync-odoo-inventory';
       } else {
         syncOrdersFunction = 'sync-bol-orders';
         syncInventoryFunction = 'sync-bol-inventory';
@@ -186,6 +199,17 @@ export function ConnectMarketplaceDialog({
           });
         } catch (err) {
           console.error('Customer sync failed:', err);
+        }
+      }
+      
+      // Odoo also syncs customers
+      if (marketplaceType === 'odoo') {
+        try {
+          await supabase.functions.invoke('sync-odoo-customers', {
+            body: { connectionId: newConnection.id }
+          });
+        } catch (err) {
+          console.error('Odoo customer sync failed:', err);
         }
       }
       
@@ -239,6 +263,10 @@ export function ConnectMarketplaceDialog({
       setSiteUrl('');
       setConsumerKey('');
       setConsumerSecret('');
+      setOdooUrl('');
+      setOdooDatabase('');
+      setOdooUsername('');
+      setOdooApiKey('');
       setTestResult(null);
       setSyncProgress(0);
       setSyncSteps({ orders: false, products: false, inventory: false });
@@ -295,6 +323,19 @@ export function ConnectMarketplaceDialog({
             'Klik op "Sleutel toevoegen"',
             'Geef de sleutel een naam en kies "Lezen/Schrijven" permissies',
             'Kopieer de Consumer Key en Consumer Secret',
+          ],
+        };
+      case 'odoo':
+        return {
+          title: 'Odoo Instellingen',
+          url: 'https://jouw-bedrijf.odoo.com/web#action=&model=res.users&view_type=form',
+          steps: [
+            'Log in op je Odoo instance',
+            'Ga naar Instellingen → Gebruikers & Bedrijven → Gebruikers',
+            'Selecteer je gebruiker en ga naar het "API Keys" tabblad',
+            'Klik op "Nieuwe API sleutel" en geef deze een naam',
+            'Kopieer de API sleutel (wordt slechts één keer getoond)',
+            'Noteer ook je database naam (zichtbaar in de URL)',
           ],
         };
       default:
@@ -496,6 +537,71 @@ export function ConnectMarketplaceDialog({
                   </p>
                 </div>
               </>
+            ) : marketplaceType === 'odoo' ? (
+              <>
+                <div>
+                  <Label>Odoo URL *</Label>
+                  <Input
+                    type="url"
+                    required
+                    placeholder="https://mijn-bedrijf.odoo.com"
+                    className="mt-1 font-mono text-sm"
+                    value={odooUrl}
+                    onChange={(e) => setOdooUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Je Odoo instance URL
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Database naam *</Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="mijn-bedrijf"
+                    className="mt-1 font-mono text-sm"
+                    value={odooDatabase}
+                    onChange={(e) => setOdooDatabase(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Gebruikersnaam *</Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="admin@mijn-bedrijf.nl"
+                    className="mt-1 font-mono text-sm"
+                    value={odooUsername}
+                    onChange={(e) => setOdooUsername(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>API Key *</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showSecret ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••••••••••"
+                      className="pr-10 font-mono text-sm"
+                      value={odooApiKey}
+                      onChange={(e) => setOdooApiKey(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Genereer via Instellingen → Gebruikers → API Keys
+                  </p>
+                </div>
+              </>
             ) : (
               <>
                 {/* Bol.com / Amazon credentials */}
@@ -543,6 +649,8 @@ export function ConnectMarketplaceDialog({
                   ? !storeUrl || !accessToken || testing
                   : marketplaceType === 'woocommerce'
                   ? !siteUrl || !consumerKey || !consumerSecret || testing
+                  : marketplaceType === 'odoo'
+                  ? !odooUrl || !odooDatabase || !odooUsername || !odooApiKey || testing
                   : !clientId || !clientSecret || testing
               }
               className="w-full"
@@ -588,6 +696,8 @@ export function ConnectMarketplaceDialog({
                   ? !storeUrl || !accessToken
                   : marketplaceType === 'woocommerce'
                   ? !siteUrl || !consumerKey || !consumerSecret
+                  : marketplaceType === 'odoo'
+                  ? !odooUrl || !odooDatabase || !odooUsername || !odooApiKey
                   : !clientId || !clientSecret
               }
             >
