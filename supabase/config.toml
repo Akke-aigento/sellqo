@@ -152,3 +152,9 @@ verify_jwt = false
 
 [functions.social-post-publish]
 verify_jwt = false
+
+[functions.newsletter-subscribe]
+verify_jwt = false
+
+[functions.newsletter-test-connection]
+verify_jwt = false

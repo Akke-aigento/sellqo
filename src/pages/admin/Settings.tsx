@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Palette,
   Share2,
+  Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +30,7 @@ import { VatRatesSettings } from '@/components/admin/settings/VatRatesSettings';
 import { PeppolSettings } from '@/components/admin/settings/PeppolSettings';
 import { NotificationSettings } from '@/components/admin/settings/NotificationSettings';
 import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
+import { NewsletterSettings } from '@/components/admin/storefront/NewsletterSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -89,6 +91,7 @@ const settingsGroups: SettingsGroup[] = [
     title: 'Koppelingen & Kanalen',
     description: 'Social media, notificaties en externe koppelingen',
     sections: [
+      { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
       { id: 'notifications', title: 'Notificaties', icon: Bell, component: NotificationSettings },
     ],

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import type { HomepageSection, NewsletterContent } from '@/types/storefront';
 
 interface NewsletterSectionProps {
@@ -17,15 +18,28 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !tenantId) return;
 
     setLoading(true);
-    // Here you would integrate with your newsletter service
-    // For now, we just simulate success
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success('Bedankt voor je aanmelding!');
-    setEmail('');
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('newsletter-subscribe', {
+        body: {
+          tenantId,
+          email,
+          source: 'website',
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data?.message || 'Bedankt voor je aanmelding!');
+      setEmail('');
+    } catch (error: any) {
+      console.error('Newsletter subscribe error:', error);
+      toast.error('Er ging iets mis. Probeer het opnieuw.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
