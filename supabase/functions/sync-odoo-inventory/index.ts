@@ -121,7 +121,20 @@ Deno.serve(async (req) => {
     }
 
     const credentials = connection.credentials as OdooCredentials
-    const settings = connection.settings as { safetyStock?: number }
+    const settings = connection.settings as { 
+      safetyStock?: number
+      odooModuleEcommerce?: boolean
+    }
+
+    // Check if e-commerce module is enabled
+    if (settings.odooModuleEcommerce === false) {
+      console.log('Odoo e-commerce module not enabled, skipping inventory sync')
+      return new Response(
+        JSON.stringify({ success: true, productsSynced: 0, message: 'E-commerce module not enabled' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const safetyStock = settings.safetyStock || 0
 
     // Authenticate with Odoo

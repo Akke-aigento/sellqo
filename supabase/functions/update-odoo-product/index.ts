@@ -110,6 +110,16 @@ Deno.serve(async (req) => {
     }
 
     const credentials = connection.credentials as OdooCredentials
+    const settings = connection.settings as Record<string, unknown>
+
+    // Check if e-commerce module is enabled
+    if (settings.odooModuleEcommerce === false) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'E-commerce module not enabled for this Odoo connection' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const odooProductId = parseInt(product.odoo_product_id)
 
     // Authenticate with Odoo
