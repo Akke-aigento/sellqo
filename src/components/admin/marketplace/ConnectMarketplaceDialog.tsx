@@ -35,6 +35,7 @@ import {
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import type { MarketplaceType, MarketplaceSettings } from '@/types/marketplace';
 import { MARKETPLACE_INFO } from '@/types/marketplace';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ConnectMarketplaceDialogProps {
   open: boolean;
@@ -85,14 +86,26 @@ export function ConnectMarketplaceDialog({
     setTesting(true);
     setTestResult(null);
     
-    // Simulate API test - in real implementation this would call your edge function
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // For demo purposes, we'll just check if credentials are filled
-    if (clientId.length > 10 && clientSecret.length > 10) {
-      setTestResult({ success: true });
-    } else {
-      setTestResult({ success: false, error: 'Ongeldige credentials. Controleer je Client ID en Secret.' });
+    try {
+      const { data, error } = await supabase.functions.invoke('test-marketplace-connection', {
+        body: { 
+          marketplaceType, 
+          credentials: { clientId, clientSecret } 
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'Verbinding mislukt');
+      }
+      
+      if (data?.success) {
+        setTestResult({ success: true });
+      } else {
+        setTestResult({ success: false, error: data?.error || 'Verbinding mislukt' });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Verbinding mislukt';
+      setTestResult({ success: false, error: message });
     }
     
     setTesting(false);
@@ -102,7 +115,7 @@ export function ConnectMarketplaceDialog({
     setConnecting(true);
     
     try {
-      await createConnection.mutateAsync({
+      const newConnection = await createConnection.mutateAsync({
         marketplace_type: marketplaceType,
         marketplace_name: connectionName || undefined,
         credentials: {
@@ -125,23 +138,39 @@ export function ConnectMarketplaceDialog({
       
       setStep('success');
       
-      // Simulate first sync progress
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setSyncProgress(i);
-        
-        if (i >= 30) {
-          setSyncSteps(prev => ({ ...prev, orders: true }));
-          setOrdersImported(Math.floor(Math.random() * 50) + 10);
-        }
-        if (i >= 60) {
-          setSyncSteps(prev => ({ ...prev, products: true }));
-          setProductsMatched(Math.floor(Math.random() * 30) + 5);
-        }
-        if (i >= 90) {
-          setSyncSteps(prev => ({ ...prev, inventory: true }));
-        }
+      // Start the actual first sync
+      setSyncProgress(10);
+      
+      // Trigger order import
+      try {
+        setSyncProgress(20);
+        const orderSyncResult = await supabase.functions.invoke('sync-bol-orders', {
+          body: { connectionId: newConnection.id }
+        });
+        setSyncSteps(prev => ({ ...prev, orders: true }));
+        setOrdersImported(orderSyncResult.data?.ordersImported || 0);
+        setSyncProgress(50);
+      } catch (err) {
+        console.error('Order sync failed:', err);
+        setSyncSteps(prev => ({ ...prev, orders: true }));
       }
+      
+      // Trigger inventory sync
+      try {
+        setSyncProgress(70);
+        const inventorySyncResult = await supabase.functions.invoke('sync-bol-inventory', {
+          body: { connectionId: newConnection.id }
+        });
+        setSyncSteps(prev => ({ ...prev, inventory: true }));
+        setProductsMatched(inventorySyncResult.data?.productsSynced || 0);
+        setSyncProgress(100);
+      } catch (err) {
+        console.error('Inventory sync failed:', err);
+        setSyncSteps(prev => ({ ...prev, inventory: true }));
+      }
+      
+      setSyncSteps(prev => ({ ...prev, products: true }));
+      setSyncProgress(100);
     } catch (error) {
       // Error is handled by the mutation
     } finally {
