@@ -24,6 +24,10 @@ export interface MarketplaceCredentials {
   marketplaceId?: string;
   // Shopify-specific
   storeUrl?: string;
+  // WooCommerce-specific
+  siteUrl?: string;
+  consumerKey?: string;
+  consumerSecret?: string;
 }
 
 export interface MarketplaceSettings {
@@ -138,10 +142,9 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
     features: [
       { text: 'Automatische order import', available: true },
       { text: 'Realtime voorraad sync', available: true },
-      { text: 'Product sync', available: true },
-      { text: 'Klant sync', available: true },
+      { text: 'Bi-directionele product sync', available: true },
+      { text: 'AI Product listing', available: true },
     ],
-    comingSoon: true,
   },
   request: {
     name: 'Andere Integratie',

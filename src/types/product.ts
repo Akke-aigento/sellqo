@@ -93,6 +93,14 @@ export interface Product {
   shopify_optimized_title?: string | null;
   shopify_optimized_description?: string | null;
   shopify_last_synced_at?: string | null;
+  // WooCommerce listing fields
+  woocommerce_product_id?: string | null;
+  woocommerce_variant_id?: string | null;
+  woocommerce_listing_status?: string | null;
+  woocommerce_listing_error?: string | null;
+  woocommerce_optimized_title?: string | null;
+  woocommerce_optimized_description?: string | null;
+  woocommerce_last_synced_at?: string | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)

@@ -50,6 +50,9 @@ export interface MarketplaceSettings {
   // Shopify fields
   shopify_optimized_title?: string;
   shopify_optimized_description?: string;
+  // WooCommerce fields
+  woocommerce_optimized_title?: string;
+  woocommerce_optimized_description?: string;
 }
 
 export function useMarketplaceListing() {
@@ -61,7 +64,7 @@ export function useMarketplaceListing() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isCheckingAmazonStatus, setIsCheckingAmazonStatus] = useState(false);
 
-  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify'): Promise<OptimizedContent | null> => {
+  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce'): Promise<OptimizedContent | null> => {
     if (!currentTenant) return null;
 
     setIsOptimizing(true);
@@ -106,7 +109,7 @@ export function useMarketplaceListing() {
       content 
     }: { 
       productId: string; 
-      marketplace: 'bol_com' | 'amazon' | 'shopify'; 
+      marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce'; 
       content: OptimizedContent;
     }) => {
       let updateData: Record<string, unknown>;
@@ -123,10 +126,15 @@ export function useMarketplaceListing() {
           amazon_optimized_description: content.description,
           amazon_bullets: content.bullets,
         };
-      } else {
+      } else if (marketplace === 'shopify') {
         updateData = {
           shopify_optimized_title: content.title,
           shopify_optimized_description: content.description,
+        };
+      } else {
+        updateData = {
+          woocommerce_optimized_title: content.title,
+          woocommerce_optimized_description: content.description,
         };
       }
 

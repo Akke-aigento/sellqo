@@ -5224,6 +5224,13 @@ export type Database = {
           updated_at: string | null
           vat_rate_id: string | null
           weight: number | null
+          woocommerce_last_synced_at: string | null
+          woocommerce_listing_error: string | null
+          woocommerce_listing_status: string | null
+          woocommerce_optimized_description: string | null
+          woocommerce_optimized_title: string | null
+          woocommerce_product_id: string | null
+          woocommerce_variant_id: string | null
         }
         Insert: {
           access_duration_days?: number | null
@@ -5302,6 +5309,13 @@ export type Database = {
           updated_at?: string | null
           vat_rate_id?: string | null
           weight?: number | null
+          woocommerce_last_synced_at?: string | null
+          woocommerce_listing_error?: string | null
+          woocommerce_listing_status?: string | null
+          woocommerce_optimized_description?: string | null
+          woocommerce_optimized_title?: string | null
+          woocommerce_product_id?: string | null
+          woocommerce_variant_id?: string | null
         }
         Update: {
           access_duration_days?: number | null
@@ -5380,6 +5394,13 @@ export type Database = {
           updated_at?: string | null
           vat_rate_id?: string | null
           weight?: number | null
+          woocommerce_last_synced_at?: string | null
+          woocommerce_listing_error?: string | null
+          woocommerce_listing_status?: string | null
+          woocommerce_optimized_description?: string | null
+          woocommerce_optimized_title?: string | null
+          woocommerce_product_id?: string | null
+          woocommerce_variant_id?: string | null
         }
         Relationships: [
           {
