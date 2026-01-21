@@ -55,6 +55,7 @@ export function useMarketplaceListing() {
   const { getConnectionByType } = useMarketplaceConnections();
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isCheckingAmazonStatus, setIsCheckingAmazonStatus] = useState(false);
 
   const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon'): Promise<OptimizedContent | null> => {
     if (!currentTenant) return null;
@@ -464,6 +465,95 @@ export function useMarketplaceListing() {
     },
   });
 
+  // Check Amazon listing status
+  const checkAmazonListingStatus = async (product: Product): Promise<{
+    success: boolean;
+    listing_status?: string;
+    asin?: string;
+    error_message?: string;
+    issues?: string[];
+  }> => {
+    if (!currentTenant) {
+      toast({
+        title: 'Fout',
+        description: 'Geen tenant gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    const connection = getConnectionByType('amazon');
+    if (!connection) {
+      toast({
+        title: 'Fout',
+        description: 'Geen Amazon verbinding gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    // The amazon_offer_id contains the SKU
+    if (!product.amazon_offer_id) {
+      toast({
+        title: 'Fout',
+        description: 'Geen Amazon SKU gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    setIsCheckingAmazonStatus(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-amazon-listing-status', {
+        body: {
+          product_id: product.id,
+          tenant_id: currentTenant.id,
+          connection_id: connection.id,
+          sku: product.amazon_offer_id,
+        },
+      });
+
+      if (error) throw error;
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+
+      if (data.success) {
+        if (data.listing_status === 'listed') {
+          toast({
+            title: 'Product actief!',
+            description: `Je product is actief op Amazon${data.asin ? ` (ASIN: ${data.asin})` : ''}`,
+          });
+        } else if (data.listing_status === 'error') {
+          toast({
+            title: 'Publicatie probleem',
+            description: data.error_message || 'Er is een fout opgetreden bij Amazon',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Nog in verwerking',
+            description: 'Amazon verwerkt je aanbieding nog. Probeer het later opnieuw.',
+          });
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Check Amazon listing status error:', error);
+      toast({
+        title: 'Status controle mislukt',
+        description: error instanceof Error ? error.message : 'Kon de status niet ophalen',
+        variant: 'destructive',
+      });
+      return { success: false };
+    } finally {
+      setIsCheckingAmazonStatus(false);
+    }
+  };
+
   return {
     // AI Optimization
     optimizeContent,
@@ -484,5 +574,7 @@ export function useMarketplaceListing() {
     // Status checking
     checkBolProcessStatus,
     isCheckingStatus,
+    checkAmazonListingStatus,
+    isCheckingAmazonStatus,
   };
 }
