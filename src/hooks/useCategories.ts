@@ -171,6 +171,24 @@ export function useCategories() {
     },
   });
 
+  const bulkUpdateStorefrontVisibility = useMutation({
+    mutationFn: async ({ ids, hideFromStorefront }: { ids: string[]; hideFromStorefront: boolean }) => {
+      const { error } = await supabase
+        .from('categories')
+        .update({ hide_from_storefront: hideFromStorefront })
+        .in('id', ids);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { hideFromStorefront }) => {
+      queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      toast({ title: hideFromStorefront ? 'Categorieën verborgen voor webshop' : 'Categorieën zichtbaar op webshop' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Build tree structure from flat list
   const buildCategoryTree = (categories: Category[]): Category[] => {
     const map = new Map<string, Category>();
@@ -217,6 +235,7 @@ export function useCategories() {
     updateSortOrder,
     reparentCategory,
     bulkUpdateActive,
+    bulkUpdateStorefrontVisibility,
     bulkDelete,
     refetch: categoriesQuery.refetch,
   };

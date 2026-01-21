@@ -39,6 +39,7 @@ export interface Product {
   meta_title: string | null;
   meta_description: string | null;
   is_active: boolean;
+  hide_from_storefront: boolean;
   is_featured: boolean;
   weight: number | null;
   requires_shipping: boolean;
@@ -128,6 +129,7 @@ export interface Category {
   parent_id: string | null;
   sort_order: number;
   is_active: boolean;
+  hide_from_storefront: boolean;
   created_at: string;
   updated_at: string;
   parent?: Category;
@@ -156,6 +158,7 @@ export interface ProductFormData {
   meta_title: string;
   meta_description: string;
   is_active: boolean;
+  hide_from_storefront: boolean;
   is_featured: boolean;
   weight: number | null;
   requires_shipping: boolean;
@@ -183,9 +186,11 @@ export interface CategoryFormData {
   parent_id: string | null;
   sort_order: number;
   is_active: boolean;
+  hide_from_storefront: boolean;
 }
 
 export type ProductStatus = 'all' | 'active' | 'inactive';
+export type VisibilityStatus = 'all' | 'online' | 'store_only' | 'hidden';
 export type StockStatus = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
 // Digital product file

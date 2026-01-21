@@ -85,6 +85,7 @@ const productSchema = z.object({
   meta_title: z.string().max(60, 'Meta titel mag maximaal 60 tekens zijn').optional().default(''),
   meta_description: z.string().max(160, 'Meta beschrijving mag maximaal 160 tekens zijn').optional().default(''),
   is_active: z.boolean().default(true),
+  hide_from_storefront: z.boolean().default(false),
   is_featured: z.boolean().default(false),
   weight: z.coerce.number().min(0).nullable().optional(),
   requires_shipping: z.boolean().default(true),
@@ -158,6 +159,7 @@ export default function ProductForm() {
       meta_title: '',
       meta_description: '',
       is_active: true,
+      hide_from_storefront: false,
       is_featured: false,
       weight: null,
       requires_shipping: true,
@@ -195,6 +197,7 @@ export default function ProductForm() {
       meta_title: product.meta_title || '',
       meta_description: product.meta_description || '',
       is_active: product.is_active,
+      hide_from_storefront: (product as any).hide_from_storefront || false,
       is_featured: product.is_featured,
       weight: product.weight,
       requires_shipping: product.requires_shipping,
@@ -998,6 +1001,24 @@ export default function ProductForm() {
                               <FormLabel>Actief</FormLabel>
                               <FormDescription>
                                 Product is zichtbaar in de winkel
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="hide_from_storefront"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                            <div>
+                              <FormLabel>Verbergen op webshop</FormLabel>
+                              <FormDescription>
+                                Niet zichtbaar online, wel via POS
                               </FormDescription>
                             </div>
                             <FormControl>

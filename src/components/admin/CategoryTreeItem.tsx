@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight, EyeOff, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -163,9 +163,21 @@ export function CategoryTreeItem({
           )}
         </div>
 
-        <Badge variant={category.is_active ? "default" : "secondary"} className="text-xs shrink-0">
-          {category.is_active ? 'Actief' : 'Inactief'}
-        </Badge>
+        {/* Visibility/Status badge */}
+        {!category.is_active ? (
+          <Badge variant="secondary" className="text-xs shrink-0">
+            Inactief
+          </Badge>
+        ) : (category as any).hide_from_storefront ? (
+          <Badge className="bg-amber-500 hover:bg-amber-600 text-xs shrink-0 gap-1">
+            <Store className="h-3 w-3" />
+            Alleen winkel
+          </Badge>
+        ) : (
+          <Badge variant="default" className="text-xs shrink-0">
+            Online
+          </Badge>
+        )}
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <CategoryMoveDropdown

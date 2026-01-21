@@ -50,6 +50,7 @@ const categorySchema = z.object({
   description: z.string().max(500, 'Beschrijving mag maximaal 500 tekens zijn').optional(),
   parent_id: z.string().nullable().optional(),
   is_active: z.boolean().optional(),
+  hide_from_storefront: z.boolean().optional(),
   sort_order: z.number().optional(),
   image_url: z.string().url('Ongeldige URL').optional().or(z.literal('')),
   // Multi-language SEO fields
@@ -102,6 +103,7 @@ export function CategoryFormDialog({
       description: '',
       parent_id: null,
       is_active: true,
+      hide_from_storefront: false,
       sort_order: 0,
       image_url: '',
       meta_title_nl: '',
@@ -124,6 +126,7 @@ export function CategoryFormDialog({
           description: category.description || '',
           parent_id: category.parent_id || null,
           is_active: category.is_active ?? true,
+          hide_from_storefront: (category as any).hide_from_storefront || false,
           sort_order: category.sort_order ?? 0,
           image_url: category.image_url || '',
           // @ts-expect-error - New fields from migration
@@ -150,6 +153,7 @@ export function CategoryFormDialog({
           description: '',
           parent_id: parentId || null,
           is_active: true,
+          hide_from_storefront: false,
           sort_order: 0,
           image_url: '',
           meta_title_nl: '',
@@ -356,6 +360,28 @@ export function CategoryFormDialog({
                     )}
                   />
                 </div>
+
+                {/* Visibility toggle */}
+                <FormField
+                  control={form.control}
+                  name="hide_from_storefront"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Verbergen op webshop</FormLabel>
+                        <FormDescription>
+                          Deze categorie is niet zichtbaar online, maar producten kunnen wel via POS verkocht worden
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
 
               {/* Image Tab */}
