@@ -61,6 +61,7 @@ import POSTerminalPage from "./pages/admin/POSTerminal";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
 import TranslationHub from "./pages/admin/TranslationHub";
+import StorefrontPage from "./pages/admin/Storefront";
 
 const queryClient = new QueryClient();
 
@@ -138,6 +139,7 @@ const App = () => (
               <Route path="pos" element={<POSPage />} />
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
+              <Route path="storefront" element={<StorefrontPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />

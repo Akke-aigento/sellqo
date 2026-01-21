@@ -70,6 +70,7 @@ const dailyItems: NavItem[] = [
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
   { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
+  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe },
   {
     id: 'promotions',
     title: 'Promoties',
