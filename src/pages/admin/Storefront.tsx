@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders } from 'lucide-react';
+import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
 import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSettings';
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
+import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
 
 export default function StorefrontPage() {
   const { currentTenant } = useTenant();
@@ -126,7 +127,7 @@ export default function StorefrontPage() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="theme" className="flex items-center gap-2">
             <Paintbrush className="h-4 w-4" />
             <span className="hidden sm:inline">Theme</span>
@@ -138,6 +139,10 @@ export default function StorefrontPage() {
           <TabsTrigger value="pages" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Pagina's</span>
+          </TabsTrigger>
+          <TabsTrigger value="legal" className="flex items-center gap-2">
+            <Scale className="h-4 w-4" />
+            <span className="hidden sm:inline">Juridisch</span>
           </TabsTrigger>
           <TabsTrigger value="features" className="flex items-center gap-2">
             <Sliders className="h-4 w-4" />
@@ -160,6 +165,10 @@ export default function StorefrontPage() {
 
         <TabsContent value="pages">
           <StorefrontPagesManager />
+        </TabsContent>
+
+        <TabsContent value="legal">
+          <LegalPagesManager />
         </TabsContent>
 
         <TabsContent value="features">

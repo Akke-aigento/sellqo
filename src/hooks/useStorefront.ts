@@ -151,6 +151,9 @@ export function useStorefront() {
         'nav_style', 'header_sticky', 'search_display', 'mobile_bottom_nav',
         // Conversion settings
         'show_stock_count', 'show_viewers_count', 'show_recent_purchases', 'exit_intent_popup',
+        // Multilingual settings
+        'storefront_multilingual_enabled', 'storefront_languages', 'storefront_default_language',
+        'storefront_language_selector_style',
       ];
 
       for (const key of allowedFields) {
