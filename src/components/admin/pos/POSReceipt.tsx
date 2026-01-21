@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import type { POSTransaction, POSCartItem, POSPayment } from '@/types/pos';
+import type { GiftCard } from '@/types/giftCard';
 
 interface POSReceiptProps {
   transaction: POSTransaction;
@@ -11,6 +12,7 @@ interface POSReceiptProps {
   storePhone?: string;
   storeVatNumber?: string;
   footerText?: string;
+  soldGiftCards?: GiftCard[];
 }
 
 export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
@@ -20,6 +22,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
   storePhone,
   storeVatNumber,
   footerText,
+  soldGiftCards = [],
 }, ref) => {
   const paymentMethodLabels: Record<string, string> = {
     cash: 'Contant',
@@ -29,6 +32,11 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
     loyalty_points: 'Punten',
     manual: 'Handmatig',
   };
+
+  // Detect if any items are gift cards (by SKU pattern)
+  const giftCardItems = transaction.items.filter(
+    (item: POSCartItem) => item.sku?.startsWith('GC-')
+  );
 
   return (
     <div 
@@ -142,6 +150,54 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
           </div>
         )}
       </div>
+
+      {/* Gift Card Section - Show if gift cards were sold */}
+      {(soldGiftCards.length > 0 || giftCardItems.length > 0) && (
+        <>
+          <div className="border-t border-dashed border-black my-2" />
+          <div className="text-center mb-2">
+            <div className="text-xs font-bold uppercase tracking-wider">
+              ★ CADEAUKAART ★
+            </div>
+          </div>
+          
+          {soldGiftCards.map((gc, index) => (
+            <div key={gc.id} className="text-center mb-3">
+              <div className="border-2 border-black p-2 mx-2">
+                <div className="text-xs mb-1">Code:</div>
+                <div className="text-lg font-bold tracking-wider">{gc.code}</div>
+                <div className="text-sm font-bold mt-1">
+                  {formatCurrency(gc.initial_balance)}
+                </div>
+                {gc.expires_at && (
+                  <div className="text-[10px] mt-1">
+                    Geldig tot: {format(new Date(gc.expires_at), 'd MMM yyyy', { locale: nl })}
+                  </div>
+                )}
+              </div>
+              <div className="text-[10px] mt-1">
+                Inwisselen in de winkel of online
+              </div>
+            </div>
+          ))}
+
+          {/* Fallback: show codes from cart items if no soldGiftCards provided */}
+          {soldGiftCards.length === 0 && giftCardItems.map((item, index) => (
+            <div key={index} className="text-center mb-3">
+              <div className="border-2 border-black p-2 mx-2">
+                <div className="text-xs mb-1">Code:</div>
+                <div className="text-lg font-bold tracking-wider">{item.sku}</div>
+                <div className="text-sm font-bold mt-1">
+                  {formatCurrency(item.price)}
+                </div>
+              </div>
+              <div className="text-[10px] mt-1">
+                Inwisselen in de winkel of online
+              </div>
+            </div>
+          ))}
+        </>
+      )}
 
       {/* Separator */}
       <div className="border-t border-dashed border-black my-2" />

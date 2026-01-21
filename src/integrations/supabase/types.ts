@@ -2559,10 +2559,14 @@ export type Database = {
           initial_balance: number
           order_id: string | null
           personal_message: string | null
+          pos_terminal_id: string | null
+          pos_transaction_id: string | null
+          printed_at: string | null
           purchased_by_customer_id: string | null
           purchased_by_email: string | null
           recipient_email: string | null
           recipient_name: string | null
+          sold_via_pos: boolean | null
           status: Database["public"]["Enums"]["gift_card_status"]
           tenant_id: string
           updated_at: string
@@ -2581,10 +2585,14 @@ export type Database = {
           initial_balance: number
           order_id?: string | null
           personal_message?: string | null
+          pos_terminal_id?: string | null
+          pos_transaction_id?: string | null
+          printed_at?: string | null
           purchased_by_customer_id?: string | null
           purchased_by_email?: string | null
           recipient_email?: string | null
           recipient_name?: string | null
+          sold_via_pos?: boolean | null
           status?: Database["public"]["Enums"]["gift_card_status"]
           tenant_id: string
           updated_at?: string
@@ -2603,10 +2611,14 @@ export type Database = {
           initial_balance?: number
           order_id?: string | null
           personal_message?: string | null
+          pos_terminal_id?: string | null
+          pos_transaction_id?: string | null
+          printed_at?: string | null
           purchased_by_customer_id?: string | null
           purchased_by_email?: string | null
           recipient_email?: string | null
           recipient_name?: string | null
+          sold_via_pos?: boolean | null
           status?: Database["public"]["Enums"]["gift_card_status"]
           tenant_id?: string
           updated_at?: string
@@ -2624,6 +2636,20 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_pos_terminal_id_fkey"
+            columns: ["pos_terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_pos_transaction_id_fkey"
+            columns: ["pos_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "pos_transactions"
             referencedColumns: ["id"]
           },
           {
