@@ -3,6 +3,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { SocialProofSection } from '@/components/landing/SocialProofSection';
 import { ProblemSection } from '@/components/landing/ProblemSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
+import { ModulesGrid } from '@/components/landing/ModulesGrid';
 import { WhySellqoSection } from '@/components/landing/WhySellqoSection';
 import { ComparisonSection } from '@/components/landing/ComparisonSection';
 import { PricingSection } from '@/components/landing/PricingSection';
@@ -21,6 +22,7 @@ export default function LandingPage() {
         <SocialProofSection />
         <ProblemSection />
         <FeaturesSection />
+        <ModulesGrid />
         <WhySellqoSection />
         <ComparisonSection />
         <PricingSection />

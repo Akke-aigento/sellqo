@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, Check, TrendingUp, Package, ShoppingCart } from 'lucide-react';
+import { ArrowRight, Play, Check, TrendingUp, Sparkles, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
@@ -13,8 +13,8 @@ const trustBadges = [
 
 const floatingCards = [
   { icon: TrendingUp, text: '€12.453 omzet', color: 'bg-green-500' },
-  { icon: ShoppingCart, text: '247 bestellingen', color: 'bg-accent' },
-  { icon: Package, text: 'Voorraad sync ✓', color: 'bg-primary' },
+  { icon: Sparkles, text: 'AI genereert content', color: 'bg-purple-500' },
+  { icon: Gift, text: '8 promotietypen', color: 'bg-accent' },
 ];
 
 export function HeroSection() {
