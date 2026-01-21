@@ -70,6 +70,10 @@ interface Tenant {
   stripe_charges_enabled?: boolean;
   stripe_payouts_enabled?: boolean;
   stripe_onboarding_complete?: boolean;
+  // Domain
+  custom_domain?: string | null;
+  domain_verified?: boolean;
+  domain_verification_token?: string | null;
 }
 
 interface TenantContextType {
