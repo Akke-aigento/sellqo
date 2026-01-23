@@ -1,5 +1,20 @@
 project_id = "gczmfcabnoofnmfpzeop"
 
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.newsletter-confirm]
+verify_jwt = false
+
+[functions.email-preferences]
+verify_jwt = false
+
+[functions.send-test-email]
+verify_jwt = false
+
+[functions.automation-scheduler]
+verify_jwt = false
+
 [functions.create-connect-account]
 verify_jwt = false
 
