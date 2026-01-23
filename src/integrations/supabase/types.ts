@@ -815,6 +815,180 @@ export type Database = {
           },
         ]
       }
+      automation_runs: {
+        Row: {
+          automation_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          current_step: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+          trigger_entity_id: string | null
+          trigger_entity_type: string
+        }
+        Insert: {
+          automation_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id: string
+          trigger_entity_id?: string | null
+          trigger_entity_type: string
+        }
+        Update: {
+          automation_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string
+          trigger_entity_id?: string | null
+          trigger_entity_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "email_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_step_runs: {
+        Row: {
+          automation_run_id: string
+          created_at: string | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          result: Json | null
+          scheduled_for: string | null
+          status: string | null
+          step_id: string
+        }
+        Insert: {
+          automation_run_id: string
+          created_at?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          result?: Json | null
+          scheduled_for?: string | null
+          status?: string | null
+          step_id: string
+        }
+        Update: {
+          automation_run_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          result?: Json | null
+          scheduled_for?: string | null
+          status?: string | null
+          step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_step_runs_automation_run_id_fkey"
+            columns: ["automation_run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "automation_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_steps: {
+        Row: {
+          action_type: string
+          automation_id: string
+          condition_rules: Json | null
+          created_at: string | null
+          delay_hours: number | null
+          delay_minutes: number | null
+          id: string
+          is_active: boolean | null
+          step_order: number
+          subject_override: string | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          automation_id: string
+          condition_rules?: Json | null
+          created_at?: string | null
+          delay_hours?: number | null
+          delay_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          step_order: number
+          subject_override?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          automation_id?: string
+          condition_rules?: Json | null
+          created_at?: string | null
+          delay_hours?: number | null
+          delay_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          step_order?: number
+          subject_override?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_steps_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "email_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bogo_promotions: {
         Row: {
           buy_category_ids: string[] | null
@@ -2176,48 +2350,79 @@ export type Database = {
       }
       email_automations: {
         Row: {
+          cooldown_hours: number | null
           created_at: string | null
           delay_hours: number | null
+          description: string | null
           id: string
           is_active: boolean | null
+          max_runs_per_customer: number | null
           name: string
+          priority: number | null
+          segment_id: string | null
           template_id: string | null
           tenant_id: string
+          total_completed: number | null
           total_converted: number | null
+          total_runs: number | null
           total_sent: number | null
+          trigger_conditions: Json | null
           trigger_config: Json | null
           trigger_type: string
           updated_at: string | null
         }
         Insert: {
+          cooldown_hours?: number | null
           created_at?: string | null
           delay_hours?: number | null
+          description?: string | null
           id?: string
           is_active?: boolean | null
+          max_runs_per_customer?: number | null
           name: string
+          priority?: number | null
+          segment_id?: string | null
           template_id?: string | null
           tenant_id: string
+          total_completed?: number | null
           total_converted?: number | null
+          total_runs?: number | null
           total_sent?: number | null
+          trigger_conditions?: Json | null
           trigger_config?: Json | null
           trigger_type: string
           updated_at?: string | null
         }
         Update: {
+          cooldown_hours?: number | null
           created_at?: string | null
           delay_hours?: number | null
+          description?: string | null
           id?: string
           is_active?: boolean | null
+          max_runs_per_customer?: number | null
           name?: string
+          priority?: number | null
+          segment_id?: string | null
           template_id?: string | null
           tenant_id?: string
+          total_completed?: number | null
           total_converted?: number | null
+          total_runs?: number | null
           total_sent?: number | null
+          trigger_conditions?: Json | null
           trigger_config?: Json | null
           trigger_type?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_automations_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_automations_template_id_fkey"
             columns: ["template_id"]
@@ -2346,6 +2551,107 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_preferences: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          email: string
+          frequency: string | null
+          id: string
+          newsletter: boolean | null
+          preference_token: string | null
+          product_updates: boolean | null
+          promotions: boolean | null
+          tenant_id: string
+          transactional: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          email: string
+          frequency?: string | null
+          id?: string
+          newsletter?: boolean | null
+          preference_token?: string | null
+          product_updates?: boolean | null
+          promotions?: boolean | null
+          tenant_id: string
+          transactional?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          email?: string
+          frequency?: string | null
+          id?: string
+          newsletter?: boolean | null
+          preference_token?: string | null
+          product_updates?: boolean | null
+          promotions?: boolean | null
+          tenant_id?: string
+          transactional?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_preferences_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_template_blocks: {
+        Row: {
+          block_order: number
+          block_type: string
+          content: Json | null
+          created_at: string | null
+          id: string
+          style: Json | null
+          template_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          block_order: number
+          block_type: string
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          style?: Json | null
+          template_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          block_order?: number
+          block_type?: string
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          style?: Json | null
+          template_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_template_blocks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -3963,6 +4269,7 @@ export type Database = {
       }
       newsletter_subscribers: {
         Row: {
+          confirmation_token: string | null
           confirmed_at: string | null
           created_at: string | null
           email: string
@@ -3970,16 +4277,19 @@ export type Database = {
           first_name: string | null
           id: string
           metadata: Json | null
+          preferences: Json | null
           source: string | null
           status: string | null
           subscribed_at: string | null
           sync_error: string | null
           sync_status: string | null
           tenant_id: string
+          unsubscribe_reason: string | null
           unsubscribed_at: string | null
           updated_at: string | null
         }
         Insert: {
+          confirmation_token?: string | null
           confirmed_at?: string | null
           created_at?: string | null
           email: string
@@ -3987,16 +4297,19 @@ export type Database = {
           first_name?: string | null
           id?: string
           metadata?: Json | null
+          preferences?: Json | null
           source?: string | null
           status?: string | null
           subscribed_at?: string | null
           sync_error?: string | null
           sync_status?: string | null
           tenant_id: string
+          unsubscribe_reason?: string | null
           unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Update: {
+          confirmation_token?: string | null
           confirmed_at?: string | null
           created_at?: string | null
           email?: string
@@ -4004,12 +4317,14 @@ export type Database = {
           first_name?: string | null
           id?: string
           metadata?: Json | null
+          preferences?: Json | null
           source?: string | null
           status?: string | null
           subscribed_at?: string | null
           sync_error?: string | null
           sync_status?: string | null
           tenant_id?: string
+          unsubscribe_reason?: string | null
           unsubscribed_at?: string | null
           updated_at?: string | null
         }
@@ -9564,6 +9879,15 @@ export type Database = {
             Args: { p_monthly_credits: number; p_tenant_id: string }
             Returns: undefined
           }
+      schedule_automation_run: {
+        Args: {
+          p_automation_id: string
+          p_metadata?: Json
+          p_trigger_entity_id: string
+          p_trigger_entity_type: string
+        }
+        Returns: string
+      }
       send_notification: {
         Args: {
           p_action_url?: string
