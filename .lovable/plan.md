@@ -1,359 +1,488 @@
 
-# Plan: "Vandaag" Widget - Live Sales Feed
+
+# Plan: WhatsApp Business Integration
 
 ## Overzicht
 
-Een real-time widget die de hartslag van je webshop toont: bestellingen die binnenkomen, verzendingen, reviews en bezoekers. De widget combineert live Supabase Realtime subscriptions met "vandaag vs gisteren" vergelijkingen voor directe context.
+Volledige WhatsApp Business integratie voor transactionele berichten, tracking updates, en klantcommunicatie. Dit bouwt voort op de bestaande Meta Commerce integratie (catalogus sync) en voegt messaging capabilities toe.
 
-## Widget Structuur
+## Architectuur
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                         │
+│  WhatsApp Business Platform                                                             │
+│  ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐          │
+│  │  Cloud API          │◄───│  Webhook Receiver   │───►│  Business Account   │          │
+│  │  (Send Messages)    │    │  (Inbound Messages) │    │  (Templates)        │          │
+│  └─────────────────────┘    └─────────────────────┘    └─────────────────────┘          │
+│           │                          │                                                  │
+│           ▼                          ▼                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                           SellQo Edge Functions                                   │  │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                    │  │
+│  │  │ send-whatsapp   │  │ whatsapp-webhook│  │ whatsapp-       │                    │  │
+│  │  │ -message        │  │ -receiver       │  │ templates       │                    │  │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘                    │  │
+│  └───────────────────────────────────────────────────────────────────────────────────┘  │
+│           │                          │                                                  │
+│           ▼                          ▼                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                              Database                                             │  │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                    │  │
+│  │  │ whatsapp_       │  │ customer_       │  │ whatsapp_       │                    │  │
+│  │  │ connections     │  │ messages        │  │ templates       │                    │  │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘                    │  │
+│  └───────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Functies & Use Cases
+
+### 1. Order Confirmatie via WhatsApp
+
+```text
+┌─────────────────────────────────────────┐
+│  📱 WhatsApp                            │
+│                                         │
+│  ✅ Bestelling bevestigd!               │
+│                                         │
+│  Hallo Jan,                             │
+│                                         │
+│  Bedankt voor je bestelling #0042!      │
+│                                         │
+│  📦 2x Vintage Lamp - €49,95            │
+│  📦 1x Design Stoel - €129,00           │
+│  ─────────────────────────              │
+│  Totaal: €178,95                        │
+│                                         │
+│  We gaan direct aan de slag met         │
+│  je bestelling!                         │
+│                                         │
+│  [📦 Track bestelling]                  │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+### 2. Verzending & Track & Trace
+
+```text
+┌─────────────────────────────────────────┐
+│  📱 WhatsApp                            │
+│                                         │
+│  📦 Je pakket is onderweg!              │
+│                                         │
+│  Bestelling #0042 is verzonden via      │
+│  PostNL en wordt verwacht op:           │
+│                                         │
+│  📅 Dinsdag 28 januari                  │
+│                                         │
+│  🔗 Volg je pakket:                     │
+│  postnl.nl/track/3S12345678901234       │
+│                                         │
+│  [📍 Track & Trace openen]              │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+### 3. Abandoned Cart Recovery
+
+```text
+┌─────────────────────────────────────────┐
+│  📱 WhatsApp                            │
+│                                         │
+│  👋 Je winkelwagen wacht op je!         │
+│                                         │
+│  Hallo Marie,                           │
+│                                         │
+│  Je hebt nog 2 items in je              │
+│  winkelwagen bij [Winkel]:              │
+│                                         │
+│  🛒 Vintage Lamp - €49,95               │
+│  🛒 Design Kussen - €24,95              │
+│                                         │
+│  Rond je bestelling af en ontvang       │
+│  10% korting met code: COMEBACK10       │
+│                                         │
+│  [🛒 Bestelling afronden]               │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+### 4. Klant Antwoorden → Inbox
+
+```text
+┌─────────────────────────────────────────┐
+│  📱 WhatsApp (klant reageert)           │
+│                                         │
+│  "Hoi! Is die lamp ook in zwart         │
+│   beschikbaar?"                         │
+│                                         │
+└─────────────────────────────────────────┘
+           ↓ webhook
+┌─────────────────────────────────────────┐
+│  📬 SellQo Inbox                        │
+│                                         │
+│  Nieuw bericht via WhatsApp             │
+│  Van: Marie (+31612345678)              │
+│  Re: Bestelling #0042                   │
+│                                         │
+│  "Hoi! Is die lamp ook in zwart         │
+│   beschikbaar?"                         │
+│                                         │
+│  [💬 Beantwoorden]                      │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+## Database Schema
+
+### Nieuwe Tabellen
+
+```sql
+-- WhatsApp Business Account connecties per tenant
+CREATE TABLE public.whatsapp_connections (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  phone_number_id TEXT NOT NULL,
+  business_account_id TEXT NOT NULL,
+  display_phone_number TEXT NOT NULL,
+  verified_name TEXT,
+  access_token_encrypted TEXT NOT NULL,
+  webhook_verify_token TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  quality_rating TEXT, -- GREEN, YELLOW, RED
+  messaging_limit TEXT, -- TIER_1K, TIER_10K, etc.
+  connected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id)
+);
+
+-- Message templates (goedgekeurd door Meta)
+CREATE TABLE public.whatsapp_templates (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  template_name TEXT NOT NULL,
+  template_type TEXT NOT NULL CHECK (template_type IN (
+    'order_confirmation', 'shipping_update', 'delivery_confirmation',
+    'abandoned_cart', 'payment_reminder', 'review_request', 'custom'
+  )),
+  language TEXT NOT NULL DEFAULT 'nl',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  meta_template_id TEXT,
+  header_text TEXT,
+  body_text TEXT NOT NULL,
+  footer_text TEXT,
+  buttons JSONB DEFAULT '[]',
+  variables JSONB DEFAULT '[]', -- {{1}}, {{2}}, etc.
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- WhatsApp preferences per klant
+ALTER TABLE public.customers 
+  ADD COLUMN whatsapp_number TEXT,
+  ADD COLUMN whatsapp_opted_in BOOLEAN DEFAULT false,
+  ADD COLUMN whatsapp_opted_in_at TIMESTAMPTZ;
+
+-- Extend customer_messages voor WhatsApp
+ALTER TABLE public.customer_messages
+  ADD COLUMN channel TEXT NOT NULL DEFAULT 'email' CHECK (channel IN ('email', 'whatsapp', 'sms')),
+  ADD COLUMN whatsapp_message_id TEXT,
+  ADD COLUMN whatsapp_status TEXT CHECK (whatsapp_status IN ('sent', 'delivered', 'read', 'failed'));
+```
+
+### Tenant Settings
+
+```sql
+-- Uitbreiding tenant notification settings
+ALTER TABLE public.tenants
+  ADD COLUMN whatsapp_enabled BOOLEAN DEFAULT false,
+  ADD COLUMN whatsapp_order_confirmation BOOLEAN DEFAULT true,
+  ADD COLUMN whatsapp_shipping_updates BOOLEAN DEFAULT true,
+  ADD COLUMN whatsapp_abandoned_cart BOOLEAN DEFAULT false,
+  ADD COLUMN whatsapp_abandoned_cart_delay_hours INTEGER DEFAULT 1;
+```
+
+## Edge Functions
+
+### 1. send-whatsapp-message
+
+```typescript
+// supabase/functions/send-whatsapp-message/index.ts
+
+interface SendWhatsAppRequest {
+  tenant_id: string;
+  customer_id: string;
+  template_type: string;
+  template_variables: Record<string, string>;
+  order_id?: string;
+}
+
+// Stuurt berichten via Meta Cloud API
+// Ondersteunt template messages (goedgekeurd door Meta)
+// Logt naar customer_messages met channel='whatsapp'
+```
+
+### 2. whatsapp-webhook-receiver
+
+```typescript
+// supabase/functions/whatsapp-webhook-receiver/index.ts
+
+// Ontvangt inkomende berichten van klanten
+// Verificatie via webhook_verify_token
+// Slaat berichten op in customer_messages met direction='inbound'
+// Triggert realtime notificatie naar dashboard
+```
+
+### 3. whatsapp-status-webhook
+
+```typescript
+// supabase/functions/whatsapp-status-webhook/index.ts
+
+// Ontvangt delivery/read receipts
+// Update whatsapp_status in customer_messages
+// sent → delivered → read
+```
+
+## UI Componenten
+
+### WhatsApp Settings Page
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
-│  ⚡ LIVE NU                                               🟢 Verbonden     │
-│                                                                             │
-│  ───────────────────────────────────────────────────────────────────────   │
-│                                                                             │
-│  10:32  💰 €49,95 bestelling van Jan de V.                                 │
-│  10:28  📦 Bestelling #0042 verzonden via PostNL                           │
-│  10:15  ⭐ Nieuwe 5-sterren review ontvangen                               │
-│  09:45  🛒 3 items toegevoegd aan winkelwagen                              │
-│  09:30  💰 €127,50 bestelling van Marie B.                                 │
-│  09:12  👋 Nieuwe klant geregistreerd                                      │
+│  📱 WhatsApp Business                                                       │
+│  Stuur automatische berichten naar klanten via WhatsApp                    │
 │                                                                             │
 │  ═══════════════════════════════════════════════════════════════════════   │
 │                                                                             │
-│  📊 Vandaag                                                                │
-│  ┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐ │
-│  │ 💰 €847,50      │ 📦 12 orders    │ 👥 3 klanten    │ ⭐ 2 reviews    │ │
-│  │ +23% vs gister  │ +4 vs gisteren  │ +2 vs gisteren  │ nieuw vandaag   │ │
-│  └─────────────────┴─────────────────┴─────────────────┴─────────────────┘ │
+│  Verbinding                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ✅ Verbonden                                                       │   │
+│  │                                                                      │   │
+│  │  📞 +31 6 12345678                                                   │   │
+│  │  🏢 Mijn Webshop B.V.                                                │   │
+│  │  🟢 Kwaliteit: Goed                                                  │   │
+│  │                                                                      │   │
+│  │  [🔄 Vernieuwen] [❌ Ontkoppelen]                                    │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  Automatische Berichten                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │  ☑️ Bestelbevestiging                                               │   │
+│  │     Stuur bevestiging na succesvolle betaling                       │   │
+│  │                                                                      │   │
+│  │  ☑️ Verzending updates                                               │   │
+│  │     Stuur track & trace wanneer bestelling is verzonden             │   │
+│  │                                                                      │   │
+│  │  ☑️ Aflevering bevestiging                                          │   │
+│  │     Stuur bericht wanneer pakket is afgeleverd                      │   │
+│  │                                                                      │   │
+│  │  ☐ Verlaten winkelwagen                            [⚙️ Instellingen]│   │
+│  │     Herinner klanten aan achtergelaten items                        │   │
+│  │                                                                      │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  Message Templates                                                          │
+│  ┌─────────────────┬───────────────┬─────────────┬─────────────────────┐   │
+│  │ Template        │ Type          │ Status      │ Acties              │   │
+│  ├─────────────────┼───────────────┼─────────────┼─────────────────────┤   │
+│  │ order_confirm   │ Bevestiging   │ ✅ Approved │ [👁️] [✏️]           │   │
+│  │ shipping_update │ Verzending    │ ✅ Approved │ [👁️] [✏️]           │   │
+│  │ cart_reminder   │ Winkelwagen   │ ⏳ Pending  │ [👁️] [✏️]           │   │
+│  └─────────────────┴───────────────┴─────────────┴─────────────────────┘   │
+│                                                                             │
+│  [➕ Nieuwe template]                                                       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Technische Architectuur
+### WhatsApp Conversation in Inbox
 
-### Data Bronnen & Realtime Events
-
-De widget luistert naar meerdere tabellen via Supabase Realtime:
-
-| Tabel | Event | Weergave |
-|-------|-------|----------|
-| `orders` | INSERT | "💰 €49,95 bestelling van [naam]" |
-| `orders` | UPDATE (shipped_at) | "📦 Bestelling #0042 verzonden via [carrier]" |
-| `orders` | UPDATE (delivered_at) | "✅ Bestelling #0042 afgeleverd" |
-| `customers` | INSERT | "👋 Nieuwe klant geregistreerd" |
-| `external_reviews` | INSERT | "⭐ Nieuwe [rating]-sterren review" |
-| `notifications` | INSERT (type=order_*) | Fallback voor andere order events |
-
-### useTodayLiveFeed Hook
-
-```typescript
-interface LiveFeedItem {
-  id: string;
-  type: 'order_new' | 'order_shipped' | 'order_delivered' | 'customer_new' | 'review_new' | 'cart_activity';
-  icon: string;
-  message: string;
-  timestamp: Date;
-  amount?: number;
-  metadata?: Record<string, unknown>;
-}
-
-interface TodayStats {
-  revenue: number;
-  revenueChange: number; // vs gisteren
-  orderCount: number;
-  orderCountChange: number;
-  newCustomers: number;
-  newCustomersChange: number;
-  reviewCount: number;
-}
-
-interface UseTodayLiveFeedReturn {
-  feedItems: LiveFeedItem[];
-  todayStats: TodayStats;
-  isConnected: boolean;
-  isLoading: boolean;
-}
-```
-
-### Widget Component Structuur
+Uitbreiding van bestaande customer messages met WhatsApp channel indicator:
 
 ```text
-src/
-├── hooks/
-│   └── useTodayLiveFeed.ts           # Realtime data hook
-├── components/admin/widgets/
-│   └── TodayWidget.tsx               # Dashboard widget wrapper
-└── components/today-widget/
-    ├── LiveFeedHeader.tsx            # "⚡ LIVE NU" + connection status
-    ├── LiveFeedItem.tsx              # Individueel feed item met animatie
-    ├── LiveFeedList.tsx              # Scrollbare lijst van events
-    ├── TodayStatsGrid.tsx            # 4-kolom stats onderaan
-    └── TodayStatCard.tsx             # Individuele stat card
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📬 Klantberichten                                                          │
+│                                                                             │
+│  [Alle] [📧 Email (12)] [📱 WhatsApp (3)] [Ongelezen (2)]                   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ 📱 Marie de Vries                                 10 min geleden    │   │
+│  │ Re: Bestelling #0042                                                │   │
+│  │ "Hoi! Is die lamp ook in zwart beschikbaar?"                       │   │
+│  │ ─────────────────────────────────────────────────────────────────   │   │
+│  │ 📧 Jan Bakker                                     2 uur geleden    │   │
+│  │ Vraag over levertijd                                               │   │
+│  │ "Wanneer kan ik mijn bestelling verwachten?"                       │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Implementatie Details
-
-### 1. useTodayLiveFeed Hook
-
-```typescript
-export function useTodayLiveFeed() {
-  const { currentTenant } = useTenant();
-  const [feedItems, setFeedItems] = useState<LiveFeedItem[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  
-  // 1. Fetch vandaag's bestaande events bij mount
-  useEffect(() => {
-    const fetchTodayEvents = async () => {
-      const todayStart = startOfDay(new Date()).toISOString();
-      
-      // Fetch orders, customers, reviews from today
-      const [orders, customers, reviews] = await Promise.all([
-        supabase.from('orders').select('*').eq('tenant_id', tenantId).gte('created_at', todayStart),
-        supabase.from('customers').select('*').eq('tenant_id', tenantId).gte('created_at', todayStart),
-        supabase.from('external_reviews').select('*').eq('tenant_id', tenantId).gte('review_date', todayStart),
-      ]);
-      
-      // Map to LiveFeedItem format, sort by timestamp
-      // ...
-    };
-  }, [currentTenant?.id]);
-  
-  // 2. Setup realtime subscriptions
-  useEffect(() => {
-    const channel = supabase
-      .channel('today-live-feed')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `tenant_id=eq.${tenantId}` }, handleNewOrder)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `tenant_id=eq.${tenantId}` }, handleOrderUpdate)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customers', filter: `tenant_id=eq.${tenantId}` }, handleNewCustomer)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'external_reviews', filter: `tenant_id=eq.${tenantId}` }, handleNewReview)
-      .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'));
-      
-    return () => supabase.removeChannel(channel);
-  }, [tenantId]);
-  
-  // 3. Calculate today vs yesterday stats
-  const todayStats = useMemo(() => calculateTodayStats(feedItems, yesterdayData), [feedItems, yesterdayData]);
-  
-  return { feedItems, todayStats, isConnected, isLoading };
-}
-```
-
-### 2. LiveFeedItem Component
-
-Elk item krijgt een subtiele "slide-in" animatie bij binnenkomst:
-
-```typescript
-function LiveFeedItem({ item }: { item: LiveFeedItem }) {
-  const icon = getIconForType(item.type); // 💰, 📦, ⭐, 👋, etc.
-  const timeAgo = formatDistanceToNow(item.timestamp, { addSuffix: true, locale: nl });
-  
-  return (
-    <div className="flex items-start gap-3 py-2 animate-in slide-in-from-left-2 duration-300">
-      <span className="text-lg">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm truncate">{item.message}</p>
-        <p className="text-xs text-muted-foreground">{timeAgo}</p>
-      </div>
-      {item.amount && (
-        <span className="text-sm font-semibold text-emerald-600">
-          {formatCurrency(item.amount)}
-        </span>
-      )}
-    </div>
-  );
-}
-```
-
-### 3. TodayStatsGrid Component
-
-```typescript
-function TodayStatsGrid({ stats }: { stats: TodayStats }) {
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <TodayStatCard
-        icon="💰"
-        label="Omzet"
-        value={formatCurrency(stats.revenue)}
-        change={stats.revenueChange}
-        changeLabel="vs gisteren"
-      />
-      <TodayStatCard
-        icon="📦"
-        label="Bestellingen"
-        value={stats.orderCount.toString()}
-        change={stats.orderCountChange}
-        changeLabel="vs gisteren"
-        changeIsAbsolute // +4 instead of +23%
-      />
-      <TodayStatCard
-        icon="👥"
-        label="Nieuwe klanten"
-        value={stats.newCustomers.toString()}
-        change={stats.newCustomersChange}
-        changeLabel="vs gisteren"
-        changeIsAbsolute
-      />
-      <TodayStatCard
-        icon="⭐"
-        label="Reviews"
-        value={stats.reviewCount.toString()}
-        changeLabel="nieuw vandaag"
-        hideChange
-      />
-    </div>
-  );
-}
-```
-
-### 4. Connection Status Indicator
-
-```typescript
-function LiveFeedHeader({ isConnected }: { isConnected: boolean }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        <Zap className="h-5 w-5 text-yellow-500" />
-        <span className="font-semibold">LIVE NU</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            "h-2 w-2 rounded-full",
-            isConnected 
-              ? "bg-emerald-500 animate-pulse" 
-              : "bg-gray-300"
-          )}
-        />
-        <span className="text-xs text-muted-foreground">
-          {isConnected ? 'Verbonden' : 'Verbinden...'}
-        </span>
-      </div>
-    </div>
-  );
-}
-```
-
-## Database Considerations
-
-### Realtime Enablement
-
-De `orders` tabel heeft mogelijk al realtime nodig. We moeten controleren of deze is toegevoegd aan de `supabase_realtime` publication. Indien niet:
-
-```sql
--- Enable realtime for orders table (if not already enabled)
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-```
-
-De `customers` en `external_reviews` tabellen moeten mogelijk ook worden toegevoegd.
-
-### Query Optimization
-
-Voor de "vandaag vs gisteren" vergelijking:
-
-```typescript
-// Efficient query: alleen counts en sums nodig
-const { data: todayData } = await supabase
-  .from('orders')
-  .select('total, payment_status')
-  .eq('tenant_id', tenantId)
-  .gte('created_at', todayStart)
-  .eq('payment_status', 'paid');
-
-const { data: yesterdayData } = await supabase
-  .from('orders')
-  .select('total, payment_status')
-  .eq('tenant_id', tenantId)
-  .gte('created_at', yesterdayStart)
-  .lt('created_at', todayStart)
-  .eq('payment_status', 'paid');
-```
-
-## UI/UX Details
-
-### Animaties
-
-- **Nieuwe items**: `animate-in slide-in-from-left-2 duration-300`
-- **Pulse op connection indicator**: `animate-pulse` op de groene stip
-- **Highlight bij nieuwe order**: Korte `bg-emerald-50` flash die wegfadet
-
-### Feed Limit
-
-- Maximum 20 items in de feed
-- Oudste items worden automatisch verwijderd
-- Smooth scroll naar boven bij nieuwe items (optioneel)
-
-### Empty State
+### Customer Opt-in UI (Checkout)
 
 ```text
 ┌─────────────────────────────────────────┐
-│  ⚡ LIVE NU                 🟢 Verbonden │
+│  📱 WhatsApp updates                    │
 │                                         │
-│      ☕                                 │
-│      Nog geen activiteit vandaag        │
-│      Bestellingen verschijnen hier      │
-│      zodra ze binnenkomen               │
+│  ☑️ Ontvang bestel- en verzend updates  │
+│     via WhatsApp                        │
 │                                         │
-│  ─────────────────────────────────────  │
-│  📊 Vandaag: €0,00 omzet                │
+│  Telefoonnummer: +31 6 ________         │
+│                                         │
+│  ℹ️ Je kunt je altijd afmelden via     │
+│     instellingen of door STOP te        │
+│     sturen.                             │
+│                                         │
 └─────────────────────────────────────────┘
 ```
-
-### Responsiveness
-
-- **Desktop**: Volledige widget met 4-kolom stats
-- **Tablet**: 2x2 stats grid
-- **Mobile**: Gestapelde stats, kortere feed (laatste 10 items)
 
 ## Bestandsoverzicht
 
 | Bestand | Actie | Beschrijving |
 |---------|-------|--------------|
-| `src/hooks/useTodayLiveFeed.ts` | Nieuw | Realtime feed + today stats hook |
-| `src/components/today-widget/LiveFeedHeader.tsx` | Nieuw | Header met LIVE indicator |
-| `src/components/today-widget/LiveFeedItem.tsx` | Nieuw | Individueel feed item |
-| `src/components/today-widget/LiveFeedList.tsx` | Nieuw | Feed container met scroll |
-| `src/components/today-widget/TodayStatsGrid.tsx` | Nieuw | Stats grid onderaan |
-| `src/components/today-widget/TodayStatCard.tsx` | Nieuw | Individuele stat card |
-| `src/components/today-widget/index.ts` | Nieuw | Barrel export |
-| `src/components/admin/widgets/TodayWidget.tsx` | Nieuw | Dashboard widget wrapper |
-| `src/config/dashboardWidgets.ts` | Update | Voeg today-widget toe |
-| `src/components/admin/DashboardGrid.tsx` | Update | Import TodayWidget |
-| `src/components/admin/widgets/index.ts` | Update | Export TodayWidget |
-| Database migration | Nieuw | Enable realtime voor orders, customers, external_reviews |
+| **Database** | | |
+| `supabase/migrations/xxx_whatsapp_tables.sql` | Nieuw | Tabellen voor WhatsApp connecties, templates |
+| **Edge Functions** | | |
+| `supabase/functions/send-whatsapp-message/index.ts` | Nieuw | Verstuur WhatsApp berichten via Cloud API |
+| `supabase/functions/whatsapp-webhook/index.ts` | Nieuw | Ontvang inkomende berichten + status updates |
+| **Hooks** | | |
+| `src/hooks/useWhatsAppConnection.ts` | Nieuw | WhatsApp account management |
+| `src/hooks/useWhatsAppTemplates.ts` | Nieuw | Template CRUD |
+| `src/hooks/useWhatsAppMessages.ts` | Nieuw | Berichten versturen/ontvangen |
+| **Components** | | |
+| `src/components/admin/settings/WhatsAppSettings.tsx` | Nieuw | Hoofd settings pagina |
+| `src/components/admin/settings/WhatsAppConnectionCard.tsx` | Nieuw | Verbinding status |
+| `src/components/admin/settings/WhatsAppTemplatesTable.tsx` | Nieuw | Templates beheer |
+| `src/components/admin/settings/WhatsAppAutomationSettings.tsx` | Nieuw | Automatische berichten config |
+| `src/components/admin/inbox/WhatsAppConversation.tsx` | Nieuw | Chat-achtige weergave |
+| `src/components/checkout/WhatsAppOptIn.tsx` | Nieuw | Checkout opt-in component |
+| **Updates** | | |
+| `src/components/admin/settings/NotificationSettings.tsx` | Update | Link naar WhatsApp settings |
+| `src/components/admin/CustomerMessageDialog.tsx` | Update | Channel selector (Email/WhatsApp) |
+| `src/hooks/useCustomerMessages.ts` | Update | Support voor WhatsApp channel |
+| `src/pages/admin/Settings.tsx` | Update | WhatsApp sectie toevoegen |
 
-## Widget Configuratie
+## Technische Details
 
-Toevoegen aan `dashboardWidgets.ts`:
+### WhatsApp Cloud API Integratie
 
 ```typescript
-{
-  id: 'today-widget',
-  title: 'Vandaag',
-  description: 'Live sales feed en dagelijkse statistieken',
-  defaultSize: 'lg', // Neemt 2 kolommen
-  minSize: 'md',
-  category: 'stats',
-  icon: Zap,
+// Meta Cloud API endpoint
+const WHATSAPP_API = 'https://graph.facebook.com/v18.0';
+
+// Template message versturen
+async function sendTemplateMessage(
+  phoneNumberId: string,
+  accessToken: string,
+  to: string,
+  templateName: string,
+  languageCode: string,
+  components: TemplateComponent[]
+) {
+  const response = await fetch(
+    `${WHATSAPP_API}/${phoneNumberId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: languageCode },
+          components,
+        },
+      }),
+    }
+  );
+  return response.json();
 }
 ```
 
+### Webhook Verificatie
+
+```typescript
+// Webhook verification (GET request)
+if (req.method === 'GET') {
+  const mode = url.searchParams.get('hub.mode');
+  const token = url.searchParams.get('hub.verify_token');
+  const challenge = url.searchParams.get('hub.challenge');
+  
+  if (mode === 'subscribe' && token === storedVerifyToken) {
+    return new Response(challenge, { status: 200 });
+  }
+  return new Response('Forbidden', { status: 403 });
+}
+```
+
+### Order Status Triggers
+
+```typescript
+// In order status change handler
+if (order.status === 'paid' && tenant.whatsapp_order_confirmation) {
+  await sendWhatsAppMessage({
+    template_type: 'order_confirmation',
+    customer_id: order.customer_id,
+    order_id: order.id,
+  });
+}
+
+if (order.status === 'shipped' && tenant.whatsapp_shipping_updates) {
+  await sendWhatsAppMessage({
+    template_type: 'shipping_update',
+    customer_id: order.customer_id,
+    order_id: order.id,
+    variables: {
+      tracking_url: order.tracking_url,
+      carrier: order.shipping_carrier,
+    },
+  });
+}
+```
+
+## API Key Vereisten
+
+De volgende secrets moeten worden geconfigureerd:
+
+| Secret | Beschrijving |
+|--------|--------------|
+| `WHATSAPP_ACCESS_TOKEN` | Meta Business access token (per-tenant opgeslagen) |
+| `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business phone number ID |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | Meta Business Account ID |
+
+*Noot: Deze worden per tenant versleuteld opgeslagen in de `whatsapp_connections` tabel.*
+
 ## Implementatie Volgorde
 
-1. **Database Migration** - Enable realtime voor orders, customers, external_reviews
-2. **useTodayLiveFeed Hook** - Core data aggregatie en realtime subscriptions
-3. **UI Components** - Feed items, header, stats grid
-4. **TodayWidget** - Widget wrapper
-5. **Dashboard Integratie** - Toevoegen aan widget config en grid
-6. **Polish** - Animaties, empty states, responsiveness
+1. **Database Migration** - Tabellen voor connections, templates, customer fields
+2. **Edge Functions** - send-whatsapp-message + webhook receiver
+3. **Connection Setup** - WhatsApp Business koppeling UI
+4. **Template Management** - Template CRUD + preview
+5. **Automation Triggers** - Order/shipping status hooks
+6. **Abandoned Cart** - Cron job voor winkelwagen reminders
+7. **Inbox Integration** - WhatsApp berichten in customer inbox
+8. **Checkout Opt-in** - Klant opt-in bij afrekenen
 
 ## Resultaat
 
 Na implementatie:
-- Merchants zien real-time activiteit in hun dashboard
-- Elke nieuwe bestelling/klant/review verschijnt instant
-- "Vandaag vs gisteren" vergelijking geeft directe context
-- Groene "Verbonden" indicator bevestigt live connectie
-- Emotionele impact: je winkel "leeft"
+- Klanten ontvangen order bevestigingen via WhatsApp
+- Automatische track & trace updates wanneer pakket onderweg is
+- Verlaten winkelwagen herinneringen (optioneel)
+- Klanten kunnen reageren → bericht komt in SellQo inbox
+- Merchants kunnen antwoorden vanuit het dashboard
+- Volledige conversatie geschiedenis per klant
+
