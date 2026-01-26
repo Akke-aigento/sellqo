@@ -6396,6 +6396,7 @@ export type Database = {
           short_description: string | null
           sku: string | null
           slug: string
+          social_channels: Json | null
           stock: number | null
           sync_inventory: boolean | null
           tags: string[] | null
@@ -6489,6 +6490,7 @@ export type Database = {
           short_description?: string | null
           sku?: string | null
           slug: string
+          social_channels?: Json | null
           stock?: number | null
           sync_inventory?: boolean | null
           tags?: string[] | null
@@ -6582,6 +6584,7 @@ export type Database = {
           short_description?: string | null
           sku?: string | null
           slug?: string
+          social_channels?: Json | null
           stock?: number | null
           sync_inventory?: boolean | null
           tags?: string[] | null
@@ -8062,6 +8065,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sidebar_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_channel_connections: {
+        Row: {
+          channel_name: string | null
+          channel_type: string
+          created_at: string | null
+          credentials: Json | null
+          feed_format: string | null
+          feed_url: string | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_feed_generated_at: string | null
+          last_sync_at: string | null
+          products_synced: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          channel_name?: string | null
+          channel_type: string
+          created_at?: string | null
+          credentials?: Json | null
+          feed_format?: string | null
+          feed_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_feed_generated_at?: string | null
+          last_sync_at?: string | null
+          products_synced?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          channel_name?: string | null
+          channel_type?: string
+          created_at?: string | null
+          credentials?: Json | null
+          feed_format?: string | null
+          feed_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_feed_generated_at?: string | null
+          last_sync_at?: string | null
+          products_synced?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_channel_connections_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MarketplaceCard } from '@/components/admin/marketplace/MarketplaceCard';
 import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/ConnectMarketplaceDialog';
+import { SocialChannelList } from '@/components/admin/marketplace/SocialChannelList';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
+import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
@@ -32,6 +35,11 @@ export default function MarketplacesPage() {
     deleteConnection,
     getConnectionByType,
   } = useMarketplaceConnections();
+
+  const {
+    activeConnections: activeSocialConnections,
+    totalProductsSynced,
+  } = useSocialChannels();
 
   const [connectingType, setConnectingType] = useState<MarketplaceType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -66,6 +74,8 @@ export default function MarketplacesPage() {
     ? formatDistanceToNow(new Date(lastSync), { addSuffix: true, locale: nl })
     : 'Nog niet';
 
+  const totalActiveConnections = activeConnections.length + activeSocialConnections.length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -77,7 +87,7 @@ export default function MarketplacesPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -86,7 +96,7 @@ export default function MarketplacesPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Actieve Connecties</p>
-                <p className="text-2xl font-bold">{activeConnections.length}</p>
+                <p className="text-2xl font-bold">{totalActiveConnections}</p>
               </div>
             </div>
           </CardContent>
@@ -98,8 +108,21 @@ export default function MarketplacesPage() {
                 <ShoppingCart className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Totaal Orders</p>
+                <p className="text-sm text-muted-foreground">Marketplace Orders</p>
                 <p className="text-2xl font-bold text-orange-600">{todayOrders}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Share2 className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Social Producten</p>
+                <p className="text-2xl font-bold text-purple-600">{totalProductsSynced}</p>
               </div>
             </div>
           </CardContent>
@@ -130,32 +153,58 @@ export default function MarketplacesPage() {
         </Alert>
       )}
 
-      {/* Marketplace Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'odoo'] as MarketplaceType[]).map((type) => {
-          const info = MARKETPLACE_INFO[type];
-          const connection = getConnectionByType(type);
-          
-          return (
-            <MarketplaceCard
-              key={type}
-              info={info}
-              connection={connection}
-              onConnect={() => handleConnect(type)}
-              onSettings={() => handleSettings(type)}
-              onDisconnect={() => connection && setDisconnectingId(connection.id)}
-            />
-          );
-        })}
+      {/* Tabs for Marketplaces and Social Commerce */}
+      <Tabs defaultValue="marketplaces" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="marketplaces" className="flex items-center gap-2">
+            <Store className="w-4 h-4" />
+            E-commerce
+          </TabsTrigger>
+          <TabsTrigger value="social" className="flex items-center gap-2">
+            <Share2 className="w-4 h-4" />
+            Social Commerce
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Request Integration Card */}
-        <MarketplaceCard
-          info={MARKETPLACE_INFO.request as any}
-          onConnect={handleRequestIntegration}
-          onSettings={() => {}}
-          onDisconnect={() => {}}
-        />
-      </div>
+        <TabsContent value="marketplaces" className="mt-6">
+          {/* Marketplace Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'odoo'] as MarketplaceType[]).map((type) => {
+              const info = MARKETPLACE_INFO[type];
+              const connection = getConnectionByType(type);
+              
+              return (
+                <MarketplaceCard
+                  key={type}
+                  info={info}
+                  connection={connection}
+                  onConnect={() => handleConnect(type)}
+                  onSettings={() => handleSettings(type)}
+                  onDisconnect={() => connection && setDisconnectingId(connection.id)}
+                />
+              );
+            })}
+
+            {/* Request Integration Card */}
+            <MarketplaceCard
+              info={MARKETPLACE_INFO.request as any}
+              onConnect={handleRequestIntegration}
+              onSettings={() => {}}
+              onDisconnect={() => {}}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="social" className="mt-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Social Commerce Kanalen</h2>
+            <p className="text-muted-foreground">
+              Verbind je producten met sociale media en shopping platforms om je bereik te vergroten.
+            </p>
+          </div>
+          <SocialChannelList />
+        </TabsContent>
+      </Tabs>
 
       {/* Connect Dialog */}
       {connectingType && (

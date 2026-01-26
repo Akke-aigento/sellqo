@@ -209,3 +209,6 @@ verify_jwt = false
 
 [functions.create-amazon-buy-shipping-label]
 verify_jwt = false
+
+[functions.generate-product-feed]
+verify_jwt = false
