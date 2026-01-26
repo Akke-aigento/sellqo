@@ -97,33 +97,33 @@ export function HealthCategoryCardCompact({ category }: { category: HealthCatego
   return (
     <Link to={category.actionUrl || '#'}>
       <Card className={cn(
-        'transition-all hover:shadow-md cursor-pointer h-full',
+        'transition-all hover:shadow-md cursor-pointer h-full min-h-[88px]',
         statusStyles[category.status]
       )}>
-        <CardContent className="p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <CardContent className="p-3 h-full flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <HealthStatusIndicator status={category.status} size="sm" />
-              <span className="text-sm font-medium">{category.name}</span>
+              <span className="text-sm font-medium truncate">{category.name}</span>
             </div>
-            <Icon className="h-4 w-4 text-muted-foreground" />
+            <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </div>
           
-          <div className="text-sm">
-            {mainItem && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground truncate">{mainItem.label}</span>
-                <span className={cn(
-                  'font-medium',
-                  mainItem.status === 'ok' && 'text-emerald-600',
-                  mainItem.status === 'warning' && 'text-amber-600',
-                  mainItem.status === 'critical' && 'text-red-600'
-                )}>
-                  {mainItem.value}
-                </span>
-              </div>
-            )}
-          </div>
+          {mainItem && (
+            <div className="flex items-center justify-between gap-2 mt-2">
+              <span className="text-xs text-muted-foreground line-clamp-1 flex-1">
+                {mainItem.label}
+              </span>
+              <span className={cn(
+                'text-sm font-semibold flex-shrink-0',
+                mainItem.status === 'ok' && 'text-emerald-600',
+                mainItem.status === 'warning' && 'text-amber-600',
+                mainItem.status === 'critical' && 'text-red-600'
+              )}>
+                {mainItem.value}
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

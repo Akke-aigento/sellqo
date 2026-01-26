@@ -3,7 +3,14 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { widgetSizeClasses, type WidgetSize } from '@/config/dashboardWidgets';
+import type { WidgetSize } from '@/config/dashboardWidgets';
+
+const widgetSizeClasses: Record<WidgetSize, string> = {
+  sm: 'lg:col-span-1',
+  md: 'lg:col-span-1',
+  lg: 'lg:col-span-2',
+  full: 'lg:col-span-3',
+};
 
 interface DashboardWidgetWrapperProps {
   id: string;

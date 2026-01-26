@@ -62,8 +62,8 @@ export function HealthActionList({ actionItems }: HealthActionListProps) {
               
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{item.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
               </div>
               
               {/* Action button */}

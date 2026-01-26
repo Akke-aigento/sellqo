@@ -1,4 +1,3 @@
-import { ComponentType } from 'react';
 import {
   LayoutDashboard,
   Zap,
@@ -6,11 +5,13 @@ import {
   Store,
   ShoppingCart,
   Trophy,
+  Heart,
+  Grid3X3,
   type LucideIcon,
 } from 'lucide-react';
 
 // Widget size types
-export type WidgetSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type WidgetSize = 'sm' | 'md' | 'lg' | 'full';
 
 // Widget category types
 export type WidgetCategory = 'stats' | 'orders' | 'products' | 'marketing' | 'pos' | 'system';
@@ -37,32 +38,41 @@ export interface LayoutPreset {
   hiddenWidgets: string[];
 }
 
-// All available widgets
+// All available widgets - restructured for clean layout
 export const dashboardWidgets: DashboardWidgetDefinition[] = [
   {
-    id: 'shop-health',
+    id: 'health-banner',
     title: 'Shop Health',
-    description: 'Live overzicht van je winkel gezondheid',
+    description: 'Live score en dagelijkse status',
     defaultSize: 'full',
     minSize: 'full',
     category: 'stats',
-    icon: BarChart3,
+    icon: Heart,
+  },
+  {
+    id: 'health-categories',
+    title: 'Health Categorieën',
+    description: '6 health pilaren in een grid',
+    defaultSize: 'lg',
+    minSize: 'lg',
+    category: 'stats',
+    icon: Grid3X3,
   },
   {
     id: 'today-widget',
     title: 'Vandaag',
     description: 'Live sales feed en dagelijkse statistieken',
-    defaultSize: 'lg',
+    defaultSize: 'md',
     minSize: 'md',
     category: 'stats',
     icon: Zap,
   },
   {
-    id: 'stats-grid',
-    title: 'Statistieken',
-    description: 'Omzet, bestellingen, producten en alerts',
-    defaultSize: 'full',
-    minSize: 'lg',
+    id: 'health-actions',
+    title: 'Actie-items',
+    description: 'Urgente taken die aandacht nodig hebben',
+    defaultSize: 'md',
+    minSize: 'md',
     category: 'stats',
     icon: BarChart3,
   },
@@ -76,18 +86,9 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     icon: Zap,
   },
   {
-    id: 'recent-orders',
-    title: 'Recente bestellingen',
-    description: 'Laatste 5 bestellingen',
-    defaultSize: 'md',
-    minSize: 'sm',
-    category: 'orders',
-    icon: ShoppingCart,
-  },
-  {
     id: 'ai-marketing',
-    title: 'AI Marketing',
-    description: 'AI credits en marketing suggesties',
+    title: 'AI Coach',
+    description: 'AI suggesties en marketing tips',
     defaultSize: 'md',
     minSize: 'sm',
     category: 'marketing',
@@ -108,27 +109,18 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     id: 'marketplace',
     title: 'Marktplaatsen',
     description: 'Status van gekoppelde verkoopkanalen',
-    defaultSize: 'full',
+    defaultSize: 'lg',
     minSize: 'lg',
     category: 'orders',
     requiredFeature: 'marketplaces',
     icon: ShoppingCart,
   },
   {
-    id: 'low-stock',
-    title: 'Lage voorraad',
-    description: 'Producten met lage voorraad',
-    defaultSize: 'full',
-    minSize: 'lg',
-    category: 'products',
-    icon: BarChart3,
-  },
-  {
     id: 'badges',
     title: 'Badges & Milestones',
     description: 'Jouw verdiende badges en voortgang',
-    defaultSize: 'md',
-    minSize: 'sm',
+    defaultSize: 'full',
+    minSize: 'lg',
     category: 'stats',
     icon: Trophy,
   },
@@ -142,16 +134,15 @@ export const layoutPresets: LayoutPreset[] = [
     description: 'Compleet overzicht met alle widgets',
     icon: LayoutDashboard,
     widgetOrder: [
-      'shop-health',
+      'health-banner',
+      'health-categories',
       'today-widget',
-      'stats-grid',
+      'health-actions',
       'quick-actions',
-      'recent-orders',
-      'badges',
       'ai-marketing',
       'pos-overview',
       'marketplace',
-      'low-stock',
+      'badges',
     ],
     hiddenWidgets: [],
   },
@@ -160,24 +151,24 @@ export const layoutPresets: LayoutPreset[] = [
     name: 'Compact',
     description: 'Alleen de essentiële informatie',
     icon: Zap,
-    widgetOrder: ['stats-grid', 'quick-actions', 'recent-orders', 'badges'],
-    hiddenWidgets: ['ai-marketing', 'pos-overview', 'marketplace', 'low-stock'],
+    widgetOrder: ['health-banner', 'today-widget', 'quick-actions', 'badges'],
+    hiddenWidgets: ['health-categories', 'health-actions', 'ai-marketing', 'pos-overview', 'marketplace'],
   },
   {
     id: 'analytics',
     name: 'Analytics',
     description: 'Focus op data en statistieken',
     icon: BarChart3,
-    widgetOrder: ['stats-grid', 'marketplace', 'low-stock', 'recent-orders', 'badges'],
-    hiddenWidgets: ['quick-actions', 'ai-marketing', 'pos-overview'],
+    widgetOrder: ['health-banner', 'health-categories', 'today-widget', 'marketplace', 'badges'],
+    hiddenWidgets: ['health-actions', 'quick-actions', 'ai-marketing', 'pos-overview'],
   },
   {
     id: 'pos',
     name: 'POS Focus',
     description: 'Optimaal voor winkelverkoop',
     icon: Store,
-    widgetOrder: ['stats-grid', 'pos-overview', 'quick-actions', 'low-stock', 'badges'],
-    hiddenWidgets: ['recent-orders', 'ai-marketing', 'marketplace'],
+    widgetOrder: ['health-banner', 'today-widget', 'pos-overview', 'quick-actions', 'badges'],
+    hiddenWidgets: ['health-categories', 'health-actions', 'ai-marketing', 'marketplace'],
   },
   {
     id: 'ecommerce',
@@ -185,14 +176,14 @@ export const layoutPresets: LayoutPreset[] = [
     description: 'Focus op online verkoop',
     icon: ShoppingCart,
     widgetOrder: [
-      'stats-grid',
-      'recent-orders',
+      'health-banner',
+      'health-categories',
+      'today-widget',
       'marketplace',
       'ai-marketing',
-      'low-stock',
       'badges',
     ],
-    hiddenWidgets: ['quick-actions', 'pos-overview'],
+    hiddenWidgets: ['health-actions', 'quick-actions', 'pos-overview'],
   },
 ];
 
@@ -219,6 +210,5 @@ export const widgetSizeClasses: Record<WidgetSize, string> = {
   sm: 'lg:col-span-1',
   md: 'lg:col-span-1',
   lg: 'lg:col-span-2',
-  xl: 'lg:col-span-2',
   full: 'lg:col-span-3',
 };
