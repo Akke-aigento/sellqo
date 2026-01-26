@@ -162,9 +162,6 @@ function generateGoogleFeed(products: Product[], tenant: Tenant): string {
       ${categoryName ? `<g:product_type>${escapeXml(categoryName)}</g:product_type>` : ''}
     </item>`;
   }).join('\n');
-      ${product.sku ? `<g:mpn>${escapeXml(product.sku)}</g:mpn>` : ''}
-      ${product.category?.name ? `<g:product_type>${escapeXml(product.category.name)}</g:product_type>` : ''}
-    </item>`).join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
@@ -199,7 +196,7 @@ function generateFacebookCSV(products: Product[], tenant: Tenant): string {
       csvEscape(tenant.company_name),
       csvEscape(product.barcode || ''),
       csvEscape(product.sku || ''),
-      csvEscape(product.category?.name || '')
+      csvEscape(product.category?.[0]?.name || '')
     ].join(',');
   });
 
