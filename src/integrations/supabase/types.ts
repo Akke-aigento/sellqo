@@ -493,7 +493,9 @@ export type Database = {
       ai_action_suggestions: {
         Row: {
           action_data: Json
+          analysis_context: Json | null
           confidence_score: number | null
+          conversational_message: string | null
           created_at: string
           description: string | null
           executed_at: string | null
@@ -502,7 +504,11 @@ export type Database = {
           id: string
           notification_id: string | null
           priority: string
+          quick_actions: Json | null
           reasoning: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          snoozed_until: string | null
           status: string
           suggestion_type: string
           tenant_id: string
@@ -512,7 +518,9 @@ export type Database = {
         }
         Insert: {
           action_data?: Json
+          analysis_context?: Json | null
           confidence_score?: number | null
+          conversational_message?: string | null
           created_at?: string
           description?: string | null
           executed_at?: string | null
@@ -521,7 +529,11 @@ export type Database = {
           id?: string
           notification_id?: string | null
           priority?: string
+          quick_actions?: Json | null
           reasoning?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          snoozed_until?: string | null
           status?: string
           suggestion_type: string
           tenant_id: string
@@ -531,7 +543,9 @@ export type Database = {
         }
         Update: {
           action_data?: Json
+          analysis_context?: Json | null
           confidence_score?: number | null
+          conversational_message?: string | null
           created_at?: string
           description?: string | null
           executed_at?: string | null
@@ -540,7 +554,11 @@ export type Database = {
           id?: string
           notification_id?: string | null
           priority?: string
+          quick_actions?: Json | null
           reasoning?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          snoozed_until?: string | null
           status?: string
           suggestion_type?: string
           tenant_id?: string
@@ -719,6 +737,59 @@ export type Database = {
             foreignKeyName: "ai_chatbot_conversations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_coach_settings: {
+        Row: {
+          analysis_frequency_hours: number | null
+          auto_dismiss_after_hours: number | null
+          coach_name: string | null
+          created_at: string | null
+          enabled_analyses: string[] | null
+          id: string
+          muted_suggestion_types: string[] | null
+          personality: string | null
+          proactive_level: string | null
+          show_emoji: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          analysis_frequency_hours?: number | null
+          auto_dismiss_after_hours?: number | null
+          coach_name?: string | null
+          created_at?: string | null
+          enabled_analyses?: string[] | null
+          id?: string
+          muted_suggestion_types?: string[] | null
+          personality?: string | null
+          proactive_level?: string | null
+          show_emoji?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          analysis_frequency_hours?: number | null
+          auto_dismiss_after_hours?: number | null
+          coach_name?: string | null
+          created_at?: string | null
+          enabled_analyses?: string[] | null
+          id?: string
+          muted_suggestion_types?: string[] | null
+          personality?: string | null
+          proactive_level?: string | null
+          show_emoji?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -11738,6 +11809,7 @@ export type Database = {
         | "marketing"
         | "team"
         | "system"
+        | "ai_coach"
       notification_priority: "low" | "medium" | "high" | "urgent"
       order_status:
         | "pending"
@@ -11943,6 +12015,7 @@ export const Constants = {
         "marketing",
         "team",
         "system",
+        "ai_coach",
       ],
       notification_priority: ["low", "medium", "high", "urgent"],
       order_status: [

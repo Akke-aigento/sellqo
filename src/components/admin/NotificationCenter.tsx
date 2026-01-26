@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Check, CheckCheck, Trash2, ExternalLink, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, ExternalLink, AlertTriangle, Info, AlertCircle, Bot, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -13,6 +13,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAIActions } from '@/hooks/useAIActions';
+import { AICoachNotificationItem } from './notifications/AICoachNotificationItem';
 import type { Notification, NotificationPriority } from '@/types/notification';
 import { cn } from '@/lib/utils';
 
@@ -105,17 +107,20 @@ export function NotificationCenter() {
     deleteAllRead,
   } = useNotifications();
 
+  const { pendingSuggestions, rejectSuggestion } = useAIActions();
+
   const unreadNotifications = notifications.filter(n => !n.read_at);
   const urgentNotifications = notifications.filter(n => n.priority === 'urgent' || n.priority === 'high');
+  const aiCoachCount = pendingSuggestions?.length || 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {(unreadCount > 0 || aiCoachCount > 0) && (
             <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {(unreadCount + aiCoachCount) > 99 ? '99+' : unreadCount + aiCoachCount}
             </span>
           )}
           <span className="sr-only">Notificaties</span>
@@ -153,6 +158,13 @@ export function NotificationCenter() {
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
             >
               Urgent ({urgentNotifications.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="ai_coach"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 gap-1"
+            >
+              <Bot className="h-3.5 w-3.5" />
+              Coach ({aiCoachCount})
             </TabsTrigger>
           </TabsList>
 
@@ -210,6 +222,27 @@ export function NotificationCenter() {
                     notification={notification}
                     onMarkAsRead={markAsRead}
                     onDelete={deleteNotification}
+                  />
+                ))
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="ai_coach" className="m-0">
+            <ScrollArea className="h-80">
+              {aiCoachCount === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Geen AI suggesties</p>
+                  <p className="text-xs mt-1">De AI Coach analyseert je data en geeft proactief advies</p>
+                </div>
+              ) : (
+                pendingSuggestions?.slice(0, 10).map(suggestion => (
+                  <AICoachNotificationItem
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    onDismiss={(id) => rejectSuggestion.mutate(id)}
+                    compact
                   />
                 ))
               )}

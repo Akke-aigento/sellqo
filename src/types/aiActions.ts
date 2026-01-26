@@ -19,6 +19,18 @@ export type AISuggestionStatus =
 
 export type AISuggestionPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+// Quick action for inline notification buttons
+export interface AIQuickAction {
+  id: string;
+  label: string;
+  icon?: string;
+  action_type: 'navigate' | 'execute' | 'dismiss' | 'snooze';
+  action_url?: string;
+  action_function?: string;
+  action_params?: Record<string, unknown>;
+  variant?: 'default' | 'primary' | 'secondary' | 'destructive' | 'outline';
+}
+
 export interface AIActionSuggestion {
   id: string;
   tenant_id: string;
@@ -37,6 +49,13 @@ export interface AIActionSuggestion {
   executed_by: string | null;
   created_at: string;
   updated_at: string;
+  // New conversational coach fields
+  conversational_message?: string | null;
+  quick_actions?: AIQuickAction[];
+  related_entity_type?: string | null;
+  related_entity_id?: string | null;
+  analysis_context?: Record<string, unknown>;
+  snoozed_until?: string | null;
 }
 
 export interface AIFeedback {
