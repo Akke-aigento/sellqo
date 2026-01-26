@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Package, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -51,6 +51,7 @@ export default function ShopOrderConfirmation() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load order and set up realtime subscription
   useEffect(() => {
     const loadOrder = async () => {
       if (!orderId) return;
@@ -59,7 +60,7 @@ export default function ShopOrderConfirmation() {
         .from('orders')
         .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
         .eq('id', orderId)
-        .single();
+        .maybeSingle();
 
       if (orderError) {
         console.error('Error loading order:', orderError);
@@ -67,21 +68,47 @@ export default function ShopOrderConfirmation() {
         return;
       }
 
-      setOrder(orderData as unknown as Order);
+      if (orderData) {
+        setOrder(orderData as unknown as Order);
 
-      const { data: itemsData } = await supabase
-        .from('order_items')
-        .select('id, product_name, quantity, unit_price, total_price')
-        .eq('order_id', orderId);
+        const { data: itemsData } = await supabase
+          .from('order_items')
+          .select('id, product_name, quantity, unit_price, total_price')
+          .eq('order_id', orderId);
 
-      if (itemsData) {
-        setOrderItems(itemsData);
+        if (itemsData) {
+          setOrderItems(itemsData);
+        }
       }
 
       setIsLoading(false);
     };
 
     loadOrder();
+
+    // Set up realtime subscription for order updates
+    if (orderId) {
+      const channel = supabase
+        .channel(`order-${orderId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders',
+            filter: `id=eq.${orderId}`,
+          },
+          (payload) => {
+            console.log('Order updated:', payload);
+            setOrder(prev => prev ? { ...prev, ...(payload.new as Partial<Order>) } : null);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [orderId]);
 
   const formatPrice = (price: number) => {
@@ -99,6 +126,19 @@ export default function ShopOrderConfirmation() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getStatusBadge = () => {
+    switch (order?.payment_status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Betaald</Badge>;
+      case 'awaiting_payment':
+        return <Badge variant="secondary">Wacht op betaling</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Mislukt</Badge>;
+      default:
+        return <Badge variant="secondary">{order?.payment_status}</Badge>;
+    }
   };
 
   if (isLoading) {
@@ -143,8 +183,10 @@ export default function ShopOrderConfirmation() {
       <div className="container mx-auto px-4 py-8">
         {/* Success Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-4">
-            <CheckCircle className="h-8 w-8" />
+          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
+            isPaid ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+          }`}>
+            {isPaid ? <CheckCircle className="h-8 w-8" /> : <RefreshCw className="h-8 w-8" />}
           </div>
           <h1 className="text-3xl font-bold mb-2">
             {isPaid ? 'Bedankt voor je bestelling!' : 'Bestelling ontvangen!'}
@@ -170,6 +212,23 @@ export default function ShopOrderConfirmation() {
               />
             )}
 
+            {/* Payment Received Notification */}
+            {isPaid && isBankTransfer && (
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <div>
+                      <h3 className="font-semibold text-green-800">Betaling ontvangen!</h3>
+                      <p className="text-sm text-green-700">
+                        Je betaling is succesvol verwerkt. We gaan je bestelling nu klaarmaken.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Order Status */}
             <Card>
               <CardHeader>
@@ -180,9 +239,7 @@ export default function ShopOrderConfirmation() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4">
-                  <Badge variant={isPaid ? 'default' : 'secondary'}>
-                    {isPaid ? 'Betaald' : 'Wacht op betaling'}
-                  </Badge>
+                  {getStatusBadge()}
                   <span className="text-muted-foreground text-sm">
                     Besteld op {formatDate(order.created_at)}
                   </span>
@@ -191,6 +248,13 @@ export default function ShopOrderConfirmation() {
                 {isPaid && (
                   <p className="mt-4 text-sm text-muted-foreground">
                     Je ontvangt een bevestigingsmail met trackinginformatie zodra je bestelling is verzonden.
+                  </p>
+                )}
+
+                {!isPaid && isBankTransfer && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    <RefreshCw className="h-4 w-4 inline mr-1" />
+                    Deze pagina wordt automatisch bijgewerkt zodra we je betaling ontvangen.
                   </p>
                 )}
               </CardContent>

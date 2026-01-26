@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,25 +8,23 @@ import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
-
-interface CartItem {
-  id: string;
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
+import { useCart } from '@/context/CartContext';
+import { useState } from 'react';
 
 export default function ShopCart() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
+  const { items: cartItems, updateQuantity, removeItem, setTenantSlug, getSubtotal } = useCart();
   
-  // In a real implementation, this would come from a cart context/store
-  // For now, we'll show a demo empty cart state
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [discountCode, setDiscountCode] = useState('');
   const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  // Set tenant slug for cart context
+  useEffect(() => {
+    if (tenantSlug) {
+      setTenantSlug(tenantSlug);
+    }
+  }, [tenantSlug, setTenantSlug]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -35,20 +33,16 @@ export default function ShopCart() {
     }).format(price);
   };
 
-  const updateQuantity = (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) {
-      removeItem(itemId);
+      handleRemoveItem(productId);
       return;
     }
-    setCartItems(items => 
-      items.map(item => 
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    updateQuantity(productId, newQuantity);
   };
 
-  const removeItem = (itemId: string) => {
-    setCartItems(items => items.filter(item => item.id !== itemId));
+  const handleRemoveItem = (productId: string) => {
+    removeItem(productId);
     toast.success('Product verwijderd uit winkelwagen');
   };
 
@@ -62,7 +56,7 @@ export default function ShopCart() {
     setApplyingDiscount(false);
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = getSubtotal();
   const shipping = subtotal > 0 ? 5.95 : 0; // Example shipping cost
   const total = subtotal + shipping;
 
@@ -132,7 +126,7 @@ export default function ShopCart() {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -141,7 +135,7 @@ export default function ShopCart() {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -150,7 +144,7 @@ export default function ShopCart() {
                         variant="ghost" 
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => handleRemoveItem(item.productId)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

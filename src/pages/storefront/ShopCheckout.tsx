@@ -10,20 +10,12 @@ import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/storefront/PaymentMethodSelector';
 import { BankTransferPayment } from '@/components/storefront/BankTransferPayment';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
+import { useCart } from '@/context/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
-
-interface CartItem {
-  id: string;
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
 
 interface CustomerData {
   email: string;
@@ -41,6 +33,7 @@ export default function ShopCheckout() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
+  const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
   
   const [step, setStep] = useState<CheckoutStep>('details');
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -64,8 +57,12 @@ export default function ShopCheckout() {
     amount: number;
   } | null>(null);
 
-  // Demo cart items - in production this would come from cart context
-  const [cartItems] = useState<CartItem[]>([]);
+  // Set tenant slug for cart context
+  useEffect(() => {
+    if (tenantSlug) {
+      setTenantSlug(tenantSlug);
+    }
+  }, [tenantSlug, setTenantSlug]);
 
   // Load tenant payment settings
   useEffect(() => {
@@ -86,7 +83,7 @@ export default function ShopCheckout() {
     }).format(price);
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = getSubtotal();
   const shipping = subtotal > 0 ? 5.95 : 0;
   const total = subtotal + shipping;
 
@@ -124,52 +121,67 @@ export default function ShopCheckout() {
     setIsProcessing(true);
     
     try {
+      // Prepare items in correct format for edge functions
+      const formattedItems = cartItems.map(item => ({
+        product_id: item.productId,
+        product_name: item.name,
+        product_sku: item.sku,
+        product_image: item.image,
+        quantity: item.quantity,
+        unit_price: item.price,
+      }));
+
+      // Prepare address object
+      const shippingAddress = {
+        street: `${customerData.street} ${customerData.houseNumber}`.trim(),
+        city: customerData.city,
+        postal_code: customerData.postalCode,
+        country: customerData.country,
+      };
+
       if (method === 'stripe') {
         // Call create-checkout-session edge function
         const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
           body: {
             tenant_id: tenant.id,
-            items: cartItems.map(item => ({
-              product_id: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-              name: item.name,
-            })),
-            customer: customerData,
-            success_url: `${window.location.origin}/shop/${tenantSlug}/order/{ORDER_ID}`,
-            cancel_url: `${window.location.origin}/shop/${tenantSlug}/cart`,
+            items: formattedItems,
+            customer_email: customerData.email,
+            customer_name: `${customerData.firstName} ${customerData.lastName}`,
+            customer_phone: customerData.phone,
+            shipping_address: shippingAddress,
+            billing_address: shippingAddress,
+            shipping_cost: shipping,
           },
         });
 
         if (error) throw new Error(error.message);
         if (sessionData?.url) {
+          // Clear cart before redirect
+          clearCart();
           window.location.href = sessionData.url;
         }
       } else if (method === 'bank_transfer') {
-        // Call create-bank-transfer-order edge function
+        // Call create-bank-transfer-order edge function with correct format
         const { data: orderData, error } = await supabase.functions.invoke('create-bank-transfer-order', {
           body: {
             tenant_id: tenant.id,
-            items: cartItems.map(item => ({
-              product_id: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-              name: item.name,
-            })),
-            customer: customerData,
+            items: formattedItems,
+            customer_email: customerData.email,
+            customer_name: `${customerData.firstName} ${customerData.lastName}`,
+            customer_phone: customerData.phone,
+            shipping_address: shippingAddress,
+            billing_address: shippingAddress,
             shipping_cost: shipping,
           },
         });
 
         if (error) throw new Error(error.message);
         
-        setBankTransferOrder({
-          orderId: orderData.order_id,
-          orderNumber: orderData.order_number,
-          ogmReference: orderData.ogm_reference,
-          amount: orderData.total,
-        });
-        setStep('confirmation');
+        // Clear cart and navigate to confirmation
+        clearCart();
+        
+        // Navigate to order confirmation page
+        navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -184,7 +196,7 @@ export default function ShopCheckout() {
   };
 
   // Empty cart redirect
-  if (cartItems.length === 0 && step === 'details') {
+  if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
       <ShopLayout>
         <Helmet>

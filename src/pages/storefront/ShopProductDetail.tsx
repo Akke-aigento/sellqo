@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,14 +6,23 @@ import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefro
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
+import { useCart } from '@/context/CartContext';
 
 export default function ShopProductDetail() {
   const { tenantSlug, productSlug } = useParams<{ tenantSlug: string; productSlug: string }>();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { data: product, isLoading, error } = usePublicProduct(tenant?.id, productSlug || '');
+  const { addToCart, setTenantSlug, getCartCount } = useCart();
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+
+  // Set tenant slug for cart context
+  useEffect(() => {
+    if (tenantSlug) {
+      setTenantSlug(tenantSlug);
+    }
+  }, [tenantSlug, setTenantSlug]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -23,8 +32,23 @@ export default function ShopProductDetail() {
   };
 
   const handleAddToCart = () => {
-    // Here you would integrate with cart functionality
-    toast.success(`${quantity}x ${product?.name} toegevoegd aan winkelwagen`);
+    if (!product) return;
+    
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      quantity,
+      image: product.images?.[0],
+      sku: product.sku,
+    });
+    
+    toast.success(`${quantity}x ${product.name} toegevoegd aan winkelwagen`, {
+      action: {
+        label: 'Bekijk winkelwagen',
+        onClick: () => window.location.href = `/shop/${tenantSlug}/cart`,
+      },
+    });
   };
 
   if (isLoading) {
@@ -61,6 +85,8 @@ export default function ShopProductDetail() {
   const discountPercentage = hasDiscount 
     ? Math.round((1 - product.price / product.compare_at_price!) * 100)
     : 0;
+
+  const cartCount = getCartCount();
 
   return (
     <ShopLayout>
@@ -217,6 +243,11 @@ export default function ShopProductDetail() {
                 >
                   <ShoppingCart className="h-5 w-5 mr-2" />
                   Toevoegen aan winkelwagen
+                  {cartCount > 0 && (
+                    <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                      {cartCount}
+                    </span>
+                  )}
                 </Button>
 
                 {/* Wishlist */}
