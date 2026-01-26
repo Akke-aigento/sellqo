@@ -8,7 +8,23 @@ export type NotificationCategory =
   | 'subscriptions'
   | 'marketing'
   | 'team'
-  | 'system';
+  | 'system'
+  | 'ai_coach';
+
+// Quick Action types for inline notification buttons
+export type QuickActionType = 'navigate' | 'execute' | 'dismiss' | 'snooze';
+export type QuickActionVariant = 'default' | 'primary' | 'secondary' | 'destructive' | 'outline';
+
+export interface NotificationQuickAction {
+  id: string;
+  label: string;
+  icon?: string;
+  action_type: QuickActionType;
+  action_url?: string;
+  action_function?: string;
+  action_params?: Record<string, unknown>;
+  variant?: QuickActionVariant;
+}
 
 export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
 

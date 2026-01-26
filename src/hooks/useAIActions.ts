@@ -6,7 +6,8 @@ import type {
   AIActionSuggestion, 
   AISuggestionType, 
   AISuggestionStatus,
-  AISuggestionPriority 
+  AISuggestionPriority,
+  AIQuickAction,
 } from '@/types/aiActions';
 
 interface CreateSuggestionParams {
@@ -21,26 +22,42 @@ interface CreateSuggestionParams {
   notificationId?: string;
 }
 
+// Helper function to safely parse database row to AIActionSuggestion
+function parseAISuggestion(row: any): AIActionSuggestion {
+  return {
+    ...row,
+    suggestion_type: row.suggestion_type as AISuggestionType,
+    priority: row.priority as AISuggestionPriority,
+    status: row.status as AISuggestionStatus,
+    action_data: (row.action_data || {}) as Record<string, unknown>,
+    user_modifications: (row.user_modifications || null) as Record<string, unknown> | null,
+    quick_actions: (Array.isArray(row.quick_actions) ? row.quick_actions : []) as AIQuickAction[],
+    analysis_context: (row.analysis_context || {}) as Record<string, unknown>,
+  };
+}
+
 export function useAIActions() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
 
-  // Fetch pending suggestions
+  // Fetch pending suggestions (excluding snoozed)
   const { data: pendingSuggestions, isLoading: suggestionsLoading, refetch: refetchSuggestions } = useQuery({
     queryKey: ['ai-action-suggestions', currentTenant?.id, 'pending'],
     queryFn: async () => {
       if (!currentTenant?.id) return [];
 
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from('ai_action_suggestions')
         .select('*')
         .eq('tenant_id', currentTenant.id)
         .eq('status', 'pending')
+        .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as AIActionSuggestion[];
+      return (data || []).map(parseAISuggestion);
     },
     enabled: !!currentTenant?.id,
   });
@@ -68,7 +85,7 @@ export function useAIActions() {
         const { data, error } = await query.limit(50);
 
         if (error) throw error;
-        return data as AIActionSuggestion[];
+        return (data || []).map(parseAISuggestion);
       },
       enabled: !!currentTenant?.id,
     });
@@ -106,7 +123,7 @@ export function useAIActions() {
         .single();
 
       if (error) throw error;
-      return data as AIActionSuggestion;
+      return parseAISuggestion(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-action-suggestions'] });
@@ -141,7 +158,7 @@ export function useAIActions() {
       if (error) throw error;
 
       // Trigger the actual action based on type
-      const suggestion = data as AIActionSuggestion;
+      const suggestion = parseAISuggestion(data);
       await executeAction(suggestion);
 
       return suggestion;
@@ -169,7 +186,7 @@ export function useAIActions() {
         .single();
 
       if (error) throw error;
-      return data as AIActionSuggestion;
+      return parseAISuggestion(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-action-suggestions'] });
@@ -204,7 +221,7 @@ export function useAIActions() {
         .single();
 
       if (error) throw error;
-      return data as AIActionSuggestion;
+      return parseAISuggestion(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-action-suggestions'] });
