@@ -22,29 +22,27 @@ import { DashboardLayoutSwitcher } from './DashboardLayoutSwitcher';
 import { DashboardCustomizeDialog } from './DashboardCustomizeDialog';
 import { getWidgetById } from '@/config/dashboardWidgets';
 
-// Widget components (lazy imports would be better for production)
-import { StatsGridWidget } from './widgets/StatsGridWidget';
+// Widget components
 import { QuickActionsWidget } from './widgets/QuickActionsWidget';
-import { RecentOrdersWidget } from './widgets/RecentOrdersWidget';
 import { AIMarketingWidget } from './widgets/AIMarketingWidget';
 import { POSOverviewWidget } from './widgets/POSOverviewWidget';
 import { MarketplaceWidget } from './widgets/MarketplaceWidget';
-import { LowStockWidget } from './widgets/LowStockWidget';
-import { ShopHealthWidget } from './widgets/ShopHealthWidget';
 import { TodayWidget } from './widgets/TodayWidget';
 import { BadgesWidget } from './widgets/BadgesWidget';
+import { HealthBannerWidget } from './widgets/HealthBannerWidget';
+import { HealthCategoriesWidget } from './widgets/HealthCategoriesWidget';
+import { HealthActionsWidget } from './widgets/HealthActionsWidget';
 
 // Widget component mapping
 const widgetComponents: Record<string, React.ComponentType> = {
-  'shop-health': ShopHealthWidget,
+  'health-banner': HealthBannerWidget,
+  'health-categories': HealthCategoriesWidget,
+  'health-actions': HealthActionsWidget,
   'today-widget': TodayWidget,
-  'stats-grid': StatsGridWidget,
   'quick-actions': QuickActionsWidget,
-  'recent-orders': RecentOrdersWidget,
   'ai-marketing': AIMarketingWidget,
   'pos-overview': POSOverviewWidget,
   'marketplace': MarketplaceWidget,
-  'low-stock': LowStockWidget,
   'badges': BadgesWidget,
 };
 

@@ -265,7 +265,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
       label: 'Openstaande offertes',
       status: 'warning',
       value: data.pendingQuotes,
-      action: { label: 'Bekijk', url: '/admin/quotes' },
+      action: { label: 'Bekijk', url: '/admin/orders/quotes' },
     });
   }
   
@@ -321,7 +321,7 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
       label: 'Achterstallige facturen',
       status: data.overdueInvoicesAmount > 500 ? 'critical' : 'warning',
       value: `€${data.overdueInvoicesAmount.toFixed(2)}`,
-      action: { label: 'Bekijk', url: '/admin/invoices?status=overdue' },
+      action: { label: 'Bekijk', url: '/admin/orders/invoices' },
     });
   } else {
     items.push({ label: 'Openstaand', status: 'ok', value: '€0' });
@@ -350,7 +350,7 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
     status,
     items,
     emotionalMessage: message,
-    actionUrl: '/admin/invoices',
+    actionUrl: '/admin/orders/invoices',
   };
 }
 
@@ -367,7 +367,7 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
       label: 'SEO Score',
       status: data.seoScore >= 70 ? 'ok' : data.seoScore >= 40 ? 'warning' : 'critical',
       value: `${data.seoScore}/100`,
-      action: { label: 'Verbeteren', url: '/admin/seo' },
+      action: { label: 'Verbeteren', url: '/admin/marketing/seo' },
     });
   } else {
     score -= 4;
@@ -375,7 +375,7 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
       label: 'SEO Score',
       status: 'warning',
       value: 'Niet geanalyseerd',
-      action: { label: 'Analyseer', url: '/admin/seo' },
+      action: { label: 'Analyseer', url: '/admin/marketing/seo' },
     });
   }
   
@@ -424,7 +424,7 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
     status,
     items,
     emotionalMessage: message,
-    actionUrl: '/admin/seo',
+    actionUrl: '/admin/marketing/seo',
   };
 }
 

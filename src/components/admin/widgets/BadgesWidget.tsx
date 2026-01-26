@@ -51,9 +51,9 @@ export function BadgesWidget() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Badge display */}
-        <div className="flex gap-1 overflow-x-auto pb-2">
+      <CardContent className="space-y-3">
+        {/* Badge display - horizontal scroll on full width */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
           {displayBadges.map((badge) => (
             <BadgeCard key={badge.id} badge={badge} size="sm" />
           ))}
