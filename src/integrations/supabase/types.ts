@@ -4757,6 +4757,7 @@ export type Database = {
           marketplace_source: string | null
           notes: string | null
           order_number: string
+          payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data: Json | null
           service_point_data: Json | null
@@ -4775,6 +4776,7 @@ export type Database = {
           total: number
           tracking_number: string | null
           tracking_url: string | null
+          transaction_fee_charged: number | null
           updated_at: string | null
           vat_country: string | null
           vat_rate: number | null
@@ -4810,6 +4812,7 @@ export type Database = {
           marketplace_source?: string | null
           notes?: string | null
           order_number: string
+          payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
           service_point_data?: Json | null
@@ -4828,6 +4831,7 @@ export type Database = {
           total?: number
           tracking_number?: string | null
           tracking_url?: string | null
+          transaction_fee_charged?: number | null
           updated_at?: string | null
           vat_country?: string | null
           vat_rate?: number | null
@@ -4863,6 +4867,7 @@ export type Database = {
           marketplace_source?: string | null
           notes?: string | null
           order_number?: string
+          payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
           service_point_data?: Json | null
@@ -4881,6 +4886,7 @@ export type Database = {
           total?: number
           tracking_number?: string | null
           tracking_url?: string | null
+          transaction_fee_charged?: number | null
           updated_at?: string | null
           vat_country?: string | null
           vat_rate?: number | null
@@ -5827,6 +5833,7 @@ export type Database = {
           features: Json
           highlighted: boolean | null
           id: string
+          included_transactions_monthly: number | null
           limit_api_calls: number | null
           limit_customers: number | null
           limit_orders: number | null
@@ -5840,6 +5847,7 @@ export type Database = {
           stripe_price_id_monthly: string | null
           stripe_price_id_yearly: string | null
           stripe_product_id: string | null
+          transaction_overage_fee: number | null
           updated_at: string | null
           yearly_price: number
         }
@@ -5851,6 +5859,7 @@ export type Database = {
           features?: Json
           highlighted?: boolean | null
           id: string
+          included_transactions_monthly?: number | null
           limit_api_calls?: number | null
           limit_customers?: number | null
           limit_orders?: number | null
@@ -5864,6 +5873,7 @@ export type Database = {
           stripe_price_id_monthly?: string | null
           stripe_price_id_yearly?: string | null
           stripe_product_id?: string | null
+          transaction_overage_fee?: number | null
           updated_at?: string | null
           yearly_price?: number
         }
@@ -5875,6 +5885,7 @@ export type Database = {
           features?: Json
           highlighted?: boolean | null
           id?: string
+          included_transactions_monthly?: number | null
           limit_api_calls?: number | null
           limit_customers?: number | null
           limit_orders?: number | null
@@ -5888,6 +5899,7 @@ export type Database = {
           stripe_price_id_monthly?: string | null
           stripe_price_id_yearly?: string | null
           stripe_product_id?: string | null
+          transaction_overage_fee?: number | null
           updated_at?: string | null
           yearly_price?: number
         }
@@ -9146,6 +9158,53 @@ export type Database = {
           },
         ]
       }
+      tenant_transaction_usage: {
+        Row: {
+          bank_transfer_transactions: number | null
+          created_at: string | null
+          id: string
+          month_year: string
+          overage_fee_total: number | null
+          pos_card_transactions: number | null
+          pos_cash_transactions: number | null
+          stripe_transactions: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          bank_transfer_transactions?: number | null
+          created_at?: string | null
+          id?: string
+          month_year: string
+          overage_fee_total?: number | null
+          pos_card_transactions?: number | null
+          pos_cash_transactions?: number | null
+          stripe_transactions?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          bank_transfer_transactions?: number | null
+          created_at?: string | null
+          id?: string
+          month_year?: string
+          overage_fee_total?: number | null
+          pos_card_transactions?: number | null
+          pos_cash_transactions?: number | null
+          stripe_transactions?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_transaction_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           address: string | null
@@ -9190,6 +9249,8 @@ export type Database = {
           owner_name: string | null
           packing_slip_prefix: string | null
           packing_slip_start_number: number | null
+          pass_transaction_fee_to_customer: boolean | null
+          payment_methods_enabled: Json | null
           peppol_id: string | null
           phone: string | null
           postal_code: string | null
@@ -9220,6 +9281,7 @@ export type Database = {
           subscription_plan: string | null
           subscription_status: string | null
           tax_percentage: number | null
+          transaction_fee_label: string | null
           updated_at: string | null
         }
         Insert: {
@@ -9265,6 +9327,8 @@ export type Database = {
           owner_name?: string | null
           packing_slip_prefix?: string | null
           packing_slip_start_number?: number | null
+          pass_transaction_fee_to_customer?: boolean | null
+          payment_methods_enabled?: Json | null
           peppol_id?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -9295,6 +9359,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_status?: string | null
           tax_percentage?: number | null
+          transaction_fee_label?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -9340,6 +9405,8 @@ export type Database = {
           owner_name?: string | null
           packing_slip_prefix?: string | null
           packing_slip_start_number?: number | null
+          pass_transaction_fee_to_customer?: boolean | null
+          payment_methods_enabled?: Json | null
           peppol_id?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -9370,6 +9437,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_status?: string | null
           tax_percentage?: number | null
+          transaction_fee_label?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -9937,6 +10005,14 @@ export type Database = {
           p_target_tenant_id: string
         }
         Returns: string
+      }
+      record_transaction: {
+        Args: {
+          p_order_id?: string
+          p_tenant_id: string
+          p_transaction_type: string
+        }
+        Returns: Json
       }
       redeem_gift_card: {
         Args: { p_amount: number; p_gift_card_id: string; p_order_id?: string }

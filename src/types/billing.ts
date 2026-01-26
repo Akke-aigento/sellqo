@@ -34,6 +34,9 @@ export interface PricingPlan {
   active: boolean;
   created_at: string;
   updated_at: string;
+  // Transaction limits
+  included_transactions_monthly: number | null;
+  transaction_overage_fee: number | null;
 }
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused';
@@ -113,4 +116,35 @@ export interface BillingMetrics {
     count: number;
     mrr: number;
   }[];
+}
+
+// Payment method types
+export type PaymentMethodType = 'stripe' | 'bank_transfer' | 'cash' | 'pin';
+
+export interface TenantPaymentSettings {
+  payment_methods_enabled: PaymentMethodType[];
+  pass_transaction_fee_to_customer: boolean;
+  transaction_fee_label: string;
+}
+
+export interface TransactionUsage {
+  id: string;
+  tenant_id: string;
+  month_year: string;
+  stripe_transactions: number;
+  bank_transfer_transactions: number;
+  pos_cash_transactions: number;
+  pos_card_transactions: number;
+  overage_fee_total: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionUsageWithLimits {
+  usage: TransactionUsage | null;
+  total_transactions: number;
+  included_transactions: number; // -1 = unlimited
+  remaining_transactions: number | null; // null = unlimited
+  is_over_limit: boolean;
+  overage_fee_per_transaction: number;
 }
