@@ -329,6 +329,23 @@ export function usePOSTransactions(sessionId?: string) {
         .single();
 
       if (error) throw error;
+
+      // Record transaction for usage tracking
+      const primaryMethod = payments[0]?.method;
+      const transactionType = primaryMethod === 'cash' ? 'pos_cash' : 
+                              primaryMethod === 'card' ? 'pos_card' : 
+                              primaryMethod === 'manual' ? 'bank_transfer' : 'pos_cash';
+
+      try {
+        await supabase.rpc('record_transaction', {
+          p_tenant_id: currentTenant.id,
+          p_transaction_type: transactionType,
+          p_order_id: null,
+        });
+      } catch (txError) {
+        console.warn('Failed to record transaction for usage tracking:', txError);
+      }
+
       return data;
     },
     onSuccess: () => {

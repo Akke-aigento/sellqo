@@ -97,6 +97,13 @@ serve(async (req) => {
           break;
         }
 
+        // Get tenant_id from order first for transaction recording
+        const { data: orderData } = await supabaseClient
+          .from("orders")
+          .select("tenant_id")
+          .eq("id", orderId)
+          .single();
+
         // Update order payment status
         const { error } = await supabaseClient
           .from("orders")
@@ -111,6 +118,20 @@ serve(async (req) => {
           logStep("Error updating order", { error: error.message });
         } else {
           logStep("Order updated to paid", { orderId });
+          
+          // Record transaction for usage tracking
+          if (orderData?.tenant_id) {
+            try {
+              await supabaseClient.rpc('record_transaction', {
+                p_tenant_id: orderData.tenant_id,
+                p_transaction_type: 'stripe',
+                p_order_id: orderId,
+              });
+              logStep("Transaction recorded for usage tracking");
+            } catch (txError) {
+              logStep("Warning: Failed to record transaction", { error: String(txError) });
+            }
+          }
         }
 
         // Update stock for each order item
