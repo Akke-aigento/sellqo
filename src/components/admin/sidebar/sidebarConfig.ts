@@ -32,6 +32,7 @@ import {
   LucideIcon,
   PackageCheck,
   MessageSquare,
+  Megaphone as MegaphoneIcon,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -90,6 +91,7 @@ const dailyItems: NavItem[] = [
 const salesItems: NavItem[] = [
   { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
   { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe },
+  { id: 'ads', title: 'Advertenties', url: '/admin/ads', icon: MegaphoneIcon },
   {
     id: 'promotions',
     title: 'Promoties',

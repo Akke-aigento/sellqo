@@ -88,6 +88,329 @@ export type Database = {
           },
         ]
       }
+      ad_audience_syncs: {
+        Row: {
+          audience_name: string | null
+          audience_size: number | null
+          connection_id: string
+          error_message: string | null
+          id: string
+          platform: string
+          platform_audience_id: string | null
+          segment_id: string | null
+          sync_status: string | null
+          sync_type: string | null
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          audience_name?: string | null
+          audience_size?: number | null
+          connection_id: string
+          error_message?: string | null
+          id?: string
+          platform: string
+          platform_audience_id?: string | null
+          segment_id?: string | null
+          sync_status?: string | null
+          sync_type?: string | null
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          audience_name?: string | null
+          audience_size?: number | null
+          connection_id?: string
+          error_message?: string | null
+          id?: string
+          platform?: string
+          platform_audience_id?: string | null
+          segment_id?: string | null
+          sync_status?: string | null
+          sync_type?: string | null
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_audience_syncs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "ad_platform_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_audience_syncs_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_audience_syncs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_campaigns: {
+        Row: {
+          ai_suggested: boolean | null
+          ai_suggestion_id: string | null
+          audience_config: Json | null
+          audience_type: string | null
+          bid_strategy: string | null
+          budget_amount: number | null
+          budget_type: string | null
+          campaign_type: string
+          category_ids: string[] | null
+          clicks: number | null
+          connection_id: string | null
+          conversions: number | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          impressions: number | null
+          name: string
+          platform: string
+          platform_campaign_id: string | null
+          platform_status: string | null
+          product_ids: string[] | null
+          revenue: number | null
+          roas: number | null
+          segment_id: string | null
+          spend: number | null
+          start_date: string | null
+          status: string | null
+          target_roas: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_suggested?: boolean | null
+          ai_suggestion_id?: string | null
+          audience_config?: Json | null
+          audience_type?: string | null
+          bid_strategy?: string | null
+          budget_amount?: number | null
+          budget_type?: string | null
+          campaign_type: string
+          category_ids?: string[] | null
+          clicks?: number | null
+          connection_id?: string | null
+          conversions?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          name: string
+          platform: string
+          platform_campaign_id?: string | null
+          platform_status?: string | null
+          product_ids?: string[] | null
+          revenue?: number | null
+          roas?: number | null
+          segment_id?: string | null
+          spend?: number | null
+          start_date?: string | null
+          status?: string | null
+          target_roas?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_suggested?: boolean | null
+          ai_suggestion_id?: string | null
+          audience_config?: Json | null
+          audience_type?: string | null
+          bid_strategy?: string | null
+          budget_amount?: number | null
+          budget_type?: string | null
+          campaign_type?: string
+          category_ids?: string[] | null
+          clicks?: number | null
+          connection_id?: string | null
+          conversions?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          name?: string
+          platform?: string
+          platform_campaign_id?: string | null
+          platform_status?: string | null
+          product_ids?: string[] | null
+          revenue?: number | null
+          roas?: number | null
+          segment_id?: string | null
+          spend?: number | null
+          start_date?: string | null
+          status?: string | null
+          target_roas?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_ai_suggestion_id_fkey"
+            columns: ["ai_suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_action_suggestions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "ad_platform_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_creatives: {
+        Row: {
+          call_to_action: string | null
+          campaign_id: string
+          clicks: number | null
+          created_at: string | null
+          creative_type: string
+          description: string | null
+          headline: string | null
+          id: string
+          image_urls: string[] | null
+          impressions: number | null
+          platform_creative_id: string | null
+          status: string | null
+          tenant_id: string
+          variant_label: string | null
+          video_url: string | null
+        }
+        Insert: {
+          call_to_action?: string | null
+          campaign_id: string
+          clicks?: number | null
+          created_at?: string | null
+          creative_type: string
+          description?: string | null
+          headline?: string | null
+          id?: string
+          image_urls?: string[] | null
+          impressions?: number | null
+          platform_creative_id?: string | null
+          status?: string | null
+          tenant_id: string
+          variant_label?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          call_to_action?: string | null
+          campaign_id?: string
+          clicks?: number | null
+          created_at?: string | null
+          creative_type?: string
+          description?: string | null
+          headline?: string | null
+          id?: string
+          image_urls?: string[] | null
+          impressions?: number | null
+          platform_creative_id?: string | null
+          status?: string | null
+          tenant_id?: string
+          variant_label?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_creatives_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_creatives_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_platform_connections: {
+        Row: {
+          access_token: string | null
+          account_id: string | null
+          account_name: string | null
+          config: Json | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          platform: string
+          refresh_token: string | null
+          tenant_id: string
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          config?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          platform: string
+          refresh_token?: string | null
+          tenant_id: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          config?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          platform?: string
+          refresh_token?: string | null
+          tenant_id?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_platform_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_actions_log: {
         Row: {
           action_details: Json

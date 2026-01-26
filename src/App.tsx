@@ -47,6 +47,7 @@ import BogoPromotionsPage from "./pages/admin/BogoPromotions";
 import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
+import AdsPage from "./pages/admin/Ads";
 import ReportsPage from "./pages/admin/Reports";
 import MessagesPage from "./pages/admin/Messages";
 import SuppliersPage from "./pages/admin/Suppliers";
@@ -164,6 +165,7 @@ const App = () => (
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="storefront" element={<StorefrontPage />} />
+              <Route path="ads" element={<AdsPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />
