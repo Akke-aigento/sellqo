@@ -147,6 +147,7 @@ export const layoutPresets: LayoutPreset[] = [
       'stats-grid',
       'quick-actions',
       'recent-orders',
+      'badges',
       'ai-marketing',
       'pos-overview',
       'marketplace',
@@ -159,7 +160,7 @@ export const layoutPresets: LayoutPreset[] = [
     name: 'Compact',
     description: 'Alleen de essentiële informatie',
     icon: Zap,
-    widgetOrder: ['stats-grid', 'quick-actions', 'recent-orders'],
+    widgetOrder: ['stats-grid', 'quick-actions', 'recent-orders', 'badges'],
     hiddenWidgets: ['ai-marketing', 'pos-overview', 'marketplace', 'low-stock'],
   },
   {
@@ -167,7 +168,7 @@ export const layoutPresets: LayoutPreset[] = [
     name: 'Analytics',
     description: 'Focus op data en statistieken',
     icon: BarChart3,
-    widgetOrder: ['stats-grid', 'marketplace', 'low-stock', 'recent-orders'],
+    widgetOrder: ['stats-grid', 'marketplace', 'low-stock', 'recent-orders', 'badges'],
     hiddenWidgets: ['quick-actions', 'ai-marketing', 'pos-overview'],
   },
   {
@@ -175,7 +176,7 @@ export const layoutPresets: LayoutPreset[] = [
     name: 'POS Focus',
     description: 'Optimaal voor winkelverkoop',
     icon: Store,
-    widgetOrder: ['stats-grid', 'pos-overview', 'quick-actions', 'low-stock'],
+    widgetOrder: ['stats-grid', 'pos-overview', 'quick-actions', 'low-stock', 'badges'],
     hiddenWidgets: ['recent-orders', 'ai-marketing', 'marketplace'],
   },
   {
@@ -189,6 +190,7 @@ export const layoutPresets: LayoutPreset[] = [
       'marketplace',
       'ai-marketing',
       'low-stock',
+      'badges',
     ],
     hiddenWidgets: ['quick-actions', 'pos-overview'],
   },
