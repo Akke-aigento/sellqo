@@ -8,6 +8,8 @@ export type SocialChannelType =
   | 'microsoft_shopping'
   | 'snapchat_catalog';
 
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
 export interface SocialChannelConnection {
   id: string;
   tenant_id: string;
@@ -23,15 +25,45 @@ export interface SocialChannelConnection {
   products_synced: number;
   created_at: string;
   updated_at: string;
+  // New fields for direct catalog sync
+  catalog_id: string | null;
+  business_id: string | null;
+  page_id: string | null;
+  sync_status: SyncStatus;
+  last_full_sync_at: string | null;
+  products_in_catalog: number;
+  sync_errors: SyncError[];
+}
+
+export interface SyncError {
+  product_id?: string;
+  product_name?: string;
+  error_code?: string;
+  message: string;
+  timestamp: string;
 }
 
 export interface SocialChannelCredentials {
   merchantId?: string;
   accessToken?: string;
   refreshToken?: string;
+  tokenExpiresAt?: string;
   catalogId?: string;
   pageId?: string;
   businessAccountId?: string;
+}
+
+export interface MetaCatalog {
+  id: string;
+  name: string;
+  product_count: number;
+  vertical: string;
+}
+
+export interface MetaBusiness {
+  id: string;
+  name: string;
+  catalogs?: MetaCatalog[];
 }
 
 export interface SocialChannelInfo {

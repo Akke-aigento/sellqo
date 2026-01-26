@@ -8074,6 +8074,8 @@ export type Database = {
       }
       social_channel_connections: {
         Row: {
+          business_id: string | null
+          catalog_id: string | null
           channel_name: string | null
           channel_type: string
           created_at: string | null
@@ -8084,12 +8086,19 @@ export type Database = {
           is_active: boolean | null
           last_error: string | null
           last_feed_generated_at: string | null
+          last_full_sync_at: string | null
           last_sync_at: string | null
+          page_id: string | null
+          products_in_catalog: number | null
           products_synced: number | null
+          sync_errors: Json | null
+          sync_status: string | null
           tenant_id: string
           updated_at: string | null
         }
         Insert: {
+          business_id?: string | null
+          catalog_id?: string | null
           channel_name?: string | null
           channel_type: string
           created_at?: string | null
@@ -8100,12 +8109,19 @@ export type Database = {
           is_active?: boolean | null
           last_error?: string | null
           last_feed_generated_at?: string | null
+          last_full_sync_at?: string | null
           last_sync_at?: string | null
+          page_id?: string | null
+          products_in_catalog?: number | null
           products_synced?: number | null
+          sync_errors?: Json | null
+          sync_status?: string | null
           tenant_id: string
           updated_at?: string | null
         }
         Update: {
+          business_id?: string | null
+          catalog_id?: string | null
           channel_name?: string | null
           channel_type?: string
           created_at?: string | null
@@ -8116,8 +8132,13 @@ export type Database = {
           is_active?: boolean | null
           last_error?: string | null
           last_feed_generated_at?: string | null
+          last_full_sync_at?: string | null
           last_sync_at?: string | null
+          page_id?: string | null
+          products_in_catalog?: number | null
           products_synced?: number | null
+          sync_errors?: Json | null
+          sync_status?: string | null
           tenant_id?: string
           updated_at?: string | null
         }

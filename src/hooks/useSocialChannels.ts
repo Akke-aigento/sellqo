@@ -115,6 +115,29 @@ export function useSocialChannels() {
     },
   });
 
+  // Sync catalog mutation
+  const syncCatalog = useMutation({
+    mutationFn: async (connectionId: string) => {
+      const { data, error } = await supabase.functions.invoke('sync-meta-catalog', {
+        body: { connection_id: connectionId, full_sync: false },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['social-channels'] });
+      if (data.errors_count > 0) {
+        toast.warning(`${data.products_synced} producten gesynchroniseerd, ${data.errors_count} fouten`);
+      } else {
+        toast.success(`${data.products_synced} producten gesynchroniseerd!`);
+      }
+    },
+    onError: (error) => {
+      toast.error('Kon niet synchroniseren: ' + error.message);
+    },
+  });
+
   const getConnectionByType = (type: SocialChannelType) => {
     return connections.find(c => c.channel_type === type && c.is_active);
   };
@@ -131,6 +154,7 @@ export function useSocialChannels() {
     createConnection,
     updateConnection,
     deleteConnection,
+    syncCatalog,
     getConnectionByType,
   };
 }
