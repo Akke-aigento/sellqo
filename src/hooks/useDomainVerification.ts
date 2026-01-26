@@ -20,11 +20,22 @@ export interface ProviderInfo {
   nameservers: string[];
 }
 
+interface CloudflareConnectResult {
+  success: boolean;
+  records_created?: number;
+  records_updated?: number;
+  domain?: string;
+  error?: string;
+  error_type?: string;
+  available_zones?: string[];
+}
+
 interface UseDomainVerificationReturn {
   isLoading: boolean;
   isSaving: boolean;
   isVerifying: boolean;
   isDetecting: boolean;
+  isConnecting: boolean;
   verificationStatus: DomainVerificationStatus | null;
   providerInfo: ProviderInfo | null;
   saveDomain: (domain: string) => Promise<boolean>;
@@ -32,7 +43,7 @@ interface UseDomainVerificationReturn {
   removeDomain: () => Promise<boolean>;
   generateVerificationToken: () => string;
   detectProvider: (domain: string) => Promise<ProviderInfo | null>;
-  initiateCloudflareOAuth: (domain: string) => Promise<string | null>;
+  connectWithApiToken: (domain: string, apiToken: string) => Promise<CloudflareConnectResult>;
 }
 
 export function useDomainVerification(): UseDomainVerificationReturn {
@@ -42,6 +53,7 @@ export function useDomainVerification(): UseDomainVerificationReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<DomainVerificationStatus | null>(null);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
 
@@ -89,45 +101,68 @@ export function useDomainVerification(): UseDomainVerificationReturn {
     }
   }, []);
 
-  const initiateCloudflareOAuth = useCallback(async (domain: string): Promise<string | null> => {
+  const connectWithApiToken = useCallback(async (domain: string, apiToken: string): Promise<CloudflareConnectResult> => {
     if (!currentTenant?.id) {
       toast({
         title: 'Fout',
         description: 'Geen tenant gevonden',
         variant: 'destructive',
       });
-      return null;
+      return { success: false, error: 'Geen tenant gevonden' };
     }
 
+    if (!apiToken.trim()) {
+      toast({
+        title: 'Fout',
+        description: 'Voer een API token in',
+        variant: 'destructive',
+      });
+      return { success: false, error: 'Voer een API token in' };
+    }
+
+    setIsConnecting(true);
     try {
-      const { data, error } = await supabase.functions.invoke<{ oauth_url?: string; configured: boolean; error?: string }>('cloudflare-oauth-init', {
+      const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').toLowerCase();
+      
+      const { data, error } = await supabase.functions.invoke<CloudflareConnectResult>('cloudflare-api-connect', {
         body: { 
           tenant_id: currentTenant.id,
-          domain: domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').toLowerCase(),
+          domain: cleanDomain,
+          api_token: apiToken,
         },
       });
 
       if (error) throw error;
-      if (!data?.configured) {
+      if (!data) throw new Error('Geen response ontvangen');
+
+      if (data.success) {
         toast({
-          title: 'Cloudflare niet geconfigureerd',
-          description: 'Automatische koppeling is momenteel niet beschikbaar. Gebruik de handmatige configuratie.',
+          title: 'Domein gekoppeld!',
+          description: `DNS records zijn automatisch geconfigureerd voor ${data.domain}`,
+        });
+        await refreshTenants();
+      } else {
+        toast({
+          title: 'Koppeling mislukt',
+          description: data.error || 'Er is een fout opgetreden',
           variant: 'destructive',
         });
-        return null;
       }
-      
-      return data.oauth_url || null;
+
+      return data;
     } catch (error) {
-      console.error('Error initiating Cloudflare OAuth:', error);
+      console.error('Error connecting with API token:', error);
+      const errorMessage = 'Er is een fout opgetreden bij het koppelen. Probeer het opnieuw.';
       toast({
         title: 'Fout bij koppelen',
-        description: 'Kon de automatische koppeling niet starten. Probeer handmatig te configureren.',
+        description: errorMessage,
         variant: 'destructive',
       });
-      return null;
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsConnecting(false);
     }
-  }, [currentTenant?.id, toast]);
+  }, [currentTenant?.id, toast, refreshTenants]);
 
   const saveDomain = useCallback(async (domain: string): Promise<boolean> => {
     if (!currentTenant?.id) {
@@ -283,6 +318,7 @@ export function useDomainVerification(): UseDomainVerificationReturn {
     isSaving,
     isVerifying,
     isDetecting,
+    isConnecting,
     verificationStatus,
     providerInfo,
     saveDomain,
@@ -290,6 +326,6 @@ export function useDomainVerification(): UseDomainVerificationReturn {
     removeDomain,
     generateVerificationToken,
     detectProvider,
-    initiateCloudflareOAuth,
+    connectWithApiToken,
   };
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Globe, Copy, Check, CheckCircle2, AlertCircle, RefreshCw, Trash2, ExternalLink, Info, Cloud, Settings, Loader2 } from 'lucide-react';
+import { Globe, Copy, Check, CheckCircle2, AlertCircle, RefreshCw, Trash2, ExternalLink, Info, Cloud, Settings, Loader2, Key, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,19 +35,23 @@ export function DomainSettings() {
     isSaving,
     isVerifying,
     isDetecting,
+    isConnecting,
     verificationStatus,
     providerInfo,
     saveDomain,
     verifyDomain,
     removeDomain,
     detectProvider,
-    initiateCloudflareOAuth,
+    connectWithApiToken,
   } = useDomainVerification();
 
   const [domainInput, setDomainInput] = useState('');
+  const [apiTokenInput, setApiTokenInput] = useState('');
+  const [showApiToken, setShowApiToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [setupStep, setSetupStep] = useState<SetupStep>('input');
   const [isManualOpen, setIsManualOpen] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const customDomain = currentTenant?.custom_domain;
   const domainVerified = currentTenant?.domain_verified;
@@ -81,24 +85,17 @@ export function DomainSettings() {
     }
   };
 
-  const handleAutoConnect = async () => {
-    if (!providerInfo || !domainInput.trim()) return;
+  const handleCloudflareConnect = async () => {
+    if (!providerInfo || !domainInput.trim() || !apiTokenInput.trim()) return;
 
-    // First save the domain
-    const saved = await saveDomain(domainInput);
-    if (!saved) return;
-
-    if (providerInfo.connect_method === 'cloudflare_oauth') {
-      const oauthUrl = await initiateCloudflareOAuth(domainInput);
-      if (oauthUrl) {
-        window.location.href = oauthUrl;
-      } else {
-        // Fallback to manual if OAuth not configured
-        setSetupStep('manual-setup');
-      }
+    setConnectError(null);
+    const result = await connectWithApiToken(domainInput, apiTokenInput);
+    
+    if (result.success) {
+      setApiTokenInput(''); // Clear token after success
+      setSetupStep('configured');
     } else {
-      // For other auto-connect methods or fallback
-      setSetupStep('manual-setup');
+      setConnectError(result.error || 'Er is een fout opgetreden');
     }
   };
 
@@ -202,37 +199,113 @@ export function DomainSettings() {
                 </Button>
               </div>
 
-              {/* Auto Connect Option */}
-              {providerInfo.supports_auto_connect && (
-                <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
+              {/* Auto Connect Option for Cloudflare */}
+              {providerInfo.supports_auto_connect && providerInfo.provider === 'cloudflare' && (
+                <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 space-y-4">
                   <div className="flex items-start gap-3">
                     {getProviderIcon(providerInfo.provider)}
                     <div className="flex-1 space-y-3">
                       <div>
                         <h4 className="font-medium flex items-center gap-2">
-                          Automatisch Koppelen
+                          <Key className="h-4 w-4" />
+                          Automatisch Koppelen via API Token
                           <Badge variant="secondary" className="text-xs">Aanbevolen</Badge>
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Je kunt automatisch koppelen via je {providerInfo.provider_name} account.
-                          Wij voegen alleen de benodigde DNS records toe.
+                          Maak een API token aan in Cloudflare en voer deze hieronder in. 
+                          Wij configureren automatisch de DNS records.
                         </p>
                       </div>
-                      <Button onClick={handleAutoConnect} disabled={isSaving}>
-                        {isSaving ? (
+                    </div>
+                  </div>
+
+                  {/* Step-by-step instructions */}
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    <h5 className="font-medium text-sm">Stap 1: Maak een API Token aan</h5>
+                    <ol className="text-sm text-muted-foreground space-y-1.5 ml-4 list-decimal">
+                      <li>Ga naar Cloudflare Dashboard → My Profile → API Tokens</li>
+                      <li>Klik op <strong>"Create Token"</strong></li>
+                      <li>Kies de template <strong>"Edit zone DNS"</strong></li>
+                      <li>Bij <strong>Zone Resources</strong>: selecteer je domein <code className="bg-muted px-1 rounded">{domainInput}</code></li>
+                      <li>Klik <strong>"Continue to summary"</strong> → <strong>"Create Token"</strong></li>
+                      <li>Kopieer het gegenereerde token</li>
+                    </ol>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                    >
+                      <a 
+                        href="https://dash.cloudflare.com/profile/api-tokens" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Cloudflare API Tokens
+                      </a>
+                    </Button>
+                  </div>
+
+                  {/* API Token Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="api-token">Stap 2: Voer je API Token in</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="api-token"
+                          type={showApiToken ? 'text' : 'password'}
+                          placeholder="Plak hier je Cloudflare API token"
+                          value={apiTokenInput}
+                          onChange={(e) => {
+                            setApiTokenInput(e.target.value);
+                            setConnectError(null);
+                          }}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                          onClick={() => setShowApiToken(!showApiToken)}
+                        >
+                          {showApiToken ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                      <Button 
+                        onClick={handleCloudflareConnect} 
+                        disabled={isConnecting || !apiTokenInput.trim()}
+                      >
+                        {isConnecting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Bezig...
+                            Koppelen...
                           </>
                         ) : (
                           <>
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Inloggen bij {providerInfo.provider_name}
+                            <Cloud className="h-4 w-4 mr-2" />
+                            Koppelen
                           </>
                         )}
                       </Button>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Je token wordt alleen eenmalig gebruikt en wordt niet opgeslagen.
+                    </p>
                   </div>
+
+                  {/* Error display */}
+                  {connectError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Koppeling mislukt</AlertTitle>
+                      <AlertDescription>{connectError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               )}
 
