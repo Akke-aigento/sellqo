@@ -110,6 +110,8 @@ export interface Product {
   odoo_optimized_title?: string | null;
   odoo_optimized_description?: string | null;
   odoo_last_synced_at?: string | null;
+  // Social channels
+  social_channels?: Record<string, boolean> | null;
 }
 
 // Partial category for product listing (only id, name, slug returned by query)

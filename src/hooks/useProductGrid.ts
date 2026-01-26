@@ -167,12 +167,12 @@ export function useProductGrid(products: Product[]) {
   }, []);
 
   // Get pending value for a cell (or original if no pending)
-  const getCellValue = useCallback((product: Product, field: keyof Product): unknown => {
+  const getCellValue = useCallback((product: Product, field: string): unknown => {
     const pending = pendingChanges.get(product.id)?.get(field);
     if (pending !== undefined) {
       return pending;
     }
-    return product[field];
+    return (product as unknown as Record<string, unknown>)[field];
   }, [pendingChanges]);
 
   // Check if cell has pending change
@@ -190,7 +190,7 @@ export function useProductGrid(products: Product[]) {
       
       fieldChanges.forEach((newValue, field) => {
         const colDef = GRID_COLUMNS.find(c => c.field === field);
-        const oldValue = product[field as keyof Product];
+        const oldValue = (product as unknown as Record<string, unknown>)[field];
         
         // Only add if value actually changed
         if (oldValue !== newValue) {
@@ -249,6 +249,35 @@ export function useProductGrid(products: Product[]) {
     });
   }, [selectedCells]);
 
+  // Apply bulk channel changes (merge with existing)
+  const applyBulkChannels = useCallback((field: string, channelChanges: Record<string, boolean>) => {
+    setPendingChanges(prev => {
+      const next = new Map(prev);
+      
+      selectedCells.forEach((fields, productId) => {
+        if (fields.has(field)) {
+          const product = products.find(p => p.id === productId);
+          if (!product) return;
+          
+          const currentChannels = (getCellValue(product, field) as Record<string, boolean>) || {};
+          const newChannels = { ...currentChannels };
+          
+          // Apply changes - only set values that are explicitly in channelChanges
+          Object.entries(channelChanges).forEach(([channelType, enabled]) => {
+            newChannels[channelType] = enabled;
+          });
+          
+          if (!next.has(productId)) {
+            next.set(productId, new Map());
+          }
+          next.get(productId)!.set(field, newChannels);
+        }
+      });
+      
+      return next;
+    });
+  }, [selectedCells, products, getCellValue]);
+
   // Apply bulk adjustment (for numeric fields)
   const applyBulkAdjustment = useCallback((
     field: string, 
@@ -263,7 +292,7 @@ export function useProductGrid(products: Product[]) {
           const product = products.find(p => p.id === productId);
           if (!product) return;
           
-          const currentValue = (getCellValue(product, field as keyof Product) as number) || 0;
+          const currentValue = (getCellValue(product, field) as number) || 0;
           let newValue: number;
           
           switch (type) {
@@ -309,7 +338,7 @@ export function useProductGrid(products: Product[]) {
       let hasRealChanges = false;
       
       fieldChanges.forEach((newValue, field) => {
-        const oldValue = product[field as keyof Product];
+        const oldValue = (product as unknown as Record<string, unknown>)[field];
         if (oldValue !== newValue) {
           data[field] = newValue;
           hasRealChanges = true;
@@ -393,6 +422,7 @@ export function useProductGrid(products: Product[]) {
     // Bulk operations
     applyBulkValue,
     applyBulkAdjustment,
+    applyBulkChannels,
     
     // Editing
     editingCell,
