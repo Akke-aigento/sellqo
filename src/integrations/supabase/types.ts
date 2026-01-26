@@ -590,6 +590,53 @@ export type Database = {
           },
         ]
       }
+      ai_knowledge_index: {
+        Row: {
+          content_hash: string
+          content_summary: string
+          created_at: string
+          id: string
+          keywords: string[] | null
+          source_id: string | null
+          source_type: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_hash: string
+          content_summary: string
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          source_id?: string | null
+          source_type: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_hash?: string
+          content_summary?: string
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          source_id?: string | null
+          source_type?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_index_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_learning_patterns: {
         Row: {
           confidence_score: number | null
