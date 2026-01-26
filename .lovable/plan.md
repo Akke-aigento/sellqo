@@ -1,255 +1,247 @@
 
-# Naadloze Integratie Payment & Transaction Model
+# Volledig Werkende Checkout & Payment Flow
 
-## Analyse Bevindingen
+## Analyse - Geïdentificeerde Gaps
 
-Na grondige review van de codebase heb ik de volgende **gaps** geïdentificeerd die moeten worden aangepakt om het nieuwe payment/transaction model naadloos te laten werken:
-
----
-
-## 1. Ontbrekende Integraties
-
-### Gap 1: Stripe Webhook mist `record_transaction`
-**Probleem**: De `stripe-connect-webhook` roept NIET `record_transaction` aan wanneer een Stripe betaling succesvol is. Dit betekent dat Stripe transacties niet geteld worden in de maandelijkse limieten.
-
-**Locatie**: `supabase/functions/stripe-connect-webhook/index.ts` lijn 90-174
-
-**Fix**: Na het updaten van de order status, `record_transaction` aanroepen met type `'stripe'`.
+Na grondige analyse van de codebase zijn er **4 kritieke issues** die moeten worden opgelost om de checkout flow 100% werkend te krijgen:
 
 ---
 
-### Gap 2: POS Transacties missen `record_transaction`
-**Probleem**: De `usePOS.ts` hook roept `record_transaction` niet aan wanneer POS transacties worden gemaakt. Dit betekent dat POS cash en card transacties niet geteld worden.
+## Gap 1: Cart Context Ontbreekt (KRITIEK)
 
-**Locatie**: `src/hooks/usePOS.ts` lijn 307-332
+**Probleem**: De winkelwagen gebruikt lokale state (`useState<CartItem[]>([])`) in plaats van een gedeelde context. Dit betekent:
+- Producten die op de productpagina worden toegevoegd, verschijnen NIET in de winkelwagen
+- De checkout pagina heeft altijd een lege cart
+- Cart items gaan verloren bij paginanavigatie
 
-**Fix**: Na succesvolle transactie creatie, via edge function `record_transaction` aanroepen met type `'pos_cash'` of `'pos_card'`.
+**Bestanden betrokken**:
+- `src/pages/storefront/ShopProductDetail.tsx:25-28` - alleen toast, geen echte cart update
+- `src/pages/storefront/ShopCart.tsx:27` - lokale state
+- `src/pages/storefront/ShopCheckout.tsx:68` - lokale state
 
----
-
-### Gap 3: Webshop Checkout Pagina ontbreekt
-**Probleem**: Er is geen dedicated checkout pagina (`ShopCheckout.tsx`) die de nieuwe `PaymentMethodSelector` en `BankTransferPayment` componenten gebruikt. De huidige `ShopCart.tsx` heeft alleen een "Afrekenen" knop zonder flow.
-
-**Locatie**: `src/pages/storefront/ShopCart.tsx` lijn 216-225
-
-**Fix**: Nieuwe `ShopCheckout.tsx` pagina maken die:
-1. `CheckoutForm` voor klantgegevens
-2. `PaymentMethodSelector` voor betaalmethode keuze
-3. Bij Stripe: redirect naar Stripe Checkout
-4. Bij Bank Transfer: order aanmaken en `BankTransferPayment` tonen
+**Oplossing**: Nieuwe `CartProvider` context met localStorage persistentie
 
 ---
 
-### Gap 4: Order Confirmation Page ontbreekt
-**Probleem**: Er is geen bevestigingspagina voor klanten na bestelling. Voor bank transfers moet deze de QR-code en betalingsinstructies tonen.
+## Gap 2: Stripe Success URL Mismatch (KRITIEK)
 
-**Locatie**: Ontbreekt in `src/pages/storefront/`
+**Probleem**: De Stripe redirect URLs komen niet overeen met de applicatie routes:
 
-**Fix**: Nieuwe `ShopOrderConfirmation.tsx` pagina maken.
+| Component | URL Pattern | Status |
+|-----------|-------------|--------|
+| Edge Function | `/shop/{tenant_id}/order-success?session_id=...` | FOUT - tenant_id i.p.v. tenantSlug |
+| ShopCheckout.tsx | `/shop/{tenantSlug}/order/{ORDER_ID}` | FOUT - placeholder niet vervangen |
+| App.tsx Route | `/shop/:tenantSlug/order/:orderId` | CORRECT |
 
----
+**Problemen**:
+1. Edge function gebruikt `tenant_id` (UUID) i.p.v. `tenantSlug` (human-readable)
+2. Edge function stuurt naar `/order-success` die niet bestaat
+3. `{ORDER_ID}` placeholder in ShopCheckout.tsx wordt niet vervangen
 
-### Gap 5: POS Bank Transfer mist `record_transaction`
-**Probleem**: De `handleBankTransferPayment` in `POSTerminal.tsx` roept geen `record_transaction` aan.
-
-**Locatie**: `src/pages/admin/POSTerminal.tsx` lijn 464-506
-
-**Fix**: Na succesvolle transactie, `record_transaction` aanroepen.
-
----
-
-### Gap 6: Cart Context ontbreekt
-**Probleem**: `ShopCart.tsx` gebruikt lokale state i.p.v. een gedeelde cart context, wat betekent dat de winkelwagen niet persistent is tussen pagina's.
-
-**Locatie**: `src/pages/storefront/ShopCart.tsx` lijn 27
-
-**Fix**: Cart context toevoegen (buiten scope van huidige taak, maar belangrijk).
+**Oplossing**: 
+- Edge function: success_url naar `/shop/{tenantSlug}/order/{orderId}`
+- ShopCheckout.tsx wordt niet gebruikt voor Stripe (edge function handelt dit af)
 
 ---
 
-## 2. Implementatie Aanpassingen
+## Gap 3: create-bank-transfer-order Request Body Mismatch
 
-### File 1: `supabase/functions/stripe-connect-webhook/index.ts`
-**Wijziging**: `record_transaction` aanroepen na succesvolle betaling
+**Probleem**: De `ShopCheckout.tsx` stuurt een ander body-formaat dan de edge function verwacht:
 
-```typescript
-// Na lijn 113 (Order updated to paid)
-// Record transaction for usage tracking
-try {
-  const { data: order } = await supabaseClient
-    .from("orders")
-    .select("tenant_id")
-    .eq("id", orderId)
-    .single();
-    
-  if (order) {
-    await supabaseClient.rpc('record_transaction', {
-      p_tenant_id: order.tenant_id,
-      p_transaction_type: 'stripe',
-      p_order_id: orderId,
-    });
-    logStep("Transaction recorded for usage tracking");
-  }
-} catch (txError) {
-  logStep("Warning: Failed to record transaction", { error: String(txError) });
+**ShopCheckout.tsx stuurt**:
+```javascript
+{
+  tenant_id, 
+  items: [{ product_id, quantity, price, name }],  // price i.p.v. unit_price
+  customer: customerData,  // genest object
+  shipping_cost
 }
 ```
 
+**Edge function verwacht**:
+```javascript
+{
+  tenant_id,
+  items: [{ product_id, product_name, quantity, unit_price }],
+  customer_email,  // plat veld
+  customer_name,   // plat veld
+  shipping_address,
+  billing_address,
+  shipping_cost
+}
+```
+
+**Oplossing**: Request body in ShopCheckout.tsx aanpassen naar edge function formaat
+
 ---
 
-### File 2: `src/hooks/usePOS.ts`
-**Wijziging**: `record_transaction` aanroepen na POS transactie
+## Gap 4: Realtime Order Status Updates
 
+**Probleem**: Klanten die per bankoverschrijving betalen zien geen update wanneer hun betaling is verwerkt.
+
+**Huidige situatie**: ShopOrderConfirmation laadt order éénmalig bij mount
+
+**Oplossing**: Supabase Realtime subscription toevoegen voor order status changes
+
+---
+
+## Implementatie Plan
+
+### Stap 1: Cart Context & Provider (Nieuw bestand)
+
+Nieuw bestand `src/context/CartContext.tsx`:
+- CartProvider component met React Context
+- localStorage persistentie voor cart items
+- Tenant-specifieke cart (zodat items niet mengen tussen shops)
+- Functies: addToCart, updateQuantity, removeItem, clearCart
+- Automatische totaalberekening
+
+### Stap 2: App.tsx Wrapper
+
+CartProvider toevoegen rond de storefront routes:
+```
+<CartProvider>
+  <Route path="/shop/:tenantSlug" ... />
+  ...
+</CartProvider>
+```
+
+### Stap 3: ShopProductDetail.tsx Integratie
+
+`handleAddToCart` aanpassen om cart context te gebruiken:
+- Import useCart hook
+- Aanroep van addToCart met product data
+- Optioneel: mini-cart popup of badge update
+
+### Stap 4: ShopCart.tsx Integratie
+
+Lokale state vervangen door cart context:
+- Import useCart hook
+- Gebruik cartItems, updateQuantity, removeItem van context
+- Behoud UI logica
+
+### Stap 5: ShopCheckout.tsx Fixes
+
+1. Cart context integratie
+2. Bank transfer request body fix:
+```javascript
+// Correct formaat voor edge function
+{
+  tenant_id: tenant.id,
+  items: cartItems.map(item => ({
+    product_id: item.productId,
+    product_name: item.name,
+    quantity: item.quantity,
+    unit_price: item.price,
+  })),
+  customer_email: customerData.email,
+  customer_name: `${customerData.firstName} ${customerData.lastName}`,
+  customer_phone: customerData.phone,
+  shipping_address: {
+    street: `${customerData.street} ${customerData.houseNumber}`,
+    city: customerData.city,
+    postal_code: customerData.postalCode,
+    country: customerData.country,
+  },
+  shipping_cost: shipping,
+}
+```
+
+### Stap 6: create-checkout-session Edge Function Fix
+
+Success URL aanpassen:
 ```typescript
-// Na succesvolle insert, bepaal payment method en roep RPC aan
-// Dit vereist een edge function of directe RPC call
-const primaryMethod = payments[0]?.method;
-const transactionType = primaryMethod === 'cash' ? 'pos_cash' : 
-                        primaryMethod === 'card' ? 'pos_card' : 
-                        primaryMethod === 'manual' ? 'bank_transfer' : 'pos_cash';
+// Huidige (fout):
+success_url: `${origin}/shop/${tenant_id}/order-success?session_id={CHECKOUT_SESSION_ID}`
 
-await supabase.rpc('record_transaction', {
-  p_tenant_id: currentTenant.id,
-  p_transaction_type: transactionType,
-  p_order_id: null, // POS transacties hebben geen order_id
-});
+// Nieuwe (correct):
+success_url: `${origin}/shop/${tenantSlug}/order/${order.id}?session_id={CHECKOUT_SESSION_ID}`
 ```
 
----
+Dit vereist:
+- tenantSlug ophalen of meesturen vanuit frontend
+- Of: tenant.slug ophalen uit database
 
-### File 3: Nieuwe `src/pages/storefront/ShopCheckout.tsx`
-**Nieuw bestand**: Complete checkout pagina met payment method selection
+### Stap 7: ShopOrderConfirmation.tsx Realtime Updates
 
-**Functionaliteit**:
-- Laadt tenant payment settings (`payment_methods_enabled`)
-- Toont `CheckoutForm` voor klantgegevens
-- Toont `PaymentMethodSelector` (alleen als meerdere methodes enabled)
-- Bij Stripe keuze: roept `create-checkout-session` aan
-- Bij Bank Transfer keuze: roept `create-bank-transfer-order` aan
-- Na Bank Transfer order: redirect naar confirmation met QR-code
-
----
-
-### File 4: Nieuwe `src/pages/storefront/ShopOrderConfirmation.tsx`
-**Nieuw bestand**: Order bevestigingspagina
-
-**Functionaliteit**:
-- Voor Stripe: bedank-bericht, order samenvatting
-- Voor Bank Transfer: `BankTransferPayment` component met QR-code
-- Order tracking info
-
----
-
-### File 5: Update `src/App.tsx` Routes
-**Wijziging**: Routes toevoegen voor checkout en confirmation
-
+Supabase realtime subscription toevoegen:
 ```typescript
-<Route path="/shop/:tenantSlug/checkout" element={<ShopCheckout />} />
-<Route path="/shop/:tenantSlug/order/:orderId" element={<ShopOrderConfirmation />} />
+useEffect(() => {
+  if (!orderId) return;
+  
+  const channel = supabase
+    .channel(`order-${orderId}`)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'orders',
+      filter: `id=eq.${orderId}`
+    }, (payload) => {
+      setOrder(prev => ({ ...prev, ...payload.new }));
+    })
+    .subscribe();
+    
+  return () => { supabase.removeChannel(channel); };
+}, [orderId]);
 ```
 
 ---
 
-### File 6: Update `src/pages/storefront/ShopCart.tsx`
-**Wijziging**: "Afrekenen" knop linken naar checkout pagina
-
-```typescript
-<Button asChild>
-  <Link to={`/shop/${tenantSlug}/checkout`}>
-    Afrekenen
-    <ArrowRight className="h-4 w-4 ml-2" />
-  </Link>
-</Button>
-```
-
----
-
-## 3. Technische Details
-
-### Transaction Recording Flow
-
-```text
-                    ┌─────────────────────────────────────────────────────────────┐
-                    │                    Transaction Sources                       │
-                    └─────────────────────────────────────────────────────────────┘
-                                                │
-          ┌─────────────────┬───────────────────┼───────────────────┬─────────────────┐
-          ▼                 ▼                   ▼                   ▼                 ▼
-    ┌───────────┐     ┌───────────┐       ┌───────────┐       ┌───────────┐     ┌───────────┐
-    │  Webshop  │     │  Webshop  │       │POS Cash   │       │POS Card   │     │POS Bank   │
-    │  Stripe   │     │Bank Trans │       │           │       │           │     │Transfer   │
-    └─────┬─────┘     └─────┬─────┘       └─────┬─────┘       └─────┬─────┘     └─────┬─────┘
-          │                 │                   │                   │                 │
-          ▼                 ▼                   ▼                   ▼                 ▼
-    ┌───────────┐     ┌───────────┐       ┌───────────┐       ┌───────────┐     ┌───────────┐
-    │stripe-    │     │create-    │       │usePOS.ts  │       │usePOS.ts  │     │usePOS.ts  │
-    │connect-   │     │bank-      │       │createTxn  │       │createTxn  │     │createTxn  │
-    │webhook    │     │transfer-  │       │           │       │           │     │           │
-    │           │     │order      │       │           │       │           │     │           │
-    └─────┬─────┘     └─────┬─────┘       └─────┬─────┘       └─────┬─────┘     └─────┬─────┘
-          │                 │                   │                   │                 │
-          │                 │                   │                   │                 │
-          └────────────────────────────────────────────────────────────────────────────┘
-                                                │
-                                                ▼
-                               ┌────────────────────────────────┐
-                               │ record_transaction(            │
-                               │   p_tenant_id,                 │
-                               │   p_transaction_type,          │
-                               │   p_order_id                   │
-                               │ )                              │
-                               └────────────────┬───────────────┘
-                                                │
-                                                ▼
-                               ┌────────────────────────────────┐
-                               │ tenant_transaction_usage       │
-                               │ - stripe_transactions          │
-                               │ - bank_transfer_transactions   │
-                               │ - pos_cash_transactions        │
-                               │ - pos_card_transactions        │
-                               │ - overage_fee_total            │
-                               └────────────────────────────────┘
-```
-
----
-
-## 4. Bestanden Overzicht
+## Bestanden Overzicht
 
 | Bestand | Actie | Beschrijving |
 |---------|-------|--------------|
-| `supabase/functions/stripe-connect-webhook/index.ts` | Wijzigen | `record_transaction` toevoegen voor Stripe betalingen |
-| `src/hooks/usePOS.ts` | Wijzigen | `record_transaction` toevoegen na POS transacties |
-| `src/pages/storefront/ShopCheckout.tsx` | Nieuw | Checkout pagina met payment method selector |
-| `src/pages/storefront/ShopOrderConfirmation.tsx` | Nieuw | Order bevestiging met QR-code voor bank transfer |
-| `src/pages/storefront/ShopCart.tsx` | Wijzigen | Link naar checkout pagina |
-| `src/App.tsx` | Wijzigen | Routes toevoegen |
-| `src/hooks/useCart.tsx` | Nieuw (optioneel) | Cart context voor persistente winkelwagen |
+| `src/context/CartContext.tsx` | NIEUW | Cart provider met localStorage |
+| `src/hooks/useCart.ts` | NIEUW | Hook voor cart operaties |
+| `src/App.tsx` | WIJZIG | CartProvider wrapper |
+| `src/pages/storefront/ShopProductDetail.tsx` | WIJZIG | Cart integratie |
+| `src/pages/storefront/ShopCart.tsx` | WIJZIG | Cart context gebruik |
+| `src/pages/storefront/ShopCheckout.tsx` | WIJZIG | Cart + correct request format |
+| `src/pages/storefront/ShopOrderConfirmation.tsx` | WIJZIG | Realtime updates |
+| `supabase/functions/create-checkout-session/index.ts` | WIJZIG | Correcte success URL |
 
 ---
 
-## 5. Prioriteit & Volgorde
+## Cart Context Technisch Ontwerp
 
-1. **Kritiek**: `stripe-connect-webhook` - Stripe transacties moeten geteld worden
-2. **Kritiek**: `usePOS.ts` - POS transacties moeten geteld worden  
-3. **Hoog**: `ShopCheckout.tsx` - Klanten moeten kunnen kiezen
-4. **Hoog**: `ShopOrderConfirmation.tsx` - QR-code moet getoond worden
-5. **Medium**: Routes & Cart link updates
-6. **Later**: Cart context voor betere UX
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            CartProvider                                      │
+│  ┌───────────────┐   ┌───────────────┐   ┌───────────────────────────────┐  │
+│  │ localStorage  │◄──│   CartState   │──►│         Functies              │  │
+│  │ "cart_{slug}" │   │ - items[]     │   │ - addToCart(product, qty)     │  │
+│  └───────────────┘   │ - tenantSlug  │   │ - updateQuantity(id, qty)     │  │
+│                      │ - totals      │   │ - removeItem(id)              │  │
+│                      └───────────────┘   │ - clearCart()                 │  │
+│                                          │ - getCartCount()              │  │
+│                                          └───────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+            ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+            │ShopProduct  │ │  ShopCart   │ │ShopCheckout │
+            │Detail.tsx   │ │  .tsx       │ │  .tsx       │
+            │             │ │             │ │             │
+            │addToCart()  │ │ items       │ │ items       │
+            └─────────────┘ │ update/     │ │ payment     │
+                            │ remove      │ │ processing  │
+                            └─────────────┘ └─────────────┘
+```
 
 ---
 
-## 6. Samenvatting
+## Prioriteit
 
-Het nieuwe payment/transaction model is database-technisch gereed, maar de **integratie** in de flows ontbreekt nog:
+1. **P0 - Kritiek**: Cart Context (zonder dit werkt checkout niet)
+2. **P0 - Kritiek**: Edge function success URL fix
+3. **P1 - Hoog**: Request body format fix
+4. **P2 - Medium**: Realtime order updates
 
-- Stripe webhook telt geen transacties
-- POS telt geen transacties
-- Webshop checkout flow bestaat niet
-- Bank transfer confirmation pagina bestaat niet
-
-Na deze aanpassingen werkt het volledige systeem:
-1. Tenant kiest payment methods in admin
-2. Klant ziet keuze in checkout
-3. Elke transactie wordt geteld
-4. Overage fees worden berekend
-5. Dashboard toont usage stats
+Na deze implementatie is de volledige checkout flow functioneel:
+- Klant voegt producten toe aan cart
+- Cart persisteert tussen pagina's
+- Checkout toont werkelijke cart items
+- Stripe redirect werkt correct
+- Bank transfer order wordt correct aangemaakt
+- Order confirmation toont realtime status updates
