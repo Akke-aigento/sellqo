@@ -19,6 +19,7 @@ import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog'
 import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
 import { TrackingInfoCard } from '@/components/admin/TrackingInfoCard';
 import { ServicePointCard } from '@/components/admin/ServicePointCard';
+import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import type { OrderStatus, PaymentStatus } from '@/types/order';
 import type { ServicePointData } from '@/types/servicePoint';
 import { useState } from 'react';
@@ -82,13 +83,19 @@ export default function OrderDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-semibold tracking-tight">{order.order_number}</h1>
+              <OrderMarketplaceBadge source={order.marketplace_source} />
               <OrderStatusBadge status={order.status} />
               <PaymentStatusBadge status={order.payment_status} />
             </div>
             <p className="text-muted-foreground">
               {format(new Date(order.created_at), "d MMMM yyyy 'om' HH:mm", { locale: nl })}
+              {order.marketplace_order_id && (
+                <span className="ml-2 text-xs">
+                  • Marketplace ID: <span className="font-mono">{order.marketplace_order_id}</span>
+                </span>
+              )}
             </p>
           </div>
         </div>
