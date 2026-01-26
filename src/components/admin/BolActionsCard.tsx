@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck } from 'lucide-react';
+import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck, Printer, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useLabelPrinter } from '@/hooks/useLabelPrinter';
+import { FetchExternalLabelDialog } from '@/components/admin/FetchExternalLabelDialog';
 import type { Order } from '@/types/order';
 
 interface BolActionsCardProps {
@@ -27,6 +29,16 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
   const queryClient = useQueryClient();
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
+  const [showFetchDialog, setShowFetchDialog] = useState(false);
+
+  // Label printer hook
+  const { 
+    printLabel, 
+    printViaBrowser, 
+    isConnected: isPrinterConnected, 
+    isSupported: isPrinterSupported,
+    isPrinting 
+  } = useLabelPrinter();
 
   // Only show for Bol.com orders
   if (order.marketplace_source !== 'bol_com') {
@@ -161,7 +173,7 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
 
         {/* VVB Label Section */}
         {hasVvbLabel && latestLabel && (
-          <div className="border rounded-lg p-3 space-y-2">
+          <div className="border rounded-lg p-3 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">VVB Label</span>
               <Badge variant="outline">{latestLabel.carrier}</Badge>
@@ -172,15 +184,39 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
               </div>
             )}
             {latestLabel.label_url && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => window.open(latestLabel.label_url!, '_blank')}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download Label
-              </Button>
+              <div className="flex gap-2">
+                {/* Direct Print Button - show if printer connected or as primary action */}
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                  onClick={async () => {
+                    if (isPrinterConnected) {
+                      await printLabel(latestLabel.label_url!);
+                    } else {
+                      printViaBrowser(latestLabel.label_url!);
+                    }
+                  }}
+                  disabled={isPrinting}
+                >
+                  {isPrinting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Printer className="h-4 w-4 mr-2" />
+                  )}
+                  {isPrinterConnected ? 'Print' : 'Print Label'}
+                </Button>
+                
+                {/* Download/Open Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(latestLabel.label_url!, '_blank')}
+                  title="Open in nieuw tabblad"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -223,6 +259,19 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
             </Button>
           )}
 
+          {/* Fetch external label option - only if no label yet */}
+          {!hasVvbLabel && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => setShowFetchDialog(true)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Bestaand label ophalen
+            </Button>
+          )}
+
           {/* Info message if no tracking yet */}
           {!isShipped && !order.tracking_number && !hasVvbLabel && (
             <Alert>
@@ -234,6 +283,18 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
           )}
         </div>
       </CardContent>
+
+      {/* Fetch External Label Dialog */}
+      <FetchExternalLabelDialog
+        open={showFetchDialog}
+        onOpenChange={setShowFetchDialog}
+        orderId={order.id}
+        orderNumber={order.order_number}
+        onLabelFetched={() => {
+          queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
+          queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+        }}
+      />
     </Card>
   );
 }
