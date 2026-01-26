@@ -1,193 +1,144 @@
 
 
-# Verkoopkanaal Tonen op Orders & Facturen
+# Fase 3: Verkoopkanaal op PDF Factuur
 
 ## Doel
-De boekhouder moet in één oogopslag kunnen zien via welk kanaal (SellQo Webshop, Bol.com, Amazon, etc.) een bestelling of factuur is binnengekomen.
+Subtiele tekst toevoegen aan de gegenereerde PDF-factuur zodat de boekhouder ook op de afgedrukte/gearchiveerde factuur kan zien via welk kanaal de bestelling is binnengekomen.
 
 ---
 
-## Wat Er Al Is
+## Huidige Situatie
 
-- `OrderMarketplaceBadge.tsx` component bestaat al met iconen voor Bol.com, Amazon, en fallback
-- `marketplace_source` veld is aanwezig in de orders tabel
-- Filter op bron werkt al in de bestellijst
-
-## Wat Ontbreekt
-
-1. Badge wordt nergens weergegeven in de UI
-2. Facturen tonen geen kanaalinformatie
-3. SellQo Webshop orders tonen ook geen badge
+De PDF-generator in `supabase/functions/generate-invoice/index.ts`:
+- Haalt de complete order op inclusief `marketplace_source` (regel 1054-1058: `select("*")`)
+- **Toont de bron echter NIET** op de PDF
 
 ---
 
-## Implementatieplan
+## Implementatie
 
-### Fase 1: Orders - Kanaal Zichtbaar Maken
+### Aanpassing 1: Helper functie voor bronlabel
 
-**1.1 Bestellijst (`Orders.tsx`)**
-- Voeg nieuwe kolom "Bron" toe aan tabel
-- Toon `OrderMarketplaceBadge` in elke rij
-- Ook SellQo Webshop tonen (niet verbergen)
+Voeg een helper functie toe om het marketplace_source om te zetten naar een leesbaar label:
 
-```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Order      │ Klant         │ Bron            │ Status    │ Bedrag │ Datum │
-├────────────────────────────────────────────────────────────────────────────┤
-│ #0042      │ Jan Jansen    │ 🛒 Bol.com      │ Verzonden │ €89.99 │ 25 jan│
-│ #0041      │ Piet Pieterse │ 🏪 SellQo       │ Betaald   │ €45.00 │ 25 jan│
-│ #0040      │ Marie de Vries│ 📦 Amazon       │ Pending   │ €129.00│ 24 jan│
-└────────────────────────────────────────────────────────────────────────────┘
+```typescript
+function getMarketplaceLabel(source: string | null): string | null {
+  const labels: Record<string, string> = {
+    sellqo_webshop: 'SellQo Webshop',
+    bol_com: 'Bol.com',
+    amazon: 'Amazon',
+    woocommerce: 'WooCommerce',
+    shopify: 'Shopify',
+  };
+  return source ? labels[source] || source : null;
+}
 ```
 
-**1.2 Order Detail (`OrderDetail.tsx`)**
-- Badge toevoegen naast ordernummer in header
-- Marketplace order ID tonen indien beschikbaar (voor referentie)
+### Aanpassing 2: Meta-sectie uitbreiden (regels 856-868)
+
+Voeg een extra regel toe onder de OGM-referentie om de bron te tonen:
+
+```text
+Factuurdatum: 26-01-2026          Ordernummer: #0042
+Vervaldatum:  09-02-2026          OGM: +++123/4567/89012+++
+                                  Bron: Bol.com
+```
+
+### Aanpassing 3: Optioneel - Footer tekst
+
+Of als subtielere optie, voeg toe in de footer:
+
+```text
+Via: Bol.com | Deze factuur bevat embedded Factur-X XML...
+```
+
+---
+
+## Codewijzigingen
+
+### Bestand: `supabase/functions/generate-invoice/index.ts`
+
+**1. Helper functie toevoegen (rond regel 228)**
+
+```typescript
+function getMarketplaceLabel(source: string | null): string | null {
+  const labels: Record<string, string> = {
+    sellqo_webshop: 'SellQo Webshop',
+    bol_com: 'Bol.com',
+    amazon: 'Amazon',
+    woocommerce: 'WooCommerce',
+    shopify: 'Shopify',
+  };
+  return source ? labels[source] || source : null;
+}
+```
+
+**2. Meta-sectie uitbreiden (rond regel 868)**
+
+Na de OGM-regel, extra regel toevoegen:
+
+```typescript
+// Marketplace source badge
+const marketplaceLabel = getMarketplaceLabel(order.marketplace_source);
+if (marketplaceLabel) {
+  yPos -= 16;
+  page.drawText('Via:', { x: margin, y: yPos, size: 10, font: helveticaFont, color: grayColor });
+  page.drawText(marketplaceLabel, { x: margin + 30, y: yPos, size: 10, font: helveticaFont, color: primaryColor });
+}
+```
+
+---
+
+## Visueel Resultaat
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│ ← #0042  [🛒 Bol.com]  [Verzonden]  [Betaald]          │
-│ 25 januari 2026 om 14:32                                │
-│ Marketplace ID: 1234567890                              │
+│ BEDRIJFSNAAM                             FACTUUR        │
+│                                          INV-2026-042   │
+│                                          [FACTUR-X]     │
+│ ...                                                     │
+├─────────────────────────────────────────────────────────┤
+│ Factuurdatum: 26-01-2026    Ordernummer: #0042          │
+│ Vervaldatum:  09-02-2026    OGM: +++123/4567/89012+++   │
+│ Via: Bol.com                                            │  ← NIEUW
+├─────────────────────────────────────────────────────────┤
+│ Omschrijving      Aantal   BTW%    Prijs    Totaal      │
+│ ...                                                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**1.3 OrderMarketplaceBadge Uitbreiden**
-- Voeg SellQo Webshop badge toe (nu wordt deze verborgen)
-- Voeg WooCommerce, Shopify toe voor toekomstige integraties
-
 ---
 
-### Fase 2: Facturen - Kanaal Overnemen van Order
+## Extra Overwegingen
 
-**2.1 Query Uitbreiden (`useInvoices.ts`)**
-- Haal `marketplace_source` op via de orders relatie
-- Voeg toe aan select: `orders (order_number, customer_name, marketplace_source)`
+### Optie A: Alleen bij externe marketplaces
+- Verberg "Via: SellQo Webshop" voor eigen webshop orders
+- Toon alleen voor Bol.com, Amazon, etc.
 
-**2.2 Facturenlijst (`Invoices.tsx`)**
-- Nieuwe kolom "Bron" toevoegen
-- Hergebruik `OrderMarketplaceBadge` component (werkt ook voor facturen)
-- Filter optie toevoegen voor kanaal
+### Optie B: Altijd tonen
+- Ook SellQo Webshop tonen voor complete administratie
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Factuur    │ Klant         │ Order   │ Bron        │ Bedrag  │ Status      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ INV-2026-42│ Jan Jansen    │ #0042   │ 🛒 Bol.com  │ €89.99  │ ✓ Betaald   │
-│ INV-2026-41│ Piet Pieterse │ #0041   │ 🏪 SellQo   │ €45.00  │ ✓ Betaald   │
-│ INV-2026-40│ Marie de Vries│ -       │ 📝 Handmatig│ €500.00 │ → Verstuurd │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**2.3 Handmatige Facturen**
-- Voor facturen zonder order: toon "Handmatig" badge
-- Duidelijk onderscheid met marketplace orders
-
----
-
-### Fase 3: PDF Factuur Aanpassen (Optioneel)
-
-Als de boekhouder dit ook op de PDF wil:
-- Voeg bronvermelding toe aan factuurgenerator
-- Subtiele tekst onderaan: "Via: Bol.com" of "Via: SellQo Webshop"
-
----
-
-## Bestandswijzigingen
-
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| `OrderMarketplaceBadge.tsx` | Wijzigen | SellQo badge toevoegen, nieuwe kanalen |
-| `Orders.tsx` | Wijzigen | Bron kolom + badge in rijen |
-| `OrderDetail.tsx` | Wijzigen | Badge in header + marketplace ID |
-| `Invoices.tsx` | Wijzigen | Bron kolom + badge + filter |
-| `useInvoices.ts` | Wijzigen | `marketplace_source` ophalen via order |
-
----
-
-## Verwacht Resultaat
-
-```text
-Boekhouder opent factuuroverzicht:
-
-1. Ziet direct welke facturen van Bol.com, Amazon of webshop komen
-2. Kan filteren op "Alle bronnen" → "Bol.com" → alleen die facturen
-3. Opent orderdetail → ziet badge + externe order ID voor matching
-4. Export naar boekhoudsoftware → broninfo beschikbaar voor verwerking
-```
-
----
-
-## Technische Details
-
-### OrderMarketplaceBadge Uitbreiding
-
-```typescript
-const config: Record<string, { icon: typeof ShoppingBag; label: string; className: string }> = {
-  sellqo_webshop: {
-    icon: Store,
-    label: 'SellQo',
-    className: 'bg-purple-50 text-purple-700 border-purple-200',
-  },
-  bol_com: {
-    icon: ShoppingBag,
-    label: 'Bol.com',
-    className: 'bg-blue-50 text-blue-700 border-blue-200',
-  },
-  amazon: {
-    icon: Package,
-    label: 'Amazon',
-    className: 'bg-orange-50 text-orange-700 border-orange-200',
-  },
-  woocommerce: {
-    icon: ShoppingCart,
-    label: 'WooCommerce',
-    className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  },
-  shopify: {
-    icon: ShoppingBag,
-    label: 'Shopify',
-    className: 'bg-green-50 text-green-700 border-green-200',
-  },
-  manual: {
-    icon: FileEdit,
-    label: 'Handmatig',
-    className: 'bg-gray-50 text-gray-700 border-gray-200',
-  },
-};
-```
-
-### Factuur Query Aanpassing
-
-```typescript
-// useInvoices.ts - Uitgebreide select
-.select(`
-  *,
-  orders (
-    order_number,
-    customer_name,
-    marketplace_source
-  ),
-  customers (...)
-`)
-```
+**Aanbeveling**: Optie A - alleen externe bronnen vermelden, want dat is waar de boekhouder het meest baat bij heeft.
 
 ---
 
 ## Tijdsinschatting
 
-| Fase | Geschatte tijd |
-|------|----------------|
-| Fase 1: Orders UI | ~10 minuten |
-| Fase 2: Facturen UI + Query | ~10 minuten |
-| Fase 3: PDF (optioneel) | ~15 minuten |
+| Onderdeel | Tijd |
+|-----------|------|
+| Helper functie + meta-sectie | ~5 minuten |
+| Testen | ~2 minuten |
+| **Totaal** | **~7 minuten** |
 
 ---
 
-## Voordelen voor de Boekhouder
+## Samenvatting
 
-1. **Directe herkenning** - Kleurcodes per kanaal
-2. **Filterbaar** - Snel alleen Bol.com of Amazon facturen bekijken
-3. **Traceerbaar** - Marketplace order ID voor externe matching
-4. **Compleet** - Zowel op bestellingen als facturen zichtbaar
+Na deze aanpassing:
+1. ✅ **UI Bestellijst** - Badge zichtbaar
+2. ✅ **UI Order Detail** - Badge + Marketplace ID
+3. ✅ **UI Facturen** - Badge + filter
+4. ✅ **PDF Factuur** - Subtiele "Via: [kanaal]" tekst
+
+De boekhouder heeft dan volledige traceerbaarheid van elk verkoopkanaal door de hele applicatie heen.
 
