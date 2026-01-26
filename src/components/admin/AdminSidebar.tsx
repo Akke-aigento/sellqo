@@ -8,6 +8,7 @@ import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
 import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { InboxBadge } from './sidebar/InboxBadge';
 import {
   Sidebar,
   SidebarContent,
@@ -136,9 +137,12 @@ export function AdminSidebar() {
     return (
       <SidebarMenuItem key={item.id}>
         <SidebarMenuButton asChild isActive={isActive(item.url)}>
-          <NavLink to={item.url}>
-            {item.icon && <item.icon className="h-4 w-4" />}
-            <span>{item.title}</span>
+          <NavLink to={item.url} className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              {item.icon && <item.icon className="h-4 w-4" />}
+              <span>{item.title}</span>
+            </span>
+            {item.badge && item.id === 'inbox' && <InboxBadge />}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
