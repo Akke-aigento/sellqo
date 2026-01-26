@@ -277,7 +277,7 @@ serve(async (req) => {
       quantity: item.quantity,
       unit_price: item.unit_price,
       vat_rate: item.vat_rate || vatRate,
-      line_total: item.unit_price * item.quantity,
+      total_price: item.unit_price * item.quantity,
     }));
 
     const { error: itemsError } = await supabaseClient
