@@ -9,6 +9,7 @@ const corsHeaders = {
 interface LearnRequest {
   tenantId: string;
   feedbackId: string;
+  userId?: string;
   originalContent: string;
   editedContent: string;
   contentType: string;
@@ -26,7 +27,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { tenantId, feedbackId, originalContent, editedContent, contentType }: LearnRequest = await req.json();
+    const { tenantId, feedbackId, userId, originalContent, editedContent, contentType }: LearnRequest = await req.json();
 
     if (!tenantId || !originalContent || !editedContent) {
       return new Response(
@@ -135,12 +136,13 @@ Analyze the changes and extract learning patterns.`
       };
     }
 
-    // Update learning patterns for significant changes
+    // Update tenant-level learning patterns for significant changes
     const significantPatterns = Object.entries(patterns).filter(
       ([key, value]) => value !== 'unchanged' && value !== 'same' && key !== 'key_changes'
     );
 
     for (const [patternType, value] of significantPatterns) {
+      // Tenant-level learning
       const { error } = await supabase.rpc('update_ai_learning_pattern', {
         p_tenant_id: tenantId,
         p_pattern_type: `${contentType}_${patternType}`,
@@ -148,18 +150,34 @@ Analyze the changes and extract learning patterns.`
       });
 
       if (error) {
-        console.error(`Error updating pattern ${patternType}:`, error);
+        console.error(`Error updating tenant pattern ${patternType}:`, error);
+      }
+
+      // User-level learning (if userId is provided)
+      if (userId) {
+        const { error: userError } = await supabase.rpc('update_user_learning_pattern', {
+          p_user_id: userId,
+          p_tenant_id: tenantId,
+          p_pattern_type: patternType,
+          p_learned_value: { preference: value, last_example: editedContent.substring(0, 200) },
+          p_sample_count: 1
+        });
+
+        if (userError) {
+          console.error(`Error updating user pattern ${patternType}:`, userError);
+        }
       }
     }
 
     // Log the learning event
-    console.log(`Learning from feedback ${feedbackId}:`, patterns);
+    console.log(`Learning from feedback ${feedbackId}:`, patterns, userId ? `(user: ${userId})` : '(tenant only)');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         patterns,
-        patternsUpdated: significantPatterns.length 
+        patternsUpdated: significantPatterns.length,
+        userLearning: !!userId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
