@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     try {
       // Determine which sync function to call based on platform and data type
-      const platformType = connection.platform_type as string
+      const platformType = connection.marketplace_type as string
       const projectUrl = Deno.env.get('SUPABASE_URL')!
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
