@@ -1,12 +1,10 @@
 
-# Hybride Domain Koppeling - Automatisch + Handmatige Fallback
 
-## Concept
+# Cloudflare API Token Integratie
 
-Na het invoeren van een domein:
-1. **Detecteer automatisch** welke provider het domein beheert
-2. **Bied automatische koppeling** aan als de provider ondersteund wordt
-3. **Fallback naar handmatig** als de provider niet ondersteund wordt of als de gebruiker dit verkiest
+## Overzicht
+
+Klanten maken zelf een Cloudflare API Token aan met de juiste permissies en voeren deze in bij Sellqo. Sellqo gebruikt dit token om automatisch de DNS records te configureren.
 
 ---
 
@@ -14,204 +12,149 @@ Na het invoeren van een domein:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  Stap 1: Domein invoeren                                        │
-│  ┌───────────────────────────────────────────────┐              │
-│  │ mijnwebshop.be                                │ [Volgende]   │
-│  └───────────────────────────────────────────────┘              │
+│  Provider gedetecteerd: Cloudflare                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ☁️ Automatisch Koppelen via API Token                          │
+│                                                                  │
+│  Stap 1: Maak een API Token aan in Cloudflare                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │  1. Ga naar Cloudflare Dashboard → My Profile → API Tokens │ │
+│  │  2. Klik op "Create Token"                                  │ │
+│  │  3. Kies template "Edit zone DNS"                           │ │
+│  │  4. Bij Zone Resources: selecteer je domein                 │ │
+│  │  5. Klik "Continue to summary" → "Create Token"             │ │
+│  │  6. Kopieer het token                                       │ │
+│  │                                                              │ │
+│  │  [🔗 Open Cloudflare API Tokens]                            │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  Stap 2: Voer je API Token in                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │  API Token: [••••••••••••••••••••••••••    ]               │ │
+│  │                                                              │ │
+│  │  [🔗 Koppelen]                                              │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  ─────────────────── OF ───────────────────                     │
+│                                                                  │
+│  [⚙️ Handmatig DNS configureren]                                │
+│                                                                  │
 └─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │ Detecteer       │
-                    │ Provider        │
-                    │ (Edge Function) │
-                    └─────────────────┘
-                              │
-              ┌───────────────┴───────────────┐
-              ▼                               ▼
-    ┌─────────────────────┐         ┌─────────────────────┐
-    │ Provider Ondersteund │         │ Provider Onbekend   │
-    │ (Cloudflare, etc.)   │         │                     │
-    └─────────────────────┘         └─────────────────────┘
-              │                               │
-              ▼                               ▼
-┌─────────────────────────────┐   ┌─────────────────────────────┐
-│  "We detecteerden Cloudflare"│   │  Handmatige Configuratie    │
-│                              │   │                             │
-│  [🔗 Automatisch Koppelen]   │   │  DNS records tabel...       │
-│                              │   │                             │
-│  ─── of ───                  │   │  [Verifieer DNS]            │
-│                              │   │                             │
-│  [Handmatig configureren ▼]  │   │                             │
-└─────────────────────────────┘   └─────────────────────────────┘
 ```
 
 ---
 
 ## Technische Implementatie
 
-### 1. Provider Detectie Edge Function
+### 1. Nieuwe Edge Function: `cloudflare-api-connect`
 
-**Nieuw bestand:** `supabase/functions/detect-domain-provider/index.ts`
-
-Detecteert de DNS provider via:
-- NS (nameserver) record lookup
-- Bekende patterns matchen (cloudflare.com, ns.transip.nl, etc.)
+Vervangt de OAuth flow met een API token flow:
 
 ```text
-Input: { domain: "mijnwebshop.be" }
+Input: {
+  tenant_id: string,
+  domain: string,
+  api_token: string
+}
+
+Stappen:
+1. Valideer API token via Cloudflare API (GET /user/tokens/verify)
+2. Lijst zones op waartoe token toegang heeft
+3. Vind zone die matcht met domein
+4. Voeg DNS records toe:
+   - A @ → 185.158.133.1
+   - A www → 185.158.133.1  
+   - TXT _sellqo → sellqo-verify=<token>
+5. Update tenant: domain_verified = true
 
 Output: {
-  provider: "cloudflare" | "transip" | "combell" | "godaddy" | "unknown",
-  provider_name: "Cloudflare" | "TransIP" | "Combell" | "GoDaddy" | "Onbekend",
-  supports_auto_connect: true | false,
-  connect_method: "cloudflare_oauth" | "domain_connect" | null
+  success: boolean,
+  records_created: number,
+  error?: string
 }
 ```
 
-**Bekende providers:**
-| Provider | NS Pattern | Auto Connect |
-|----------|-----------|--------------|
-| Cloudflare | *.ns.cloudflare.com | ✅ OAuth API |
-| GoDaddy | *.domaincontrol.com | ✅ Domain Connect |
-| TransIP | ns*.transip.nl | ❌ (API key vereist) |
-| Combell | ns*.combell.net | ❌ |
-| Versio | ns*.versio.nl | ❌ |
-| one.com | ns*.one.com | ❌ |
+### 2. Database: Token Opslag
 
-### 2. Cloudflare OAuth Flow
+De API token wordt NIET permanent opgeslagen (beveiligingsrisico). Alleen:
+- Eenmalig gebruikt voor DNS configuratie
+- Na succesvolle configuratie wordt token weggegooid
+- Klant moet nieuw token maken als ze later wijzigingen willen
 
-**Nieuw bestand:** `supabase/functions/cloudflare-oauth-init/index.ts`
-- Start OAuth flow met Cloudflare
-- Redirect gebruiker naar Cloudflare login
+### 3. UI Aanpassingen
 
-**Nieuw bestand:** `supabase/functions/cloudflare-oauth-callback/index.ts`
-- Ontvangt OAuth token
-- Vindt de juiste zone (domein)
-- Voegt DNS records automatisch toe
-- Update tenant als geverifieerd
-
-### 3. Aangepaste UI Flow
-
-**Wijziging aan:** `DomainSettings.tsx`
-
-Na het invoeren van een domein:
-1. Call `detect-domain-provider` Edge Function
-2. Toon resultaat met juiste opties
-
-**Nieuwe state:**
-```typescript
-const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
-const [setupMethod, setSetupMethod] = useState<'auto' | 'manual' | null>(null);
-```
-
-### 4. Database Uitbreiding
-
-```sql
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS 
-  domain_provider TEXT,
-  domain_auto_configured BOOLEAN DEFAULT false;
-```
+Update `DomainSettings.tsx`:
+- Nieuwe "API Token" input sectie voor Cloudflare
+- Stapsgewijze instructies met link naar Cloudflare
+- Foutafhandeling (ongeldige token, verkeerde permissies, domein niet gevonden)
 
 ---
 
-## UI Ontwerp
-
-### Scenario A: Provider Ondersteund (Cloudflare)
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Eigen Domein                                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Domein: mijnwebshop.be                                         │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  ☁️  We detecteerden: Cloudflare                           │ │
-│  │                                                             │ │
-│  │  Je kunt automatisch koppelen via je Cloudflare account.   │ │
-│  │                                                             │ │
-│  │  [🔗 Inloggen bij Cloudflare]                              │ │
-│  │                                                             │ │
-│  │  Je wordt doorgestuurd naar Cloudflare om toegang te       │ │
-│  │  verlenen. Wij voegen alleen de benodigde DNS records toe. │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  ⚙️  Liever handmatig configureren?                        │ │
-│  │                                                             │ │
-│  │  [Toon DNS instructies ▼]                                  │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Scenario B: Provider Niet Ondersteund
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Eigen Domein                                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Domein: mijnwebshop.be                                         │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  ℹ️  Provider: Combell                                     │ │
-│  │                                                             │ │
-│  │  Voor Combell moet je de DNS records handmatig toevoegen.  │ │
-│  │  Dit duurt ongeveer 5 minuten.                             │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  DNS Records Configureren                                       │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  Type  │  Naam     │  Waarde            │                  │ │
-│  │  A     │  @        │  185.158.133.1     │  [📋]            │ │
-│  │  A     │  www      │  185.158.133.1     │  [📋]            │ │
-│  │  TXT   │  _sellqo  │  sellqo-verify=... │  [📋]            │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  [🔄 Controleer DNS Records]                                    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Bestanden Overzicht
+## Bestandswijzigingen
 
 | Bestand | Actie | Beschrijving |
 |---------|-------|-------------|
-| `supabase/functions/detect-domain-provider/index.ts` | Nieuw | NS lookup en provider detectie |
-| `supabase/functions/cloudflare-oauth-init/index.ts` | Nieuw | Start Cloudflare OAuth |
-| `supabase/functions/cloudflare-oauth-callback/index.ts` | Nieuw | Verwerk OAuth en configureer DNS |
-| `src/components/admin/settings/DomainSettings.tsx` | Wijzigen | Hybride flow met auto-detectie |
-| `src/hooks/useDomainVerification.ts` | Wijzigen | Provider detectie functie toevoegen |
-| `supabase/config.toml` | Wijzigen | Nieuwe functions registreren |
+| `supabase/functions/cloudflare-api-connect/index.ts` | Nieuw | Token validatie en DNS configuratie |
+| `src/components/admin/settings/DomainSettings.tsx` | Wijzigen | API token input flow toevoegen |
+| `src/hooks/useDomainVerification.ts` | Wijzigen | `connectWithApiToken` functie toevoegen |
+| `supabase/functions/cloudflare-oauth-init/index.ts` | Verwijderen | Niet meer nodig |
+| `supabase/functions/cloudflare-oauth-callback/index.ts` | Verwijderen | Niet meer nodig |
+| `supabase/config.toml` | Wijzigen | OAuth functions verwijderen, nieuwe toevoegen |
 
 ---
 
-## Secrets Nodig
+## Cloudflare API Endpoints
 
-Voor Cloudflare OAuth integratie:
-- `CLOUDFLARE_CLIENT_ID` - OAuth client ID
-- `CLOUDFLARE_CLIENT_SECRET` - OAuth client secret
+```text
+# Token verificatie
+GET https://api.cloudflare.com/client/v4/user/tokens/verify
+Headers: Authorization: Bearer <token>
 
-Deze moeten aangevraagd worden bij Cloudflare als "Service Provider". Zonder deze secrets werkt alleen de handmatige flow.
+# Zones ophalen
+GET https://api.cloudflare.com/client/v4/zones
+Headers: Authorization: Bearer <token>
+
+# DNS record aanmaken
+POST https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records
+Headers: Authorization: Bearer <token>
+Body: {
+  "type": "A",
+  "name": "@",
+  "content": "185.158.133.1",
+  "ttl": 1,
+  "proxied": false
+}
+```
+
+---
+
+## Beveiliging
+
+- Token wordt alleen server-side verwerkt (Edge Function)
+- Token wordt NIET opgeslagen in database
+- Token wordt niet gelogd
+- HTTPS verplicht voor alle communicatie
+- Token heeft minimale permissies (alleen DNS edit voor specifieke zone)
+
+---
+
+## Foutafhandeling
+
+| Fout | Bericht aan gebruiker |
+|------|----------------------|
+| Token ongeldig | "Het API token is ongeldig. Controleer of je het volledige token hebt gekopieerd." |
+| Geen toegang tot domein | "Dit token heeft geen toegang tot het domein. Selecteer het juiste domein bij 'Zone Resources'." |
+| Verkeerde permissies | "Dit token mist de benodigde permissies. Gebruik de 'Edit zone DNS' template." |
+| Domein niet in Cloudflare | "Dit domein wordt niet beheerd door Cloudflare. Gebruik de handmatige configuratie." |
 
 ---
 
 ## Implementatie Volgorde
 
-1. **detect-domain-provider Edge Function** - Provider herkenning
-2. **DomainSettings.tsx update** - Hybride UI met detectie
-3. **useDomainVerification.ts update** - detectProvider functie
-4. **Cloudflare OAuth functions** - Automatische koppeling (optioneel, vereist secrets)
+1. **cloudflare-api-connect Edge Function** - Core functionaliteit
+2. **useDomainVerification hook update** - `connectWithApiToken` functie
+3. **DomainSettings.tsx update** - API token input UI
+4. **OAuth functions verwijderen** - Cleanup oude code
+5. **config.toml update** - Functions registratie
 
----
-
-## Belangrijke Punten
-
-- **Handmatig blijft altijd werken** - Ook als OAuth faalt of provider onbekend is
-- **Geen API keys nodig voor basis flow** - Provider detectie werkt via DNS lookup
-- **Cloudflare OAuth is optioneel** - Kan later toegevoegd worden zodra credentials beschikbaar zijn
-- **Uitbreidbaar** - Makkelijk om meer providers toe te voegen (Domain Connect, GoDaddy API, etc.)
