@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SocialChannelCard } from './SocialChannelCard';
 import { ConnectSocialChannelDialog } from './ConnectSocialChannelDialog';
 import { SocialChannelSettingsDialog } from './SocialChannelSettingsDialog';
+import { MetaShopWizard } from './MetaShopWizard';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { SOCIAL_CHANNEL_INFO, type SocialChannelType } from '@/types/socialChannels';
 import {
@@ -18,10 +19,18 @@ import {
 const CHANNEL_ORDER: SocialChannelType[] = [
   'google_shopping',
   'facebook_shop',
+  'instagram_shop',
   'tiktok_shop',
   'pinterest_catalog',
   'whatsapp_business',
   'microsoft_shopping',
+];
+
+// Channels that use Meta Commerce API (direct sync, not feed-based)
+const META_COMMERCE_CHANNELS: SocialChannelType[] = [
+  'facebook_shop',
+  'instagram_shop',
+  'whatsapp_business',
 ];
 
 export function SocialChannelList() {
@@ -32,11 +41,17 @@ export function SocialChannelList() {
   } = useSocialChannels();
 
   const [connectingType, setConnectingType] = useState<SocialChannelType | null>(null);
+  const [metaWizardType, setMetaWizardType] = useState<SocialChannelType | null>(null);
   const [settingsType, setSettingsType] = useState<SocialChannelType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
 
   const handleConnect = (type: SocialChannelType) => {
-    setConnectingType(type);
+    // Use Meta Commerce wizard for Meta channels, simple dialog for feed-based
+    if (META_COMMERCE_CHANNELS.includes(type)) {
+      setMetaWizardType(type);
+    } else {
+      setConnectingType(type);
+    }
   };
 
   const handleSettings = (type: SocialChannelType) => {
@@ -74,12 +89,22 @@ export function SocialChannelList() {
         })}
       </div>
 
-      {/* Connect Dialog */}
+      {/* Connect Dialog (for feed-based channels) */}
       {connectingType && (
         <ConnectSocialChannelDialog
           open={!!connectingType}
           onOpenChange={(open) => !open && setConnectingType(null)}
           channelType={connectingType}
+        />
+      )}
+
+      {/* Meta Commerce Wizard (for Facebook/Instagram/WhatsApp) */}
+      {metaWizardType && (
+        <MetaShopWizard
+          open={!!metaWizardType}
+          onOpenChange={(open) => !open && setMetaWizardType(null)}
+          channelType={metaWizardType}
+          onSuccess={() => setMetaWizardType(null)}
         />
       )}
 

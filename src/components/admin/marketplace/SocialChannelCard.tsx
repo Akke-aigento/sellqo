@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { SocialChannelConnection, SocialChannelInfo } from '@/types/socialChannels';
+import type { SocialChannelConnection, SocialChannelInfo, SyncStatus } from '@/types/socialChannels';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -139,7 +139,7 @@ export function SocialChannelCard({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-muted-foreground">Producten</p>
-              <p className="font-semibold">{connection.products_synced || 0}</p>
+              <p className="font-semibold">{connection.products_in_catalog || connection.products_synced || 0}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Laatste sync</p>
@@ -150,6 +150,21 @@ export function SocialChannelCard({
               </p>
             </div>
           </div>
+          {/* Sync status indicator */}
+          {connection.sync_status && connection.sync_status !== 'idle' && (
+            <div className="mt-2 pt-2 border-t border-white/20">
+              <span className={cn(
+                "text-xs font-medium",
+                connection.sync_status === 'synced' && "text-green-700",
+                connection.sync_status === 'syncing' && "text-blue-700",
+                connection.sync_status === 'error' && "text-red-700",
+              )}>
+                {connection.sync_status === 'synced' && '✓ Gesynchroniseerd'}
+                {connection.sync_status === 'syncing' && '⟳ Synchroniseren...'}
+                {connection.sync_status === 'error' && '⚠ Sync fout'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

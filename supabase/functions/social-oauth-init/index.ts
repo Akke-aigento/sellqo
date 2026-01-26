@@ -10,7 +10,17 @@ const corsHeaders = {
 const PLATFORMS = {
   facebook: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    scopes: ['pages_manage_posts', 'pages_read_engagement', 'instagram_basic', 'instagram_content_publish'].join(','),
+    // Updated scopes for Meta Commerce (Facebook Shop, Instagram Shop, WhatsApp Catalog)
+    scopes: [
+      'pages_manage_posts',
+      'pages_read_engagement', 
+      'instagram_basic',
+      'instagram_content_publish',
+      // Meta Commerce scopes for shop functionality
+      'catalog_management',        // Create/update products in catalogs
+      'business_management',       // Access business accounts
+      'pages_read_user_content',   // Read shop settings
+    ].join(','),
   },
   twitter: {
     authUrl: 'https://twitter.com/i/oauth2/authorize',
