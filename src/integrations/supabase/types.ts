@@ -1755,6 +1755,7 @@ export type Database = {
         Row: {
           body_html: string
           body_text: string | null
+          channel: string | null
           context_data: Json | null
           context_type: string | null
           created_at: string
@@ -1775,10 +1776,13 @@ export type Database = {
           tenant_id: string
           to_email: string
           updated_at: string
+          whatsapp_message_id: string | null
+          whatsapp_status: string | null
         }
         Insert: {
           body_html: string
           body_text?: string | null
+          channel?: string | null
           context_data?: Json | null
           context_type?: string | null
           created_at?: string
@@ -1799,10 +1803,13 @@ export type Database = {
           tenant_id: string
           to_email: string
           updated_at?: string
+          whatsapp_message_id?: string | null
+          whatsapp_status?: string | null
         }
         Update: {
           body_html?: string
           body_text?: string | null
+          channel?: string | null
           context_data?: Json | null
           context_type?: string | null
           created_at?: string
@@ -1823,6 +1830,8 @@ export type Database = {
           tenant_id?: string
           to_email?: string
           updated_at?: string
+          whatsapp_message_id?: string | null
+          whatsapp_status?: string | null
         }
         Relationships: [
           {
@@ -1949,6 +1958,9 @@ export type Database = {
           vat_number: string | null
           vat_verified: boolean | null
           vat_verified_at: string | null
+          whatsapp_number: string | null
+          whatsapp_opted_in: boolean | null
+          whatsapp_opted_in_at: string | null
         }
         Insert: {
           billing_address_verified?: boolean | null
@@ -1992,6 +2004,9 @@ export type Database = {
           vat_number?: string | null
           vat_verified?: boolean | null
           vat_verified_at?: string | null
+          whatsapp_number?: string | null
+          whatsapp_opted_in?: boolean | null
+          whatsapp_opted_in_at?: string | null
         }
         Update: {
           billing_address_verified?: boolean | null
@@ -2035,6 +2050,9 @@ export type Database = {
           vat_number?: string | null
           vat_verified?: boolean | null
           vat_verified_at?: string | null
+          whatsapp_number?: string | null
+          whatsapp_opted_in?: boolean | null
+          whatsapp_opted_in_at?: string | null
         }
         Relationships: [
           {
@@ -9663,6 +9681,11 @@ export type Database = {
           tax_percentage: number | null
           transaction_fee_label: string | null
           updated_at: string | null
+          whatsapp_abandoned_cart: boolean | null
+          whatsapp_abandoned_cart_delay_hours: number | null
+          whatsapp_enabled: boolean | null
+          whatsapp_order_confirmation: boolean | null
+          whatsapp_shipping_updates: boolean | null
         }
         Insert: {
           address?: string | null
@@ -9743,6 +9766,11 @@ export type Database = {
           tax_percentage?: number | null
           transaction_fee_label?: string | null
           updated_at?: string | null
+          whatsapp_abandoned_cart?: boolean | null
+          whatsapp_abandoned_cart_delay_hours?: number | null
+          whatsapp_enabled?: boolean | null
+          whatsapp_order_confirmation?: boolean | null
+          whatsapp_shipping_updates?: boolean | null
         }
         Update: {
           address?: string | null
@@ -9823,6 +9851,11 @@ export type Database = {
           tax_percentage?: number | null
           transaction_fee_label?: string | null
           updated_at?: string | null
+          whatsapp_abandoned_cart?: boolean | null
+          whatsapp_abandoned_cart_delay_hours?: number | null
+          whatsapp_enabled?: boolean | null
+          whatsapp_order_confirmation?: boolean | null
+          whatsapp_shipping_updates?: boolean | null
         }
         Relationships: []
       }
@@ -10324,6 +10357,121 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "volume_discounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_connections: {
+        Row: {
+          access_token_encrypted: string
+          business_account_id: string
+          connected_at: string
+          display_phone_number: string
+          id: string
+          is_active: boolean
+          messaging_limit: string | null
+          phone_number_id: string
+          quality_rating: string | null
+          tenant_id: string
+          updated_at: string
+          verified_name: string | null
+          webhook_verify_token: string
+        }
+        Insert: {
+          access_token_encrypted: string
+          business_account_id: string
+          connected_at?: string
+          display_phone_number: string
+          id?: string
+          is_active?: boolean
+          messaging_limit?: string | null
+          phone_number_id: string
+          quality_rating?: string | null
+          tenant_id: string
+          updated_at?: string
+          verified_name?: string | null
+          webhook_verify_token?: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          business_account_id?: string
+          connected_at?: string
+          display_phone_number?: string
+          id?: string
+          is_active?: boolean
+          messaging_limit?: string | null
+          phone_number_id?: string
+          quality_rating?: string | null
+          tenant_id?: string
+          updated_at?: string
+          verified_name?: string | null
+          webhook_verify_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          body_text: string
+          buttons: Json | null
+          created_at: string
+          footer_text: string | null
+          header_text: string | null
+          id: string
+          language: string
+          meta_template_id: string | null
+          status: string
+          template_name: string
+          template_type: string
+          tenant_id: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          body_text: string
+          buttons?: Json | null
+          created_at?: string
+          footer_text?: string | null
+          header_text?: string | null
+          id?: string
+          language?: string
+          meta_template_id?: string | null
+          status?: string
+          template_name: string
+          template_type: string
+          tenant_id: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          body_text?: string
+          buttons?: Json | null
+          created_at?: string
+          footer_text?: string | null
+          header_text?: string | null
+          id?: string
+          language?: string
+          meta_template_id?: string | null
+          status?: string
+          template_name?: string
+          template_type?: string
+          tenant_id?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

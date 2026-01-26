@@ -74,6 +74,12 @@ interface Tenant {
   custom_domain?: string | null;
   domain_verified?: boolean;
   domain_verification_token?: string | null;
+  // WhatsApp settings
+  whatsapp_enabled?: boolean;
+  whatsapp_order_confirmation?: boolean;
+  whatsapp_shipping_updates?: boolean;
+  whatsapp_abandoned_cart?: boolean;
+  whatsapp_abandoned_cart_delay_hours?: number;
 }
 
 interface TenantContextType {

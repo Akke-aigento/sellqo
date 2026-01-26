@@ -17,6 +17,7 @@ import {
   Globe,
   Banknote,
   FileText,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,6 +38,7 @@ import { DomainSettings } from '@/components/admin/settings/DomainSettings';
 import { TransactionFeeSettings } from '@/components/admin/settings/TransactionFeeSettings';
 import { InvoiceAutomationSettings } from '@/components/admin/settings/InvoiceAutomationSettings';
 import { FulfillmentAPISettings } from '@/components/admin/settings/FulfillmentAPISettings';
+import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -100,6 +102,7 @@ const settingsGroups: SettingsGroup[] = [
     title: 'Koppelingen & Kanalen',
     description: 'Social media, notificaties en externe koppelingen',
     sections: [
+      { id: 'whatsapp', title: 'WhatsApp Business', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
       { id: 'notifications', title: 'Notificaties', icon: Bell, component: NotificationSettings },
