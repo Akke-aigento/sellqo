@@ -1,344 +1,321 @@
 
-
-# Implementatieplan: Social Commerce & Shopping Kanalen
+# Plan: Echte Social Commerce Shop Integraties
 
 ## Overzicht
 
-Dit plan voegt **Social Commerce kanalen** toe naast de bestaande e-commerce marketplaces. Het gaat om platforms waar consumenten direct producten kunnen ontdekken en kopen via sociale media en zoekmachines.
+De huidige implementatie genereert alleen product feeds die merchants handmatig moeten uploaden. Dit plan voegt **directe API-koppelingen** toe zodat producten automatisch in de echte "online shops" van deze platforms verschijnen.
 
-## Welke Kanalen Bestaan Er?
+## Wat het verschil is
 
-| Categorie | Platform | Type | API Status |
-|-----------|----------|------|------------|
-| **Google** | Google Merchant Center | Product Feed | ✅ Beschikbaar |
-| **Google** | Google Shopping Ads | Advertenties | ✅ Via Merchant Center |
-| **Meta** | Facebook Shop | Social Commerce | ✅ Commerce Manager API |
-| **Meta** | Instagram Shop | Social Commerce | ✅ Via Facebook |
-| **TikTok** | TikTok Shop | Social Commerce | ✅ Beschikbaar (UK/US) |
-| **Pinterest** | Pinterest Catalog | Product Pins | ✅ Beschikbaar |
-| **Snapchat** | Snapchat Catalog | Dynamic Ads | ✅ Beschikbaar |
-| **WhatsApp** | WhatsApp Business Catalog | Messaging Commerce | ⚠️ Beperkt (via Meta) |
-| **Microsoft** | Microsoft Merchant Center | Bing Shopping | ✅ Beschikbaar |
-| **Amazon** | Amazon Posts | Social op Amazon | ⚠️ Alleen sellers |
-| **Etsy** | Etsy Ads | Handmade/Vintage | ✅ Beschikbaar |
-| **eBay** | eBay Feed | Marketplace | ✅ Beschikbaar |
+```text
+HUIDIGE SITUATIE                          NA IMPLEMENTATIE
+─────────────────                          ─────────────────
 
-## Nieuwe Architectuur
+┌─────────────┐                            ┌─────────────┐
+│   SellQo    │                            │   SellQo    │
+│  Products   │                            │  Products   │
+└──────┬──────┘                            └──────┬──────┘
+       │                                          │
+       ▼                                          ▼
+┌─────────────┐                            ┌─────────────┐
+│  Feed URL   │                            │  API Sync   │
+│  (Manual)   │                            │ (Automatic) │
+└──────┬──────┘                            └──────┬──────┘
+       │                                          │
+       │ Merchant moet                            │ Automatisch
+       │ handmatig URL                            │ doorgestuurd
+       │ invoeren                                 │
+       ▼                                          ▼
+┌─────────────┐                            ┌─────────────────────────┐
+│   Google    │                            │   Facebook Shop         │
+│  Merchant   │                            │   Instagram Shop        │
+│   Center    │                            │   WhatsApp Catalog      │
+└─────────────┘                            │   Google Shopping       │
+                                           │   TikTok Shop           │
+                                           └─────────────────────────┘
+```
+
+## Deel 1: Meta Commerce Integratie (Facebook Shop + Instagram Shop + WhatsApp)
+
+### Hoe Meta Shops Werken
+
+Meta gebruikt één centrale **Commerce Manager** voor alle platforms:
+- Facebook Shop
+- Instagram Shopping
+- WhatsApp Business Catalog
+
+Eén productcatalogus = beschikbaar op alle drie platforms.
+
+### Vereiste Aanpassingen
+
+| Component | Wijziging |
+|-----------|-----------|
+| **OAuth Scopes** | Toevoegen: `catalog_management`, `business_management`, `commerce_account_manage_orders` |
+| **Nieuwe Edge Function** | `sync-meta-catalog/index.ts` - Push producten naar Meta Catalog API |
+| **Webhook** | `meta-catalog-webhook/index.ts` - Ontvang statusupdates van Meta |
+| **UI Update** | Toon synchronisatie status, laatste sync tijd, fouten |
+
+### Meta Catalog API Flow
+
+```text
+1. Merchant klikt "Verbind Facebook Shop"
+       │
+       ▼
+2. OAuth flow met catalog_management scope
+       │
+       ▼
+3. SellQo vraagt: "Welke catalogus wil je gebruiken?"
+   (Bestaande selecteren of nieuwe aanmaken)
+       │
+       ▼
+4. Sync-edge-function pusht producten naar catalogus:
+   POST https://graph.facebook.com/v18.0/{catalog_id}/products
+       │
+       ▼
+5. Producten verschijnen in:
+   • Facebook Shop (via je Facebook Page)
+   • Instagram Shop (via gekoppelde IG account)
+   • WhatsApp Business Catalog (automatisch)
+```
+
+### Database Uitbreiding
+
+De `social_channel_connections` tabel krijgt extra velden:
+
+```sql
+ALTER TABLE social_channel_connections ADD COLUMN IF NOT EXISTS
+  catalog_id TEXT,           -- Meta Catalog ID
+  business_id TEXT,          -- Meta Business ID
+  sync_status TEXT DEFAULT 'idle',  -- idle, syncing, synced, error
+  last_sync_products_count INTEGER DEFAULT 0,
+  sync_errors JSONB DEFAULT '[]';
+```
+
+## Deel 2: TikTok Shop Integratie
+
+### TikTok Shop API
+
+TikTok Shop is beschikbaar in UK, US en andere markten (nog niet in NL/BE maar komt eraan).
+
+| Component | Beschrijving |
+|-----------|--------------|
+| **OAuth** | TikTok Shop Seller Center OAuth |
+| **API** | `open.tiktokglobalshop.com` |
+| **Sync** | Product Create/Update API |
+| **Orders** | Order sync (net als Bol.com/Amazon) |
+
+### Nieuwe Edge Function
+
+```typescript
+// supabase/functions/sync-tiktok-catalog/index.ts
+// POST https://open.tiktokglobalshop.com/product/202309/products
+```
+
+## Deel 3: Google Content API (Optioneel)
+
+Voor merchants die **realtime sync** willen in plaats van feed-based:
+
+| Methode | Voordeel | Nadeel |
+|---------|----------|--------|
+| **Feed (huidige)** | Simpel, geen API setup | Updates duren 24-48u |
+| **Content API** | Realtime updates | Vereist API credentials |
+
+### Content API Implementatie
+
+```typescript
+// supabase/functions/sync-google-merchant/index.ts
+// POST https://shoppingcontent.googleapis.com/content/v2.1/{merchantId}/products
+```
+
+## Deel 4: Verbeterde UI
+
+### Connectie Wizard per Kanaal
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           SELLQO CONNECT                                     │
+│  Verbind Facebook/Instagram Shop                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌───────────────────────────────┐   ┌───────────────────────────────┐     │
-│  │       E-COMMERCE              │   │      SOCIAL COMMERCE          │     │
-│  │       MARKETPLACES            │   │      CHANNELS                 │     │
-│  ├───────────────────────────────┤   ├───────────────────────────────┤     │
-│  │ ✅ Bol.com                    │   │ 🆕 Google Shopping            │     │
-│  │ ✅ Amazon                     │   │ 🆕 Facebook/Instagram Shop    │     │
-│  │ ✅ Shopify                    │   │ 🆕 TikTok Shop                │     │
-│  │ ✅ WooCommerce                │   │ 🆕 Pinterest Catalog          │     │
-│  │ ✅ Odoo                       │   │ 🆕 WhatsApp Business          │     │
-│  │                               │   │ 🆕 Microsoft/Bing Shopping    │     │
-│  └───────────────────────────────┘   └───────────────────────────────┘     │
+│  Stap 1: Inloggen bij Meta Business                                         │
+│  ──────────────────────────────────────                                     │
+│  [Login met Facebook]                                                       │
 │                                                                             │
-│                    ▼                              ▼                         │
-│              Orders/Inventory                Product Feeds                  │
-│              Bi-directioneel                 One-way sync                   │
+│  ────────────────────────────────────────────────────────────────           │
 │                                                                             │
+│  Stap 2: Selecteer Business Account                                         │
+│  ──────────────────────────────────                                         │
+│  ○ My Fashion Store (Business ID: 123456)                                   │
+│  ○ My Second Brand (Business ID: 789012)                                    │
+│                                                                             │
+│  ────────────────────────────────────────────────────────────────           │
+│                                                                             │
+│  Stap 3: Selecteer of maak Catalogus                                        │
+│  ───────────────────────────────────                                        │
+│  ○ Bestaande catalogus: "Product Catalog 2024"                              │
+│  ○ Nieuwe catalogus aanmaken                                                │
+│                                                                             │
+│  ────────────────────────────────────────────────────────────────           │
+│                                                                             │
+│  [ ] Sync alle producten automatisch                                        │
+│  [ ] Alleen geselecteerde producten                                         │
+│                                                                             │
+│                                                    [Annuleer] [Verbinden]   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Deel 1: Uitbreiding Types & Database
+### Sync Status Dashboard
 
-### Nieuw Type: `SocialChannelType`
-
-Naast `MarketplaceType` komt er een apart type voor social channels:
-
-```typescript
-export type SocialChannelType = 
-  | 'google_shopping'      // Google Merchant Center
-  | 'facebook_shop'        // Meta Commerce (FB + IG)
-  | 'instagram_shop'       // Via Facebook Shop
-  | 'tiktok_shop'          // TikTok Shop
-  | 'pinterest_catalog'    // Pinterest Pins
-  | 'whatsapp_business'    // WhatsApp Catalog
-  | 'microsoft_shopping'   // Bing Shopping
-  | 'snapchat_catalog';    // Snapchat Ads
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Facebook/Instagram Shop                           ● Verbonden              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Catalogus: "SellQo Products"                                               │
+│  Business: "My Fashion Store"                                               │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Sync Status                                                        │   │
+│  │  ────────────                                                       │   │
+│  │  📦 142 producten gesynchroniseerd                                  │   │
+│  │  ✅ Laatste sync: 10 minuten geleden                                │   │
+│  │  ⚠️ 3 producten met waarschuwingen                                  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  Beschikbaar op:                                                            │
+│  [FB] Facebook Shop    [IG] Instagram Shop    [WA] WhatsApp Catalog         │
+│                                                                             │
+│                        [Sync Nu]  [Bekijk in Meta]  [Instellingen]          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Database Uitbreiding: `social_channel_connections`
+## Deel 5: Technische Implementatie
 
-Aparte tabel voor social channels omdat ze anders werken dan marketplaces:
+### Nieuwe Bestanden
 
-```sql
-CREATE TABLE public.social_channel_connections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  channel_type TEXT NOT NULL,
-  channel_name TEXT,
-  
-  -- Credentials
-  credentials JSONB DEFAULT '{}',
-  
-  -- Feed settings
-  feed_url TEXT,                    -- Gegenereerde feed URL
-  feed_format TEXT DEFAULT 'xml',   -- xml, json, csv
-  last_feed_generated_at TIMESTAMPTZ,
-  
-  -- Status
-  is_active BOOLEAN DEFAULT true,
-  last_sync_at TIMESTAMPTZ,
-  last_error TEXT,
-  products_synced INTEGER DEFAULT 0,
-  
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+| Bestand | Beschrijving |
+|---------|--------------|
+| **Edge Functions** | |
+| `supabase/functions/sync-meta-catalog/index.ts` | Push producten naar Meta Commerce Catalog |
+| `supabase/functions/meta-catalog-webhook/index.ts` | Ontvang statusupdates |
+| `supabase/functions/sync-tiktok-catalog/index.ts` | TikTok Shop product sync |
+| `supabase/functions/sync-google-merchant/index.ts` | Google Content API (optioneel) |
+| **Components** | |
+| `src/components/admin/marketplace/MetaShopWizard.tsx` | Multi-stap wizard voor Meta koppeling |
+| `src/components/admin/marketplace/CatalogSyncStatus.tsx` | Sync status weergave |
+| `src/components/admin/marketplace/SelectCatalogDialog.tsx` | Catalogus selectie |
+| **Updates** | |
+| `supabase/functions/social-oauth-init/index.ts` | Toevoegen Meta Commerce scopes |
+| `supabase/functions/social-oauth-callback/index.ts` | Ophalen catalogi na auth |
+| `src/types/socialChannels.ts` | Nieuwe sync-gerelateerde types |
+| `src/hooks/useSocialChannels.ts` | Sync mutations toevoegen |
+
+### OAuth Scope Uitbreiding (Meta)
+
+```typescript
+// Huidige scopes
+['pages_manage_posts', 'pages_read_engagement', 'instagram_basic', 'instagram_content_publish']
+
+// Nieuwe scopes voor Commerce
+[
+  'pages_manage_posts', 
+  'pages_read_engagement', 
+  'instagram_basic', 
+  'instagram_content_publish',
+  // NIEUW voor Shop functionaliteit:
+  'catalog_management',           // Producten toevoegen/bewerken
+  'business_management',          // Business accounts ophalen
+  'commerce_account_manage_orders', // Orders beheren (optioneel)
+  'pages_read_user_content',      // Shop instellingen lezen
+]
+```
+
+### Meta Catalog API Voorbeeld
+
+```typescript
+// POST naar Meta Graph API
+const response = await fetch(
+  `https://graph.facebook.com/v18.0/${catalogId}/products`,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      access_token: accessToken,
+      retailer_id: product.id,
+      data: {
+        name: product.name,
+        description: product.description,
+        price: `${product.price} EUR`,
+        availability: product.stock > 0 ? 'in stock' : 'out of stock',
+        url: `${storeUrl}/products/${product.slug}`,
+        image_url: product.featured_image,
+        brand: tenant.company_name,
+        condition: 'new',
+        // Optionele velden
+        gtin: product.barcode,
+        mpn: product.sku,
+      }
+    })
+  }
 );
 ```
 
-### Product-niveau Kanaal Selectie
-
-Uitbreiding van `products` tabel:
+### Database Migratie
 
 ```sql
-ALTER TABLE products ADD COLUMN social_channels JSONB DEFAULT '{}';
--- Voorbeeld: {"google_shopping": true, "facebook_shop": true, "pinterest": false}
+-- Uitbreiding social_channel_connections
+ALTER TABLE social_channel_connections
+ADD COLUMN IF NOT EXISTS catalog_id TEXT,
+ADD COLUMN IF NOT EXISTS business_id TEXT,
+ADD COLUMN IF NOT EXISTS page_id TEXT,
+ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'idle',
+ADD COLUMN IF NOT EXISTS last_full_sync_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS products_in_catalog INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS sync_errors JSONB DEFAULT '[]';
+
+-- Index voor snelle lookups
+CREATE INDEX IF NOT EXISTS idx_social_channel_sync_status 
+ON social_channel_connections(tenant_id, channel_type, sync_status);
 ```
 
-## Deel 2: UI - Marketplaces Pagina Uitbreiding
+## Deel 6: Belangrijke Overwegingen
 
-### Nieuwe Tab Structuur
+### API Credentials Nodig
 
-De Marketplaces pagina krijgt twee secties:
+| Platform | Wat nodig is | Hoe te verkrijgen |
+|----------|--------------|-------------------|
+| **Meta** | App ID + App Secret | developers.facebook.com → Create App → Commerce |
+| **TikTok** | App Key + App Secret | partner.tiktokshop.com → Developer Center |
+| **Google** | Service Account JSON | console.cloud.google.com → Content API |
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  SellQo Connect                                                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  [E-commerce Marketplaces]  [Social Commerce]                               │
-│   ────────────────────────   ─────────────────                              │
-│                                                                             │
-│  Social Commerce Channels                                                    │
-│  ─────────────────────────                                                  │
-│                                                                             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
-│  │  🛒             │  │  📱             │  │  🎵             │             │
-│  │  GOOGLE         │  │  META           │  │  TIKTOK         │             │
-│  │  SHOPPING       │  │  FB + IG Shop   │  │  SHOP           │             │
-│  │                 │  │                 │  │                 │             │
-│  │  ⓘ Toon je     │  │  ⓘ Verkoop via  │  │  ⓘ Bereik Gen-Z│             │
-│  │  producten in   │  │  Facebook en    │  │  met shoppable  │             │
-│  │  Google zoek-   │  │  Instagram      │  │  video's        │             │
-│  │  resultaten     │  │  direct         │  │                 │             │
-│  │                 │  │                 │  │  🏷️ Binnenkort │             │
-│  │  [Verbinden]    │  │  [Verbinden]    │  │  [Binnenkort]   │             │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
-│                                                                             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
-│  │  📌             │  │  💬             │  │  🔍             │             │
-│  │  PINTEREST      │  │  WHATSAPP       │  │  MICROSOFT      │             │
-│  │  CATALOG        │  │  BUSINESS       │  │  SHOPPING       │             │
-│  │                 │  │                 │  │                 │             │
-│  │  ⓘ Product     │  │  ⓘ Toon je     │  │  ⓘ Bing en     │             │
-│  │  pins voor      │  │  catalogus in   │  │  Microsoft Edge │             │
-│  │  inspiratie     │  │  WhatsApp chats │  │  shopping       │             │
-│  │                 │  │                 │  │                 │             │
-│  │  [Verbinden]    │  │  [Verbinden]    │  │  [Verbinden]    │             │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+Deze worden als secrets opgeslagen en zijn **tenant-overstijgend** (SellQo platform credentials).
 
-### Info Tooltip per Kanaal
+### Rate Limits & Sync Strategie
 
-Elk kanaal heeft een uitleg-tooltip (ⓘ):
+| Platform | Rate Limit | Strategie |
+|----------|------------|-----------|
+| Meta | 200 calls/user/hour | Batch updates, queue systeem |
+| TikTok | 1000 calls/day | Incrementele sync |
+| Google | 2500 calls/day | Feed voor bulk, API voor updates |
 
-| Kanaal | Uitleg |
-|--------|--------|
-| **Google Shopping** | Laat je producten zien in Google zoekresultaten en het Shopping-tabblad. Klanten kunnen direct vergelijken en doorklikken. |
-| **Facebook/Instagram Shop** | Verkoop direct via je Facebook en Instagram pagina. Klanten kunnen producten taggen en kopen zonder de app te verlaten. |
-| **TikTok Shop** | Bereik jongere doelgroepen met shoppable video's. Link producten aan je TikTok content. |
-| **Pinterest Catalog** | Maak Product Pins aan voor je hele assortiment. Ideaal voor home, fashion en lifestyle. |
-| **WhatsApp Business** | Toon je catalogus direct in WhatsApp gesprekken. Klanten kunnen producten bekijken en vragen stellen. |
-| **Microsoft/Bing Shopping** | Bereik Microsoft-gebruikers via Bing en Edge browser. Minder concurrentie dan Google. |
+### Sync Triggers
 
-## Deel 3: Product-niveau Integratie
-
-### ProductMarketplaceTab Uitbreiding
-
-Het bestaande ProductMarketplaceTab.tsx krijgt een nieuwe sectie:
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  🛍️ Verkoopkanalen                                                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  E-commerce Marketplaces                                                     │
-│  ─────────────────────────                                                  │
-│  ✅ Bol.com          ✅ Amazon          ❌ Shopify                          │
-│                                                                             │
-│  Social Commerce Channels                                                    │
-│  ────────────────────────                                                   │
-│  ☑️ Google Shopping     Sync naar Google Merchant Center                    │
-│  ☑️ Facebook Shop       Beschikbaar in FB & IG                              │
-│  ☐ Pinterest            Niet geactiveerd                                    │
-│  ☐ TikTok Shop          (Binnenkort beschikbaar)                            │
-│                                                                             │
-│  [Opslaan kanaal selectie]                                                  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Bulk Product Selectie
-
-In de productenlijst: actie om meerdere producten tegelijk naar kanalen te pushen.
-
-## Deel 4: Feed Generatie
-
-### Product Feed Edge Function
-
-Voor Google Shopping en andere feed-based kanalen:
-
-```typescript
-// supabase/functions/generate-product-feed/index.ts
-
-// Ondersteunde formaten:
-// - Google Merchant Center XML (RSS 2.0 met g: namespace)
-// - Facebook Catalog CSV
-// - Pinterest RSS
-// - Generic JSON
-
-// Endpoint: /functions/v1/generate-product-feed?tenant_id=xxx&format=google
-```
-
-### Feed URL per Tenant
-
-Elk tenant krijgt een unieke feed URL:
-
-```
-https://[project].supabase.co/functions/v1/product-feed/[tenant-id]/google.xml
-https://[project].supabase.co/functions/v1/product-feed/[tenant-id]/facebook.csv
-https://[project].supabase.co/functions/v1/product-feed/[tenant-id]/pinterest.xml
-```
-
-## Deel 5: Google Shopping Integratie
-
-### Setup Flow
-
-1. Merchant maakt Google Merchant Center account aan
-2. Voert Merchant ID in bij Sellqo
-3. Sellqo genereert feed URL
-4. Merchant voegt feed toe in Merchant Center
-5. Optioneel: API koppeling voor directe sync
-
-### Vereiste Product Velden
-
-| Google Veld | Sellqo Veld | Verplicht |
-|-------------|-------------|-----------|
-| id | product.id | ✅ |
-| title | name (of google_title) | ✅ |
-| description | description (of google_description) | ✅ |
-| link | webshop URL + slug | ✅ |
-| image_link | featured_image | ✅ |
-| price | price + currency | ✅ |
-| availability | stock > 0 ? in_stock : out_of_stock | ✅ |
-| brand | brand of tenant name | ✅ |
-| gtin | barcode (EAN/UPC) | ⚠️ Aanbevolen |
-| condition | altijd "new" of instelbaar | ✅ |
-| google_product_category | category mapping | ⚠️ Aanbevolen |
-
-## Deel 6: Meta (Facebook/Instagram) Shop
-
-### Setup Flow
-
-1. Koppeling via bestaande OAuth (SocialConnectionsManager)
-2. Selecteer Facebook Business Page
-3. Maak Commerce Catalog aan (of koppel bestaande)
-4. Sync producten naar catalogus
-5. Activeer Shop op Facebook/Instagram
-
-### API Integratie
-
-```typescript
-// supabase/functions/sync-meta-catalog/index.ts
-// Gebruikt Facebook Marketing API voor catalog management
-
-// POST /[catalog_id]/batch
-// - product_type: PRODUCT_ITEM
-// - requests: [{ method: CREATE, retailer_id, data: {...} }]
-```
-
-## Technische Implementatie
-
-| Bestand | Type | Beschrijving |
-|---------|------|--------------|
-| **Database** | | |
-| Migratie | SQL | `social_channel_connections` tabel |
-| Migratie | SQL | `products.social_channels` JSONB kolom |
-| **Types** | | |
-| `socialChannels.ts` | Nieuw | Type definities en kanaal info |
-| **Components** | | |
-| `SocialChannelCard.tsx` | Nieuw | Kaart per social channel met tooltip |
-| `SocialChannelList.tsx` | Nieuw | Grid van alle social channels |
-| `ConnectSocialChannelDialog.tsx` | Nieuw | Connect wizard per kanaal |
-| `ProductSocialChannels.tsx` | Nieuw | Per-product kanaal selectie |
-| `FeedPreviewDialog.tsx` | Nieuw | Preview van gegenereerde feed |
-| **Edge Functions** | | |
-| `generate-product-feed/index.ts` | Nieuw | Multi-format feed generator |
-| `sync-meta-catalog/index.ts` | Nieuw | Facebook/Instagram sync |
-| `sync-google-merchant/index.ts` | Nieuw | Google Merchant Center (optioneel, kan ook via feed) |
-| **Hooks** | | |
-| `useSocialChannels.ts` | Nieuw | CRUD voor social channel connections |
-| **Updates** | | |
-| `Marketplaces.tsx` | Update | Tabs toevoegen voor social channels |
-| `ProductMarketplaceTab.tsx` | Update | Social channels sectie toevoegen |
-
-## UI Flow Samenvatting
-
-```text
-                    Merchant Journey
-                         │
-     ┌───────────────────┴───────────────────┐
-     │                                       │
-     ▼                                       ▼
-┌─────────────┐                       ┌─────────────┐
-│ SellQo      │                       │ Product     │
-│ Connect     │                       │ Detail      │
-│ Pagina      │                       │ Pagina      │
-└──────┬──────┘                       └──────┬──────┘
-       │                                     │
-       │ Kies kanaal                         │ Kies per product
-       │ + Verbind                           │ welke kanalen
-       ▼                                     ▼
-┌─────────────┐                       ┌─────────────┐
-│ Connect     │                       │ Checkbox    │
-│ Wizard      │                       │ per kanaal  │
-│ (OAuth/Feed)│                       │ ☑️ Google   │
-└──────┬──────┘                       │ ☑️ Facebook │
-       │                              └─────────────┘
-       ▼
-┌─────────────┐
-│ Feed URL of │
-│ API Sync    │
-│ actief      │
-└─────────────┘
-```
+Producten worden gesynchroniseerd bij:
+1. **Handmatige trigger**: Merchant klikt "Sync Nu"
+2. **Product wijziging**: Prijs, voorraad, beschrijving
+3. **Scheduled**: Dagelijkse volledige sync (cron job)
 
 ## Resultaat
 
-Na implementatie kan de merchant:
+Na deze implementatie:
 
-| Feature | Beschrijving |
-|---------|-------------|
-| **Google Shopping** | Producten in Google zoekresultaten |
-| **Facebook Shop** | Verkopen via Facebook pagina |
-| **Instagram Shop** | Taggen en verkopen in posts |
-| **Pinterest** | Product Pins voor inspiratie |
-| **WhatsApp Catalog** | Producten tonen in chats |
-| **Per-product selectie** | Kies welke producten waar verschijnen |
-| **Automatische feeds** | Realtime feed URLs voor elk platform |
-| **Centrale controle** | Alles beheren vanuit Sellqo |
+| Kanaal | Functionaliteit |
+|--------|-----------------|
+| **Facebook Shop** | Producten verschijnen automatisch in je Facebook Shop |
+| **Instagram Shop** | Producten kunnen getagd worden in posts/stories |
+| **WhatsApp Catalog** | Producten toonbaar in WhatsApp chats |
+| **Google Shopping** | Keuze: Feed (standaard) of API (realtime) |
+| **TikTok Shop** | Producten koppelbaar aan video's (waar beschikbaar) |
 
-De architectuur is schaalbaar: nieuwe kanalen kunnen eenvoudig worden toegevoegd door een nieuwe `SocialChannelType` en bijbehorende feed formatter.
-
+De merchant hoeft niet meer handmatig feeds te uploaden - alles wordt automatisch gesynchroniseerd vanuit SellQo.
