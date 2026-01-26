@@ -1,115 +1,296 @@
 
-# Automatische A6 PDF Cropping voor VVB Labels
+# Directe Labelprinter Integratie voor Sellqo
 
-## Probleem Analyse
+## Overzicht
 
-Zoals in je voorbeeld te zien is:
-- Bol.com levert labels als A4 PDF (210mm × 297mm)
-- Het feitelijke label is A6 formaat (~105mm × 148mm)
-- Het label staat **linksboven** gepositioneerd, niet gecentreerd
-- Dit vereist handmatig knippen, wat tijdrovend en irritant is
+Dit plan implementeert twee belangrijke functionaliteiten:
+1. **Directe labelprinter koppeling** via WebUSB API - print labels zonder browser dialoog
+2. **Labels ophalen van bestaande Sendcloud/MyParcel orders** - voor orders die al via die platforms zijn aangemaakt
 
-## Oplossing
+## Huidige Situatie
 
-Ik ga de `create-bol-vvb-label` Edge Function uitbreiden met automatische PDF cropping die:
+De app gebruikt momenteel:
+- `window.open(label_url, '_blank')` om labels te openen in een nieuw tabblad
+- `usePOSPrinter` hook met Web Print API voor kassabonnen (browser print dialoog)
+- Edge Functions voor label creatie (Sendcloud, MyParcel, Bol VVB)
+- Labels worden opgeslagen in `shipping_labels` tabel met `label_url`
 
-1. **Detecteert waar het label staat** (linksboven in dit geval)
-2. **Automatisch bijsnijdt** naar exact A6 formaat
-3. **Een print-klaar A6 PDF opslaat** die direct op A6 papier of labelprinter geprint kan worden
+## Deel 1: Directe Labelprinter Integratie
 
-## Technische Implementatie
+### Technische Aanpak
 
-### 1. Update Edge Function - PDF Cropping
+**WebUSB API** is de beste optie voor directe USB communicatie:
+- Werkt in Chrome/Edge (85%+ van zakelijke gebruikers)
+- Geen extra software nodig
+- Directe communicatie met printer
+- Ondersteunt Zebra ZPL, Dymo, Brother, TSC
 
-**Bestand:** `supabase/functions/create-bol-vvb-label/index.ts`
+### Nieuwe Bestanden
 
-Toevoegen van PDF cropping met `pdf-lib`:
-
+#### 1. `src/hooks/useLabelPrinter.ts`
 ```typescript
-import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
+// WebUSB communicatie met labelprinters
+// Ondersteunde printers:
+// - Zebra (ZPL commands)
+// - Dymo (LabelWriter)  
+// - Brother (QL series)
+// - TSC (TSPL)
 
-// Na het ophalen van de PDF van Bol.com:
-async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(pdfBytes);
-  const pages = pdfDoc.getPages();
-  const page = pages[0];
-  
-  // A6 dimensies in PDF points (1 inch = 72 points)
-  // A6 = 105mm × 148mm = 297.64 × 419.53 points
-  const A6_WIDTH = 297.64;
-  const A6_HEIGHT = 419.53;
-  
-  // Het label staat linksboven, dus we croppen vanaf daar
-  // MediaBox bepaalt de zichtbare pagina grenzen
-  const { width, height } = page.getSize();
-  
-  // Crop box: linksboven A6 gedeelte
-  // In PDF coördinaten is Y=0 onderaan, dus we berekenen vanaf boven
-  page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
-  page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
-  
-  // Maak nieuwe PDF met alleen het gecropte gedeelte
-  const newPdf = await PDFDocument.create();
-  const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
-  newPdf.addPage(copiedPage);
-  
-  return await newPdf.save();
+interface LabelPrinter {
+  id: string;
+  name: string;
+  vendorId: number;
+  productId: number;
+  protocol: 'zpl' | 'epl' | 'raw' | 'tspl';
 }
+
+// Functies:
+// - detectPrinters(): Promise<LabelPrinter[]>
+// - connectPrinter(printer: LabelPrinter): Promise<boolean>
+// - printLabel(pdfUrl: string, options?: PrintOptions): Promise<boolean>
+// - printLabelDirect(data: Uint8Array): Promise<boolean>
+// - isSupported: boolean (browser check)
 ```
 
-### 2. UI Settings Uitbreiding
-
-**Bestand:** `src/components/admin/marketplace/BolVVBSettings.tsx`
-
-Toevoegen van labelformaat keuze:
-
+#### 2. `src/components/admin/settings/LabelPrinterSettings.tsx`
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Labelformaat                                                   │
+│  Labelprinter Instellingen                                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ○ A4 Origineel (handmatig knippen nodig)                      │
-│  ● A6 Automatisch bijgesneden (aanbevolen)                     │
+│  🖨️ Gekoppelde Printer                                          │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Zebra GK420d                              [Ontkoppelen]  │  │
+│  │  Status: Verbonden ✓                                      │  │
+│  │  Laatste print: 2 minuten geleden                         │  │
+│  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
-│  ℹ️ A6 labels kunnen direct op een labelprinter of A6 papier   │
-│     geprint worden zonder knippen.                              │
+│  Labelformaat                                                   │
+│  ○ A6 (105 × 148 mm) - Standaard verzendlabel                  │
+│  ○ 4x6 inch (102 × 152 mm) - US standaard                      │
+│  ○ Brother 62mm breed                                           │
+│                                                                 │
+│  Print methode                                                  │
+│  ● Direct printen (WebUSB) - Aanbevolen                        │
+│  ○ Browser print dialoog - Fallback                             │
+│                                                                 │
+│  [Detecteer Printers]  [Test Print]                             │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Type Uitbreiding
+### Wijzigingen aan Bestaande Bestanden
 
-**Bestand:** `src/types/marketplace.ts`
+#### 3. `src/components/admin/BolActionsCard.tsx`
+Toevoegen van "Direct Printen" knop naast "Download Label":
 
-```typescript
-export interface MarketplaceSettings {
-  // ... bestaande velden ...
-  vvbLabelFormat?: 'a4_original' | 'a6_cropped';  // Label output formaat
+```tsx
+// Nieuwe imports
+import { useLabelPrinter } from '@/hooks/useLabelPrinter';
+
+// In component
+const { printLabel, isConnected, isSupported } = useLabelPrinter();
+
+// Nieuwe knop
+{latestLabel.label_url && (
+  <div className="flex gap-2">
+    {isConnected && (
+      <Button
+        variant="default"
+        size="sm"
+        className="flex-1"
+        onClick={() => printLabel(latestLabel.label_url!)}
+      >
+        <Printer className="h-4 w-4 mr-2" />
+        Print Label
+      </Button>
+    )}
+    <Button
+      variant="outline"
+      size="sm"
+      className={isConnected ? '' : 'w-full'}
+      onClick={() => window.open(latestLabel.label_url!, '_blank')}
+    >
+      <Download className="h-4 w-4 mr-2" />
+      Download
+    </Button>
+  </div>
+)}
+```
+
+#### 4. Database uitbreiding
+Toevoegen aan `shipping_integrations.settings`:
+```json
+{
+  "labelPrinter": {
+    "enabled": true,
+    "vendorId": 2655,
+    "productId": 14,
+    "protocol": "zpl",
+    "labelFormat": "a6"
+  }
 }
 ```
 
-## Wijzigingen Overzicht
+## Deel 2: Labels Ophalen van Sendcloud/MyParcel
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/create-bol-vvb-label/index.ts` | PDF cropping logica met pdf-lib |
-| `src/types/marketplace.ts` | `vvbLabelFormat` toevoegen |
-| `src/components/admin/marketplace/BolVVBSettings.tsx` | Labelformaat radio buttons |
+### Probleem
+Sommige orders worden buiten Sellqo om aangemaakt in Sendcloud/MyParcel. We willen deze labels kunnen ophalen en koppelen.
 
-## Resultaat
+### Oplossing
 
-✅ **Geen knippen meer nodig** - Labels komen er direct als A6 uit
-✅ **Labelprinter compatibel** - Direct printen op Dymo, Zebra, etc.
-✅ **Instelbaar** - Je kunt kiezen tussen A4 origineel of A6 bijgesneden
-✅ **Automatisch** - Werkt voor alle VVB labels zonder extra handelingen
+#### 1. Nieuwe Edge Function: `fetch-external-label`
+
+```typescript
+// supabase/functions/fetch-external-label/index.ts
+// 
+// Haalt bestaande labels op van Sendcloud of MyParcel
+// op basis van ordernummer of trackingnummer
+
+// Sendcloud API:
+// GET /parcels?order_number={orderNumber}
+// Response bevat label.normal_printer URL
+
+// MyParcel API:  
+// GET /shipments?reference_identifier={orderNumber}
+// Response bevat barcode, moet daarna PDF ophalen via
+// GET /shipments/{id}/download_labels
+
+// Flow:
+// 1. Zoek parcel/shipment op ordernummer
+// 2. Download PDF label
+// 3. Sla op in Supabase Storage (met A6 cropping optie)
+// 4. Maak shipping_labels record aan
+```
+
+#### 2. UI Component: `FetchExternalLabelDialog.tsx`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Label ophalen van externe provider                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Provider                                                       │
+│  [Sendcloud ▼]                                                  │
+│                                                                 │
+│  Zoeken op                                                      │
+│  ○ Ordernummer: #0042                                           │
+│  ○ Trackingnummer: ___________________________                  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  ⚠️ Let op: Dit haalt een bestaand label op dat al is     │  │
+│  │  aangemaakt in Sendcloud. Het label wordt niet opnieuw    │  │
+│  │  gegenereerd.                                              │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│                               [Annuleren]  [Label Ophalen]       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Integratie in OrderDetail
+
+De `BolActionsCard` wordt uitgebreid of er komt een generieke `ShippingActionsCard` die werkt voor alle orders:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  📦 Verzending                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Geen label gekoppeld                                           │
+│                                                                 │
+│  [+ Nieuw Label Aanmaken]                                       │
+│  [↓ Bestaand Label Ophalen] ← Nieuw!                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Implementatie Overzicht
+
+| Bestand | Type | Beschrijving |
+|---------|------|--------------|
+| `src/hooks/useLabelPrinter.ts` | Nieuw | WebUSB hook voor directe printercommunicatie |
+| `src/components/admin/settings/LabelPrinterSettings.tsx` | Nieuw | Printer configuratie UI |
+| `supabase/functions/fetch-external-label/index.ts` | Nieuw | Ophalen labels van Sendcloud/MyParcel |
+| `src/components/admin/FetchExternalLabelDialog.tsx` | Nieuw | Dialog voor label ophalen |
+| `src/components/admin/BolActionsCard.tsx` | Update | Print knop + fetch optie |
+| `src/components/admin/ShippingActionsCard.tsx` | Nieuw | Generieke verzendacties voor alle orders |
+| `src/pages/admin/Shipping.tsx` | Update | Link naar printer settings |
+| `src/types/shippingIntegration.ts` | Update | Printer configuratie types |
+
+## Browser Compatibiliteit
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  WebUSB Ondersteuning                                          │
+├────────────────────────────────────────────────────────────────┤
+│  ✓ Chrome 61+        │  ✓ Edge 79+        │  ✗ Safari          │
+│  ✓ Chrome Android    │  ✗ Firefox         │  ✓ Opera 48+       │
+└────────────────────────────────────────────────────────────────┘
+
+Fallback: Als WebUSB niet beschikbaar is, toont de app 
+automatisch de "Download" optie met browser print dialoog.
+```
 
 ## Technische Details
 
-De cropping werkt als volgt:
-1. Bol.com PDF wordt ontvangen (A4, label linksboven)
-2. `pdf-lib` laadt de PDF
-3. CropBox wordt ingesteld op de linkerbovenhoek (A6 formaat)
-4. Nieuwe PDF wordt gegenereerd met alleen het label
-5. A6 PDF wordt opgeslagen in storage
+### WebUSB Printer Protocol
 
-Dit is **volledig server-side** dus er is geen impact op de gebruikerservaring - je krijgt gewoon een nette A6 PDF in plaats van een A4 met lege ruimte.
+```typescript
+// Zebra ZPL voorbeeld voor A6 label
+const ZPL_TEMPLATE = `
+^XA
+^FO50,50^A0N,40,40^FD${shipmentInfo.name}^FS
+^FO50,100^A0N,30,30^FD${shipmentInfo.address}^FS
+^FO50,140^A0N,30,30^FD${shipmentInfo.postalCode} ${shipmentInfo.city}^FS
+^BY3,2,100
+^FO50,200^BC^FD${trackingNumber}^FS
+^XZ
+`;
+
+// Of direct PDF bytes sturen naar printer
+async function printPdfToZebra(pdfBytes: Uint8Array) {
+  const device = await navigator.usb.requestDevice({
+    filters: [{ vendorId: 0x0A5F }] // Zebra
+  });
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  await device.transferOut(1, pdfBytes);
+  await device.close();
+}
+```
+
+### Sendcloud Label Fetch API
+
+```typescript
+// GET https://panel.sendcloud.sc/api/v2/parcels?order_number=0042
+// Response:
+{
+  "parcels": [{
+    "id": 123456,
+    "tracking_number": "3STEST123456",
+    "label": {
+      "label_printer": "https://panel.sendcloud.sc/api/v2/labels/label_printer/123456"
+    }
+  }]
+}
+```
+
+### MyParcel Label Fetch API
+
+```typescript
+// GET https://api.myparcel.nl/shipments?reference_identifier=0042
+// Response bevat shipment ID
+
+// GET https://api.myparcel.nl/shipment_labels/{id}
+// Response: PDF binary
+```
+
+## Resultaat
+
+- **Direct printen vanuit Sellqo** - Geen browser dialoog, 1-click printing
+- **Bestaande labels ophalen** - Sync met Sendcloud/MyParcel orders die extern zijn aangemaakt  
+- **Fallback mechanisme** - Altijd werkend, zelfs zonder WebUSB support
+- **Configureerbaar** - Printer type, labelformaat, print methode instelbaar
+- **A6 cropping** - Automatisch bijsnijden ook voor opgehaalde labels
