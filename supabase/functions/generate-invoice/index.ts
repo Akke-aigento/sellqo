@@ -1065,7 +1065,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id } = await req.json();
+    const { order_id, auto_send_email } = await req.json();
     if (!order_id) {
       throw new Error("order_id is required");
     }
@@ -1373,6 +1373,34 @@ serve(async (req) => {
       taxBreakdown: taxBreakdown.length
     });
 
+    // Auto-send email if requested
+    if (auto_send_email && invoice.id) {
+      logStep("Auto-sending invoice email", { invoice_id: invoice.id });
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ invoice_id: invoice.id }),
+        });
+        
+        if (!emailResponse.ok) {
+          logStep("Warning: Failed to auto-send invoice email", { 
+            status: emailResponse.status 
+          });
+        } else {
+          logStep("Invoice email sent automatically");
+        }
+      } catch (emailError: any) {
+        logStep("Warning: Error auto-sending invoice email", { 
+          message: emailError.message 
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       invoice_id: invoice.id,
@@ -1381,6 +1409,7 @@ serve(async (req) => {
       ubl_url: ublUrl,
       ogm_reference: ogmReference,
       has_facturx: true,
+      email_sent: auto_send_email || false,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

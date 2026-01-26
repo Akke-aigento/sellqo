@@ -16,6 +16,7 @@ import {
   Mail,
   Globe,
   Banknote,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +35,7 @@ import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
 import { NewsletterSettings } from '@/components/admin/storefront/NewsletterSettings';
 import { DomainSettings } from '@/components/admin/settings/DomainSettings';
 import { TransactionFeeSettings } from '@/components/admin/settings/TransactionFeeSettings';
+import { InvoiceAutomationSettings } from '@/components/admin/settings/InvoiceAutomationSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -78,6 +80,7 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'tax', title: 'BTW instellingen', icon: Receipt, component: TaxSettings },
       { id: 'vat_rates', title: 'BTW Tarieven', icon: Percent, component: VatRatesSettings },
+      { id: 'invoicing', title: 'Automatische Facturatie', icon: FileText, component: InvoiceAutomationSettings },
       { id: 'peppol', title: 'Peppol & E-facturatie', icon: Network, component: PeppolSettings },
       { id: 'compliance', title: 'Compliance', icon: FileCheck, component: InvoiceComplianceCard },
     ],
