@@ -65,8 +65,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useMarketplaceConnection, useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
-import { MARKETPLACE_INFO } from '@/types/marketplace';
+import { MARKETPLACE_INFO, type MarketplaceSettings } from '@/types/marketplace';
 import { SyncRulesTab } from '@/components/admin/marketplace/SyncRulesTab';
+import { BolVVBSettings } from '@/components/admin/marketplace/BolVVBSettings';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -677,6 +678,24 @@ export default function MarketplaceDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* VVB Settings - only for Bol.com */}
+            {connection.marketplace_type === 'bol_com' && (
+              <BolVVBSettings
+                settings={connection.settings}
+                onSettingsChange={(updates) => {
+                  updateConnection.mutate({
+                    id: connection.id,
+                    updates: {
+                      settings: {
+                        ...connection.settings,
+                        ...updates,
+                      },
+                    },
+                  });
+                }}
+              />
+            )}
 
             <Card>
               <CardHeader>

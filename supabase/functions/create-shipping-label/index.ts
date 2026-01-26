@@ -46,10 +46,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fetch order with customer info
+    // Fetch order with customer info and order items
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("*, customer:customers(*)")
+      .select("*, customer:customers(*), order_items(*)")
       .eq("id", order_id)
       .single();
 
@@ -58,6 +58,59 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Order not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Check if this is a Bol.com order with VVB settings
+    if (order.marketplace_source === 'bol_com' && order.marketplace_connection_id) {
+      const { data: marketplaceConnection } = await supabase
+        .from("marketplace_connections")
+        .select("settings")
+        .eq("id", order.marketplace_connection_id)
+        .single();
+
+      const mpSettings = marketplaceConnection?.settings as {
+        vvbEnabled?: boolean;
+        vvbMaxAmount?: number;
+        vvbFallbackProvider?: string;
+        autoConfirmShipment?: boolean;
+      } | null;
+
+      if (mpSettings?.vvbEnabled) {
+        const maxAmount = mpSettings.vvbMaxAmount || 0;
+        const orderTotal = order.total || 0;
+
+        // If order is under VVB max amount, use VVB labels
+        if (orderTotal <= maxAmount) {
+          console.log(`Order ${order.order_number} (€${orderTotal}) <= VVB max (€${maxAmount}), using VVB`);
+          
+          // Call the VVB label function
+          const vvbResponse = await fetch(
+            `${supabaseUrl}/functions/v1/create-bol-vvb-label`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${supabaseServiceKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ order_id }),
+            }
+          );
+
+          const vvbResult = await vvbResponse.json();
+          
+          if (vvbResult.success) {
+            return new Response(
+              JSON.stringify(vvbResult),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          } else {
+            // VVB failed, fall through to regular providers
+            console.log(`VVB label failed for ${order.order_number}, falling back to regular provider`);
+          }
+        } else {
+          console.log(`Order ${order.order_number} (€${orderTotal}) > VVB max (€${maxAmount}), using fallback`);
+        }
+      }
     }
 
     // Fetch integration - either specified or default active one
@@ -325,6 +378,51 @@ const handler = async (req: Request): Promise<Response> => {
           fulfillment_status: "shipped",
         })
         .eq("id", order.id);
+
+      // Auto-confirm to Bol.com if enabled and this is a Bol.com order
+      if (order.marketplace_source === 'bol_com' && order.marketplace_connection_id) {
+        const { data: marketplaceConnection } = await supabase
+          .from("marketplace_connections")
+          .select("settings")
+          .eq("id", order.marketplace_connection_id)
+          .single();
+
+        const mpSettings = marketplaceConnection?.settings as {
+          autoConfirmShipment?: boolean;
+        } | null;
+
+        if (mpSettings?.autoConfirmShipment) {
+          console.log(`Auto-confirming shipment to Bol.com for order ${order.order_number}`);
+          
+          try {
+            const confirmResponse = await fetch(
+              `${supabaseUrl}/functions/v1/confirm-bol-shipment`,
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${supabaseServiceKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  order_id: order.id,
+                  tracking_number: labelResult.tracking_number,
+                  carrier: labelResult.carrier || carrier,
+                  tracking_url: labelResult.tracking_url,
+                }),
+              }
+            );
+
+            const confirmResult = await confirmResponse.json();
+            if (!confirmResult.success) {
+              console.error("Failed to auto-confirm to Bol.com:", confirmResult.error);
+            } else {
+              console.log(`Successfully confirmed shipment to Bol.com for order ${order.order_number}`);
+            }
+          } catch (confirmError) {
+            console.error("Error auto-confirming to Bol.com:", confirmError);
+          }
+        }
+      }
 
       return new Response(
         JSON.stringify({
