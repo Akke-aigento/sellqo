@@ -30,7 +30,10 @@ import {
   TrendingUp,
   Sparkles,
   LucideIcon,
+  PackageCheck,
 } from 'lucide-react';
+
+import type { AppRole } from '@/hooks/useAuth';
 
 export interface NavItem {
   id: string;
@@ -39,6 +42,8 @@ export interface NavItem {
   icon?: LucideIcon;
   children?: NavItem[];
   featureKey?: string; // For subscription-based hiding
+  allowedRoles?: AppRole[]; // Which roles CAN see this item
+  excludeRoles?: AppRole[]; // Which roles CANNOT see this item
 }
 
 export interface NavGroup {
@@ -47,9 +52,20 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+// Items that warehouse users are allowed to see
+export const WAREHOUSE_ALLOWED_ITEMS = [
+  'dashboard',
+  'fulfillment',
+  'orders',
+  'orders-all',
+  'products',
+  'integrations-shipping',
+];
+
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
+  { id: 'fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', icon: PackageCheck },
   {
     id: 'orders',
     title: 'Bestellingen',
@@ -57,14 +73,14 @@ const dailyItems: NavItem[] = [
     icon: ShoppingCart,
     children: [
       { id: 'orders-all', title: 'Alle bestellingen', url: '/admin/orders' },
-      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes' },
-      { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices' },
-      { id: 'orders-creditnotes', title: "Creditnota's", url: '/admin/orders/creditnotes' },
-      { id: 'orders-subscriptions', title: 'Abonnementen', url: '/admin/orders/subscriptions' },
+      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse'] },
+      { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse'] },
+      { id: 'orders-creditnotes', title: "Creditnota's", url: '/admin/orders/creditnotes', excludeRoles: ['warehouse'] },
+      { id: 'orders-subscriptions', title: 'Abonnementen', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse'] },
     ],
   },
   { id: 'products', title: 'Producten', url: '/admin/products', icon: Package },
-  { id: 'customers', title: 'Klanten', url: '/admin/customers', icon: Users },
+  { id: 'customers', title: 'Klanten', url: '/admin/customers', icon: Users, excludeRoles: ['warehouse'] },
 ];
 
 // VERKOOP - Verkoopgerelateerde functies

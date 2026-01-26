@@ -1840,6 +1840,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customer_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_messages_quote_id_fkey"
             columns: ["quote_id"]
             isOneToOne: false
@@ -2161,6 +2168,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "digital_deliveries_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "digital_deliveries_product_file_id_fkey"
             columns: ["product_file_id"]
             isOneToOne: false
@@ -2214,6 +2228,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_code_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
         ]
@@ -2892,6 +2913,56 @@ export type Database = {
           },
         ]
       }
+      fulfillment_api_keys: {
+        Row: {
+          api_key: string
+          api_secret: string | null
+          created_at: string | null
+          id: string
+          ip_whitelist: string[] | null
+          is_active: boolean | null
+          last_used_at: string | null
+          name: string
+          permissions: Json | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_key: string
+          api_secret?: string | null
+          created_at?: string | null
+          id?: string
+          ip_whitelist?: string[] | null
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name: string
+          permissions?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_secret?: string | null
+          created_at?: string | null
+          id?: string
+          ip_whitelist?: string[] | null
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          permissions?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fulfillment_api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_card_designs: {
         Row: {
           created_at: string
@@ -2980,6 +3051,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
         ]
@@ -3076,6 +3154,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
           {
@@ -3848,6 +3933,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
@@ -4141,6 +4233,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
         ]
@@ -4722,6 +4821,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -5031,6 +5137,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packing_slips_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
           {
@@ -5805,6 +5918,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
           {
@@ -6905,6 +7025,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "quotes_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -7648,6 +7775,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shipping_labels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shipping_labels_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -7793,6 +7927,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_status_updates_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
             referencedColumns: ["id"]
           },
           {
@@ -9945,6 +10086,132 @@ export type Database = {
           },
         ]
       }
+      order_items_warehouse: {
+        Row: {
+          id: string | null
+          order_id: string | null
+          product_id: string | null
+          product_image: string | null
+          product_name: string | null
+          product_sku: string | null
+          quantity: number | null
+        }
+        Insert: {
+          id?: string | null
+          order_id?: string | null
+          product_id?: string | null
+          product_image?: string | null
+          product_name?: string | null
+          product_sku?: string | null
+          quantity?: number | null
+        }
+        Update: {
+          id?: string | null
+          order_id?: string | null
+          product_id?: string | null
+          product_image?: string | null
+          product_name?: string | null
+          product_sku?: string | null
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders_warehouse: {
+        Row: {
+          carrier: string | null
+          created_at: string | null
+          customer_name: string | null
+          delivered_at: string | null
+          delivery_type: string | null
+          fulfillment_status: string | null
+          id: string | null
+          marketplace_order_id: string | null
+          marketplace_source: string | null
+          order_number: string | null
+          service_point_data: Json | null
+          service_point_id: string | null
+          shipped_at: string | null
+          shipping_address: Json | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          tenant_id: string | null
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          carrier?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          delivery_type?: string | null
+          fulfillment_status?: string | null
+          id?: string | null
+          marketplace_order_id?: string | null
+          marketplace_source?: string | null
+          order_number?: string | null
+          service_point_data?: Json | null
+          service_point_id?: string | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          tenant_id?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          carrier?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          delivery_type?: string | null
+          fulfillment_status?: string | null
+          id?: string | null
+          marketplace_order_id?: string | null
+          marketplace_source?: string | null
+          order_number?: string | null
+          service_point_data?: Json | null
+          service_point_id?: string | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          tenant_id?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_ai_credits: {
@@ -9968,6 +10235,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: string
       }
+      generate_fulfillment_api_key: { Args: never; Returns: string }
       generate_gift_card_code: { Args: never; Returns: string }
       generate_invoice_number: { Args: { _tenant_id: string }; Returns: string }
       generate_order_number: { Args: { _tenant_id: string }; Returns: string }
@@ -9981,6 +10249,10 @@ export type Database = {
         Returns: string
       }
       generate_quote_number: { Args: { _tenant_id: string }; Returns: string }
+      get_user_highest_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -10010,6 +10282,7 @@ export type Database = {
         Returns: undefined
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_warehouse_user: { Args: { _user_id: string }; Returns: boolean }
       log_admin_action: {
         Args: {
           p_action_details?: Json

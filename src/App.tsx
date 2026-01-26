@@ -63,8 +63,8 @@ import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
 import TranslationHub from "./pages/admin/TranslationHub";
 import StorefrontPage from "./pages/admin/Storefront";
+import FulfillmentPage from "./pages/admin/Fulfillment";
 
-// Public Storefront Pages
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
 import ShopProductDetail from "./pages/storefront/ShopProductDetail";
@@ -112,6 +112,7 @@ const App = () => (
               </ProtectedRoute>
             }>
               <Route index element={<AdminDashboard />} />
+              <Route path="fulfillment" element={<FulfillmentPage />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/new" element={<ProductForm />} />
 <Route path="products/:id/edit" element={<ProductForm />} />

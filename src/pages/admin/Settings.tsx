@@ -36,6 +36,7 @@ import { NewsletterSettings } from '@/components/admin/storefront/NewsletterSett
 import { DomainSettings } from '@/components/admin/settings/DomainSettings';
 import { TransactionFeeSettings } from '@/components/admin/settings/TransactionFeeSettings';
 import { InvoiceAutomationSettings } from '@/components/admin/settings/InvoiceAutomationSettings';
+import { FulfillmentAPISettings } from '@/components/admin/settings/FulfillmentAPISettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -102,6 +103,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
       { id: 'notifications', title: 'Notificaties', icon: Bell, component: NotificationSettings },
+      { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
     ],
   },
 ];
