@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, ArrowLeft, Library } from 'lucide-react';
+import { Bot, ArrowLeft, Library, Calendar, ImageIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,9 @@ import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchas
 import { InlinePromoWizard } from '@/components/admin/marketing/InlinePromoWizard';
 import { AdvancedToolsGrid } from '@/components/admin/marketing/AdvancedToolsGrid';
 import { RecentContentStrip } from '@/components/admin/marketing/RecentContentStrip';
+import { ContentCalendar } from '@/components/admin/marketing/ContentCalendar';
+import { ContentHistoryList } from '@/components/admin/marketing/ContentHistoryList';
+import { MediaAssetsLibrary } from '@/components/admin/marketing/MediaAssetsLibrary';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
@@ -93,13 +96,21 @@ export default function AIMarketingHub() {
 
         {/* Minimal Tabs: Create | Library */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="w-full max-w-xs">
+          <TabsList className="w-full max-w-md">
             <TabsTrigger value="create" className="flex-1">
               Creëren
             </TabsTrigger>
-            <TabsTrigger value="library" className="flex-1 gap-2">
+            <TabsTrigger value="calendar" className="flex-1 gap-1.5">
+              <Calendar className="h-4 w-4" />
+              Agenda
+            </TabsTrigger>
+            <TabsTrigger value="library" className="flex-1 gap-1.5">
               <Library className="h-4 w-4" />
-              Bibliotheek
+              Historiek
+            </TabsTrigger>
+            <TabsTrigger value="assets" className="flex-1 gap-1.5">
+              <ImageIcon className="h-4 w-4" />
+              Assets
             </TabsTrigger>
           </TabsList>
 
@@ -121,9 +132,19 @@ export default function AIMarketingHub() {
             <AdvancedToolsGrid />
           </TabsContent>
 
-          {/* Library Tab */}
+          {/* Calendar Tab */}
+          <TabsContent value="calendar">
+            <ContentCalendar />
+          </TabsContent>
+
+          {/* Library/History Tab */}
           <TabsContent value="library">
-            <AIContentLibrary />
+            <ContentHistoryList />
+          </TabsContent>
+
+          {/* Assets Tab */}
+          <TabsContent value="assets">
+            <MediaAssetsLibrary />
           </TabsContent>
         </Tabs>
 
