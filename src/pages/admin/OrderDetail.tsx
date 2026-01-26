@@ -20,6 +20,7 @@ import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
 import { TrackingInfoCard } from '@/components/admin/TrackingInfoCard';
 import { ServicePointCard } from '@/components/admin/ServicePointCard';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
+import { BolActionsCard } from '@/components/admin/BolActionsCard';
 import type { OrderStatus, PaymentStatus } from '@/types/order';
 import type { ServicePointData } from '@/types/servicePoint';
 import { useState } from 'react';
@@ -341,6 +342,9 @@ export default function OrderDetailPage() {
 
           {/* Tracking Info */}
           <TrackingInfoCard order={order} />
+
+          {/* Bol.com Actions - Only shown for Bol.com orders */}
+          <BolActionsCard order={order} />
 
           {/* Service Point Info - Show if delivery_type is service_point */}
           {order.delivery_type === 'service_point' && order.service_point_data && (
