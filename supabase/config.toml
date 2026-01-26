@@ -173,3 +173,6 @@ verify_jwt = false
 
 [functions.newsletter-test-connection]
 verify_jwt = false
+
+[functions.verify-domain]
+verify_jwt = false
