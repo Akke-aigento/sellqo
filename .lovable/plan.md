@@ -1,257 +1,202 @@
 
-# Implementatieplan: Bol.com Auto-Acceptatie, Amazon Buy Shipping & Batch Label Printing
+# Implementatieplan: Automatische Facturatie voor Alle Kanalen
 
 ## Overzicht
 
-Dit plan implementeert drie belangrijke functionaliteiten:
-1. **Auto-acceptatie toggle voor Bol.com orders** - Orders automatisch accepteren via Bol.com API
-2. **Amazon Buy Shipping integratie** - Labels genereren via Amazon's verzend-API
-3. **Batch label printing** - Meerdere labels tegelijk printen
+Dit plan implementeert automatische facturatie voor **alle verkoopkanalen**:
+1. **Marketplace orders** (Bol.com, Amazon, Shopify, WooCommerce) - factuur bij import
+2. **Webshop bankoverschrijvingen** - factuur bij markeren als "betaald"
+3. **POS bankoverschrijvingen** - factuur bij afhandeling
 
 ---
 
-## Deel 1: Auto-Acceptatie Toggle voor Bol.com
+## Huidige Situatie
 
-### Huidige Situatie
+| Kanaal | Automatische Factuur | Status |
+|--------|---------------------|--------|
+| Webshop (Stripe) | ✅ Ja | Via `stripe-connect-webhook` |
+| Webshop (Bankoverschrijving) | ❌ Nee | Order blijft op "awaiting_payment" |
+| Bol.com | ❌ Nee | Orders geïmporteerd als "paid" |
+| Amazon | ❌ Nee | Orders geïmporteerd als "paid" |
+| Shopify | ❌ Nee | Orders geïmporteerd als "paid" |
+| WooCommerce | ❌ Nee | Orders geïmporteerd als "paid" |
+| POS (Cash/Pin) | ✅ Ja | Via bon/kassaticket (geen factuur nodig tenzij B2B) |
+| POS (Bankoverschrijving) | ❌ Nee | Handmatige flow |
 
-| Functie | Status |
-|---------|--------|
-| `autoConfirmShipment` - Verzendbevestiging met T&T | ✅ Geïmplementeerd |
-| `autoAcceptOrder` - Order accepteren bij import | ❌ Ontbreekt |
+---
 
-De `sync-bol-orders` functie importeert orders, maar roept de Bol.com Accept Order API niet aan.
+## Oplossingsarchitectuur
 
-### Implementatie
+### Aanpak 1: Database Trigger (Aanbevolen)
 
-#### 1.1 Type Uitbreiding
-**Bestand:** `src/types/marketplace.ts`
+Een PostgreSQL trigger die automatisch de `generate-invoice` functie aanroept wanneer:
+- Een order `payment_status` wijzigt naar `paid`
+- EN er nog geen factuur bestaat voor deze order
 
-Toevoegen aan `MarketplaceSettings`:
-```typescript
-autoAcceptOrder?: boolean;  // Automatisch orders accepteren bij import
-```
-
-#### 1.2 UI Component Update
-**Bestand:** `src/components/admin/marketplace/BolVVBSettings.tsx`
-
-Nieuwe sectie toevoegen voor order acceptatie:
+Dit dekt **alle scenario's** in één keer:
+- Bankoverschrijvingen die handmatig op "betaald" worden gezet
+- Marketplace orders die bij import als "paid" binnenkomen
+- Toekomstige betaalmethodes
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  📦 Order Verwerking                                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Automatische order acceptatie                     [Toggle]     │
-│  Orders worden automatisch geaccepteerd bij                     │
-│  import vanuit Bol.com                                          │
-│                                                                 │
-│  ⚠️ Let op: Geaccepteerde orders kunnen niet meer             │
-│  worden geweigerd via Bol.com                                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Order Update   │────▶│  Trigger:        │────▶│  generate-      │
+│  payment_status │     │  auto_invoice    │     │  invoice        │
+│  = 'paid'       │     │                  │     │                 │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                               │
+                               ▼
+                        Check: tenant.auto_generate_invoice = true
+                        Check: no existing invoice for order
 ```
 
-#### 1.3 Edge Function: Accept Order API
-**Bestand:** `supabase/functions/accept-bol-order/index.ts` (Nieuw)
+### Aanpak 2: Per-Sync Functie Uitbreiding
 
-```typescript
-// Bol.com Accept Order API
-// PUT /retailer/orders/{order-id}/accept
-//
-// Request body:
-// {
-//   "orderItems": [{
-//     "orderItemId": "123",
-//     "quantity": 1
-//   }]
-// }
-//
-// Response: Process status URL voor tracking
+Alternatief: in elke sync-functie (sync-bol-orders, sync-amazon-orders, etc.) de `generate-invoice` aanroepen.
+
+**Nadeel**: Duplicatie, bankoverschrijvingen niet gedekt.
+
+---
+
+## Implementatie
+
+### Deel 1: Tenant Setting
+
+**Nieuw veld in `tenants` tabel:**
+
+```sql
+ALTER TABLE tenants ADD COLUMN auto_generate_invoice BOOLEAN DEFAULT true;
+ALTER TABLE tenants ADD COLUMN auto_send_invoice_email BOOLEAN DEFAULT false;
 ```
 
-#### 1.4 Sync Function Update
-**Bestand:** `supabase/functions/sync-bol-orders/index.ts`
+- `auto_generate_invoice`: Automatisch factuur aanmaken bij betaalde orders
+- `auto_send_invoice_email`: Factuur direct e-mailen naar klant
 
-Na succesvol importeren van een order, checken op `autoAcceptOrder` setting:
+### Deel 2: Database Trigger voor Auto-Facturatie
+
+**Nieuwe Edge Function:** `auto-generate-invoice-on-paid`
+
+Deze functie wordt aangeroepen via een PostgreSQL trigger wanneer:
+1. `payment_status` wijzigt naar `paid`
+2. OF een nieuwe order wordt aangemaakt met `payment_status = 'paid'`
+
+**Trigger logica:**
+
+```sql
+CREATE OR REPLACE FUNCTION public.trigger_auto_invoice()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant RECORD;
+  v_existing_invoice UUID;
+BEGIN
+  -- Alleen triggeren als payment_status 'paid' wordt
+  IF NEW.payment_status = 'paid' AND 
+     (TG_OP = 'INSERT' OR OLD.payment_status IS DISTINCT FROM 'paid') THEN
+    
+    -- Check tenant settings
+    SELECT auto_generate_invoice, auto_send_invoice_email 
+    INTO v_tenant
+    FROM tenants WHERE id = NEW.tenant_id;
+    
+    IF v_tenant.auto_generate_invoice = true THEN
+      -- Check of factuur al bestaat
+      SELECT id INTO v_existing_invoice 
+      FROM invoices WHERE order_id = NEW.id LIMIT 1;
+      
+      IF v_existing_invoice IS NULL THEN
+        -- Queue invoice generation via pg_net
+        PERFORM net.http_post(
+          url := current_setting('app.supabase_url') || '/functions/v1/generate-invoice',
+          headers := jsonb_build_object(
+            'Authorization', 'Bearer ' || current_setting('app.service_role_key'),
+            'Content-Type', 'application/json'
+          ),
+          body := jsonb_build_object(
+            'order_id', NEW.id,
+            'auto_send_email', v_tenant.auto_send_invoice_email
+          )
+        );
+      END IF;
+    END IF;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+```
+
+**Alternatieve aanpak (zonder pg_net):** 
+Een cron-job die elke minuut controleert op betaalde orders zonder factuur.
+
+### Deel 3: Generate-Invoice Update
+
+**Bestand:** `supabase/functions/generate-invoice/index.ts`
+
+Toevoegen van `auto_send_email` parameter:
 
 ```typescript
-// Na order insert (regel ~334)
-if (settings.autoAcceptOrder) {
-  await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
+// Request body extensie
+interface GenerateInvoiceRequest {
+  order_id: string;
+  auto_send_email?: boolean;  // Nieuw
+}
+
+// Na succesvolle generatie:
+if (auto_send_email && invoiceId) {
+  await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${serviceKey}` },
-    body: JSON.stringify({
-      order_id: newOrder.id,
-      connection_id: connection.id
-    })
+    headers: { 'Authorization': `Bearer ${serviceKey}` },
+    body: JSON.stringify({ invoice_id: invoiceId })
   });
 }
 ```
 
----
+### Deel 4: Admin UI Settings
 
-## Deel 2: Amazon Buy Shipping Integratie
+**Bestand:** `src/pages/admin/SettingsPage.tsx` of nieuwe component
 
-### Wat is Amazon Buy Shipping?
-
-Amazon Buy Shipping is vergelijkbaar met Bol.com VVB:
-- Labels genereren via Amazon's API
-- Goedkopere tarieven via Amazon's contracten
-- Automatische tracking updates
-- Werkt alleen voor MFN (Merchant Fulfilled) orders
-
-### API Endpoints
-
-| Endpoint | Beschrijving |
-|----------|--------------|
-| `GET /mfn/v0/eligibleShippingServices` | Beschikbare verzendopties ophalen |
-| `POST /mfn/v0/shipments` | Verzending aanmaken + label genereren |
-| `GET /mfn/v0/shipments/{shipmentId}` | Verzending status ophalen |
-
-### Implementatie
-
-#### 2.1 Nieuwe Edge Function
-**Bestand:** `supabase/functions/create-amazon-buy-shipping-label/index.ts`
-
-Functionaliteit:
-1. Order ophalen uit database
-2. Marketplace connection credentials ophalen
-3. Eligible shipping services ophalen van Amazon
-4. Goedkoopste/snelste optie selecteren
-5. Shipment aanmaken + label genereren
-6. Label opslaan in Supabase Storage
-7. `shipping_labels` record aanmaken
-8. Order status updaten
-
-```text
-Flow:
-┌──────────┐     ┌───────────────────┐     ┌──────────────────┐
-│  Order   │────▶│ Get Eligible      │────▶│ Create Shipment  │
-│  Detail  │     │ Services          │     │ + Get Label      │
-└──────────┘     └───────────────────┘     └──────────────────┘
-                                                   │
-                                                   ▼
-                 ┌───────────────────┐     ┌──────────────────┐
-                 │ shipping_labels   │◀────│ Store in         │
-                 │ record            │     │ Supabase Storage │
-                 └───────────────────┘     └──────────────────┘
-```
-
-#### 2.2 Type Uitbreidingen
-**Bestand:** `src/types/marketplace.ts`
-
-```typescript
-// Amazon-specifieke settings toevoegen
-amazonBuyShippingEnabled?: boolean;
-amazonDefaultShippingService?: string;
-amazonAutoSelectCheapest?: boolean;
-```
-
-#### 2.3 UI Component
-**Bestand:** `src/components/admin/marketplace/AmazonBuyShippingSettings.tsx` (Nieuw)
+Nieuwe sectie "Facturatie":
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  📦 Amazon Buy Shipping                                         │
+│  📄 Automatische Facturatie                                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Amazon Buy Shipping inschakelen               [Toggle]         │
-│  Genereer labels via Amazon voor lagere tarieven                │
+│  Automatisch facturen genereren                  [Toggle: Aan] │
+│  Maak automatisch een factuur aan zodra een                    │
+│  bestelling als betaald wordt gemarkeerd                       │
 │                                                                 │
-│  Selectie strategie                                             │
-│  ○ Goedkoopste optie (aanbevolen)                              │
-│  ○ Snelste optie                                                │
-│  ○ Handmatige selectie                                          │
+│  Automatisch factuur e-mailen                    [Toggle: Uit] │
+│  Verstuur de factuur direct per e-mail naar                    │
+│  de klant na generatie                                         │
 │                                                                 │
-│  ℹ️ Amazon Buy Shipping werkt alleen voor MFN orders           │
-│  (zelf verzenden). FBA orders worden door Amazon afgehandeld.  │
+│  ℹ️ Dit geldt voor:                                            │
+│  • Marketplace orders (Bol.com, Amazon, etc.)                  │
+│  • Webshop bankoverschrijvingen                                │
+│  • Handmatig gemarkeerde betalingen                            │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### 2.4 Order Detail Integratie
-**Bestand:** `src/components/admin/AmazonActionsCard.tsx` (Nieuw)
+### Deel 5: Marketplace-Specifieke Override (Optioneel)
 
-Vergelijkbaar met `BolActionsCard.tsx`:
-- Toon Amazon order info
-- "Amazon Label Aanmaken" knop
-- Label status en print opties
-- Tracking info weergave
+Voor fijnmazigere controle: een `autoGenerateInvoice` toggle per marketplace-connectie.
 
----
-
-## Deel 3: Batch Label Printing
-
-### Functionaliteit
-
-Meerdere orders selecteren en alle labels in één keer printen of downloaden.
-
-### Implementatie
-
-#### 3.1 Order Selectie UI
-**Bestand:** `src/pages/admin/Orders.tsx`
-
-Toevoegen van:
-- Checkbox voor elke order regel
-- "Selecteer alle" optie
-- Bulk actie toolbar wanneer orders geselecteerd zijn
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  ☑ 3 orders geselecteerd                                       │
-│  [🖨️ Print Labels]  [📥 Download Labels]  [❌ Deselecteer]      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 3.2 Batch Print Hook
-**Bestand:** `src/hooks/useBatchLabelPrint.ts` (Nieuw)
+**Type uitbreiding:** `src/types/marketplace.ts`
 
 ```typescript
-interface BatchPrintOptions {
-  orderIds: string[];
-  printMethod: 'webusb' | 'browser' | 'download';
-  onProgress?: (current: number, total: number) => void;
-}
-
-function useBatchLabelPrint() {
-  // Ophalen van alle labels voor geselecteerde orders
-  // Sequentieel printen via useLabelPrinter
-  // Of merge naar één PDF voor download
+interface MarketplaceSettings {
+  // ... bestaande velden ...
+  autoGenerateInvoice?: boolean;  // Override tenant default
+  autoSendInvoiceEmail?: boolean; // Override tenant default
 }
 ```
 
-#### 3.3 Batch Print Dialog
-**Bestand:** `src/components/admin/BatchPrintDialog.tsx` (Nieuw)
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Labels Printen (5 orders)                                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ✓ #0042 - VVB label (PostNL)                                  │
-│  ✓ #0043 - Sendcloud label (DHL)                               │
-│  ✗ #0044 - Geen label beschikbaar                              │
-│  ✓ #0045 - VVB label (PostNL)                                  │
-│  ✓ #0046 - Amazon Buy Shipping (Amazon Logistics)              │
-│                                                                 │
-│  Totaal: 4 labels beschikbaar                                   │
-│                                                                 │
-│  Print methode                                                  │
-│  ● Direct printen (Zebra GK420d)                               │
-│  ○ Browser print dialoog                                        │
-│  ○ Download als PDF                                             │
-│                                                                 │
-│  Progress: [████████████░░░░░░░░] 3/4                           │
-│                                                                 │
-│                               [Annuleren]  [Start Printen]       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 3.4 PDF Merge Functie (voor download)
-**Bestand:** `src/utils/pdfMerge.ts` (Nieuw)
-
-Voor de "Download als PDF" optie worden alle labels samengevoegd tot één PDF met pdf-lib.
+**UI:** Checkbox in marketplace settings naast andere sync opties.
 
 ---
 
@@ -259,139 +204,92 @@ Voor de "Download als PDF" optie worden alle labels samengevoegd tot één PDF m
 
 | Bestand | Type | Beschrijving |
 |---------|------|--------------|
-| **Bol.com Auto-Accept** | | |
-| `src/types/marketplace.ts` | Update | `autoAcceptOrder` setting |
-| `src/components/admin/marketplace/BolVVBSettings.tsx` | Update | Toggle UI |
-| `supabase/functions/accept-bol-order/index.ts` | Nieuw | Accept API call |
-| `supabase/functions/sync-bol-orders/index.ts` | Update | Auto-accept na import |
-| **Amazon Buy Shipping** | | |
-| `src/types/marketplace.ts` | Update | Amazon shipping settings |
-| `supabase/functions/create-amazon-buy-shipping-label/index.ts` | Nieuw | Label generatie |
-| `src/components/admin/marketplace/AmazonBuyShippingSettings.tsx` | Nieuw | Settings UI |
-| `src/components/admin/AmazonActionsCard.tsx` | Nieuw | Order detail acties |
-| **Batch Printing** | | |
-| `src/hooks/useBatchLabelPrint.ts` | Nieuw | Batch print logica |
-| `src/components/admin/BatchPrintDialog.tsx` | Nieuw | Batch print UI |
-| `src/utils/pdfMerge.ts` | Nieuw | PDF samenvoegen |
-| `src/pages/admin/Orders.tsx` | Update | Order selectie + toolbar |
+| **Database** | | |
+| Migratie | SQL | `auto_generate_invoice` + `auto_send_invoice_email` kolommen |
+| Migratie | SQL | Trigger `trigger_auto_invoice` op orders tabel |
+| **Edge Functions** | | |
+| `generate-invoice/index.ts` | Update | `auto_send_email` parameter |
+| `auto-invoice-cron/index.ts` | Nieuw | Fallback cron voor orders zonder factuur |
+| **Frontend** | | |
+| `InvoiceSettingsCard.tsx` | Nieuw | Toggle UI component |
+| `SettingsPage.tsx` | Update | Invoegen InvoiceSettingsCard |
+| `src/types/marketplace.ts` | Update | `autoGenerateInvoice` per connectie |
+
+---
+
+## Flow Diagrammen
+
+### Marketplace Order Import
+
+```text
+sync-bol-orders             Database                generate-invoice
+      │                         │                         │
+      │  INSERT order           │                         │
+      │  payment_status='paid'  │                         │
+      │────────────────────────▶│                         │
+      │                         │                         │
+      │                         │  TRIGGER fires          │
+      │                         │  auto_invoice check     │
+      │                         │─────────────────────────│
+      │                         │                         │
+      │                         │  HTTP POST              │
+      │                         │─────────────────────────▶│
+      │                         │                         │
+      │                         │                         │  Generate PDF
+      │                         │                         │  Store in bucket
+      │                         │                         │  Create invoice row
+      │                         │                         │
+      │                         │                         │  (optional)
+      │                         │                         │  send-invoice-email
+```
+
+### Bankoverschrijving Webshop
+
+```text
+Admin OrderDetail           Database                generate-invoice
+      │                         │                         │
+      │  UPDATE order           │                         │
+      │  payment_status='paid'  │                         │
+      │────────────────────────▶│                         │
+      │                         │                         │
+      │                         │  TRIGGER fires          │
+      │                         │  auto_invoice check     │
+      │                         │─────────────────────────│
+      │                         │                         │
+      │                         │  HTTP POST              │
+      │                         │─────────────────────────▶│
+      │                         │                         │
+      │                         │                 Invoice generated!
+```
 
 ---
 
 ## Technische Details
 
-### Bol.com Accept Order API
+### Trigger vs Cron Afweging
 
-```typescript
-// PUT https://api.bol.com/retailer/orders/{orderId}/accept
-// Headers: Authorization: Bearer {token}
+| Methode | Voordeel | Nadeel |
+|---------|----------|--------|
+| **DB Trigger + pg_net** | Realtime, geen vertraging | Vereist pg_net extensie, complexer debug |
+| **Cron Job (elke minuut)** | Simpeler, betrouwbaarder | Max 1 min vertraging |
+| **In-Sync Aanroep** | Direct in de flow | Code duplicatie, niet voor bank transfer |
 
-interface AcceptOrderRequest {
-  orderItems: Array<{
-    orderItemId: string;
-    quantity: number;
-  }>;
-}
+**Aanbeveling:** Hybride aanpak
+1. In sync-functies: direct `generate-invoice` aanroepen voor snelheid
+2. Cron-job als fallback: pakt gemiste orders op (bank transfers, edge cases)
 
-// Response: 202 Accepted
-interface AcceptOrderResponse {
-  processStatusId: string;
-  entityId: string;
-  eventType: string;
-  description: string;
-  status: string;
-  createTimestamp: string;
-  links: Array<{
-    rel: string;
-    href: string;
-    method: string;
-  }>;
-}
-```
+### Cron Job Query
 
-### Amazon Buy Shipping API
-
-```typescript
-// POST https://sellingpartnerapi-eu.amazon.com/mfn/v0/shipments
-
-interface CreateShipmentRequest {
-  shipmentRequestDetails: {
-    amazonOrderId: string;
-    sellerOrderId?: string;
-    itemList: Array<{
-      orderItemId: string;
-      quantity: number;
-    }>;
-    shipFromAddress: {
-      name: string;
-      addressLine1: string;
-      city: string;
-      postalCode: string;
-      countryCode: string;
-    };
-    packageDimensions: {
-      length: number;
-      width: number;
-      height: number;
-      unit: 'centimeters' | 'inches';
-    };
-    weight: {
-      value: number;
-      unit: 'kg' | 'oz';
-    };
-    shippingServiceOptions: {
-      deliveryExperience: 'DeliveryConfirmationWithAdultSignature' | 
-                          'DeliveryConfirmationWithSignature' |
-                          'DeliveryConfirmationWithoutSignature' |
-                          'NoTracking';
-      carrierWillPickUp: boolean;
-    };
-  };
-  shippingServiceId: string;  // Van eligibleShippingServices
-}
-
-// Response bevat:
-// - shipmentId
-// - amazonOrderId
-// - label (base64 encoded PDF)
-// - trackingId
-```
-
-### Batch Print Sequentie
-
-```text
-1. Gebruiker selecteert orders
-2. Systeem haalt shipping_labels op voor alle orders
-3. Filter: alleen orders met label_url
-4. Toon overzicht in dialog
-5. Bij "Start Printen":
-   a. WebUSB: sequentieel printen met delay (500ms)
-   b. Browser: merge PDFs, open in nieuwe tab
-   c. Download: merge PDFs, trigger download
-6. Toon progress indicator
-7. Success/error feedback per label
-```
-
----
-
-## Database Impact
-
-Geen schema wijzigingen nodig - we gebruiken bestaande structuren:
-- `shipping_labels` - labels opslaan
-- `marketplace_connections.settings` - nieuwe settings opslaan (JSON)
-- `orders` - status updates
-
----
-
-## Config Updates
-
-**Bestand:** `supabase/config.toml`
-
-```toml
-[functions.accept-bol-order]
-verify_jwt = false
-
-[functions.create-amazon-buy-shipping-label]
-verify_jwt = false
+```sql
+SELECT o.id, o.tenant_id
+FROM orders o
+LEFT JOIN invoices i ON i.order_id = o.id
+JOIN tenants t ON t.id = o.tenant_id
+WHERE o.payment_status = 'paid'
+  AND i.id IS NULL
+  AND t.auto_generate_invoice = true
+  AND o.created_at > NOW() - INTERVAL '30 days'
+LIMIT 50;
 ```
 
 ---
@@ -400,10 +298,14 @@ verify_jwt = false
 
 Na implementatie:
 
-| Feature | Beschrijving |
-|---------|--------------|
-| **Bol.com Auto-Accept** | Orders worden automatisch geaccepteerd bij import - één stap minder voor de verkoper |
-| **Amazon Buy Shipping** | Labels genereren via Amazon voor MFN orders - goedkopere tarieven, automatische tracking |
-| **Batch Printing** | Meerdere labels tegelijk printen - tijdsbesparing bij veel orders |
+| Kanaal | Automatische Factuur | Trigger |
+|--------|---------------------|---------|
+| Webshop (Stripe) | ✅ | Webhook (bestaand) |
+| Webshop (Bankoverschrijving) | ✅ | Bij markeren als "betaald" |
+| Bol.com | ✅ | Bij import (payment_status=paid) |
+| Amazon | ✅ | Bij import (payment_status=paid) |
+| Shopify | ✅ | Bij import (payment_status=paid) |
+| WooCommerce | ✅ | Bij import (payment_status=paid) |
+| POS (B2B) | ✅ | Bij markeren als "betaald" |
 
-Alle features integreren naadloos met de bestaande `useLabelPrinter` hook en shipping_labels infrastructuur.
+**Klanten ontvangen automatisch hun factuur** zonder handmatige tussenkomst van de verkoper.
