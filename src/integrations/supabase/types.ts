@@ -235,6 +235,172 @@ export type Database = {
           },
         ]
       }
+      ai_assistant_config: {
+        Row: {
+          chatbot_avatar_url: string | null
+          chatbot_enabled: boolean | null
+          chatbot_feedback_enabled: boolean | null
+          chatbot_name: string | null
+          chatbot_position: string | null
+          chatbot_theme_color: string | null
+          chatbot_welcome_message: string | null
+          created_at: string
+          daily_limit: number | null
+          id: string
+          knowledge_custom_instructions: string | null
+          knowledge_forbidden_topics: string | null
+          knowledge_include_categories: boolean | null
+          knowledge_include_legal: boolean | null
+          knowledge_include_pages: boolean | null
+          knowledge_include_products: boolean | null
+          knowledge_include_shipping: boolean | null
+          reply_suggestions_auto_draft: boolean | null
+          reply_suggestions_enabled: boolean | null
+          reply_suggestions_for_email: boolean | null
+          reply_suggestions_for_whatsapp: boolean | null
+          reply_suggestions_language: string | null
+          reply_suggestions_tone: string | null
+          response_delay_ms: number | null
+          tenant_id: string
+          updated_at: string
+          web_research_allowed_topics: string[] | null
+          web_research_enabled: boolean | null
+          web_research_mode: string | null
+        }
+        Insert: {
+          chatbot_avatar_url?: string | null
+          chatbot_enabled?: boolean | null
+          chatbot_feedback_enabled?: boolean | null
+          chatbot_name?: string | null
+          chatbot_position?: string | null
+          chatbot_theme_color?: string | null
+          chatbot_welcome_message?: string | null
+          created_at?: string
+          daily_limit?: number | null
+          id?: string
+          knowledge_custom_instructions?: string | null
+          knowledge_forbidden_topics?: string | null
+          knowledge_include_categories?: boolean | null
+          knowledge_include_legal?: boolean | null
+          knowledge_include_pages?: boolean | null
+          knowledge_include_products?: boolean | null
+          knowledge_include_shipping?: boolean | null
+          reply_suggestions_auto_draft?: boolean | null
+          reply_suggestions_enabled?: boolean | null
+          reply_suggestions_for_email?: boolean | null
+          reply_suggestions_for_whatsapp?: boolean | null
+          reply_suggestions_language?: string | null
+          reply_suggestions_tone?: string | null
+          response_delay_ms?: number | null
+          tenant_id: string
+          updated_at?: string
+          web_research_allowed_topics?: string[] | null
+          web_research_enabled?: boolean | null
+          web_research_mode?: string | null
+        }
+        Update: {
+          chatbot_avatar_url?: string | null
+          chatbot_enabled?: boolean | null
+          chatbot_feedback_enabled?: boolean | null
+          chatbot_name?: string | null
+          chatbot_position?: string | null
+          chatbot_theme_color?: string | null
+          chatbot_welcome_message?: string | null
+          created_at?: string
+          daily_limit?: number | null
+          id?: string
+          knowledge_custom_instructions?: string | null
+          knowledge_forbidden_topics?: string | null
+          knowledge_include_categories?: boolean | null
+          knowledge_include_legal?: boolean | null
+          knowledge_include_pages?: boolean | null
+          knowledge_include_products?: boolean | null
+          knowledge_include_shipping?: boolean | null
+          reply_suggestions_auto_draft?: boolean | null
+          reply_suggestions_enabled?: boolean | null
+          reply_suggestions_for_email?: boolean | null
+          reply_suggestions_for_whatsapp?: boolean | null
+          reply_suggestions_language?: string | null
+          reply_suggestions_tone?: string | null
+          response_delay_ms?: number | null
+          tenant_id?: string
+          updated_at?: string
+          web_research_allowed_topics?: string[] | null
+          web_research_enabled?: boolean | null
+          web_research_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_assistant_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chatbot_conversations: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          escalated_to_human: boolean | null
+          feedback_comment: string | null
+          feedback_rating: number | null
+          feedback_submitted_at: string | null
+          id: string
+          initial_question: string | null
+          message_count: number | null
+          messages: Json
+          session_id: string
+          started_at: string
+          tenant_id: string
+          topics_discussed: string[] | null
+          web_research_used: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          escalated_to_human?: boolean | null
+          feedback_comment?: string | null
+          feedback_rating?: number | null
+          feedback_submitted_at?: string | null
+          id?: string
+          initial_question?: string | null
+          message_count?: number | null
+          messages?: Json
+          session_id: string
+          started_at?: string
+          tenant_id: string
+          topics_discussed?: string[] | null
+          web_research_used?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          escalated_to_human?: boolean | null
+          feedback_comment?: string | null
+          feedback_rating?: number | null
+          feedback_submitted_at?: string | null
+          id?: string
+          initial_question?: string | null
+          message_count?: number | null
+          messages?: Json
+          session_id?: string
+          started_at?: string
+          tenant_id?: string
+          topics_discussed?: string[] | null
+          web_research_used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chatbot_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_content_edits: {
         Row: {
           after_value: string | null
@@ -768,6 +934,91 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_usage_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_user_behavior_log: {
+        Row: {
+          behavior_type: string
+          behavior_value: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          occurrence_count: number | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          behavior_type: string
+          behavior_value: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          occurrence_count?: number | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          behavior_type?: string
+          behavior_value?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          occurrence_count?: number | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_behavior_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_user_learning_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          last_updated_at: string | null
+          learned_value: Json
+          pattern_type: string
+          sample_count: number | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          last_updated_at?: string | null
+          learned_value?: Json
+          pattern_type: string
+          sample_count?: number | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          last_updated_at?: string | null
+          learned_value?: Json
+          pattern_type?: string
+          sample_count?: number | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_learning_patterns_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -11026,6 +11277,10 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      initialize_ai_assistant_config: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
       initialize_customer_communication_settings: {
         Args: { p_tenant_id: string }
         Returns: undefined
@@ -11080,11 +11335,34 @@ export type Database = {
         }
         Returns: undefined
       }
+      track_user_behavior: {
+        Args: {
+          p_behavior_type: string
+          p_behavior_value: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          occurrence_count: number
+          should_auto_apply: boolean
+          should_learn: boolean
+        }[]
+      }
       update_ai_learning_pattern: {
         Args: {
           p_learned_value: Json
           p_pattern_type: string
           p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      update_user_learning_pattern: {
+        Args: {
+          p_learned_value: Json
+          p_pattern_type: string
+          p_sample_count?: number
+          p_tenant_id: string
+          p_user_id: string
         }
         Returns: undefined
       }

@@ -54,12 +54,15 @@ export function useAIFeedback() {
 
       if (error) throw error;
 
-      // If it's an edit, trigger learning
+      // If it's an edit, trigger learning (tenant-level and user-level)
       if (params.feedbackType === 'edit' && params.originalContent && params.editedContent) {
+        const { data: { user } } = await supabase.auth.getUser();
+        
         await supabase.functions.invoke('ai-learn-from-feedback', {
           body: {
             tenantId: currentTenant.id,
             feedbackId: data.id,
+            userId: user?.id,
             originalContent: params.originalContent,
             editedContent: params.editedContent,
             contentType: params.contentType,
