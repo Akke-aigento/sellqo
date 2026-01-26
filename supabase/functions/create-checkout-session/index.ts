@@ -322,7 +322,7 @@ serve(async (req) => {
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
       .select(`
-        id, name, stripe_account_id, stripe_charges_enabled, 
+        id, name, slug, stripe_account_id, stripe_charges_enabled, 
         tax_percentage, currency, country,
         oss_enabled, oss_threshold_reached,
         reverse_charge_text, export_text,
@@ -344,6 +344,7 @@ serve(async (req) => {
     }
     logStep("Tenant verified", { 
       tenantName: tenant.name, 
+      tenantSlug: tenant.slug,
       stripeAccountId: tenant.stripe_account_id,
       tenantCountry: tenant.country,
       ossEnabled: tenant.oss_enabled,
@@ -537,13 +538,14 @@ serve(async (req) => {
 
     // Create Stripe Checkout Session with destination charge
     const origin = req.headers.get("origin") || "https://id-preview--9932a7fe-43a1-42de-9c64-168968599600.lovable.app";
+    const tenantSlug = tenant.slug || tenant_id;
     
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "ideal", "bancontact"],
       line_items: lineItems,
       mode: "payment",
-      success_url: `${origin}/shop/${tenant_id}/order-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/shop/${tenant_id}/checkout?cancelled=true`,
+      success_url: `${origin}/shop/${tenantSlug}/order/${order.id}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/shop/${tenantSlug}/checkout?cancelled=true`,
       customer_email,
       payment_intent_data: {
         application_fee_amount: platformFee,

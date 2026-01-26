@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { CartProvider } from "@/context/CartContext";
 import LandingPage from "./pages/Landing";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -95,14 +96,14 @@ const App = () => (
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
             
-            {/* Public Storefront routes */}
-            <Route path="/shop/:tenantSlug" element={<ShopHome />} />
-            <Route path="/shop/:tenantSlug/products" element={<ShopProducts />} />
-            <Route path="/shop/:tenantSlug/product/:productSlug" element={<ShopProductDetail />} />
-            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<ShopPage />} />
-            <Route path="/shop/:tenantSlug/cart" element={<ShopCart />} />
-            <Route path="/shop/:tenantSlug/checkout" element={<ShopCheckout />} />
-            <Route path="/shop/:tenantSlug/order/:orderId" element={<ShopOrderConfirmation />} />
+            {/* Public Storefront routes - wrapped in CartProvider */}
+            <Route path="/shop/:tenantSlug" element={<CartProvider><ShopHome /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/products" element={<CartProvider><ShopProducts /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/product/:productSlug" element={<CartProvider><ShopProductDetail /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<CartProvider><ShopPage /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/cart" element={<CartProvider><ShopCart /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><ShopCheckout /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><ShopOrderConfirmation /></CartProvider>} />
             
             {/* Admin routes */}
             <Route path="/admin" element={
