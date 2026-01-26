@@ -6647,6 +6647,9 @@ export type Database = {
           full_name: string | null
           id: string
           language: string | null
+          onboarding_completed: boolean | null
+          onboarding_skipped_at: string | null
+          onboarding_step: number | null
           updated_at: string | null
         }
         Insert: {
@@ -6656,6 +6659,9 @@ export type Database = {
           full_name?: string | null
           id: string
           language?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_skipped_at?: string | null
+          onboarding_step?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -6665,6 +6671,9 @@ export type Database = {
           full_name?: string | null
           id?: string
           language?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_skipped_at?: string | null
+          onboarding_step?: number | null
           updated_at?: string | null
         }
         Relationships: []
