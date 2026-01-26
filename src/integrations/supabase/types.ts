@@ -4668,6 +4668,7 @@ export type Database = {
           created_at: string | null
           gift_card_id: string | null
           id: string
+          marketplace_order_item_id: string | null
           order_id: string
           product_id: string | null
           product_image: string | null
@@ -4681,6 +4682,7 @@ export type Database = {
           created_at?: string | null
           gift_card_id?: string | null
           id?: string
+          marketplace_order_item_id?: string | null
           order_id: string
           product_id?: string | null
           product_image?: string | null
@@ -4694,6 +4696,7 @@ export type Database = {
           created_at?: string | null
           gift_card_id?: string | null
           id?: string
+          marketplace_order_item_id?: string | null
           order_id?: string
           product_id?: string | null
           product_image?: string | null
