@@ -9150,6 +9150,9 @@ export type Database = {
           simplified_vat_acknowledged_at: string | null
           simplified_vat_mode: boolean | null
           slug: string
+          ssl_checked_at: string | null
+          ssl_expires_at: string | null
+          ssl_status: string | null
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
           stripe_onboarding_complete: boolean | null
@@ -9222,6 +9225,9 @@ export type Database = {
           simplified_vat_acknowledged_at?: string | null
           simplified_vat_mode?: boolean | null
           slug: string
+          ssl_checked_at?: string | null
+          ssl_expires_at?: string | null
+          ssl_status?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_onboarding_complete?: boolean | null
@@ -9294,6 +9300,9 @@ export type Database = {
           simplified_vat_acknowledged_at?: string | null
           simplified_vat_mode?: boolean | null
           slug?: string
+          ssl_checked_at?: string | null
+          ssl_expires_at?: string | null
+          ssl_status?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_onboarding_complete?: boolean | null
