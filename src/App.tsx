@@ -48,6 +48,7 @@ import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
 import ReportsPage from "./pages/admin/Reports";
+import MessagesPage from "./pages/admin/Messages";
 import SuppliersPage from "./pages/admin/Suppliers";
 import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
 import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
@@ -112,6 +113,7 @@ const App = () => (
               </ProtectedRoute>
             }>
               <Route index element={<AdminDashboard />} />
+              <Route path="messages" element={<MessagesPage />} />
               <Route path="fulfillment" element={<FulfillmentPage />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/new" element={<ProductForm />} />

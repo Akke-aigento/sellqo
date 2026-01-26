@@ -1768,6 +1768,10 @@ export type Database = {
           opened_at: string | null
           order_id: string | null
           quote_id: string | null
+          read_at: string | null
+          read_by: string | null
+          replied_at: string | null
+          reply_message_id: string | null
           reply_to_email: string | null
           resend_id: string | null
           sent_at: string | null
@@ -1795,6 +1799,10 @@ export type Database = {
           opened_at?: string | null
           order_id?: string | null
           quote_id?: string | null
+          read_at?: string | null
+          read_by?: string | null
+          replied_at?: string | null
+          reply_message_id?: string | null
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
@@ -1822,6 +1830,10 @@ export type Database = {
           opened_at?: string | null
           order_id?: string | null
           quote_id?: string | null
+          read_at?: string | null
+          read_by?: string | null
+          replied_at?: string | null
+          reply_message_id?: string | null
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
@@ -1860,6 +1872,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_messages_reply_message_id_fkey"
+            columns: ["reply_message_id"]
+            isOneToOne: false
+            referencedRelation: "customer_messages"
             referencedColumns: ["id"]
           },
           {

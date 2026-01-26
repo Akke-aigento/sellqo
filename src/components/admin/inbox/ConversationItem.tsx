@@ -1,0 +1,99 @@
+import { formatDistanceToNow } from 'date-fns';
+import { nl } from 'date-fns/locale';
+import { Mail, MessageSquare, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import type { Conversation } from '@/hooks/useInbox';
+
+interface ConversationItemProps {
+  conversation: Conversation;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+export function ConversationItem({ conversation, isSelected, onClick }: ConversationItemProps) {
+  const { customer, lastMessage, unreadCount, channel } = conversation;
+  const isUnread = unreadCount > 0;
+  const isReplied = lastMessage.direction === 'inbound' && lastMessage.replied_at;
+
+  const initials = customer?.name
+    ? customer.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '?';
+
+  const ChannelIcon = channel === 'whatsapp' ? MessageSquare : Mail;
+
+  // Get preview text
+  const previewText = lastMessage.body_text || 
+    lastMessage.body_html?.replace(/<[^>]*>/g, '').slice(0, 100) || 
+    lastMessage.subject;
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left p-3 border-b transition-colors hover:bg-muted/50',
+        isSelected && 'bg-muted',
+        isUnread && 'bg-primary/5'
+      )}
+    >
+      <div className="flex gap-3">
+        {/* Avatar with unread indicator */}
+        <div className="relative">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className={cn(isUnread && 'bg-primary text-primary-foreground')}>
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          {isUnread && (
+            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-destructive rounded-full border-2 border-background" />
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn('font-medium truncate', isUnread && 'font-semibold')}>
+              {customer?.name || 'Onbekend'}
+            </span>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+              <ChannelIcon className="h-3 w-3" />
+              <span>
+                {formatDistanceToNow(new Date(lastMessage.created_at), {
+                  addSuffix: false,
+                  locale: nl,
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Subject or preview */}
+          <p className={cn('text-sm truncate', isUnread ? 'text-foreground' : 'text-muted-foreground')}>
+            {lastMessage.subject}
+          </p>
+
+          {/* Preview text */}
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {lastMessage.direction === 'outbound' && (
+              <span className="inline-flex items-center gap-0.5 mr-1">
+                <Check className="h-3 w-3" />
+              </span>
+            )}
+            {previewText}
+          </p>
+        </div>
+
+        {/* Replied indicator */}
+        {isReplied && (
+          <div className="shrink-0 self-center">
+            <Check className="h-4 w-4 text-green-500" />
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}

@@ -31,6 +31,7 @@ import {
   Sparkles,
   LucideIcon,
   PackageCheck,
+  MessageSquare,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -44,6 +45,7 @@ export interface NavItem {
   featureKey?: string; // For subscription-based hiding
   allowedRoles?: AppRole[]; // Which roles CAN see this item
   excludeRoles?: AppRole[]; // Which roles CANNOT see this item
+  badge?: boolean; // Show dynamic badge (e.g., unread count)
 }
 
 export interface NavGroup {
@@ -65,6 +67,7 @@ export const WAREHOUSE_ALLOWED_ITEMS = [
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
+  { id: 'inbox', title: 'Gesprekken', url: '/admin/messages', icon: MessageSquare, badge: true },
   { id: 'fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', icon: PackageCheck },
   {
     id: 'orders',
