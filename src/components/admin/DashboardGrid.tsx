@@ -31,10 +31,12 @@ import { POSOverviewWidget } from './widgets/POSOverviewWidget';
 import { MarketplaceWidget } from './widgets/MarketplaceWidget';
 import { LowStockWidget } from './widgets/LowStockWidget';
 import { ShopHealthWidget } from './widgets/ShopHealthWidget';
+import { TodayWidget } from './widgets/TodayWidget';
 
 // Widget component mapping
 const widgetComponents: Record<string, React.ComponentType> = {
   'shop-health': ShopHealthWidget,
+  'today-widget': TodayWidget,
   'stats-grid': StatsGridWidget,
   'quick-actions': QuickActionsWidget,
   'recent-orders': RecentOrdersWidget,
