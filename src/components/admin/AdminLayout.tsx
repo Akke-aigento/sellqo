@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { TenantProvider } from '@/hooks/useTenant';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 
 export function AdminLayout() {
   return (
@@ -17,6 +18,8 @@ export function AdminLayout() {
             </main>
           </SidebarInset>
         </div>
+        {/* Onboarding wizard for new users */}
+        <OnboardingWizard />
       </SidebarProvider>
     </TenantProvider>
   );
