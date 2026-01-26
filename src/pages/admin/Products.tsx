@@ -550,6 +550,14 @@ export default function ProductsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ProductBulkEditDialog
+        open={bulkEditDialogOpen}
+        onOpenChange={setBulkEditDialogOpen}
+        selectedCount={selectedIds.size}
+        selectedIds={Array.from(selectedIds)}
+        onApply={handleBulkEdit}
+      />
+
       <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
