@@ -8408,6 +8408,66 @@ export type Database = {
           },
         ]
       }
+      sync_activity_log: {
+        Row: {
+          completed_at: string | null
+          connection_id: string
+          created_at: string | null
+          data_type: string
+          direction: string
+          error_details: Json | null
+          id: string
+          records_failed: number | null
+          records_processed: number | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          connection_id: string
+          created_at?: string | null
+          data_type: string
+          direction: string
+          error_details?: Json | null
+          id?: string
+          records_failed?: number | null
+          records_processed?: number | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          connection_id?: string
+          created_at?: string | null
+          data_type?: string
+          direction?: string
+          error_details?: Json | null
+          id?: string
+          records_failed?: number | null
+          records_processed?: number | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_activity_log_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_activity_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_queue: {
         Row: {
           attempts: number | null

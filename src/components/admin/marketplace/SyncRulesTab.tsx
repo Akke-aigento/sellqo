@@ -2,10 +2,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Save, RotateCcw, AlertCircle } from 'lucide-react';
 import { useSyncRules } from '@/hooks/useSyncRules';
+import { useSyncValidation } from '@/hooks/useSyncValidation';
+import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { PLATFORM_CAPABILITIES } from '@/lib/syncRuleDefaults';
 import { SYNC_DATA_TYPES } from '@/types/syncRules';
 import { SyncRuleCard } from './SyncRuleCard';
 import { SyncRulePresets } from './SyncRulePresets';
+import { SyncHistoryWidget } from './SyncHistoryWidget';
+import { SyncValidationWarnings } from './SyncValidationWarnings';
+import { SyncConfigManager } from './SyncConfigManager';
 import type { MarketplaceConnection } from '@/types/marketplace';
 import type { SyncDataType } from '@/types/syncRules';
 
@@ -15,6 +20,7 @@ interface SyncRulesTabProps {
 }
 
 export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
+  const { connections } = useMarketplaceConnections();
   const {
     syncRules,
     isLoading,
@@ -26,12 +32,18 @@ export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
     toggleFieldMapping,
     updateStatusMappings,
     updateCustomSettings,
+    setConflictStrategy,
+    setSyncFrequency,
     applyPreset,
     resetToDefaults,
+    importRules,
     saveRules,
     discardChanges,
     getCapabilities,
   } = useSyncRules(connection);
+
+  const warnings = useSyncValidation(syncRules, connection?.marketplace_type || null);
+  const otherConnections = connections?.filter(c => c.id !== connection?.id) || [];
 
   const capabilities = PLATFORM_CAPABILITIES[connection.marketplace_type];
 
@@ -50,6 +62,9 @@ export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Validation Warnings */}
+      <SyncValidationWarnings warnings={warnings} />
+
       {/* Header with actions */}
       <div className="flex items-center justify-between">
         <div>
@@ -125,19 +140,36 @@ export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
                 onFieldToggle={(fieldId, enabled) => toggleFieldMapping(dataType, fieldId, enabled)}
                 onStatusMappingsChange={(mappings) => updateStatusMappings(dataType, mappings)}
                 onCustomSettingsChange={(settings) => updateCustomSettings(dataType, settings)}
+                onConflictStrategyChange={(strategy) => setConflictStrategy(dataType, strategy)}
+                onSyncFrequencyChange={(frequency) => setSyncFrequency(dataType, frequency)}
               />
             );
           })}
         </div>
 
-        {/* Sidebar with presets */}
+        {/* Sidebar */}
         <div className="space-y-4">
+          {/* Sync History */}
+          <SyncHistoryWidget connectionId={connection.id} />
+
+          {/* Presets */}
           <SyncRulePresets
             marketplaceType={connection.marketplace_type}
             currentRules={syncRules}
             onApplyPreset={applyPreset}
           />
           
+          {/* Config Manager */}
+          <SyncConfigManager
+            syncRules={syncRules}
+            currentConnectionId={connection.id}
+            otherConnections={otherConnections}
+            onImport={importRules}
+            onCopyToConnection={(targetId) => {
+              console.log('Copy to connection:', targetId);
+            }}
+          />
+
           {/* Reset to defaults */}
           <Card>
             <CardHeader className="pb-3">
