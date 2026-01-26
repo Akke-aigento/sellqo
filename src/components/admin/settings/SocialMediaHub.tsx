@@ -1,7 +1,7 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link2, Share2 } from 'lucide-react';
+import { Link2, ExternalLink } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { SocialLinksEditor } from './SocialLinksEditor';
-import { SocialConnectionsManager } from './SocialConnectionsManager';
 
 export function SocialMediaHub() {
   return (
@@ -9,30 +9,27 @@ export function SocialMediaHub() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Social Media</h2>
         <p className="text-muted-foreground">
-          Beheer je social media links en koppel accounts voor automatisch posten
+          Beheer de social media links die in je webshop footer worden getoond
         </p>
       </div>
 
-      <Tabs defaultValue="links" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="links" className="flex items-center gap-2">
-            <Link2 className="h-4 w-4" />
-            Website Links
-          </TabsTrigger>
-          <TabsTrigger value="autopost" className="flex items-center gap-2">
-            <Share2 className="h-4 w-4" />
-            Autopost
-          </TabsTrigger>
-        </TabsList>
+      <SocialLinksEditor />
 
-        <TabsContent value="links" className="mt-6">
-          <SocialLinksEditor />
-        </TabsContent>
-
-        <TabsContent value="autopost" className="mt-6">
-          <SocialConnectionsManager />
-        </TabsContent>
-      </Tabs>
+      <Alert>
+        <Link2 className="h-4 w-4" />
+        <AlertDescription className="flex items-center justify-between">
+          <span>
+            Wil je producten verkopen via Facebook Shop, Instagram Shopping of Google Shopping? 
+            Of automatisch content posten naar social media?
+          </span>
+          <Button variant="outline" size="sm" asChild className="ml-4 shrink-0">
+            <a href="/admin/connect">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Naar SellQo Connect
+            </a>
+          </Button>
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

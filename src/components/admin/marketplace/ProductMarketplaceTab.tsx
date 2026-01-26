@@ -23,6 +23,7 @@ import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { getEANValidationStatus } from '@/lib/eanValidation';
 import { getASINValidationStatus } from '@/lib/asinValidation';
 import { useToast } from '@/hooks/use-toast';
+import { ProductSocialChannels } from './ProductSocialChannels';
 import type { Product } from '@/types/product';
 
 interface ProductMarketplaceTabProps {
@@ -2024,6 +2025,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
           </CardContent>
         )}
       </Card>
+
+      {/* Social Commerce Channels */}
+      <ProductSocialChannels product={product} onRefresh={onRefresh} />
     </div>
   );
 }

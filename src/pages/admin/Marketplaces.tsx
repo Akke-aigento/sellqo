@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2 } from 'lucide-react';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, Megaphone } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,8 +19,10 @@ import {
 import { MarketplaceCard } from '@/components/admin/marketplace/MarketplaceCard';
 import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/ConnectMarketplaceDialog';
 import { SocialChannelList } from '@/components/admin/marketplace/SocialChannelList';
+import { SocialConnectionsManager } from '@/components/admin/settings/SocialConnectionsManager';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
+import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
@@ -153,9 +155,9 @@ export default function MarketplacesPage() {
         </Alert>
       )}
 
-      {/* Tabs for Marketplaces and Social Commerce */}
+      {/* Tabs for Marketplaces, Social Commerce and Autopost */}
       <Tabs defaultValue="marketplaces" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
             E-commerce
@@ -163,6 +165,10 @@ export default function MarketplacesPage() {
           <TabsTrigger value="social" className="flex items-center gap-2">
             <Share2 className="w-4 h-4" />
             Social Commerce
+          </TabsTrigger>
+          <TabsTrigger value="autopost" className="flex items-center gap-2">
+            <Megaphone className="w-4 h-4" />
+            Autopost
           </TabsTrigger>
         </TabsList>
 
@@ -203,6 +209,16 @@ export default function MarketplacesPage() {
             </p>
           </div>
           <SocialChannelList />
+        </TabsContent>
+
+        <TabsContent value="autopost" className="mt-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Automatisch Posten</h2>
+            <p className="text-muted-foreground">
+              Koppel je social media accounts om automatisch content te posten via AI.
+            </p>
+          </div>
+          <SocialConnectionsManager />
         </TabsContent>
       </Tabs>
 
