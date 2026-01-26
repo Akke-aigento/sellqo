@@ -1,147 +1,102 @@
 
-# Plan: Uitgebreide Product Bulk Bewerking
+# Plan: Product Spreadsheet Grid View
 
-## Huidige Situatie
+## Concept
 
-De producten pagina heeft momenteel beperkte bulk acties:
+Een **spreadsheet-achtige rasterweergave** voor producten waar je:
+- Direct in cellen kunt klikken en waarden bewerken (inline editing)
+- Meerdere cellen kunt selecteren met Shift+Click of slepen
+- Geselecteerde cellen bulk kunt bewerken
+- Alle wijzigingen kunt zien voordat je opslaat
+- Met Tab/Enter door cellen kunt navigeren
 
-```text
-HUIDIGE BULK ACTIES
-───────────────────
-✅ Activeren (is_active: true)
-✅ Deactiveren (is_active: false)
-✅ Verwijderen
+Dit is vergelijkbaar met hoe Shopify en WooCommerce hun "Quick Edit" of "Bulk Edit" weergave hebben, maar dan nog krachtiger.
 
-❌ Categorie wijzigen
-❌ Prijs aanpassen (vast bedrag, percentage)
-❌ Voorraad aanpassen
-❌ BTW-tarief wijzigen
-❌ Tags toevoegen/verwijderen
-❌ Zichtbaarheid (online/winkel)
-❌ Verzending vereist
-❌ Featured status
-❌ Social channels activeren
-❌ Marketplace sync
-```
-
-## Oplossing: ProductBulkEditDialog
-
-Een uitgebreid dialoogvenster met tabs voor verschillende bewerkingscategorieën:
+## Visueel Ontwerp
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Bulk bewerking (24 producten geselecteerd)                           [X]  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  [Basis]  [Prijzen]  [Voorraad]  [Zichtbaarheid]  [Kanalen]  [Tags]        │
-│                                                                             │
-│  ══════════════════════════════════════════════════════════════════════    │
-│                                                                             │
-│  BASIS TAB                                                                  │
-│  ─────────                                                                  │
-│  ☐ Categorie wijzigen                                                      │
-│     [Selecteer categorie ▾]                                                │
-│                                                                             │
-│  ☐ BTW-tarief wijzigen                                                     │
-│     [Selecteer BTW-tarief ▾]                                               │
-│                                                                             │
-│  ☐ Product type wijzigen                                                   │
-│     [Fysiek ▾]                                                             │
-│                                                                             │
-│  ══════════════════════════════════════════════════════════════════════    │
-│                                                                             │
-│  PRIJZEN TAB                                                                │
-│  ───────────                                                                │
-│  ☐ Verkoopprijs aanpassen                                                  │
-│     ○ Vast bedrag: [€___] toevoegen/aftrekken                              │
-│     ○ Percentage: [___]% verhogen/verlagen                                 │
-│     ○ Exacte prijs: [€___]                                                 │
-│                                                                             │
-│  ☐ Vergelijkingsprijs (doorstreepprijs)                                    │
-│     ○ Verwijderen                                                          │
-│     ○ Instellen op huidige prijs (voor kortingsactie)                      │
-│     ○ Exacte prijs: [€___]                                                 │
-│                                                                             │
-│  ☐ Kostprijs aanpassen                                                     │
-│     [€___]                                                                 │
-│                                                                             │
-│  ══════════════════════════════════════════════════════════════════════    │
-│                                                                             │
-│  VOORRAAD TAB                                                               │
-│  ────────────                                                               │
-│  ☐ Voorraad aanpassen                                                      │
-│     ○ Toevoegen: [___] stuks                                               │
-│     ○ Aftrekken: [___] stuks                                               │
-│     ○ Exact instellen: [___] stuks                                         │
-│                                                                             │
-│  ☐ Voorraad tracking                                                       │
-│     ○ Inschakelen                                                          │
-│     ○ Uitschakelen                                                         │
-│                                                                             │
-│  ☐ Backorder toestaan                                                      │
-│     ○ Ja                                                                   │
-│     ○ Nee                                                                  │
-│                                                                             │
-│  ☐ Lage voorraad drempel                                                   │
-│     [___] stuks                                                            │
-│                                                                             │
-│  ══════════════════════════════════════════════════════════════════════    │
-│                                                                             │
-│  ZICHTBAARHEID TAB                                                          │
-│  ─────────────────                                                          │
-│  ☐ Status                                                                  │
-│     ○ Activeren                                                            │
-│     ○ Deactiveren                                                          │
-│                                                                             │
-│  ☐ Webshop zichtbaarheid                                                   │
-│     ○ Online tonen                                                         │
-│     ○ Alleen winkel (POS)                                                  │
-│                                                                             │
-│  ☐ Featured/Uitgelicht                                                     │
-│     ○ Uitlichten                                                           │
-│     ○ Niet uitlichten                                                      │
-│                                                                             │
-│  ☐ Verzending vereist                                                      │
-│     ○ Ja                                                                   │
-│     ○ Nee                                                                  │
-│                                                                             │
-│  ══════════════════════════════════════════════════════════════════════    │
-│                                                                             │
-│  KANALEN TAB                                                                │
-│  ───────────                                                                │
-│  ☐ Social Commerce kanalen                                                 │
-│     ☑ Facebook Shop                                                        │
-│     ☑ Instagram Shop                                                       │
-│     ☐ Google Shopping                                                      │
-│     ☐ Pinterest                                                            │
-│                                                                             │
-│  ☐ Marketplace sync                                                        │
-│     ☑ Bol.com                                                              │
-│     ☐ Amazon                                                               │
-│                                                                             │
-│  [Sync nu starten]                                                         │
-│                                                                             │
-│  ══════════════════════════════════════════════════════════════════════    │
-│                                                                             │
-│  TAGS TAB                                                                   │
-│  ─────────                                                                  │
-│  ☐ Tags toevoegen                                                          │
-│     [+ Tag toevoegen]                                                      │
-│     sale  nieuw  bestseller                                                │
-│                                                                             │
-│  ☐ Tags verwijderen                                                        │
-│     [Selecteer te verwijderen tags]                                        │
-│                                                                             │
-│  ☐ Alle tags vervangen door                                                │
-│     [+ Tags invoeren]                                                      │
-│                                                                             │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ⚠️ Let op: Deze wijzigingen worden toegepast op 24 producten              │
-│                                                                             │
-│                              [Annuleren]  [Wijzigingen toepassen]           │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  Producten                                                           [Lijst] [Raster] [+ Nieuw] │
+├─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                 │
+│  ┌─ KOLOM CONFIGURATIE ─┐   Zoeken: [____________________]   [Filters ▾]                       │
+│  │ ☑ Naam               │                                                                      │
+│  │ ☑ SKU                │   ┌────────────────────────────────────────────────────────────────┐ │
+│  │ ☑ Prijs              │   │ 3 cellen geselecteerd              [Bulk bewerken] [Wissen]    │ │
+│  │ ☑ Voorraad           │   └────────────────────────────────────────────────────────────────┘ │
+│  │ ☐ Kostprijs          │                                                                      │
+│  │ ☑ Categorie          │                                                                      │
+│  │ ☐ BTW                │                                                                      │
+│  │ ☑ Status             │                                                                      │
+│  │ ☐ Tags               │                                                                      │
+│  └──────────────────────┘                                                                      │
+│                                                                                                 │
+│  ┌─────┬───────────────────────────┬──────────┬───────────┬─────────┬─────────────┬──────────┐ │
+│  │  ☐  │ Naam                      │ SKU      │ Prijs     │ Voorrad │ Categorie   │ Status   │ │
+│  ├─────┼───────────────────────────┼──────────┼───────────┼─────────┼─────────────┼──────────┤ │
+│  │ ☐   │ iPhone 15 Pro Max         │ IPH-15PM │ €1.299,00 │   45    │ Telefoons   │  ● Actf  │ │
+│  ├─────┼───────────────────────────┼──────────┼───────────┼─────────┼─────────────┼──────────┤ │
+│  │ ☐   │ Samsung Galaxy S24        │ SAM-S24  │ [€999,00] │  [32]   │ Telefoons   │  ● Actf  │ │
+│  ├─────┼───────────────────────────┼──────────┼───────────┼─────────┼─────────────┼──────────┤ │
+│  │ ☐   │ MacBook Pro 16"           │ MBP-16   │ [€2.899,] │   12    │ Laptops     │  ○ Inact │ │
+│  ├─────┼───────────────────────────┼──────────┼───────────┼─────────┼─────────────┼──────────┤ │
+│  │ ☐   │ AirPods Pro 2             │ APP-2    │ €279,00   │  156    │ Accessoires │  ● Actf  │ │
+│  └─────┴───────────────────────────┴──────────┴───────────┴─────────┴─────────────┴──────────┘ │
+│                                                                                                 │
+│  Wijzigingen (3):                                                                               │
+│  ├─ Samsung Galaxy S24: Prijs €999,00 → €899,00, Voorraad 32 → 50                              │
+│  └─ MacBook Pro 16": Prijs €2.899,00 → €2.499,00                                               │
+│                                                                                                 │
+│                                                      [Annuleren]  [Alle wijzigingen opslaan]   │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## Kernfunctionaliteiten
+
+### 1. Inline Cel Bewerking
+- Klik op een cel om te bewerken
+- Enter of Tab om op te slaan en naar volgende cel
+- Escape om te annuleren
+- Automatische validatie (bijv. prijs moet getal zijn)
+
+### 2. Multi-Cel Selectie
+- Shift+Click voor range selectie
+- Ctrl/Cmd+Click voor individuele cellen toevoegen
+- Sleep selectie voor rechthoekige selectie
+- Geselecteerde cellen krijgen highlight
+
+### 3. Bulk Cel Bewerking
+- Na selectie van meerdere cellen van hetzelfde type (bijv. 5 prijscellen)
+- "Bulk bewerken" knop verschijnt
+- Dezelfde opties als de bulk edit dialog (vast bedrag, percentage, etc.)
+- Wijzigingen worden toegepast op alle geselecteerde cellen
+
+### 4. Wijzigingen Tracking
+- Gewijzigde cellen krijgen visuele indicator (gele achtergrond)
+- Panel onderaan toont alle pending wijzigingen
+- "Opslaan" slaat alles tegelijk op
+- "Annuleren" zet alles terug naar origineel
+
+### 5. Kolom Configuratie
+- Kies welke kolommen zichtbaar zijn
+- Sleep kolommen om volgorde te wijzigen (optioneel)
+- Voorkeuren worden opgeslagen in localStorage
+
+## Bewerkbare Velden
+
+| Kolom | Type | Inline Edit | Bulk Edit |
+|-------|------|-------------|-----------|
+| Naam | Text | ✅ Direct typen | ❌ |
+| SKU | Text | ✅ Direct typen | ❌ |
+| Prijs | Number | ✅ Direct typen | ✅ +/- bedrag, % |
+| Kostprijs | Number | ✅ Direct typen | ✅ Exact |
+| Doorstreepprijs | Number | ✅ Direct typen | ✅ Verwijderen, exact |
+| Voorraad | Number | ✅ Direct typen | ✅ +/- aantal, exact |
+| Categorie | Select | ✅ Dropdown | ✅ Kiezen |
+| BTW-tarief | Select | ✅ Dropdown | ✅ Kiezen |
+| Status | Toggle | ✅ Switch | ✅ Aan/Uit |
+| Featured | Toggle | ✅ Switch | ✅ Aan/Uit |
+| Tags | Multi | ✅ Tag editor | ✅ Toevoegen/verwijderen |
 
 ## Technische Implementatie
 
@@ -149,210 +104,232 @@ Een uitgebreid dialoogvenster met tabs voor verschillende bewerkingscategorieën
 
 | Bestand | Beschrijving |
 |---------|--------------|
-| `src/components/admin/products/ProductBulkEditDialog.tsx` | Hoofddialoog met tabs |
-| `src/components/admin/products/bulk/BulkBasicTab.tsx` | Categorie, BTW, product type |
-| `src/components/admin/products/bulk/BulkPricingTab.tsx` | Prijsaanpassingen |
-| `src/components/admin/products/bulk/BulkStockTab.tsx` | Voorraad beheer |
-| `src/components/admin/products/bulk/BulkVisibilityTab.tsx` | Status en zichtbaarheid |
-| `src/components/admin/products/bulk/BulkChannelsTab.tsx` | Social & marketplace kanalen |
-| `src/components/admin/products/bulk/BulkTagsTab.tsx` | Tags beheer |
+| `src/components/admin/products/grid/ProductGridView.tsx` | Hoofdcomponent met spreadsheet logica |
+| `src/components/admin/products/grid/GridCell.tsx` | Individuele bewerkbare cel |
+| `src/components/admin/products/grid/GridTextCell.tsx` | Tekst input cel |
+| `src/components/admin/products/grid/GridNumberCell.tsx` | Numerieke cel met formatting |
+| `src/components/admin/products/grid/GridSelectCell.tsx` | Dropdown selectie cel |
+| `src/components/admin/products/grid/GridToggleCell.tsx` | Boolean toggle cel |
+| `src/components/admin/products/grid/GridTagsCell.tsx` | Tags editor cel |
+| `src/components/admin/products/grid/ColumnConfig.tsx` | Kolom zichtbaarheid configuratie |
+| `src/components/admin/products/grid/CellBulkEditor.tsx` | Bulk edit popup voor geselecteerde cellen |
+| `src/components/admin/products/grid/ChangesPanel.tsx` | Panel met pending wijzigingen |
+| `src/hooks/useProductGrid.ts` | State management voor grid (selectie, wijzigingen, etc.) |
 
-### Updated Bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/admin/Products.tsx` | Bulk edit knop en dialog state toevoegen |
-| `src/hooks/useProducts.ts` | Extra bulk mutations voor complexe operaties |
-
-### Bulk Actions Bar (Uitgebreid)
-
-De huidige balk wordt uitgebreid met een "Bewerken" knop:
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  24 geselecteerd                                                            │
-│                                                                             │
-│  [Bewerken]  [Activeren]  [Deactiveren]  [Verwijderen]                     │
-│      ↑                                                                      │
-│  Opent ProductBulkEditDialog                                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Bulk Edit State Type
+### State Management
 
 ```typescript
-interface BulkEditState {
-  // Basis
-  category_id?: string | null;
-  vat_rate_id?: string | null;
-  product_type?: ProductType;
+interface GridState {
+  // Welke cellen zijn geselecteerd: Map<productId, Set<fieldName>>
+  selectedCells: Map<string, Set<string>>;
   
-  // Prijzen
-  price_adjustment?: {
-    type: 'add' | 'subtract' | 'percentage_up' | 'percentage_down' | 'exact';
-    value: number;
-  };
-  compare_at_price_action?: 'remove' | 'set_current' | 'exact';
-  compare_at_price_value?: number;
-  cost_price?: number | null;
+  // Pending wijzigingen: Map<productId, Map<fieldName, newValue>>
+  pendingChanges: Map<string, Map<string, unknown>>;
   
-  // Voorraad
-  stock_adjustment?: {
-    type: 'add' | 'subtract' | 'exact';
-    value: number;
-  };
-  track_inventory?: boolean;
-  allow_backorder?: boolean;
-  low_stock_threshold?: number;
+  // Momenteel actieve cel voor editing
+  editingCell: { productId: string; field: string } | null;
   
-  // Zichtbaarheid
-  is_active?: boolean;
-  hide_from_storefront?: boolean;
-  is_featured?: boolean;
-  requires_shipping?: boolean;
+  // Zichtbare kolommen
+  visibleColumns: string[];
   
-  // Tags
-  tags_to_add?: string[];
-  tags_to_remove?: string[];
-  tags_replace_all?: string[];
-  
-  // Kanalen
-  social_channels?: Record<string, boolean>;
-  sync_marketplaces?: string[];
+  // Kolom volgorde
+  columnOrder: string[];
 }
 ```
 
-### Prijsaanpassing Logica
+### Cel Types
 
-Voor prijs- en voorraadaanpassingen die per product berekend moeten worden, is een speciale edge function of RPC nodig:
+```typescript
+type CellType = 
+  | 'text'      // Vrije tekst input
+  | 'number'    // Numeriek met formatting
+  | 'currency'  // Prijs met € symbool
+  | 'select'    // Dropdown met opties
+  | 'toggle'    // Boolean switch
+  | 'tags'      // Multi-tag editor
+  | 'readonly'; // Niet bewerkbaar
 
-```sql
--- Database function voor bulk prijs aanpassing
-CREATE OR REPLACE FUNCTION bulk_adjust_prices(
-  p_product_ids UUID[],
-  p_adjustment_type TEXT,  -- 'add', 'subtract', 'percentage_up', 'percentage_down', 'exact'
-  p_adjustment_value DECIMAL
-) RETURNS void AS $$
-BEGIN
-  IF p_adjustment_type = 'add' THEN
-    UPDATE products SET price = price + p_adjustment_value WHERE id = ANY(p_product_ids);
-  ELSIF p_adjustment_type = 'subtract' THEN
-    UPDATE products SET price = GREATEST(0, price - p_adjustment_value) WHERE id = ANY(p_product_ids);
-  ELSIF p_adjustment_type = 'percentage_up' THEN
-    UPDATE products SET price = price * (1 + p_adjustment_value / 100) WHERE id = ANY(p_product_ids);
-  ELSIF p_adjustment_type = 'percentage_down' THEN
-    UPDATE products SET price = price * (1 - p_adjustment_value / 100) WHERE id = ANY(p_product_ids);
-  ELSIF p_adjustment_type = 'exact' THEN
-    UPDATE products SET price = p_adjustment_value WHERE id = ANY(p_product_ids);
-  END IF;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+interface ColumnDefinition {
+  field: keyof Product;
+  header: string;
+  type: CellType;
+  width: number;
+  editable: boolean;
+  bulkEditable: boolean;
+  options?: { value: string; label: string }[]; // Voor select type
+  format?: (value: unknown) => string;
+  validate?: (value: unknown) => boolean | string;
+}
 ```
 
-### Voorraad Aanpassing Logica
+### Kolom Definities
 
-```sql
--- Database function voor bulk voorraad aanpassing
-CREATE OR REPLACE FUNCTION bulk_adjust_stock(
-  p_product_ids UUID[],
-  p_adjustment_type TEXT,  -- 'add', 'subtract', 'exact'
-  p_adjustment_value INTEGER
-) RETURNS void AS $$
-BEGIN
-  IF p_adjustment_type = 'add' THEN
-    UPDATE products SET stock = stock + p_adjustment_value WHERE id = ANY(p_product_ids);
-  ELSIF p_adjustment_type = 'subtract' THEN
-    UPDATE products SET stock = GREATEST(0, stock - p_adjustment_value) WHERE id = ANY(p_product_ids);
-  ELSIF p_adjustment_type = 'exact' THEN
-    UPDATE products SET stock = p_adjustment_value WHERE id = ANY(p_product_ids);
-  END IF;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+```typescript
+const GRID_COLUMNS: ColumnDefinition[] = [
+  { field: 'name', header: 'Naam', type: 'text', width: 250, editable: true, bulkEditable: false },
+  { field: 'sku', header: 'SKU', type: 'text', width: 120, editable: true, bulkEditable: false },
+  { field: 'price', header: 'Prijs', type: 'currency', width: 100, editable: true, bulkEditable: true },
+  { field: 'cost_price', header: 'Kostprijs', type: 'currency', width: 100, editable: true, bulkEditable: true },
+  { field: 'compare_at_price', header: 'Van-prijs', type: 'currency', width: 100, editable: true, bulkEditable: true },
+  { field: 'stock', header: 'Voorraad', type: 'number', width: 80, editable: true, bulkEditable: true },
+  { field: 'category_id', header: 'Categorie', type: 'select', width: 150, editable: true, bulkEditable: true },
+  { field: 'vat_rate_id', header: 'BTW', type: 'select', width: 100, editable: true, bulkEditable: true },
+  { field: 'is_active', header: 'Actief', type: 'toggle', width: 70, editable: true, bulkEditable: true },
+  { field: 'is_featured', header: 'Uitgelicht', type: 'toggle', width: 80, editable: true, bulkEditable: true },
+  { field: 'tags', header: 'Tags', type: 'tags', width: 200, editable: true, bulkEditable: true },
+  { field: 'barcode', header: 'Barcode', type: 'text', width: 120, editable: true, bulkEditable: false },
+  { field: 'weight', header: 'Gewicht', type: 'number', width: 80, editable: true, bulkEditable: true },
+];
 ```
 
-### Tags Merge Logica
+## View Toggle in Products Page
 
-```sql
--- Database function voor tags beheer
-CREATE OR REPLACE FUNCTION bulk_update_tags(
-  p_product_ids UUID[],
-  p_tags_to_add TEXT[],
-  p_tags_to_remove TEXT[],
-  p_replace_all BOOLEAN DEFAULT false,
-  p_replacement_tags TEXT[] DEFAULT '{}'
-) RETURNS void AS $$
-BEGIN
-  IF p_replace_all THEN
-    UPDATE products SET tags = p_replacement_tags WHERE id = ANY(p_product_ids);
-  ELSE
-    -- Add tags
-    IF array_length(p_tags_to_add, 1) > 0 THEN
-      UPDATE products 
-      SET tags = array(SELECT DISTINCT unnest(tags || p_tags_to_add))
-      WHERE id = ANY(p_product_ids);
-    END IF;
+De Products pagina krijgt een view toggle:
+
+```text
+[Lijst]  [Raster]  [+ Nieuw product]
+  ↓         ↓
+Huidige   Nieuwe
+tabel     spreadsheet
+view      view
+```
+
+### Updated Products.tsx
+
+```typescript
+const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+return (
+  <>
+    <div className="flex items-center gap-2">
+      <ToggleGroup type="single" value={viewMode} onValueChange={setViewMode}>
+        <ToggleGroupItem value="list" aria-label="Lijstweergave">
+          <List className="h-4 w-4" />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="grid" aria-label="Rasterweergave">
+          <Grid3X3 className="h-4 w-4" />
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </div>
     
-    -- Remove tags
-    IF array_length(p_tags_to_remove, 1) > 0 THEN
-      UPDATE products 
-      SET tags = array(SELECT unnest(tags) EXCEPT SELECT unnest(p_tags_to_remove))
-      WHERE id = ANY(p_product_ids);
-    END IF;
-  END IF;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+    {viewMode === 'list' ? (
+      <ProductTable ... />  {/* Huidige tabel */}
+    ) : (
+      <ProductGridView products={filteredProducts} />
+    )}
+  </>
+);
 ```
 
-## Implementatie Volgorde
+## Keyboard Navigatie
 
-### Fase 1: Database & Basis UI
-1. Database migratie met bulk functies (prijzen, voorraad, tags)
-2. `ProductBulkEditDialog.tsx` - Hoofdcomponent met tabs structuur
-3. `BulkBasicTab.tsx` - Categorie, BTW-tarief, product type
+| Toets | Actie |
+|-------|-------|
+| Enter | Bewerk huidige cel / Sla op en ga naar cel eronder |
+| Tab | Sla op en ga naar volgende cel |
+| Shift+Tab | Sla op en ga naar vorige cel |
+| Escape | Annuleer bewerking |
+| Pijltjes | Navigeer tussen cellen (als niet in edit mode) |
+| Ctrl/Cmd+S | Sla alle wijzigingen op |
+| Ctrl/Cmd+Z | Undo laatste wijziging |
 
-### Fase 2: Prijzen & Voorraad
-4. `BulkPricingTab.tsx` - Prijs aanpassingen met verschillende modi
-5. `BulkStockTab.tsx` - Voorraad beheer
-6. Hook updates in `useProducts.ts` voor nieuwe mutations
+## Cel Selectie Logica
 
-### Fase 3: Zichtbaarheid & Tags
-7. `BulkVisibilityTab.tsx` - Status, zichtbaarheid, featured
-8. `BulkTagsTab.tsx` - Tags toevoegen/verwijderen/vervangen
+```typescript
+// Shift+Click: Range selectie
+const handleShiftClick = (productId: string, field: string) => {
+  // Selecteer alle cellen tussen lastSelected en huidige
+  const startRow = products.findIndex(p => p.id === lastSelected.productId);
+  const endRow = products.findIndex(p => p.id === productId);
+  const [minRow, maxRow] = [Math.min(startRow, endRow), Math.max(startRow, endRow)];
+  
+  for (let i = minRow; i <= maxRow; i++) {
+    addToSelection(products[i].id, field);
+  }
+};
 
-### Fase 4: Kanalen & Integratie
-9. `BulkChannelsTab.tsx` - Social commerce en marketplace sync
-10. Products.tsx integratie - Bulk edit knop en dialog state
+// Ctrl/Cmd+Click: Toggle individuele cel
+const handleCtrlClick = (productId: string, field: string) => {
+  toggleSelection(productId, field);
+};
+```
 
-## Functie Overzicht
+## Bulk Cel Bewerking
 
-| Functie | Tab | Beschrijving |
-|---------|-----|--------------|
-| Categorie wijzigen | Basis | Verplaats naar andere categorie |
-| BTW-tarief | Basis | Wijzig BTW-tarief voor alle producten |
-| Product type | Basis | Wijzig naar fysiek/digitaal/dienst |
-| Prijs verhogen/verlagen | Prijzen | Vast bedrag of percentage |
-| Doorstreepprijs | Prijzen | Instellen/verwijderen voor acties |
-| Kostprijs | Prijzen | Marge berekening |
-| Voorraad +/- | Voorraad | Snel bijwerken |
-| Tracking aan/uit | Voorraad | Voor niet-fysieke producten |
-| Backorder | Voorraad | Wel/niet toestaan |
-| Drempelwaarde | Voorraad | Low stock alerts |
-| Activeren/Deactiveren | Zichtbaarheid | Online/offline |
-| Webshop/POS | Zichtbaarheid | Waar te tonen |
-| Featured | Zichtbaarheid | Uitlichten op homepage |
-| Verzending | Zichtbaarheid | Physical shipping |
-| Tags toevoegen | Tags | Meerdere tegelijk |
-| Tags verwijderen | Tags | Selectief verwijderen |
-| Social channels | Kanalen | FB/IG/Google/Pinterest |
-| Marketplace sync | Kanalen | Bol.com/Amazon sync starten |
+Wanneer meerdere cellen van hetzelfde veld type zijn geselecteerd:
+
+```text
+┌─────────────────────────────────────────────────────┐
+│  5 prijscellen geselecteerd                         │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  Aanpassing type:                                   │
+│  ○ Vast bedrag toevoegen     [€____]               │
+│  ○ Vast bedrag aftrekken     [€____]               │
+│  ○ Percentage verhogen       [___]%                │
+│  ○ Percentage verlagen       [___]%                │
+│  ● Exacte waarde             [€999,00]             │
+│                                                     │
+│                 [Annuleren]  [Toepassen]            │
+└─────────────────────────────────────────────────────┘
+```
+
+## Wijzigingen Panel
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Wijzigingen (5)                                                [Alles wissen] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📦 Samsung Galaxy S24                                                      │
+│     └─ Prijs: €999,00 → €899,00                                            │
+│     └─ Voorraad: 32 → 50                                                   │
+│                                                                             │
+│  📦 MacBook Pro 16"                                                         │
+│     └─ Prijs: €2.899,00 → €2.499,00                                        │
+│     └─ Status: Inactief → Actief                                           │
+│                                                                             │
+│  📦 AirPods Pro 2                                                           │
+│     └─ Categorie: Accessoires → Audio                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                        [Annuleren]  [Alle wijzigingen opslaan] │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Bestandsoverzicht
+
+| Bestand | Actie | Beschrijving |
+|---------|-------|--------------|
+| `ProductGridView.tsx` | Nieuw | Hoofdcomponent spreadsheet |
+| `GridCell.tsx` | Nieuw | Base cell component |
+| `GridTextCell.tsx` | Nieuw | Text input cel |
+| `GridNumberCell.tsx` | Nieuw | Number/currency cel |
+| `GridSelectCell.tsx` | Nieuw | Dropdown cel |
+| `GridToggleCell.tsx` | Nieuw | Boolean toggle cel |
+| `GridTagsCell.tsx` | Nieuw | Tags editor cel |
+| `ColumnConfig.tsx` | Nieuw | Kolom configuratie popover |
+| `CellBulkEditor.tsx` | Nieuw | Bulk edit voor geselecteerde cellen |
+| `ChangesPanel.tsx` | Nieuw | Pending changes overzicht |
+| `useProductGrid.ts` | Nieuw | Grid state management hook |
+| `Products.tsx` | Update | View toggle toevoegen |
 
 ## Resultaat
 
-Na implementatie heeft de merchant een krachtige bulk editor waarmee:
-- Honderden producten tegelijk kunnen worden bijgewerkt
-- Kortingsacties snel kunnen worden opgezet (prijzen + doorstreepprijzen)
-- Voorraad na levering snel kan worden bijgewerkt
-- Producten naar nieuwe kanalen kunnen worden gepusht
-- Tags voor filtering/marketing kunnen worden beheerd
+Na implementatie heeft de merchant:
 
-Dit is vergelijkbaar met wat Shopify, WooCommerce en vergelijkbare platforms bieden voor professioneel productbeheer.
+1. **Spreadsheet-achtige interface** - Vertrouwd voor iedereen die Excel kent
+2. **Snelle inline editing** - Klik en type, geen popups nodig
+3. **Multi-cel selectie** - Shift/Ctrl+Click zoals in Excel
+4. **Bulk cel bewerking** - Selecteer 10 prijscellen, pas allemaal tegelijk aan
+5. **Visuele wijzigingen tracking** - Zie precies wat er gaat veranderen
+6. **Batch opslaan** - Alle wijzigingen in één keer naar de database
+7. **Keyboard navigatie** - Tab, Enter, pijltjes voor power users
+
+Dit combineert het beste van beide werelden:
+- **Huidige bulk dialog**: Voor grote operaties op hele producten
+- **Nieuwe grid view**: Voor snelle, gerichte aanpassingen aan specifieke velden
+
+De merchant kan nu bijvoorbeeld:
+- Snel door 100 producten gaan en hier en daar een prijs aanpassen
+- 20 prijscellen selecteren en allemaal 10% verhogen
+- Zien welke wijzigingen pending zijn voordat ze worden opgeslagen
+- Met keyboard snel navigeren zoals in een spreadsheet
