@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Clock,
   Loader2,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SyncDirectionSelector } from './SyncDirectionSelector';
@@ -34,6 +35,7 @@ import { FieldMappingEditor } from './FieldMappingEditor';
 import { StatusMappingDialog } from './StatusMappingDialog';
 import { ConflictStrategySelector } from './ConflictStrategySelector';
 import { SyncFrequencySelector } from './SyncFrequencySelector';
+import { SyncTestModeDialog } from './SyncTestModeDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -119,6 +121,7 @@ export function SyncRuleCard({
 }: SyncRuleCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [showTestDialog, setShowTestDialog] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
@@ -257,25 +260,40 @@ export function SyncRuleCard({
                 
                 <div className="flex items-center gap-2">
                   {enabled && canManualSync && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleManualSync();
-                      }}
-                      disabled={isSyncing}
-                      className="h-8 px-2"
-                    >
-                      {isSyncing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                      <span className="ml-1.5 hidden sm:inline">
-                        {isSyncing ? 'Bezig...' : 'Nu Syncen'}
-                      </span>
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowTestDialog(true);
+                        }}
+                        className="h-8 px-2"
+                        title="Test modus / Dry run"
+                      >
+                        <FlaskConical className="w-4 h-4 text-amber-500" />
+                        <span className="ml-1.5 hidden sm:inline">Test</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleManualSync();
+                        }}
+                        disabled={isSyncing}
+                        className="h-8 px-2"
+                      >
+                        {isSyncing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                        <span className="ml-1.5 hidden sm:inline">
+                          {isSyncing ? 'Bezig...' : 'Nu Syncen'}
+                        </span>
+                      </Button>
+                    </>
                   )}
                   <Switch
                     checked={enabled}
@@ -460,6 +478,17 @@ export function SyncRuleCard({
         mappings={statusMappings}
         onSave={onStatusMappingsChange}
         platformName={platformName}
+      />
+
+      {/* Test Mode Dialog */}
+      <SyncTestModeDialog
+        open={showTestDialog}
+        onOpenChange={setShowTestDialog}
+        connectionId={connectionId}
+        dataType={dataType}
+        direction={direction}
+        platformName={platformName}
+        onConfirmSync={handleManualSync}
       />
     </>
   );
