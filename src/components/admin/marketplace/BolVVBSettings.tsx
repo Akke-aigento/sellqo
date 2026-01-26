@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Truck, Package, AlertCircle, Info, Euro, FileText } from 'lucide-react';
+import { Truck, Package, AlertCircle, Info, Euro, FileText, ShoppingBag } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { MarketplaceSettings } from '@/types/marketplace';
 
@@ -21,6 +21,7 @@ interface BolVVBSettingsProps {
 }
 
 export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsProps) {
+  const [autoAcceptOrder, setAutoAcceptOrder] = useState(settings.autoAcceptOrder || false);
   const [vvbEnabled, setVvbEnabled] = useState(settings.vvbEnabled || false);
   const [vvbMaxAmount, setVvbMaxAmount] = useState(settings.vvbMaxAmount?.toString() || '300');
   const [vvbFallbackProvider, setVvbFallbackProvider] = useState<'sendcloud' | 'myparcel'>(
@@ -34,6 +35,7 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
 
   // Sync local state with props
   useEffect(() => {
+    setAutoAcceptOrder(settings.autoAcceptOrder || false);
     setVvbEnabled(settings.vvbEnabled || false);
     setVvbMaxAmount(settings.vvbMaxAmount?.toString() || '300');
     setVvbFallbackProvider(settings.vvbFallbackProvider || 'sendcloud');
@@ -48,6 +50,47 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
 
   return (
     <div className="space-y-4">
+      {/* Order Processing Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-blue-600" />
+            <CardTitle className="text-lg">Order Verwerking</CardTitle>
+          </div>
+          <CardDescription>
+            Automatische verwerking van binnenkomende orders
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="font-medium">Automatische order acceptatie</Label>
+              <p className="text-sm text-muted-foreground">
+                Orders worden automatisch geaccepteerd bij import vanuit Bol.com
+              </p>
+            </div>
+            <Switch
+              checked={autoAcceptOrder}
+              onCheckedChange={(checked) => {
+                setAutoAcceptOrder(checked);
+                handleChange('autoAcceptOrder', checked);
+              }}
+            />
+          </div>
+
+          {autoAcceptOrder && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Let op:</strong> Geaccepteerde orders kunnen niet meer worden 
+                geweigerd via Bol.com. Zorg dat je voldoende voorraad hebt voordat je 
+                deze optie inschakelt.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       {/* VVB Labels Card */}
       <Card>
         <CardHeader>

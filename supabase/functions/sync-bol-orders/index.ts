@@ -333,6 +333,32 @@ Deno.serve(async (req) => {
             console.log(`Successfully imported order ${bolOrder.orderId}`)
             totalImported++
 
+            // Auto-accept order if enabled
+            const autoAcceptOrder = settings.autoAcceptOrder as boolean
+            if (autoAcceptOrder && newOrder) {
+              try {
+                console.log(`Auto-accepting order ${bolOrder.orderId}...`)
+                const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+                const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                
+                await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${serviceKey}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    order_id: newOrder.id,
+                    connection_id: connection.id
+                  })
+                })
+                console.log(`Order ${bolOrder.orderId} auto-accepted`)
+              } catch (acceptError) {
+                console.error(`Failed to auto-accept order ${bolOrder.orderId}:`, acceptError)
+                // Non-blocking - continue with sync
+              }
+            }
+
           } catch (orderError) {
             console.error(`Error processing order ${bolOrder.orderId}:`, orderError)
             totalErrors++

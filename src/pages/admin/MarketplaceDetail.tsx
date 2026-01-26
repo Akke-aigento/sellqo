@@ -68,6 +68,7 @@ import { useMarketplaceConnection, useMarketplaceConnections } from '@/hooks/use
 import { MARKETPLACE_INFO, type MarketplaceSettings } from '@/types/marketplace';
 import { SyncRulesTab } from '@/components/admin/marketplace/SyncRulesTab';
 import { BolVVBSettings } from '@/components/admin/marketplace/BolVVBSettings';
+import { AmazonBuyShippingSettings } from '@/components/admin/marketplace/AmazonBuyShippingSettings';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -682,6 +683,24 @@ export default function MarketplaceDetailPage() {
             {/* VVB Settings - only for Bol.com */}
             {connection.marketplace_type === 'bol_com' && (
               <BolVVBSettings
+                settings={connection.settings}
+                onSettingsChange={(updates) => {
+                  updateConnection.mutate({
+                    id: connection.id,
+                    updates: {
+                      settings: {
+                        ...connection.settings,
+                        ...updates,
+                      },
+                    },
+                  });
+                }}
+              />
+            )}
+
+            {/* Amazon Buy Shipping Settings */}
+            {connection.marketplace_type === 'amazon' && (
+              <AmazonBuyShippingSettings
                 settings={connection.settings}
                 onSettingsChange={(updates) => {
                   updateConnection.mutate({
