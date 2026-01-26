@@ -48,6 +48,15 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     icon: BarChart3,
   },
   {
+    id: 'today-widget',
+    title: 'Vandaag',
+    description: 'Live sales feed en dagelijkse statistieken',
+    defaultSize: 'lg',
+    minSize: 'md',
+    category: 'stats',
+    icon: Zap,
+  },
+  {
     id: 'stats-grid',
     title: 'Statistieken',
     description: 'Omzet, bestellingen, producten en alerts',
@@ -124,6 +133,7 @@ export const layoutPresets: LayoutPreset[] = [
     icon: LayoutDashboard,
     widgetOrder: [
       'shop-health',
+      'today-widget',
       'stats-grid',
       'quick-actions',
       'recent-orders',
