@@ -226,6 +226,19 @@ function generateOGM(baseNumber: number | string): string {
   return `+++${full.slice(0, 3)}/${full.slice(3, 7)}/${full.slice(7, 12)}+++`;
 }
 
+// Get marketplace label for PDF display (only external sources)
+function getMarketplaceLabel(source: string | null): string | null {
+  if (!source || source === 'sellqo_webshop') return null; // Don't show for own webshop
+  
+  const labels: Record<string, string> = {
+    bol_com: 'Bol.com',
+    amazon: 'Amazon',
+    woocommerce: 'WooCommerce',
+    shopify: 'Shopify',
+  };
+  return labels[source] || source;
+}
+
 function formatCurrency(amount: number, currency: string = 'EUR'): string {
   return new Intl.NumberFormat('nl-NL', {
     style: 'currency',
@@ -866,6 +879,14 @@ async function generateFacturXPDF(data: {
   page.drawText(dueDate, { x: margin + 80, y: yPos, size: 10, font: helveticaFont, color: textColor });
   page.drawText('OGM:', { x: width / 2, y: yPos, size: 10, font: helveticaFont, color: grayColor });
   page.drawText(ogmReference, { x: width / 2 + 80, y: yPos, size: 10, font: helveticaFont, color: textColor });
+
+  // Marketplace source (only for external marketplaces)
+  const marketplaceLabel = getMarketplaceLabel(order.marketplace_source);
+  if (marketplaceLabel) {
+    yPos -= 16;
+    page.drawText('Via:', { x: margin, y: yPos, size: 10, font: helveticaFont, color: grayColor });
+    page.drawText(marketplaceLabel, { x: margin + 80, y: yPos, size: 10, font: helveticaFont, color: primaryColor });
+  }
 
   // Items table header
   yPos -= 40;
