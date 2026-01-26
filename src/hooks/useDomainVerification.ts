@@ -12,15 +12,27 @@ interface DomainVerificationStatus {
   error?: string;
 }
 
+export interface ProviderInfo {
+  provider: string;
+  provider_name: string;
+  supports_auto_connect: boolean;
+  connect_method: string | null;
+  nameservers: string[];
+}
+
 interface UseDomainVerificationReturn {
   isLoading: boolean;
   isSaving: boolean;
   isVerifying: boolean;
+  isDetecting: boolean;
   verificationStatus: DomainVerificationStatus | null;
+  providerInfo: ProviderInfo | null;
   saveDomain: (domain: string) => Promise<boolean>;
   verifyDomain: () => Promise<DomainVerificationStatus | null>;
   removeDomain: () => Promise<boolean>;
   generateVerificationToken: () => string;
+  detectProvider: (domain: string) => Promise<ProviderInfo | null>;
+  initiateCloudflareOAuth: (domain: string) => Promise<string | null>;
 }
 
 export function useDomainVerification(): UseDomainVerificationReturn {
@@ -29,19 +41,93 @@ export function useDomainVerification(): UseDomainVerificationReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<DomainVerificationStatus | null>(null);
+  const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
 
   const generateVerificationToken = useCallback((): string => {
     return crypto.randomUUID().replace(/-/g, '').substring(0, 16);
   }, []);
 
   const validateDomainFormat = (domain: string): boolean => {
-    // Remove protocol if present
     const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
-    // Basic domain validation regex
     const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
     return domainRegex.test(cleanDomain);
   };
+
+  const detectProvider = useCallback(async (domain: string): Promise<ProviderInfo | null> => {
+    const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').toLowerCase();
+    
+    if (!validateDomainFormat(cleanDomain)) {
+      return null;
+    }
+
+    setIsDetecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<ProviderInfo>('detect-domain-provider', {
+        body: { domain: cleanDomain },
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error('No data returned');
+      
+      setProviderInfo(data);
+      return data;
+    } catch (error) {
+      console.error('Error detecting provider:', error);
+      const fallback: ProviderInfo = {
+        provider: 'unknown',
+        provider_name: 'Onbekend',
+        supports_auto_connect: false,
+        connect_method: null,
+        nameservers: [],
+      };
+      setProviderInfo(fallback);
+      return fallback;
+    } finally {
+      setIsDetecting(false);
+    }
+  }, []);
+
+  const initiateCloudflareOAuth = useCallback(async (domain: string): Promise<string | null> => {
+    if (!currentTenant?.id) {
+      toast({
+        title: 'Fout',
+        description: 'Geen tenant gevonden',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke<{ oauth_url?: string; configured: boolean; error?: string }>('cloudflare-oauth-init', {
+        body: { 
+          tenant_id: currentTenant.id,
+          domain: domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').toLowerCase(),
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.configured) {
+        toast({
+          title: 'Cloudflare niet geconfigureerd',
+          description: 'Automatische koppeling is momenteel niet beschikbaar. Gebruik de handmatige configuratie.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      return data.oauth_url || null;
+    } catch (error) {
+      console.error('Error initiating Cloudflare OAuth:', error);
+      toast({
+        title: 'Fout bij koppelen',
+        description: 'Kon de automatische koppeling niet starten. Probeer handmatig te configureren.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [currentTenant?.id, toast]);
 
   const saveDomain = useCallback(async (domain: string): Promise<boolean> => {
     if (!currentTenant?.id) {
@@ -53,7 +139,6 @@ export function useDomainVerification(): UseDomainVerificationReturn {
       return false;
     }
 
-    // Clean and validate domain
     const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').toLowerCase();
     
     if (!validateDomainFormat(cleanDomain)) {
@@ -117,7 +202,6 @@ export function useDomainVerification(): UseDomainVerificationReturn {
       });
 
       if (error) throw error;
-
       if (!data) throw new Error('No data returned');
       setVerificationStatus(data);
 
@@ -178,6 +262,7 @@ export function useDomainVerification(): UseDomainVerificationReturn {
       });
       
       setVerificationStatus(null);
+      setProviderInfo(null);
       await refreshTenants();
       return true;
     } catch (error) {
@@ -197,10 +282,14 @@ export function useDomainVerification(): UseDomainVerificationReturn {
     isLoading,
     isSaving,
     isVerifying,
+    isDetecting,
     verificationStatus,
+    providerInfo,
     saveDomain,
     verifyDomain,
     removeDomain,
     generateVerificationToken,
+    detectProvider,
+    initiateCloudflareOAuth,
   };
 }

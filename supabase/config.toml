@@ -176,3 +176,12 @@ verify_jwt = false
 
 [functions.verify-domain]
 verify_jwt = false
+
+[functions.detect-domain-provider]
+verify_jwt = false
+
+[functions.cloudflare-oauth-init]
+verify_jwt = false
+
+[functions.cloudflare-oauth-callback]
+verify_jwt = false
