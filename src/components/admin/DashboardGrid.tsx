@@ -30,9 +30,11 @@ import { AIMarketingWidget } from './widgets/AIMarketingWidget';
 import { POSOverviewWidget } from './widgets/POSOverviewWidget';
 import { MarketplaceWidget } from './widgets/MarketplaceWidget';
 import { LowStockWidget } from './widgets/LowStockWidget';
+import { ShopHealthWidget } from './widgets/ShopHealthWidget';
 
 // Widget component mapping
 const widgetComponents: Record<string, React.ComponentType> = {
+  'shop-health': ShopHealthWidget,
   'stats-grid': StatsGridWidget,
   'quick-actions': QuickActionsWidget,
   'recent-orders': RecentOrdersWidget,

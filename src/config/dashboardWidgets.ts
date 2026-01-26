@@ -39,6 +39,15 @@ export interface LayoutPreset {
 // All available widgets
 export const dashboardWidgets: DashboardWidgetDefinition[] = [
   {
+    id: 'shop-health',
+    title: 'Shop Health',
+    description: 'Live overzicht van je winkel gezondheid',
+    defaultSize: 'full',
+    minSize: 'full',
+    category: 'stats',
+    icon: BarChart3,
+  },
+  {
     id: 'stats-grid',
     title: 'Statistieken',
     description: 'Omzet, bestellingen, producten en alerts',
@@ -114,6 +123,7 @@ export const layoutPresets: LayoutPreset[] = [
     description: 'Compleet overzicht met alle widgets',
     icon: LayoutDashboard,
     widgetOrder: [
+      'shop-health',
       'stats-grid',
       'quick-actions',
       'recent-orders',
