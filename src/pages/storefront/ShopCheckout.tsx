@@ -1,0 +1,431 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ShopLayout } from '@/components/storefront/ShopLayout';
+import { PaymentMethodSelector, type PaymentMethod } from '@/components/storefront/PaymentMethodSelector';
+import { BankTransferPayment } from '@/components/storefront/BankTransferPayment';
+import { usePublicStorefront } from '@/hooks/usePublicStorefront';
+import { supabase } from '@/integrations/supabase/client';
+import { Helmet } from 'react-helmet-async';
+import { toast } from 'sonner';
+
+type CheckoutStep = 'details' | 'payment' | 'confirmation';
+
+interface CartItem {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+interface CustomerData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  street: string;
+  houseNumber: string;
+  postalCode: string;
+  city: string;
+  country: string;
+}
+
+export default function ShopCheckout() {
+  const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  const navigate = useNavigate();
+  const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
+  
+  const [step, setStep] = useState<CheckoutStep>('details');
+  const [customerData, setCustomerData] = useState<CustomerData>({
+    email: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    street: '',
+    houseNumber: '',
+    postalCode: '',
+    city: '',
+    country: 'BE',
+  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [bankTransferOrder, setBankTransferOrder] = useState<{
+    orderId: string;
+    orderNumber: string;
+    ogmReference: string;
+    amount: number;
+  } | null>(null);
+
+  // Demo cart items - in production this would come from cart context
+  const [cartItems] = useState<CartItem[]>([]);
+
+  // Load tenant payment settings
+  useEffect(() => {
+    if (tenant?.payment_methods_enabled) {
+      const methods = tenant.payment_methods_enabled as PaymentMethod[];
+      setEnabledPaymentMethods(methods.length > 0 ? methods : ['stripe']);
+      // Default to first enabled method
+      if (methods.length > 0 && !methods.includes(paymentMethod)) {
+        setPaymentMethod(methods[0]);
+      }
+    }
+  }, [tenant?.payment_methods_enabled]);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('nl-NL', {
+      style: 'currency',
+      currency: tenant?.currency || 'EUR',
+    }).format(price);
+  };
+
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shipping = subtotal > 0 ? 5.95 : 0;
+  const total = subtotal + shipping;
+
+  const handleInputChange = (field: keyof CustomerData, value: string) => {
+    setCustomerData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const validateForm = (): boolean => {
+    if (!customerData.email || !customerData.firstName || !customerData.lastName) {
+      toast.error('Vul alle verplichte velden in');
+      return false;
+    }
+    if (!customerData.street || !customerData.postalCode || !customerData.city) {
+      toast.error('Vul je adresgegevens in');
+      return false;
+    }
+    return true;
+  };
+
+  const handleCustomerDetailsSubmit = () => {
+    if (!validateForm()) return;
+    
+    // If only one payment method enabled, skip selection
+    if (enabledPaymentMethods.length === 1) {
+      setPaymentMethod(enabledPaymentMethods[0]);
+      handlePayment(enabledPaymentMethods[0]);
+    } else {
+      setStep('payment');
+    }
+  };
+
+  const handlePayment = async (method: PaymentMethod) => {
+    if (!tenant) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      if (method === 'stripe') {
+        // Call create-checkout-session edge function
+        const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            tenant_id: tenant.id,
+            items: cartItems.map(item => ({
+              product_id: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              name: item.name,
+            })),
+            customer: customerData,
+            success_url: `${window.location.origin}/shop/${tenantSlug}/order/{ORDER_ID}`,
+            cancel_url: `${window.location.origin}/shop/${tenantSlug}/cart`,
+          },
+        });
+
+        if (error) throw new Error(error.message);
+        if (sessionData?.url) {
+          window.location.href = sessionData.url;
+        }
+      } else if (method === 'bank_transfer') {
+        // Call create-bank-transfer-order edge function
+        const { data: orderData, error } = await supabase.functions.invoke('create-bank-transfer-order', {
+          body: {
+            tenant_id: tenant.id,
+            items: cartItems.map(item => ({
+              product_id: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              name: item.name,
+            })),
+            customer: customerData,
+            shipping_cost: shipping,
+          },
+        });
+
+        if (error) throw new Error(error.message);
+        
+        setBankTransferOrder({
+          orderId: orderData.order_id,
+          orderNumber: orderData.order_number,
+          ogmReference: orderData.ogm_reference,
+          amount: orderData.total,
+        });
+        setStep('confirmation');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Er ging iets mis bij het verwerken van je bestelling');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePaymentMethodConfirm = () => {
+    handlePayment(paymentMethod);
+  };
+
+  // Empty cart redirect
+  if (cartItems.length === 0 && step === 'details') {
+    return (
+      <ShopLayout>
+        <Helmet>
+          <title>Afrekenen | {tenant?.name || 'Shop'}</title>
+        </Helmet>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold mb-4">Je winkelwagen is leeg</h1>
+          <p className="text-muted-foreground mb-6">Voeg eerst producten toe aan je winkelwagen.</p>
+          <Button asChild>
+            <Link to={`/shop/${tenantSlug}/products`}>Bekijk Producten</Link>
+          </Button>
+        </div>
+      </ShopLayout>
+    );
+  }
+
+  return (
+    <ShopLayout>
+      <Helmet>
+        <title>Afrekenen | {tenant?.name || 'Shop'}</title>
+      </Helmet>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Back Button */}
+        {step !== 'confirmation' && (
+          <Button
+            variant="ghost"
+            className="mb-6"
+            onClick={() => step === 'payment' ? setStep('details') : navigate(`/shop/${tenantSlug}/cart`)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {step === 'payment' ? 'Terug naar gegevens' : 'Terug naar winkelwagen'}
+          </Button>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            {step === 'details' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Je gegevens</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Contact Info */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Contactgegevens</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-mailadres *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={customerData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefoonnummer</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={customerData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Voornaam *</Label>
+                        <Input
+                          id="firstName"
+                          value={customerData.firstName}
+                          onChange={(e) => handleInputChange('firstName', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Achternaam *</Label>
+                        <Input
+                          id="lastName"
+                          value={customerData.lastName}
+                          onChange={(e) => handleInputChange('lastName', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Address */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Verzendadres</h3>
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      <div className="sm:col-span-2 space-y-2">
+                        <Label htmlFor="street">Straat *</Label>
+                        <Input
+                          id="street"
+                          value={customerData.street}
+                          onChange={(e) => handleInputChange('street', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="houseNumber">Huisnummer</Label>
+                        <Input
+                          id="houseNumber"
+                          value={customerData.houseNumber}
+                          onChange={(e) => handleInputChange('houseNumber', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="postalCode">Postcode *</Label>
+                        <Input
+                          id="postalCode"
+                          value={customerData.postalCode}
+                          onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="sm:col-span-2 space-y-2">
+                        <Label htmlFor="city">Stad *</Label>
+                        <Input
+                          id="city"
+                          value={customerData.city}
+                          onChange={(e) => handleInputChange('city', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleCustomerDetailsSubmit}
+                    disabled={isProcessing}
+                    style={{
+                      backgroundColor: themeSettings?.primary_color || undefined,
+                    }}
+                  >
+                    {enabledPaymentMethods.length === 1 ? 'Doorgaan naar betaling' : 'Kies betaalmethode'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 'payment' && (
+              <div className="space-y-6">
+                <PaymentMethodSelector
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  enabledMethods={enabledPaymentMethods}
+                  showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
+                  transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
+                />
+                
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handlePaymentMethodConfirm}
+                  disabled={isProcessing}
+                  style={{
+                    backgroundColor: themeSettings?.primary_color || undefined,
+                  }}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Bezig...
+                    </>
+                  ) : paymentMethod === 'stripe' ? (
+                    'Afrekenen met iDEAL / Card'
+                  ) : (
+                    'Bestelling plaatsen'
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {step === 'confirmation' && bankTransferOrder && tenant && (
+              <BankTransferPayment
+                orderNumber={bankTransferOrder.orderNumber}
+                amount={bankTransferOrder.amount}
+                iban={tenant.iban || ''}
+                bic={tenant.bic || undefined}
+                beneficiaryName={tenant.name}
+                ogmReference={bankTransferOrder.ogmReference}
+                currency={tenant.currency || 'EUR'}
+              />
+            )}
+          </div>
+
+          {/* Order Summary Sidebar */}
+          <div>
+            <Card className="sticky top-24">
+              <CardHeader>
+                <CardTitle className="text-lg">Besteloverzicht</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Items */}
+                <div className="space-y-3 mb-4">
+                  {cartItems.map(item => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {item.quantity}x {item.name}
+                      </span>
+                      <span>{formatPrice(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator className="my-4" />
+
+                {/* Totals */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotaal</span>
+                    <span>{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Verzending</span>
+                    <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Totaal</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </ShopLayout>
+  );
+}
