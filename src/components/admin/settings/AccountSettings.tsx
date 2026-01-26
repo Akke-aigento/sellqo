@@ -18,6 +18,8 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { OnboardingStatusCard } from '@/components/onboarding/OnboardingStatusCard';
 import { supabase } from '@/integrations/supabase/client';
 
 export function AccountSettings() {
@@ -26,6 +28,7 @@ export function AccountSettings() {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, supportedLanguages, isLoading: isLanguageLoading } = useLanguage();
+  const { restartOnboarding, resumeOnboarding } = useOnboarding();
   
   const [fullName, setFullName] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
@@ -206,6 +209,12 @@ export function AccountSettings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Onboarding Status Card */}
+      <OnboardingStatusCard 
+        onRestart={restartOnboarding} 
+        onResume={resumeOnboarding} 
+      />
 
       {/* Interface Language Card */}
       <Card>

@@ -210,6 +210,39 @@ export function useOnboarding() {
     setState(prev => ({ ...prev, isOpen: false }));
   }, [user]);
 
+  // Restart onboarding from step 1
+  const restartOnboarding = useCallback(async () => {
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: false,
+          onboarding_step: 1,
+          onboarding_skipped_at: null,
+        })
+        .eq('id', user.id);
+    }
+    
+    setState(prev => ({ 
+      ...prev, 
+      currentStep: 1, 
+      isOpen: true,
+      data: initialData,
+    }));
+  }, [user]);
+
+  // Resume onboarding from where you left off
+  const resumeOnboarding = useCallback(async () => {
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ onboarding_skipped_at: null })
+        .eq('id', user.id);
+    }
+    
+    setState(prev => ({ ...prev, isOpen: true }));
+  }, [user]);
+
   // Create tenant (Step 1 completion)
   const createTenant = useCallback(async () => {
     if (!user) return null;
@@ -336,6 +369,8 @@ export function useOnboarding() {
     goToStep,
     skipOnboarding,
     completeOnboarding,
+    restartOnboarding,
+    resumeOnboarding,
     createTenant,
     updateTenantLogo,
     createFirstProduct,
