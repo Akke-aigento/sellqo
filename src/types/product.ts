@@ -2,10 +2,12 @@ export interface ProductMarketplaceMappings {
   bol_com?: {
     offerId: string;
     lastSync?: string;
+    autoLinked?: boolean;
   };
   amazon?: {
     sku: string;
     lastSync?: string;
+    autoLinked?: boolean;
   };
 }
 

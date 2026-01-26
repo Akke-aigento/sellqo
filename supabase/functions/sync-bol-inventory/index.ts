@@ -26,10 +26,67 @@ interface ProductMarketplaceMappings {
   bol_com?: {
     offerId: string
     lastSync?: string
+    autoLinked?: boolean
   }
   amazon?: {
     sku: string
     lastSync?: string
+    autoLinked?: boolean
+  }
+}
+
+interface BolOffer {
+  offerId: string
+  retailerId: string
+  countryCode: string
+}
+
+interface BolOffersResponse {
+  offers: BolOffer[]
+}
+
+// Helper function to lookup Offer ID by EAN
+async function lookupOfferIdByEan(
+  accessToken: string,
+  ean: string,
+  sellerId?: string
+): Promise<string | null> {
+  try {
+    console.log(`Looking up Offer ID for EAN: ${ean}`)
+    
+    const response = await fetch(
+      `${BOL_API_BASE}/products/${ean}/offers?country-code=NL`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/vnd.retailer.v10+json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      console.log(`No offers found for EAN ${ean}: ${response.status}`)
+      return null
+    }
+
+    const data: BolOffersResponse = await response.json()
+    
+    if (!data.offers || data.offers.length === 0) {
+      return null
+    }
+
+    // Find offer matching our seller ID, or take first if no sellerId configured
+    let matchingOffer: BolOffer | undefined
+    if (sellerId) {
+      matchingOffer = data.offers.find(offer => offer.retailerId === sellerId)
+    } else {
+      matchingOffer = data.offers[0]
+    }
+
+    return matchingOffer?.offerId || null
+  } catch (error) {
+    console.error(`Error looking up Offer ID for EAN ${ean}:`, error)
+    return null
   }
 }
 
@@ -142,8 +199,45 @@ Deno.serve(async (req) => {
 
         for (const product of products || []) {
           try {
-            const mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings
-            const bolMapping = mappings.bol_com
+            let mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings
+            let bolMapping = mappings.bol_com
+            
+            // NEW: If EAN exists but no Offer ID, try to look it up automatically
+            if (!bolMapping?.offerId && product.bol_ean) {
+              console.log(`Product ${product.id} has EAN but no Offer ID, looking up...`)
+              
+              const sellerId = (credentials as any).sellerId
+              const offerId = await lookupOfferIdByEan(accessToken, product.bol_ean, sellerId)
+              
+              if (offerId) {
+                console.log(`Found Offer ID ${offerId} for EAN ${product.bol_ean}`)
+                
+                // Update mappings with found offer ID
+                const updatedMappings: ProductMarketplaceMappings = {
+                  ...mappings,
+                  bol_com: {
+                    offerId,
+                    lastSync: new Date().toISOString(),
+                    autoLinked: true
+                  }
+                }
+
+                await supabase
+                  .from('products')
+                  .update({
+                    marketplace_mappings: updatedMappings,
+                    bol_offer_id: offerId
+                  })
+                  .eq('id', product.id)
+
+                // Update local reference for this sync cycle
+                mappings = updatedMappings
+                bolMapping = updatedMappings.bol_com
+              } else {
+                console.log(`No matching offer found for EAN ${product.bol_ean}, skipping`)
+                continue
+              }
+            }
             
             if (!bolMapping?.offerId) {
               console.log(`Product ${product.id} has no Bol.com offer ID, skipping`)

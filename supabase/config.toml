@@ -218,3 +218,6 @@ verify_jwt = false
 
 [functions.fetch-meta-catalogs]
 verify_jwt = false
+
+[functions.lookup-bol-offer-id]
+verify_jwt = false
