@@ -1,431 +1,493 @@
 
-# Plan: Intelligente & Lerende AI met Web Research & Gebruikerspersonalisatie
+# Plan: Advertentie-integraties (Ads Manager)
 
 ## Samenvatting
 
-Dit plan transformeert de AI van een "domme FAQ bot" naar een **intelligente, lerende assistent** die:
-1. **Web research kan doen** via de Perplexity connector wanneer webshop-kennis onvoldoende is
-2. **Leert op gebruikersniveau** - onthoudt voorkeuren per medewerker (handtekening, tone, stijl)
-3. **Feedback verzamelt** - vraagt klanten na chatbot-gesprekken hoe het was
-4. **Reply edits trackt** - leert van wijzigingen aan AI-suggesties
+Dit plan voegt een **Ads Manager** toe aan SellQo waarmee merchants betaalde advertenties kunnen aanmaken en beheren op meerdere platforms. We beginnen met de meest haalbare integraties en bouwen uit.
 
 ---
 
-## 1. Web Research Integratie
+## Haalbaarheidsanalyse
 
-### Probleem
-De AI kent alleen webshop-content. Bij algemene vragen of complexe onderwerpen heeft hij geen antwoord.
+### Realistische Beoordeling per Platform
 
-### Oplossing
-Integratie met **Perplexity API** voor web research als fallback/verrijking.
+| Platform | Status | Complexiteit | Timeline |
+|----------|--------|--------------|----------|
+| **Bol.com Ads** | ✅ Retailer API beschikbaar | Laag | 1-2 weken |
+| **Meta Ads (FB/IG)** | ✅ Catalog sync bestaat | Medium | 2-3 weken |
+| **Google Ads** | ⚠️ Developer Token nodig | Medium-Hoog | 3-4 weken |
+| **Amazon Ads** | ⚠️ Aparte API approval | Hoog | 4-6 weken |
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  KLANT VRAAG                                                    │
-│  ─────────────                                                  │
-│  "Wat is het verschil tussen LED en OLED televisies?"          │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────┐           │
-│  │  1️⃣ Check webshop kennis                        │           │
-│  │     → Geen relevante producten gevonden         │           │
-│  │                                                 │           │
-│  │  2️⃣ Web research (Perplexity)                  │           │
-│  │     → "LED gebruikt achtergrondverlichting,    │           │
-│  │        OLED heeft zelf-verlichtende pixels..." │           │
-│  │                                                 │           │
-│  │  3️⃣ Combineer met winkel context              │           │
-│  │     → "...In onze winkel hebben we OLED       │           │
-│  │        modellen vanaf €999. Bekijk onze       │           │
-│  │        TV-collectie hier: [link]"             │           │
-│  └─────────────────────────────────────────────────┘           │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Wat wel en niet kan
 
-### Configuratie in AI Assistent Settings
+**Kan WEL:**
+- Campagnes aanmaken met doelgroep-selectie
+- Segmenten uploaden als Custom Audiences
+- Budget en biedingen instellen
+- Performance metrics ophalen
+- AI-suggesties voor campagnes
 
-```text
-🔍 WEB RESEARCH
-┌─────────────────────────────────────────────────────────────────┐
-│  Web research inschakelen                      [✓]              │
-│  ─────────────────────────────────────────────────────────────  │
-│  Sta de AI toe om het web te doorzoeken voor vragen buiten      │
-│  je webshop content. Maakt gebruik van Perplexity AI.           │
-│                                                                  │
-│  Wanneer gebruiken:                                              │
-│  ○ Alleen als webshop-kennis geen antwoord geeft                │
-│  ◉ Altijd verrijken met relevante web-info                      │
-│                                                                  │
-│  Toegestane onderwerpen:                                         │
-│  [✓] Productadvies & vergelijkingen                             │
-│  [✓] Algemene informatie over productcategorieën                │
-│  [ ] Prijsvergelijkingen met concurrenten                       │
-│  [ ] Nieuws & actualiteiten                                     │
-│                                                                  │
-│  ⚠️ Vereist Perplexity koppeling. [Koppelen →]                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Kan NIET (platform beperkingen):**
+- Betaling via SellQo (gaat altijd naar merchant's eigen ad account)
+- 100% automatisch zonder OAuth goedkeuring per merchant
+- Realtime bidding (dat doen de platforms zelf)
 
 ---
 
-## 2. Leren op Gebruikersniveau
+## 1. Database Ontwerp
 
-### Probleem
-Huidige learning is alleen op **tenant-niveau**. Maar elke medewerker heeft eigen voorkeuren:
-- Medewerker A tekent af met "Met vriendelijke groet, Anna"
-- Medewerker B gebruikt altijd emoji's
-- Medewerker C is zeer formeel
-
-### Oplossing
-**Gebruikers-specifieke learning patterns** die automatisch worden toegepast.
-
-### Database Uitbreiding
+### Nieuwe Tabellen
 
 ```sql
--- User-level learning patterns (naast bestaande tenant-level)
-CREATE TABLE public.ai_user_learning_patterns (
+-- Ad Platform Connections (OAuth tokens per merchant)
+CREATE TABLE public.ad_platform_connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,  -- 'google_ads', 'meta_ads', 'bol_ads', 'amazon_ads'
   
-  pattern_type TEXT NOT NULL,  -- 'signature', 'greeting', 'emoji_usage', 'tone', etc.
-  learned_value JSONB NOT NULL DEFAULT '{}',
-  confidence_score DECIMAL(3,2) DEFAULT 0.3,  -- 0.0 - 1.0
-  sample_count INTEGER DEFAULT 0,
+  -- Account info
+  account_id TEXT,
+  account_name TEXT,
+  currency TEXT DEFAULT 'EUR',
   
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  last_updated_at TIMESTAMPTZ DEFAULT now(),
+  -- OAuth tokens
+  access_token TEXT,
+  refresh_token TEXT,
+  token_expires_at TIMESTAMPTZ,
   
-  UNIQUE(user_id, pattern_type)
+  -- Platform-specific config
+  config JSONB DEFAULT '{}',
+  -- Google: { customer_id, developer_token }
+  -- Meta: { ad_account_id, pixel_id, catalog_id }
+  -- Bol: { retailer_id } (uses existing JWT)
+  -- Amazon: { profile_id, marketplace_id }
+  
+  is_active BOOLEAN DEFAULT true,
+  last_sync_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Track repeat behaviors
-CREATE TABLE public.ai_user_behavior_log (
+-- Ad Campaigns (unified across platforms)
+CREATE TABLE public.ad_campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  connection_id UUID REFERENCES public.ad_platform_connections(id),
   
-  behavior_type TEXT NOT NULL,  -- 'edit_signature', 'add_greeting', 'change_tone'
-  behavior_value TEXT NOT NULL,
-  occurrence_count INTEGER DEFAULT 1,
-  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Basic info
+  name TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  campaign_type TEXT NOT NULL,
+  -- Types: 'sponsored_products', 'dynamic_product_ads', 'remarketing', 'prospecting'
   
-  UNIQUE(user_id, behavior_type, behavior_value)
+  -- Targeting
+  segment_id UUID REFERENCES public.customer_segments(id),
+  audience_type TEXT,  -- 'custom', 'lookalike', 'interest', 'retargeting'
+  audience_config JSONB DEFAULT '{}',
+  -- { lookalike_source: 'vip_customers', interest_categories: [...] }
+  
+  product_ids UUID[],  -- Specific products to advertise
+  category_ids UUID[], -- Or entire categories
+  
+  -- Budget
+  budget_type TEXT DEFAULT 'daily',  -- 'daily', 'lifetime'
+  budget_amount DECIMAL(10,2),
+  bid_strategy TEXT,  -- 'auto', 'manual_cpc', 'target_roas'
+  target_roas DECIMAL(5,2),
+  
+  -- Schedule
+  status TEXT DEFAULT 'draft',
+  -- 'draft', 'pending_approval', 'active', 'paused', 'ended', 'rejected'
+  start_date DATE,
+  end_date DATE,
+  
+  -- Platform reference
+  platform_campaign_id TEXT,  -- ID on the ad platform
+  platform_status TEXT,
+  
+  -- Performance (synced from platform)
+  impressions INTEGER DEFAULT 0,
+  clicks INTEGER DEFAULT 0,
+  spend DECIMAL(10,2) DEFAULT 0,
+  conversions INTEGER DEFAULT 0,
+  revenue DECIMAL(10,2) DEFAULT 0,
+  roas DECIMAL(5,2),
+  
+  -- AI-generated
+  ai_suggested BOOLEAN DEFAULT false,
+  ai_suggestion_id UUID,
+  
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ad Creatives (images, copy per campaign)
+CREATE TABLE public.ad_creatives (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES public.ad_campaigns(id) ON DELETE CASCADE,
+  
+  creative_type TEXT NOT NULL,  -- 'image', 'carousel', 'video', 'text'
+  headline TEXT,
+  description TEXT,
+  call_to_action TEXT,
+  
+  image_urls TEXT[],
+  video_url TEXT,
+  
+  platform_creative_id TEXT,
+  status TEXT DEFAULT 'draft',
+  
+  -- A/B testing
+  variant_label TEXT,  -- 'A', 'B', etc.
+  impressions INTEGER DEFAULT 0,
+  clicks INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Audience Sync Log (track uploaded audiences)
+CREATE TABLE public.ad_audience_syncs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  connection_id UUID NOT NULL REFERENCES public.ad_platform_connections(id),
+  segment_id UUID REFERENCES public.customer_segments(id),
+  
+  platform TEXT NOT NULL,
+  platform_audience_id TEXT,
+  audience_name TEXT,
+  audience_size INTEGER,
+  
+  sync_type TEXT,  -- 'upload', 'update', 'delete'
+  sync_status TEXT,  -- 'pending', 'processing', 'completed', 'failed'
+  error_message TEXT,
+  
+  synced_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-### Learning Logica
+---
 
-```typescript
-// Na 3x dezelfde wijziging → leren
-// Na 5x dezelfde wijziging → automatisch toepassen
-
-const LEARN_THRESHOLD = 3;      // Start suggereren
-const AUTO_APPLY_THRESHOLD = 5; // Automatisch toepassen
-```
-
-### Voorbeeld Flow
+## 2. Architectuur Overzicht
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  SCENARIO: Anna past 5x haar handtekening aan                   │
-│  ─────────────────────────────────────────────────────────────  │
-│                                                                 │
-│  1️⃣ Eerste keer:                                               │
-│     AI suggestie: "Groeten, Team Shop"                         │
-│     Anna wijzigt naar: "Hartelijke groet, Anna ♥️"              │
-│     → Log: signature_edit = "Hartelijke groet, Anna ♥️" (1x)    │
-│                                                                 │
-│  2️⃣ Tweede keer: idem                                          │
-│     → Count: 2x                                                 │
-│                                                                 │
-│  3️⃣ Derde keer: idem                                           │
-│     → Count: 3x ✓ LEARN_THRESHOLD                              │
-│     → Sla op als user_pattern: signature                        │
-│     → Toast: "We onthouden je handtekening voortaan!"          │
-│                                                                 │
-│  4️⃣ Vierde keer: AI suggestie bevat al haar handtekening!      │
-│     → Anna is blij, geen edit nodig                            │
-│                                                                 │
-│  5️⃣ Vijfde keer: AUTO_APPLY_THRESHOLD bereikt                  │
-│     → Pattern confidence = 0.9 (zeer zeker)                     │
-│     → Altijd automatisch toepassen                             │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           SELLQO ADS MANAGER                                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────┐     ┌─────────────────────────────────────────┐    │
+│  │   Admin UI          │     │   Edge Functions                        │    │
+│  │   /admin/ads        │     │                                         │    │
+│  │                     │     │   ads-connect-platform                  │    │
+│  │   • Platform Setup  │────▶│   ads-create-campaign                   │    │
+│  │   • Campagne Wizard │     │   ads-sync-audience                     │    │
+│  │   • Performance     │     │   ads-sync-performance                  │    │
+│  │   • AI Suggesties   │     │   ads-suggest-campaign (AI)             │    │
+│  └─────────────────────┘     └───────────────┬─────────────────────────┘    │
+│                                              │                               │
+│  ┌───────────────────────────────────────────┼───────────────────────────┐  │
+│  │                     PLATFORM ADAPTERS     │                           │  │
+│  │                                           ▼                           │  │
+│  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐             │  │
+│  │   │ Bol.com  │  │   Meta   │  │  Google  │  │  Amazon  │             │  │
+│  │   │ Adapter  │  │ Adapter  │  │ Adapter  │  │ Adapter  │             │  │
+│  │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘             │  │
+│  │        │             │             │             │                    │  │
+│  └────────┼─────────────┼─────────────┼─────────────┼────────────────────┘  │
+│           │             │             │             │                       │
+│           ▼             ▼             ▼             ▼                       │
+│   ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐               │
+│   │ Bol.com   │  │ Meta      │  │ Google    │  │ Amazon    │               │
+│   │ Adv. API  │  │ Mktg API  │  │ Ads API   │  │ Adv. API  │               │
+│   └───────────┘  └───────────┘  └───────────┘  └───────────┘               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Chatbot Feedback Systeem
+## 3. Fase 1: Bol.com Sponsored Products (Meest Haalbaar)
 
-### Probleem
-We weten niet of klanten tevreden zijn met chatbot-antwoorden.
+### Waarom eerst Bol.com?
+- Bestaande Retailer API koppeling (JWT token)
+- Eenvoudige API (v11)
+- Geen aparte OAuth nodig
+- Nederlandse focus past bij SellQo
 
-### Oplossing
-Na elk chatbot-gesprek een korte feedback vraag.
-
-### UI Flow
+### Functionaliteit
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  🤖 Assistent                                                   │
-│  ─────────────────────────────────────────────────────────────  │
-│  Ik hoop dat ik je goed heb kunnen helpen! Mag ik je iets       │
-│  vragen?                                                        │
-│                                                                 │
-│  Hoe was dit gesprek?                                           │
-│                                                                 │
-│  [😊 Goed]  [😐 Neutraal]  [😔 Niet zo goed]                    │
-│                                                                 │
-│  ─────────────────────────────────────────────────────────────  │
-│  💡 Je kunt ook altijd contact opnemen met onze klantenservice  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  BOL.COM SPONSORED PRODUCTS                                                 │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  Campagne Type:                                                             │
+│  ◉ Automatisch (AI-gestuurde keywords)                                      │
+│  ○ Handmatig (eigen keywords kiezen)                                        │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  Producten selecteren:                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  [✓] Premium Koptelefoon XR-500          EAN: 8712345678901         │   │
+│  │  [✓] Bluetooth Speaker Pro               EAN: 8712345678902         │   │
+│  │  [ ] Oordopjes Basic                     EAN: 8712345678903         │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│  Alleen producten die actief zijn op Bol.com worden getoond                 │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  Budget:                                                                    │
+│  ┌──────────────────────┐  ┌──────────────────────┐                        │
+│  │  Dagbudget           │  │  Totaalbudget        │                        │
+│  │  €___[25.00]_____    │  │  €___[500.00]____    │                        │
+│  └──────────────────────┘  └──────────────────────┘                        │
+│                                                                             │
+│  ACoS Doel (Advertising Cost of Sale):                                      │
+│  [═══════════○═══════] 15%                                                  │
+│  Bol.com optimaliseert biedingen om dit doel te bereiken                    │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  [Concept opslaan]                        [Campagne starten →]              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Feedback Data Opslag
-
-```sql
--- Chatbot conversation & feedback
-CREATE TABLE public.ai_chatbot_conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  session_id TEXT NOT NULL,  -- Browser session
-  
-  messages JSONB NOT NULL DEFAULT '[]',
-  message_count INTEGER DEFAULT 0,
-  
-  -- Feedback (optioneel)
-  feedback_rating INTEGER,  -- 1 = slecht, 2 = neutraal, 3 = goed
-  feedback_comment TEXT,
-  feedback_submitted_at TIMESTAMPTZ,
-  
-  -- Context
-  initial_question TEXT,
-  topics_discussed TEXT[],
-  web_research_used BOOLEAN DEFAULT false,
-  escalated_to_human BOOLEAN DEFAULT false,
-  
-  -- Meta
-  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  ended_at TIMESTAMPTZ,
-  
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-### Learning van Feedback
+### Edge Function: ads-bol-campaign
 
 ```typescript
-// Bij negatieve feedback:
-// 1. Analyseer het gesprek met AI
-// 2. Identificeer probleem: 
-//    - Antwoord was fout → verbeter kennisbank
-//    - Vraag was te complex → pas escalatie drempel aan
-//    - Klant wilde menselijk contact → voeg snellere handoff toe
-// 3. Update ai_learning_patterns met bevindingen
+// supabase/functions/ads-bol-campaign/index.ts
+// Maakt campagnes aan via Bol.com Advertising API v11
+
+// Stap 1: Haal JWT token uit bestaande bol.com connection
+// Stap 2: Maak Campaign met AUTO of MANUAL type
+// Stap 3: Maak Ad Group onder de campaign
+// Stap 4: Voeg producten toe als Ads
+// Stap 5: Sla platform_campaign_id op in ad_campaigns tabel
 ```
 
 ---
 
-## 4. Reply Suggestion Learning (Bestaand + Uitbreiding)
+## 4. Fase 2: Meta Ads (Facebook & Instagram)
 
-### Huidige Situatie
-Er is al een `ai-learn-from-feedback` edge function die tenant-level patronen leert van edits.
+### Vereisten
+- Meta Business Manager account (merchant)
+- Facebook Pixel geïnstalleerd (voor remarketing)
+- Product Catalog gesynchroniseerd (bestaand)
 
-### Uitbreiding: User-Level Learning
+### Doelgroep Opties
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  META ADS - DOELGROEP                                                       │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  Kies je doelgroep type:                                                    │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  📋 CUSTOM AUDIENCE (jouw klanten)                                    │ │
+│  │  ──────────────────────────────────────────────────────────────────── │ │
+│  │  Upload een SellQo segment naar Meta                                  │ │
+│  │                                                                       │ │
+│  │  Selecteer segment:                                                   │ │
+│  │  [▼ VIP Klanten (€1000+ besteed) - 234 klanten              ]        │ │
+│  │                                                                       │ │
+│  │  ℹ️ Email adressen worden versleuteld (hashed) geüpload              │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  👥 LOOKALIKE AUDIENCE (vergelijkbare mensen)                         │ │
+│  │  ──────────────────────────────────────────────────────────────────── │ │
+│  │  Vind mensen die lijken op je beste klanten                           │ │
+│  │                                                                       │ │
+│  │  Bron segment:                                                        │ │
+│  │  [▼ Herhaalaankopen (3+ orders)                             ]        │ │
+│  │                                                                       │ │
+│  │  Lookalike grootte:                                                   │ │
+│  │  [═══○═══════════════] 1% (meest vergelijkbaar)                       │ │
+│  │                                                                       │ │
+│  │  Geschat bereik: ~50.000 - 100.000 mensen                             │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  🔄 RETARGETING (website bezoekers)                                   │ │
+│  │  ──────────────────────────────────────────────────────────────────── │ │
+│  │  Bereik mensen die je webshop hebben bezocht                          │ │
+│  │                                                                       │ │
+│  │  [✓] Product bekeken maar niet gekocht (laatste 7 dagen)              │ │
+│  │  [✓] Winkelwagen verlaten (laatste 14 dagen)                          │ │
+│  │  [ ] Alle bezoekers (laatste 30 dagen)                                │ │
+│  │                                                                       │ │
+│  │  ⚠️ Vereist Facebook Pixel installatie                               │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Edge Function: ads-meta-sync-audience
 
 ```typescript
-// Bij elke edit aan AI suggestie:
-// 1. Log de edit in ai_user_behavior_log
-// 2. Check of dit pattern al eerder voorkwam
-// 3. Als occurrence_count >= LEARN_THRESHOLD:
-//    - Maak/update ai_user_learning_patterns
-//    - Volgende keer: pas automatisch toe
-```
+// supabase/functions/ads-meta-sync-audience/index.ts
+// Upload SellQo segment als Meta Custom Audience
 
-### Patterns om te Leren
-
-| Pattern Type | Voorbeeld | Auto-apply na |
-|--------------|-----------|---------------|
-| `signature` | "Met vriendelijke groet, Anna" | 5x |
-| `greeting` | "Beste {naam}," vs "Hoi {naam}!" | 5x |
-| `emoji_usage` | Veel 👍😊🎉 of geen | 3x |
-| `tone` | Formeel vs informeel | 5x |
-| `cta_style` | "Klik hier" vs "Je kunt hier..." | 3x |
-| `length_preference` | Kort en bondig vs uitgebreid | 5x |
-
----
-
-## 5. Implementatie Bestandsoverzicht
-
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| **Database** | | |
-| `supabase/migrations/xxx_ai_learning.sql` | Nieuw | User patterns + behavior log + chatbot conversations |
-| **Types** | | |
-| `src/types/ai-assistant.ts` | Update | Web research config + user learning types |
-| `src/types/aiActions.ts` | Update | User learning pattern types |
-| **Hooks** | | |
-| `src/hooks/useUserLearningPatterns.ts` | Nieuw | CRUD voor user-specifieke learning |
-| `src/hooks/useAIFeedback.ts` | Update | User-level tracking toevoegen |
-| **Edge Functions** | | |
-| `supabase/functions/ai-suggest-reply/index.ts` | Nieuw | Reply suggesties met user patterns |
-| `supabase/functions/ai-chatbot-respond/index.ts` | Nieuw | Chatbot met web research |
-| `supabase/functions/ai-build-knowledge-index/index.ts` | Nieuw | Knowledge indexering |
-| `supabase/functions/ai-learn-from-feedback/index.ts` | Update | User-level learning toevoegen |
-| **Components** | | |
-| `src/components/admin/settings/AIAssistantSettings.tsx` | Update | Web research config sectie |
-| `src/components/admin/settings/AILearningInsights.tsx` | Nieuw | Toon wat AI heeft geleerd |
-| `src/components/admin/inbox/AISuggestionBox.tsx` | Update | Toon user-specific aanpassingen |
-| **Storefront** | | |
-| `src/components/storefront/AIChatbotWidget.tsx` | Nieuw | Chatbot widget met feedback |
-
----
-
-## 6. Edge Function: ai-suggest-reply (Slim)
-
-```typescript
-// supabase/functions/ai-suggest-reply/index.ts
-
-// STAP 1: Haal context
-// - Tenant knowledge (producten, FAQ, etc.)
-// - User learning patterns (handtekening, tone, etc.)
-// - Conversatie history
-
-// STAP 2: Bouw prompt met user patterns
-const userPatterns = await getUserPatterns(userId, tenantId);
-const systemPrompt = `
-Je bent een klantenservice assistent voor ${tenantName}.
-
-## Kennisbank
-${knowledgeContext}
-
-## Stijlvoorkeuren van deze medewerker
-${userPatterns.signature ? `- Ondertekent altijd met: "${userPatterns.signature}"` : ''}
-${userPatterns.tone ? `- Voorkeurstooon: ${userPatterns.tone}` : ''}
-${userPatterns.emoji_usage ? `- Emoji gebruik: ${userPatterns.emoji_usage}` : ''}
-${userPatterns.greeting ? `- Begroeting: ${userPatterns.greeting}` : ''}
-
-## Verboden onderwerpen
-${forbiddenTopics}
-`;
-
-// STAP 3: Genereer reply
-// STAP 4: Track voor learning (als user edit, update patterns)
+// Stap 1: Haal klant emails uit segment
+// Stap 2: Hash emails met SHA256 (Meta vereiste)
+// Stap 3: Upload naar Meta Custom Audiences API
+// Stap 4: Optioneel: Maak Lookalike Audience
+// Stap 5: Sla platform_audience_id op
 ```
 
 ---
 
-## 7. Edge Function: ai-chatbot-respond (Met Web Research)
+## 5. Fase 3: Google Ads
 
-```typescript
-// supabase/functions/ai-chatbot-respond/index.ts
+### Vereisten
+- Google Ads Developer Token (Basic of Standard)
+- OAuth2 consent van merchant
+- Customer Match goedkeuring
 
-// STAP 1: Check webshop kennis
-const relevantKnowledge = await searchKnowledgeIndex(question, tenantId);
+### Campagne Types
 
-// STAP 2: Als onvoldoende, doe web research
-let webResearch = null;
-if (config.web_research_enabled && relevantKnowledge.confidence < 0.5) {
-  webResearch = await searchPerplexity(question, config.allowed_topics);
-}
-
-// STAP 3: Bouw antwoord
-const systemPrompt = `
-Je bent ${config.chatbot_name}, de AI assistent van ${tenantName}.
-
-## Beschikbare kennis
-${relevantKnowledge.content}
-
-## Aanvullende informatie (web research)
-${webResearch ? webResearch.answer : 'Geen aanvullende info beschikbaar.'}
-
-## Regels
-- Wees behulpzaam en vriendelijk
-- Verwijs naar producten waar relevant
-- Bij complexe vragen: bied menselijk contact aan
-- NOOIT bespreken: ${config.forbidden_topics}
-`;
-
-// STAP 4: Track conversatie
-await saveConversation(sessionId, messages);
-
-// STAP 5: Na X berichten, vraag feedback
-if (messageCount >= 3 && !feedbackAsked) {
-  response.askFeedback = true;
-}
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  GOOGLE ADS - CAMPAGNE TYPE                                                 │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  🛒 SHOPPING (Performance Max)                                        │ │
+│  │  Automatische productadvertenties in Google Shopping                  │ │
+│  │  Vereist: Google Merchant Center koppeling                            │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  🔍 SEARCH (Tekstadvertenties)                                        │ │
+│  │  Verschijn in Google zoekresultaten                                   │ │
+│  │  AI genereert keywords op basis van producten                         │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  📺 DISPLAY (Banner advertenties)                                     │ │
+│  │  Visuele ads op websites in het Google Display Network                │ │
+│  │  Doelgroep: Remarketing of Interesses                                 │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 8. AI Assistent Settings UI Update
+## 6. Fase 4: Amazon Ads (Toekomst)
+
+### Complexiteit
+- Aparte Amazon Advertising API credentials
+- Beperkt tot sellers met Amazon Seller Central
+- Sponsored Products, Sponsored Brands, Sponsored Display
+
+### Gepland
+- Later implementeren na succesvolle Google/Meta integratie
+
+---
+
+## 7. AI-Gestuurde Campagne Suggesties
+
+### Integratie met Proactive Monitor
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🤖 AI CAMPAGNE SUGGESTIE                                                   │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  💡 Bestseller Promotie                                                     │
+│  ──────────────────────────────────────────────────────                     │
+│  "Premium Koptelefoon XR-500" heeft 45 verkopen deze week.                  │
+│  Een Bol.com Sponsored Products campagne kan dit versterken.                │
+│                                                                             │
+│  Geschatte impact:                                                          │
+│  • +15-25% extra verkopen                                                   │
+│  • Aanbevolen budget: €10/dag                                               │
+│  • Verwachte ACoS: 12-18%                                                   │
+│                                                                             │
+│  [Campagne aanmaken]  [Later]  [Niet meer tonen]                            │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  🎯 Win-back Campagne                                                       │
+│  ──────────────────────────────────────────────────────                     │
+│  123 klanten hebben 90+ dagen niet besteld.                                 │
+│  Een Facebook retargeting campagne kan ze terugbrengen.                     │
+│                                                                             │
+│  Voorgestelde doelgroep: "Inactieve klanten (90+ dagen)"                    │
+│  Aanbevolen type: Custom Audience + Dynamic Product Ads                     │
+│                                                                             │
+│  [Campagne aanmaken]  [Later]  [Niet meer tonen]                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 8. Admin UI: /admin/ads
+
+### Navigatie Structuur
+
+```text
+/admin/ads
+├── /overview          - Dashboard met alle campagnes
+├── /platforms         - Platform koppelingen beheren
+├── /campaigns
+│   ├── /new          - Nieuwe campagne wizard
+│   └── /:id          - Campagne detail/edit
+├── /audiences        - Audience syncs beheren
+└── /insights         - Cross-platform analytics
+```
+
+### Ads Dashboard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│  🤖 AI Assistent                                                                        │
+│  📢 Advertenties                                                                        │
 │  ─────────────────────────────────────────────────────────────────────────────────────  │
 │                                                                                         │
-│  [Bestaande secties: Chatbot, Reply Suggesties, Kennisbank]                            │
+│  [+ Nieuwe Campagne]                                                                    │
 │                                                                                         │
 │  ═══════════════════════════════════════════════════════════════════════════════════   │
 │                                                                                         │
-│  🔍 WEB RESEARCH (NIEUW)                                                               │
+│  📊 OVERZICHT (afgelopen 30 dagen)                                                     │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐  │
+│  │  Totaal Bereik   │  │    Clicks        │  │    Uitgaven      │  │     ROAS       │  │
+│  │    125.4K        │  │     3.2K         │  │    €1,245        │  │     4.2x       │  │
+│  │    ↑ 12%         │  │    ↑ 8%          │  │    ↑ 15%         │  │    ↑ 0.3x      │  │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └────────────────┘  │
+│                                                                                         │
+│  ═══════════════════════════════════════════════════════════════════════════════════   │
+│                                                                                         │
+│  🔗 GEKOPPELDE PLATFORMS                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  Web research inschakelen                               [✓]                     │   │
-│  │  ──────────────────────────────────────────────────────────────────────────     │   │
-│  │  De AI kan het web doorzoeken voor vragen buiten je webshop content.            │   │
-│  │                                                                                 │   │
-│  │  ⚠️ Vereist Perplexity koppeling [Koppelen →]                                  │   │
-│  │                                                                                 │   │
-│  │  Toegestane onderwerpen:                                                        │   │
-│  │  [✓] Productadvies                                                             │   │
-│  │  [✓] Algemene kennis                                                           │   │
-│  │  [ ] Prijsvergelijkingen                                                       │   │
+│  │  [Bol.com ✓]     [Meta (FB/IG) ✓]     [Google Ads ○]     [Amazon ○]            │   │
+│  │  2 campagnes     1 campagne           Niet gekoppeld      Niet gekoppeld        │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
 │  ═══════════════════════════════════════════════════════════════════════════════════   │
 │                                                                                         │
-│  🧠 LEERGEDRAG (NIEUW)                                                                 │
+│  📋 ACTIEVE CAMPAGNES                                                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  De AI leert van je team's interacties:                                         │   │
-│  │                                                                                 │   │
-│  │  📊 Geleerde patronen                                                          │   │
-│  │  ──────────────────────────────────────────────────────────────────────────     │   │
-│  │                                                                                 │   │
-│  │  👤 Anna (12 patronen geleerd)                                                 │   │
-│  │     ├── Handtekening: "Hartelijke groet, Anna ♥️" (100% zeker)                 │   │
-│  │     ├── Tone: Vriendelijk en informeel (85% zeker)                             │   │
-│  │     └── Emoji's: Veel gebruikt (90% zeker)                                     │   │
-│  │                                                                                 │   │
-│  │  👤 Mark (3 patronen geleerd)                                                  │   │
-│  │     ├── Handtekening: "Met vriendelijke groet, M. Jansen" (75% zeker)          │   │
-│  │     └── Tone: Zakelijk (60% zeker)                                             │   │
-│  │                                                                                 │   │
-│  │  [Patronen bekijken] [Wissen]                                                  │   │
-│  │                                                                                 │   │
-│  │  ┌───────────────────────────────────────────────────────────────────────────┐ │   │
-│  │  │  ℹ️ Patronen worden automatisch geleerd na 3+ herhalingen.               │ │   │
-│  │  │     Na 5+ herhalingen worden ze automatisch toegepast.                    │ │   │
-│  │  └───────────────────────────────────────────────────────────────────────────┘ │   │
+│  │  Platform  │  Naam                    │  Status  │  Budget  │  Spend  │  ROAS   │   │
+│  │  ──────────┼──────────────────────────┼──────────┼──────────┼─────────┼─────────│   │
+│  │  [Bol]     │  Bestsellers Q1          │  ● Actief│  €25/dag │  €312   │  5.2x   │   │
+│  │  [Bol]     │  Nieuwe Collectie        │  ● Actief│  €15/dag │  €98    │  3.8x   │   │
+│  │  [Meta]    │  VIP Retargeting         │  ● Actief│  €20/dag │  €145   │  4.1x   │   │
+│  │  [Meta]    │  Lookalike Campagne      │  ○ Gepauzeerd │  -   │  €89    │  2.9x   │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
 │  ═══════════════════════════════════════════════════════════════════════════════════   │
 │                                                                                         │
-│  😊 CHATBOT FEEDBACK (NIEUW)                                                           │
+│  💡 AI SUGGESTIES                                                                      │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  Feedback vragen na gesprek                             [✓]                     │   │
-│  │  ──────────────────────────────────────────────────────────────────────────     │   │
-│  │  Vraag klanten om feedback na chatbot-gesprekken.                               │   │
+│  │  🔥 "Premium Koptelefoon XR-500" is trending (+45% views)                       │   │
+│  │     Overweeg een Bol.com Sponsored Products campagne  [Maken →]                 │   │
 │  │                                                                                 │   │
-│  │  Laatste 7 dagen:                                                               │   │
-│  │  ┌─────────────────────────────────────────────────────────────────┐           │   │
-│  │  │  😊 Goed: 45 (72%)                                              │           │   │
-│  │  │  😐 Neutraal: 12 (19%)                                          │           │   │
-│  │  │  😔 Niet goed: 6 (9%)                                           │           │   │
-│  │  │                                                                 │           │   │
-│  │  │  Totaal gesprekken: 89 | Met feedback: 63 (71%)                │           │   │
-│  │  └─────────────────────────────────────────────────────────────────┘           │   │
-│  │                                                                                 │   │
-│  │  [📊 Gedetailleerde feedback bekijken]                                         │   │
+│  │  👥 123 inactieve klanten kunnen worden bereikt via Meta Retargeting            │   │
+│  │     Segment: "90+ dagen inactief"  [Maken →]                                    │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
@@ -433,33 +495,79 @@ if (messageCount >= 3 && !feedbackAsked) {
 
 ---
 
-## 9. Implementatie Volgorde
+## 9. Bestandsoverzicht
 
-1. **Database Migration** - User learning tables + chatbot conversations
-2. **Types Update** - Web research + user learning types
-3. **Edge Function: ai-suggest-reply** - Reply suggesties met user patterns
-4. **Edge Function: ai-chatbot-respond** - Chatbot met web research
-5. **Edge Function: ai-build-knowledge-index** - Content indexering
-6. **Hooks** - useUserLearningPatterns + update useAIFeedback
-7. **Settings UI** - Web research config + learning insights
-8. **Storefront Widget** - Chatbot met feedback
+| Bestand | Actie | Beschrijving |
+|---------|-------|--------------|
+| **Database** | | |
+| `supabase/migrations/xxx_ads.sql` | Nieuw | Ad platforms, campaigns, creatives, syncs |
+| **Types** | | |
+| `src/types/ads.ts` | Nieuw | Ad campaign & platform types |
+| **Hooks** | | |
+| `src/hooks/useAdPlatforms.ts` | Nieuw | Platform connections CRUD |
+| `src/hooks/useAdCampaigns.ts` | Nieuw | Campaign management |
+| `src/hooks/useAudienceSync.ts` | Nieuw | Segment → Audience sync |
+| **Edge Functions** | | |
+| `supabase/functions/ads-bol-campaign/index.ts` | Nieuw | Bol.com campaign CRUD |
+| `supabase/functions/ads-meta-campaign/index.ts` | Nieuw | Meta campaign CRUD |
+| `supabase/functions/ads-meta-sync-audience/index.ts` | Nieuw | Upload segments to Meta |
+| `supabase/functions/ads-google-campaign/index.ts` | Nieuw | Google Ads campaign |
+| `supabase/functions/ads-sync-performance/index.ts` | Nieuw | Pull metrics from platforms |
+| `supabase/functions/ads-suggest-campaign/index.ts` | Nieuw | AI campaign suggestions |
+| **Pages** | | |
+| `src/pages/admin/Ads.tsx` | Nieuw | Main ads dashboard |
+| **Components** | | |
+| `src/components/admin/ads/AdsDashboard.tsx` | Nieuw | Overview component |
+| `src/components/admin/ads/PlatformConnections.tsx` | Nieuw | Platform setup |
+| `src/components/admin/ads/CampaignWizard.tsx` | Nieuw | Step-by-step creator |
+| `src/components/admin/ads/AudienceBuilder.tsx` | Nieuw | Targeting UI |
+| `src/components/admin/ads/CampaignCard.tsx` | Nieuw | Campaign list item |
+| `src/components/admin/ads/PerformanceChart.tsx` | Nieuw | ROAS, spend charts |
+| `src/components/admin/ads/AISuggestions.tsx` | Nieuw | AI campaign ideas |
 
 ---
 
-## 10. AI Credits Verbruik (Geüpdatet)
+## 10. Implementatie Volgorde
 
-| Feature | Credits per actie |
-|---------|-------------------|
-| Chatbot conversatie (zonder web) | 1 credit |
-| Chatbot conversatie (met web research) | 2 credits |
-| Reply suggestie | 1 credit |
-| Learning analyse (bij edit) | 0 credits (achtergrond) |
-| Knowledge index rebuild | 0 credits |
+1. **Database Migration** - Alle ads-gerelateerde tabellen
+2. **Types & Hooks** - TypeScript types en React Query hooks
+3. **Bol.com Integratie** - Eerste platform (bestaande token)
+4. **Admin UI Basis** - Dashboard, platform connections
+5. **Campaign Wizard** - Stap-voor-stap campagne maken
+6. **Meta Integratie** - Custom & Lookalike audiences
+7. **Performance Sync** - Automatisch metrics ophalen
+8. **AI Suggesties** - Proactive campaign recommendations
+9. **Google Ads** (Fase 2) - Na Developer Token approval
 
 ---
 
-## 11. Connector Vereiste
+## 11. Belangrijke Overwegingen
 
-- **Perplexity** connector nodig voor web research functionaliteit
-- Zonder connector werkt de chatbot nog steeds, maar alleen met webshop-kennis
-- Toggle in settings is gedisabled zonder actieve connector
+### OAuth Flow per Platform
+```text
+Merchant klikt "Koppelen" → Redirect naar platform OAuth → 
+Terug naar SellQo met tokens → Opslaan in ad_platform_connections
+```
+
+### Rate Limiting
+- Bol.com: 15.000 campagnes max
+- Meta: Varieert per ad spend
+- Google: 15.000 ops/dag (Basic token)
+
+### Kosten
+- **Bol.com**: Geen extra kosten (onderdeel Retailer API)
+- **Meta**: Gratis API, ads betaald door merchant
+- **Google**: Gratis API (met goedkeuring), ads betaald door merchant
+
+### Privacy
+- Email hashing (SHA256) voor Custom Audiences
+- Geen opslag van ruwe advertentie data
+- GDPR-compliant audience uploads
+
+---
+
+## 12. Conclusie
+
+**Ja, dit is haalbaar!** De infrastructuur voor segmenten, catalog sync, en tracking pixels is al aanwezig. We kunnen starten met Bol.com (bestaande koppeling) en Meta (catalog sync bestaat) voordat we Google Ads toevoegen.
+
+De grootste uitdaging is niet technisch, maar het OAuth-proces voor elke merchant. Dit is echter standaard voor alle marketing platforms en gebruikers zijn dit gewend van tools als Mailchimp, Klaviyo, etc.
