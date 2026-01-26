@@ -29,6 +29,7 @@ import {
   CloudOff,
   RefreshCw,
   Loader2,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,6 +66,7 @@ import { POSMultiPaymentDialog, MultiPaymentData } from '@/components/admin/pos/
 import { POSRefundDialog, RefundData } from '@/components/admin/pos/POSRefundDialog';
 import { POSTransactionHistory } from '@/components/admin/pos/POSTransactionHistory';
 import { POSGiftCardSellDialog } from '@/components/admin/pos/POSGiftCardSellDialog';
+import { POSBankTransferDialog } from '@/components/admin/pos/POSBankTransferDialog';
 import type { AppliedGiftCard } from '@/components/admin/pos/POSGiftCardInput';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
@@ -157,6 +159,7 @@ export default function POSTerminalPage() {
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [showGiftCardSellDialog, setShowGiftCardSellDialog] = useState(false);
+  const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
   const [pendingGiftCard, setPendingGiftCard] = useState<{ giftCard: GiftCard; amount: number } | null>(null);
   const [refundTxn, setRefundTxn] = useState<POSTransaction | null>(null);
   const [lastTransaction, setLastTransaction] = useState<POSTransaction | null>(null);
@@ -445,6 +448,51 @@ export default function POSTerminalPage() {
       setSelectedCustomer(null);
       setCartDiscount(null);
       setShowCardPaymentDialog(false);
+      
+      // Show receipt dialog
+      if (transaction) {
+        setLastTransaction(transaction as unknown as POSTransaction);
+        setLastPaymentWasCash(false);
+        setShowReceiptDialog(true);
+      }
+    } catch (error) {
+      toast.error('Fout bij opslaan transactie');
+    }
+  };
+
+  // Handle bank transfer payment confirmation
+  const handleBankTransferPayment = async (ogmReference: string) => {
+    if (!terminalId || cart.length === 0) return;
+    
+    const payments: POSPayment[] = [{
+      method: 'manual', // Using 'manual' for bank transfer
+      amount: cartTotals.total,
+      reference: ogmReference,
+    }];
+    
+    try {
+      const transaction = await createTransaction.mutateAsync({
+        terminalId,
+        sessionId: activeSession?.id || null,
+        items: cart,
+        payments,
+        customerId: selectedCustomer?.id,
+      });
+      
+      // Award loyalty points if customer is linked
+      if (selectedCustomer?.id && cartTotals.total > 0) {
+        earnPoints.mutate({
+          customerId: selectedCustomer.id,
+          orderTotal: cartTotals.total,
+          description: `POS transactie #${transaction?.receipt_number || 'onbekend'}`,
+        });
+      }
+      
+      toast.success('Bankoverschrijving geregistreerd!');
+      clearCart();
+      setSelectedCustomer(null);
+      setCartDiscount(null);
+      setShowBankTransferDialog(false);
       
       // Show receipt dialog
       if (transaction) {
@@ -1056,7 +1104,7 @@ export default function POSTerminalPage() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <Button 
                 className="h-14 text-base"
                 disabled={cart.length === 0}
@@ -1072,6 +1120,15 @@ export default function POSTerminalPage() {
               >
                 <CreditCard className="mr-2 h-5 w-5" />
                 PIN
+              </Button>
+              <Button 
+                variant="outline"
+                className="h-14 text-base"
+                disabled={cart.length === 0 || !currentTenant?.iban}
+                onClick={() => setShowBankTransferDialog(true)}
+              >
+                <QrCode className="mr-2 h-5 w-5" />
+                Bank
               </Button>
               <Button 
                 variant="secondary"
@@ -1414,6 +1471,18 @@ export default function POSTerminalPage() {
           }}
         />
       )}
+
+      {/* Bank Transfer Dialog */}
+      <POSBankTransferDialog
+        open={showBankTransferDialog}
+        onOpenChange={setShowBankTransferDialog}
+        amount={cartTotals.total}
+        tenantName={currentTenant?.name || ''}
+        tenantIBAN={currentTenant?.iban || undefined}
+        tenantBIC={currentTenant?.bic || undefined}
+        onConfirmPayment={handleBankTransferPayment}
+        isProcessing={createTransaction.isPending}
+      />
     </div>
   );
 }
