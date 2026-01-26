@@ -4756,6 +4756,7 @@ export type Database = {
           marketplace_order_id: string | null
           marketplace_source: string | null
           notes: string | null
+          ogm_reference: string | null
           order_number: string
           payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
@@ -4811,6 +4812,7 @@ export type Database = {
           marketplace_order_id?: string | null
           marketplace_source?: string | null
           notes?: string | null
+          ogm_reference?: string | null
           order_number: string
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -4866,6 +4868,7 @@ export type Database = {
           marketplace_order_id?: string | null
           marketplace_source?: string | null
           notes?: string | null
+          ogm_reference?: string | null
           order_number?: string
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null

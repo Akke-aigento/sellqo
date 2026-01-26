@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { usePublicReviews } from '@/hooks/useReviewsHub';
+import { useCart } from '@/context/CartContext';
 import { ReviewsFloatingWidget } from '@/components/storefront/reviews/ReviewsFloatingWidget';
 import { ReviewsTrustBar } from '@/components/storefront/reviews/ReviewsTrustBar';
 import { ReviewsStructuredData } from '@/components/storefront/reviews/ReviewsStructuredData';
@@ -18,8 +19,18 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { tenant, themeSettings, navPages, categories, isLoading, error } = usePublicStorefront(tenantSlug || '');
   const { aggregate, reviews, connections } = usePublicReviews(tenant?.id);
+  const { getCartCount, setTenantSlug } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  
+  const cartCount = getCartCount();
+
+  // Set tenant slug for cart context
+  useEffect(() => {
+    if (tenantSlug) {
+      setTenantSlug(tenantSlug);
+    }
+  }, [tenantSlug, setTenantSlug]);
   
   // Extract enabled platforms from connections
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
@@ -127,6 +138,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               categories={categories}
               navPages={navPages}
               themeSettings={themeSettings}
+              cartCount={cartCount}
             />
           ) : headerStyle === 'minimal' ? (
             <MinimalHeader 
@@ -136,6 +148,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               navPages={navPages}
               mobileMenuOpen={mobileMenuOpen}
               setMobileMenuOpen={setMobileMenuOpen}
+              cartCount={cartCount}
             />
           ) : (
             <StandardHeader 
@@ -145,6 +158,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               navPages={navPages}
               searchOpen={searchOpen}
               setSearchOpen={setSearchOpen}
+              cartCount={cartCount}
             />
           )}
         </div>
@@ -272,7 +286,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
 }
 
 // Standard Header Component
-function StandardHeader({ tenant, basePath, categories, navPages, searchOpen, setSearchOpen }: any) {
+function StandardHeader({ tenant, basePath, categories, navPages, searchOpen, setSearchOpen, cartCount }: any) {
   return (
     <div className="flex items-center justify-between h-16">
       {/* Logo */}
@@ -314,9 +328,14 @@ function StandardHeader({ tenant, basePath, categories, navPages, searchOpen, se
         <Button variant="ghost" size="icon" onClick={() => setSearchOpen(!searchOpen)}>
           <Search className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild className="relative">
           <Link to={`${basePath}/cart`}>
             <ShoppingCart className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </Link>
         </Button>
       </div>
@@ -325,7 +344,7 @@ function StandardHeader({ tenant, basePath, categories, navPages, searchOpen, se
 }
 
 // Centered Header Component
-function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings }: any) {
+function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, cartCount }: any) {
   return (
     <div className="py-4">
       {/* Logo centered */}
@@ -370,8 +389,13 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings 
             {page.title}
           </Link>
         ))}
-        <Link to={`${basePath}/cart`} className="text-sm font-medium hover:text-primary transition-colors">
+        <Link to={`${basePath}/cart`} className="relative text-sm font-medium hover:text-primary transition-colors">
           <ShoppingCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
         </Link>
       </nav>
     </div>
@@ -379,7 +403,7 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings 
 }
 
 // Minimal Header Component
-function MinimalHeader({ tenant, basePath, categories, navPages, mobileMenuOpen, setMobileMenuOpen }: any) {
+function MinimalHeader({ tenant, basePath, categories, navPages, mobileMenuOpen, setMobileMenuOpen, cartCount }: any) {
   return (
     <div className="flex items-center justify-between h-16">
       {/* Menu Toggle */}
@@ -433,9 +457,14 @@ function MinimalHeader({ tenant, basePath, categories, navPages, mobileMenuOpen,
       </Link>
 
       {/* Cart */}
-      <Button variant="ghost" size="icon" asChild>
+      <Button variant="ghost" size="icon" asChild className="relative">
         <Link to={`${basePath}/cart`}>
           <ShoppingCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
         </Link>
       </Button>
     </div>
