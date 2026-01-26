@@ -67,6 +67,8 @@ export interface MarketplaceSettings {
   vvbDefaultDeliveryCode?: string; // Bijv. '1-2d'
   // Automatische verzendbevestiging
   autoConfirmShipment?: boolean;  // Auto bevestigen naar Bol.com
+  // Label formaat
+  vvbLabelFormat?: 'a4_original' | 'a6_cropped';  // Label output formaat
 }
 
 export interface MarketplaceStats {
