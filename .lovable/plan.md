@@ -1,379 +1,115 @@
 
-# Bol.com Volledige Order Automatisering + VVB Labels met Bedrag Threshold
+# Automatische A6 PDF Cropping voor VVB Labels
 
-## Overzicht
+## Probleem Analyse
 
-Dit plan implementeert volledige Bol.com order automatisering inclusief:
-1. **VVB (Verzenden via Bol) paklabel generatie** met instelbaar maximumbedrag
-2. **Automatische verzendbevestiging** naar Bol.com API met track & trace
-3. **Intelligente provider routing**: VVB voor goedkope orders, Sendcloud voor dure/verzekerde orders
+Zoals in je voorbeeld te zien is:
+- Bol.com levert labels als A4 PDF (210mm × 297mm)
+- Het feitelijke label is A6 formaat (~105mm × 148mm)
+- Het label staat **linksboven** gepositioneerd, niet gecentreerd
+- Dit vereist handmatig knippen, wat tijdrovend en irritant is
 
-## Jouw Use Case Ondersteund ✅
+## Oplossing
 
-```
-Order ≤ €300 → VVB label (goedkoper, geen verzekering)
-Order > €300 → Sendcloud label (verzekerd via eigen account)
-```
+Ik ga de `create-bol-vvb-label` Edge Function uitbreiden met automatische PDF cropping die:
 
-Het drempelbedrag is volledig instelbaar per Bol.com connectie.
+1. **Detecteert waar het label staat** (linksboven in dit geval)
+2. **Automatisch bijsnijdt** naar exact A6 formaat
+3. **Een print-klaar A6 PDF opslaat** die direct op A6 papier of labelprinter geprint kan worden
 
----
+## Technische Implementatie
 
-## Architectuur
+### 1. Update Edge Function - PDF Cropping
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    LABEL GENERATIE BESLISBOOM                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  Order van Bol.com?                                                 │
-│       │                                                             │
-│       ├── NEE → Gebruik standaard Sendcloud/MyParcel               │
-│       │                                                             │
-│       └── JA → Check VVB instellingen                              │
-│               │                                                     │
-│               ├── VVB uitgeschakeld → Sendcloud                    │
-│               │                                                     │
-│               └── VVB ingeschakeld                                 │
-│                       │                                             │
-│                       ├── Order ≤ vvb_max_amount → VVB Label       │
-│                       │                                             │
-│                       └── Order > vvb_max_amount → Sendcloud       │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+**Bestand:** `supabase/functions/create-bol-vvb-label/index.ts`
 
----
-
-## Implementatie Stappen
-
-### Stap 1: Uitbreiden MarketplaceSettings Type
-
-**Bestand**: `src/types/marketplace.ts`
-
-Nieuwe VVB-specifieke instellingen toevoegen aan de interface:
+Toevoegen van PDF cropping met `pdf-lib`:
 
 ```typescript
-export interface MarketplaceSettings {
-  // ... bestaande velden ...
+import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
+
+// Na het ophalen van de PDF van Bol.com:
+async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const pages = pdfDoc.getPages();
+  const page = pages[0];
   
-  // VVB (Verzenden via Bol) instellingen
-  vvbEnabled?: boolean;           // VVB labels aan/uit
-  vvbMaxAmount?: number;          // Max orderbedrag voor VVB (bijv. 300)
-  vvbFallbackProvider?: string;   // 'sendcloud' of 'myparcel' voor dure orders
-  vvbDefaultCarrier?: string;     // Standaard carrier voor VVB (bijv. 'POSTNL')
-  vvbDefaultDeliveryCode?: string; // Bijv. '1-2d'
+  // A6 dimensies in PDF points (1 inch = 72 points)
+  // A6 = 105mm × 148mm = 297.64 × 419.53 points
+  const A6_WIDTH = 297.64;
+  const A6_HEIGHT = 419.53;
   
-  // Automatische verzendbevestiging
-  autoConfirmShipment?: boolean;  // Auto bevestigen naar Bol.com
+  // Het label staat linksboven, dus we croppen vanaf daar
+  // MediaBox bepaalt de zichtbare pagina grenzen
+  const { width, height } = page.getSize();
+  
+  // Crop box: linksboven A6 gedeelte
+  // In PDF coördinaten is Y=0 onderaan, dus we berekenen vanaf boven
+  page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  
+  // Maak nieuwe PDF met alleen het gecropte gedeelte
+  const newPdf = await PDFDocument.create();
+  const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
+  newPdf.addPage(copiedPage);
+  
+  return await newPdf.save();
 }
 ```
 
----
+### 2. UI Settings Uitbreiding
 
-### Stap 2: Nieuwe Edge Function - create-bol-vvb-label
+**Bestand:** `src/components/admin/marketplace/BolVVBSettings.tsx`
 
-**Bestand**: `supabase/functions/create-bol-vvb-label/index.ts`
+Toevoegen van labelformaat keuze:
 
-Nieuwe edge function die VVB labels aanmaakt via Bol.com API:
-
-```typescript
-// Bol.com Transporter Labels API
-// POST /retailer/orders/{orderId}/transporter-labels
-// Vereist: order-item-id's + carrier info
-
-interface VVBLabelRequest {
-  order_id: string;           // SellQo order ID
-  carrier?: string;           // PostNL, DHL, etc.
-  delivery_code?: string;     // 1-2d, 2-3d, etc.
-}
-
-// Stappen:
-// 1. Haal order op met marketplace_order_id
-// 2. Haal Bol.com credentials op via marketplace_connection_id
-// 3. Call Bol.com /orders/{orderId}/shipment API
-// 4. Genereer VVB label via /transporter-labels endpoint
-// 5. Update order met tracking info + label URL
 ```
-
-Bol.com API endpoints gebruikt:
-- `POST /retailer/orders/{orderId}/shipment` - Verzendbevestiging
-- `POST /retailer/transporter-labels` - VVB label genereren (async)
-- `GET /retailer/transporter-labels/{labelId}` - Label PDF ophalen
-
----
-
-### Stap 3: Nieuwe Edge Function - confirm-bol-shipment
-
-**Bestand**: `supabase/functions/confirm-bol-shipment/index.ts`
-
-Bevestigt een verzending naar Bol.com met track & trace:
-
-```typescript
-interface ConfirmShipmentRequest {
-  order_id: string;           // SellQo order ID
-  tracking_number: string;    // Track & trace code
-  carrier: string;            // Carrier naam (PostNL, DHL, etc.)
-  tracking_url?: string;      // Optionele tracking URL
-}
-
-// Bol.com API: POST /retailer/orders/{orderId}/shipment
-// Body: { orderItems: [{ orderItemId, transport: { track-and-trace, carrier } }] }
-```
-
----
-
-### Stap 4: Uitbreiden create-shipping-label Edge Function
-
-**Bestand**: `supabase/functions/create-shipping-label/index.ts`
-
-Intelligente routing toevoegen gebaseerd op orderbron en bedrag:
-
-```typescript
-// Na het ophalen van de order, check voor Bol.com orders:
-
-if (order.marketplace_source === 'bol_com' && order.marketplace_connection_id) {
-  // Haal marketplace connection settings op
-  const { data: connection } = await supabase
-    .from('marketplace_connections')
-    .select('settings')
-    .eq('id', order.marketplace_connection_id)
-    .single();
-  
-  const settings = connection?.settings;
-  
-  if (settings?.vvbEnabled) {
-    const maxAmount = settings.vvbMaxAmount || 0;
-    
-    if (order.total <= maxAmount) {
-      // Gebruik VVB voor deze order
-      // Roep create-bol-vvb-label aan
-      const { data } = await supabase.functions.invoke('create-bol-vvb-label', {
-        body: { order_id: order.id }
-      });
-      return Response(data);
-    }
-    // Anders: val door naar Sendcloud/MyParcel
-  }
-}
-
-// Bestaande Sendcloud/MyParcel logica...
-```
-
----
-
-### Stap 5: Admin UI - Bol.com VVB Instellingen
-
-**Bestand**: `src/components/marketplace/BolComSettings.tsx` (nieuw of uitbreiden)
-
-UI component voor VVB configuratie in de Bol.com connectie settings:
-
-```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  Verzenden via Bol (VVB)                                        │
+│  Labelformaat                                                   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ☑ VVB labels inschakelen                                      │
+│  ○ A4 Origineel (handmatig knippen nodig)                      │
+│  ● A6 Automatisch bijgesneden (aanbevolen)                     │
 │                                                                 │
-│  Maximum orderbedrag voor VVB:                                  │
-│  ┌────────────────┐                                             │
-│  │ € 300          │  ← Instelbare threshold                    │
-│  └────────────────┘                                             │
-│                                                                 │
-│  ℹ️ Orders boven dit bedrag worden via Sendcloud verzonden      │
-│     zodat je verzekering kunt toevoegen.                        │
-│                                                                 │
-│  Fallback verzendprovider:                                      │
-│  ┌────────────────┐                                             │
-│  │ Sendcloud    ▼ │                                             │
-│  └────────────────┘                                             │
-│                                                                 │
-│  ☑ Automatisch verzending bevestigen naar Bol.com              │
+│  ℹ️ A6 labels kunnen direct op een labelprinter of A6 papier   │
+│     geprint worden zonder knippen.                              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
----
+### 3. Type Uitbreiding
 
-### Stap 6: Automatische Trigger bij Label Creatie
-
-Wanneer een Sendcloud/MyParcel label wordt aangemaakt voor een Bol.com order, automatisch de verzending bevestigen naar Bol.com:
-
-**Update in**: `supabase/functions/create-shipping-label/index.ts`
+**Bestand:** `src/types/marketplace.ts`
 
 ```typescript
-// Na succesvolle label creatie via Sendcloud/MyParcel:
-
-if (order.marketplace_source === 'bol_com' && labelResult.success) {
-  const settings = connection?.settings;
-  
-  if (settings?.autoConfirmShipment) {
-    // Automatisch Bol.com verzending bevestigen
-    await supabase.functions.invoke('confirm-bol-shipment', {
-      body: {
-        order_id: order.id,
-        tracking_number: labelResult.tracking_number,
-        carrier: labelResult.carrier,
-        tracking_url: labelResult.tracking_url
-      }
-    });
-  }
+export interface MarketplaceSettings {
+  // ... bestaande velden ...
+  vvbLabelFormat?: 'a4_original' | 'a6_cropped';  // Label output formaat
 }
 ```
 
----
-
-## Database Wijzigingen
-
-Geen nieuwe tabellen nodig! De instellingen worden opgeslagen in de bestaande `marketplace_connections.settings` JSONB kolom.
-
----
-
-## Nieuwe Bestanden
-
-| Bestand | Beschrijving |
-|---------|--------------|
-| `supabase/functions/create-bol-vvb-label/index.ts` | VVB label generatie via Bol.com API |
-| `supabase/functions/confirm-bol-shipment/index.ts` | Verzendbevestiging naar Bol.com |
-| `src/components/marketplace/BolVVBSettings.tsx` | UI voor VVB instellingen |
-
-## Te Wijzigen Bestanden
+## Wijzigingen Overzicht
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/types/marketplace.ts` | VVB settings toevoegen aan interface |
-| `supabase/functions/create-shipping-label/index.ts` | Routing logica voor Bol.com orders |
-| `src/components/marketplace/BolComSettingsDialog.tsx` | VVB settings sectie toevoegen |
+| `supabase/functions/create-bol-vvb-label/index.ts` | PDF cropping logica met pdf-lib |
+| `src/types/marketplace.ts` | `vvbLabelFormat` toevoegen |
+| `src/components/admin/marketplace/BolVVBSettings.tsx` | Labelformaat radio buttons |
 
----
+## Resultaat
 
-## Flow Diagram
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         ORDER VERWERKING FLOW                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-     Bol.com Order                          Webshop Order
-          │                                      │
-          ▼                                      ▼
-   ┌─────────────┐                        ┌─────────────┐
-   │ sync-bol-   │                        │ Stripe/Bank │
-   │ orders      │                        │ Transfer    │
-   └──────┬──────┘                        └──────┬──────┘
-          │                                      │
-          └────────────┬─────────────────────────┘
-                       │
-                       ▼
-               ┌───────────────┐
-               │ Order in      │
-               │ SellQo        │
-               └───────┬───────┘
-                       │
-                       ▼
-               ┌───────────────┐
-               │ Medewerker    │
-               │ klikt "Label" │
-               └───────┬───────┘
-                       │
-                       ▼
-         ┌─────────────────────────────┐
-         │   create-shipping-label     │
-         │                             │
-         │  Is Bol.com order?          │
-         │      │                      │
-         │      ├── Nee ───────────────┼─────────────┐
-         │      │                      │             │
-         │      └── Ja                 │             │
-         │          │                  │             │
-         │    VVB enabled?             │             │
-         │      │                      │             │
-         │      ├── Nee ───────────────┼─────────────┤
-         │      │                      │             │
-         │      └── Ja                 │             │
-         │          │                  │             │
-         │    Order ≤ max?             │             │
-         │      │                      │             │
-         │      ├── Nee ───────────────┼─────────────┤
-         │      │                      │             │
-         │      └── Ja                 │             ▼
-         │          │                  │     ┌───────────────┐
-         │          ▼                  │     │  Sendcloud/   │
-         │  ┌───────────────┐          │     │  MyParcel     │
-         │  │ VVB Label via │          │     └───────┬───────┘
-         │  │ Bol.com API   │          │             │
-         │  └───────┬───────┘          │             │
-         │          │                  │             │
-         │          ▼                  │             ▼
-         │  ┌───────────────┐          │     ┌───────────────┐
-         │  │ Auto confirm  │          │     │ Auto confirm  │
-         │  │ naar Bol.com  │          │     │ naar Bol.com  │
-         │  └───────────────┘          │     │ (als enabled) │
-         │                             │     └───────────────┘
-         └─────────────────────────────┘
-```
-
----
+✅ **Geen knippen meer nodig** - Labels komen er direct als A6 uit
+✅ **Labelprinter compatibel** - Direct printen op Dymo, Zebra, etc.
+✅ **Instelbaar** - Je kunt kiezen tussen A4 origineel of A6 bijgesneden
+✅ **Automatisch** - Werkt voor alle VVB labels zonder extra handelingen
 
 ## Technische Details
 
-### Bol.com API Endpoints
+De cropping werkt als volgt:
+1. Bol.com PDF wordt ontvangen (A4, label linksboven)
+2. `pdf-lib` laadt de PDF
+3. CropBox wordt ingesteld op de linkerbovenhoek (A6 formaat)
+4. Nieuwe PDF wordt gegenereerd met alleen het label
+5. A6 PDF wordt opgeslagen in storage
 
-**1. Verzending bevestigen:**
-```
-POST /retailer/orders/{orderId}/shipment
-Content-Type: application/vnd.retailer.v10+json
-
-{
-  "orderItems": [{
-    "orderItemId": "1234567890",
-    "transport": {
-      "trackAndTrace": "3STEST123456789",
-      "transporterCode": "TNT" // of "POSTNL", "DHL", etc.
-    }
-  }]
-}
-```
-
-**2. VVB Label aanmaken:**
-```
-POST /retailer/transporter-labels
-Content-Type: application/vnd.retailer.v10+json
-
-{
-  "orderItems": [{
-    "orderItemId": "1234567890"
-  }],
-  "shippingLabelOfferId": "...", // Ophalen via /shipping-labels endpoint
-  "transporterCode": "POSTNL"
-}
-```
-
-**3. Label PDF ophalen:**
-```
-GET /retailer/transporter-labels/{labelId}
-Accept: application/pdf
-```
-
----
-
-## Resultaat na Implementatie
-
-✅ **VVB Labels**: Direct vanuit SellQo Bol.com VVB labels genereren
-✅ **Bedrag Threshold**: Configureerbaar max bedrag (bijv. €300) voor VVB
-✅ **Fallback naar Sendcloud**: Automatisch voor dure orders met verzekering
-✅ **Auto Verzendbevestiging**: Track & trace automatisch naar Bol.com
-✅ **Unified UI**: Alle labels via dezelfde "Verzend" knop in order detail
-✅ **Geen Extra Kosten**: VVB labels via Bol.com zijn goedkoper dan Sendcloud
-
----
-
-## Samenvatting
-
-| Feature | Status |
-|---------|--------|
-| VVB label generatie | 🆕 Nieuw te bouwen |
-| Max bedrag threshold | 🆕 Nieuw te bouwen |
-| Sendcloud fallback | ✅ Bestaand, routing toevoegen |
-| Auto verzendbevestiging | 🆕 Nieuw te bouwen |
-| Admin UI instellingen | 🆕 Nieuw te bouwen |
+Dit is **volledig server-side** dus er is geen impact op de gebruikerservaring - je krijgt gewoon een nette A6 PDF in plaats van een A4 met lege ruimte.
