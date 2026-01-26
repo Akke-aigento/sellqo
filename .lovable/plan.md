@@ -1,272 +1,339 @@
 
-
-# Plan: Auto-koppel Bol.com Offer IDs via EAN
+# Plan: "Launch in 5 Minuten" Onboarding Wizard
 
 ## Overzicht
 
-Wanneer een product een `bol_ean` heeft maar geen `offerId` in `marketplace_mappings`, kan de voorraadsync niet werken. Dit plan implementeert een functie om automatisch Offer IDs op te halen via de Bol.com API endpoint `/retailer/products/{ean}/offers`.
+Een interactieve, stapsgewijze wizard die nieuwe merchants direct na registratie begeleidt naar hun eerste succesmoment: een volledig operationele webshop. De wizard combineert gamification (progress bar, confetti) met contextuele hulp (info-tooltips, pijltjes) om een soepele onboarding-ervaring te creëren.
 
-## Hoe Het Werkt
+## Kernprincipes
+
+1. **Snelheid boven compleetheid** - Focus op de essentials om LIVE te gaan
+2. **Visuele begeleiding** - Pijltjes, highlights en tooltips wijzen de weg
+3. **Contextuele hulp** - (i) iconen met uitgebreide uitleg bij elk veld
+4. **Voortgang is motiverend** - Progress bar en stap-indicator altijd zichtbaar
+5. **Viering van succes** - Confetti bij completion + "Je bent LIVE!" moment
+
+## Wizard Stappen
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
-│  Product met EAN maar zonder Offer ID                                      │
-│  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │  📦 iPhone 15 Pro Max                                                 │ │
-│  │     EAN: 8719274850014  ✓                                             │ │
-│  │     Offer ID: ❌ Niet gekoppeld                                        │ │
-│  │                                                                       │ │
-│  │     [🔍 Zoek Offer ID via EAN]                                        │ │
-│  └───────────────────────────────────────────────────────────────────────┘ │
-│                              ↓                                              │
-│  API Call: GET /retailer/products/8719274850014/offers                     │
-│                              ↓                                              │
-│  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │  ✅ Offer ID gevonden: 908b6d06-2067-4klf-8490-c21d0c233e61           │ │
-│  │                                                                       │ │
-│  │  Automatisch opgeslagen in marketplace_mappings                       │ │
-│  │  → Voorraadsync werkt nu automatisch!                                 │ │
-│  └───────────────────────────────────────────────────────────────────────┘ │
+│  ☕ Je bent sneller klaar dan een kop koffie zetten!                       │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  Stap 2 van 6   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ① Welkom    ② Bedrijf    ③ Logo    ④ Product    ⑤ Betalingen    ⑥ Live!  │
+│     ✓          ●                                                            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Kernfunctionaliteiten
+### Stap 1: Welkom & Winkelnaam (30 sec)
+Doel: Eerste tenant aanmaken, enthousiasme opbouwen
 
-### 1. Edge Function: `lookup-bol-offer-id`
-Nieuwe edge function die:
-- EAN ontvangt als input
-- Bol.com API aanroept: `GET /retailer/products/{ean}/offers`
-- Filtert op eigen retailer ID om alleen JOUW offers te vinden
-- Offer ID teruggeeft
+**Velden:**
+- Winkelnaam (verplicht)
+- Winkel URL/slug (auto-generated)
 
-### 2. Auto-Lookup bij Inventory Sync
-De bestaande `sync-bol-inventory` function uitbreiden:
-- Als product EAN heeft maar geen Offer ID → automatisch opzoeken
-- Offer ID opslaan in `marketplace_mappings`
-- Doorgaan met voorraadsync
+**Info tooltips:**
+- "Je winkelnaam verschijnt op facturen, e-mails en in je webshop header"
+- "De URL is waar klanten je webshop bezoeken: sellqo.app/shop/jouw-winkel"
 
-### 3. Handmatige Lookup Knop
-In `ProductMarketplaceTab.tsx`:
-- Knop "Offer ID ophalen" wanneer EAN wel ingevuld is maar Offer ID ontbreekt
-- Loading state tijdens ophalen
-- Feedback of het gelukt is
+### Stap 2: Bedrijfsgegevens (2 min)
+Doel: Minimale gegevens voor facturatie en compliance
 
-### 4. Bulk Auto-Koppel
-In marketplace instellingen:
-- Knop om alle producten met EAN maar zonder Offer ID te koppelen
-- Progress indicator
-- Overzicht van resultaten
+**Velden:**
+- Bedrijfsnaam / Eigenaar naam
+- E-mailadres (pre-filled van account)
+- Adres, Postcode, Stad
+- Land (dropdown EU-landen)
+- BTW-nummer (optioneel voor starters)
+- KvK/KBO-nummer (optioneel)
 
-## Technische Implementatie
+**Info tooltips:**
+- "Adresgegevens zijn verplicht op facturen volgens EU-wetgeving"
+- "BTW-nummer: Vind je op je KvK-uittreksel of belastingaangifte"
+- "Geen BTW-nummer? Geen probleem - je kunt dit later toevoegen"
 
-### Nieuwe Edge Function
+### Stap 3: Logo Upload (30 sec)
+Doel: Visuele identiteit
 
-```typescript
-// supabase/functions/lookup-bol-offer-id/index.ts
+**Elementen:**
+- Drag & drop zone met preview
+- "Skip voor nu" optie (met placeholder logo)
+- Aanbevolen formaat indicator
 
-// Input: { ean: string, tenant_id: string, connection_id: string, product_id?: string }
-// 
-// Flow:
-// 1. Haal Bol.com credentials op via connection_id
-// 2. Vraag OAuth token aan
-// 3. Call GET /retailer/products/{ean}/offers
-// 4. Filter offers op "retailerId" === jouw seller ID
-// 5. Als gevonden: sla op in product.marketplace_mappings.bol_com.offerId
-// 6. Return success/failure met offerId
+**Info tooltips:**
+- "Je logo verschijnt op e-mails, facturen en je webshop"
+- "Aanbevolen: 200x200px, PNG of JPG met transparante achtergrond"
 
-const bolResponse = await fetch(
-  `${BOL_API_BASE}/products/${ean}/offers?country-code=NL`,
-  {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Accept': 'application/vnd.retailer.v10+json'
-    }
-  }
-);
+### Stap 4: Eerste Product (1.5 min)
+Doel: Productcatalogus starten met 1 item
 
-// Response bevat:
-// {
-//   "offers": [{
-//     "offerId": "908b6d06-2067-4klf-8490-c21d0c233e61",
-//     "retailerId": "8748934",  // ← Vergelijk met jouw retailer ID
-//     "countryCode": "NL",
-//     ...
-//   }]
-// }
+**Velden:**
+- Productnaam
+- Prijs
+- Korte beschrijving (optioneel)
+- Productafbeelding (drag & drop)
+
+**Info tooltips:**
+- "Begin met je bestverkopende product"
+- "Je kunt later eenvoudig meer producten toevoegen of importeren"
+- "Geen afbeelding? Geen probleem - we tonen een placeholder"
+
+**Visueel:**
+- Live preview van hoe het product er uit zal zien in de webshop
+
+### Stap 5: Betalingen Activeren (2 min)
+Doel: Stripe Connect koppelen
+
+**Flow:**
+1. Land selecteren (pre-filled uit stap 2)
+2. "Betalingen activeren" knop → Stripe onboarding popup
+3. Wachten op terugkeer met success status
+4. Of: "Later instellen" optie (shop werkt dan alleen met bankoverschrijving)
+
+**Info tooltips:**
+- "Via Stripe ontvang je betalingen via iDEAL, Bancontact, creditcard"
+- "Stripe uitbetalingen komen automatisch op je bankrekening"
+- "Geen Stripe? Klanten kunnen ook via bankoverschrijving betalen"
+
+### Stap 6: LIVE! (Celebratie)
+Doel: Succes vieren, volgende stappen tonen
+
+**Elementen:**
+- Confetti animatie
+- "Je webshop is LIVE!" boodschap
+- Direct link naar webshop
+- Checklist met optionele vervolgstappen:
+  - [ ] Meer producten toevoegen
+  - [ ] Verzendmethoden instellen
+  - [ ] Juridische pagina's aanmaken
+  - [ ] Theme aanpassen
+
+## Technische Architectuur
+
+### Nieuwe Database Kolommen
+
+```sql
+-- profiles tabel uitbreiding
+ALTER TABLE profiles
+ADD COLUMN onboarding_completed BOOLEAN DEFAULT false,
+ADD COLUMN onboarding_step INTEGER DEFAULT 0,
+ADD COLUMN onboarding_skipped_at TIMESTAMPTZ DEFAULT NULL;
 ```
 
-### Aangepaste Inventory Sync
+### Nieuwe Componenten
+
+```text
+src/components/onboarding/
+├── OnboardingWizard.tsx          # Hoofdcontainer met state management
+├── OnboardingProgress.tsx        # Progress bar + stap indicator
+├── OnboardingTooltip.tsx         # (i) icoon met uitleg popover
+├── OnboardingOverlay.tsx         # Volledige scherm overlay voor wizard
+├── steps/
+│   ├── WelcomeStep.tsx           # Stap 1: Winkelnaam
+│   ├── BusinessDetailsStep.tsx   # Stap 2: Bedrijfsgegevens
+│   ├── LogoUploadStep.tsx        # Stap 3: Logo
+│   ├── FirstProductStep.tsx      # Stap 4: Eerste product
+│   ├── PaymentsStep.tsx          # Stap 5: Stripe Connect
+│   └── LaunchStep.tsx            # Stap 6: Celebratie
+└── CelebrationConfetti.tsx       # Confetti animatie component
+```
+
+### State Management
 
 ```typescript
-// sync-bol-inventory/index.ts - uitbreiding
-
-for (const product of products || []) {
-  const mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings;
-  const bolMapping = mappings.bol_com;
-  
-  // NIEUW: Als EAN aanwezig maar geen Offer ID, probeer op te halen
-  if (!bolMapping?.offerId && product.bol_ean) {
-    console.log(`Product ${product.id} has EAN but no Offer ID, looking up...`);
-    
-    const offerId = await lookupOfferIdByEan(
-      accessToken, 
-      product.bol_ean, 
-      connection.credentials.sellerId
-    );
-    
-    if (offerId) {
-      // Opslaan in database
-      const updatedMappings = {
-        ...mappings,
-        bol_com: {
-          offerId,
-          lastSync: new Date().toISOString(),
-          autoLinked: true  // Markeer als automatisch gekoppeld
-        }
-      };
-      
-      await supabase
-        .from('products')
-        .update({ marketplace_mappings: updatedMappings })
-        .eq('id', product.id);
-        
-      // Ga door met sync
-      bolMapping.offerId = offerId;
-    } else {
-      console.log(`No matching offer found for EAN ${product.bol_ean}`);
-      continue;
-    }
-  }
-  
-  // Bestaande sync logica...
+interface OnboardingState {
+  currentStep: number;
+  totalSteps: 6;
+  stepsCompleted: boolean[];
+  tenantData: {
+    name?: string;
+    slug?: string;
+    address?: string;
+    // etc.
+  };
+  productData: {
+    name?: string;
+    price?: number;
+    // etc.
+  };
+  stripeConnected: boolean;
+  canSkipToEnd: boolean;
 }
 ```
 
-### UI Component Updates
+### Trigger Logica
 
-**ProductMarketplaceTab.tsx**:
 ```typescript
-// Nieuwe state
-const [isLookingUpOfferId, setIsLookingUpOfferId] = useState(false);
+// In AdminLayout.tsx of Dashboard.tsx
+const { user } = useAuth();
+const { currentTenant } = useTenant();
 
-// Nieuwe functie
-const handleLookupOfferId = async () => {
-  if (!bolEan || !bolConnection?.id) return;
-  
-  setIsLookingUpOfferId(true);
-  try {
-    const { data, error } = await supabase.functions.invoke('lookup-bol-offer-id', {
-      body: {
-        ean: bolEan,
-        tenant_id: product.tenant_id,
-        connection_id: bolConnection.id,
-        product_id: product.id
-      }
-    });
-    
-    if (error) throw error;
-    
-    if (data.offerId) {
-      toast.success(`Offer ID gevonden en opgeslagen: ${data.offerId.slice(0, 8)}...`);
-      onRefresh?.();
-    } else {
-      toast.error('Geen offer gevonden voor deze EAN. Zorg dat het product al op Bol.com staat.');
-    }
-  } catch (error) {
-    toast.error('Kon Offer ID niet ophalen');
-  } finally {
-    setIsLookingUpOfferId(false);
-  }
-};
-
-// In JSX - toon knop als EAN aanwezig maar geen offerId
-{bolEan && !mappings.bol_com?.offerId && (
-  <Alert className="mt-4">
-    <AlertCircle className="h-4 w-4" />
-    <AlertDescription className="flex items-center justify-between">
-      <span>
-        EAN is ingevuld maar Offer ID ontbreekt. 
-        Voorraadsync werkt pas na koppeling.
-      </span>
-      <Button 
-        size="sm" 
-        variant="outline"
-        onClick={handleLookupOfferId}
-        disabled={isLookingUpOfferId}
-      >
-        {isLookingUpOfferId ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Zoeken...
-          </>
-        ) : (
-          <>
-            <Search className="h-4 w-4 mr-2" />
-            Offer ID ophalen
-          </>
-        )}
-      </Button>
-    </AlertDescription>
-  </Alert>
-)}
+// Detecteer nieuwe gebruikers
+const shouldShowOnboarding = useMemo(() => {
+  if (!user) return false;
+  if (profile?.onboarding_completed) return false;
+  if (profile?.onboarding_skipped_at) return false;
+  if (!currentTenant) return true; // Geen tenant = nieuwe gebruiker
+  return !currentTenant.stripe_onboarding_complete && 
+         (!products || products.length === 0);
+}, [user, profile, currentTenant, products]);
 ```
 
-## Visueel Ontwerp
+### Confetti Implementatie
 
-### Product Marketplace Tab
+Gebruik `canvas-confetti` library (lightweight, geen React dependencies):
+
+```typescript
+import confetti from 'canvas-confetti';
+
+const celebrateCompletion = () => {
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+};
+```
+
+## UI/UX Ontwerp
+
+### Progress Bar Component
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│                                                                    │
+│  Stap 3 van 6                                                      │
+│  ┌────────────────────────────────────────────────────────────┐   │
+│  │ ██████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│   ①──────②──────③──────④──────⑤──────⑥                           │
+│   ✓       ✓       ●                                               │
+│  Welkom  Bedrijf  Logo   Product  Betaling  Live                  │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### Info Tooltip Component
+
+```text
+┌─────────────────────────────────────────────┐
+│                                             │
+│  BTW-nummer                                 │
+│  ┌─────────────────────────────────────┐   │
+│  │ NL123456789B01                  ⓘ   │   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+│  ┌─────────────────────────────────────────┐
+│  │ ⓘ BTW-nummer                            │
+│  │                                          │
+│  │ Je BTW-nummer vind je op:               │
+│  │ • Je KvK-uittreksel                     │
+│  │ • Je belastingaangifte                  │
+│  │ • Mijn Belastingdienst portaal          │
+│  │                                          │
+│  │ Formaat: NL + 9 cijfers + B + 2 cijfers │
+│  │ Voorbeeld: NL123456789B01               │
+│  │                                          │
+│  │ Nog geen BTW-nummer? Geen probleem!     │
+│  │ Je kunt dit later toevoegen.            │
+│  └─────────────────────────────────────────┘
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+### Step Card Layout
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Bol.com                                                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  EAN Code                                                                   │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │ 8719274850014                                                    ✓   │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
+│           ☕ Je bent sneller klaar dan een kop koffie zetten!              │
 │                                                                             │
-│  ┌─ ⚠️ Waarschuwing ────────────────────────────────────────────────────┐  │
-│  │                                                                       │  │
-│  │  EAN is ingevuld maar Offer ID ontbreekt.                            │  │
-│  │  Voorraadsync werkt pas na koppeling.                                │  │
-│  │                                                          [🔍 Offer ID ophalen]  │
-│  └───────────────────────────────────────────────────────────────────────┘  │
+│           [Progress Bar: ██████████████░░░░░░░░░░░ 50%]                    │
 │                                                                             │
-│  Offer ID                                                                   │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │ (Niet gekoppeld - wordt automatisch opgehaald)                       │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                     │   │
+│  │    📦  Voeg je eerste product toe                                  │   │
+│  │                                                                     │   │
+│  │    Begin met je populairste product. Je kunt later                 │   │
+│  │    eenvoudig meer producten toevoegen.                             │   │
+│  │                                                                     │   │
+│  │    ┌─────────────────────────────────────────────────────────┐     │   │
+│  │    │                                                         │     │   │
+│  │    │  Productnaam *                                     ⓘ   │     │   │
+│  │    │  ┌──────────────────────────────────────────────────┐  │     │   │
+│  │    │  │ Handgemaakte kaars - Vanille                     │  │     │   │
+│  │    │  └──────────────────────────────────────────────────┘  │     │   │
+│  │    │                                                         │     │   │
+│  │    │  Prijs *                                           ⓘ   │     │   │
+│  │    │  ┌────────────────┐                                    │     │   │
+│  │    │  │ € 24.95        │                                    │     │   │
+│  │    │  └────────────────┘                                    │     │   │
+│  │    │                                                         │     │   │
+│  │    │  Productafbeelding                                 ⓘ   │     │   │
+│  │    │  ┌──────────────────────────────────────────────────┐  │     │   │
+│  │    │  │                                                  │  │     │   │
+│  │    │  │     📷 Sleep afbeelding hierheen                 │  │     │   │
+│  │    │  │        of klik om te uploaden                    │  │     │   │
+│  │    │  │                                                  │  │     │   │
+│  │    │  └──────────────────────────────────────────────────┘  │     │   │
+│  │    │                                                         │     │   │
+│  │    └─────────────────────────────────────────────────────────┘     │   │
+│  │                                                                     │   │
+│  │    ┌─────────────┐      ┌─────────────────────────────────────┐    │   │
+│  │    │ ← Vorige    │      │                   Volgende stap →   │    │   │
+│  │    └─────────────┘      └─────────────────────────────────────┘    │   │
+│  │                                                                     │   │
+│  │                   Overslaan voor nu                                │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Na Succesvolle Lookup
-
-```text
-│  Offer ID                                                                   │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │ 908b6d06-2067-4klf-8490-c21d0c233e61                        🔗 Auto  │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│  ✅ Automatisch gekoppeld via EAN lookup                                    │
-```
-
-## Bulk Auto-Koppel (Optioneel)
-
-In marketplace connection instellingen:
+### Live Celebration Screen
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Productkoppelingen                                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  📊 Status:                                                                 │
-│  • 45 producten met EAN                                                     │
-│  • 32 gekoppeld aan Bol.com offers                                          │
-│  • 13 wachten op koppeling                                                  │
+│                          🎉  🎊  🎉  🎊  🎉                                 │
 │                                                                             │
-│                        [🔍 Auto-koppel alle 13 producten]                   │
+│                    ┌──────────────────────────┐                            │
+│                    │                          │                            │
+│                    │     🚀                   │                            │
+│                    │                          │                            │
+│                    └──────────────────────────┘                            │
+│                                                                             │
+│                     Je webshop is LIVE!                                    │
+│                                                                             │
+│        Gefeliciteerd! Je bent nu klaar om je eerste orders                 │
+│        te ontvangen. Deel je winkel met de wereld!                         │
+│                                                                             │
+│        ┌──────────────────────────────────────────────────────┐            │
+│        │ 🔗 sellqo.app/shop/jouw-winkel           [Kopiëren]  │            │
+│        └──────────────────────────────────────────────────────┘            │
+│                                                                             │
+│                   ┌───────────────────────────────┐                        │
+│                   │  Bekijk je webshop →          │                        │
+│                   └───────────────────────────────┘                        │
+│                                                                             │
+│        ────────────────────────────────────────────────────                │
+│                                                                             │
+│        💡 Volgende stappen (optioneel):                                    │
+│                                                                             │
+│        ☐ Meer producten toevoegen                                          │
+│        ☐ Verzendmethoden instellen                                         │
+│        ☐ Theme en kleuren aanpassen                                        │
+│        ☐ Juridische pagina's genereren                                     │
+│                                                                             │
+│                   ┌───────────────────────────────┐                        │
+│                   │  Ga naar Dashboard            │                        │
+│                   └───────────────────────────────┘                        │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -275,36 +342,49 @@ In marketplace connection instellingen:
 
 | Bestand | Actie | Beschrijving |
 |---------|-------|--------------|
-| `supabase/functions/lookup-bol-offer-id/index.ts` | Nieuw | Edge function voor EAN → Offer ID lookup |
-| `supabase/functions/sync-bol-inventory/index.ts` | Update | Auto-lookup integratie voor ontbrekende Offer IDs |
-| `src/components/admin/marketplace/ProductMarketplaceTab.tsx` | Update | Lookup knop en status weergave |
-| `src/types/product.ts` | Update | `autoLinked` flag toevoegen aan mapping type |
+| `src/components/onboarding/OnboardingWizard.tsx` | Nieuw | Hoofdcomponent met wizard state |
+| `src/components/onboarding/OnboardingProgress.tsx` | Nieuw | Progress bar + step indicator |
+| `src/components/onboarding/OnboardingTooltip.tsx` | Nieuw | Info (i) tooltip component |
+| `src/components/onboarding/OnboardingOverlay.tsx` | Nieuw | Full-screen overlay wrapper |
+| `src/components/onboarding/steps/WelcomeStep.tsx` | Nieuw | Stap 1: Winkelnaam |
+| `src/components/onboarding/steps/BusinessDetailsStep.tsx` | Nieuw | Stap 2: Bedrijfsgegevens |
+| `src/components/onboarding/steps/LogoUploadStep.tsx` | Nieuw | Stap 3: Logo upload |
+| `src/components/onboarding/steps/FirstProductStep.tsx` | Nieuw | Stap 4: Eerste product |
+| `src/components/onboarding/steps/PaymentsStep.tsx` | Nieuw | Stap 5: Stripe Connect |
+| `src/components/onboarding/steps/LaunchStep.tsx` | Nieuw | Stap 6: Celebratie |
+| `src/components/onboarding/CelebrationConfetti.tsx` | Nieuw | Confetti animatie |
+| `src/hooks/useOnboarding.ts` | Nieuw | Onboarding state & persistence |
+| `src/pages/admin/Dashboard.tsx` | Update | Trigger voor wizard weergave |
+| `src/components/admin/AdminLayout.tsx` | Update | Onboarding overlay integratie |
+| Database migration | Nieuw | profiles tabel kolommen |
 
-## API Flow
+## Dependency
 
-```text
-┌─────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│  Frontend   │────▶│  lookup-bol-offer-id │────▶│  Bol.com API    │
-│             │     │  Edge Function       │     │                 │
-│  Product    │     │                      │     │  GET /products/ │
-│  Detail     │     │  1. Get credentials  │     │  {ean}/offers   │
-│  Page       │     │  2. Get OAuth token  │     │                 │
-│             │     │  3. Call Bol API     │     │  Returns:       │
-│             │◀────│  4. Filter by seller │◀────│  offers[]       │
-│             │     │  5. Save to DB       │     │                 │
-│  ✅ Offer   │     │  6. Return result    │     │                 │
-│  ID saved   │     │                      │     │                 │
-└─────────────┘     └──────────────────────┘     └─────────────────┘
+Nieuwe npm package nodig:
+
+```bash
+npm install canvas-confetti
+npm install @types/canvas-confetti --save-dev
 ```
+
+## Implementatie Volgorde
+
+1. **Database migratie** - Voeg onboarding kolommen toe aan profiles
+2. **useOnboarding hook** - State management & persistence
+3. **OnboardingProgress** - Progress bar component
+4. **OnboardingTooltip** - Info tooltip component  
+5. **Stap componenten** - Alle 6 stappen
+6. **OnboardingWizard** - Hoofdcontainer die alles combineert
+7. **Confetti** - Celebratie animatie
+8. **Dashboard integratie** - Trigger logica voor nieuwe gebruikers
+9. **Testing & polish** - Edge cases en responsiveness
 
 ## Resultaat
 
 Na implementatie:
-
-1. **Automatische koppeling** - Inventory sync probeert automatisch Offer IDs op te halen
-2. **Handmatige optie** - Knop om direct een Offer ID op te zoeken voor een product
-3. **Visuele feedback** - Duidelijke indicatie of koppeling geslaagd is
-4. **Geen handmatig werk** - Merchants hoeven niet meer zelf Offer IDs op te zoeken in Bol.com
-
-Dit maakt het veel eenvoudiger om orders en voorraad te synchroniseren zonder volledige product export naar Bol.com!
-
+- Nieuwe merchants doorlopen een gestructureerde setup in ~5 minuten
+- Elke stap heeft contextuele hulp via (i) tooltips
+- Voortgang is altijd zichtbaar en motiverend
+- Bij afronding: confetti + directe link naar hun webshop
+- Optionele stappen kunnen worden overgeslagen
+- Wizard status wordt opgeslagen en hervat bij terugkeer
