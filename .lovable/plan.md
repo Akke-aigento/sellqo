@@ -1,197 +1,167 @@
 
-# Plan: Verkoopkanalen in Grid View
 
-## Huidige Situatie
+# Plan: Waarschuwingen bij "Reset naar Standaard" Acties
 
-De bulk editing voor kanalen werkt al via de `BulkChannelsTab` in de ProductBulkEditDialog. Nu gaan we dit ook toevoegen aan de spreadsheet grid view zodat je:
+## Probleem
 
-1. **Per product** direct kunt zien op welke kanalen het actief is
-2. **Inline** kanalen aan/uit kunt zetten
-3. **Bulk** meerdere kanalencellen tegelijk kunt bewerken
+Momenteel worden destructieve "reset naar standaard" acties direct uitgevoerd zonder bevestiging. Dit kan leiden tot onbedoeld verlies van werk wanneer gebruikers per ongeluk op de knop klikken.
 
-## Visueel Ontwerp Grid Cel
+## Gevonden Locaties
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│  Naam              │ SKU      │ Prijs    │ Voorraad │ Kanalen                   │ Actief │
-├────────────────────┼──────────┼──────────┼──────────┼───────────────────────────┼────────┤
-│  iPhone 15 Pro     │ IPH-15   │ €1.299   │    45    │ [G] [F] [I] [ ] [P]       │   ●    │
-├────────────────────┼──────────┼──────────┼──────────┼───────────────────────────┼────────┤
-│  Samsung Galaxy    │ SAM-S24  │ €999     │    32    │ [G] [ ] [ ] [ ] [ ]       │   ●    │
-├────────────────────┼──────────┼──────────┼──────────┼───────────────────────────┼────────┤
-│  MacBook Pro       │ MBP-16   │ €2.899   │    12    │ [G] [F] [I] [ ] [P]       │   ○    │
-└────────────────────┴──────────┴──────────┴──────────┴───────────────────────────┴────────┘
+Na onderzoek heb ik **4 locaties** gevonden waar reset-acties een waarschuwingsdialoog nodig hebben:
 
-Legenda:
-[G] = Google Shopping (actief)
-[F] = Facebook Shop (actief)
-[I] = Instagram Shop (actief)
-[P] = Pinterest (actief)
-[ ] = Niet actief
-```
+| Locatie | Actie | Risico |
+|---------|-------|--------|
+| **ThemeCustomizer** | "Reset naar standaard" | Verlies van alle kleur-, font- en layout-aanpassingen |
+| **SyncRulesTab** | "Herstel standaard" | Verlies van alle marketplace synchronisatie-instellingen |
+| **DashboardCustomizeDialog** | "Standaard" knop | Verlies van dashboard layout en widget voorkeuren |
+| **LegalPagesManager** | "Alle pagina's aanmaken" | Bestaande juridische pagina's worden overschreven |
 
-### Cel Klikken → Popover
+## Oplossing
 
-Wanneer je op de kanalen-cel klikt, opent een popover:
+Een herbruikbare `AlertDialog` component gebruiken die:
+- Duidelijk uitlegt wat er gaat gebeuren
+- Specifiek benoemt welke data verloren gaat
+- Een bevestigingsknop heeft met destructieve styling (rood)
+- Een annuleer-optie heeft als uitweg
+
+## Visueel Ontwerp Waarschuwingsdialoog
 
 ```text
-                    ┌─────────────────────────────────────┐
-                    │  Verkoopkanalen                     │
-                    ├─────────────────────────────────────┤
-                    │                                     │
-                    │  SOCIAL COMMERCE                    │
-                    │  ☑ Google Shopping                  │
-                    │  ☑ Facebook Shop                    │
-                    │  ☑ Instagram Shop                   │
-                    │  ☐ TikTok Shop                      │
-                    │  ☑ Pinterest                        │
-                    │  ☐ WhatsApp Business                │
-                    │  ☐ Microsoft Shopping               │
-                    │  ☐ Snapchat                         │
-                    │                                     │
-                    │  MARKETPLACES                       │
-                    │  ☑ Bol.com                          │
-                    │  ☐ Amazon                           │
-                    │  ☐ Shopify                          │
-                    │                                     │
-                    │              [Opslaan]  [Annuleren] │
-                    └─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  ⚠️  Weet je het zeker?                                          │
+│                                                                 │
+│  Je staat op het punt alle aanpassingen te resetten naar de    │
+│  standaard instellingen. Dit omvat:                            │
+│                                                                 │
+│  • Kleuren (primair, secundair, accent)                        │
+│  • Fonts (heading, body)                                       │
+│  • Layout instellingen                                         │
+│  • Logo en favicon                                             │
+│  • Aangepaste CSS                                              │
+│                                                                 │
+│  Deze actie kan niet ongedaan worden gemaakt.                  │
+│                                                                 │
+│                            [Annuleren]  [Ja, reset alles]      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Bulk Bewerking Kanalen
+## Technische Wijzigingen
 
-Wanneer meerdere kanalen-cellen geselecteerd:
+### 1. ThemeCustomizer.tsx
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  5 producten geselecteerd - Kanalen bewerken        │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  Kanalen inschakelen:                               │
-│  ☐ Google Shopping                                  │
-│  ☐ Facebook Shop                                    │
-│  ☐ Instagram Shop                                   │
-│  ☐ Pinterest                                        │
-│                                                     │
-│  Kanalen uitschakelen:                              │
-│  ☐ Google Shopping                                  │
-│  ☐ Facebook Shop                                    │
-│  ...                                                │
-│                                                     │
-│                 [Annuleren]  [Toepassen]            │
-└─────────────────────────────────────────────────────┘
-```
-
-## Technische Implementatie
-
-### Nieuwe/Gewijzigde Bestanden
-
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| `src/components/admin/products/grid/GridChannelsCell.tsx` | Nieuw | Cel component voor kanalen met badges en popover |
-| `src/components/admin/products/grid/gridTypes.ts` | Update | Nieuwe `channels` cell type toevoegen |
-| `src/components/admin/products/grid/ProductGridView.tsx` | Update | GridChannelsCell renderen |
-| `src/components/admin/products/grid/CellBulkEditor.tsx` | Update | Bulk kanalen bewerking toevoegen |
-
-### Nieuwe Cell Type
+Voeg een AlertDialog toe rond de reset-knop:
 
 ```typescript
-// gridTypes.ts - nieuwe cell type
-export type CellType = 
-  | 'text'
-  | 'number'
-  | 'currency'
-  | 'select'
-  | 'toggle'
-  | 'tags'
-  | 'channels'  // NIEUW
-  | 'readonly';
+// State toevoegen
+const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-// Nieuwe kolom definitie
-{ 
-  field: 'social_channels', 
-  header: 'Kanalen', 
-  type: 'channels', 
-  width: 180, 
-  minWidth: 120, 
-  editable: true, 
-  bulkEditable: true 
-}
+// In JSX: AlertDialog wrapper
+<AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+  <AlertDialogTrigger asChild>
+    <Button variant="outline">Reset naar standaard</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+      <AlertDialogDescription>
+        Alle theme-aanpassingen worden teruggezet naar de standaard 
+        instellingen. Dit omvat kleuren, fonts, layout en aangepaste CSS.
+        Deze actie kan niet ongedaan worden gemaakt.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+      <AlertDialogAction 
+        onClick={handleResetToDefaults}
+        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      >
+        Ja, reset alles
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
 ```
 
-### GridChannelsCell Component
+### 2. SyncRulesTab.tsx
+
+Zelfde patroon voor marketplace sync regels:
 
 ```typescript
-// GridChannelsCell.tsx
-interface GridChannelsCellProps {
-  value: ProductSocialChannels | null;
-  isEditing: boolean;
-  isSelected: boolean;
-  onChange: (value: ProductSocialChannels) => void;
-  onStartEdit: () => void;
-  onEndEdit: () => void;
-}
+// State
+const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-// Weergave in cel (compact met iconen)
-function GridChannelsCell({ value, ... }) {
-  const channels = value || {};
-  const activeChannels = Object.entries(channels)
-    .filter(([_, active]) => active);
-  
-  return (
-    <div className="flex items-center gap-1">
-      {activeChannels.length === 0 ? (
-        <span className="text-muted-foreground text-xs">Geen</span>
-      ) : (
-        activeChannels.map(([type]) => (
-          <ChannelBadge key={type} type={type} size="sm" />
-        ))
-      )}
-    </div>
-  );
-}
+// Waarschuwingstekst specifiek voor sync regels
+<AlertDialogDescription>
+  Alle synchronisatie-instellingen voor {platformName} worden 
+  teruggezet naar de standaard. Dit omvat:
+  • Product sync regels
+  • Voorraad sync instellingen  
+  • Bestel mapping
+  Deze actie kan niet ongedaan worden gemaakt.
+</AlertDialogDescription>
 ```
 
-### Kanaal Badges (compact)
+### 3. DashboardCustomizeDialog.tsx
 
-Kleine icoontjes met tooltips voor elke kanaal:
+De "Standaard" knop reset alleen lokale state (niet opgeslagen), maar dit kan ook verwarrend zijn na veel aanpassingen:
 
-| Kanaal | Badge | Kleur |
-|--------|-------|-------|
-| Google Shopping | G | Blauw |
-| Facebook Shop | f | Donkerblauw |
-| Instagram Shop | 📷 | Roze |
-| TikTok Shop | ♪ | Zwart |
-| Pinterest | P | Rood |
-| WhatsApp | W | Groen |
-| Microsoft | M | Cyaan |
-| Snapchat | 👻 | Geel |
-| Bol.com | B | Blauw |
-| Amazon | A | Oranje |
+```typescript
+// Minder kritische waarschuwing
+<AlertDialogDescription>
+  Alle widget en layout selecties worden gereset naar de 
+  standaard configuratie. Je moet nog steeds op "Opslaan" 
+  klikken om de wijzigingen definitief te maken.
+</AlertDialogDescription>
+```
 
-## Implementatie Stappen
+### 4. LegalPagesManager.tsx
 
-### Fase 1: Grid Cell Component
-1. `GridChannelsCell.tsx` maken met compacte badge weergave
-2. Popover voor inline editing met alle kanaalopties
-3. Integratie met `useSocialChannels` hook voor actieve kanalen
+Voor het aanmaken van juridische pagina's wanneer er al pagina's bestaan:
 
-### Fase 2: Grid Integratie  
-4. `gridTypes.ts` uitbreiden met `channels` type
-5. `ProductGridView.tsx` updaten om nieuwe cel te renderen
-6. Kolom toevoegen aan `DEFAULT_VISIBLE_COLUMNS` (optioneel)
+```typescript
+// Alleen tonen als er bestaande pagina's zijn
+{legalPages.length > 0 && (
+  <AlertDialog>
+    <AlertDialogTrigger asChild>
+      <Button>Alle pagina's regenereren</Button>
+    </AlertDialogTrigger>
+    <AlertDialogContent>
+      <AlertDialogDescription>
+        Bestaande juridische pagina's worden overschreven met 
+        nieuwe automatisch gegenereerde content. Eventuele 
+        handmatige wijzigingen gaan verloren.
+      </AlertDialogDescription>
+    </AlertDialogContent>
+  </AlertDialog>
+)}
+```
 
-### Fase 3: Bulk Editing
-7. `CellBulkEditor.tsx` uitbreiden voor kanalen bulk operaties
-8. Logica voor "inschakelen" en "uitschakelen" van geselecteerde kanalen
+## Bestandsoverzicht
+
+| Bestand | Actie | Wijziging |
+|---------|-------|-----------|
+| `ThemeCustomizer.tsx` | Update | AlertDialog toevoegen rond reset knop |
+| `SyncRulesTab.tsx` | Update | AlertDialog toevoegen rond herstel knop |
+| `DashboardCustomizeDialog.tsx` | Update | AlertDialog toevoegen rond standaard knop |
+| `LegalPagesManager.tsx` | Update | AlertDialog toevoegen voor regenereren |
+
+## Consistente Waarschuwingstekst
+
+Elk dialoog volgt dit patroon:
+1. **Titel**: "Weet je het zeker?" 
+2. **Beschrijving**: Wat er gereset wordt + "Deze actie kan niet ongedaan worden gemaakt."
+3. **Annuleer knop**: "Annuleren" (outline/secondary)
+4. **Bevestig knop**: "Ja, reset alles" of context-specifiek (destructive/rood)
 
 ## Resultaat
 
-Na implementatie kan de merchant:
+Na implementatie:
+- Geen enkele reset-actie wordt meer direct uitgevoerd
+- Gebruiker moet altijd expliciet bevestigen
+- Duidelijke communicatie over wat er verloren gaat
+- Eenvoudige uitweg via "Annuleren"
+- Liever een klik teveel dan al je werk weg!
 
-1. **In één oogopslag** zien welke producten op welke kanalen staan
-2. **Direct klikken** om kanalen per product aan te passen
-3. **Meerdere producten** selecteren en kanalen in bulk wijzigen
-4. **Gecombineerd** met andere velden in dezelfde sessie bewerken
-
-Dit maakt kanaalmanagement net zo snel als prijs- of voorraadwijzigingen!
