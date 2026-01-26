@@ -7,10 +7,11 @@ export type CellType =
   | 'select'
   | 'toggle'
   | 'tags'
+  | 'channels'
   | 'readonly';
 
 export interface ColumnDefinition {
-  field: keyof Product;
+  field: string; // Changed from keyof Product to string for flexibility
   header: string;
   type: CellType;
   width: number;
@@ -64,6 +65,7 @@ export const GRID_COLUMNS: ColumnDefinition[] = [
   { field: 'stock', header: 'Voorraad', type: 'number', width: 90, minWidth: 70, editable: true, bulkEditable: true },
   { field: 'category_id', header: 'Categorie', type: 'select', width: 150, minWidth: 100, editable: true, bulkEditable: true },
   { field: 'vat_rate_id', header: 'BTW', type: 'select', width: 120, minWidth: 80, editable: true, bulkEditable: true },
+  { field: 'social_channels', header: 'Kanalen', type: 'channels', width: 180, minWidth: 120, editable: true, bulkEditable: true },
   { field: 'is_active', header: 'Actief', type: 'toggle', width: 80, minWidth: 60, editable: true, bulkEditable: true },
   { field: 'is_featured', header: 'Uitgelicht', type: 'toggle', width: 90, minWidth: 70, editable: true, bulkEditable: true },
   { field: 'tags', header: 'Tags', type: 'tags', width: 200, minWidth: 120, editable: true, bulkEditable: true },

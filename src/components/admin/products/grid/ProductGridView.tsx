@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
@@ -10,12 +9,14 @@ import { useProducts } from '@/hooks/useProducts';
 import { useProductGrid } from '@/hooks/useProductGrid';
 import { useTenant } from '@/hooks/useTenant';
 import type { Product } from '@/types/product';
+import type { ProductSocialChannels } from '@/types/socialChannels';
 import { ColumnConfig } from './ColumnConfig';
 import { GridTextCell } from './GridTextCell';
 import { GridNumberCell } from './GridNumberCell';
 import { GridSelectCell } from './GridSelectCell';
 import { GridToggleCell } from './GridToggleCell';
 import { GridTagsCell } from './GridTagsCell';
+import { GridChannelsCell } from './GridChannelsCell';
 import { CellBulkEditor } from './CellBulkEditor';
 import { ChangesPanel } from './ChangesPanel';
 import { GRID_COLUMNS } from './gridTypes';
@@ -76,6 +77,13 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   ) => {
     if (bulkEditorField) {
       grid.applyBulkAdjustment(bulkEditorField, type, value);
+    }
+  };
+
+  // Apply bulk channel changes
+  const handleBulkApplyChannels = (channels: Record<string, boolean>) => {
+    if (bulkEditorField) {
+      grid.applyBulkChannels(bulkEditorField, channels);
     }
   };
 
@@ -209,6 +217,15 @@ export function ProductGridView({ products }: ProductGridViewProps) {
           />
         );
 
+      case 'channels':
+        return (
+          <GridChannelsCell
+            {...commonProps}
+            value={value as ProductSocialChannels | null}
+            onChange={(v) => grid.setCellValue(product.id, field, v)}
+          />
+        );
+
       default:
         return <span className="text-sm text-muted-foreground">-</span>;
     }
@@ -333,6 +350,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
           cellCount={grid.getSelectedCellsByField(bulkEditorField!).length}
           fieldType={bulkEditFieldDef.type}
           onApply={handleBulkApply}
+          onApplyChannels={handleBulkApplyChannels}
         />
       )}
     </div>
