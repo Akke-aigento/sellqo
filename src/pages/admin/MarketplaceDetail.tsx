@@ -66,6 +66,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useMarketplaceConnection, useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { MARKETPLACE_INFO } from '@/types/marketplace';
+import { SyncRulesTab } from '@/components/admin/marketplace/SyncRulesTab';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -546,6 +547,14 @@ export default function MarketplaceDetailPage() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* SYNC RULES TAB */}
+        <TabsContent value="sync-rules">
+          <SyncRulesTab 
+            connection={connection} 
+            platformName={info.name} 
+          />
         </TabsContent>
 
         {/* SETTINGS TAB */}
