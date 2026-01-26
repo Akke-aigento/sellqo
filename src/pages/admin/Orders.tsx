@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, CreditCard } from 'lucide-react';
+import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
@@ -11,9 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
+import { BatchPrintDialog } from '@/components/admin/BatchPrintDialog';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
@@ -21,6 +23,10 @@ export default function OrdersPage() {
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus } = useOrders(filters);
+  
+  // Batch selection state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [batchPrintOpen, setBatchPrintOpen] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -32,6 +38,26 @@ export default function OrdersPage() {
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
     updateOrderStatus.mutate({ orderId, status });
   };
+
+  // Batch selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrderIds(orders.map(o => o.id));
+    } else {
+      setSelectedOrderIds([]);
+    }
+  };
+
+  const handleSelectOrder = (orderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOrderIds(prev => [...prev, orderId]);
+    } else {
+      setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
+    }
+  };
+
+  const isAllSelected = orders.length > 0 && selectedOrderIds.length === orders.length;
+  const isSomeSelected = selectedOrderIds.length > 0 && selectedOrderIds.length < orders.length;
 
   if (tenantLoading) {
     return (
@@ -62,6 +88,33 @@ export default function OrdersPage() {
 
       {/* Filters */}
       <OrderFilters filters={filters} onFiltersChange={setFilters} />
+
+      {/* Bulk Actions Bar */}
+      {selectedOrderIds.length > 0 && (
+        <div className="flex items-center gap-4 p-3 bg-muted rounded-lg border">
+          <span className="text-sm font-medium">
+            {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setBatchPrintOpen(true)}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print Labels
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedOrderIds([])}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Deselecteer
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Orders Table */}
       <Card>
@@ -95,6 +148,14 @@ export default function OrdersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Selecteer alle orders"
+                      className={isSomeSelected ? 'data-[state=checked]:bg-primary/50' : ''}
+                    />
+                  </TableHead>
                   <TableHead>Bestelling</TableHead>
                   <TableHead>Klant</TableHead>
                   <TableHead>Bron</TableHead>
@@ -110,6 +171,8 @@ export default function OrdersPage() {
                   <OrderRow
                     key={order.id}
                     order={order}
+                    isSelected={selectedOrderIds.includes(order.id)}
+                    onSelect={(checked) => handleSelectOrder(order.id, checked)}
                     onView={() => navigate(`/admin/orders/${order.id}`)}
                     onStatusChange={handleStatusChange}
                     formatCurrency={formatCurrency}
@@ -120,43 +183,60 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Batch Print Dialog */}
+      <BatchPrintDialog
+        open={batchPrintOpen}
+        onOpenChange={setBatchPrintOpen}
+        orderIds={selectedOrderIds}
+        onComplete={() => setSelectedOrderIds([])}
+      />
     </div>
   );
 }
 
 interface OrderRowProps {
   order: Order;
+  isSelected: boolean;
+  onSelect: (checked: boolean) => void;
   onView: () => void;
   onStatusChange: (orderId: string, status: OrderStatus) => void;
   formatCurrency: (amount: number) => string;
 }
 
-function OrderRow({ order, onView, onStatusChange, formatCurrency }: OrderRowProps) {
+function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, formatCurrency }: OrderRowProps) {
   return (
-    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={onView}>
-      <TableCell>
+    <TableRow className="cursor-pointer hover:bg-muted/50">
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelect}
+          aria-label={`Selecteer order ${order.order_number}`}
+        />
+      </TableCell>
+      <TableCell onClick={onView}>
         <div className="font-medium">{order.order_number}</div>
         <div className="text-xs text-muted-foreground">
           {order.order_items?.length || 0} artikel{(order.order_items?.length || 0) !== 1 ? 'en' : ''}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell onClick={onView}>
         <div className="font-medium">{order.customer_name || '-'}</div>
         <div className="text-sm text-muted-foreground">{order.customer_email}</div>
       </TableCell>
-      <TableCell>
+      <TableCell onClick={onView}>
         <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
-      <TableCell>
+      <TableCell onClick={onView}>
         <OrderStatusBadge status={order.status} />
       </TableCell>
-      <TableCell>
+      <TableCell onClick={onView}>
         <PaymentStatusBadge status={order.payment_status} />
       </TableCell>
-      <TableCell className="text-right font-medium">
+      <TableCell className="text-right font-medium" onClick={onView}>
         {formatCurrency(Number(order.total))}
       </TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell className="text-muted-foreground" onClick={onView}>
         {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>

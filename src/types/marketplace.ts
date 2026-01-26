@@ -59,6 +59,8 @@ export interface MarketplaceSettings {
   odooAutoConfirmInvoices?: boolean;
   // Granular sync rules
   syncRules?: SyncRules;
+  // Order acceptatie
+  autoAcceptOrder?: boolean;      // Automatisch orders accepteren bij import
   // VVB (Verzenden via Bol) instellingen
   vvbEnabled?: boolean;           // VVB labels aan/uit
   vvbMaxAmount?: number;          // Max orderbedrag voor VVB (bijv. 300)
@@ -69,6 +71,10 @@ export interface MarketplaceSettings {
   autoConfirmShipment?: boolean;  // Auto bevestigen naar Bol.com
   // Label formaat
   vvbLabelFormat?: 'a4_original' | 'a6_cropped';  // Label output formaat
+  // Amazon Buy Shipping
+  amazonBuyShippingEnabled?: boolean;
+  amazonShippingStrategy?: 'cheapest' | 'fastest' | 'manual';
+  amazonAutoSelectCheapest?: boolean;
 }
 
 export interface MarketplaceStats {

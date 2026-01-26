@@ -200,3 +200,9 @@ verify_jwt = false
 
 [functions.fetch-external-label]
 verify_jwt = false
+
+[functions.accept-bol-order]
+verify_jwt = false
+
+[functions.create-amazon-buy-shipping-label]
+verify_jwt = false
