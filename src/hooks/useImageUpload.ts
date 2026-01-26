@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 
-type BucketName = 'product-images' | 'tenant-logos' | 'invoices' | 'ai-images';
+type BucketName = 'product-images' | 'tenant-logos' | 'invoices' | 'ai-images' | 'marketing-assets';
 
 export function useImageUpload() {
   const { currentTenant } = useTenant();

@@ -4366,6 +4366,86 @@ export type Database = {
           },
         ]
       }
+      media_assets: {
+        Row: {
+          ai_description: string | null
+          alt_text: string | null
+          created_at: string | null
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          folder: string | null
+          height: number | null
+          id: string
+          is_ai_generated: boolean | null
+          is_favorite: boolean | null
+          last_used_at: string | null
+          source: string | null
+          tags: string[] | null
+          tenant_id: string
+          title: string | null
+          updated_at: string | null
+          usage_count: number | null
+          width: number | null
+        }
+        Insert: {
+          ai_description?: string | null
+          alt_text?: string | null
+          created_at?: string | null
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          folder?: string | null
+          height?: number | null
+          id?: string
+          is_ai_generated?: boolean | null
+          is_favorite?: boolean | null
+          last_used_at?: string | null
+          source?: string | null
+          tags?: string[] | null
+          tenant_id: string
+          title?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          width?: number | null
+        }
+        Update: {
+          ai_description?: string | null
+          alt_text?: string | null
+          created_at?: string | null
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          folder?: string | null
+          height?: number | null
+          id?: string
+          is_ai_generated?: boolean | null
+          is_favorite?: boolean | null
+          last_used_at?: string | null
+          source?: string | null
+          tags?: string[] | null
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_subscribers: {
         Row: {
           confirmation_token: string | null
