@@ -1,436 +1,465 @@
 
-
-# Plan: AI-Gestuurde Klantinteractie & Contact Functies
+# Plan: Intelligente & Lerende AI met Web Research & Gebruikerspersonalisatie
 
 ## Samenvatting
 
-Dit plan implementeert drie grote verbeteringen:
-1. **Interactieve Contact Pagina** met configureerbare WhatsApp/Email knoppen
-2. **Floating WhatsApp Widget** als toggle voor de hele webshop  
-3. **AI Assistentie Centrum** - gecentraliseerde AI instellingen voor:
-   - AI Chatbot (kent de hele webshop content)
-   - AI Suggesties voor klantgesprekken
+Dit plan transformeert de AI van een "domme FAQ bot" naar een **intelligente, lerende assistent** die:
+1. **Web research kan doen** via de Perplexity connector wanneer webshop-kennis onvoldoende is
+2. **Leert op gebruikersniveau** - onthoudt voorkeuren per medewerker (handtekening, tone, stijl)
+3. **Feedback verzamelt** - vraagt klanten na chatbot-gesprekken hoe het was
+4. **Reply edits trackt** - leert van wijzigingen aan AI-suggesties
 
 ---
 
-## 1. Contact Pagina Configuratie
+## 1. Web Research Integratie
 
 ### Probleem
-De huidige `StorefrontPagesManager` maakt alleen statische pagina's met HTML content. Er is geen manier om interactieve elementen (WhatsApp/Email knoppen) toe te voegen die per winkel aan/uit gezet kunnen worden.
+De AI kent alleen webshop-content. Bij algemene vragen of complexe onderwerpen heeft hij geen antwoord.
 
 ### Oplossing
-Een speciale "Contact" pagina template met configureerbare velden die de storefront automatisch rendert met knoppen.
-
-### Database Schema
-
-```sql
--- Contact Page Configuration (als onderdeel van tenant_theme_settings)
-ALTER TABLE public.tenant_theme_settings ADD COLUMN IF NOT EXISTS contact_config JSONB DEFAULT '{
-  "show_email_button": true,
-  "show_whatsapp_button": false,
-  "show_phone_button": true,
-  "show_address": true,
-  "show_map": false,
-  "show_contact_form": true,
-  "whatsapp_prefill_message": "Hallo, ik heb een vraag over...",
-  "opening_hours": null,
-  "custom_intro_text": null
-}'::jsonb;
-```
-
-### UI Ontwerp
-
-In de `StorefrontFeaturesSettings` voegen we een nieuwe sectie toe:
+Integratie met **Perplexity API** voor web research als fallback/verrijking.
 
 ```text
-📬 CONTACT PAGINA
-┌─────────────────────────────────────────────────────────────────────┐
-│  Configureer welke contact opties zichtbaar zijn op je contact pagina │
-│                                                                       │
-│  📧 Email knop                                    [✓]                │
-│  └── Opent email client met winkel email                             │
-│                                                                       │
-│  💬 WhatsApp knop                                 [✓]                │
-│  └── Prefill bericht: [Hallo, ik heb een vraag over...            ] │
-│                                                                       │
-│  📞 Telefoon knop                                 [✓]                │
-│  └── Click-to-call functionaliteit                                   │
-│                                                                       │
-│  📍 Adres tonen                                   [✓]                │
-│  🗺️ Google Maps embed                            [ ]                │
-│                                                                       │
-│  📝 Contactformulier                              [✓]                │
-│  └── Stuurt email naar winkel email                                  │
-│                                                                       │
-│  🕐 Openingstijden                                [ ]                │
-│  └── [Tekst veld voor openingstijden]                               │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  KLANT VRAAG                                                    │
+│  ─────────────                                                  │
+│  "Wat is het verschil tussen LED en OLED televisies?"          │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────┐           │
+│  │  1️⃣ Check webshop kennis                        │           │
+│  │     → Geen relevante producten gevonden         │           │
+│  │                                                 │           │
+│  │  2️⃣ Web research (Perplexity)                  │           │
+│  │     → "LED gebruikt achtergrondverlichting,    │           │
+│  │        OLED heeft zelf-verlichtende pixels..." │           │
+│  │                                                 │           │
+│  │  3️⃣ Combineer met winkel context              │           │
+│  │     → "...In onze winkel hebben we OLED       │           │
+│  │        modellen vanaf €999. Bekijk onze       │           │
+│  │        TV-collectie hier: [link]"             │           │
+│  └─────────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Configuratie in AI Assistent Settings
+
+```text
+🔍 WEB RESEARCH
+┌─────────────────────────────────────────────────────────────────┐
+│  Web research inschakelen                      [✓]              │
+│  ─────────────────────────────────────────────────────────────  │
+│  Sta de AI toe om het web te doorzoeken voor vragen buiten      │
+│  je webshop content. Maakt gebruik van Perplexity AI.           │
+│                                                                  │
+│  Wanneer gebruiken:                                              │
+│  ○ Alleen als webshop-kennis geen antwoord geeft                │
+│  ◉ Altijd verrijken met relevante web-info                      │
+│                                                                  │
+│  Toegestane onderwerpen:                                         │
+│  [✓] Productadvies & vergelijkingen                             │
+│  [✓] Algemene informatie over productcategorieën                │
+│  [ ] Prijsvergelijkingen met concurrenten                       │
+│  [ ] Nieuws & actualiteiten                                     │
+│                                                                  │
+│  ⚠️ Vereist Perplexity koppeling. [Koppelen →]                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Floating WhatsApp Widget
+## 2. Leren op Gebruikersniveau
 
 ### Probleem
-Winkels willen optioneel een floating WhatsApp knop tonen op elke pagina.
+Huidige learning is alleen op **tenant-niveau**. Maar elke medewerker heeft eigen voorkeuren:
+- Medewerker A tekent af met "Met vriendelijke groet, Anna"
+- Medewerker B gebruikt altijd emoji's
+- Medewerker C is zeer formeel
 
 ### Oplossing
-Toggle in Storefront Functies + configuratie voor gedrag.
+**Gebruikers-specifieke learning patterns** die automatisch worden toegepast.
 
-### Database Schema
+### Database Uitbreiding
 
 ```sql
--- Floating Widget Configuration (als onderdeel van tenant_theme_settings)
-ALTER TABLE public.tenant_theme_settings ADD COLUMN IF NOT EXISTS floating_widget_config JSONB DEFAULT '{
-  "whatsapp_enabled": false,
-  "whatsapp_position": "bottom-right",
-  "whatsapp_prefill_message": "Hallo!",
-  "whatsapp_show_on_mobile": true,
-  "whatsapp_delay_seconds": 3
-}'::jsonb;
+-- User-level learning patterns (naast bestaande tenant-level)
+CREATE TABLE public.ai_user_learning_patterns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  
+  pattern_type TEXT NOT NULL,  -- 'signature', 'greeting', 'emoji_usage', 'tone', etc.
+  learned_value JSONB NOT NULL DEFAULT '{}',
+  confidence_score DECIMAL(3,2) DEFAULT 0.3,  -- 0.0 - 1.0
+  sample_count INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_updated_at TIMESTAMPTZ DEFAULT now(),
+  
+  UNIQUE(user_id, pattern_type)
+);
+
+-- Track repeat behaviors
+CREATE TABLE public.ai_user_behavior_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  
+  behavior_type TEXT NOT NULL,  -- 'edit_signature', 'add_greeting', 'change_tone'
+  behavior_value TEXT NOT NULL,
+  occurrence_count INTEGER DEFAULT 1,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  
+  UNIQUE(user_id, behavior_type, behavior_value)
+);
 ```
 
-### UI Ontwerp
-
-```text
-💬 FLOATING WIDGETS
-┌─────────────────────────────────────────────────────────────────────┐
-│  WhatsApp Chat Bubble                              [✓]              │
-│  ─────────────────────────────────────────────────────────────────  │
-│  Toon een floating WhatsApp knop op elke pagina                      │
-│                                                                       │
-│  Positie:          [Bottom Right ▼]                                  │
-│  Vertraging:       [3] seconden                                      │
-│  Prefill bericht:  [Hallo! Hoe kan ik je helpen?                  ] │
-│  Toon op mobiel:   [✓]                                              │
-│                                                                       │
-│  ⚠️ Vereist dat WhatsApp Business is gekoppeld                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. AI Assistentie Centrum
-
-Dit is het meest complexe onderdeel - een nieuwe settings sectie die alle AI-gerelateerde klantinteractie configureert.
-
-### Nieuwe Settings Sectie
+### Learning Logica
 
 ```typescript
-// In Settings.tsx toevoegen aan 'channels' groep:
-{
-  id: 'ai-assistant',
-  title: 'AI Assistent',
-  icon: Bot,
-  component: AIAssistantSettings
+// Na 3x dezelfde wijziging → leren
+// Na 5x dezelfde wijziging → automatisch toepassen
+
+const LEARN_THRESHOLD = 3;      // Start suggereren
+const AUTO_APPLY_THRESHOLD = 5; // Automatisch toepassen
+```
+
+### Voorbeeld Flow
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  SCENARIO: Anna past 5x haar handtekening aan                   │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  1️⃣ Eerste keer:                                               │
+│     AI suggestie: "Groeten, Team Shop"                         │
+│     Anna wijzigt naar: "Hartelijke groet, Anna ♥️"              │
+│     → Log: signature_edit = "Hartelijke groet, Anna ♥️" (1x)    │
+│                                                                 │
+│  2️⃣ Tweede keer: idem                                          │
+│     → Count: 2x                                                 │
+│                                                                 │
+│  3️⃣ Derde keer: idem                                           │
+│     → Count: 3x ✓ LEARN_THRESHOLD                              │
+│     → Sla op als user_pattern: signature                        │
+│     → Toast: "We onthouden je handtekening voortaan!"          │
+│                                                                 │
+│  4️⃣ Vierde keer: AI suggestie bevat al haar handtekening!      │
+│     → Anna is blij, geen edit nodig                            │
+│                                                                 │
+│  5️⃣ Vijfde keer: AUTO_APPLY_THRESHOLD bereikt                  │
+│     → Pattern confidence = 0.9 (zeer zeker)                     │
+│     → Altijd automatisch toepassen                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Chatbot Feedback Systeem
+
+### Probleem
+We weten niet of klanten tevreden zijn met chatbot-antwoorden.
+
+### Oplossing
+Na elk chatbot-gesprek een korte feedback vraag.
+
+### UI Flow
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  🤖 Assistent                                                   │
+│  ─────────────────────────────────────────────────────────────  │
+│  Ik hoop dat ik je goed heb kunnen helpen! Mag ik je iets       │
+│  vragen?                                                        │
+│                                                                 │
+│  Hoe was dit gesprek?                                           │
+│                                                                 │
+│  [😊 Goed]  [😐 Neutraal]  [😔 Niet zo goed]                    │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│  💡 Je kunt ook altijd contact opnemen met onze klantenservice  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Feedback Data Opslag
+
+```sql
+-- Chatbot conversation & feedback
+CREATE TABLE public.ai_chatbot_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,  -- Browser session
+  
+  messages JSONB NOT NULL DEFAULT '[]',
+  message_count INTEGER DEFAULT 0,
+  
+  -- Feedback (optioneel)
+  feedback_rating INTEGER,  -- 1 = slecht, 2 = neutraal, 3 = goed
+  feedback_comment TEXT,
+  feedback_submitted_at TIMESTAMPTZ,
+  
+  -- Context
+  initial_question TEXT,
+  topics_discussed TEXT[],
+  web_research_used BOOLEAN DEFAULT false,
+  escalated_to_human BOOLEAN DEFAULT false,
+  
+  -- Meta
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ended_at TIMESTAMPTZ,
+  
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### Learning van Feedback
+
+```typescript
+// Bij negatieve feedback:
+// 1. Analyseer het gesprek met AI
+// 2. Identificeer probleem: 
+//    - Antwoord was fout → verbeter kennisbank
+//    - Vraag was te complex → pas escalatie drempel aan
+//    - Klant wilde menselijk contact → voeg snellere handoff toe
+// 3. Update ai_learning_patterns met bevindingen
+```
+
+---
+
+## 4. Reply Suggestion Learning (Bestaand + Uitbreiding)
+
+### Huidige Situatie
+Er is al een `ai-learn-from-feedback` edge function die tenant-level patronen leert van edits.
+
+### Uitbreiding: User-Level Learning
+
+```typescript
+// Bij elke edit aan AI suggestie:
+// 1. Log de edit in ai_user_behavior_log
+// 2. Check of dit pattern al eerder voorkwam
+// 3. Als occurrence_count >= LEARN_THRESHOLD:
+//    - Maak/update ai_user_learning_patterns
+//    - Volgende keer: pas automatisch toe
+```
+
+### Patterns om te Leren
+
+| Pattern Type | Voorbeeld | Auto-apply na |
+|--------------|-----------|---------------|
+| `signature` | "Met vriendelijke groet, Anna" | 5x |
+| `greeting` | "Beste {naam}," vs "Hoi {naam}!" | 5x |
+| `emoji_usage` | Veel 👍😊🎉 of geen | 3x |
+| `tone` | Formeel vs informeel | 5x |
+| `cta_style` | "Klik hier" vs "Je kunt hier..." | 3x |
+| `length_preference` | Kort en bondig vs uitgebreid | 5x |
+
+---
+
+## 5. Implementatie Bestandsoverzicht
+
+| Bestand | Actie | Beschrijving |
+|---------|-------|--------------|
+| **Database** | | |
+| `supabase/migrations/xxx_ai_learning.sql` | Nieuw | User patterns + behavior log + chatbot conversations |
+| **Types** | | |
+| `src/types/ai-assistant.ts` | Update | Web research config + user learning types |
+| `src/types/aiActions.ts` | Update | User learning pattern types |
+| **Hooks** | | |
+| `src/hooks/useUserLearningPatterns.ts` | Nieuw | CRUD voor user-specifieke learning |
+| `src/hooks/useAIFeedback.ts` | Update | User-level tracking toevoegen |
+| **Edge Functions** | | |
+| `supabase/functions/ai-suggest-reply/index.ts` | Nieuw | Reply suggesties met user patterns |
+| `supabase/functions/ai-chatbot-respond/index.ts` | Nieuw | Chatbot met web research |
+| `supabase/functions/ai-build-knowledge-index/index.ts` | Nieuw | Knowledge indexering |
+| `supabase/functions/ai-learn-from-feedback/index.ts` | Update | User-level learning toevoegen |
+| **Components** | | |
+| `src/components/admin/settings/AIAssistantSettings.tsx` | Update | Web research config sectie |
+| `src/components/admin/settings/AILearningInsights.tsx` | Nieuw | Toon wat AI heeft geleerd |
+| `src/components/admin/inbox/AISuggestionBox.tsx` | Update | Toon user-specific aanpassingen |
+| **Storefront** | | |
+| `src/components/storefront/AIChatbotWidget.tsx` | Nieuw | Chatbot widget met feedback |
+
+---
+
+## 6. Edge Function: ai-suggest-reply (Slim)
+
+```typescript
+// supabase/functions/ai-suggest-reply/index.ts
+
+// STAP 1: Haal context
+// - Tenant knowledge (producten, FAQ, etc.)
+// - User learning patterns (handtekening, tone, etc.)
+// - Conversatie history
+
+// STAP 2: Bouw prompt met user patterns
+const userPatterns = await getUserPatterns(userId, tenantId);
+const systemPrompt = `
+Je bent een klantenservice assistent voor ${tenantName}.
+
+## Kennisbank
+${knowledgeContext}
+
+## Stijlvoorkeuren van deze medewerker
+${userPatterns.signature ? `- Ondertekent altijd met: "${userPatterns.signature}"` : ''}
+${userPatterns.tone ? `- Voorkeurstooon: ${userPatterns.tone}` : ''}
+${userPatterns.emoji_usage ? `- Emoji gebruik: ${userPatterns.emoji_usage}` : ''}
+${userPatterns.greeting ? `- Begroeting: ${userPatterns.greeting}` : ''}
+
+## Verboden onderwerpen
+${forbiddenTopics}
+`;
+
+// STAP 3: Genereer reply
+// STAP 4: Track voor learning (als user edit, update patterns)
+```
+
+---
+
+## 7. Edge Function: ai-chatbot-respond (Met Web Research)
+
+```typescript
+// supabase/functions/ai-chatbot-respond/index.ts
+
+// STAP 1: Check webshop kennis
+const relevantKnowledge = await searchKnowledgeIndex(question, tenantId);
+
+// STAP 2: Als onvoldoende, doe web research
+let webResearch = null;
+if (config.web_research_enabled && relevantKnowledge.confidence < 0.5) {
+  webResearch = await searchPerplexity(question, config.allowed_topics);
+}
+
+// STAP 3: Bouw antwoord
+const systemPrompt = `
+Je bent ${config.chatbot_name}, de AI assistent van ${tenantName}.
+
+## Beschikbare kennis
+${relevantKnowledge.content}
+
+## Aanvullende informatie (web research)
+${webResearch ? webResearch.answer : 'Geen aanvullende info beschikbaar.'}
+
+## Regels
+- Wees behulpzaam en vriendelijk
+- Verwijs naar producten waar relevant
+- Bij complexe vragen: bied menselijk contact aan
+- NOOIT bespreken: ${config.forbidden_topics}
+`;
+
+// STAP 4: Track conversatie
+await saveConversation(sessionId, messages);
+
+// STAP 5: Na X berichten, vraag feedback
+if (messageCount >= 3 && !feedbackAsked) {
+  response.askFeedback = true;
 }
 ```
 
-### Database Schema
+---
 
-```sql
--- AI Assistant Configuration
-CREATE TABLE public.ai_assistant_config (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  
-  -- Chatbot Settings
-  chatbot_enabled BOOLEAN DEFAULT false,
-  chatbot_name TEXT DEFAULT 'Assistent',
-  chatbot_avatar_url TEXT,
-  chatbot_welcome_message TEXT DEFAULT 'Hallo! Hoe kan ik je helpen?',
-  chatbot_position TEXT DEFAULT 'bottom-right',
-  chatbot_theme_color TEXT,  -- null = use primary color
-  
-  -- Knowledge Base Settings
-  knowledge_include_products BOOLEAN DEFAULT true,
-  knowledge_include_categories BOOLEAN DEFAULT true,
-  knowledge_include_pages BOOLEAN DEFAULT true,  -- Incl. FAQ, About, etc.
-  knowledge_include_legal BOOLEAN DEFAULT true,
-  knowledge_include_shipping BOOLEAN DEFAULT true,
-  knowledge_custom_instructions TEXT,  -- Extra regels/content
-  knowledge_forbidden_topics TEXT,     -- Wat NIET besproken mag worden
-  
-  -- Reply Suggestions Settings
-  reply_suggestions_enabled BOOLEAN DEFAULT false,
-  reply_suggestions_auto_draft BOOLEAN DEFAULT false,  -- Auto-fill of als suggestie tonen
-  reply_suggestions_tone TEXT DEFAULT 'professional',  -- professional, friendly, formal
-  reply_suggestions_language TEXT DEFAULT 'nl',
-  
-  -- Usage & Limits
-  daily_limit INTEGER DEFAULT 50,  -- Antwoorden per dag
-  response_delay_ms INTEGER DEFAULT 500,  -- Typing indicator delay
-  
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  
-  UNIQUE(tenant_id)
-);
-
--- Knowledge Index Cache (voor snelle context retrieval)
-CREATE TABLE public.ai_knowledge_index (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  
-  source_type TEXT NOT NULL,  -- 'product', 'page', 'faq', 'legal', 'shipping', 'custom'
-  source_id UUID,  -- Reference naar originele record
-  title TEXT NOT NULL,
-  content_summary TEXT NOT NULL,  -- Gecomprimeerde versie voor context window
-  content_hash TEXT NOT NULL,  -- Voor change detection
-  keywords TEXT[],
-  
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  
-  UNIQUE(tenant_id, source_type, source_id)
-);
-
--- Enable RLS
-ALTER TABLE public.ai_assistant_config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ai_knowledge_index ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Tenant isolation" ON public.ai_assistant_config
-  FOR ALL USING (tenant_id IN (
-    SELECT tenant_id FROM public.user_roles WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Tenant isolation" ON public.ai_knowledge_index
-  FOR ALL USING (tenant_id IN (
-    SELECT tenant_id FROM public.user_roles WHERE user_id = auth.uid()
-  ));
-```
-
-### UI Ontwerp: AI Assistent Instellingen
+## 8. AI Assistent Settings UI Update
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │  🤖 AI Assistent                                                                        │
 │  ─────────────────────────────────────────────────────────────────────────────────────  │
-│  Configureer AI-gestuurde klantondersteuning voor je webshop                            │
+│                                                                                         │
+│  [Bestaande secties: Chatbot, Reply Suggesties, Kennisbank]                            │
 │                                                                                         │
 │  ═══════════════════════════════════════════════════════════════════════════════════   │
 │                                                                                         │
-│  💬 AI CHATBOT VOOR WEBSHOP                                                            │
+│  🔍 WEB RESEARCH (NIEUW)                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  Chatbot inschakelen                                    [✓]                     │   │
+│  │  Web research inschakelen                               [✓]                     │   │
 │  │  ──────────────────────────────────────────────────────────────────────────     │   │
-│  │  Een slimme AI chatbot die je klanten helpt met vragen over producten,          │   │
-│  │  verzending, retourneren en meer. Werkt 24/7 en kent je hele webshop.           │   │
+│  │  De AI kan het web doorzoeken voor vragen buiten je webshop content.            │   │
 │  │                                                                                 │   │
-│  │  Naam:                [Assistent                                             ]  │   │
-│  │  Welkomstbericht:     [Hallo! Hoe kan ik je helpen vandaag?                  ]  │   │
-│  │  Positie:             [Rechtsonder ▼]                                           │   │
-│  │  Themakleur:          [◼️ Gebruik primaire kleur]                               │   │
+│  │  ⚠️ Vereist Perplexity koppeling [Koppelen →]                                  │   │
 │  │                                                                                 │   │
-│  │  💳 Verbruikt [1] AI credit per gesprek                                        │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-│  ═══════════════════════════════════════════════════════════════════════════════════   │
-│                                                                                         │
-│  📨 AI ANTWOORD SUGGESTIES                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  Suggesties inschakelen                                 [✓]                     │   │
-│  │  ──────────────────────────────────────────────────────────────────────────     │   │
-│  │  Krijg AI-gegenereerde antwoordsuggesties in je Klantgesprekken inbox.          │   │
-│  │  Je kunt suggesties accepteren, bewerken of negeren.                            │   │
-│  │                                                                                 │   │
-│  │  Toon als:            ○ Suggestie boven input veld                             │   │
-│  │                       ◉ Concept in input veld (bewerkbaar)                     │   │
-│  │                                                                                 │   │
-│  │  Toon voor:           [✓] Email berichten                                      │   │
-│  │                       [✓] WhatsApp berichten                                   │   │
-│  │                                                                                 │   │
-│  │  Tone of voice:       [Professioneel maar vriendelijk ▼]                       │   │
-│  │                                                                                 │   │
-│  │  💳 Verbruikt [1] AI credit per suggestie                                      │   │
+│  │  Toegestane onderwerpen:                                                        │   │
+│  │  [✓] Productadvies                                                             │   │
+│  │  [✓] Algemene kennis                                                           │   │
+│  │  [ ] Prijsvergelijkingen                                                       │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
 │  ═══════════════════════════════════════════════════════════════════════════════════   │
 │                                                                                         │
-│  📚 KENNISBANK                                                                         │
+│  🧠 LEERGEDRAG (NIEUW)                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  De AI leert automatisch van je webshop content:                                │   │
+│  │  De AI leert van je team's interacties:                                         │   │
 │  │                                                                                 │   │
-│  │  [✓] Producten (naam, beschrijving, prijs, voorraad)                           │   │
-│  │      └── 127 producten geïndexeerd                                             │   │
-│  │                                                                                 │   │
-│  │  [✓] Categorieën                                                               │   │
-│  │      └── 12 categorieën geïndexeerd                                            │   │
-│  │                                                                                 │   │
-│  │  [✓] Pagina's (Over ons, FAQ, Contact, etc.)                                   │   │
-│  │      └── 5 pagina's geïndexeerd                                                │   │
-│  │                                                                                 │   │
-│  │  [✓] Juridische pagina's (Retourbeleid, Verzendbeleid, etc.)                   │   │
-│  │      └── 7 pagina's geïndexeerd                                                │   │
-│  │                                                                                 │   │
-│  │  [✓] Verzendmethoden & prijzen                                                 │   │
-│  │      └── 4 methoden geïndexeerd                                                │   │
-│  │                                                                                 │   │
-│  │  [🔄 Index vernieuwen] Laatste update: 2 uur geleden                           │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  📝 EXTRA INSTRUCTIES                                                          │   │
+│  │  📊 Geleerde patronen                                                          │   │
 │  │  ──────────────────────────────────────────────────────────────────────────     │   │
-│  │  Voeg extra context of regels toe die de AI moet weten:                        │   │
 │  │                                                                                 │   │
-│  │  [                                                                           ] │   │
-│  │  [  Wij leveren alleen binnen Nederland en België.                           ] │   │
-│  │  [  Bij bestellingen boven €50 is verzending gratis.                         ] │   │
-│  │  [  Wij zijn geen dropshipper, alles komt uit eigen voorraad.                ] │   │
-│  │  [                                                                           ] │   │
+│  │  👤 Anna (12 patronen geleerd)                                                 │   │
+│  │     ├── Handtekening: "Hartelijke groet, Anna ♥️" (100% zeker)                 │   │
+│  │     ├── Tone: Vriendelijk en informeel (85% zeker)                             │   │
+│  │     └── Emoji's: Veel gebruikt (90% zeker)                                     │   │
 │  │                                                                                 │   │
-│  │  🚫 VERBODEN ONDERWERPEN                                                       │   │
-│  │  Onderwerpen waar de AI NIET over mag praten:                                  │   │
+│  │  👤 Mark (3 patronen geleerd)                                                  │   │
+│  │     ├── Handtekening: "Met vriendelijke groet, M. Jansen" (75% zeker)          │   │
+│  │     └── Tone: Zakelijk (60% zeker)                                             │   │
 │  │                                                                                 │   │
-│  │  [                                                                           ] │   │
-│  │  [  - Concurrenten of prijsvergelijkingen                                    ] │   │
-│  │  [  - Inkoopprijzen of marges                                                ] │   │
-│  │  [  - Persoonlijke gegevens van medewerkers                                  ] │   │
-│  │  [                                                                           ] │   │
+│  │  [Patronen bekijken] [Wissen]                                                  │   │
+│  │                                                                                 │   │
+│  │  ┌───────────────────────────────────────────────────────────────────────────┐ │   │
+│  │  │  ℹ️ Patronen worden automatisch geleerd na 3+ herhalingen.               │ │   │
+│  │  │     Na 5+ herhalingen worden ze automatisch toegepast.                    │ │   │
+│  │  └───────────────────────────────────────────────────────────────────────────┘ │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
-│  ─────────────────────────────────────────────────────────────────────────────────────  │
-│  ℹ️ De AI respecteert altijd je instructies en weigert verboden onderwerpen.           │
-│     Bij complexe vragen verwijst de chatbot naar menselijk contact.                     │
+│  ═══════════════════════════════════════════════════════════════════════════════════   │
 │                                                                                         │
-│                                                    [Opslaan]                            │
+│  😊 CHATBOT FEEDBACK (NIEUW)                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
+│  │  Feedback vragen na gesprek                             [✓]                     │   │
+│  │  ──────────────────────────────────────────────────────────────────────────     │   │
+│  │  Vraag klanten om feedback na chatbot-gesprekken.                               │   │
+│  │                                                                                 │   │
+│  │  Laatste 7 dagen:                                                               │   │
+│  │  ┌─────────────────────────────────────────────────────────────────┐           │   │
+│  │  │  😊 Goed: 45 (72%)                                              │           │   │
+│  │  │  😐 Neutraal: 12 (19%)                                          │           │   │
+│  │  │  😔 Niet goed: 6 (9%)                                           │           │   │
+│  │  │                                                                 │           │   │
+│  │  │  Totaal gesprekken: 89 | Met feedback: 63 (71%)                │           │   │
+│  │  └─────────────────────────────────────────────────────────────────┘           │   │
+│  │                                                                                 │   │
+│  │  [📊 Gedetailleerde feedback bekijken]                                         │   │
+│  └─────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Edge Functions
+## 9. Implementatie Volgorde
 
-### 4.1 `ai-build-knowledge-index`
-
-Indexeert alle content van de webshop voor snelle context retrieval.
-
-```typescript
-// supabase/functions/ai-build-knowledge-index/index.ts
-// Verzamelt:
-// - Producten (naam, beschrijving, prijs, voorraad status)
-// - Categorieën
-// - Storefront pagina's
-// - Legal pages
-// - Shipping methods
-// - FAQs
-// Comprimeert naar ~500 tokens per item
-// Slaat op in ai_knowledge_index
-```
-
-### 4.2 `ai-chatbot-respond`
-
-Verwerkt chatbot berichten van klanten.
-
-```typescript
-// supabase/functions/ai-chatbot-respond/index.ts
-// 1. Haalt ai_assistant_config op
-// 2. Haalt relevante knowledge op basis van vraag
-// 3. Bouwt context met custom_instructions + forbidden_topics
-// 4. Genereert antwoord via Lovable AI
-// 5. Logt conversatie + credit verbruik
-```
-
-### 4.3 `ai-suggest-reply`
-
-Genereert antwoordsuggesties voor de inbox.
-
-```typescript
-// supabase/functions/ai-suggest-reply/index.ts
-// 1. Haalt klantbericht + conversatie history
-// 2. Haalt relevante knowledge
-// 3. Genereert suggestie in gewenste tone
-// 4. Returned als draft (niet verzonden!)
-```
+1. **Database Migration** - User learning tables + chatbot conversations
+2. **Types Update** - Web research + user learning types
+3. **Edge Function: ai-suggest-reply** - Reply suggesties met user patterns
+4. **Edge Function: ai-chatbot-respond** - Chatbot met web research
+5. **Edge Function: ai-build-knowledge-index** - Content indexering
+6. **Hooks** - useUserLearningPatterns + update useAIFeedback
+7. **Settings UI** - Web research config + learning insights
+8. **Storefront Widget** - Chatbot met feedback
 
 ---
 
-## 5. Inbox Integratie
-
-### Aangepaste ReplyComposer
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  💡 AI Suggestie                                         [Negeren] │
-│  ──────────────────────────────────────────────────────────────────│
-│  "Bedankt voor je bericht! Je bestelling #1234 is vandaag          │
-│   verzonden met PostNL. Je kunt de track & trace hier volgen:      │
-│   [link]. Mocht je nog vragen hebben, laat het gerust weten!"      │
-│                                                                     │
-│                                    [✏️ Bewerken] [✓ Gebruiken]     │
-└─────────────────────────────────────────────────────────────────────┘
-│                                                                     │
-│  [Typ je antwoord of gebruik de AI suggestie...                  ] │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 6. Bestandsoverzicht
-
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| **Database** | | |
-| `supabase/migrations/xxx_ai_assistant.sql` | Nieuw | AI config + knowledge index tabellen |
-| **Types** | | |
-| `src/types/ai-assistant.ts` | Nieuw | TypeScript types voor AI configuratie |
-| **Hooks** | | |
-| `src/hooks/useAIAssistant.ts` | Nieuw | CRUD voor AI instellingen |
-| `src/hooks/useAISuggestion.ts` | Nieuw | Fetch suggesties voor inbox |
-| **Components - Settings** | | |
-| `src/components/admin/settings/AIAssistantSettings.tsx` | Nieuw | Hoofd AI settings component |
-| `src/components/admin/settings/AIKnowledgeConfig.tsx` | Nieuw | Kennisbank configuratie |
-| `src/components/admin/settings/AIChatbotConfig.tsx` | Nieuw | Chatbot specifieke settings |
-| `src/components/admin/settings/AIReplyConfig.tsx` | Nieuw | Reply suggesties config |
-| **Components - Inbox** | | |
-| `src/components/admin/inbox/AISuggestionBox.tsx` | Nieuw | Suggestie weergave boven input |
-| `src/components/admin/inbox/ReplyComposer.tsx` | Update | Integratie met AI suggesties |
-| **Components - Storefront** | | |
-| `src/components/admin/storefront/ContactPageConfig.tsx` | Nieuw | Contact pagina instellingen |
-| `src/components/admin/storefront/FloatingWidgetConfig.tsx` | Nieuw | Floating widget settings |
-| `src/components/admin/storefront/StorefrontFeaturesSettings.tsx` | Update | Toevoegen contact + widget secties |
-| **Edge Functions** | | |
-| `supabase/functions/ai-build-knowledge-index/` | Nieuw | Indexeer webshop content |
-| `supabase/functions/ai-chatbot-respond/` | Nieuw | Chatbot antwoorden |
-| `supabase/functions/ai-suggest-reply/` | Nieuw | Reply suggesties |
-| **Updates** | | |
-| `src/pages/admin/Settings.tsx` | Update | Toevoegen AI Assistent sectie |
-| `src/types/storefront-config.ts` | Update | Contact + widget config types |
-
----
-
-## 7. Implementatie Volgorde
-
-1. **Database Migration** - AI config tabellen + storefront config uitbreidingen
-2. **Types** - TypeScript interfaces voor alle nieuwe data
-3. **Storefront Config** - Contact pagina + floating widget toggles
-4. **AI Settings UI** - Volledige AI Assistent settings pagina
-5. **Knowledge Index** - Edge function voor content indexering
-6. **Chatbot Backend** - Edge function voor chatbot responses
-7. **Reply Suggestions** - Edge function + inbox integratie
-8. **Frontend Widgets** - Chatbot widget + floating WhatsApp voor storefront
-
----
-
-## 8. AI Credit Verbruik
+## 10. AI Credits Verbruik (Geüpdatet)
 
 | Feature | Credits per actie |
 |---------|-------------------|
-| Chatbot conversatie | 1 credit |
+| Chatbot conversatie (zonder web) | 1 credit |
+| Chatbot conversatie (met web research) | 2 credits |
 | Reply suggestie | 1 credit |
-| Knowledge index rebuild | 0 credits (achtergrond taak) |
+| Learning analyse (bij edit) | 0 credits (achtergrond) |
+| Knowledge index rebuild | 0 credits |
 
 ---
 
-## 9. Veiligheid & Privacy
+## 11. Connector Vereiste
 
-- **Forbidden topics** worden strikt afgedwongen in system prompt
-- **Custom instructions** worden als context meegegeven, niet als user input
-- Chatbot maakt duidelijk dat het een AI is
-- Bij complexe vragen: "Neem contact op met onze klantenservice"
-- Alle conversaties worden gelogd voor review
-- GDPR: klanten kunnen hun chatgeschiedenis opvragen/verwijderen
-
+- **Perplexity** connector nodig voor web research functionaliteit
+- Zonder connector werkt de chatbot nog steeds, maar alleen met webshop-kennis
+- Toggle in settings is gedisabled zonder actieve connector
