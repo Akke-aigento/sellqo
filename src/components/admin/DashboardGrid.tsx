@@ -32,6 +32,7 @@ import { MarketplaceWidget } from './widgets/MarketplaceWidget';
 import { LowStockWidget } from './widgets/LowStockWidget';
 import { ShopHealthWidget } from './widgets/ShopHealthWidget';
 import { TodayWidget } from './widgets/TodayWidget';
+import { BadgesWidget } from './widgets/BadgesWidget';
 
 // Widget component mapping
 const widgetComponents: Record<string, React.ComponentType> = {
@@ -44,6 +45,7 @@ const widgetComponents: Record<string, React.ComponentType> = {
   'pos-overview': POSOverviewWidget,
   'marketplace': MarketplaceWidget,
   'low-stock': LowStockWidget,
+  'badges': BadgesWidget,
 };
 
 export function DashboardGrid() {

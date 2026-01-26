@@ -65,6 +65,7 @@ import SEODashboard from "./pages/admin/SEODashboard";
 import TranslationHub from "./pages/admin/TranslationHub";
 import StorefrontPage from "./pages/admin/Storefront";
 import FulfillmentPage from "./pages/admin/Fulfillment";
+import BadgesPage from "./pages/admin/Badges";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
@@ -114,6 +115,7 @@ const App = () => (
             }>
               <Route index element={<AdminDashboard />} />
               <Route path="messages" element={<MessagesPage />} />
+              <Route path="badges" element={<BadgesPage />} />
               <Route path="fulfillment" element={<FulfillmentPage />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/new" element={<ProductForm />} />
