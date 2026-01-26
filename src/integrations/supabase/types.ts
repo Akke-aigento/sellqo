@@ -10491,6 +10491,37 @@ export type Database = {
         Args: { p_adjustment: number; p_reason?: string; p_tenant_id: string }
         Returns: boolean
       }
+      bulk_adjust_prices: {
+        Args: {
+          p_adjustment_type: string
+          p_adjustment_value: number
+          p_price_field?: string
+          p_product_ids: string[]
+        }
+        Returns: number
+      }
+      bulk_adjust_stock: {
+        Args: {
+          p_adjustment_type: string
+          p_adjustment_value: number
+          p_product_ids: string[]
+        }
+        Returns: number
+      }
+      bulk_update_social_channels: {
+        Args: { p_product_ids: string[]; p_social_channels: Json }
+        Returns: number
+      }
+      bulk_update_tags: {
+        Args: {
+          p_product_ids: string[]
+          p_replace_all?: boolean
+          p_replacement_tags?: string[]
+          p_tags_to_add?: string[]
+          p_tags_to_remove?: string[]
+        }
+        Returns: number
+      }
       calculate_session_expected_cash: {
         Args: { p_session_id: string }
         Returns: number

@@ -129,6 +129,120 @@ export function useProducts() {
     },
   });
 
+  // Bulk price adjustment using RPC
+  const bulkAdjustPrices = useMutation({
+    mutationFn: async ({ 
+      ids, 
+      adjustmentType, 
+      adjustmentValue, 
+      priceField = 'price' 
+    }: { 
+      ids: string[]; 
+      adjustmentType: string; 
+      adjustmentValue: number; 
+      priceField?: string;
+    }) => {
+      const { error } = await supabase.rpc('bulk_adjust_prices', {
+        p_product_ids: ids,
+        p_adjustment_type: adjustmentType,
+        p_adjustment_value: adjustmentValue,
+        p_price_field: priceField,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', currentTenant?.id] });
+      toast({ title: 'Prijzen bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Bulk stock adjustment using RPC
+  const bulkAdjustStock = useMutation({
+    mutationFn: async ({ 
+      ids, 
+      adjustmentType, 
+      adjustmentValue 
+    }: { 
+      ids: string[]; 
+      adjustmentType: string; 
+      adjustmentValue: number;
+    }) => {
+      const { error } = await supabase.rpc('bulk_adjust_stock', {
+        p_product_ids: ids,
+        p_adjustment_type: adjustmentType,
+        p_adjustment_value: adjustmentValue,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', currentTenant?.id] });
+      toast({ title: 'Voorraad bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Bulk tags update using RPC
+  const bulkUpdateTags = useMutation({
+    mutationFn: async ({ 
+      ids, 
+      tagsToAdd = [], 
+      tagsToRemove = [], 
+      replaceAll = false, 
+      replacementTags = [] 
+    }: { 
+      ids: string[]; 
+      tagsToAdd?: string[]; 
+      tagsToRemove?: string[]; 
+      replaceAll?: boolean; 
+      replacementTags?: string[];
+    }) => {
+      const { error } = await supabase.rpc('bulk_update_tags', {
+        p_product_ids: ids,
+        p_tags_to_add: tagsToAdd,
+        p_tags_to_remove: tagsToRemove,
+        p_replace_all: replaceAll,
+        p_replacement_tags: replacementTags,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', currentTenant?.id] });
+      toast({ title: 'Tags bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Bulk social channels update using RPC
+  const bulkUpdateSocialChannels = useMutation({
+    mutationFn: async ({ 
+      ids, 
+      socialChannels 
+    }: { 
+      ids: string[]; 
+      socialChannels: Record<string, boolean>;
+    }) => {
+      const { error } = await supabase.rpc('bulk_update_social_channels', {
+        p_product_ids: ids,
+        p_social_channels: socialChannels,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', currentTenant?.id] });
+      toast({ title: 'Social channels bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     products: productsQuery.data || [],
     isLoading: productsQuery.isLoading,
@@ -138,6 +252,10 @@ export function useProducts() {
     deleteProduct,
     bulkUpdateProducts,
     bulkDeleteProducts,
+    bulkAdjustPrices,
+    bulkAdjustStock,
+    bulkUpdateTags,
+    bulkUpdateSocialChannels,
     refetch: productsQuery.refetch,
   };
 }

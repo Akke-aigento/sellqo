@@ -11,11 +11,14 @@ import {
   Star,
   Package,
   Filter,
-  Download
+  Download,
+  Settings2
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
+import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
+import type { BulkEditState } from '@/components/admin/products/bulk/BulkEditTypes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +61,17 @@ import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/ty
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
-  const { products, isLoading, deleteProduct, bulkUpdateProducts, bulkDeleteProducts } = useProducts();
+  const { 
+    products, 
+    isLoading, 
+    deleteProduct, 
+    bulkUpdateProducts, 
+    bulkDeleteProducts,
+    bulkAdjustPrices,
+    bulkAdjustStock,
+    bulkUpdateTags,
+    bulkUpdateSocialChannels,
+  } = useProducts();
   const { categories } = useCategories();
   
   const [search, setSearch] = useState('');
@@ -68,6 +81,7 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   // Filter products
@@ -139,6 +153,87 @@ export default function ProductsPage() {
     bulkDeleteProducts.mutate(Array.from(selectedIds));
     setSelectedIds(new Set());
     setDeleteDialogOpen(false);
+  };
+
+  const handleBulkEdit = async (state: BulkEditState, enabledFields: Set<string>) => {
+    const ids = Array.from(selectedIds);
+    
+    // Process each enabled field
+    if (enabledFields.has('price_adjustment') && state.price_adjustment) {
+      await bulkAdjustPrices.mutateAsync({
+        ids,
+        adjustmentType: state.price_adjustment.type,
+        adjustmentValue: state.price_adjustment.value,
+      });
+    }
+    
+    if (enabledFields.has('compare_at_price') && state.compare_at_price_action) {
+      await bulkAdjustPrices.mutateAsync({
+        ids,
+        adjustmentType: state.compare_at_price_action,
+        adjustmentValue: state.compare_at_price_value || 0,
+        priceField: 'compare_at_price',
+      });
+    }
+    
+    if (enabledFields.has('cost_price') && state.cost_price_action) {
+      await bulkAdjustPrices.mutateAsync({
+        ids,
+        adjustmentType: state.cost_price_action,
+        adjustmentValue: state.cost_price || 0,
+        priceField: 'cost_price',
+      });
+    }
+    
+    if (enabledFields.has('stock_adjustment') && state.stock_adjustment) {
+      await bulkAdjustStock.mutateAsync({
+        ids,
+        adjustmentType: state.stock_adjustment.type,
+        adjustmentValue: state.stock_adjustment.value,
+      });
+    }
+    
+    if (enabledFields.has('tags_to_add') || enabledFields.has('tags_to_remove')) {
+      await bulkUpdateTags.mutateAsync({
+        ids,
+        tagsToAdd: state.tags_to_add || [],
+        tagsToRemove: state.tags_to_remove || [],
+      });
+    }
+    
+    if (enabledFields.has('tags_replace_all') && state.tags_replace_all) {
+      await bulkUpdateTags.mutateAsync({
+        ids,
+        replaceAll: true,
+        replacementTags: state.tags_replace_all,
+      });
+    }
+    
+    if (enabledFields.has('social_channels') && state.social_channels) {
+      await bulkUpdateSocialChannels.mutateAsync({
+        ids,
+        socialChannels: state.social_channels,
+      });
+    }
+    
+    // Simple field updates via bulkUpdateProducts
+    const simpleUpdates: Record<string, any> = {};
+    if (enabledFields.has('category_id')) simpleUpdates.category_id = state.category_id;
+    if (enabledFields.has('vat_rate_id')) simpleUpdates.vat_rate_id = state.vat_rate_id;
+    if (enabledFields.has('product_type')) simpleUpdates.product_type = state.product_type;
+    if (enabledFields.has('is_active')) simpleUpdates.is_active = state.is_active;
+    if (enabledFields.has('hide_from_storefront')) simpleUpdates.hide_from_storefront = state.hide_from_storefront;
+    if (enabledFields.has('is_featured')) simpleUpdates.is_featured = state.is_featured;
+    if (enabledFields.has('requires_shipping')) simpleUpdates.requires_shipping = state.requires_shipping;
+    if (enabledFields.has('track_inventory')) simpleUpdates.track_inventory = state.track_inventory;
+    if (enabledFields.has('allow_backorder')) simpleUpdates.allow_backorder = state.allow_backorder;
+    if (enabledFields.has('low_stock_threshold')) simpleUpdates.low_stock_threshold = state.low_stock_threshold;
+    
+    if (Object.keys(simpleUpdates).length > 0) {
+      await bulkUpdateProducts.mutateAsync({ ids, data: simpleUpdates });
+    }
+    
+    setSelectedIds(new Set());
   };
 
   const handleDeleteProduct = () => {
@@ -270,6 +365,10 @@ export default function ProductsPage() {
             {selectedIds.size} geselecteerd
           </span>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
+              <Settings2 className="mr-2 h-4 w-4" />
+              Bewerken
+            </Button>
             <Button size="sm" variant="outline" onClick={handleBulkActivate}>
               <Eye className="mr-2 h-4 w-4" />
               Activeren
