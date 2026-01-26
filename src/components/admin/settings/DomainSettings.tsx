@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Globe, Copy, Check, CheckCircle2, AlertCircle, RefreshCw, Trash2, ExternalLink, Info, Cloud, Settings, Loader2, Key, Eye, EyeOff } from 'lucide-react';
+import { Globe, Copy, Check, CheckCircle2, AlertCircle, RefreshCw, Trash2, ExternalLink, Info, Cloud, Settings, Loader2, Key, Eye, EyeOff, Shield, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,8 @@ import {
 import { useTenant } from '@/hooks/useTenant';
 import { useDomainVerification, ProviderInfo } from '@/hooks/useDomainVerification';
 import { FeatureGate } from '@/components/FeatureGate';
+import { DomainProgressSteps, DomainStep } from './DomainProgressSteps';
+import { ProviderInstructions } from './ProviderInstructions';
 
 type SetupStep = 'input' | 'provider-detected' | 'manual-setup' | 'configured';
 
@@ -36,13 +38,18 @@ export function DomainSettings() {
     isVerifying,
     isDetecting,
     isConnecting,
+    isPolling,
     verificationStatus,
     providerInfo,
+    sslStatus,
     saveDomain,
     verifyDomain,
     removeDomain,
     detectProvider,
     connectWithApiToken,
+    checkSSL,
+    startPolling,
+    stopPolling,
   } = useDomainVerification();
 
   const [domainInput, setDomainInput] = useState('');
@@ -62,13 +69,22 @@ export function DomainSettings() {
     if (customDomain) {
       if (domainVerified) {
         setSetupStep('configured');
+        // Check SSL status for verified domains
+        checkSSL(customDomain);
       } else {
         setSetupStep('manual-setup');
       }
     } else {
       setSetupStep('input');
     }
-  }, [customDomain, domainVerified]);
+  }, [customDomain, domainVerified, checkSSL]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, [stopPolling]);
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -117,6 +133,10 @@ export function DomainSettings() {
     }
   };
 
+  const handleVerifyAndPoll = async () => {
+    startPolling();
+  };
+
   const dnsRecords = [
     { type: 'A', name: '@', value: '185.158.133.1', description: 'Root domein' },
     { type: 'A', name: 'www', value: '185.158.133.1', description: 'WWW subdomein' },
@@ -130,6 +150,14 @@ export function DomainSettings() {
       default:
         return <Settings className="h-5 w-5 text-muted-foreground" />;
     }
+  };
+
+  // Determine current progress step
+  const getCurrentProgressStep = (): DomainStep => {
+    if (!customDomain) return 'domain-saved';
+    if (!domainVerified) return 'dns-configured';
+    if (sslStatus?.ssl_active) return 'live';
+    return 'ssl-active';
   };
 
   return (
@@ -335,7 +363,12 @@ export function DomainSettings() {
                       )}
                     </div>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-4">
+                  <CollapsibleContent className="mt-4 space-y-4">
+                    {/* Provider-specific instructions */}
+                    {providerInfo.provider !== 'unknown' && providerInfo.provider !== 'cloudflare' && (
+                      <ProviderInstructions provider={providerInfo.provider} domain={domainInput} />
+                    )}
+                    
                     <Button onClick={handleManualSetup} disabled={isSaving} variant="outline">
                       {isSaving ? (
                         <>
@@ -355,6 +388,16 @@ export function DomainSettings() {
           {/* Step 3: Manual Setup / DNS Configuration */}
           {(setupStep === 'manual-setup' || (customDomain && !domainVerified)) && (
             <>
+              {/* Progress Steps */}
+              <div className="p-4 rounded-lg border bg-muted/10">
+                <DomainProgressSteps 
+                  currentStep={getCurrentProgressStep()} 
+                  isPolling={isPolling || isVerifying}
+                />
+              </div>
+
+              <Separator />
+
               {/* Domain Status */}
               <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
                 <div className="flex items-center gap-3">
@@ -370,6 +413,11 @@ export function DomainSettings() {
               </div>
 
               <Separator />
+
+              {/* Provider-specific instructions if we have provider info */}
+              {providerInfo && providerInfo.provider !== 'unknown' && providerInfo.provider !== 'cloudflare' && (
+                <ProviderInstructions provider={providerInfo.provider} domain={customDomain || ''} />
+              )}
 
               {/* DNS Records */}
               <div className="space-y-4">
@@ -430,45 +478,74 @@ export function DomainSettings() {
 
               <Separator />
 
-              {/* Verification */}
+              {/* Verification Status with Detailed Errors */}
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Verificatie Status</h4>
                   {verificationStatus && (
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        {verificationStatus.a_record_valid ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        )}
-                        <span>
-                          A-record: {verificationStatus.a_record_valid ? 'Correct' : 'Niet gevonden'}
-                          {verificationStatus.current_a_record && !verificationStatus.a_record_valid && (
-                            <span className="text-muted-foreground ml-1">
-                              (gevonden: {verificationStatus.current_a_record})
-                            </span>
+                    <div className="space-y-3">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          {verificationStatus.a_record_valid ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
                           )}
-                        </span>
+                          <span>
+                            A-record: {verificationStatus.a_record_valid ? 'Correct' : 'Niet correct'}
+                            {verificationStatus.current_a_record && !verificationStatus.a_record_valid && (
+                              <span className="text-muted-foreground ml-1">
+                                (gevonden: {verificationStatus.current_a_record})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {verificationStatus.txt_record_valid ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          )}
+                          <span>
+                            TXT-record: {verificationStatus.txt_record_valid ? 'Correct' : 'Niet gevonden'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {verificationStatus.txt_record_valid ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        )}
-                        <span>
-                          TXT-record: {verificationStatus.txt_record_valid ? 'Correct' : 'Niet gevonden'}
-                        </span>
-                      </div>
+                      
+                      {/* Detailed Error Message */}
+                      {verificationStatus.error_details && !verificationStatus.success && (
+                        <Alert variant="destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>{verificationStatus.error}</AlertTitle>
+                          <AlertDescription>
+                            {verificationStatus.error_details}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   )}
                 </div>
 
-                <Button onClick={verifyDomain} disabled={isVerifying}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isVerifying ? 'animate-spin' : ''}`} />
-                  {isVerifying ? 'Controleren...' : 'DNS Controleren'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleVerifyAndPoll} 
+                    disabled={isVerifying || isPolling}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${(isVerifying || isPolling) ? 'animate-spin' : ''}`} />
+                    {isPolling ? 'Bezig met controleren...' : isVerifying ? 'Controleren...' : 'DNS Controleren'}
+                  </Button>
+                  {isPolling && (
+                    <Button variant="outline" onClick={stopPolling}>
+                      Stoppen
+                    </Button>
+                  )}
+                </div>
+                
+                {isPolling && (
+                  <p className="text-xs text-muted-foreground">
+                    Automatische controle elke 30 seconden (max 5 minuten)
+                  </p>
+                )}
               </div>
 
               <Separator />
@@ -503,6 +580,17 @@ export function DomainSettings() {
           {/* Step 4: Verified / Active */}
           {setupStep === 'configured' && domainVerified && (
             <>
+              {/* Progress Steps - Full */}
+              <div className="p-4 rounded-lg border bg-muted/10">
+                <DomainProgressSteps 
+                  currentStep={sslStatus?.ssl_active ? 'live' : 'ssl-active'} 
+                  isPolling={false}
+                />
+              </div>
+
+              <Separator />
+
+              {/* Domain Status */}
               <div className="flex items-center justify-between p-4 rounded-lg border bg-green-50 dark:bg-green-950/20">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -521,6 +609,29 @@ export function DomainSettings() {
                     </a>
                   </Button>
                 </div>
+              </div>
+
+              {/* SSL Status */}
+              <div className="flex items-center justify-between p-4 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  {sslStatus?.ssl_active ? (
+                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Shield className="h-5 w-5 text-yellow-500" />
+                  )}
+                  <div>
+                    <p className="font-medium">SSL Certificaat</p>
+                    <p className="text-sm text-muted-foreground">
+                      {sslStatus?.ssl_active 
+                        ? 'HTTPS is actief en beveiligd' 
+                        : 'SSL wordt automatisch geconfigureerd...'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={sslStatus?.ssl_active ? 'default' : 'secondary'}>
+                  {sslStatus?.ssl_active ? 'Actief' : 'Bezig...'}
+                </Badge>
               </div>
 
               <Separator />

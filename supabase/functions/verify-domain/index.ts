@@ -12,9 +12,29 @@ interface VerificationResult {
   current_a_record: string | null;
   current_txt_record: string | null;
   error?: string;
+  error_type?: 'wrong_ip' | 'cname_conflict' | 'not_propagated' | 'domain_not_found' | 'unknown';
+  error_details?: string;
 }
 
 const EXPECTED_IP = '185.158.133.1';
+
+async function resolveCNAME(domain: string): Promise<string[]> {
+  try {
+    const url = `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=CNAME`;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+    });
+    
+    if (!response.ok) return [];
+    
+    const data = await response.json();
+    if (!data.Answer || data.Answer.length === 0) return [];
+    
+    return data.Answer.map((answer: { data: string }) => answer.data.replace(/"/g, ''));
+  } catch {
+    return [];
+  }
+}
 
 async function resolveDNS(domain: string, type: 'A' | 'TXT'): Promise<string[]> {
   try {
@@ -102,6 +122,11 @@ Deno.serve(async (req) => {
     const txtRecords = await resolveDNS(`_sellqo.${domainToCheck}`, 'TXT');
     console.log(`TXT records for _sellqo.${domainToCheck}:`, txtRecords);
 
+    // Check for CNAME conflicts on root domain
+    const cnameRecords = await resolveCNAME(domainToCheck);
+    const hasCnameConflict = cnameRecords.length > 0;
+    console.log(`CNAME records for ${domainToCheck}:`, cnameRecords);
+
     // Check if A record points to our IP
     const aRecordValid = aRecords.includes(EXPECTED_IP);
     
@@ -117,11 +142,31 @@ Deno.serve(async (req) => {
       current_txt_record: txtRecords.length > 0 ? txtRecords[0] : null,
     };
 
+    // Add detailed error information
+    if (!result.success) {
+      if (hasCnameConflict) {
+        result.error_type = 'cname_conflict';
+        result.error = 'CNAME conflict gevonden';
+        result.error_details = `Er staat een CNAME record op je root domein (${cnameRecords[0]}). Verwijder dit record eerst voordat je een A-record kunt toevoegen.`;
+      } else if (aRecords.length > 0 && !aRecordValid) {
+        result.error_type = 'wrong_ip';
+        result.error = 'Verkeerd IP-adres';
+        result.error_details = `Je A-record wijst naar ${aRecords[0]} maar moet naar ${EXPECTED_IP} wijzen.`;
+      } else if (aRecords.length === 0) {
+        result.error_type = 'not_propagated';
+        result.error = 'DNS nog niet gevonden';
+        result.error_details = 'De DNS records zijn nog niet gepropageerd. Dit kan tot 48 uur duren. Probeer het later opnieuw.';
+      }
+    }
+
     // If verification successful, update the tenant
     if (result.success && !preCheckDomain) {
       const { error: updateError } = await supabase
         .from('tenants')
-        .update({ domain_verified: true })
+        .update({ 
+          domain_verified: true,
+          ssl_status: 'pending',
+        })
         .eq('id', tenant_id);
 
       if (updateError) {

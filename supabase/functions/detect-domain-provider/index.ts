@@ -32,8 +32,8 @@ const PROVIDER_PATTERNS: Array<{
     pattern: /\.domaincontrol\.com$/i,
     provider: 'godaddy',
     provider_name: 'GoDaddy',
-    supports_auto_connect: true,
-    connect_method: 'domain_connect',
+    supports_auto_connect: false,
+    connect_method: null,
   },
   {
     pattern: /ns\d*\.transip\.(nl|eu|be)$/i,
@@ -109,8 +109,8 @@ const PROVIDER_PATTERNS: Array<{
     pattern: /ns\d*\.ionos\.(com|de|nl)$/i,
     provider: 'ionos',
     provider_name: 'IONOS',
-    supports_auto_connect: true,
-    connect_method: 'domain_connect',
+    supports_auto_connect: false,
+    connect_method: null,
   },
   {
     pattern: /\.google\.com$/i,

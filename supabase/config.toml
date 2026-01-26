@@ -182,3 +182,6 @@ verify_jwt = false
 
 [functions.cloudflare-api-connect]
 verify_jwt = false
+
+[functions.check-domain-ssl]
+verify_jwt = false
