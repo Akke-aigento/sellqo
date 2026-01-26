@@ -1607,6 +1607,76 @@ export type Database = {
           },
         ]
       }
+      customer_communication_settings: {
+        Row: {
+          category: string
+          created_at: string
+          delay_days: number | null
+          delay_hours: number | null
+          email_enabled: boolean | null
+          email_template_id: string | null
+          extra_settings: Json | null
+          id: string
+          tenant_id: string
+          trigger_type: string
+          updated_at: string
+          whatsapp_enabled: boolean | null
+          whatsapp_template_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          delay_days?: number | null
+          delay_hours?: number | null
+          email_enabled?: boolean | null
+          email_template_id?: string | null
+          extra_settings?: Json | null
+          id?: string
+          tenant_id: string
+          trigger_type: string
+          updated_at?: string
+          whatsapp_enabled?: boolean | null
+          whatsapp_template_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          delay_days?: number | null
+          delay_hours?: number | null
+          email_enabled?: boolean | null
+          email_template_id?: string | null
+          extra_settings?: Json | null
+          id?: string
+          tenant_id?: string
+          trigger_type?: string
+          updated_at?: string
+          whatsapp_enabled?: boolean | null
+          whatsapp_template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_communication_settings_email_template_id_fkey"
+            columns: ["email_template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_communication_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_communication_settings_whatsapp_template_id_fkey"
+            columns: ["whatsapp_template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_group_members: {
         Row: {
           customer_group_id: string
@@ -10907,6 +10977,10 @@ export type Database = {
       }
       increment_campaign_opened: {
         Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      initialize_customer_communication_settings: {
+        Args: { p_tenant_id: string }
         Returns: undefined
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }

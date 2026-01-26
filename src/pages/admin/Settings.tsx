@@ -18,6 +18,7 @@ import {
   Banknote,
   FileText,
   MessageCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +40,7 @@ import { TransactionFeeSettings } from '@/components/admin/settings/TransactionF
 import { InvoiceAutomationSettings } from '@/components/admin/settings/InvoiceAutomationSettings';
 import { FulfillmentAPISettings } from '@/components/admin/settings/FulfillmentAPISettings';
 import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
+import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -100,12 +102,13 @@ const settingsGroups: SettingsGroup[] = [
   {
     id: 'channels',
     title: 'Koppelingen & Kanalen',
-    description: 'Social media, notificaties en externe koppelingen',
+    description: 'Communicatie en externe koppelingen',
     sections: [
-      { id: 'whatsapp', title: 'WhatsApp Business', icon: MessageCircle, component: WhatsAppSettings },
+      { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
+      { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },
+      { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
-      { id: 'notifications', title: 'Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
     ],
   },
