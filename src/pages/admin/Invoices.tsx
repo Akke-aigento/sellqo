@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { ManualInvoiceDialog } from '@/components/admin/ManualInvoiceDialog';
+import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -185,6 +186,7 @@ export default function InvoicesPage() {
                   <TableHead>Factuurnummer</TableHead>
                   <TableHead>Klant</TableHead>
                   <TableHead>Order</TableHead>
+                  <TableHead>Bron</TableHead>
                   <TableHead>Datum</TableHead>
                   <TableHead className="text-right">Bedrag</TableHead>
                   <TableHead>Status</TableHead>
@@ -222,6 +224,11 @@ export default function InvoicesPage() {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <OrderMarketplaceBadge 
+                          source={invoice.orders?.marketplace_source || (invoice.order_id ? null : 'manual')} 
+                        />
                       </TableCell>
                       <TableCell>
                         {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}

@@ -16,6 +16,7 @@ interface InvoiceWithRelations extends Invoice {
   orders?: {
     order_number: string;
     customer_name: string | null;
+    marketplace_source: string | null;
   } | null;
   customers?: {
     first_name: string;
@@ -39,7 +40,8 @@ export function useInvoices(filters?: InvoiceFilters) {
           *,
           orders (
             order_number,
-            customer_name
+            customer_name,
+            marketplace_source
           ),
           customers (
             first_name,
@@ -164,7 +166,8 @@ export function useInvoice(invoiceId: string | undefined) {
           orders (
             order_number,
             customer_name,
-            customer_email
+            customer_email,
+            marketplace_source
           ),
           customers (
             first_name,

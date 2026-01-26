@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { OrderFilters } from '@/components/admin/OrderFilters';
+import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
@@ -96,6 +97,7 @@ export default function OrdersPage() {
                 <TableRow>
                   <TableHead>Bestelling</TableHead>
                   <TableHead>Klant</TableHead>
+                  <TableHead>Bron</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Betaling</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
@@ -141,6 +143,9 @@ function OrderRow({ order, onView, onStatusChange, formatCurrency }: OrderRowPro
       <TableCell>
         <div className="font-medium">{order.customer_name || '-'}</div>
         <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+      </TableCell>
+      <TableCell>
+        <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
       <TableCell>
         <OrderStatusBadge status={order.status} />
