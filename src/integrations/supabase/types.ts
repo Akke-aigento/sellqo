@@ -728,6 +728,57 @@ export type Database = {
           },
         ]
       }
+      app_feedback: {
+        Row: {
+          created_at: string
+          feature_requests: string | null
+          feedback_text: string | null
+          id: string
+          is_satisfied: boolean | null
+          milestone_id: string | null
+          rating: number | null
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature_requests?: string | null
+          feedback_text?: string | null
+          id?: string
+          is_satisfied?: boolean | null
+          milestone_id?: string | null
+          rating?: number | null
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature_requests?: string | null
+          feedback_text?: string | null
+          id?: string
+          is_satisfied?: boolean | null
+          milestone_id?: string | null
+          rating?: number | null
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_feedback_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_feedback_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automatic_discounts: {
         Row: {
           applies_to: string
@@ -8996,6 +9047,47 @@ export type Database = {
           },
         ]
       }
+      tenant_badges: {
+        Row: {
+          badge_description: string | null
+          badge_emoji: string
+          badge_id: string
+          badge_name: string
+          display_order: number | null
+          earned_at: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          badge_description?: string | null
+          badge_emoji: string
+          badge_id: string
+          badge_name: string
+          display_order?: number | null
+          earned_at?: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          badge_description?: string | null
+          badge_emoji?: string
+          badge_id?: string
+          badge_name?: string
+          display_order?: number | null
+          earned_at?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_badges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_feature_overrides: {
         Row: {
           admin_notes: string | null
@@ -9116,6 +9208,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_loyalty_rewards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_milestones: {
+        Row: {
+          achieved_at: string
+          acknowledged_at: string | null
+          created_at: string
+          feedback_requested: boolean | null
+          id: string
+          milestone_type: string
+          milestone_value: number
+          shown_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          acknowledged_at?: string | null
+          created_at?: string
+          feedback_requested?: boolean | null
+          id?: string
+          milestone_type: string
+          milestone_value: number
+          shown_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          achieved_at?: string
+          acknowledged_at?: string | null
+          created_at?: string
+          feedback_requested?: boolean | null
+          id?: string
+          milestone_type?: string
+          milestone_value?: number
+          shown_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_milestones_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -9658,6 +9794,10 @@ export type Database = {
           kvk_number: string | null
           language: string | null
           last_login: string | null
+          last_milestone_check: string | null
+          lifetime_customer_count: number | null
+          lifetime_order_count: number | null
+          lifetime_revenue: number | null
           logo_url: string | null
           name: string
           oss_identification_number: string | null
@@ -9743,6 +9883,10 @@ export type Database = {
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
+          last_milestone_check?: string | null
+          lifetime_customer_count?: number | null
+          lifetime_order_count?: number | null
+          lifetime_revenue?: number | null
           logo_url?: string | null
           name: string
           oss_identification_number?: string | null
@@ -9828,6 +9972,10 @@ export type Database = {
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
+          last_milestone_check?: string | null
+          lifetime_customer_count?: number | null
+          lifetime_order_count?: number | null
+          lifetime_revenue?: number | null
           logo_url?: string | null
           name?: string
           oss_identification_number?: string | null

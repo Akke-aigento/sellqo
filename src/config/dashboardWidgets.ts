@@ -5,6 +5,7 @@ import {
   BarChart3,
   Store,
   ShoppingCart,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -121,6 +122,15 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     minSize: 'lg',
     category: 'products',
     icon: BarChart3,
+  },
+  {
+    id: 'badges',
+    title: 'Badges & Milestones',
+    description: 'Jouw verdiende badges en voortgang',
+    defaultSize: 'md',
+    minSize: 'sm',
+    category: 'stats',
+    icon: Trophy,
   },
 ];
 
