@@ -256,6 +256,7 @@ export default function MarketplaceDetailPage() {
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="inventory">Voorraad</TabsTrigger>
+          <TabsTrigger value="sync-rules">Sync Regels</TabsTrigger>
           <TabsTrigger value="settings">Instellingen</TabsTrigger>
           <TabsTrigger value="logs">Sync Logs</TabsTrigger>
         </TabsList>

@@ -1,0 +1,164 @@
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Save, RotateCcw, AlertCircle } from 'lucide-react';
+import { useSyncRules } from '@/hooks/useSyncRules';
+import { PLATFORM_CAPABILITIES } from '@/lib/syncRuleDefaults';
+import { SYNC_DATA_TYPES } from '@/types/syncRules';
+import { SyncRuleCard } from './SyncRuleCard';
+import { SyncRulePresets } from './SyncRulePresets';
+import type { MarketplaceConnection } from '@/types/marketplace';
+import type { SyncDataType } from '@/types/syncRules';
+
+interface SyncRulesTabProps {
+  connection: MarketplaceConnection;
+  platformName: string;
+}
+
+export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
+  const {
+    syncRules,
+    isLoading,
+    isSaving,
+    hasChanges,
+    toggleRule,
+    setDirection,
+    setAutoSync,
+    toggleFieldMapping,
+    updateStatusMappings,
+    updateCustomSettings,
+    applyPreset,
+    resetToDefaults,
+    saveRules,
+    discardChanges,
+    getCapabilities,
+  } = useSyncRules(connection);
+
+  const capabilities = PLATFORM_CAPABILITIES[connection.marketplace_type];
+
+  // Get supported data types for this platform
+  const supportedTypes = SYNC_DATA_TYPES.filter(
+    (dt) => capabilities[dt.type] !== null
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with actions */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Synchronisatie Regels</h3>
+          <p className="text-sm text-muted-foreground">
+            Bepaal wat er gesynchroniseerd wordt met {platformName}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {hasChanges && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={discardChanges}
+                disabled={isSaving}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Annuleren
+              </Button>
+              <Button
+                size="sm"
+                onClick={saveRules}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Opslaan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Opslaan
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Unsaved changes warning */}
+      {hasChanges && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="flex items-center gap-3 py-3">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              Je hebt onopgeslagen wijzigingen. Vergeet niet op te slaan!
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid lg:grid-cols-[1fr,320px] gap-6">
+        {/* Main sync rules */}
+        <div className="space-y-4">
+          {supportedTypes.map((dataTypeInfo) => {
+            const dataType = dataTypeInfo.type as SyncDataType;
+            const typeCapabilities = getCapabilities(dataType);
+            
+            return (
+              <SyncRuleCard
+                key={dataType}
+                dataType={dataType}
+                config={syncRules[dataType]}
+                capabilities={typeCapabilities}
+                platformName={platformName}
+                onToggle={(enabled) => toggleRule(dataType, enabled)}
+                onDirectionChange={(direction) => setDirection(dataType, direction)}
+                onAutoSyncChange={(autoSync) => setAutoSync(dataType, autoSync)}
+                onFieldToggle={(fieldId, enabled) => toggleFieldMapping(dataType, fieldId, enabled)}
+                onStatusMappingsChange={(mappings) => updateStatusMappings(dataType, mappings)}
+                onCustomSettingsChange={(settings) => updateCustomSettings(dataType, settings)}
+              />
+            );
+          })}
+        </div>
+
+        {/* Sidebar with presets */}
+        <div className="space-y-4">
+          <SyncRulePresets
+            marketplaceType={connection.marketplace_type}
+            currentRules={syncRules}
+            onApplyPreset={applyPreset}
+          />
+          
+          {/* Reset to defaults */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Reset</CardTitle>
+              <CardDescription>
+                Herstel naar standaard instellingen
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={resetToDefaults}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Herstel standaard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

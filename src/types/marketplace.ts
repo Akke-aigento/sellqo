@@ -35,6 +35,8 @@ export interface MarketplaceCredentials {
   odooApiKey?: string;
 }
 
+import type { SyncRules } from './syncRules';
+
 export interface MarketplaceSettings {
   syncInterval: number;
   autoImport: boolean;
@@ -55,6 +57,8 @@ export interface MarketplaceSettings {
   odooDefaultJournalId?: string;
   odooDefaultTaxId?: string;
   odooAutoConfirmInvoices?: boolean;
+  // Granular sync rules
+  syncRules?: SyncRules;
 }
 
 export interface MarketplaceStats {
