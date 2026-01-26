@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Sparkles, ShoppingBag, Package, RefreshCw, Loader2, Check, AlertCircle, ExternalLink, Save, CheckCircle2, XCircle, Clock, Building2 } from 'lucide-react';
+import { Sparkles, ShoppingBag, Package, RefreshCw, Loader2, Check, AlertCircle, ExternalLink, Save, CheckCircle2, XCircle, Clock, Building2, Search, Link2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -153,6 +153,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   // Odoo action states
   const [isPublishingOdoo, setIsPublishingOdoo] = useState(false);
   const [isSyncingOdoo, setIsSyncingOdoo] = useState(false);
+
+  // Bol.com Offer ID lookup state
+  const [isLookingUpOfferId, setIsLookingUpOfferId] = useState(false);
 
   // Validations
   const eanValidation = getEANValidationStatus(bolEan);
@@ -371,6 +374,48 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     const result = await checkBolProcessStatus(product);
     if (result.success) {
       onRefresh?.();
+    }
+  };
+
+  // Lookup Bol.com Offer ID by EAN
+  const handleLookupOfferId = async () => {
+    if (!bolEan || !bolConnection?.id) return;
+    
+    setIsLookingUpOfferId(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-bol-offer-id', {
+        body: {
+          ean: bolEan.replace(/\s/g, ''),
+          tenant_id: product.tenant_id,
+          connection_id: bolConnection.id,
+          product_id: product.id
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success && data.offerId) {
+        toast({
+          title: 'Offer ID gevonden',
+          description: `Offer ID ${data.offerId.slice(0, 8)}... is automatisch opgeslagen`,
+        });
+        onRefresh?.();
+      } else {
+        toast({
+          title: 'Geen Offer ID gevonden',
+          description: data.error || 'Zorg dat het product al op Bol.com staat met deze EAN.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Lookup error:', error);
+      toast({
+        title: 'Fout bij opzoeken',
+        description: 'Kon Offer ID niet ophalen. Probeer het later opnieuw.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLookingUpOfferId(false);
     }
   };
 
@@ -834,6 +879,52 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     )}
                     Status controleren
                   </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Missing Offer ID alert - show when EAN is valid but no Offer ID exists */}
+            {bolEan && eanValidation.isValid && !product.marketplace_mappings?.bol_com?.offerId && !product.bol_offer_id && !isListed && !isPending && (
+              <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+                <Link2 className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="font-medium text-amber-800 dark:text-amber-200">EAN ingevuld maar Offer ID ontbreekt</span>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Voorraadsync werkt pas na koppeling met je bestaande Bol.com aanbieding
+                    </p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleLookupOfferId}
+                    disabled={isLookingUpOfferId}
+                    className="ml-4 shrink-0"
+                  >
+                    {isLookingUpOfferId ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Zoeken...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-1" />
+                        Offer ID ophalen
+                      </>
+                    )}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Auto-linked success indicator */}
+            {product.marketplace_mappings?.bol_com?.autoLinked && product.marketplace_mappings?.bol_com?.offerId && (
+              <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription>
+                  <span className="text-green-800 dark:text-green-200">
+                    Automatisch gekoppeld via EAN lookup • Offer ID: {product.marketplace_mappings.bol_com.offerId.slice(0, 8)}...
+                  </span>
                 </AlertDescription>
               </Alert>
             )}
