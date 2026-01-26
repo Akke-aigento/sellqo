@@ -191,3 +191,9 @@ verify_jwt = false
 
 [functions.test-sync-rules]
 verify_jwt = false
+
+[functions.confirm-bol-shipment]
+verify_jwt = false
+
+[functions.create-bol-vvb-label]
+verify_jwt = false

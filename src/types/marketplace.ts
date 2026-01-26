@@ -59,6 +59,14 @@ export interface MarketplaceSettings {
   odooAutoConfirmInvoices?: boolean;
   // Granular sync rules
   syncRules?: SyncRules;
+  // VVB (Verzenden via Bol) instellingen
+  vvbEnabled?: boolean;           // VVB labels aan/uit
+  vvbMaxAmount?: number;          // Max orderbedrag voor VVB (bijv. 300)
+  vvbFallbackProvider?: 'sendcloud' | 'myparcel';   // Fallback voor dure orders
+  vvbDefaultCarrier?: string;     // Standaard carrier voor VVB (bijv. 'POSTNL')
+  vvbDefaultDeliveryCode?: string; // Bijv. '1-2d'
+  // Automatische verzendbevestiging
+  autoConfirmShipment?: boolean;  // Auto bevestigen naar Bol.com
 }
 
 export interface MarketplaceStats {
