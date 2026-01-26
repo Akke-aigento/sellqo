@@ -1,202 +1,363 @@
 
-# Implementatieplan: Automatische Facturatie voor Alle Kanalen
+# Implementatieplan: Externe Fulfillment & Dropshipping Ondersteuning
 
 ## Overzicht
 
-Dit plan implementeert automatische facturatie voor **alle verkoopkanalen**:
-1. **Marketplace orders** (Bol.com, Amazon, Shopify, WooCommerce) - factuur bij import
-2. **Webshop bankoverschrijvingen** - factuur bij markeren als "betaald"
-3. **POS bankoverschrijvingen** - factuur bij afhandeling
+Dit plan implementeert volledige ondersteuning voor **externe fulfillment partners** (3PL) en **dropshipping scenario's**, inclusief:
+1. **Warehouse rol met beperkte toegang** - alleen fulfillment-gerelateerde data
+2. **Internationale carriers** - China Post, Yanwen, 17TRACK, etc.
+3. **Externe partner API** - 3PL systemen kunnen orders ophalen en tracking updaten
+4. **Dedicated Fulfillment Dashboard** - geoptimaliseerd voor magazijnmedewerkers
 
 ---
 
 ## Huidige Situatie
 
-| Kanaal | Automatische Factuur | Status |
-|--------|---------------------|--------|
-| Webshop (Stripe) | ✅ Ja | Via `stripe-connect-webhook` |
-| Webshop (Bankoverschrijving) | ❌ Nee | Order blijft op "awaiting_payment" |
-| Bol.com | ❌ Nee | Orders geïmporteerd als "paid" |
-| Amazon | ❌ Nee | Orders geïmporteerd als "paid" |
-| Shopify | ❌ Nee | Orders geïmporteerd als "paid" |
-| WooCommerce | ❌ Nee | Orders geïmporteerd als "paid" |
-| POS (Cash/Pin) | ✅ Ja | Via bon/kassaticket (geen factuur nodig tenzij B2B) |
-| POS (Bankoverschrijving) | ❌ Nee | Handmatige flow |
+| Component | Status | Opmerking |
+|-----------|--------|-----------|
+| `warehouse` rol | ✅ Bestaat | In `app_role` enum |
+| Rol-toewijzing | ✅ Werkt | Via `user_roles` tabel |
+| Carriers | ⚠️ Beperkt | Alleen EU carriers (PostNL, DHL, etc.) |
+| RLS voor warehouse | ❌ Ontbreekt | Ziet alle data inclusief financieel |
+| Navigatie filtering | ❌ Ontbreekt | Ziet volledige admin menu |
+| 3PL API | ❌ Ontbreekt | Geen externe integratie mogelijkheid |
+| Fulfillment Dashboard | ❌ Ontbreekt | Geen dedicated view |
 
 ---
 
-## Oplossingsarchitectuur
+## Deel 1: Internationale Carriers voor Dropshipping
 
-### Aanpak 1: Database Trigger (Aanbevolen)
+### Nieuwe Carriers Toevoegen
 
-Een PostgreSQL trigger die automatisch de `generate-invoice` functie aanroept wanneer:
-- Een order `payment_status` wijzigt naar `paid`
-- EN er nog geen factuur bestaat voor deze order
+Uitbreiding van `src/lib/carrierPatterns.ts` met internationale/dropship carriers:
 
-Dit dekt **alle scenario's** in één keer:
-- Bankoverschrijvingen die handmatig op "betaald" worden gezet
-- Marketplace orders die bij import als "paid" binnenkomen
-- Toekomstige betaalmethodes
+| Carrier | Tracking URL | Regio |
+|---------|-------------|-------|
+| China Post | 17track.net/nl/track?nums={tracking} | China |
+| Yanwen | track.yanwen.com.cn/en/web/tracking?numbers={tracking} | China |
+| Cainiao | global.cainiao.com/detail.htm?mailNoList={tracking} | AliExpress |
+| 4PX | track.4px.com/query/{tracking} | China/Global |
+| ePacket | 17track.net/nl/track?nums={tracking} | China |
+| 17TRACK (universeel) | 17track.net/nl/track?nums={tracking} | Multi-carrier |
+| YunExpress | yuntrack.com/Track/Detail/{tracking} | China |
+| SF Express | sf-express.com/cn/en/dynamic_function/waybill/{tracking} | China |
+| DHL eCommerce | webtrack.dhlecs.com/?trackingnumber={tracking} | Global |
+| Royal Mail | royalmail.com/track-your-item#{tracking} | UK |
+| USPS | tools.usps.com/go/TrackConfirmAction?tLabels={tracking} | USA |
+| Parcel Force | parcelforce.com/track-trace?trackNumber={tracking} | UK |
 
-```text
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Order Update   │────▶│  Trigger:        │────▶│  generate-      │
-│  payment_status │     │  auto_invoice    │     │  invoice        │
-│  = 'paid'       │     │                  │     │                 │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                               │
-                               ▼
-                        Check: tenant.auto_generate_invoice = true
-                        Check: no existing invoice for order
-```
+### Custom Carrier Ondersteuning
 
-### Aanpak 2: Per-Sync Functie Uitbreiding
-
-Alternatief: in elke sync-functie (sync-bol-orders, sync-amazon-orders, etc.) de `generate-invoice` aanroepen.
-
-**Nadeel**: Duplicatie, bankoverschrijvingen niet gedekt.
+Voor carriers die niet in de lijst staan:
+- "Andere" optie met vrije URL invoer
+- Tracking URL wordt 1-op-1 opgeslagen zonder template
 
 ---
 
-## Implementatie
+## Deel 2: Warehouse Rol - Beperkte Toegang
 
-### Deel 1: Tenant Setting
+### Database: Security Definer Functies
 
-**Nieuw veld in `tenants` tabel:**
-
-```sql
-ALTER TABLE tenants ADD COLUMN auto_generate_invoice BOOLEAN DEFAULT true;
-ALTER TABLE tenants ADD COLUMN auto_send_invoice_email BOOLEAN DEFAULT false;
-```
-
-- `auto_generate_invoice`: Automatisch factuur aanmaken bij betaalde orders
-- `auto_send_invoice_email`: Factuur direct e-mailen naar klant
-
-### Deel 2: Database Trigger voor Auto-Facturatie
-
-**Nieuwe Edge Function:** `auto-generate-invoice-on-paid`
-
-Deze functie wordt aangeroepen via een PostgreSQL trigger wanneer:
-1. `payment_status` wijzigt naar `paid`
-2. OF een nieuwe order wordt aangemaakt met `payment_status = 'paid'`
-
-**Trigger logica:**
+Nieuwe functies voor rol-gebaseerde toegangscontrole:
 
 ```sql
-CREATE OR REPLACE FUNCTION public.trigger_auto_invoice()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
+-- Check of gebruiker warehouse rol heeft
+CREATE OR REPLACE FUNCTION public.is_warehouse_user(_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
-DECLARE
-  v_tenant RECORD;
-  v_existing_invoice UUID;
-BEGIN
-  -- Alleen triggeren als payment_status 'paid' wordt
-  IF NEW.payment_status = 'paid' AND 
-     (TG_OP = 'INSERT' OR OLD.payment_status IS DISTINCT FROM 'paid') THEN
-    
-    -- Check tenant settings
-    SELECT auto_generate_invoice, auto_send_invoice_email 
-    INTO v_tenant
-    FROM tenants WHERE id = NEW.tenant_id;
-    
-    IF v_tenant.auto_generate_invoice = true THEN
-      -- Check of factuur al bestaat
-      SELECT id INTO v_existing_invoice 
-      FROM invoices WHERE order_id = NEW.id LIMIT 1;
-      
-      IF v_existing_invoice IS NULL THEN
-        -- Queue invoice generation via pg_net
-        PERFORM net.http_post(
-          url := current_setting('app.supabase_url') || '/functions/v1/generate-invoice',
-          headers := jsonb_build_object(
-            'Authorization', 'Bearer ' || current_setting('app.service_role_key'),
-            'Content-Type', 'application/json'
-          ),
-          body := jsonb_build_object(
-            'order_id', NEW.id,
-            'auto_send_email', v_tenant.auto_send_invoice_email
-          )
-        );
-      END IF;
-    END IF;
-  END IF;
-  
-  RETURN NEW;
-END;
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = 'warehouse'
+  )
+$$;
+
+-- Get user's highest role (voor UI filtering)
+CREATE OR REPLACE FUNCTION public.get_user_highest_role(_user_id uuid)
+RETURNS app_role
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT role FROM public.user_roles
+  WHERE user_id = _user_id
+  ORDER BY 
+    CASE role 
+      WHEN 'platform_admin' THEN 1 
+      WHEN 'tenant_admin' THEN 2 
+      WHEN 'accountant' THEN 3
+      WHEN 'staff' THEN 4 
+      WHEN 'warehouse' THEN 5
+      WHEN 'viewer' THEN 6
+    END
+  LIMIT 1
 $$;
 ```
 
-**Alternatieve aanpak (zonder pg_net):** 
-Een cron-job die elke minuut controleert op betaalde orders zonder factuur.
+### Database: Orders View voor Warehouse
 
-### Deel 3: Generate-Invoice Update
+Een speciale view die financiële data verbergt:
 
-**Bestand:** `supabase/functions/generate-invoice/index.ts`
+```sql
+CREATE VIEW public.orders_warehouse
+WITH (security_invoker=on) AS
+SELECT 
+  id,
+  tenant_id,
+  order_number,
+  status,
+  fulfillment_status,
+  customer_name,
+  shipping_address,
+  carrier,
+  tracking_number,
+  tracking_url,
+  shipped_at,
+  delivered_at,
+  delivery_type,
+  service_point_id,
+  service_point_data,
+  marketplace_source,
+  marketplace_order_id,
+  created_at,
+  updated_at
+  -- EXCLUSIEF: subtotal, total, tax_amount, discount_amount, shipping_cost, 
+  -- customer_email, customer_phone, billing_address, notes, internal_notes
+FROM public.orders;
 
-Toevoegen van `auto_send_email` parameter:
+-- RLS: Warehouse users kunnen alleen via deze view
+CREATE POLICY "Warehouse users access via view"
+  ON public.orders FOR SELECT
+  USING (
+    -- Reguliere toegang voor niet-warehouse users
+    NOT public.is_warehouse_user(auth.uid())
+    AND tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+  );
+```
+
+### Items View (zonder prijzen)
+
+```sql
+CREATE VIEW public.order_items_warehouse
+WITH (security_invoker=on) AS
+SELECT 
+  id,
+  order_id,
+  product_id,
+  product_name,
+  product_sku,
+  product_image,
+  quantity
+  -- EXCLUSIEF: unit_price, total_price
+FROM public.order_items;
+```
+
+---
+
+## Deel 3: Frontend Rol-Filtering
+
+### useAuth Hook Uitbreiding
+
+Update `src/hooks/useAuth.tsx`:
 
 ```typescript
-// Request body extensie
-interface GenerateInvoiceRequest {
-  order_id: string;
-  auto_send_email?: boolean;  // Nieuw
+interface AuthContextType {
+  // ... bestaand ...
+  userRole: AppRole | null;  // Hoogste rol
+  isWarehouse: boolean;
+  isAccountant: boolean;
+  hasFinancialAccess: boolean;
 }
 
-// Na succesvolle generatie:
-if (auto_send_email && invoiceId) {
-  await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${serviceKey}` },
-    body: JSON.stringify({ invoice_id: invoiceId })
-  });
+// In provider:
+const userRole = roles.length > 0 
+  ? roles.reduce((highest, r) => {
+      const priority = { platform_admin: 1, tenant_admin: 2, accountant: 3, staff: 4, warehouse: 5, viewer: 6 };
+      return priority[r.role] < priority[highest] ? r.role : highest;
+    }, roles[0].role as AppRole)
+  : null;
+
+const isWarehouse = userRole === 'warehouse';
+const isAccountant = userRole === 'accountant';
+const hasFinancialAccess = ['platform_admin', 'tenant_admin', 'accountant'].includes(userRole || '');
+```
+
+### Sidebar Filtering
+
+Update `src/components/admin/AdminSidebar.tsx`:
+
+```typescript
+// Menu items per rol definiëren
+const WAREHOUSE_ALLOWED_ITEMS = [
+  'dashboard', 'orders', 'orders-all', 'products', 'shipping'
+];
+
+const WAREHOUSE_HIDDEN_ITEMS = [
+  'orders-invoices', 'orders-creditnotes', 'orders-subscriptions', 'orders-quotes',
+  'promotions', 'marketplaces', 'campaigns', 'ai-tools', 'seo', 'translations',
+  'reports', 'analytics', 'billing', 'settings', 'customers', 'pos'
+];
+
+// In renderNavItem:
+if (isWarehouse && !WAREHOUSE_ALLOWED_ITEMS.includes(item.id)) {
+  return null;
 }
 ```
 
-### Deel 4: Admin UI Settings
+### NavItem Type Uitbreiding
 
-**Bestand:** `src/pages/admin/SettingsPage.tsx` of nieuwe component
+Update `src/components/admin/sidebar/sidebarConfig.ts`:
 
-Nieuwe sectie "Facturatie":
+```typescript
+export interface NavItem {
+  id: string;
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  children?: NavItem[];
+  featureKey?: string;
+  allowedRoles?: AppRole[];  // NIEUW: welke rollen dit item mogen zien
+  excludeRoles?: AppRole[];  // NIEUW: welke rollen dit NIET mogen zien
+}
+```
+
+---
+
+## Deel 4: Fulfillment Dashboard
+
+### Nieuwe Pagina: `/admin/fulfillment`
+
+Dedicated dashboard voor warehouse medewerkers:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📦 Fulfillment Queue                                          [Refresh]   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Filters: [Te verzenden ▼] [Alle carriers ▼] [Vandaag ▼]    🔍 Zoek order  │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  □ Order      │ Klant         │ Items │ Carrier │ Actie                    │
+│────────────────────────────────────────────────────────────────────────────│
+│  □ #0089      │ J. de Vries   │ 3     │ -       │ [Label maken] [Markeer]  │
+│  □ #0088      │ M. Jansen     │ 1     │ PostNL  │ [Print] [Track]          │
+│  □ #0087      │ A. Bakker     │ 2     │ -       │ [Label maken] [Markeer]  │
+│────────────────────────────────────────────────────────────────────────────│
+│                                                                             │
+│  Geselecteerd: 2 orders     [Batch: Label] [Batch: Print] [Batch: Verzend] │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Componenten
+
+| Component | Functie |
+|-----------|---------|
+| `FulfillmentQueue.tsx` | Hoofdtabel met te verzenden orders |
+| `FulfillmentOrderRow.tsx` | Order regel met snelle acties |
+| `BatchActionsBar.tsx` | Bulk acties voor geselecteerde orders |
+| `QuickTrackingInput.tsx` | Modal voor snel tracking invoeren |
+| `FulfillmentFilters.tsx` | Filter op status, carrier, datum |
+
+### Order Detail voor Warehouse
+
+Beperkte versie van `OrderDetail.tsx`:
+- ✅ Zichtbaar: Klant naam, verzendadres, producten (naam/SKU/foto/aantal)
+- ✅ Zichtbaar: Tracking input, pakbon printen
+- ❌ Verborgen: Prijzen, marges, facturen, betalingsstatus
+
+---
+
+## Deel 5: 3PL API Endpoint
+
+### Edge Function: `fulfillment-api`
+
+RESTful API voor externe fulfillment partners:
+
+```typescript
+// GET /functions/v1/fulfillment-api/orders
+// Headers: Authorization: Bearer <3pl_api_key>
+// Response: Array van orders klaar voor verzending
+
+// POST /functions/v1/fulfillment-api/orders/{id}/tracking
+// Body: { carrier: "china_post", tracking_number: "LP123456789CN" }
+// Effect: Update order, trigger klant notificatie
+
+// POST /functions/v1/fulfillment-api/orders/{id}/shipped
+// Body: { carrier: "yanwen", tracking_number: "YW123", tracking_url?: "..." }
+// Effect: Markeert als verzonden, synct naar marketplace indien nodig
+```
+
+### API Key Beheer
+
+Nieuwe tabel `fulfillment_api_keys`:
+
+```sql
+CREATE TABLE public.fulfillment_api_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,  -- "CJ Dropshipping", "Warehouse China"
+  api_key TEXT NOT NULL UNIQUE,
+  api_secret TEXT,  -- Voor webhook signing
+  is_active BOOLEAN DEFAULT true,
+  permissions JSONB DEFAULT '{"read_orders": true, "update_tracking": true}',
+  ip_whitelist TEXT[],  -- Optioneel
+  last_used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### UI voor API Key Beheer
+
+In Settings > Integraties > Fulfillment API:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  📄 Automatische Facturatie                                     │
+│  🔑 Fulfillment API Keys                                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Automatisch facturen genereren                  [Toggle: Aan] │
-│  Maak automatisch een factuur aan zodra een                    │
-│  bestelling als betaald wordt gemarkeerd                       │
+│  CJ Dropshipping                                    [Actief]   │
+│  Key: fk_live_abc...xyz                   [Kopieer] [Verwijder]│
+│  Laatst gebruikt: 2 uur geleden                                │
 │                                                                 │
-│  Automatisch factuur e-mailen                    [Toggle: Uit] │
-│  Verstuur de factuur direct per e-mail naar                    │
-│  de klant na generatie                                         │
+│  China Warehouse #2                               [Inactief]   │
+│  Key: fk_live_def...uvw                   [Kopieer] [Verwijder]│
+│  Laatst gebruikt: Nooit                                        │
 │                                                                 │
-│  ℹ️ Dit geldt voor:                                            │
-│  • Marketplace orders (Bol.com, Amazon, etc.)                  │
-│  • Webshop bankoverschrijvingen                                │
-│  • Handmatig gemarkeerde betalingen                            │
+│                              [+ Nieuwe API Key]                │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Deel 5: Marketplace-Specifieke Override (Optioneel)
+---
 
-Voor fijnmazigere controle: een `autoGenerateInvoice` toggle per marketplace-connectie.
+## Deel 6: Tracking Sync naar Marketplaces
 
-**Type uitbreiding:** `src/types/marketplace.ts`
+### Automatische Terugkoppeling
+
+Wanneer tracking wordt ingevoerd (via UI of API):
+
+1. Check of order `marketplace_source` heeft
+2. Indien ja, roep relevante sync functie aan:
+   - `confirm-bol-shipment` voor Bol.com
+   - `confirm-amazon-shipment` voor Amazon
+   - Shopify/WooCommerce webhooks
+
+### Edge Function Update
+
+In `useOrderShipping.ts` of nieuwe Edge Function:
 
 ```typescript
-interface MarketplaceSettings {
-  // ... bestaande velden ...
-  autoGenerateInvoice?: boolean;  // Override tenant default
-  autoSendInvoiceEmail?: boolean; // Override tenant default
+// Na tracking update:
+if (order.marketplace_source === 'bol_com') {
+  await supabase.functions.invoke('confirm-bol-shipment', {
+    body: { order_id, tracking_number, carrier, tracking_url }
+  });
 }
 ```
-
-**UI:** Checkbox in marketplace settings naast andere sync opties.
 
 ---
 
@@ -205,91 +366,93 @@ interface MarketplaceSettings {
 | Bestand | Type | Beschrijving |
 |---------|------|--------------|
 | **Database** | | |
-| Migratie | SQL | `auto_generate_invoice` + `auto_send_invoice_email` kolommen |
-| Migratie | SQL | Trigger `trigger_auto_invoice` op orders tabel |
+| Migratie | SQL | `is_warehouse_user()`, `get_user_highest_role()` functies |
+| Migratie | SQL | `orders_warehouse` en `order_items_warehouse` views |
+| Migratie | SQL | `fulfillment_api_keys` tabel |
+| Migratie | SQL | RLS policies voor warehouse rol |
+| **Carriers** | | |
+| `carrierPatterns.ts` | Update | 12+ internationale carriers toevoegen |
+| **Auth & UI** | | |
+| `useAuth.tsx` | Update | `userRole`, `isWarehouse`, `hasFinancialAccess` |
+| `AdminSidebar.tsx` | Update | Rol-gebaseerde menu filtering |
+| `sidebarConfig.ts` | Update | `allowedRoles`/`excludeRoles` per item |
+| **Fulfillment** | | |
+| `FulfillmentQueue.tsx` | Nieuw | Hoofdpagina fulfillment dashboard |
+| `FulfillmentOrderRow.tsx` | Nieuw | Order rij component |
+| `QuickTrackingInput.tsx` | Nieuw | Snelle tracking invoer modal |
+| `FulfillmentAPISettings.tsx` | Nieuw | API key beheer UI |
 | **Edge Functions** | | |
-| `generate-invoice/index.ts` | Update | `auto_send_email` parameter |
-| `auto-invoice-cron/index.ts` | Nieuw | Fallback cron voor orders zonder factuur |
-| **Frontend** | | |
-| `InvoiceSettingsCard.tsx` | Nieuw | Toggle UI component |
-| `SettingsPage.tsx` | Update | Invoegen InvoiceSettingsCard |
-| `src/types/marketplace.ts` | Update | `autoGenerateInvoice` per connectie |
-
----
-
-## Flow Diagrammen
-
-### Marketplace Order Import
-
-```text
-sync-bol-orders             Database                generate-invoice
-      │                         │                         │
-      │  INSERT order           │                         │
-      │  payment_status='paid'  │                         │
-      │────────────────────────▶│                         │
-      │                         │                         │
-      │                         │  TRIGGER fires          │
-      │                         │  auto_invoice check     │
-      │                         │─────────────────────────│
-      │                         │                         │
-      │                         │  HTTP POST              │
-      │                         │─────────────────────────▶│
-      │                         │                         │
-      │                         │                         │  Generate PDF
-      │                         │                         │  Store in bucket
-      │                         │                         │  Create invoice row
-      │                         │                         │
-      │                         │                         │  (optional)
-      │                         │                         │  send-invoice-email
-```
-
-### Bankoverschrijving Webshop
-
-```text
-Admin OrderDetail           Database                generate-invoice
-      │                         │                         │
-      │  UPDATE order           │                         │
-      │  payment_status='paid'  │                         │
-      │────────────────────────▶│                         │
-      │                         │                         │
-      │                         │  TRIGGER fires          │
-      │                         │  auto_invoice check     │
-      │                         │─────────────────────────│
-      │                         │                         │
-      │                         │  HTTP POST              │
-      │                         │─────────────────────────▶│
-      │                         │                         │
-      │                         │                 Invoice generated!
-```
+| `fulfillment-api/index.ts` | Nieuw | 3PL REST API |
+| **Routes** | | |
+| `App.tsx` | Update | Route `/admin/fulfillment` toevoegen |
 
 ---
 
 ## Technische Details
 
-### Trigger vs Cron Afweging
+### Rol Hiërarchie
 
-| Methode | Voordeel | Nadeel |
-|---------|----------|--------|
-| **DB Trigger + pg_net** | Realtime, geen vertraging | Vereist pg_net extensie, complexer debug |
-| **Cron Job (elke minuut)** | Simpeler, betrouwbaarder | Max 1 min vertraging |
-| **In-Sync Aanroep** | Direct in de flow | Code duplicatie, niet voor bank transfer |
+```text
+platform_admin (1) - Volledige toegang + platform beheer
+     │
+tenant_admin (2) - Volledige tenant toegang
+     │
+accountant (3) - Financieel + rapporten, geen producten wijzigen
+     │
+staff (4) - Orders, producten, klanten (geen instellingen)
+     │
+warehouse (5) - Alleen fulfillment: orders picken, tracking invoeren
+     │
+viewer (6) - Alleen-lezen (geen acties)
+```
 
-**Aanbeveling:** Hybride aanpak
-1. In sync-functies: direct `generate-invoice` aanroepen voor snelheid
-2. Cron-job als fallback: pakt gemiste orders op (bank transfers, edge cases)
+### Warehouse Gebruiker Flow
 
-### Cron Job Query
+```text
+Login                Sidebar                 Fulfillment Queue
+  │                     │                          │
+  │  warehouse role     │  Alleen:                 │  Ziet orders
+  │  detected           │  - Dashboard             │  - Klant naam
+  │──────────────────▶  │  - Fulfillment           │  - Verzendadres
+                        │  - Orders (beperkt)      │  - Items (geen prijs)
+                        │                          │
+                        │  Verborgen:              │  Kan:
+                        │  - Facturen              │  - Label maken
+                        │  - Klanten               │  - Tracking invoeren
+                        │  - Instellingen          │  - Pakbon printen
+                        │  - Rapporten             │
+```
 
-```sql
-SELECT o.id, o.tenant_id
-FROM orders o
-LEFT JOIN invoices i ON i.order_id = o.id
-JOIN tenants t ON t.id = o.tenant_id
-WHERE o.payment_status = 'paid'
-  AND i.id IS NULL
-  AND t.auto_generate_invoice = true
-  AND o.created_at > NOW() - INTERVAL '30 days'
-LIMIT 50;
+### 3PL API Flow
+
+```text
+3PL Systeem              Sellqo API                   Database
+    │                        │                           │
+    │  GET /orders           │                           │
+    │  (pending_shipment)    │                           │
+    │───────────────────────▶│                           │
+    │                        │  SELECT orders            │
+    │                        │  WHERE fulfillment=       │
+    │                        │  'unfulfilled'            │
+    │                        │──────────────────────────▶│
+    │                        │                           │
+    │  [order list]          │                           │
+    │◀───────────────────────│                           │
+    │                        │                           │
+    │  POST /orders/x/       │                           │
+    │       tracking         │                           │
+    │  {carrier, number}     │                           │
+    │───────────────────────▶│                           │
+    │                        │  UPDATE orders            │
+    │                        │  SET carrier=...,         │
+    │                        │  tracking_number=...      │
+    │                        │──────────────────────────▶│
+    │                        │                           │
+    │                        │  → confirm-bol-shipment   │
+    │                        │  → send-tracking-email    │
+    │                        │                           │
+    │  {success: true}       │                           │
+    │◀───────────────────────│                           │
 ```
 
 ---
@@ -298,14 +461,25 @@ LIMIT 50;
 
 Na implementatie:
 
-| Kanaal | Automatische Factuur | Trigger |
-|--------|---------------------|---------|
-| Webshop (Stripe) | ✅ | Webhook (bestaand) |
-| Webshop (Bankoverschrijving) | ✅ | Bij markeren als "betaald" |
-| Bol.com | ✅ | Bij import (payment_status=paid) |
-| Amazon | ✅ | Bij import (payment_status=paid) |
-| Shopify | ✅ | Bij import (payment_status=paid) |
-| WooCommerce | ✅ | Bij import (payment_status=paid) |
-| POS (B2B) | ✅ | Bij markeren als "betaald" |
+| Scenario | Ondersteuning |
+|----------|---------------|
+| **Lokale fulfillment (EU)** | ✅ Bestaande carriers + nieuwe |
+| **Dropshipping China** | ✅ China Post, Yanwen, Cainiao, 4PX, etc. |
+| **Externe 3PL partner** | ✅ Via Fulfillment API |
+| **CJ Dropshipping integratie** | ✅ Via API + tracking sync |
+| **Warehouse medewerker (intern)** | ✅ Beperkte rol, geen financiële data |
+| **Warehouse partner (extern)** | ✅ API key per partner |
+| **Multi-warehouse** | ✅ Meerdere API keys per tenant |
+| **Marketplace tracking sync** | ✅ Automatische terugkoppeling |
 
-**Klanten ontvangen automatisch hun factuur** zonder handmatige tussenkomst van de verkoper.
+**Dropshippers kunnen nu:**
+1. Orders automatisch importeren (via bestaande marketplace sync)
+2. Externe leverancier laten fulfilllen via API
+3. Tracking automatisch laten terugstromen naar Bol.com/Amazon/etc.
+4. Klant krijgt automatisch tracking email
+
+**Warehouse partners kunnen nu:**
+1. Inloggen met beperkte `warehouse` rol
+2. Alleen fulfillment-relevante data zien
+3. Orders picken, labelen, verzenden
+4. Geen toegang tot prijzen, marges, klantgegevens (behalve verzendadres)
