@@ -64,6 +64,16 @@ export default function ShopCheckout() {
     }
   }, [tenantSlug, setTenantSlug]);
 
+  // Handle cancelled Stripe checkout redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('cancelled') === 'true') {
+      toast.info('Je betaling is geannuleerd. Probeer het opnieuw.');
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // Load tenant payment settings
   useEffect(() => {
     if (tenant?.payment_methods_enabled) {
