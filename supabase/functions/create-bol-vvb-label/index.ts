@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,33 @@ interface VVBLabelRequest {
   order_id: string;
   carrier?: string;
   delivery_code?: string;
+}
+
+// Crop A4 PDF to A6 (label is positioned top-left)
+async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const pages = pdfDoc.getPages();
+  const page = pages[0];
+  
+  // A6 dimensions in PDF points (1 inch = 72 points)
+  // A6 = 105mm × 148mm = 297.64 × 419.53 points
+  const A6_WIDTH = 297.64;
+  const A6_HEIGHT = 419.53;
+  
+  // Get page dimensions
+  const { height } = page.getSize();
+  
+  // Crop box: top-left A6 portion
+  // In PDF coordinates Y=0 is at bottom, so we calculate from top
+  page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  
+  // Create new PDF with only the cropped portion
+  const newPdf = await PDFDocument.create();
+  const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
+  newPdf.addPage(copiedPage);
+  
+  return await newPdf.save();
 }
 
 async function getBolAccessToken(credentials: { clientId: string; clientSecret: string }): Promise<string> {
@@ -100,9 +128,14 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get settings for default carrier
-    const settings = connection.settings as { vvbDefaultCarrier?: string; vvbDefaultDeliveryCode?: string } || {};
+    // Get settings for default carrier and label format
+    const settings = connection.settings as { 
+      vvbDefaultCarrier?: string; 
+      vvbDefaultDeliveryCode?: string;
+      vvbLabelFormat?: 'a4_original' | 'a6_cropped';
+    } || {};
     const finalCarrier = carrier || settings.vvbDefaultCarrier || 'POSTNL';
+    const labelFormat = settings.vvbLabelFormat || 'a6_cropped';
 
     // Get access token
     const accessToken = await getBolAccessToken(credentials);
@@ -270,9 +303,22 @@ const handler = async (req: Request): Promise<Response> => {
       if (pdfResponse.ok) {
         // Store the PDF in Supabase storage
         const pdfBlob = await pdfResponse.blob();
-        const pdfBuffer = await pdfBlob.arrayBuffer();
+        let pdfBuffer = await pdfBlob.arrayBuffer();
         
-        const fileName = `bol-vvb-${order.order_number}-${Date.now()}.pdf`;
+        // Crop to A6 if configured (default behavior)
+        if (labelFormat === 'a6_cropped') {
+          try {
+            const croppedPdf = await cropToA6(pdfBuffer);
+            pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
+            console.log('Successfully cropped PDF to A6 format');
+          } catch (cropError) {
+            console.error('Error cropping PDF to A6, using original:', cropError);
+            // Fall back to original PDF if cropping fails
+          }
+        }
+        
+        const formatSuffix = labelFormat === 'a6_cropped' ? '-a6' : '';
+        const fileName = `bol-vvb-${order.order_number}${formatSuffix}-${Date.now()}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('shipping-labels')
           .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {

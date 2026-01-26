@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Truck, Package, AlertCircle, Info, Euro } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Truck, Package, AlertCircle, Info, Euro, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { MarketplaceSettings } from '@/types/marketplace';
 
@@ -27,6 +28,9 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
   );
   const [vvbDefaultCarrier, setVvbDefaultCarrier] = useState(settings.vvbDefaultCarrier || 'POSTNL');
   const [autoConfirmShipment, setAutoConfirmShipment] = useState(settings.autoConfirmShipment || false);
+  const [vvbLabelFormat, setVvbLabelFormat] = useState<'a4_original' | 'a6_cropped'>(
+    settings.vvbLabelFormat || 'a6_cropped'
+  );
 
   // Sync local state with props
   useEffect(() => {
@@ -35,6 +39,7 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
     setVvbFallbackProvider(settings.vvbFallbackProvider || 'sendcloud');
     setVvbDefaultCarrier(settings.vvbDefaultCarrier || 'POSTNL');
     setAutoConfirmShipment(settings.autoConfirmShipment || false);
+    setVvbLabelFormat(settings.vvbLabelFormat || 'a6_cropped');
   }, [settings]);
 
   const handleChange = (key: keyof MarketplaceSettings, value: unknown) => {
@@ -149,6 +154,37 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
                     <SelectItem value="DPD-NL">DPD</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Labelformaat
+                </Label>
+                <RadioGroup
+                  value={vvbLabelFormat}
+                  onValueChange={(value: 'a4_original' | 'a6_cropped') => {
+                    setVvbLabelFormat(value);
+                    handleChange('vvbLabelFormat', value);
+                  }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="a4_original" id="a4_original" />
+                    <Label htmlFor="a4_original" className="font-normal cursor-pointer">
+                      A4 Origineel (handmatig knippen nodig)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="a6_cropped" id="a6_cropped" />
+                    <Label htmlFor="a6_cropped" className="font-normal cursor-pointer">
+                      A6 Automatisch bijgesneden (aanbevolen)
+                    </Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-sm text-muted-foreground">
+                  A6 labels kunnen direct op een labelprinter of A6 papier geprint worden zonder knippen.
+                </p>
               </div>
             </>
           )}
