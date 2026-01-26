@@ -197,3 +197,6 @@ verify_jwt = false
 
 [functions.create-bol-vvb-label]
 verify_jwt = false
+
+[functions.fetch-external-label]
+verify_jwt = false

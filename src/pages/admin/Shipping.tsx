@@ -39,6 +39,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShippingMethodDialog } from "@/components/admin/ShippingMethodDialog";
 import { ShippingIntegrationsSettings } from "@/components/admin/settings/ShippingIntegrationsSettings";
+import { LabelPrinterSettings } from "@/components/admin/settings/LabelPrinterSettings";
 import { useShippingMethods } from "@/hooks/useShippingMethods";
 import type { ShippingMethod, ShippingMethodFormData } from "@/types/shipping";
 
@@ -288,6 +289,9 @@ export default function ShippingPage() {
 
       {/* Shipping Integrations Section */}
       <ShippingIntegrationsSettings />
+
+      {/* Label Printer Settings */}
+      <LabelPrinterSettings />
 
       <ShippingMethodDialog
         open={dialogOpen}
