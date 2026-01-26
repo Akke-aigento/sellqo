@@ -1,76 +1,224 @@
 
-# Plan: Klantgesprekken Inbox met Notificatiebadge
+# Plan: Gamification & Milestones Systeem
 
 ## Overzicht
 
-Een dedicated inbox pagina voor alle klantcommunicatie (Email + WhatsApp) met:
-- Duidelijke plek in de sidebar met notificatiebadge
-- Filter op kanaal (Email/WhatsApp) en status (Ongelezen/Te beantwoorden)
-- Chat-achtige conversatieweergave
-- Integratie met dashboard statistieken
-
-## Huidige Situatie
-
-De code verwijst al naar `/admin/messages` op meerdere plekken:
-- WhatsApp webhook maakt notificaties met `action_url: '/admin/messages'`
-- Health Score Calculator linkt naar `/admin/messages` voor onbeantwoorde berichten
-- Echter: de pagina en route bestaan nog niet!
+Een compleet gamification systeem met:
+- Milestone popups met confetti wanneer doelen bereikt worden
+- Persistente badges en achievements per tenant
+- Progress bars naar volgende milestone
+- "Ben je tevreden?" feedback popup na belangrijke milestones
+- Integratie met dashboard en Shop Health widget
 
 ## Architectuur
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                         │
-│  Sidebar                           Inbox Pagina                                         │
-│  ┌─────────────┐                  ┌─────────────────────────────────────────────────┐   │
-│  │ Dagelijks   │                  │ 📬 Klantgesprekken                      [🔍 Zoek]│   │
-│  │ ─────────── │                  │                                                 │   │
-│  │ Dashboard   │                  │ [Alle] [📧 Email (12)] [📱 WhatsApp (3)]        │   │
-│  │ Fulfillment │                  │ [⏳ Te beantwoorden (5)] [✓ Beantwoord]         │   │
-│  │ ...         │                  │                                                 │   │
-│  │             │                  │ ┌─────────────────────┬───────────────────────┐ │   │
-│  │ 💬 Inbox 🔴5│ ◄── badge       │ │  Gesprekkenlijst    │  Geselecteerd gesprek │ │   │
-│  │ ─────────── │                  │ │                     │                       │ │   │
-│  │ Bestellingen│                  │ │  🔵 Marie de V.     │  Marie de Vries       │ │   │
-│  │ ...         │                  │ │  📱 10 min geleden  │  +31612345678         │ │   │
-│  └─────────────┘                  │ │  "Is die lamp..."   │                       │ │   │
-│                                   │ │                     │  ┌─────────────────┐  │ │   │
-│                                   │ │  Jan Bakker         │  │ 📱 10:32        │  │ │   │
-│                                   │ │  📧 2 uur geleden   │  │ "Hoi! Is die    │  │ │   │
-│                                   │ │  "Vraag over..."    │  │ lamp ook in     │  │ │   │
-│                                   │ │                     │  │ zwart?"         │  │ │   │
-│                                   │ │                     │  └─────────────────┘  │ │   │
-│                                   │ │                     │                       │ │   │
-│                                   │ │                     │  [💬 Beantwoorden]    │ │   │
-│                                   │ └─────────────────────┴───────────────────────┘ │   │
-│                                   └─────────────────────────────────────────────────────┘   │
+│  Milestone Detection                      Milestone Display                             │
+│  ┌─────────────────────────────────┐     ┌─────────────────────────────────────────┐   │
+│  │ useMilestones Hook              │────▶│ MilestonePopup (Dialog)                 │   │
+│  │ - Check totals vs thresholds    │     │ - Confetti effect                       │   │
+│  │ - Compare with last shown       │     │ - Badge display                         │   │
+│  │ - Mark as seen in DB            │     │ - Progress to next milestone            │   │
+│  └─────────────────────────────────┘     │ - Satisfaction question (optional)      │   │
+│           │                               └─────────────────────────────────────────┘   │
+│           │                                                                             │
+│           ▼                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                              Database                                           │   │
+│  │  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐     │   │
+│  │  │ tenant_milestones   │  │ tenant_badges       │  │ app_feedback        │     │   │
+│  │  │ - milestone_id      │  │ - badge_type        │  │ - rating            │     │   │
+│  │  │ - achieved_at       │  │ - earned_at         │  │ - comment           │     │   │
+│  │  │ - shown_at          │  │ - value             │  │ - milestone_id      │     │   │
+│  │  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘     │   │
+│  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Database Wijzigingen
+## Milestone Types & Badges
 
-### Nieuwe Kolommen voor Tracking
+### Bestellingen Milestones
+| Milestone | Badge | Emoji | Volgende |
+|-----------|-------|-------|----------|
+| 1e bestelling | First Sale | 🎉 | 10 |
+| 10 bestellingen | Getting Started | 🚀 | 50 |
+| 50 bestellingen | On a Roll | 🔥 | 100 |
+| 100 bestellingen | Century Seller | 🥇 | 250 |
+| 250 bestellingen | Power Seller | 💎 | 500 |
+| 500 bestellingen | Superstar | ⭐ | 1000 |
+| 1000 bestellingen | Legend | 🏆 | - |
+
+### Omzet Milestones
+| Milestone | Badge | Emoji |
+|-----------|-------|-------|
+| €1.000 | First Thousand | 💵 |
+| €5.000 | Five K Club | 💰 |
+| €10.000 | Ten K Champion | 🎯 |
+| €25.000 | Quarter Master | 💎 |
+| €50.000 | Fifty K Elite | 🌟 |
+| €100.000 | Six Figure Seller | 👑 |
+
+### Speciale Badges
+| Badge | Criteria | Emoji |
+|-------|----------|-------|
+| Speed Demon | 7 dagen alle orders <24u verzonden | ⚡ |
+| Customer Champion | 0 negatieve reviews in 30 dagen | 🏅 |
+| Inventory Master | Nooit uitverkocht in 30 dagen | 📦 |
+| Response Pro | Gemiddelde reactietijd <1u | 💬 |
+
+## Database Schema
 
 ```sql
--- Track wanneer merchant een bericht heeft gelezen
-ALTER TABLE public.customer_messages
-  ADD COLUMN read_at TIMESTAMPTZ,
-  ADD COLUMN read_by UUID REFERENCES auth.users(id);
+-- Bereikte milestones per tenant
+CREATE TABLE public.tenant_milestones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  milestone_type TEXT NOT NULL, -- 'orders', 'revenue', 'customers'
+  milestone_value INTEGER NOT NULL, -- 100, 1000, 10000, etc.
+  achieved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  shown_at TIMESTAMPTZ, -- NULL = not yet shown to user
+  acknowledged_at TIMESTAMPTZ, -- When user closed the popup
+  feedback_requested BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id, milestone_type, milestone_value)
+);
 
--- Track of bericht beantwoord is (voor inbound berichten)
-ALTER TABLE public.customer_messages
-  ADD COLUMN replied_at TIMESTAMPTZ,
-  ADD COLUMN reply_message_id UUID REFERENCES public.customer_messages(id);
+-- Verdiende badges per tenant
+CREATE TABLE public.tenant_badges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  badge_id TEXT NOT NULL, -- 'century_seller', 'speed_demon', etc.
+  badge_name TEXT NOT NULL,
+  badge_emoji TEXT NOT NULL,
+  badge_description TEXT,
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  display_order INTEGER DEFAULT 0,
+  UNIQUE(tenant_id, badge_id)
+);
 
--- Index voor snelle queries op ongelezen berichten
-CREATE INDEX idx_customer_messages_unread 
-  ON public.customer_messages(tenant_id, direction, read_at) 
-  WHERE direction = 'inbound' AND read_at IS NULL;
+-- App feedback (na milestones)
+CREATE TABLE public.app_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id),
+  milestone_id UUID REFERENCES public.tenant_milestones(id),
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  is_satisfied BOOLEAN,
+  feedback_text TEXT,
+  feature_requests TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- Index voor channel filtering
-CREATE INDEX idx_customer_messages_channel 
-  ON public.customer_messages(tenant_id, channel);
+-- Cache totals voor snelle milestone checks
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS
+  lifetime_order_count INTEGER DEFAULT 0,
+  lifetime_revenue NUMERIC(12,2) DEFAULT 0,
+  lifetime_customer_count INTEGER DEFAULT 0,
+  last_milestone_check TIMESTAMPTZ;
+
+-- RLS Policies
+ALTER TABLE public.tenant_milestones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tenant_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_feedback ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation" ON public.tenant_milestones
+  FOR ALL USING (tenant_id IN (
+    SELECT tenant_id FROM public.user_roles WHERE user_id = auth.uid()
+  ));
+
+CREATE POLICY "Tenant isolation" ON public.tenant_badges
+  FOR ALL USING (tenant_id IN (
+    SELECT tenant_id FROM public.user_roles WHERE user_id = auth.uid()
+  ));
+
+CREATE POLICY "Tenant isolation" ON public.app_feedback
+  FOR ALL USING (tenant_id IN (
+    SELECT tenant_id FROM public.user_roles WHERE user_id = auth.uid()
+  ));
+```
+
+## Milestone Popup Design
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           🎊 CONFETTI EFFECT 🎊                            │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                     │   │
+│  │                     🎉 MILESTONE BEREIKT! 🎉                        │   │
+│  │                                                                     │   │
+│  │                    ┌─────────────────────┐                          │   │
+│  │                    │                     │                          │   │
+│  │                    │        🥇           │                          │   │
+│  │                    │   Century Seller    │                          │   │
+│  │                    │                     │                          │   │
+│  │                    └─────────────────────┘                          │   │
+│  │                                                                     │   │
+│  │            Je hebt je 100e bestelling verwerkt!                     │   │
+│  │                                                                     │   │
+│  │            "Van eerste order tot 100 - je bent echt                 │   │
+│  │             aan het groeien! Trots op je!"                          │   │
+│  │                                                                     │   │
+│  │  ─────────────────────────────────────────────────────────────────  │   │
+│  │                                                                     │   │
+│  │            Volgende milestone: 250 bestellingen                     │   │
+│  │            ████████████░░░░░░░░░░░░░░ 40%                          │   │
+│  │                                                                     │   │
+│  │                         [🎉 Geweldig!]                              │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Feedback Popup (na elke 5e milestone)
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                     │   │
+│  │                      💬 Even een vraagje...                         │   │
+│  │                                                                     │   │
+│  │            Ben je tevreden over je ervaring met SellQo?             │   │
+│  │                                                                     │   │
+│  │                     😞  😐  🙂  😊  🤩                              │   │
+│  │                     1   2   3   4   5                               │   │
+│  │                                                                     │   │
+│  │  ─────────────────────────────────────────────────────────────────  │   │
+│  │                                                                     │   │
+│  │  Wat kunnen we verbeteren? (optioneel)                              │   │
+│  │  ┌───────────────────────────────────────────────────────────────┐  │   │
+│  │  │                                                               │  │   │
+│  │  │                                                               │  │   │
+│  │  └───────────────────────────────────────────────────────────────┘  │   │
+│  │                                                                     │   │
+│  │            [Later]                    [Verstuur feedback]           │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Badges Overview Widget
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  🏆 Jouw Badges                                                [Alle ▶]    │
+│                                                                             │
+│  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐                      │
+│  │ 🎉  │  │ 🚀  │  │ 💵  │  │ 🥇  │  │ ⚡  │  │ 🔒  │ ← locked             │
+│  │First│  │Start│  │ 1K  │  │100  │  │Speed│  │ ???  │                      │
+│  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘                      │
+│                                                                             │
+│  Volgende: Power Seller (250 bestellingen)                                  │
+│  ████████████░░░░░░░░░░░░░░ 40% (100/250)                                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Bestandsoverzicht
@@ -78,290 +226,140 @@ CREATE INDEX idx_customer_messages_channel
 | Bestand | Actie | Beschrijving |
 |---------|-------|--------------|
 | **Database** | | |
-| `supabase/migrations/xxx_inbox_tracking.sql` | Nieuw | read_at, replied_at kolommen + indexes |
+| `supabase/migrations/xxx_gamification.sql` | Nieuw | Milestones, badges, feedback tabellen |
+| **Config** | | |
+| `src/config/milestones.ts` | Nieuw | Milestone definities, drempelwaarden |
+| `src/config/badges.ts` | Nieuw | Badge definities, emoji's, beschrijvingen |
 | **Hooks** | | |
-| `src/hooks/useInbox.ts` | Nieuw | Gesprekken laden, groeperen, filteren |
-| `src/hooks/useUnreadMessagesCount.ts` | Nieuw | Realtime badge counter voor sidebar |
-| **Pagina** | | |
-| `src/pages/admin/Messages.tsx` | Nieuw | Hoofd inbox pagina |
+| `src/hooks/useMilestones.ts` | Nieuw | Milestone detection & tracking |
+| `src/hooks/useBadges.ts` | Nieuw | Badge management |
+| `src/hooks/useAppFeedback.ts` | Nieuw | Feedback collection |
 | **Components** | | |
-| `src/components/admin/inbox/ConversationList.tsx` | Nieuw | Linkerkant: lijst van gesprekken |
-| `src/components/admin/inbox/ConversationItem.tsx` | Nieuw | Individueel gesprek in lijst |
-| `src/components/admin/inbox/ConversationDetail.tsx` | Nieuw | Rechterkant: chat-weergave |
-| `src/components/admin/inbox/MessageBubble.tsx` | Nieuw | Chat bubble (inbound/outbound) |
-| `src/components/admin/inbox/InboxFilters.tsx` | Nieuw | Filter tabs (kanaal, status) |
-| `src/components/admin/inbox/ReplyComposer.tsx` | Nieuw | Antwoord opstellen onderaan |
-| `src/components/admin/inbox/index.ts` | Nieuw | Barrel exports |
-| **Sidebar** | | |
-| `src/components/admin/sidebar/InboxNavItem.tsx` | Nieuw | Nav item met live badge |
-| `src/components/admin/sidebar/sidebarConfig.ts` | Update | Inbox toevoegen aan dagelijks |
-| **Routing** | | |
-| `src/App.tsx` | Update | Route toevoegen voor /admin/messages |
-| **Dashboard** | | |
-| `src/components/admin/DashboardGrid.tsx` | Update | Link naar inbox voor ongelezen berichten |
+| `src/components/gamification/MilestonePopup.tsx` | Nieuw | Celebratie popup met confetti |
+| `src/components/gamification/FeedbackPopup.tsx` | Nieuw | Tevredenheids vraag |
+| `src/components/gamification/BadgeCard.tsx` | Nieuw | Individuele badge display |
+| `src/components/gamification/BadgesOverview.tsx` | Nieuw | Alle badges overzicht |
+| `src/components/gamification/MilestoneProgress.tsx` | Nieuw | Progress bar naar volgende |
+| `src/components/gamification/GamificationProvider.tsx` | Nieuw | Context voor milestone checks |
+| `src/components/gamification/index.ts` | Nieuw | Barrel exports |
+| **Widgets** | | |
+| `src/components/admin/widgets/BadgesWidget.tsx` | Nieuw | Dashboard widget voor badges |
+| **Updates** | | |
+| `src/components/admin/AdminLayout.tsx` | Update | GamificationProvider toevoegen |
+| `src/config/dashboardWidgets.ts` | Update | Badges widget registreren |
+| `src/components/admin/DashboardGrid.tsx` | Update | Badges widget mapping |
+| `src/components/shop-health/HealthAchievements.tsx` | Update | Link naar badges overzicht |
 
-## Component Details
+## Technische Details
 
-### useInbox Hook
+### Milestone Detection Logic
 
 ```typescript
-interface Conversation {
-  id: string; // customer_id of gecombineerde identifier
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    avatar?: string;
-  } | null;
-  lastMessage: CustomerMessage;
-  unreadCount: number;
-  channel: 'email' | 'whatsapp' | 'mixed';
-  relatedOrders: { id: string; order_number: string }[];
-}
+// useMilestones.ts
+const ORDER_MILESTONES = [1, 10, 50, 100, 250, 500, 1000];
+const REVENUE_MILESTONES = [1000, 5000, 10000, 25000, 50000, 100000];
 
-interface UseInboxReturn {
-  conversations: Conversation[];
-  selectedConversation: Conversation | null;
-  messages: CustomerMessage[]; // voor geselecteerd gesprek
-  unreadTotal: number;
-  isLoading: boolean;
-  filters: InboxFilters;
-  setFilters: (filters: InboxFilters) => void;
-  markAsRead: (messageId: string) => Promise<void>;
-  markConversationAsRead: (conversationId: string) => Promise<void>;
+function checkForNewMilestones(
+  currentCount: number, 
+  achievedMilestones: number[],
+  milestoneList: number[]
+): number | null {
+  // Find the highest milestone that:
+  // 1. Current count has reached
+  // 2. Is not yet in achievedMilestones
+  for (const milestone of [...milestoneList].reverse()) {
+    if (currentCount >= milestone && !achievedMilestones.includes(milestone)) {
+      return milestone;
+    }
+  }
+  return null;
 }
 ```
 
-### useUnreadMessagesCount Hook
+### GamificationProvider
 
 ```typescript
-// Realtime counter voor sidebar badge
-function useUnreadMessagesCount() {
-  const { currentTenant } = useTenant();
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    // Initial fetch
-    fetchUnreadCount();
-    
-    // Realtime subscription
-    const channel = supabase
-      .channel('inbox-unread-count')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'customer_messages',
-        filter: `tenant_id=eq.${tenantId}`,
-      }, () => fetchUnreadCount())
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [tenantId]);
-
-  return count;
-}
-```
-
-### InboxNavItem Component
-
-```typescript
-// Sidebar nav item met realtime badge
-function InboxNavItem() {
-  const unreadCount = useUnreadMessagesCount();
+// Wraps AdminLayout, checks milestones on mount and data changes
+function GamificationProvider({ children }: { children: ReactNode }) {
+  const { pendingMilestone, acknowledgeMilestone } = useMilestones();
+  const [showFeedback, setShowFeedback] = useState(false);
   
   return (
-    <NavLink 
-      to="/admin/messages" 
-      className={({ isActive }) => cn(...)}
-    >
-      <MessageSquare className="h-4 w-4" />
-      <span>Gesprekken</span>
-      {unreadCount > 0 && (
-        <Badge 
-          variant="destructive" 
-          className="ml-auto h-5 min-w-5 text-xs"
-        >
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </Badge>
+    <GamificationContext.Provider value={{ ... }}>
+      {children}
+      
+      {pendingMilestone && (
+        <MilestonePopup
+          milestone={pendingMilestone}
+          onClose={(requestFeedback) => {
+            acknowledgeMilestone(pendingMilestone.id);
+            if (requestFeedback) setShowFeedback(true);
+          }}
+        />
       )}
-    </NavLink>
+      
+      {showFeedback && (
+        <FeedbackPopup onClose={() => setShowFeedback(false)} />
+      )}
+    </GamificationContext.Provider>
   );
 }
 ```
 
-### Inbox Pagina Layout
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│  📬 Klantgesprekken                                                    [🔍] [⚙️]       │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│  [Alle (15)] [📧 Email (12)] [📱 WhatsApp (3)]   |   [⏳ Te beantwoorden (5)] [✓ Alle] │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                  │                                      │
-│  Gesprekken                                      │  Marie de Vries                      │
-│  ────────────────────────────────────────────    │  📱 +31 6 1234 5678                  │
-│                                                  │  ──────────────────────────────────  │
-│  🔵 Marie de Vries                    📱         │                                      │
-│     "Hoi! Is die lamp ook in zwart.."           │         ┌─────────────────────────┐  │
-│     10 min geleden                               │         │ Bestelling #0042 is     │  │
-│  ─────────────────────────────────────────────   │         │ verzonden via PostNL... │  │
-│                                                  │         │            📱 11:30 ✓✓  │  │
-│  Jan Bakker                           📧         │         └─────────────────────────┘  │
-│     "Vraag over levertijd"                       │                                      │
-│     2 uur geleden                                │  ┌─────────────────────────┐         │
-│  ─────────────────────────────────────────────   │  │ Hoi! Is die lamp ook    │         │
-│                                                  │  │ in zwart beschikbaar?   │         │
-│  Peter de Jong                        📱         │  │ 📱 10:32                │         │
-│     "Bedankt voor de snelle levering!"          │  └─────────────────────────┘         │
-│     1 dag geleden                      ✓         │                                      │
-│                                                  │  ──────────────────────────────────  │
-│                                                  │                                      │
-│                                                  │  [📎] Typ je antwoord...    [Stuur]  │
-│                                                  │                                      │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Conversatie Groepering
-
-Berichten worden gegroepeerd per klant:
+### Tenant Stats Caching
 
 ```typescript
-// Groepeer berichten per customer_id (of email/telefoon als geen customer_id)
-function groupMessagesIntoConversations(messages: CustomerMessage[]): Conversation[] {
-  const grouped = new Map<string, CustomerMessage[]>();
-  
-  for (const msg of messages) {
-    // Gebruik customer_id als beschikbaar, anders email/telefoon
-    const key = msg.customer_id || msg.from_email || 'unknown';
-    const existing = grouped.get(key) || [];
-    grouped.set(key, [...existing, msg]);
-  }
-  
-  return Array.from(grouped.entries()).map(([key, msgs]) => ({
-    id: key,
-    lastMessage: msgs[0], // Nieuwste eerst (gesorteerd)
-    unreadCount: msgs.filter(m => m.direction === 'inbound' && !m.read_at).length,
-    messages: msgs,
-    // ...
-  }));
-}
+// Trigger to update lifetime stats on new orders
+CREATE OR REPLACE FUNCTION update_tenant_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.payment_status = 'paid' THEN
+    UPDATE tenants SET
+      lifetime_order_count = lifetime_order_count + 1,
+      lifetime_revenue = lifetime_revenue + NEW.total
+    WHERE id = NEW.tenant_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER after_order_paid
+AFTER INSERT OR UPDATE ON orders
+FOR EACH ROW
+WHEN (NEW.payment_status = 'paid')
+EXECUTE FUNCTION update_tenant_stats();
 ```
 
-## Dashboard Integratie
+### Feedback Collection
 
-### "Te beantwoorden" in Stats Grid
+De feedback wordt gekoppeld aan de milestone en bevat:
+- Rating (1-5 sterren/emoji's)
+- Optionele tekst feedback
+- Feature requests veld
+- Automatisch: tenant_id, user_id, timestamp
 
-Het bestaande stats grid kan een "Te beantwoorden" kaart tonen die linkt naar de inbox:
-
-```typescript
-// In stats grid of quick actions
-{
-  title: 'Te beantwoorden',
-  value: unreadCount,
-  icon: MessageSquare,
-  href: '/admin/messages?filter=unread',
-  variant: unreadCount > 0 ? 'warning' : 'default',
-}
-```
-
-### Shop Health Integratie
-
-De `healthScoreCalculator.ts` verwijst al naar `/admin/messages` - dit zal nu werken.
-
-## Sidebar Wijziging
-
-De inbox wordt toegevoegd aan de "Dagelijks" groep, direct na Dashboard:
-
-```typescript
-// sidebarConfig.ts
-const dailyItems: NavItem[] = [
-  { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-  { id: 'inbox', title: 'Gesprekken', url: '/admin/messages', icon: MessageSquare, badge: true }, // NIEUW
-  { id: 'fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', icon: PackageCheck },
-  // ...
-];
-```
-
-## Realtime Updates
-
-De inbox pagina abonneert op realtime updates:
-
-```typescript
-// In useInbox hook
-useEffect(() => {
-  const channel = supabase
-    .channel('inbox-realtime')
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'customer_messages',
-      filter: `tenant_id=eq.${tenantId}`,
-    }, (payload) => {
-      // Voeg nieuw bericht toe aan juiste conversatie
-      // Speel geluid af bij inbound bericht
-      if (payload.new.direction === 'inbound') {
-        playNotificationSound();
-        showToast('Nieuw bericht ontvangen');
-      }
-    })
-    .subscribe();
-    
-  return () => supabase.removeChannel(channel);
-}, [tenantId]);
-```
-
-## Antwoorden via Inbox
-
-De `ReplyComposer` component integreert met bestaande edge functions:
-
-```typescript
-// Bij WhatsApp: gebruik send-whatsapp-message
-// Bij Email: gebruik send-customer-message
-async function sendReply(channel: 'email' | 'whatsapp', body: string) {
-  if (channel === 'whatsapp') {
-    await supabase.functions.invoke('send-whatsapp-message', {
-      body: {
-        tenant_id,
-        customer_id,
-        template_type: 'custom', // Free-form reply
-        message: body,
-      },
-    });
-  } else {
-    await sendMessage.mutateAsync({
-      customer_email,
-      customer_name,
-      subject: `Re: ${lastSubject}`,
-      body_html: body,
-      context_type: 'general',
-    });
-  }
-  
-  // Mark conversation as replied
-  await markAsReplied(conversationId);
-}
-```
+Na elke 5e milestone wordt de feedback popup getriggerd.
 
 ## Implementatie Volgorde
 
-1. **Database Migration** - read_at, replied_at kolommen + indexes
-2. **useUnreadMessagesCount Hook** - Realtime badge counter
-3. **useInbox Hook** - Gesprekken laden en groeperen
-4. **UI Components** - ConversationList, ConversationDetail, MessageBubble
-5. **Messages Page** - Hoofd inbox pagina
-6. **Sidebar Update** - Inbox nav item met badge
-7. **Routing** - /admin/messages route toevoegen
-8. **Dashboard Links** - Quick action naar inbox
+1. **Database Migration** - Tabellen, triggers, cached stats
+2. **Config Files** - Milestone en badge definities
+3. **useMilestones Hook** - Detectie en tracking logica
+4. **useBadges Hook** - Badge management
+5. **MilestonePopup** - Celebratie UI met confetti
+6. **FeedbackPopup** - Tevredenheids vraag
+7. **BadgesWidget** - Dashboard widget
+8. **GamificationProvider** - Context wrapper
+9. **Integration** - AdminLayout, DashboardGrid updates
 
 ## Resultaat
 
 Na implementatie:
-- "Gesprekken" item in sidebar met rode badge (aantal ongelezen)
-- Dedicated inbox pagina met alle klantberichten
-- Filter op Email/WhatsApp en gelezen/ongelezen status
-- Chat-achtige weergave per klant
-- Direct antwoorden vanuit de inbox
-- Realtime updates bij nieuwe berichten
-- Dashboard toont "Te beantwoorden" teller
-- Shop Health links naar inbox werken
+- Automatische milestone detectie bij order/omzet groei
+- Celebratie popups met confetti effect
+- Persistente badges die verzameld worden
+- Progress tracking naar volgende milestone
+- Periodieke tevredenheidsvragen na milestones
+- Badges widget op het dashboard
+- Volledige badge collectie pagina
+- Emotionele binding tussen merchant en platform
