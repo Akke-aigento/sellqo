@@ -15,6 +15,7 @@ import {
   Share2,
   Mail,
   Globe,
+  Banknote,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +33,7 @@ import { NotificationSettings } from '@/components/admin/settings/NotificationSe
 import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
 import { NewsletterSettings } from '@/components/admin/storefront/NewsletterSettings';
 import { DomainSettings } from '@/components/admin/settings/DomainSettings';
+import { TransactionFeeSettings } from '@/components/admin/settings/TransactionFeeSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -83,9 +85,10 @@ const settingsGroups: SettingsGroup[] = [
   {
     id: 'payments',
     title: 'Betalingen',
-    description: 'Betalingsmethoden configureren',
+    description: 'Betalingsmethoden en transactiekosten',
     sections: [
       { id: 'payments', title: 'Betalingsmethoden', icon: CreditCard, component: PaymentSettings },
+      { id: 'transactions', title: 'Transacties & Kosten', icon: Banknote, component: TransactionFeeSettings },
     ],
   },
   {

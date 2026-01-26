@@ -1,0 +1,347 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  CreditCard, 
+  Building2, 
+  QrCode, 
+  Loader2, 
+  Save,
+  TrendingUp,
+  Infinity,
+  AlertTriangle,
+  CheckCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useTransactionUsage } from '@/hooks/useTransactionUsage';
+import type { PaymentMethodType } from '@/types/billing';
+
+interface TenantPaymentConfig {
+  payment_methods_enabled: PaymentMethodType[];
+  pass_transaction_fee_to_customer: boolean;
+  transaction_fee_label: string;
+  iban: string | null;
+  bic: string | null;
+}
+
+export function TransactionFeeSettings() {
+  const { roles } = useAuth();
+  const activeTenantId = roles.find(r => r.tenant_id)?.tenant_id;
+  const { data: usageData, isLoading: usageLoading, refetch: refetchUsage } = useTransactionUsage(activeTenantId || undefined);
+  
+  const [config, setConfig] = useState<TenantPaymentConfig>({
+    payment_methods_enabled: ['stripe'],
+    pass_transaction_fee_to_customer: false,
+    transaction_fee_label: 'Transactiekosten',
+    iban: null,
+    bic: null,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (activeTenantId) {
+      loadConfig();
+    }
+  }, [activeTenantId]);
+
+  const loadConfig = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic')
+        .eq('id', activeTenantId)
+        .single();
+
+      if (error) throw error;
+
+      setConfig({
+        payment_methods_enabled: (data.payment_methods_enabled as PaymentMethodType[]) || ['stripe'],
+        pass_transaction_fee_to_customer: data.pass_transaction_fee_to_customer || false,
+        transaction_fee_label: data.transaction_fee_label || 'Transactiekosten',
+        iban: data.iban,
+        bic: data.bic,
+      });
+    } catch (error) {
+      console.error('Error loading payment config:', error);
+      toast.error('Fout bij laden instellingen');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveConfig = async () => {
+    if (!activeTenantId) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('tenants')
+        .update({
+          payment_methods_enabled: config.payment_methods_enabled,
+          pass_transaction_fee_to_customer: config.pass_transaction_fee_to_customer,
+          transaction_fee_label: config.transaction_fee_label,
+        })
+        .eq('id', activeTenantId);
+
+      if (error) throw error;
+
+      toast.success('Instellingen opgeslagen');
+      refetchUsage();
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast.error('Fout bij opslaan instellingen');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const togglePaymentMethod = (method: PaymentMethodType) => {
+    setConfig(prev => {
+      const methods = prev.payment_methods_enabled;
+      if (methods.includes(method)) {
+        // Don't allow removing last method
+        if (methods.length === 1) {
+          toast.error('Minimaal één betaalmethode vereist');
+          return prev;
+        }
+        return { ...prev, payment_methods_enabled: methods.filter(m => m !== method) };
+      }
+      return { ...prev, payment_methods_enabled: [...methods, method] };
+    });
+  };
+
+  const canEnableBankTransfer = config.iban && config.iban.length >= 10;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const isUnlimited = usageData?.included_transactions === -1;
+  const usagePercentage = isUnlimited ? 0 : 
+    usageData?.included_transactions ? 
+      Math.min(100, (usageData.total_transactions / usageData.included_transactions) * 100) : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Usage Overview */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Transactie Gebruik
+              </CardTitle>
+              <CardDescription>
+                Deze maand verwerkte transacties
+              </CardDescription>
+            </div>
+            {isUnlimited ? (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Infinity className="h-3 w-3" />
+                Onbeperkt
+              </Badge>
+            ) : usageData?.is_over_limit ? (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Over limiet
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Binnen limiet
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {usageLoading ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : usageData ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold">{usageData.usage?.stripe_transactions || 0}</div>
+                  <div className="text-xs text-muted-foreground">Stripe</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold">{usageData.usage?.bank_transfer_transactions || 0}</div>
+                  <div className="text-xs text-muted-foreground">Bank</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold">{usageData.usage?.pos_cash_transactions || 0}</div>
+                  <div className="text-xs text-muted-foreground">POS Cash</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold">{usageData.usage?.pos_card_transactions || 0}</div>
+                  <div className="text-xs text-muted-foreground">POS Kaart</div>
+                </div>
+              </div>
+
+              {!isUnlimited && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>{usageData.total_transactions} van {usageData.included_transactions} transacties</span>
+                      <span>{usageData.remaining_transactions} resterend</span>
+                    </div>
+                    <Progress value={usagePercentage} className="h-2" />
+                  </div>
+
+                  {usageData.is_over_limit && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        Je bent {usageData.total_transactions - usageData.included_transactions} transacties over je limiet. 
+                        Extra kosten: €{usageData.usage?.overage_fee_total?.toFixed(2) || '0.00'}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <p className="text-muted-foreground text-center">Geen data beschikbaar</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Betaalmethoden</CardTitle>
+          <CardDescription>
+            Kies welke betaalmethoden beschikbaar zijn voor je klanten
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stripe */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <CreditCard className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="font-medium">Stripe (iDEAL, Creditcard, Bancontact)</div>
+                <div className="text-sm text-muted-foreground">
+                  Directe online betaling via Stripe
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={config.payment_methods_enabled.includes('stripe')}
+              onCheckedChange={() => togglePaymentMethod('stripe')}
+            />
+          </div>
+
+          {/* Bank Transfer */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <QrCode className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Directe Bankoverschrijving (QR)</span>
+                  <Badge variant="secondary">0% kosten</Badge>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Klant scant QR-code met bank-app - SEPA Instant
+                </div>
+                {!canEnableBankTransfer && (
+                  <div className="text-xs text-destructive mt-1">
+                    ⚠️ Configureer eerst je IBAN in Bedrijfsgegevens
+                  </div>
+                )}
+              </div>
+            </div>
+            <Switch
+              checked={config.payment_methods_enabled.includes('bank_transfer')}
+              onCheckedChange={() => togglePaymentMethod('bank_transfer')}
+              disabled={!canEnableBankTransfer}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transaction Fee Passthrough */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Transactiekosten Doorberekenen</CardTitle>
+          <CardDescription>
+            Kies of je transactiekosten wilt doorberekenen aan je klanten
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <div className="font-medium">Transactiekosten tonen bij checkout</div>
+              <div className="text-sm text-muted-foreground">
+                Indien ingeschakeld, zien klanten de transactiekosten als aparte regel
+              </div>
+            </div>
+            <Switch
+              checked={config.pass_transaction_fee_to_customer}
+              onCheckedChange={(checked) => setConfig(prev => ({ 
+                ...prev, 
+                pass_transaction_fee_to_customer: checked 
+              }))}
+            />
+          </div>
+
+          {config.pass_transaction_fee_to_customer && (
+            <div className="space-y-2">
+              <Label htmlFor="fee-label">Label voor transactiekosten</Label>
+              <Input
+                id="fee-label"
+                value={config.transaction_fee_label}
+                onChange={(e) => setConfig(prev => ({ 
+                  ...prev, 
+                  transaction_fee_label: e.target.value 
+                }))}
+                placeholder="Transactiekosten"
+              />
+              <p className="text-xs text-muted-foreground">
+                Dit label wordt getoond in de checkout bij de transactiekosten
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={saveConfig} disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Opslaan...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Instellingen opslaan
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
