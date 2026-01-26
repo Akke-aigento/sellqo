@@ -15,11 +15,27 @@ export type SyncDataType =
 // Direction of synchronization
 export type SyncDirection = 'import' | 'export' | 'bidirectional';
 
+// Conflict resolution strategies for bidirectional sync
+export type ConflictStrategy = 'sellqo_wins' | 'platform_wins' | 'newest_wins' | 'manual';
+
+// Sync frequency options
+export type SyncFrequency = '5min' | '15min' | '30min' | '1hour' | '4hour' | 'daily' | 'weekly';
+
+// Sync status
+export type SyncStatus = 'success' | 'partial' | 'failed';
+
 // Supported directions per platform and data type
 export interface SupportedDirections {
   import: boolean;
   export: boolean;
   bidirectional: boolean;
+}
+
+// Sync statistics
+export interface SyncStats {
+  processed: number;
+  failed: number;
+  duration: number;
 }
 
 // Field mapping between external platform and SellQo
@@ -68,6 +84,17 @@ export interface SyncRuleConfig {
   statusMappings?: StatusMapping[];
   customSettings: SyncCustomSettings;
   lastModified?: string;
+  
+  // Conflict resolution for bidirectional sync
+  conflictStrategy?: ConflictStrategy;
+  
+  // Per-data-type sync frequency
+  syncFrequency?: SyncFrequency;
+  
+  // Sync history tracking
+  lastSyncedAt?: string;
+  lastSyncStatus?: SyncStatus;
+  lastSyncStats?: SyncStats;
 }
 
 // All sync rules for a connection

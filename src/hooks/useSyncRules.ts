@@ -7,6 +7,8 @@ import type {
   SyncRuleConfig, 
   SyncDataType, 
   SyncDirection,
+  SyncFrequency,
+  ConflictStrategy,
   FieldMapping,
   StatusMapping 
 } from '@/types/syncRules';
@@ -33,9 +35,14 @@ interface UseSyncRulesReturn {
   // Custom settings
   updateCustomSettings: (dataType: SyncDataType, settings: Record<string, unknown>) => void;
   
+  // New: Conflict and frequency settings
+  setConflictStrategy: (dataType: SyncDataType, strategy: ConflictStrategy) => void;
+  setSyncFrequency: (dataType: SyncDataType, frequency: SyncFrequency) => void;
+  
   // Bulk operations
   applyPreset: (presetRules: Partial<SyncRules>) => void;
   resetToDefaults: () => void;
+  importRules: (rules: SyncRules) => void;
   
   // Persistence
   saveRules: () => Promise<void>;
@@ -187,6 +194,21 @@ export function useSyncRules(connection: MarketplaceConnection | null): UseSyncR
     }));
   }, []);
 
+  // Import rules from external source
+  const importRules = useCallback((rules: SyncRules) => {
+    setSyncRules(rules);
+  }, []);
+
+  // Set conflict strategy
+  const setConflictStrategy = useCallback((dataType: SyncDataType, strategy: ConflictStrategy) => {
+    updateRule(dataType, { conflictStrategy: strategy });
+  }, [updateRule]);
+
+  // Set sync frequency
+  const setSyncFrequency = useCallback((dataType: SyncDataType, frequency: SyncFrequency) => {
+    updateRule(dataType, { syncFrequency: frequency });
+  }, [updateRule]);
+
   // Reset to defaults
   const resetToDefaults = useCallback(() => {
     if (!connection) return;
@@ -233,8 +255,11 @@ export function useSyncRules(connection: MarketplaceConnection | null): UseSyncR
     updateFieldMappings,
     updateStatusMappings,
     updateCustomSettings,
+    setConflictStrategy,
+    setSyncFrequency,
     applyPreset,
     resetToDefaults,
+    importRules,
     saveRules,
     discardChanges,
     getCapabilities,

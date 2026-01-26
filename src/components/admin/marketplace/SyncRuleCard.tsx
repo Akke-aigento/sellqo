@@ -83,6 +83,8 @@ interface SyncRuleCardProps {
   onFieldToggle: (fieldId: string, enabled: boolean) => void;
   onStatusMappingsChange: (mappings: StatusMapping[]) => void;
   onCustomSettingsChange: (settings: Record<string, unknown>) => void;
+  onConflictStrategyChange?: (strategy: import('@/types/syncRules').ConflictStrategy) => void;
+  onSyncFrequencyChange?: (frequency: import('@/types/syncRules').SyncFrequency) => void;
 }
 
 export function SyncRuleCard({
