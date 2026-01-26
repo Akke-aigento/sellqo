@@ -9,6 +9,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useStorefront } from '@/hooks/useStorefront';
 import { GOOGLE_FONTS, HEADER_STYLES, PRODUCT_CARD_STYLES } from '@/types/storefront';
 import { BrandingUploader } from './BrandingUploader';
@@ -101,9 +112,42 @@ export function ThemeCustomizer() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleResetToDefaults}>
-              Reset naar standaard
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline">
+                  Reset naar standaard
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>
+                      Je staat op het punt alle aanpassingen te resetten naar de standaard instellingen. Dit omvat:
+                    </p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Kleuren (primair, secundair, accent)</li>
+                      <li>Fonts (heading, body)</li>
+                      <li>Layout instellingen</li>
+                      <li>Logo en favicon</li>
+                      <li>Aangepaste CSS</li>
+                    </ul>
+                    <p className="font-medium">
+                      Deze actie kan niet ongedaan worden gemaakt.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleResetToDefaults}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Ja, reset alles
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button onClick={handleSave} disabled={saveThemeSettings.isPending}>
               <Save className="h-4 w-4 mr-2" />
               Opslaan
