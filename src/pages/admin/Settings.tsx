@@ -12,9 +12,9 @@ import {
   Network, 
   Bell,
   ChevronRight,
-  Palette,
   Share2,
   Mail,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +31,7 @@ import { PeppolSettings } from '@/components/admin/settings/PeppolSettings';
 import { NotificationSettings } from '@/components/admin/settings/NotificationSettings';
 import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
 import { NewsletterSettings } from '@/components/admin/storefront/NewsletterSettings';
+import { DomainSettings } from '@/components/admin/settings/DomainSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -65,6 +66,7 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'company', title: 'Bedrijfsgegevens', icon: Building2, component: BusinessSettings },
       { id: 'store', title: 'Winkelinstellingen', icon: Store, component: StoreSettings },
+      { id: 'domain', title: 'Eigen Domein', icon: Globe, component: DomainSettings },
     ],
   },
   {
