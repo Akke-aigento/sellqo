@@ -1,265 +1,358 @@
 
-# Plan: SellQo Connect, AI Hubs & Socials - Samenhang Optimalisatie
+# Plan: Uitgebreide Product Bulk Bewerking
 
-## Huidige Situatie Analyse
+## Huidige Situatie
 
-Na analyse van de codebase zie ik de volgende structuur en overlappingen:
-
-### Wat We Hebben
+De producten pagina heeft momenteel beperkte bulk acties:
 
 ```text
-HUIDIGE STRUCTUUR (Met Overlappingen)
-─────────────────────────────────────
+HUIDIGE BULK ACTIES
+───────────────────
+✅ Activeren (is_active: true)
+✅ Deactiveren (is_active: false)
+✅ Verwijderen
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  SELLQO CONNECT (/admin/connect)                                            │
-│  ─────────────────────────────────                                          │
-│  ├── E-commerce Tab (Bol.com, Amazon, Shopify, WooCommerce, Odoo)           │
-│  └── Social Commerce Tab (Google Shopping, FB/IG Shop, TikTok, etc.)        │
-└─────────────────────────────────────────────────────────────────────────────┘
+❌ Categorie wijzigen
+❌ Prijs aanpassen (vast bedrag, percentage)
+❌ Voorraad aanpassen
+❌ BTW-tarief wijzigen
+❌ Tags toevoegen/verwijderen
+❌ Zichtbaarheid (online/winkel)
+❌ Verzending vereist
+❌ Featured status
+❌ Social channels activeren
+❌ Marketplace sync
+```
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  INSTELLINGEN > SOCIAL MEDIA (/admin/settings?section=social)               │
-│  ───────────────────────────────────────────────────────────────            │
-│  ├── Website Links Tab (Footer links voor webshop)                          │
-│  └── Autopost Tab (OAuth voor FB, X, LinkedIn content posting) ◄── OVERLAP │
-└─────────────────────────────────────────────────────────────────────────────┘
+## Oplossing: ProductBulkEditDialog
 
+Een uitgebreid dialoogvenster met tabs voor verschillende bewerkingscategorieën:
+
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  PRODUCT > MARKETPLACES TAB                                                  │
-│  ───────────────────────────                                                │
-│  ├── Bol.com sectie (EAN, titel, bullets, publish)                          │
-│  ├── Amazon sectie (ASIN, titel, bullets, publish)                          │
-│  ├── Shopify sectie                                                         │
-│  ├── WooCommerce sectie                                                     │
-│  └── Odoo sectie                                                            │
+│  Bulk bewerking (24 producten geselecteerd)                           [X]  │
+├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ❌ MIST: Social Commerce kanalen (Google Shopping, FB Shop, etc.)          │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  AI MARKETING HUB (/admin/marketing/ai)                                      │
-│  ────────────────────────────────────────                                   │
-│  ├── Content Generator (posts, emails, promo kits)                          │
-│  ├── Content Calendar                                                       │
-│  └── Content Library                                                        │
+│  [Basis]  [Prijzen]  [Voorraad]  [Zichtbaarheid]  [Kanalen]  [Tags]        │
 │                                                                             │
-│  AI ACTIE CENTRUM (/admin/marketing/ai-center)                               │
-│  ────────────────────────────────────────────────                           │
-│  └── AI Suggesties (purchase orders, campaigns, etc.)                       │
+│  ══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  BASIS TAB                                                                  │
+│  ─────────                                                                  │
+│  ☐ Categorie wijzigen                                                      │
+│     [Selecteer categorie ▾]                                                │
+│                                                                             │
+│  ☐ BTW-tarief wijzigen                                                     │
+│     [Selecteer BTW-tarief ▾]                                               │
+│                                                                             │
+│  ☐ Product type wijzigen                                                   │
+│     [Fysiek ▾]                                                             │
+│                                                                             │
+│  ══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  PRIJZEN TAB                                                                │
+│  ───────────                                                                │
+│  ☐ Verkoopprijs aanpassen                                                  │
+│     ○ Vast bedrag: [€___] toevoegen/aftrekken                              │
+│     ○ Percentage: [___]% verhogen/verlagen                                 │
+│     ○ Exacte prijs: [€___]                                                 │
+│                                                                             │
+│  ☐ Vergelijkingsprijs (doorstreepprijs)                                    │
+│     ○ Verwijderen                                                          │
+│     ○ Instellen op huidige prijs (voor kortingsactie)                      │
+│     ○ Exacte prijs: [€___]                                                 │
+│                                                                             │
+│  ☐ Kostprijs aanpassen                                                     │
+│     [€___]                                                                 │
+│                                                                             │
+│  ══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  VOORRAAD TAB                                                               │
+│  ────────────                                                               │
+│  ☐ Voorraad aanpassen                                                      │
+│     ○ Toevoegen: [___] stuks                                               │
+│     ○ Aftrekken: [___] stuks                                               │
+│     ○ Exact instellen: [___] stuks                                         │
+│                                                                             │
+│  ☐ Voorraad tracking                                                       │
+│     ○ Inschakelen                                                          │
+│     ○ Uitschakelen                                                         │
+│                                                                             │
+│  ☐ Backorder toestaan                                                      │
+│     ○ Ja                                                                   │
+│     ○ Nee                                                                  │
+│                                                                             │
+│  ☐ Lage voorraad drempel                                                   │
+│     [___] stuks                                                            │
+│                                                                             │
+│  ══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  ZICHTBAARHEID TAB                                                          │
+│  ─────────────────                                                          │
+│  ☐ Status                                                                  │
+│     ○ Activeren                                                            │
+│     ○ Deactiveren                                                          │
+│                                                                             │
+│  ☐ Webshop zichtbaarheid                                                   │
+│     ○ Online tonen                                                         │
+│     ○ Alleen winkel (POS)                                                  │
+│                                                                             │
+│  ☐ Featured/Uitgelicht                                                     │
+│     ○ Uitlichten                                                           │
+│     ○ Niet uitlichten                                                      │
+│                                                                             │
+│  ☐ Verzending vereist                                                      │
+│     ○ Ja                                                                   │
+│     ○ Nee                                                                  │
+│                                                                             │
+│  ══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  KANALEN TAB                                                                │
+│  ───────────                                                                │
+│  ☐ Social Commerce kanalen                                                 │
+│     ☑ Facebook Shop                                                        │
+│     ☑ Instagram Shop                                                       │
+│     ☐ Google Shopping                                                      │
+│     ☐ Pinterest                                                            │
+│                                                                             │
+│  ☐ Marketplace sync                                                        │
+│     ☑ Bol.com                                                              │
+│     ☐ Amazon                                                               │
+│                                                                             │
+│  [Sync nu starten]                                                         │
+│                                                                             │
+│  ══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  TAGS TAB                                                                   │
+│  ─────────                                                                  │
+│  ☐ Tags toevoegen                                                          │
+│     [+ Tag toevoegen]                                                      │
+│     sale  nieuw  bestseller                                                │
+│                                                                             │
+│  ☐ Tags verwijderen                                                        │
+│     [Selecteer te verwijderen tags]                                        │
+│                                                                             │
+│  ☐ Alle tags vervangen door                                                │
+│     [+ Tags invoeren]                                                      │
+│                                                                             │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ⚠️ Let op: Deze wijzigingen worden toegepast op 24 producten              │
+│                                                                             │
+│                              [Annuleren]  [Wijzigingen toepassen]           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Geïdentificeerde Problemen
+## Technische Implementatie
 
-| # | Probleem | Locatie |
-|---|----------|---------|
-| 1 | **Social Commerce mist in ProductMarketplaceTab** | Product edit pagina toont alleen e-commerce marketplaces, niet de social channels (Google Shopping, FB Shop, etc.) |
-| 2 | **Overlap Social Autopost & Social Commerce** | Settings > Social Media > Autopost = OAuth voor content posting. Dit overlapt met SellQo Connect > Social Commerce OAuth (beide connecteren Facebook/Instagram) |
-| 3 | **Navigatie verwarring** | Sidebar heeft "Marketplaces" (→ Connect) EN "Integraties > SellQo Connect" - beide gaan naar dezelfde pagina |
-| 4 | **Social Links vs Social Commerce** | "Social Links" (footer URLs) en "Social Commerce" (shopping channels) zijn verschillende dingen maar zitten bij elkaar |
+### Nieuwe Bestanden
 
-## Gewenste Structuur
+| Bestand | Beschrijving |
+|---------|--------------|
+| `src/components/admin/products/ProductBulkEditDialog.tsx` | Hoofddialoog met tabs |
+| `src/components/admin/products/bulk/BulkBasicTab.tsx` | Categorie, BTW, product type |
+| `src/components/admin/products/bulk/BulkPricingTab.tsx` | Prijsaanpassingen |
+| `src/components/admin/products/bulk/BulkStockTab.tsx` | Voorraad beheer |
+| `src/components/admin/products/bulk/BulkVisibilityTab.tsx` | Status en zichtbaarheid |
+| `src/components/admin/products/bulk/BulkChannelsTab.tsx` | Social & marketplace kanalen |
+| `src/components/admin/products/bulk/BulkTagsTab.tsx` | Tags beheer |
+
+### Updated Bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/pages/admin/Products.tsx` | Bulk edit knop en dialog state toevoegen |
+| `src/hooks/useProducts.ts` | Extra bulk mutations voor complexe operaties |
+
+### Bulk Actions Bar (Uitgebreid)
+
+De huidige balk wordt uitgebreid met een "Bewerken" knop:
 
 ```text
-NIEUWE SAMENHANGENDE STRUCTUUR
-──────────────────────────────
-
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  SELLQO CONNECT (/admin/connect)                                            │
-│  ══════════════════════════════                                             │
-│  De centrale hub voor ALLE verkoopkanaal integraties                        │
+│  24 geselecteerd                                                            │
 │                                                                             │
-│  [E-commerce]  [Social Commerce]  [Autopost]                                │
-│                                                                             │
-│  E-commerce:      Bol.com, Amazon, Shopify, WooCommerce, Odoo               │
-│  Social Commerce: Google Shopping, FB/IG Shop, TikTok, Pinterest, WhatsApp  │
-│  Autopost:        Auto-posten naar FB, X, LinkedIn (verplaatst van Settings)│
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  INSTELLINGEN > SOCIAL MEDIA (/admin/settings?section=social)               │
-│  ═══════════════════════════════════════════════════════════                │
-│  Alleen: Website/Footer Links (geen Autopost meer)                          │
-│                                                                             │
-│  + Link naar "SellQo Connect" voor geavanceerde koppelingen                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  PRODUCT > VERKOOPKANALEN TAB (hernoemd van "Marketplaces")                 │
-│  ═════════════════════════════════════════════════════════                  │
-│                                                                             │
-│  E-commerce Marketplaces                                                    │
-│  ─────────────────────────                                                  │
-│  ✅ Bol.com, ✅ Amazon, ✅ Shopify, ✅ WooCommerce, ✅ Odoo                  │
-│                                                                             │
-│  Social Commerce Channels  ◄── NIEUW                                        │
-│  ─────────────────────────                                                  │
-│  ☑️ Google Shopping    ☑️ Facebook Shop    ☑️ Instagram Shop               │
-│  ☐ Pinterest           ☐ TikTok            ☐ WhatsApp                       │
-│                                                                             │
-│  (Alleen kanalen tonen die verbonden zijn in SellQo Connect)                │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  AI MARKETING (/admin/marketing/ai) - Ongewijzigd                           │
-│  ════════════════════════════════════════════════                           │
-│  AI Content Hub + AI Actie Centrum blijven apart                            │
+│  [Bewerken]  [Activeren]  [Deactiveren]  [Verwijderen]                     │
+│      ↑                                                                      │
+│  Opent ProductBulkEditDialog                                                │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Wijzigingen
-
-### 1. SellQo Connect: Autopost Tab Toevoegen
-
-Verplaats de Autopost functionaliteit van Settings naar SellQo Connect als derde tab:
-
-```text
-SellQo Connect
-├── E-commerce (bestaand)
-├── Social Commerce (bestaand)
-└── Autopost (NIEUW - verplaatst van Settings)
-```
-
-**Bestanden:**
-- `src/pages/admin/Marketplaces.tsx` - Nieuwe tab toevoegen met SocialConnectionsManager
-
-### 2. Settings Social Media: Vereenvoudigen
-
-De Social Media settings worden vereenvoudigd naar alleen footer links:
-
-**Bestanden:**
-- `src/components/admin/settings/SocialMediaHub.tsx` - Verwijder tabs, alleen SocialLinksEditor tonen
-- Voeg link toe naar "SellQo Connect" voor koppelingen
-
-### 3. ProductMarketplaceTab: Social Channels Toevoegen
-
-Nieuwe sectie in de product marketplace tab voor social channel selectie:
-
-```text
-ProductMarketplaceTab.tsx
-├── Bestaande marketplace secties (Bol, Amazon, etc.)
-└── NIEUW: ProductSocialChannels component
-    └── Checkboxes voor elk verbonden social channel
-```
-
-**Bestanden:**
-- `src/components/admin/marketplace/ProductSocialChannels.tsx` (nieuw)
-- `src/components/admin/marketplace/ProductMarketplaceTab.tsx` - Integratie
-
-### 4. Sidebar: Opruimen Duplicatie
-
-Verwijder "Marketplaces" uit Verkoop sectie (dupliceert "Integraties > SellQo Connect"):
-
-**Bestanden:**
-- `src/components/admin/sidebar/sidebarConfig.ts`
-
-### 5. Tab Hernoemen (Optioneel)
-
-Overweeg "Marketplaces" tab in product te hernoemen naar "Verkoopkanalen" voor duidelijkheid.
-
-## Technische Details
-
-### Nieuwe Component: ProductSocialChannels.tsx
+### Bulk Edit State Type
 
 ```typescript
-// Toont checkboxes voor social channels
-// Leest verbonden kanalen uit useSocialChannels()
-// Slaat selectie op in products.social_channels JSONB
+interface BulkEditState {
+  // Basis
+  category_id?: string | null;
+  vat_rate_id?: string | null;
+  product_type?: ProductType;
+  
+  // Prijzen
+  price_adjustment?: {
+    type: 'add' | 'subtract' | 'percentage_up' | 'percentage_down' | 'exact';
+    value: number;
+  };
+  compare_at_price_action?: 'remove' | 'set_current' | 'exact';
+  compare_at_price_value?: number;
+  cost_price?: number | null;
+  
+  // Voorraad
+  stock_adjustment?: {
+    type: 'add' | 'subtract' | 'exact';
+    value: number;
+  };
+  track_inventory?: boolean;
+  allow_backorder?: boolean;
+  low_stock_threshold?: number;
+  
+  // Zichtbaarheid
+  is_active?: boolean;
+  hide_from_storefront?: boolean;
+  is_featured?: boolean;
+  requires_shipping?: boolean;
+  
+  // Tags
+  tags_to_add?: string[];
+  tags_to_remove?: string[];
+  tags_replace_all?: string[];
+  
+  // Kanalen
+  social_channels?: Record<string, boolean>;
+  sync_marketplaces?: string[];
+}
 ```
 
-Features:
-- Alleen verbonden kanalen tonen (niet alle mogelijke)
-- Sync status per kanaal
-- Bulk sync knop
-- Link naar SellQo Connect als geen kanalen verbonden
+### Prijsaanpassing Logica
 
-### Updated Marketplaces.tsx
+Voor prijs- en voorraadaanpassingen die per product berekend moeten worden, is een speciale edge function of RPC nodig:
 
-Drie tabs in plaats van twee:
-1. E-commerce (bestaand)
-2. Social Commerce (bestaand)
-3. Autopost (nieuw - bevat SocialConnectionsManager)
-
-### Updated SocialMediaHub.tsx
-
-Vereenvoudigd naar:
-- Alleen SocialLinksEditor (footer links)
-- Infobox met link naar SellQo Connect voor koppelingen
-
-### Updated sidebarConfig.ts
-
-```typescript
-// VERWIJDER uit salesItems:
-// { id: 'marketplaces', title: 'Marketplaces', url: '/admin/connect', icon: Store, featureKey: 'marketplaces' },
-
-// BEHOUD in systemItems:
-// { id: 'integrations-connect', title: 'SellQo Connect', url: '/admin/connect' },
+```sql
+-- Database function voor bulk prijs aanpassing
+CREATE OR REPLACE FUNCTION bulk_adjust_prices(
+  p_product_ids UUID[],
+  p_adjustment_type TEXT,  -- 'add', 'subtract', 'percentage_up', 'percentage_down', 'exact'
+  p_adjustment_value DECIMAL
+) RETURNS void AS $$
+BEGIN
+  IF p_adjustment_type = 'add' THEN
+    UPDATE products SET price = price + p_adjustment_value WHERE id = ANY(p_product_ids);
+  ELSIF p_adjustment_type = 'subtract' THEN
+    UPDATE products SET price = GREATEST(0, price - p_adjustment_value) WHERE id = ANY(p_product_ids);
+  ELSIF p_adjustment_type = 'percentage_up' THEN
+    UPDATE products SET price = price * (1 + p_adjustment_value / 100) WHERE id = ANY(p_product_ids);
+  ELSIF p_adjustment_type = 'percentage_down' THEN
+    UPDATE products SET price = price * (1 - p_adjustment_value / 100) WHERE id = ANY(p_product_ids);
+  ELSIF p_adjustment_type = 'exact' THEN
+    UPDATE products SET price = p_adjustment_value WHERE id = ANY(p_product_ids);
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-## Resultaat Na Implementatie
+### Voorraad Aanpassing Logica
 
-| Gebied | Voor | Na |
-|--------|------|-----|
-| **SellQo Connect** | 2 tabs (E-commerce, Social) | 3 tabs (E-commerce, Social Commerce, Autopost) |
-| **Settings > Social** | 2 tabs (Links, Autopost) | 1 sectie (alleen Links) + link naar Connect |
-| **Product > Marketplaces** | 5 marketplaces | 5 marketplaces + Social Channels sectie |
-| **Sidebar** | Dubbele link naar Connect | Eén duidelijke plek onder "Integraties" |
-
-## Flow Diagram
-
-```text
-MERCHANT WILT VERKOPEN VIA FACEBOOK SHOP
-─────────────────────────────────────────
-
-1. Ga naar SellQo Connect
-   └── Social Commerce tab
-       └── Verbind Facebook/Instagram Shop
-
-2. Ga naar Product Edit
-   └── Verkoopkanalen tab
-       └── Social Commerce sectie
-           └── ☑️ Facebook Shop activeren
-
-3. Product wordt gesynchroniseerd naar Meta Catalog
-   └── Verschijnt in Facebook Shop + Instagram Shop
-
-─────────────────────────────────────────
-
-MERCHANT WILT AUTO-POSTEN NAAR SOCIAL
-─────────────────────────────────────────
-
-1. Ga naar SellQo Connect
-   └── Autopost tab
-       └── Verbind Facebook account (voor content)
-
-2. Ga naar AI Marketing Hub
-   └── Genereer content
-       └── Publiceer naar Facebook
-
-─────────────────────────────────────────
-
-MERCHANT WILT SOCIAL LINKS IN FOOTER
-─────────────────────────────────────────
-
-1. Ga naar Instellingen
-   └── Social Media sectie
-       └── Vul Facebook URL in
-           └── Verschijnt in webshop footer
+```sql
+-- Database function voor bulk voorraad aanpassing
+CREATE OR REPLACE FUNCTION bulk_adjust_stock(
+  p_product_ids UUID[],
+  p_adjustment_type TEXT,  -- 'add', 'subtract', 'exact'
+  p_adjustment_value INTEGER
+) RETURNS void AS $$
+BEGIN
+  IF p_adjustment_type = 'add' THEN
+    UPDATE products SET stock = stock + p_adjustment_value WHERE id = ANY(p_product_ids);
+  ELSIF p_adjustment_type = 'subtract' THEN
+    UPDATE products SET stock = GREATEST(0, stock - p_adjustment_value) WHERE id = ANY(p_product_ids);
+  ELSIF p_adjustment_type = 'exact' THEN
+    UPDATE products SET stock = p_adjustment_value WHERE id = ANY(p_product_ids);
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-## Bestandsoverzicht
+### Tags Merge Logica
 
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| `Marketplaces.tsx` | Update | 3e tab "Autopost" toevoegen |
-| `SocialMediaHub.tsx` | Update | Vereenvoudigen, tabs verwijderen |
-| `ProductSocialChannels.tsx` | Nieuw | Per-product social channel selectie |
-| `ProductMarketplaceTab.tsx` | Update | Social channels sectie integreren |
-| `sidebarConfig.ts` | Update | Duplicaat sidebar item verwijderen |
+```sql
+-- Database function voor tags beheer
+CREATE OR REPLACE FUNCTION bulk_update_tags(
+  p_product_ids UUID[],
+  p_tags_to_add TEXT[],
+  p_tags_to_remove TEXT[],
+  p_replace_all BOOLEAN DEFAULT false,
+  p_replacement_tags TEXT[] DEFAULT '{}'
+) RETURNS void AS $$
+BEGIN
+  IF p_replace_all THEN
+    UPDATE products SET tags = p_replacement_tags WHERE id = ANY(p_product_ids);
+  ELSE
+    -- Add tags
+    IF array_length(p_tags_to_add, 1) > 0 THEN
+      UPDATE products 
+      SET tags = array(SELECT DISTINCT unnest(tags || p_tags_to_add))
+      WHERE id = ANY(p_product_ids);
+    END IF;
+    
+    -- Remove tags
+    IF array_length(p_tags_to_remove, 1) > 0 THEN
+      UPDATE products 
+      SET tags = array(SELECT unnest(tags) EXCEPT SELECT unnest(p_tags_to_remove))
+      WHERE id = ANY(p_product_ids);
+    END IF;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
 
-Dit plan zorgt voor een logische scheiding:
-- **SellQo Connect** = Alle externe verkoopkanalen & koppelingen
-- **Product Verkoopkanalen** = Per-product activeren/deactiveren
-- **AI Marketing** = Content generatie & automatisering
-- **Settings** = Configuratie (footer links, etc.)
+## Implementatie Volgorde
+
+### Fase 1: Database & Basis UI
+1. Database migratie met bulk functies (prijzen, voorraad, tags)
+2. `ProductBulkEditDialog.tsx` - Hoofdcomponent met tabs structuur
+3. `BulkBasicTab.tsx` - Categorie, BTW-tarief, product type
+
+### Fase 2: Prijzen & Voorraad
+4. `BulkPricingTab.tsx` - Prijs aanpassingen met verschillende modi
+5. `BulkStockTab.tsx` - Voorraad beheer
+6. Hook updates in `useProducts.ts` voor nieuwe mutations
+
+### Fase 3: Zichtbaarheid & Tags
+7. `BulkVisibilityTab.tsx` - Status, zichtbaarheid, featured
+8. `BulkTagsTab.tsx` - Tags toevoegen/verwijderen/vervangen
+
+### Fase 4: Kanalen & Integratie
+9. `BulkChannelsTab.tsx` - Social commerce en marketplace sync
+10. Products.tsx integratie - Bulk edit knop en dialog state
+
+## Functie Overzicht
+
+| Functie | Tab | Beschrijving |
+|---------|-----|--------------|
+| Categorie wijzigen | Basis | Verplaats naar andere categorie |
+| BTW-tarief | Basis | Wijzig BTW-tarief voor alle producten |
+| Product type | Basis | Wijzig naar fysiek/digitaal/dienst |
+| Prijs verhogen/verlagen | Prijzen | Vast bedrag of percentage |
+| Doorstreepprijs | Prijzen | Instellen/verwijderen voor acties |
+| Kostprijs | Prijzen | Marge berekening |
+| Voorraad +/- | Voorraad | Snel bijwerken |
+| Tracking aan/uit | Voorraad | Voor niet-fysieke producten |
+| Backorder | Voorraad | Wel/niet toestaan |
+| Drempelwaarde | Voorraad | Low stock alerts |
+| Activeren/Deactiveren | Zichtbaarheid | Online/offline |
+| Webshop/POS | Zichtbaarheid | Waar te tonen |
+| Featured | Zichtbaarheid | Uitlichten op homepage |
+| Verzending | Zichtbaarheid | Physical shipping |
+| Tags toevoegen | Tags | Meerdere tegelijk |
+| Tags verwijderen | Tags | Selectief verwijderen |
+| Social channels | Kanalen | FB/IG/Google/Pinterest |
+| Marketplace sync | Kanalen | Bol.com/Amazon sync starten |
+
+## Resultaat
+
+Na implementatie heeft de merchant een krachtige bulk editor waarmee:
+- Honderden producten tegelijk kunnen worden bijgewerkt
+- Kortingsacties snel kunnen worden opgezet (prijzen + doorstreepprijzen)
+- Voorraad na levering snel kan worden bijgewerkt
+- Producten naar nieuwe kanalen kunnen worden gepusht
+- Tags voor filtering/marketing kunnen worden beheerd
+
+Dit is vergelijkbaar met wat Shopify, WooCommerce en vergelijkbare platforms bieden voor professioneel productbeheer.
