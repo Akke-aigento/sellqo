@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { Send, Paperclip, Mail, MessageSquare } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Paperclip, Mail, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
+import { useAIAssistant } from '@/hooks/useAIAssistant';
+import { useAISuggestion } from '@/hooks/useAISuggestion';
+import { AISuggestionBox } from './AISuggestionBox';
 import type { Conversation } from '@/hooks/useInbox';
 
 interface ReplyComposerProps {
@@ -22,8 +25,77 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   );
   const [isSending, setIsSending] = useState(false);
 
+  // AI Suggestion integration
+  const { config: aiConfig } = useAIAssistant();
+  const { suggestion, isLoading: isSuggestionLoading, fetchSuggestion, clearSuggestion } = useAISuggestion();
+
   const canSendWhatsApp = conversation.customer?.phone && currentTenant?.whatsapp_enabled;
   const canSendEmail = !!conversation.customer?.email;
+
+  // Check if AI suggestions are enabled for this channel
+  const shouldShowAISuggestion = aiConfig?.reply_suggestions_enabled && (
+    (channel === 'email' && aiConfig.reply_suggestions_for_email) ||
+    (channel === 'whatsapp' && aiConfig.reply_suggestions_for_whatsapp)
+  );
+
+  // Fetch AI suggestion when conversation changes (only if enabled)
+  useEffect(() => {
+    const messageContent = conversation.lastMessage?.body_text || conversation.lastMessage?.body_html?.replace(/<[^>]*>/g, '');
+    if (shouldShowAISuggestion && messageContent && !suggestion) {
+      const lastMessage = conversation.lastMessage;
+      // Only fetch if the last message is from the customer
+      if (lastMessage?.direction === 'inbound') {
+        fetchSuggestion({
+          conversationId: conversation.id,
+          customerMessage: messageContent,
+          customerName: conversation.customer?.name,
+          channel,
+          context: {
+            orderId: lastMessage.order_id || undefined,
+            subject: lastMessage.subject || undefined,
+          },
+        });
+      }
+    }
+  }, [conversation.id, shouldShowAISuggestion]);
+
+  // Auto-fill suggestion if auto_draft is enabled
+  useEffect(() => {
+    if (suggestion && aiConfig?.reply_suggestions_auto_draft && !message) {
+      setMessage(suggestion);
+      clearSuggestion();
+    }
+  }, [suggestion, aiConfig?.reply_suggestions_auto_draft]);
+
+  const handleAcceptSuggestion = () => {
+    if (suggestion) {
+      setMessage(suggestion);
+      clearSuggestion();
+    }
+  };
+
+  const handleEditSuggestion = () => {
+    if (suggestion) {
+      setMessage(suggestion);
+      clearSuggestion();
+    }
+  };
+
+  const handleRequestSuggestion = () => {
+    const messageContent = conversation.lastMessage?.body_text || conversation.lastMessage?.body_html?.replace(/<[^>]*>/g, '');
+    if (!messageContent) return;
+    
+    fetchSuggestion({
+      conversationId: conversation.id,
+      customerMessage: messageContent,
+      customerName: conversation.customer?.name,
+      channel,
+      context: {
+        orderId: conversation.lastMessage.order_id || undefined,
+        subject: conversation.lastMessage.subject || undefined,
+      },
+    });
+  };
 
   const handleSend = async () => {
     if (!message.trim() || !currentTenant?.id) return;
@@ -64,6 +136,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       });
 
       setMessage('');
+      clearSuggestion();
       onSent();
     } catch (error) {
       console.error('Error sending reply:', error);
@@ -99,6 +172,18 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         </Tabs>
       )}
 
+      {/* AI Suggestion Box */}
+      {shouldShowAISuggestion && !aiConfig?.reply_suggestions_auto_draft && (
+        <AISuggestionBox
+          suggestion={suggestion || ''}
+          onAccept={handleAcceptSuggestion}
+          onEdit={handleEditSuggestion}
+          onDismiss={clearSuggestion}
+          isLoading={isSuggestionLoading}
+          className="mb-3"
+        />
+      )}
+
       {/* Message input */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
@@ -121,13 +206,26 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             <Paperclip className="h-4 w-4" />
           </Button>
         </div>
-        <Button
-          onClick={handleSend}
-          disabled={!message.trim() || isSending}
-          className="h-auto self-end"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        <div className="flex flex-col gap-1 self-end">
+          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleRequestSuggestion}
+              title="AI suggestie"
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            onClick={handleSend}
+            disabled={!message.trim() || isSending}
+            className="h-auto"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground mt-2">

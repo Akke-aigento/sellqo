@@ -19,6 +19,7 @@ import {
   FileText,
   MessageCircle,
   MessageSquare,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import { InvoiceAutomationSettings } from '@/components/admin/settings/InvoiceAu
 import { FulfillmentAPISettings } from '@/components/admin/settings/FulfillmentAPISettings';
 import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
+import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SettingsSection {
@@ -106,6 +108,7 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },
+      { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings },
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
