@@ -204,5 +204,8 @@ verify_jwt = false
 [functions.accept-bol-order]
 verify_jwt = false
 
+[functions.tracking-webhook]
+verify_jwt = false
+
 [functions.create-amazon-buy-shipping-label]
 verify_jwt = false

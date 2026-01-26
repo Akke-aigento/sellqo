@@ -4856,11 +4856,13 @@ export type Database = {
           discount_amount: number | null
           discount_code: string | null
           discount_code_id: string | null
+          external_reference: string | null
           fulfillment_status: string | null
           gift_card_amount: number | null
           gift_card_ids: string[] | null
           id: string
           internal_notes: string | null
+          last_tracking_check: string | null
           marketplace_connection_id: string | null
           marketplace_order_id: string | null
           marketplace_source: string | null
@@ -4885,6 +4887,7 @@ export type Database = {
           tenant_id: string
           total: number
           tracking_number: string | null
+          tracking_status: string | null
           tracking_url: string | null
           transaction_fee_charged: number | null
           updated_at: string | null
@@ -4912,11 +4915,13 @@ export type Database = {
           discount_amount?: number | null
           discount_code?: string | null
           discount_code_id?: string | null
+          external_reference?: string | null
           fulfillment_status?: string | null
           gift_card_amount?: number | null
           gift_card_ids?: string[] | null
           id?: string
           internal_notes?: string | null
+          last_tracking_check?: string | null
           marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
           marketplace_source?: string | null
@@ -4941,6 +4946,7 @@ export type Database = {
           tenant_id: string
           total?: number
           tracking_number?: string | null
+          tracking_status?: string | null
           tracking_url?: string | null
           transaction_fee_charged?: number | null
           updated_at?: string | null
@@ -4968,11 +4974,13 @@ export type Database = {
           discount_amount?: number | null
           discount_code?: string | null
           discount_code_id?: string | null
+          external_reference?: string | null
           fulfillment_status?: string | null
           gift_card_amount?: number | null
           gift_card_ids?: string[] | null
           id?: string
           internal_notes?: string | null
+          last_tracking_check?: string | null
           marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
           marketplace_source?: string | null
@@ -4997,6 +5005,7 @@ export type Database = {
           tenant_id?: string
           total?: number
           tracking_number?: string | null
+          tracking_status?: string | null
           tracking_url?: string | null
           transaction_fee_charged?: number | null
           updated_at?: string | null
@@ -9305,6 +9314,56 @@ export type Database = {
           },
         ]
       }
+      tenant_tracking_settings: {
+        Row: {
+          api_key_17track: string | null
+          auto_poll_17track: boolean | null
+          created_at: string | null
+          id: string
+          notify_on_delivered: boolean | null
+          notify_on_exception: boolean | null
+          notify_on_out_for_delivery: boolean | null
+          notify_on_shipped: boolean | null
+          poll_interval_hours: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_key_17track?: string | null
+          auto_poll_17track?: boolean | null
+          created_at?: string | null
+          id?: string
+          notify_on_delivered?: boolean | null
+          notify_on_exception?: boolean | null
+          notify_on_out_for_delivery?: boolean | null
+          notify_on_shipped?: boolean | null
+          poll_interval_hours?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_key_17track?: string | null
+          auto_poll_17track?: boolean | null
+          created_at?: string | null
+          id?: string
+          notify_on_delivered?: boolean | null
+          notify_on_exception?: boolean | null
+          notify_on_out_for_delivery?: boolean | null
+          notify_on_shipped?: boolean | null
+          poll_interval_hours?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_tracking_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_transaction_usage: {
         Row: {
           bank_transfer_transactions: number | null
@@ -9630,6 +9689,53 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      tracking_import_log: {
+        Row: {
+          created_at: string | null
+          error_details: Json | null
+          failed_records: number | null
+          id: string
+          import_data: Json | null
+          import_source: string
+          imported_by: string | null
+          matched_records: number | null
+          tenant_id: string
+          total_records: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_details?: Json | null
+          failed_records?: number | null
+          id?: string
+          import_data?: Json | null
+          import_source: string
+          imported_by?: string | null
+          matched_records?: number | null
+          tenant_id: string
+          total_records?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          error_details?: Json | null
+          failed_records?: number | null
+          id?: string
+          import_data?: Json | null
+          import_source?: string
+          imported_by?: string | null
+          matched_records?: number | null
+          tenant_id?: string
+          total_records?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_import_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       translation_jobs: {
         Row: {
@@ -10229,6 +10335,10 @@ export type Database = {
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
+      }
+      find_order_by_reference: {
+        Args: { p_reference: string; p_tenant_id: string }
+        Returns: string
       }
       generate_content_hash: { Args: { content: string }; Returns: string }
       generate_credit_note_number: {

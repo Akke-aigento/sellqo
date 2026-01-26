@@ -42,12 +42,14 @@ import {
   Package,
   ExternalLink,
   Printer,
-  CheckCircle2
+  CheckCircle2,
+  Upload
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { CARRIER_PATTERNS, generateTrackingUrl } from '@/lib/carrierPatterns';
 import { useNavigate } from 'react-router-dom';
+import { TrackingImportDialog } from '@/components/admin/fulfillment/TrackingImportDialog';
 
 type FulfillmentStatus = 'unfulfilled' | 'partial' | 'shipped' | 'delivered';
 
@@ -76,6 +78,7 @@ export default function Fulfillment() {
   const [statusFilter, setStatusFilter] = useState<string>('unfulfilled');
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<FulfillmentOrder | null>(null);
   const [trackingCarrier, setTrackingCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -272,10 +275,16 @@ export default function Fulfillment() {
             Beheer verzendingen en tracking
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Vernieuwen
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            CSV Import
+          </Button>
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Vernieuwen
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -516,6 +525,13 @@ export default function Fulfillment() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CSV Import Dialog */}
+      <TrackingImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportComplete={() => refetch()}
+      />
     </div>
   );
 }
