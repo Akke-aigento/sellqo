@@ -1,296 +1,409 @@
 
-# Directe Labelprinter Integratie voor Sellqo
+# Implementatieplan: Bol.com Auto-Acceptatie, Amazon Buy Shipping & Batch Label Printing
 
 ## Overzicht
 
-Dit plan implementeert twee belangrijke functionaliteiten:
-1. **Directe labelprinter koppeling** via WebUSB API - print labels zonder browser dialoog
-2. **Labels ophalen van bestaande Sendcloud/MyParcel orders** - voor orders die al via die platforms zijn aangemaakt
+Dit plan implementeert drie belangrijke functionaliteiten:
+1. **Auto-acceptatie toggle voor Bol.com orders** - Orders automatisch accepteren via Bol.com API
+2. **Amazon Buy Shipping integratie** - Labels genereren via Amazon's verzend-API
+3. **Batch label printing** - Meerdere labels tegelijk printen
 
-## Huidige Situatie
+---
 
-De app gebruikt momenteel:
-- `window.open(label_url, '_blank')` om labels te openen in een nieuw tabblad
-- `usePOSPrinter` hook met Web Print API voor kassabonnen (browser print dialoog)
-- Edge Functions voor label creatie (Sendcloud, MyParcel, Bol VVB)
-- Labels worden opgeslagen in `shipping_labels` tabel met `label_url`
+## Deel 1: Auto-Acceptatie Toggle voor Bol.com
 
-## Deel 1: Directe Labelprinter Integratie
+### Huidige Situatie
 
-### Technische Aanpak
+| Functie | Status |
+|---------|--------|
+| `autoConfirmShipment` - Verzendbevestiging met T&T | ✅ Geïmplementeerd |
+| `autoAcceptOrder` - Order accepteren bij import | ❌ Ontbreekt |
 
-**WebUSB API** is de beste optie voor directe USB communicatie:
-- Werkt in Chrome/Edge (85%+ van zakelijke gebruikers)
-- Geen extra software nodig
-- Directe communicatie met printer
-- Ondersteunt Zebra ZPL, Dymo, Brother, TSC
+De `sync-bol-orders` functie importeert orders, maar roept de Bol.com Accept Order API niet aan.
 
-### Nieuwe Bestanden
+### Implementatie
 
-#### 1. `src/hooks/useLabelPrinter.ts`
+#### 1.1 Type Uitbreiding
+**Bestand:** `src/types/marketplace.ts`
+
+Toevoegen aan `MarketplaceSettings`:
 ```typescript
-// WebUSB communicatie met labelprinters
-// Ondersteunde printers:
-// - Zebra (ZPL commands)
-// - Dymo (LabelWriter)  
-// - Brother (QL series)
-// - TSC (TSPL)
-
-interface LabelPrinter {
-  id: string;
-  name: string;
-  vendorId: number;
-  productId: number;
-  protocol: 'zpl' | 'epl' | 'raw' | 'tspl';
-}
-
-// Functies:
-// - detectPrinters(): Promise<LabelPrinter[]>
-// - connectPrinter(printer: LabelPrinter): Promise<boolean>
-// - printLabel(pdfUrl: string, options?: PrintOptions): Promise<boolean>
-// - printLabelDirect(data: Uint8Array): Promise<boolean>
-// - isSupported: boolean (browser check)
+autoAcceptOrder?: boolean;  // Automatisch orders accepteren bij import
 ```
 
-#### 2. `src/components/admin/settings/LabelPrinterSettings.tsx`
-```
+#### 1.2 UI Component Update
+**Bestand:** `src/components/admin/marketplace/BolVVBSettings.tsx`
+
+Nieuwe sectie toevoegen voor order acceptatie:
+
+```text
 ┌─────────────────────────────────────────────────────────────────┐
-│  Labelprinter Instellingen                                      │
+│  📦 Order Verwerking                                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  🖨️ Gekoppelde Printer                                          │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Zebra GK420d                              [Ontkoppelen]  │  │
-│  │  Status: Verbonden ✓                                      │  │
-│  │  Laatste print: 2 minuten geleden                         │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  Automatische order acceptatie                     [Toggle]     │
+│  Orders worden automatisch geaccepteerd bij                     │
+│  import vanuit Bol.com                                          │
 │                                                                 │
-│  Labelformaat                                                   │
-│  ○ A6 (105 × 148 mm) - Standaard verzendlabel                  │
-│  ○ 4x6 inch (102 × 152 mm) - US standaard                      │
-│  ○ Brother 62mm breed                                           │
+│  ⚠️ Let op: Geaccepteerde orders kunnen niet meer             │
+│  worden geweigerd via Bol.com                                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 1.3 Edge Function: Accept Order API
+**Bestand:** `supabase/functions/accept-bol-order/index.ts` (Nieuw)
+
+```typescript
+// Bol.com Accept Order API
+// PUT /retailer/orders/{order-id}/accept
+//
+// Request body:
+// {
+//   "orderItems": [{
+//     "orderItemId": "123",
+//     "quantity": 1
+//   }]
+// }
+//
+// Response: Process status URL voor tracking
+```
+
+#### 1.4 Sync Function Update
+**Bestand:** `supabase/functions/sync-bol-orders/index.ts`
+
+Na succesvol importeren van een order, checken op `autoAcceptOrder` setting:
+
+```typescript
+// Na order insert (regel ~334)
+if (settings.autoAcceptOrder) {
+  await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceKey}` },
+    body: JSON.stringify({
+      order_id: newOrder.id,
+      connection_id: connection.id
+    })
+  });
+}
+```
+
+---
+
+## Deel 2: Amazon Buy Shipping Integratie
+
+### Wat is Amazon Buy Shipping?
+
+Amazon Buy Shipping is vergelijkbaar met Bol.com VVB:
+- Labels genereren via Amazon's API
+- Goedkopere tarieven via Amazon's contracten
+- Automatische tracking updates
+- Werkt alleen voor MFN (Merchant Fulfilled) orders
+
+### API Endpoints
+
+| Endpoint | Beschrijving |
+|----------|--------------|
+| `GET /mfn/v0/eligibleShippingServices` | Beschikbare verzendopties ophalen |
+| `POST /mfn/v0/shipments` | Verzending aanmaken + label genereren |
+| `GET /mfn/v0/shipments/{shipmentId}` | Verzending status ophalen |
+
+### Implementatie
+
+#### 2.1 Nieuwe Edge Function
+**Bestand:** `supabase/functions/create-amazon-buy-shipping-label/index.ts`
+
+Functionaliteit:
+1. Order ophalen uit database
+2. Marketplace connection credentials ophalen
+3. Eligible shipping services ophalen van Amazon
+4. Goedkoopste/snelste optie selecteren
+5. Shipment aanmaken + label genereren
+6. Label opslaan in Supabase Storage
+7. `shipping_labels` record aanmaken
+8. Order status updaten
+
+```text
+Flow:
+┌──────────┐     ┌───────────────────┐     ┌──────────────────┐
+│  Order   │────▶│ Get Eligible      │────▶│ Create Shipment  │
+│  Detail  │     │ Services          │     │ + Get Label      │
+└──────────┘     └───────────────────┘     └──────────────────┘
+                                                   │
+                                                   ▼
+                 ┌───────────────────┐     ┌──────────────────┐
+                 │ shipping_labels   │◀────│ Store in         │
+                 │ record            │     │ Supabase Storage │
+                 └───────────────────┘     └──────────────────┘
+```
+
+#### 2.2 Type Uitbreidingen
+**Bestand:** `src/types/marketplace.ts`
+
+```typescript
+// Amazon-specifieke settings toevoegen
+amazonBuyShippingEnabled?: boolean;
+amazonDefaultShippingService?: string;
+amazonAutoSelectCheapest?: boolean;
+```
+
+#### 2.3 UI Component
+**Bestand:** `src/components/admin/marketplace/AmazonBuyShippingSettings.tsx` (Nieuw)
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  📦 Amazon Buy Shipping                                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Amazon Buy Shipping inschakelen               [Toggle]         │
+│  Genereer labels via Amazon voor lagere tarieven                │
+│                                                                 │
+│  Selectie strategie                                             │
+│  ○ Goedkoopste optie (aanbevolen)                              │
+│  ○ Snelste optie                                                │
+│  ○ Handmatige selectie                                          │
+│                                                                 │
+│  ℹ️ Amazon Buy Shipping werkt alleen voor MFN orders           │
+│  (zelf verzenden). FBA orders worden door Amazon afgehandeld.  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 2.4 Order Detail Integratie
+**Bestand:** `src/components/admin/AmazonActionsCard.tsx` (Nieuw)
+
+Vergelijkbaar met `BolActionsCard.tsx`:
+- Toon Amazon order info
+- "Amazon Label Aanmaken" knop
+- Label status en print opties
+- Tracking info weergave
+
+---
+
+## Deel 3: Batch Label Printing
+
+### Functionaliteit
+
+Meerdere orders selecteren en alle labels in één keer printen of downloaden.
+
+### Implementatie
+
+#### 3.1 Order Selectie UI
+**Bestand:** `src/pages/admin/Orders.tsx`
+
+Toevoegen van:
+- Checkbox voor elke order regel
+- "Selecteer alle" optie
+- Bulk actie toolbar wanneer orders geselecteerd zijn
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  ☑ 3 orders geselecteerd                                       │
+│  [🖨️ Print Labels]  [📥 Download Labels]  [❌ Deselecteer]      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 3.2 Batch Print Hook
+**Bestand:** `src/hooks/useBatchLabelPrint.ts` (Nieuw)
+
+```typescript
+interface BatchPrintOptions {
+  orderIds: string[];
+  printMethod: 'webusb' | 'browser' | 'download';
+  onProgress?: (current: number, total: number) => void;
+}
+
+function useBatchLabelPrint() {
+  // Ophalen van alle labels voor geselecteerde orders
+  // Sequentieel printen via useLabelPrinter
+  // Of merge naar één PDF voor download
+}
+```
+
+#### 3.3 Batch Print Dialog
+**Bestand:** `src/components/admin/BatchPrintDialog.tsx` (Nieuw)
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Labels Printen (5 orders)                                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ✓ #0042 - VVB label (PostNL)                                  │
+│  ✓ #0043 - Sendcloud label (DHL)                               │
+│  ✗ #0044 - Geen label beschikbaar                              │
+│  ✓ #0045 - VVB label (PostNL)                                  │
+│  ✓ #0046 - Amazon Buy Shipping (Amazon Logistics)              │
+│                                                                 │
+│  Totaal: 4 labels beschikbaar                                   │
 │                                                                 │
 │  Print methode                                                  │
-│  ● Direct printen (WebUSB) - Aanbevolen                        │
-│  ○ Browser print dialoog - Fallback                             │
+│  ● Direct printen (Zebra GK420d)                               │
+│  ○ Browser print dialoog                                        │
+│  ○ Download als PDF                                             │
 │                                                                 │
-│  [Detecteer Printers]  [Test Print]                             │
+│  Progress: [████████████░░░░░░░░] 3/4                           │
 │                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Wijzigingen aan Bestaande Bestanden
-
-#### 3. `src/components/admin/BolActionsCard.tsx`
-Toevoegen van "Direct Printen" knop naast "Download Label":
-
-```tsx
-// Nieuwe imports
-import { useLabelPrinter } from '@/hooks/useLabelPrinter';
-
-// In component
-const { printLabel, isConnected, isSupported } = useLabelPrinter();
-
-// Nieuwe knop
-{latestLabel.label_url && (
-  <div className="flex gap-2">
-    {isConnected && (
-      <Button
-        variant="default"
-        size="sm"
-        className="flex-1"
-        onClick={() => printLabel(latestLabel.label_url!)}
-      >
-        <Printer className="h-4 w-4 mr-2" />
-        Print Label
-      </Button>
-    )}
-    <Button
-      variant="outline"
-      size="sm"
-      className={isConnected ? '' : 'w-full'}
-      onClick={() => window.open(latestLabel.label_url!, '_blank')}
-    >
-      <Download className="h-4 w-4 mr-2" />
-      Download
-    </Button>
-  </div>
-)}
-```
-
-#### 4. Database uitbreiding
-Toevoegen aan `shipping_integrations.settings`:
-```json
-{
-  "labelPrinter": {
-    "enabled": true,
-    "vendorId": 2655,
-    "productId": 14,
-    "protocol": "zpl",
-    "labelFormat": "a6"
-  }
-}
-```
-
-## Deel 2: Labels Ophalen van Sendcloud/MyParcel
-
-### Probleem
-Sommige orders worden buiten Sellqo om aangemaakt in Sendcloud/MyParcel. We willen deze labels kunnen ophalen en koppelen.
-
-### Oplossing
-
-#### 1. Nieuwe Edge Function: `fetch-external-label`
-
-```typescript
-// supabase/functions/fetch-external-label/index.ts
-// 
-// Haalt bestaande labels op van Sendcloud of MyParcel
-// op basis van ordernummer of trackingnummer
-
-// Sendcloud API:
-// GET /parcels?order_number={orderNumber}
-// Response bevat label.normal_printer URL
-
-// MyParcel API:  
-// GET /shipments?reference_identifier={orderNumber}
-// Response bevat barcode, moet daarna PDF ophalen via
-// GET /shipments/{id}/download_labels
-
-// Flow:
-// 1. Zoek parcel/shipment op ordernummer
-// 2. Download PDF label
-// 3. Sla op in Supabase Storage (met A6 cropping optie)
-// 4. Maak shipping_labels record aan
-```
-
-#### 2. UI Component: `FetchExternalLabelDialog.tsx`
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Label ophalen van externe provider                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Provider                                                       │
-│  [Sendcloud ▼]                                                  │
-│                                                                 │
-│  Zoeken op                                                      │
-│  ○ Ordernummer: #0042                                           │
-│  ○ Trackingnummer: ___________________________                  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  ⚠️ Let op: Dit haalt een bestaand label op dat al is     │  │
-│  │  aangemaakt in Sendcloud. Het label wordt niet opnieuw    │  │
-│  │  gegenereerd.                                              │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│                               [Annuleren]  [Label Ophalen]       │
+│                               [Annuleren]  [Start Printen]       │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Integratie in OrderDetail
+#### 3.4 PDF Merge Functie (voor download)
+**Bestand:** `src/utils/pdfMerge.ts` (Nieuw)
 
-De `BolActionsCard` wordt uitgebreid of er komt een generieke `ShippingActionsCard` die werkt voor alle orders:
+Voor de "Download als PDF" optie worden alle labels samengevoegd tot één PDF met pdf-lib.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  📦 Verzending                                                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Geen label gekoppeld                                           │
-│                                                                 │
-│  [+ Nieuw Label Aanmaken]                                       │
-│  [↓ Bestaand Label Ophalen] ← Nieuw!                            │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+---
 
 ## Implementatie Overzicht
 
 | Bestand | Type | Beschrijving |
 |---------|------|--------------|
-| `src/hooks/useLabelPrinter.ts` | Nieuw | WebUSB hook voor directe printercommunicatie |
-| `src/components/admin/settings/LabelPrinterSettings.tsx` | Nieuw | Printer configuratie UI |
-| `supabase/functions/fetch-external-label/index.ts` | Nieuw | Ophalen labels van Sendcloud/MyParcel |
-| `src/components/admin/FetchExternalLabelDialog.tsx` | Nieuw | Dialog voor label ophalen |
-| `src/components/admin/BolActionsCard.tsx` | Update | Print knop + fetch optie |
-| `src/components/admin/ShippingActionsCard.tsx` | Nieuw | Generieke verzendacties voor alle orders |
-| `src/pages/admin/Shipping.tsx` | Update | Link naar printer settings |
-| `src/types/shippingIntegration.ts` | Update | Printer configuratie types |
+| **Bol.com Auto-Accept** | | |
+| `src/types/marketplace.ts` | Update | `autoAcceptOrder` setting |
+| `src/components/admin/marketplace/BolVVBSettings.tsx` | Update | Toggle UI |
+| `supabase/functions/accept-bol-order/index.ts` | Nieuw | Accept API call |
+| `supabase/functions/sync-bol-orders/index.ts` | Update | Auto-accept na import |
+| **Amazon Buy Shipping** | | |
+| `src/types/marketplace.ts` | Update | Amazon shipping settings |
+| `supabase/functions/create-amazon-buy-shipping-label/index.ts` | Nieuw | Label generatie |
+| `src/components/admin/marketplace/AmazonBuyShippingSettings.tsx` | Nieuw | Settings UI |
+| `src/components/admin/AmazonActionsCard.tsx` | Nieuw | Order detail acties |
+| **Batch Printing** | | |
+| `src/hooks/useBatchLabelPrint.ts` | Nieuw | Batch print logica |
+| `src/components/admin/BatchPrintDialog.tsx` | Nieuw | Batch print UI |
+| `src/utils/pdfMerge.ts` | Nieuw | PDF samenvoegen |
+| `src/pages/admin/Orders.tsx` | Update | Order selectie + toolbar |
 
-## Browser Compatibiliteit
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│  WebUSB Ondersteuning                                          │
-├────────────────────────────────────────────────────────────────┤
-│  ✓ Chrome 61+        │  ✓ Edge 79+        │  ✗ Safari          │
-│  ✓ Chrome Android    │  ✗ Firefox         │  ✓ Opera 48+       │
-└────────────────────────────────────────────────────────────────┘
-
-Fallback: Als WebUSB niet beschikbaar is, toont de app 
-automatisch de "Download" optie met browser print dialoog.
-```
+---
 
 ## Technische Details
 
-### WebUSB Printer Protocol
+### Bol.com Accept Order API
 
 ```typescript
-// Zebra ZPL voorbeeld voor A6 label
-const ZPL_TEMPLATE = `
-^XA
-^FO50,50^A0N,40,40^FD${shipmentInfo.name}^FS
-^FO50,100^A0N,30,30^FD${shipmentInfo.address}^FS
-^FO50,140^A0N,30,30^FD${shipmentInfo.postalCode} ${shipmentInfo.city}^FS
-^BY3,2,100
-^FO50,200^BC^FD${trackingNumber}^FS
-^XZ
-`;
+// PUT https://api.bol.com/retailer/orders/{orderId}/accept
+// Headers: Authorization: Bearer {token}
 
-// Of direct PDF bytes sturen naar printer
-async function printPdfToZebra(pdfBytes: Uint8Array) {
-  const device = await navigator.usb.requestDevice({
-    filters: [{ vendorId: 0x0A5F }] // Zebra
-  });
-  await device.open();
-  await device.selectConfiguration(1);
-  await device.claimInterface(0);
-  await device.transferOut(1, pdfBytes);
-  await device.close();
+interface AcceptOrderRequest {
+  orderItems: Array<{
+    orderItemId: string;
+    quantity: number;
+  }>;
+}
+
+// Response: 202 Accepted
+interface AcceptOrderResponse {
+  processStatusId: string;
+  entityId: string;
+  eventType: string;
+  description: string;
+  status: string;
+  createTimestamp: string;
+  links: Array<{
+    rel: string;
+    href: string;
+    method: string;
+  }>;
 }
 ```
 
-### Sendcloud Label Fetch API
+### Amazon Buy Shipping API
 
 ```typescript
-// GET https://panel.sendcloud.sc/api/v2/parcels?order_number=0042
-// Response:
-{
-  "parcels": [{
-    "id": 123456,
-    "tracking_number": "3STEST123456",
-    "label": {
-      "label_printer": "https://panel.sendcloud.sc/api/v2/labels/label_printer/123456"
-    }
-  }]
+// POST https://sellingpartnerapi-eu.amazon.com/mfn/v0/shipments
+
+interface CreateShipmentRequest {
+  shipmentRequestDetails: {
+    amazonOrderId: string;
+    sellerOrderId?: string;
+    itemList: Array<{
+      orderItemId: string;
+      quantity: number;
+    }>;
+    shipFromAddress: {
+      name: string;
+      addressLine1: string;
+      city: string;
+      postalCode: string;
+      countryCode: string;
+    };
+    packageDimensions: {
+      length: number;
+      width: number;
+      height: number;
+      unit: 'centimeters' | 'inches';
+    };
+    weight: {
+      value: number;
+      unit: 'kg' | 'oz';
+    };
+    shippingServiceOptions: {
+      deliveryExperience: 'DeliveryConfirmationWithAdultSignature' | 
+                          'DeliveryConfirmationWithSignature' |
+                          'DeliveryConfirmationWithoutSignature' |
+                          'NoTracking';
+      carrierWillPickUp: boolean;
+    };
+  };
+  shippingServiceId: string;  // Van eligibleShippingServices
 }
+
+// Response bevat:
+// - shipmentId
+// - amazonOrderId
+// - label (base64 encoded PDF)
+// - trackingId
 ```
 
-### MyParcel Label Fetch API
+### Batch Print Sequentie
 
-```typescript
-// GET https://api.myparcel.nl/shipments?reference_identifier=0042
-// Response bevat shipment ID
-
-// GET https://api.myparcel.nl/shipment_labels/{id}
-// Response: PDF binary
+```text
+1. Gebruiker selecteert orders
+2. Systeem haalt shipping_labels op voor alle orders
+3. Filter: alleen orders met label_url
+4. Toon overzicht in dialog
+5. Bij "Start Printen":
+   a. WebUSB: sequentieel printen met delay (500ms)
+   b. Browser: merge PDFs, open in nieuwe tab
+   c. Download: merge PDFs, trigger download
+6. Toon progress indicator
+7. Success/error feedback per label
 ```
+
+---
+
+## Database Impact
+
+Geen schema wijzigingen nodig - we gebruiken bestaande structuren:
+- `shipping_labels` - labels opslaan
+- `marketplace_connections.settings` - nieuwe settings opslaan (JSON)
+- `orders` - status updates
+
+---
+
+## Config Updates
+
+**Bestand:** `supabase/config.toml`
+
+```toml
+[functions.accept-bol-order]
+verify_jwt = false
+
+[functions.create-amazon-buy-shipping-label]
+verify_jwt = false
+```
+
+---
 
 ## Resultaat
 
-- **Direct printen vanuit Sellqo** - Geen browser dialoog, 1-click printing
-- **Bestaande labels ophalen** - Sync met Sendcloud/MyParcel orders die extern zijn aangemaakt  
-- **Fallback mechanisme** - Altijd werkend, zelfs zonder WebUSB support
-- **Configureerbaar** - Printer type, labelformaat, print methode instelbaar
-- **A6 cropping** - Automatisch bijsnijden ook voor opgehaalde labels
+Na implementatie:
+
+| Feature | Beschrijving |
+|---------|--------------|
+| **Bol.com Auto-Accept** | Orders worden automatisch geaccepteerd bij import - één stap minder voor de verkoper |
+| **Amazon Buy Shipping** | Labels genereren via Amazon voor MFN orders - goedkopere tarieven, automatische tracking |
+| **Batch Printing** | Meerdere labels tegelijk printen - tijdsbesparing bij veel orders |
+
+Alle features integreren naadloos met de bestaande `useLabelPrinter` hook en shipping_labels infrastructuur.
