@@ -1,211 +1,95 @@
 
-# Synchronisatie Regels - Next Level Verbeteringen
 
-## Huidige Status - Wat er al is
+# Verkoopkanaal Tonen op Orders & Facturen
 
-| Component | Status |
-|-----------|--------|
-| Type definities (SyncRules, FieldMappings) | Volledig |
-| Platform capabilities matrix | Volledig (5 platformen) |
-| SyncRuleCard met richting/velden/instellingen | Volledig |
-| StatusMappingDialog voor orders | Volledig |
-| Presets (Minimaal/Standaard/Volledig) | Volledig |
-| useSyncRules hook met persistence | Volledig |
+## Doel
+De boekhouder moet in één oogopslag kunnen zien via welk kanaal (SellQo Webshop, Bol.com, Amazon, etc.) een bestelling of factuur is binnengekomen.
 
 ---
 
-## Verbeteringen voor "Spot On" Status
+## Wat Er Al Is
 
-### 1. Synchronisatie Geschiedenis en Logging Dashboard
+- `OrderMarketplaceBadge.tsx` component bestaat al met iconen voor Bol.com, Amazon, en fallback
+- `marketplace_source` veld is aanwezig in de orders tabel
+- Filter op bron werkt al in de bestellijst
 
-Een visueel log van alle sync-activiteiten per data type, zodat gebruikers kunnen zien wat er wanneer is gesynchroniseerd.
+## Wat Ontbreekt
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  📊 Laatste Synchronisaties                                     [Vernieuwen]│
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ✓ Bestellingen   Vandaag 14:32   12 orders geimporteerd                    │
-│  ✓ Voorraad       Vandaag 14:30   48 producten bijgewerkt                   │
-│  ⚠ Producten      Vandaag 12:15   3 van 25 mislukt                          │
-│  ✓ Klanten        Gisteren        5 klanten geimporteerd                    │
-│                                                                              │
-│  [Bekijk volledige historie →]                                              │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Nieuwe Componenten:**
-- `SyncHistoryWidget.tsx` - Compacte widget in SyncRulesTab
-- `SyncLogDialog.tsx` - Uitgebreide log viewer per data type
-
-**Nieuwe Database Tabel:**
-```sql
-CREATE TABLE sync_activity_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id),
-  connection_id UUID REFERENCES marketplace_connections(id),
-  data_type TEXT NOT NULL,
-  direction TEXT NOT NULL,
-  status TEXT DEFAULT 'success',
-  records_processed INTEGER DEFAULT 0,
-  records_failed INTEGER DEFAULT 0,
-  error_details JSONB,
-  started_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### 2. Conflict Detectie en Resolutie Strategie
-
-Wanneer dezelfde data in twee systemen wordt gewijzigd, wie "wint"? Geef gebruikers controle over dit gedrag.
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ⚔️ Conflict Strategie                                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  Bij bidirectionele sync kan er conflict ontstaan wanneer dezelfde          │
-│  data in beide systemen is gewijzigd.                                       │
-│                                                                              │
-│  Conflict Resolutie:                                                        │
-│    ○ SellQo wint altijd                                                     │
-│    ● Meest recente wijziging wint                                           │
-│    ○ Platform wint altijd                                                   │
-│    ○ Handmatig beoordelen                                                   │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Wijzigingen:**
-- Voeg `conflictStrategy` toe aan `SyncRuleConfig`
-- Nieuwe `ConflictStrategySelector.tsx` component
-- Alleen tonen wanneer `direction === 'bidirectional'`
-
-### 3. Handmatige Sync Trigger per Data Type
-
-Gebruikers willen soms direct synchroniseren in plaats van te wachten op auto-sync.
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ ☑ VOORRAAD                                             [Nu Syncen ⟳]  │
-├────────────────────────────────────────────────────────────────────────┤
-│  Richting: ↑ Export                                                    │
-│  Laatste sync: 14:32 (15 min geleden)                                  │
-│                                                                        │
-│  [Nu Syncen] - Forceer directe synchronisatie                          │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-**Wijzigingen:**
-- Voeg `lastSyncedAt` toe aan `SyncRuleConfig`
-- "Nu Syncen" knop die edge function triggert
-- Voortgangsindicator tijdens sync
-
-### 4. Test Modus / Dry Run
-
-Laat gebruikers zien wat er zou gebeuren ZONDER daadwerkelijk te synchroniseren.
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  🧪 Test Modus                                               [Stoppen]      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  Simulatie resultaten voor PRODUCTEN export:                                │
-│                                                                              │
-│  Nieuw aan te maken:     8 producten                                        │
-│  Bij te werken:         24 producten                                        │
-│  Geen actie nodig:     156 producten                                        │
-│                                                                              │
-│  Potentiële problemen:                                                      │
-│  ⚠ 3 producten missen een EAN - vereist door Bol.com                        │
-│  ⚠ 1 product heeft prijs €0.00                                              │
-│                                                                              │
-│  [Toch Syncen] [Problemen Oplossen]                                         │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Nieuwe Componenten:**
-- `SyncTestModeDialog.tsx` - Dry run resultaten
-- Nieuwe edge function `test-sync-rules` die geen data wijzigt
-
-### 5. Validatie Waarschuwingen
-
-Preventieve waarschuwingen wanneer configuratie mogelijk problemen kan veroorzaken.
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ⚠️ Configuratie Waarschuwingen                                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  • Producten: SKU veld is uitgeschakeld maar vereist voor Bol.com matching  │
-│  • Voorraad: Veiligheidsvoorraad is 0 - risico op overselling               │
-│  • Klanten: Privacy - klantgegevens worden naar extern platform verzonden   │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Wijzigingen:**
-- `useSyncValidation.ts` hook voor validatielogica
-- Waarschuwingskaart in `SyncRulesTab.tsx`
-
-### 6. Import/Export van Configuratie
-
-Backup en restore van sync regels, ook handig voor kopiëren tussen connecties.
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  💾 Configuratie Beheer                                                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  [📥 Exporteer als JSON]  [📤 Importeer Configuratie]                        │
-│                                                                              │
-│  Kopieer naar andere connectie:                                             │
-│  [Selecteer connectie... ▾]  [Kopiëren]                                     │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Nieuwe Component:**
-- `SyncConfigManager.tsx` - Export/Import/Copy functies
-
-### 7. Scheduler / Sync Frequentie per Data Type
-
-Verschillende data types kunnen verschillende sync-frequenties nodig hebben.
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│  ⏰ Sync Schema                                                        │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│  Bestellingen:  [Elke 5 minuten ▾]    ← Kritiek, snel syncen          │
-│  Voorraad:      [Elke 15 minuten ▾]   ← Belangrijk                    │
-│  Producten:     [Dagelijks ▾]         ← Minder vaak nodig             │
-│  Klanten:       [Wekelijks ▾]                                         │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-**Wijzigingen:**
-- Voeg `syncFrequency` toe aan `SyncRuleConfig`
-- `SyncFrequencySelector.tsx` component
-- Opties: 5min, 15min, 30min, 1uur, 4uur, dagelijks, wekelijks
+1. Badge wordt nergens weergegeven in de UI
+2. Facturen tonen geen kanaalinformatie
+3. SellQo Webshop orders tonen ook geen badge
 
 ---
 
-## Prioriteit en Impact
+## Implementatieplan
 
-| Verbetering | Prioriteit | Impact | Complexiteit |
-|-------------|------------|--------|--------------|
-| Sync Geschiedenis Widget | HOOG | Gebruikers zien wat er gebeurt | Laag |
-| Handmatige Sync Trigger | HOOG | Directe controle | Laag |
-| Validatie Waarschuwingen | HOOG | Voorkomt fouten | Laag |
-| Conflict Strategie | MEDIUM | Belangrijk voor bidirectioneel | Medium |
-| Sync Frequentie | MEDIUM | Flexibiliteit | Medium |
-| Test Modus / Dry Run | MEDIUM | Vertrouwen | Hoog |
-| Import/Export Config | LAAG | Nice-to-have | Laag |
+### Fase 1: Orders - Kanaal Zichtbaar Maken
+
+**1.1 Bestellijst (`Orders.tsx`)**
+- Voeg nieuwe kolom "Bron" toe aan tabel
+- Toon `OrderMarketplaceBadge` in elke rij
+- Ook SellQo Webshop tonen (niet verbergen)
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ Order      │ Klant         │ Bron            │ Status    │ Bedrag │ Datum │
+├────────────────────────────────────────────────────────────────────────────┤
+│ #0042      │ Jan Jansen    │ 🛒 Bol.com      │ Verzonden │ €89.99 │ 25 jan│
+│ #0041      │ Piet Pieterse │ 🏪 SellQo       │ Betaald   │ €45.00 │ 25 jan│
+│ #0040      │ Marie de Vries│ 📦 Amazon       │ Pending   │ €129.00│ 24 jan│
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+**1.2 Order Detail (`OrderDetail.tsx`)**
+- Badge toevoegen naast ordernummer in header
+- Marketplace order ID tonen indien beschikbaar (voor referentie)
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ ← #0042  [🛒 Bol.com]  [Verzonden]  [Betaald]          │
+│ 25 januari 2026 om 14:32                                │
+│ Marketplace ID: 1234567890                              │
+└─────────────────────────────────────────────────────────┘
+```
+
+**1.3 OrderMarketplaceBadge Uitbreiden**
+- Voeg SellQo Webshop badge toe (nu wordt deze verborgen)
+- Voeg WooCommerce, Shopify toe voor toekomstige integraties
+
+---
+
+### Fase 2: Facturen - Kanaal Overnemen van Order
+
+**2.1 Query Uitbreiden (`useInvoices.ts`)**
+- Haal `marketplace_source` op via de orders relatie
+- Voeg toe aan select: `orders (order_number, customer_name, marketplace_source)`
+
+**2.2 Facturenlijst (`Invoices.tsx`)**
+- Nieuwe kolom "Bron" toevoegen
+- Hergebruik `OrderMarketplaceBadge` component (werkt ook voor facturen)
+- Filter optie toevoegen voor kanaal
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Factuur    │ Klant         │ Order   │ Bron        │ Bedrag  │ Status      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ INV-2026-42│ Jan Jansen    │ #0042   │ 🛒 Bol.com  │ €89.99  │ ✓ Betaald   │
+│ INV-2026-41│ Piet Pieterse │ #0041   │ 🏪 SellQo   │ €45.00  │ ✓ Betaald   │
+│ INV-2026-40│ Marie de Vries│ -       │ 📝 Handmatig│ €500.00 │ → Verstuurd │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**2.3 Handmatige Facturen**
+- Voor facturen zonder order: toon "Handmatig" badge
+- Duidelijk onderscheid met marketplace orders
+
+---
+
+### Fase 3: PDF Factuur Aanpassen (Optioneel)
+
+Als de boekhouder dit ook op de PDF wil:
+- Voeg bronvermelding toe aan factuurgenerator
+- Subtiele tekst onderaan: "Via: Bol.com" of "Via: SellQo Webshop"
 
 ---
 
@@ -213,131 +97,97 @@ Verschillende data types kunnen verschillende sync-frequenties nodig hebben.
 
 | Bestand | Actie | Beschrijving |
 |---------|-------|--------------|
-| `src/types/syncRules.ts` | Wijzigen | Voeg conflictStrategy, syncFrequency, lastSyncedAt toe |
-| `src/components/admin/marketplace/SyncRulesTab.tsx` | Wijzigen | Integreer nieuwe widgets |
-| `src/components/admin/marketplace/SyncRuleCard.tsx` | Wijzigen | "Nu Syncen" knop, laatste sync tijd |
-| `src/components/admin/marketplace/SyncHistoryWidget.tsx` | Nieuw | Compacte sync historie |
-| `src/components/admin/marketplace/SyncLogDialog.tsx` | Nieuw | Uitgebreide log viewer |
-| `src/components/admin/marketplace/ConflictStrategySelector.tsx` | Nieuw | Conflict resolutie keuze |
-| `src/components/admin/marketplace/SyncFrequencySelector.tsx` | Nieuw | Sync interval keuze |
-| `src/components/admin/marketplace/SyncValidationWarnings.tsx` | Nieuw | Waarschuwingen component |
-| `src/components/admin/marketplace/SyncConfigManager.tsx` | Nieuw | Export/Import/Copy |
-| `src/hooks/useSyncValidation.ts` | Nieuw | Validatielogica hook |
-| `supabase/functions/trigger-manual-sync/index.ts` | Nieuw | Handmatige sync API |
-| Database migratie | Nieuw | sync_activity_log tabel |
+| `OrderMarketplaceBadge.tsx` | Wijzigen | SellQo badge toevoegen, nieuwe kanalen |
+| `Orders.tsx` | Wijzigen | Bron kolom + badge in rijen |
+| `OrderDetail.tsx` | Wijzigen | Badge in header + marketplace ID |
+| `Invoices.tsx` | Wijzigen | Bron kolom + badge + filter |
+| `useInvoices.ts` | Wijzigen | `marketplace_source` ophalen via order |
 
 ---
 
-## Implementatie Volgorde
-
-**Fase 1 - Quick Wins (Hoogste Impact):**
-1. Sync Geschiedenis Widget + Database tabel
-2. Handmatige Sync Trigger knop
-3. Validatie Waarschuwingen
-
-**Fase 2 - Configuratie Uitbreiding:**
-4. Conflict Strategie Selector
-5. Sync Frequentie Selector
-6. Import/Export Configuratie
-
-**Fase 3 - Geavanceerde Features:**
-7. Test Modus / Dry Run
-
----
-
-## Verwachte Gebruikerservaring Na Implementatie
+## Verwacht Resultaat
 
 ```text
-Merchant opent Sync Regels tab:
+Boekhouder opent factuuroverzicht:
 
-1. Ziet direct widget met laatste sync activiteiten
-   → "Voorraad: 15 min geleden, 48 producten bijgewerkt"
-
-2. Ziet waarschuwing bovenaan
-   → "⚠ SKU veld is uitgeschakeld - aanbevolen voor Bol.com"
-
-3. Opent Producten card
-   → Ziet "Laatste sync: 12:15"
-   → Klikt "Nu Syncen" voor directe update
-   → Voortgangsbalk verschijnt
-
-4. Schakelt naar bidirectioneel
-   → Conflict strategie optie verschijnt
-   → Kiest "Meest recente wint"
-
-5. Wijzigt sync frequentie
-   → Orders: 5 min (kritiek)
-   → Producten: dagelijks (minder urgent)
-
-6. Exporteert configuratie als backup
-   → JSON bestand gedownload
-
-Resultaat: Volledige controle over synchronisatie met
-transparantie over wat er gebeurt.
+1. Ziet direct welke facturen van Bol.com, Amazon of webshop komen
+2. Kan filteren op "Alle bronnen" → "Bol.com" → alleen die facturen
+3. Opent orderdetail → ziet badge + externe order ID voor matching
+4. Export naar boekhoudsoftware → broninfo beschikbaar voor verwerking
 ```
 
 ---
 
 ## Technische Details
 
-### SyncRuleConfig Uitbreiding
+### OrderMarketplaceBadge Uitbreiding
 
 ```typescript
-export interface SyncRuleConfig {
-  enabled: boolean;
-  direction: SyncDirection;
-  autoSync: boolean;
-  fieldMappings: FieldMapping[];
-  statusMappings?: StatusMapping[];
-  customSettings: SyncCustomSettings;
-  lastModified?: string;
-  
-  // NIEUWE VELDEN
-  conflictStrategy?: 'sellqo_wins' | 'platform_wins' | 'newest_wins' | 'manual';
-  syncFrequency?: '5min' | '15min' | '30min' | '1hour' | '4hour' | 'daily' | 'weekly';
-  lastSyncedAt?: string;
-  lastSyncStatus?: 'success' | 'partial' | 'failed';
-  lastSyncStats?: {
-    processed: number;
-    failed: number;
-    duration: number;
-  };
-}
-```
-
-### Validatie Regels
-
-```typescript
-const VALIDATION_RULES = {
-  bol_com: {
-    products: {
-      required_fields: ['sku', 'barcode'],
-      warnings: [
-        { condition: (config) => !config.fieldMappings.find(f => f.id === 'sku')?.enabled,
-          message: 'SKU veld is vereist voor Bol.com product matching' }
-      ]
-    }
+const config: Record<string, { icon: typeof ShoppingBag; label: string; className: string }> = {
+  sellqo_webshop: {
+    icon: Store,
+    label: 'SellQo',
+    className: 'bg-purple-50 text-purple-700 border-purple-200',
   },
-  // Per platform specifieke regels
+  bol_com: {
+    icon: ShoppingBag,
+    label: 'Bol.com',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  amazon: {
+    icon: Package,
+    label: 'Amazon',
+    className: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  woocommerce: {
+    icon: ShoppingCart,
+    label: 'WooCommerce',
+    className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  },
+  shopify: {
+    icon: ShoppingBag,
+    label: 'Shopify',
+    className: 'bg-green-50 text-green-700 border-green-200',
+  },
+  manual: {
+    icon: FileEdit,
+    label: 'Handmatig',
+    className: 'bg-gray-50 text-gray-700 border-gray-200',
+  },
 };
 ```
 
-### Manual Sync Edge Function
+### Factuur Query Aanpassing
 
 ```typescript
-// supabase/functions/trigger-manual-sync/index.ts
-// Accepts: connectionId, dataType
-// Returns: { success, recordsProcessed, errors }
-// Logs to sync_activity_log table
+// useInvoices.ts - Uitgebreide select
+.select(`
+  *,
+  orders (
+    order_number,
+    customer_name,
+    marketplace_source
+  ),
+  customers (...)
+`)
 ```
 
 ---
 
-## Voordelen van deze Verbeteringen
+## Tijdsinschatting
 
-1. **Transparantie** - Gebruikers zien exact wat er gesynchroniseerd wordt
-2. **Controle** - Handmatige triggers en frequentie-instellingen
-3. **Vertrouwen** - Dry run modus voorkomt verrassingen
-4. **Preventie** - Validatie waarschuwingen vangen fouten vroeg op
-5. **Flexibiliteit** - Conflict strategieën voor complexe scenario's
-6. **Herstel** - Export/import voor backup en migratie
+| Fase | Geschatte tijd |
+|------|----------------|
+| Fase 1: Orders UI | ~10 minuten |
+| Fase 2: Facturen UI + Query | ~10 minuten |
+| Fase 3: PDF (optioneel) | ~15 minuten |
+
+---
+
+## Voordelen voor de Boekhouder
+
+1. **Directe herkenning** - Kleurcodes per kanaal
+2. **Filterbaar** - Snel alleen Bol.com of Amazon facturen bekijken
+3. **Traceerbaar** - Marketplace order ID voor externe matching
+4. **Compleet** - Zowel op bestellingen als facturen zichtbaar
+
