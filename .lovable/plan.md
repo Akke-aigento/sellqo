@@ -1,339 +1,344 @@
 
 
-# Implementatieplan: Uitgebreide Content Bibliotheek met Agenda
+# Implementatieplan: Social Commerce & Shopping Kanalen
 
 ## Overzicht
 
-Dit plan transformeert de bestaande Content Bibliotheek naar een **centrale content hub** waar alle marketing assets samenkomen - zowel AI-gegenereerd als handmatig geüpload. Het voegt een **kalenderweergave** toe voor geplande content en een **volledige historiek** in lijstvorm.
+Dit plan voegt **Social Commerce kanalen** toe naast de bestaande e-commerce marketplaces. Het gaat om platforms waar consumenten direct producten kunnen ontdekken en kopen via sociale media en zoekmachines.
 
----
+## Welke Kanalen Bestaan Er?
 
-## Huidige Situatie
-
-| Component | Status | Opmerking |
-|-----------|--------|-----------|
-| `ai_generated_content` tabel | ✅ Bestaat | Bevat AI content met scheduling velden |
-| `social_posts` tabel | ✅ Bestaat | Social media posts met status tracking |
-| `AIContentLibrary.tsx` | ✅ Bestaat | Basis lijst-view, alleen AI content |
-| Storage buckets | ✅ Bestaan | `ai-images`, `product-images`, `tenant-logos` |
-| Kalender component | ✅ Bestaat | `react-day-picker` basis |
-| Agenda/Timeline view | ❌ Ontbreekt | Geen maandoverzicht |
-| Asset upload naar library | ❌ Ontbreekt | Alleen per-tool uploads |
-| AI toegang tot library | ❌ Ontbreekt | AI kent geüploade assets niet |
-| Unified content hub | ❌ Ontbreekt | Verspreid over meerdere plekken |
-
----
+| Categorie | Platform | Type | API Status |
+|-----------|----------|------|------------|
+| **Google** | Google Merchant Center | Product Feed | ✅ Beschikbaar |
+| **Google** | Google Shopping Ads | Advertenties | ✅ Via Merchant Center |
+| **Meta** | Facebook Shop | Social Commerce | ✅ Commerce Manager API |
+| **Meta** | Instagram Shop | Social Commerce | ✅ Via Facebook |
+| **TikTok** | TikTok Shop | Social Commerce | ✅ Beschikbaar (UK/US) |
+| **Pinterest** | Pinterest Catalog | Product Pins | ✅ Beschikbaar |
+| **Snapchat** | Snapchat Catalog | Dynamic Ads | ✅ Beschikbaar |
+| **WhatsApp** | WhatsApp Business Catalog | Messaging Commerce | ⚠️ Beperkt (via Meta) |
+| **Microsoft** | Microsoft Merchant Center | Bing Shopping | ✅ Beschikbaar |
+| **Amazon** | Amazon Posts | Social op Amazon | ⚠️ Alleen sellers |
+| **Etsy** | Etsy Ads | Handmade/Vintage | ✅ Beschikbaar |
+| **eBay** | eBay Feed | Marketplace | ✅ Beschikbaar |
 
 ## Nieuwe Architectuur
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CONTENT BIBLIOTHEEK                                  │
+│                           SELLQO CONNECT                                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                        │
-│  │ Agenda  │  │ Lijst   │  │ Assets  │  │ AI      │                        │
-│  │ (week)  │  │ (all)   │  │ (media) │  │ Suggest │                        │
-│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘                        │
-│       │            │            │            │                              │
-│       └────────────┴────────────┴────────────┘                              │
-│                         │                                                   │
-│                         ▼                                                   │
-│              ┌─────────────────────┐                                        │
-│              │  Unified Data Layer │                                        │
-│              │  - ai_generated     │                                        │
-│              │  - social_posts     │                                        │
-│              │  - media_assets     │                                        │
-│              │  - email_campaigns  │                                        │
-│              └─────────────────────┘                                        │
+│  ┌───────────────────────────────┐   ┌───────────────────────────────┐     │
+│  │       E-COMMERCE              │   │      SOCIAL COMMERCE          │     │
+│  │       MARKETPLACES            │   │      CHANNELS                 │     │
+│  ├───────────────────────────────┤   ├───────────────────────────────┤     │
+│  │ ✅ Bol.com                    │   │ 🆕 Google Shopping            │     │
+│  │ ✅ Amazon                     │   │ 🆕 Facebook/Instagram Shop    │     │
+│  │ ✅ Shopify                    │   │ 🆕 TikTok Shop                │     │
+│  │ ✅ WooCommerce                │   │ 🆕 Pinterest Catalog          │     │
+│  │ ✅ Odoo                       │   │ 🆕 WhatsApp Business          │     │
+│  │                               │   │ 🆕 Microsoft/Bing Shopping    │     │
+│  └───────────────────────────────┘   └───────────────────────────────┘     │
+│                                                                             │
+│                    ▼                              ▼                         │
+│              Orders/Inventory                Product Feeds                  │
+│              Bi-directioneel                 One-way sync                   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+## Deel 1: Uitbreiding Types & Database
 
-## Deel 1: Content Agenda (Kalender View)
+### Nieuw Type: `SocialChannelType`
 
-### Weekweergave met Geplande Content
+Naast `MarketplaceType` komt er een apart type voor social channels:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  📅 Content Agenda                           ◀ Week 4 ▶    [Maand] [Week]  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  MA 20        DI 21        WO 22        DO 23        VR 24        ZA 25    │
-├──────────────┬──────────────┬──────────────┬──────────────┬────────────────┤
-│  ┌─────────┐ │              │ ┌─────────┐  │              │                │
-│  │ 📱 IG   │ │              │ │ 📧 News │  │              │                │
-│  │ 10:00   │ │              │ │ 09:00   │  │              │                │
-│  │ Product │ │              │ │ Februari│  │              │                │
-│  └─────────┘ │              │ └─────────┘  │              │                │
-│              │ ┌─────────┐  │              │ ┌─────────┐  │                │
-│              │ │ 📱 FB   │  │              │ │ 📱 LI   │  │                │
-│              │ │ 14:00   │  │              │ │ 11:00   │  │                │
-│              │ │ Aanbie..│  │              │ │ Blog..  │  │                │
-│              │ └─────────┘  │              │ └─────────┘  │                │
-├──────────────┴──────────────┴──────────────┴──────────────┴────────────────┤
-│  + Nieuwe content toevoegen                                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
+```typescript
+export type SocialChannelType = 
+  | 'google_shopping'      // Google Merchant Center
+  | 'facebook_shop'        // Meta Commerce (FB + IG)
+  | 'instagram_shop'       // Via Facebook Shop
+  | 'tiktok_shop'          // TikTok Shop
+  | 'pinterest_catalog'    // Pinterest Pins
+  | 'whatsapp_business'    // WhatsApp Catalog
+  | 'microsoft_shopping'   // Bing Shopping
+  | 'snapchat_catalog';    // Snapchat Ads
 ```
 
-### Features
-- **Week/Maand toggle** - Schakelen tussen views
-- **Drag & drop** - Content herschikken (met dnd-kit, al geïnstalleerd)
-- **Quick actions** - Hover voor bewerken/verwijderen
-- **Status badges** - Draft (geel), Gepland (blauw), Gepubliceerd (groen)
-- **Platform icons** - Instagram, Facebook, LinkedIn, Email
+### Database Uitbreiding: `social_channel_connections`
 
----
-
-## Deel 2: Media Assets Library
-
-### Doel
-Centrale plek voor **alle visuele assets** die door AI of gebruiker zijn geüpload.
-
-### Nieuwe Tabel: `media_assets`
+Aparte tabel voor social channels omdat ze anders werken dan marketplaces:
 
 ```sql
-CREATE TABLE public.media_assets (
+CREATE TABLE public.social_channel_connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  channel_type TEXT NOT NULL,
+  channel_name TEXT,
   
-  -- File info
-  file_name TEXT NOT NULL,
-  file_url TEXT NOT NULL,
-  file_type TEXT NOT NULL, -- image/jpeg, image/png, video/mp4
-  file_size INTEGER,
+  -- Credentials
+  credentials JSONB DEFAULT '{}',
   
-  -- Metadata
-  title TEXT,
-  description TEXT,
-  alt_text TEXT,  -- Voor SEO/accessibility
-  tags TEXT[] DEFAULT '{}',  -- ["product", "zomer", "korting"]
+  -- Feed settings
+  feed_url TEXT,                    -- Gegenereerde feed URL
+  feed_format TEXT DEFAULT 'xml',   -- xml, json, csv
+  last_feed_generated_at TIMESTAMPTZ,
   
-  -- AI context
-  ai_description TEXT,  -- AI gegenereerde beschrijving
-  is_ai_generated BOOLEAN DEFAULT false,
-  source TEXT, -- 'upload', 'ai_generated', 'product_import'
-  
-  -- Usage tracking
-  usage_count INTEGER DEFAULT 0,
-  last_used_at TIMESTAMPTZ,
-  
-  -- Organization
-  folder TEXT DEFAULT 'general', -- 'products', 'campaigns', 'social', 'general'
-  is_favorite BOOLEAN DEFAULT false,
+  -- Status
+  is_active BOOLEAN DEFAULT true,
+  last_sync_at TIMESTAMPTZ,
+  last_error TEXT,
+  products_synced INTEGER DEFAULT 0,
   
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-### UI: Asset Grid met Upload
+### Product-niveau Kanaal Selectie
+
+Uitbreiding van `products` tabel:
+
+```sql
+ALTER TABLE products ADD COLUMN social_channels JSONB DEFAULT '{}';
+-- Voorbeeld: {"google_shopping": true, "facebook_shop": true, "pinterest": false}
+```
+
+## Deel 2: UI - Marketplaces Pagina Uitbreiding
+
+### Nieuwe Tab Structuur
+
+De Marketplaces pagina krijgt twee secties:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  🖼️ Media Assets                    [+ Upload]  [AI Genereer]  🔍 Zoeken    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Folders: [Alles] [Producten] [Campagnes] [Social] [Favorieten]             │
+│  SellQo Connect                                                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐           │
-│  │  🖼️    │  │  🖼️    │  │  🖼️    │  │  🖼️    │  │  🖼️    │           │
-│  │         │  │    ⭐   │  │         │  │   🤖   │  │         │           │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘           │
-│  product-1    banner-zomer  social-fb    ai-gen-3     promo-...            │
+│  [E-commerce Marketplaces]  [Social Commerce]                               │
+│   ────────────────────────   ─────────────────                              │
 │                                                                             │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐                                     │
-│  │  🖼️    │  │  🖼️    │  │  ➕     │   ← Drop zone                       │
-│  │   🤖   │  │         │  │  Upload │                                      │
-│  └─────────┘  └─────────┘  └─────────┘                                     │
+│  Social Commerce Channels                                                    │
+│  ─────────────────────────                                                  │
+│                                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│  │  🛒             │  │  📱             │  │  🎵             │             │
+│  │  GOOGLE         │  │  META           │  │  TIKTOK         │             │
+│  │  SHOPPING       │  │  FB + IG Shop   │  │  SHOP           │             │
+│  │                 │  │                 │  │                 │             │
+│  │  ⓘ Toon je     │  │  ⓘ Verkoop via  │  │  ⓘ Bereik Gen-Z│             │
+│  │  producten in   │  │  Facebook en    │  │  met shoppable  │             │
+│  │  Google zoek-   │  │  Instagram      │  │  video's        │             │
+│  │  resultaten     │  │  direct         │  │                 │             │
+│  │                 │  │                 │  │  🏷️ Binnenkort │             │
+│  │  [Verbinden]    │  │  [Verbinden]    │  │  [Binnenkort]   │             │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
+│                                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│  │  📌             │  │  💬             │  │  🔍             │             │
+│  │  PINTEREST      │  │  WHATSAPP       │  │  MICROSOFT      │             │
+│  │  CATALOG        │  │  BUSINESS       │  │  SHOPPING       │             │
+│  │                 │  │                 │  │                 │             │
+│  │  ⓘ Product     │  │  ⓘ Toon je     │  │  ⓘ Bing en     │             │
+│  │  pins voor      │  │  catalogus in   │  │  Microsoft Edge │             │
+│  │  inspiratie     │  │  WhatsApp chats │  │  shopping       │             │
+│  │                 │  │                 │  │                 │             │
+│  │  [Verbinden]    │  │  [Verbinden]    │  │  [Verbinden]    │             │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Info Tooltip per Kanaal
+
+Elk kanaal heeft een uitleg-tooltip (ⓘ):
+
+| Kanaal | Uitleg |
+|--------|--------|
+| **Google Shopping** | Laat je producten zien in Google zoekresultaten en het Shopping-tabblad. Klanten kunnen direct vergelijken en doorklikken. |
+| **Facebook/Instagram Shop** | Verkoop direct via je Facebook en Instagram pagina. Klanten kunnen producten taggen en kopen zonder de app te verlaten. |
+| **TikTok Shop** | Bereik jongere doelgroepen met shoppable video's. Link producten aan je TikTok content. |
+| **Pinterest Catalog** | Maak Product Pins aan voor je hele assortiment. Ideaal voor home, fashion en lifestyle. |
+| **WhatsApp Business** | Toon je catalogus direct in WhatsApp gesprekken. Klanten kunnen producten bekijken en vragen stellen. |
+| **Microsoft/Bing Shopping** | Bereik Microsoft-gebruikers via Bing en Edge browser. Minder concurrentie dan Google. |
+
+## Deel 3: Product-niveau Integratie
+
+### ProductMarketplaceTab Uitbreiding
+
+Het bestaande ProductMarketplaceTab.tsx krijgt een nieuwe sectie:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🛍️ Verkoopkanalen                                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  E-commerce Marketplaces                                                     │
+│  ─────────────────────────                                                  │
+│  ✅ Bol.com          ✅ Amazon          ❌ Shopify                          │
+│                                                                             │
+│  Social Commerce Channels                                                    │
+│  ────────────────────────                                                   │
+│  ☑️ Google Shopping     Sync naar Google Merchant Center                    │
+│  ☑️ Facebook Shop       Beschikbaar in FB & IG                              │
+│  ☐ Pinterest            Niet geactiveerd                                    │
+│  ☐ TikTok Shop          (Binnenkort beschikbaar)                            │
+│                                                                             │
+│  [Opslaan kanaal selectie]                                                  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Features
-- **Drag & drop upload** - Bestanden direct uploaden
-- **Folder organisatie** - Categoriseer assets
-- **Favorieten** - Snel toegang tot veelgebruikte assets
-- **Tags** - Flexibele tagging voor AI context
-- **AI beschrijving** - Automatische beschrijving bij upload (via Gemini Vision)
-- **Usage tracking** - Zie welke assets veel gebruikt worden
+### Bulk Product Selectie
 
----
+In de productenlijst: actie om meerdere producten tegelijk naar kanalen te pushen.
 
-## Deel 3: Volledige Historiek (Lijst View)
+## Deel 4: Feed Generatie
 
-### Uitgebreide Content Lijst
+### Product Feed Edge Function
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  📋 Content Historiek                                                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Filters: [Alle types ▼] [Alle statussen ▼] [Afgelopen 30 dagen ▼]          │
-│           [Alle platforms ▼]                               🔍 Zoeken        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Type    │ Titel                    │ Platform │ Status    │ Datum    │ ⋮  │
-│──────────┼──────────────────────────┼──────────┼───────────┼──────────┼────│
-│  📱      │ Zomer collectie lancering│ Instagram│ ✅ Posted │ 20 jan   │ ⋮  │
-│  📧      │ Nieuwsbrief februari     │ Email    │ 📅 Planned│ 22 jan   │ ⋮  │
-│  📱      │ Korting weekend          │ Facebook │ ✅ Posted │ 18 jan   │ ⋮  │
-│  💡      │ Black Friday ideeën      │ -        │ 📝 Draft  │ 15 jan   │ ⋮  │
-│  📱      │ Product spotlight        │ LinkedIn │ ✅ Posted │ 14 jan   │ ⋮  │
-│  📧      │ Welkom nieuwe klanten    │ Email    │ ✅ Sent   │ 10 jan   │ ⋮  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                         [Load more...]                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Data Sources (Unified Query)
-- `ai_generated_content` - AI gegenereerde teksten/suggesties
-- `social_posts` - Social media posts (scheduled, posted)
-- `email_campaigns` - Verstuurde email campagnes
-- `media_assets` - Geüploade/gegenereerde afbeeldingen
-
----
-
-## Deel 4: AI Integratie met Library
-
-### Context voor AI Generatie
-
-Wanneer AI content genereert, kan het nu:
-1. **Toegang tot media assets** - "Gebruik bestaande productfoto's"
-2. **Leren van historiek** - "Genereer in dezelfde stijl als vorige posts"
-3. **Brand assets herkennen** - Logo's, kleuren, fonts
-
-### AI Asset Beschrijving bij Upload
+Voor Google Shopping en andere feed-based kanalen:
 
 ```typescript
-// Edge function: describe-asset
-// Input: image URL
-// Output: { description, tags[], suggested_alt_text }
+// supabase/functions/generate-product-feed/index.ts
 
-// Voorbeeld response:
-{
-  "description": "Zwarte leren handtas met gouden details, gefotografeerd op witte achtergrond",
-  "tags": ["handtas", "leer", "zwart", "accessoire", "productfoto"],
-  "suggested_alt_text": "Zwarte leren dameshandtas met gouden sluiting"
-}
+// Ondersteunde formaten:
+// - Google Merchant Center XML (RSS 2.0 met g: namespace)
+// - Facebook Catalog CSV
+// - Pinterest RSS
+// - Generic JSON
+
+// Endpoint: /functions/v1/generate-product-feed?tenant_id=xxx&format=google
 ```
 
-### AI Suggesties in Library
+### Feed URL per Tenant
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  💡 AI Suggesties                                                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Op basis van je content historiek:                                          │
-│                                                                             │
-│  • Je postte vorige week over "zomer collectie" - tijd voor een follow-up?  │
-│  • Asset "banner-zomer.jpg" is al 14 dagen niet gebruikt                    │
-│  • Je hebt 3 drafts klaarstaan - wil je ze plannen?                         │
-│                                                                             │
-│  [Genereer social post]  [Plan bestaande drafts]                            │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+Elk tenant krijgt een unieke feed URL:
+
+```
+https://[project].supabase.co/functions/v1/product-feed/[tenant-id]/google.xml
+https://[project].supabase.co/functions/v1/product-feed/[tenant-id]/facebook.csv
+https://[project].supabase.co/functions/v1/product-feed/[tenant-id]/pinterest.xml
 ```
 
----
+## Deel 5: Google Shopping Integratie
 
-## Deel 5: Nieuwe Pagina Structuur
+### Setup Flow
 
-### Tab Navigatie in AIMarketingHub
+1. Merchant maakt Google Merchant Center account aan
+2. Voert Merchant ID in bij Sellqo
+3. Sellqo genereert feed URL
+4. Merchant voegt feed toe in Merchant Center
+5. Optioneel: API koppeling voor directe sync
 
-De bestaande "Bibliotheek" tab wordt uitgebreid:
+### Vereiste Product Velden
+
+| Google Veld | Sellqo Veld | Verplicht |
+|-------------|-------------|-----------|
+| id | product.id | ✅ |
+| title | name (of google_title) | ✅ |
+| description | description (of google_description) | ✅ |
+| link | webshop URL + slug | ✅ |
+| image_link | featured_image | ✅ |
+| price | price + currency | ✅ |
+| availability | stock > 0 ? in_stock : out_of_stock | ✅ |
+| brand | brand of tenant name | ✅ |
+| gtin | barcode (EAN/UPC) | ⚠️ Aanbevolen |
+| condition | altijd "new" of instelbaar | ✅ |
+| google_product_category | category mapping | ⚠️ Aanbevolen |
+
+## Deel 6: Meta (Facebook/Instagram) Shop
+
+### Setup Flow
+
+1. Koppeling via bestaande OAuth (SocialConnectionsManager)
+2. Selecteer Facebook Business Page
+3. Maak Commerce Catalog aan (of koppel bestaande)
+4. Sync producten naar catalogus
+5. Activeer Shop op Facebook/Instagram
+
+### API Integratie
 
 ```typescript
-<Tabs value={activeTab} onValueChange={setActiveTab}>
-  <TabsList>
-    <TabsTrigger value="create">Creëren</TabsTrigger>
-    <TabsTrigger value="calendar">📅 Agenda</TabsTrigger>
-    <TabsTrigger value="library">📚 Bibliotheek</TabsTrigger>
-    <TabsTrigger value="assets">🖼️ Assets</TabsTrigger>
-  </TabsList>
-  
-  <TabsContent value="calendar">
-    <ContentCalendar />
-  </TabsContent>
-  
-  <TabsContent value="library">
-    <ContentHistoryList />
-  </TabsContent>
-  
-  <TabsContent value="assets">
-    <MediaAssetsLibrary />
-  </TabsContent>
-</Tabs>
-```
+// supabase/functions/sync-meta-catalog/index.ts
+// Gebruikt Facebook Marketing API voor catalog management
 
----
+// POST /[catalog_id]/batch
+// - product_type: PRODUCT_ITEM
+// - requests: [{ method: CREATE, retailer_id, data: {...} }]
+```
 
 ## Technische Implementatie
 
 | Bestand | Type | Beschrijving |
 |---------|------|--------------|
 | **Database** | | |
-| Migratie | SQL | `media_assets` tabel met RLS |
-| Migratie | SQL | Index op `tags` voor full-text search |
+| Migratie | SQL | `social_channel_connections` tabel |
+| Migratie | SQL | `products.social_channels` JSONB kolom |
+| **Types** | | |
+| `socialChannels.ts` | Nieuw | Type definities en kanaal info |
 | **Components** | | |
-| `ContentCalendar.tsx` | Nieuw | Week/maand kalender view |
-| `ContentCalendarDay.tsx` | Nieuw | Individuele dag met content items |
-| `ContentHistoryList.tsx` | Nieuw | Uitgebreide lijst met alle content |
-| `MediaAssetsLibrary.tsx` | Nieuw | Grid view voor media assets |
-| `AssetUploader.tsx` | Nieuw | Drag & drop upload component |
-| `AssetDetailDialog.tsx` | Nieuw | Asset preview met metadata |
-| `AIAssetSuggestions.tsx` | Nieuw | AI suggesties sidebar |
-| **Hooks** | | |
-| `useMediaAssets.ts` | Nieuw | CRUD voor media assets |
-| `useContentCalendar.ts` | Nieuw | Unified content data voor kalender |
+| `SocialChannelCard.tsx` | Nieuw | Kaart per social channel met tooltip |
+| `SocialChannelList.tsx` | Nieuw | Grid van alle social channels |
+| `ConnectSocialChannelDialog.tsx` | Nieuw | Connect wizard per kanaal |
+| `ProductSocialChannels.tsx` | Nieuw | Per-product kanaal selectie |
+| `FeedPreviewDialog.tsx` | Nieuw | Preview van gegenereerde feed |
 | **Edge Functions** | | |
-| `describe-asset/index.ts` | Nieuw | AI beschrijving van geüploade afbeeldingen |
+| `generate-product-feed/index.ts` | Nieuw | Multi-format feed generator |
+| `sync-meta-catalog/index.ts` | Nieuw | Facebook/Instagram sync |
+| `sync-google-merchant/index.ts` | Nieuw | Google Merchant Center (optioneel, kan ook via feed) |
+| **Hooks** | | |
+| `useSocialChannels.ts` | Nieuw | CRUD voor social channel connections |
 | **Updates** | | |
-| `AIMarketingHub.tsx` | Update | Nieuwe tabs toevoegen |
-| `useImageUpload.ts` | Update | `marketing-assets` bucket support |
+| `Marketplaces.tsx` | Update | Tabs toevoegen voor social channels |
+| `ProductMarketplaceTab.tsx` | Update | Social channels sectie toevoegen |
 
----
+## UI Flow Samenvatting
 
-## Content Types & Statussen
-
-### Types
-| Type | Icon | Bron |
-|------|------|------|
-| Social Post | 📱 | `social_posts` |
-| Email Campaign | 📧 | `email_campaigns` |
-| AI Suggestie | 💡 | `ai_generated_content` (suggestion) |
-| AI Content | 🤖 | `ai_generated_content` (social/email) |
-| Media Asset | 🖼️ | `media_assets` |
-
-### Statussen
-| Status | Badge | Betekenis |
-|--------|-------|-----------|
-| Draft | 📝 Geel | Nog niet gepland |
-| Scheduled | 📅 Blauw | Gepland voor toekomst |
-| Published | ✅ Groen | Succesvol gepost |
-| Sent | ✅ Groen | Email verzonden |
-| Failed | ❌ Rood | Publicatie mislukt |
-
----
+```text
+                    Merchant Journey
+                         │
+     ┌───────────────────┴───────────────────┐
+     │                                       │
+     ▼                                       ▼
+┌─────────────┐                       ┌─────────────┐
+│ SellQo      │                       │ Product     │
+│ Connect     │                       │ Detail      │
+│ Pagina      │                       │ Pagina      │
+└──────┬──────┘                       └──────┬──────┘
+       │                                     │
+       │ Kies kanaal                         │ Kies per product
+       │ + Verbind                           │ welke kanalen
+       ▼                                     ▼
+┌─────────────┐                       ┌─────────────┐
+│ Connect     │                       │ Checkbox    │
+│ Wizard      │                       │ per kanaal  │
+│ (OAuth/Feed)│                       │ ☑️ Google   │
+└──────┬──────┘                       │ ☑️ Facebook │
+       │                              └─────────────┘
+       ▼
+┌─────────────┐
+│ Feed URL of │
+│ API Sync    │
+│ actief      │
+└─────────────┘
+```
 
 ## Resultaat
 
-Na implementatie heeft de merchant:
+Na implementatie kan de merchant:
 
 | Feature | Beschrijving |
 |---------|-------------|
-| **Content Agenda** | Kalender met alle geplande content op één plek |
-| **Historiek** | Volledige lijst van alle gegenereerde/geposte content |
-| **Media Assets** | Centrale plek voor alle visuele assets |
-| **Upload functie** | Direct uploaden naar library voor AI gebruik |
-| **AI Context** | AI heeft toegang tot bestaande assets en stijl |
-| **Drag & drop** | Content plannen door te slepen in kalender |
-| **Search & filter** | Snel terugvinden van eerdere content |
-| **Usage tracking** | Inzicht in welke assets/content goed presteren |
+| **Google Shopping** | Producten in Google zoekresultaten |
+| **Facebook Shop** | Verkopen via Facebook pagina |
+| **Instagram Shop** | Taggen en verkopen in posts |
+| **Pinterest** | Product Pins voor inspiratie |
+| **WhatsApp Catalog** | Producten tonen in chats |
+| **Per-product selectie** | Kies welke producten waar verschijnen |
+| **Automatische feeds** | Realtime feed URLs voor elk platform |
+| **Centrale controle** | Alles beheren vanuit Sellqo |
 
-De AI kan nu ook:
-- Bestaande productfoto's voorstellen bij social posts
-- Stijl leren van eerdere succesvolle content
-- Waarschuwen voor ongebruikte assets
-- Suggesties doen op basis van content historiek
+De architectuur is schaalbaar: nieuwe kanalen kunnen eenvoudig worden toegevoegd door een nieuwe `SocialChannelType` en bijbehorende feed formatter.
 
