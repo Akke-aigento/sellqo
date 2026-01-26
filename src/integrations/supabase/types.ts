@@ -9215,6 +9215,8 @@ export type Database = {
         Row: {
           address: string | null
           apply_oss_rules: boolean | null
+          auto_generate_invoice: boolean | null
+          auto_send_invoice_email: boolean | null
           auto_send_invoices: boolean | null
           bic: string | null
           billing_address: Json | null
@@ -9293,6 +9295,8 @@ export type Database = {
         Insert: {
           address?: string | null
           apply_oss_rules?: boolean | null
+          auto_generate_invoice?: boolean | null
+          auto_send_invoice_email?: boolean | null
           auto_send_invoices?: boolean | null
           bic?: string | null
           billing_address?: Json | null
@@ -9371,6 +9375,8 @@ export type Database = {
         Update: {
           address?: string | null
           apply_oss_rules?: boolean | null
+          auto_generate_invoice?: boolean | null
+          auto_send_invoice_email?: boolean | null
           auto_send_invoices?: boolean | null
           bic?: string | null
           billing_address?: Json | null

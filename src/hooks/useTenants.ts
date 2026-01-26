@@ -28,6 +28,8 @@ export interface Tenant {
   last_login: string | null;
   created_at: string | null;
   updated_at: string | null;
+  auto_generate_invoice: boolean | null;
+  auto_send_invoice_email: boolean | null;
 }
 
 export interface TenantFormData {
@@ -47,6 +49,8 @@ export interface TenantFormData {
   currency?: string;
   tax_percentage?: number;
   shipping_enabled?: boolean;
+  auto_generate_invoice?: boolean;
+  auto_send_invoice_email?: boolean;
 }
 
 export function useTenants() {
