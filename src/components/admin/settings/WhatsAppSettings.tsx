@@ -2,15 +2,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { MessageCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react';
+import { MessageCircle, AlertCircle, Copy, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWhatsAppConnection } from '@/hooks/useWhatsAppConnection';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppConnectionCard } from './WhatsAppConnectionCard';
-import { WhatsAppAutomationSettings } from './WhatsAppAutomationSettings';
 import { WhatsAppTemplatesTable } from './WhatsAppTemplatesTable';
+import { Link } from 'react-router-dom';
 
 export function WhatsAppSettings() {
   const { currentTenant, refreshTenants } = useTenant();
@@ -64,15 +64,15 @@ export function WhatsAppSettings() {
                 <MessageCircle className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <CardTitle>WhatsApp Business</CardTitle>
+                <CardTitle>WhatsApp Business Koppeling</CardTitle>
                 <CardDescription>
-                  Stuur automatische berichten naar klanten via WhatsApp
+                  Koppel je WhatsApp Business account om berichten te kunnen versturen
                 </CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Label htmlFor="whatsapp-enabled" className="text-sm">
-                WhatsApp berichten
+                WhatsApp actief
               </Label>
               <Switch
                 id="whatsapp-enabled"
@@ -83,16 +83,30 @@ export function WhatsAppSettings() {
             </div>
           </div>
         </CardHeader>
-        {!isConnected && (
-          <CardContent className="pt-0">
+        <CardContent className="pt-0 space-y-4">
+          {!isConnected && (
             <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <p className="text-sm text-amber-700 dark:text-amber-400">
                 Koppel eerst je WhatsApp Business account om berichten te kunnen versturen
               </p>
             </div>
-          </CardContent>
-        )}
+          )}
+          
+          {isConnected && (
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <div className="flex-1">
+                <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                  WhatsApp is gekoppeld. Configureer welke berichten je klanten ontvangen via{' '}
+                  <Link to="/admin/settings?section=customer-communication" className="font-medium underline underline-offset-2">
+                    Klant Communicatie
+                  </Link>.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Connection */}
@@ -150,9 +164,6 @@ export function WhatsAppSettings() {
           </CardContent>
         </Card>
       )}
-
-      {/* Automation Settings */}
-      {isConnected && <WhatsAppAutomationSettings />}
 
       {/* Templates */}
       {isConnected && <WhatsAppTemplatesTable />}
