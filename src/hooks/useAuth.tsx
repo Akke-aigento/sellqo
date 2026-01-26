@@ -3,7 +3,17 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-type AppRole = 'platform_admin' | 'tenant_admin' | 'staff';
+export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer';
+
+// Role priority for determining highest role
+const ROLE_PRIORITY: Record<AppRole, number> = {
+  platform_admin: 1,
+  tenant_admin: 2,
+  accountant: 3,
+  staff: 4,
+  warehouse: 5,
+  viewer: 6,
+};
 
 interface UserRole {
   id: string;
@@ -18,6 +28,10 @@ interface AuthContextType {
   loading: boolean;
   roles: UserRole[];
   isPlatformAdmin: boolean;
+  userRole: AppRole | null;
+  isWarehouse: boolean;
+  isAccountant: boolean;
+  hasFinancialAccess: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -145,6 +159,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
+  
+  // Calculate highest priority role
+  const userRole = roles.length > 0
+    ? roles.reduce((highest, r) => {
+        const currentPriority = ROLE_PRIORITY[r.role] || 99;
+        const highestPriority = ROLE_PRIORITY[highest] || 99;
+        return currentPriority < highestPriority ? r.role : highest;
+      }, roles[0].role as AppRole)
+    : null;
+
+  const isWarehouse = userRole === 'warehouse';
+  const isAccountant = userRole === 'accountant';
+  const hasFinancialAccess = ['platform_admin', 'tenant_admin', 'accountant'].includes(userRole || '');
 
   return (
     <AuthContext.Provider
@@ -154,6 +181,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         roles,
         isPlatformAdmin,
+        userRole,
+        isWarehouse,
+        isAccountant,
+        hasFinancialAccess,
         signIn,
         signUp,
         signOut,

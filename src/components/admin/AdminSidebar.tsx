@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
-import { sidebarGroups, platformGroup, getAllMenuItems, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
 import {
   Sidebar,
   SidebarContent,
@@ -41,10 +41,43 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSidebar() {
   const location = useLocation();
-  const { user, signOut, isPlatformAdmin } = useAuth();
+  const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
   const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  // Check if item should be hidden based on user role
+  const isItemRoleHidden = (item: NavItem): boolean => {
+    // Warehouse users can only see specific items
+    if (isWarehouse) {
+      // Check if the item is in the allowed list
+      const isAllowed = WAREHOUSE_ALLOWED_ITEMS.includes(item.id);
+      // Also check explicit excludeRoles
+      const isExcluded = item.excludeRoles?.includes('warehouse');
+      return !isAllowed || isExcluded === true;
+    }
+    
+    // Check allowedRoles - if set, only those roles can see it
+    if (item.allowedRoles && item.allowedRoles.length > 0) {
+      if (!userRole || !item.allowedRoles.includes(userRole)) {
+        return true;
+      }
+    }
+    
+    // Check excludeRoles - if user's role is in the list, hide it
+    if (item.excludeRoles && item.excludeRoles.length > 0) {
+      if (userRole && item.excludeRoles.includes(userRole)) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Combined check for both preference hiding and role hiding
+  const shouldHideItem = (item: NavItem): boolean => {
+    return isItemHidden(item.id) || isItemRoleHidden(item);
+  };
 
   const isActive = (path: string) => {
     if (path === '/admin') {
@@ -63,12 +96,12 @@ export function AdminSidebar() {
   };
 
   const renderNavItem = (item: NavItem) => {
-    // Check if item is hidden
-    if (isItemHidden(item.id)) return null;
+    // Check if item is hidden (by preference or by role)
+    if (shouldHideItem(item)) return null;
 
     // Item with children (collapsible)
     if (item.children && item.children.length > 0) {
-      const visibleChildren = item.children.filter(child => !isItemHidden(child.id));
+      const visibleChildren = item.children.filter(child => !shouldHideItem(child));
       if (visibleChildren.length === 0) return null;
 
       return (
@@ -114,10 +147,10 @@ export function AdminSidebar() {
 
   const renderGroup = (group: NavGroup) => {
     const visibleItems = group.items.filter(item => {
-      if (isItemHidden(item.id)) return false;
+      if (shouldHideItem(item)) return false;
       // If item has children, check if at least one child is visible
       if (item.children) {
-        return item.children.some(child => !isItemHidden(child.id));
+        return item.children.some(child => !shouldHideItem(child));
       }
       return true;
     });
