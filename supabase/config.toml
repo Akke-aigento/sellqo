@@ -185,3 +185,6 @@ verify_jwt = false
 
 [functions.check-domain-ssl]
 verify_jwt = false
+
+[functions.trigger-manual-sync]
+verify_jwt = false

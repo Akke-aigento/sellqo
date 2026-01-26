@@ -8,7 +8,7 @@ interface ConflictStrategySelectorProps {
   value?: ConflictStrategy;
   onChange: (strategy: ConflictStrategy) => void;
   disabled?: boolean;
-  platformName: string;
+  platformName?: string;
 }
 
 const STRATEGIES: Array<{
@@ -58,7 +58,7 @@ export function ConflictStrategySelector({
       
       <p className="text-xs text-muted-foreground">
         Bij bidirectionele sync kan er conflict ontstaan wanneer dezelfde data in 
-        zowel SellQo als {platformName} is gewijzigd.
+        zowel SellQo als het externe platform is gewijzigd.
       </p>
 
       <RadioGroup

@@ -134,6 +134,7 @@ export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
                 config={syncRules[dataType]}
                 capabilities={typeCapabilities}
                 platformName={platformName}
+                connectionId={connection.id}
                 onToggle={(enabled) => toggleRule(dataType, enabled)}
                 onDirectionChange={(direction) => setDirection(dataType, direction)}
                 onAutoSyncChange={(autoSync) => setAutoSync(dataType, autoSync)}

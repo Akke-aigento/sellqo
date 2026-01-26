@@ -22,18 +22,30 @@ import {
   Truck,
   FolderTree,
   Percent,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SyncDirectionSelector } from './SyncDirectionSelector';
 import { FieldMappingEditor } from './FieldMappingEditor';
 import { StatusMappingDialog } from './StatusMappingDialog';
+import { ConflictStrategySelector } from './ConflictStrategySelector';
+import { SyncFrequencySelector } from './SyncFrequencySelector';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
+import { nl } from 'date-fns/locale';
 import type { 
   SyncRuleConfig, 
   SyncDataType, 
   SyncDirection,
   SupportedDirections,
-  FieldMapping,
-  StatusMapping 
+  StatusMapping,
+  ConflictStrategy,
+  SyncFrequency,
 } from '@/types/syncRules';
 
 const ICONS: Record<SyncDataType, typeof ShoppingCart> = {
@@ -77,14 +89,16 @@ interface SyncRuleCardProps {
   config: SyncRuleConfig | undefined;
   capabilities: SupportedDirections | null;
   platformName: string;
+  connectionId: string;
   onToggle: (enabled: boolean) => void;
   onDirectionChange: (direction: SyncDirection) => void;
   onAutoSyncChange: (autoSync: boolean) => void;
   onFieldToggle: (fieldId: string, enabled: boolean) => void;
   onStatusMappingsChange: (mappings: StatusMapping[]) => void;
   onCustomSettingsChange: (settings: Record<string, unknown>) => void;
-  onConflictStrategyChange?: (strategy: import('@/types/syncRules').ConflictStrategy) => void;
-  onSyncFrequencyChange?: (frequency: import('@/types/syncRules').SyncFrequency) => void;
+  onConflictStrategyChange?: (strategy: ConflictStrategy) => void;
+  onSyncFrequencyChange?: (frequency: SyncFrequency) => void;
+  onSyncComplete?: () => void;
 }
 
 export function SyncRuleCard({
@@ -92,15 +106,21 @@ export function SyncRuleCard({
   config,
   capabilities,
   platformName,
+  connectionId,
   onToggle,
   onDirectionChange,
   onAutoSyncChange,
   onFieldToggle,
   onStatusMappingsChange,
   onCustomSettingsChange,
+  onConflictStrategyChange,
+  onSyncFrequencyChange,
+  onSyncComplete,
 }: SyncRuleCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { toast } = useToast();
 
   // If not supported, don't render
   if (!capabilities) return null;
@@ -114,8 +134,65 @@ export function SyncRuleCard({
   const fieldMappings = config?.fieldMappings ?? [];
   const statusMappings = config?.statusMappings ?? [];
   const customSettings = config?.customSettings ?? {};
+  const conflictStrategy = config?.conflictStrategy;
+  const syncFrequency = config?.syncFrequency;
+  const lastSyncedAt = config?.lastSyncedAt;
+  const lastSyncStatus = config?.lastSyncStatus;
+  const lastSyncStats = config?.lastSyncStats;
 
   const enabledFieldCount = fieldMappings.filter(f => f.enabled).length;
+  const showConflictStrategy = direction === 'bidirectional';
+  const canManualSync = ['orders', 'products', 'inventory', 'customers'].includes(dataType);
+
+  const handleManualSync = async () => {
+    if (!connectionId || isSyncing) return;
+    
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-manual-sync', {
+        body: {
+          connectionId,
+          dataType,
+          direction,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: 'Synchronisatie voltooid',
+          description: `${data.recordsProcessed} ${label.toLowerCase()} verwerkt${data.recordsFailed > 0 ? `, ${data.recordsFailed} mislukt` : ''}`,
+        });
+        onSyncComplete?.();
+      } else {
+        throw new Error(data.error || 'Synchronisatie mislukt');
+      }
+    } catch (error) {
+      console.error('Manual sync error:', error);
+      toast({
+        title: 'Synchronisatie mislukt',
+        description: error instanceof Error ? error.message : 'Er is een fout opgetreden',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const getStatusIcon = () => {
+    if (!lastSyncStatus) return null;
+    switch (lastSyncStatus) {
+      case 'success':
+        return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
+      case 'partial':
+        return <AlertCircle className="w-3.5 h-3.5 text-amber-500" />;
+      case 'failed':
+        return <AlertCircle className="w-3.5 h-3.5 text-red-500" />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -145,16 +222,61 @@ export function SyncRuleCard({
                           Auto
                         </Badge>
                       )}
+                      {enabled && syncFrequency && (
+                        <Badge variant="outline" className="text-xs bg-muted">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {syncFrequency}
+                        </Badge>
+                      )}
                     </div>
-                    {enabled && fieldMappings.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {enabledFieldCount} velden geselecteerd
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {enabled && fieldMappings.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {enabledFieldCount} velden
+                        </p>
+                      )}
+                      {enabled && lastSyncedAt && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {getStatusIcon()}
+                          <span>
+                            {formatDistanceToNow(new Date(lastSyncedAt), { 
+                              addSuffix: true, 
+                              locale: nl 
+                            })}
+                          </span>
+                          {lastSyncStats && lastSyncStats.processed > 0 && (
+                            <span className="text-muted-foreground/70">
+                              ({lastSyncStats.processed} verwerkt)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {enabled && canManualSync && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleManualSync();
+                      }}
+                      disabled={isSyncing}
+                      className="h-8 px-2"
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                      <span className="ml-1.5 hidden sm:inline">
+                        {isSyncing ? 'Bezig...' : 'Nu Syncen'}
+                      </span>
+                    </Button>
+                  )}
                   <Switch
                     checked={enabled}
                     onCheckedChange={(checked) => {
@@ -181,6 +303,24 @@ export function SyncRuleCard({
                 capabilities={capabilities}
                 disabled={!enabled}
               />
+
+              {/* Conflict Strategy - Only for bidirectional */}
+              {showConflictStrategy && onConflictStrategyChange && (
+                <ConflictStrategySelector
+                  value={conflictStrategy}
+                  onChange={onConflictStrategyChange}
+                  disabled={!enabled}
+                />
+              )}
+
+              {/* Sync Frequency */}
+              {onSyncFrequencyChange && (
+                <SyncFrequencySelector
+                  value={syncFrequency}
+                  onChange={onSyncFrequencyChange}
+                  disabled={!enabled}
+                />
+              )}
 
               {/* Auto Sync Toggle */}
               <div className="flex items-center justify-between">
