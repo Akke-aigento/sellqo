@@ -12,13 +12,17 @@ import {
   Package,
   Filter,
   Download,
-  Settings2
+  Settings2,
+  List,
+  Grid3X3,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
 import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
+import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
 import type { BulkEditState } from '@/components/admin/products/bulk/BulkEditTypes';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +87,7 @@ export default function ProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Filter products
   const filteredProducts = useMemo(() => {
@@ -292,12 +297,27 @@ export default function ProductsPage() {
             Beheer je productcatalogus
           </p>
         </div>
-        <Button asChild>
-          <Link to="/admin/products/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nieuw product
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ToggleGroup 
+            type="single" 
+            value={viewMode} 
+            onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
+            className="border rounded-md"
+          >
+            <ToggleGroupItem value="list" aria-label="Lijstweergave" className="px-3">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Rasterweergave" className="px-3">
+              <Grid3X3 className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Button asChild>
+            <Link to="/admin/products/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Nieuw product
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -385,151 +405,157 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
-                  onCheckedChange={toggleSelectAll}
-                />
-              </TableHead>
-              <TableHead className="w-16">Afbeelding</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Categorie</TableHead>
-              <TableHead className="text-right">Prijs</TableHead>
-              <TableHead>Voorraad</TableHead>
-              <TableHead>Zichtbaarheid</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                  <TableCell><Skeleton className="h-10 w-10 rounded" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredProducts.length === 0 ? (
+      {/* Grid or Table View */}
+      {viewMode === 'grid' ? (
+        <div className="min-h-[400px]">
+          <ProductGridView products={filteredProducts} />
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Package className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {products.length === 0 
-                        ? 'Nog geen producten. Voeg je eerste product toe!'
-                        : 'Geen producten gevonden met deze filters'}
-                    </p>
-                    {products.length === 0 && (
-                      <Button asChild size="sm">
-                        <Link to="/admin/products/new">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Product toevoegen
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="w-16">Afbeelding</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Categorie</TableHead>
+                <TableHead className="text-right">Prijs</TableHead>
+                <TableHead>Voorraad</TableHead>
+                <TableHead>Zichtbaarheid</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
-            ) : (
-              filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(product.id)}
-                      onCheckedChange={() => toggleSelect(product.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {product.featured_image ? (
-                      <img
-                        src={product.featured_image}
-                        alt={product.name}
-                        className="h-10 w-10 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <Link 
-                          to={`/admin/products/${product.id}/edit`}
-                          className="font-medium hover:underline"
-                        >
-                          {product.name}
-                        </Link>
-                        {product.is_featured && (
-                          <Star className="ml-1 inline h-3 w-3 text-amber-500 fill-amber-500" />
-                        )}
-                      </div>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                    <TableCell><Skeleton className="h-10 w-10 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                  </TableRow>
+                ))
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Package className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        {products.length === 0 
+                          ? 'Nog geen producten. Voeg je eerste product toe!'
+                          : 'Geen producten gevonden met deze filters'}
+                      </p>
+                      {products.length === 0 && (
+                        <Button asChild size="sm">
+                          <Link to="/admin/products/new">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Product toevoegen
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {product.sku || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {product.category ? (
-                      <Badge variant="outline">{product.category.name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatPrice(product.price)}
-                    {product.compare_at_price && (
-                      <span className="ml-2 text-sm text-muted-foreground line-through">
-                        {formatPrice(product.compare_at_price)}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>{getStockBadge(product)}</TableCell>
-                  <TableCell>{getVisibilityBadge(product)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link to={`/admin/products/${product.id}/edit`}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Bewerken
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => setProductToDelete(product)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Verwijderen
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(product.id)}
+                        onCheckedChange={() => toggleSelect(product.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {product.featured_image ? (
+                        <img
+                          src={product.featured_image}
+                          alt={product.name}
+                          className="h-10 w-10 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <Link 
+                            to={`/admin/products/${product.id}/edit`}
+                            className="font-medium hover:underline"
+                          >
+                            {product.name}
+                          </Link>
+                          {product.is_featured && (
+                            <Star className="ml-1 inline h-3 w-3 text-amber-500 fill-amber-500" />
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {product.sku || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {product.category ? (
+                        <Badge variant="outline">{product.category.name}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatPrice(product.price)}
+                      {product.compare_at_price && (
+                        <span className="ml-2 text-sm text-muted-foreground line-through">
+                          {formatPrice(product.compare_at_price)}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>{getStockBadge(product)}</TableCell>
+                    <TableCell>{getVisibilityBadge(product)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/admin/products/${product.id}/edit`}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Bewerken
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => setProductToDelete(product)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Verwijderen
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Delete confirmation dialogs */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
