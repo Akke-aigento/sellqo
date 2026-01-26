@@ -1,6 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Save, RotateCcw, AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useSyncRules } from '@/hooks/useSyncRules';
 import { useSyncValidation } from '@/hooks/useSyncValidation';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
@@ -180,14 +191,45 @@ export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={resetToDefaults}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Herstel standaard
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Herstel standaard
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-2">
+                      <p>
+                        Alle synchronisatie-instellingen voor {platformName} worden teruggezet naar de standaard. Dit omvat:
+                      </p>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>Product sync regels</li>
+                        <li>Voorraad sync instellingen</li>
+                        <li>Bestel mapping</li>
+                        <li>Conflict strategieën</li>
+                      </ul>
+                      <p className="font-medium">
+                        Deze actie kan niet ongedaan worden gemaakt.
+                      </p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={resetToDefaults}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Ja, reset alles
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>
