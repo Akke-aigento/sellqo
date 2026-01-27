@@ -33,6 +33,11 @@ import {
   PackageCheck,
   MessageSquare,
   Megaphone as MegaphoneIcon,
+  LayoutDashboard as PlatformDashboardIcon,
+  MessageCircle,
+  Bell as ChangelogIcon,
+  Activity,
+  FileText as LegalIcon,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -175,8 +180,14 @@ const systemItems: NavItem[] = [
 
 // PLATFORM - Platform admin only
 const platformItems: NavItem[] = [
+  { id: 'platform-dashboard', title: 'Dashboard', url: '/admin/platform/dashboard', icon: PlatformDashboardIcon },
   { id: 'platform-tenants', title: 'Tenants', url: '/admin/platform', icon: Building2 },
   { id: 'platform-billing', title: 'Platform Billing', url: '/admin/platform/billing', icon: Receipt },
+  { id: 'platform-feedback', title: 'Feedback', url: '/admin/platform/feedback', icon: MessageCircle },
+  { id: 'platform-support', title: 'Support', url: '/admin/platform/support', icon: MessageSquare },
+  { id: 'platform-changelog', title: 'Changelog', url: '/admin/platform/changelog', icon: ChangelogIcon },
+  { id: 'platform-health', title: 'Health Monitor', url: '/admin/platform/health', icon: Activity },
+  { id: 'platform-legal', title: 'Juridisch', url: '/admin/platform/legal', icon: LegalIcon },
 ];
 
 export const sidebarGroups: NavGroup[] = [
