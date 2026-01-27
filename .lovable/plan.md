@@ -1,205 +1,158 @@
 
-# Landing Page & Onboarding Updates - Complete Herziening
+# Hero Dashboard Mockup - Prominente Features Upgrade
 
-## Overzicht van Geïdentificeerde Problemen
+## Huidige Situatie
+Het fake dashboard toont nu:
+- Trial banner ✅
+- Health Score badge ✅
+- 4 stat cards (Omzet, Bestellingen, Klanten, Health)
+- Revenue chart
+- Top producten
+- Recente bestellingen
 
-### 1. Hero Dashboard Mockup - Outdated
-De `HeroDashboardMockup.tsx` toont nog een verouderd dashboard design:
-- Oude statistieken layout (Omzet, Bestellingen, Nieuwe Klanten, Conversie)
-- Mist de nieuwe **Trial Banner** die nu prominent is
-- Mist de nieuwe **Health Score** systeem
-- Mist de **Plan Selection** die nu onderdeel is van onboarding
-
-### 2. FAQ's - Ontbrekende Informatie over Nieuwe Features
-Huidige FAQ's (11 stuks) missen kritieke onderwerpen:
-- **Geen vermelding van automatische 14-dagen trial bij registratie**
-- **Geen uitleg over het onboarding proces (7 stappen)**
-- **Geen informatie over trial expiry en wat dan gebeurt**
-- **Geen vermelding van Shop Health Score**
-- Geen uitleg over plan selectie tijdens onboarding
-
-### 3. Footer Links - Leiden naar Niets
-**Product kolom:**
-| Link | Status | Route |
-|------|--------|-------|
-| Features | ✅ Werkt | `#features` scroll |
-| Prijzen | ✅ Werkt | `#pricing` scroll |
-| Integraties | ❌ `#` - gaat nergens | Mist pagina |
-| API Docs | ❌ `#` - gaat nergens | Mist pagina |
-| Changelog | ❌ `#` - gaat nergens | Mist pagina |
-
-**Bedrijf kolom:**
-| Link | Status | Route |
-|------|--------|-------|
-| Over Ons | ❌ `#` | Mist pagina |
-| Blog | ❌ `#` | Mist pagina |
-| Contact | ❌ `#` | Mist pagina |
-| Careers | ❌ `#` | Mist pagina |
-| Partners | ❌ `#` | Mist pagina |
-
-**Support kolom:**
-| Link | Status | Route |
-|------|--------|-------|
-| Help Center | ❌ `#` | Mist pagina |
-| FAQ | ✅ Werkt | `#faq` scroll |
-| Status Page | ❌ `#` | Mist pagina |
-| Neem Contact Op | ❌ `#` | Mist pagina |
-
-**Legal links:**
-| Link | Status | Route |
-|------|--------|-------|
-| Privacy Policy | ⚠️ `/privacy` route bestaat maar pagina niet gepubliceerd | `is_published: false` |
-| Algemene Voorwaarden | ⚠️ `/terms` route bestaat maar niet gepubliceerd | `is_published: false` |
-| Cookie Policy | ⚠️ `/cookies` route bestaat maar niet gepubliceerd | `is_published: false` |
-
-### 4. Pricing Action Button - Enterprise Link Werkt Niet
-`PricingSection.tsx` lijn 286: Enterprise linkt naar `/contact` die **niet bestaat**.
+**Probleem**: Dit is een generiek e-commerce dashboard dat elke webshop software kan tonen. Het mist de **unieke selling points** van SellQo.
 
 ---
 
-## Implementatieplan
+## Voorgestelde Verbeteringen
 
-### Fase 1: Hero Dashboard Mockup Updaten
-**Bestand:** `src/components/landing/HeroDashboardMockup.tsx`
+### 1. AI Coach Suggestie Card (NIEUW)
+Vervang "Top Producten" sectie met een **AI Coach preview** die toont:
+- Bot avatar met gradient
+- Conversational message: *"📈 Je bestseller 'Premium Headphones' is bijna uitverkocht. Bestel nu bij om €2.340 aan gemiste verkopen te voorkomen."*
+- Quick action buttons: "Bestel nu" en "Later"
+- Priority badge (bijv. "⚠️ Hoog")
 
-Aanpassingen:
-1. **Trial Banner Toevoegen** - Toon "Je hebt nog 14 dagen trial" balk bovenaan mockup
-2. **Health Score Badge** - Voeg een Health Score indicator toe (bijv. "Shop Health: 92% 🟢")
-3. **Modernere Stats** - Update labels naar:
-   - "Shop Health Score" (i.p.v. "Conversie")
-   - Behoud overige stats maar voeg trend indicators toe
-4. **Mini sidebar icons updaten** - Voeg Health/Gamification icon toe
+Dit toont de **proactieve AI** die SellQo uniek maakt.
 
-### Fase 2: FAQ's Uitbreiden
-**Bestand:** `src/components/landing/FaqSection.tsx`
+---
 
-**Nieuwe FAQ's toevoegen (5 stuks):**
+### 2. Unified Inbox Preview (NIEUW)
+Vervang "Recente Bestellingen" met een **Inbox feed** die toont:
+- 3 klantberichten met avatar, naam, preview
+- Channel icons: 📧 Email, 💬 WhatsApp, 🔵 Bol.com badge
+- Unread indicator (rode dot)
+- "3 ongelezen berichten" header
 
-| Vraag | Antwoord |
-|-------|----------|
-| Wat gebeurt er na de 14 dagen trial? | Na 14 dagen word je gevraagd een plan te kiezen. Tot die tijd blijft je account actief maar worden nieuwe functies geblokkeerd. Je data blijft veilig behouden. |
-| Hoe werkt het onboarding proces? | Bij registratie doorloop je een 7-stappen wizard: winkelnaam, plan selectie, bedrijfsgegevens, logo upload, eerste product, betalingen en lancering. Je kunt stappen overslaan en later voltooien. |
-| Wat is de Shop Health Score? | Een realtime score (0-100%) die de gezondheid van je shop meet: voorraad, bestellingen, reviews, SEO en meer. Je krijgt dagelijks tips om je score te verbeteren. |
-| Kan ik later van plan wisselen? | Ja! Je kunt op elk moment upgraden of downgraden via Instellingen → Abonnement. Upgrades zijn direct actief, downgrades gaan in bij de volgende facturatieperiode. |
-| Welke talen ondersteunt SellQo? | Nederlands, Engels, Frans en Duits. Zowel de admin interface als je webshop zijn volledig vertaalbaar. AI vertalingen zijn beschikbaar voor productbeschrijvingen. |
+Dit toont de **multichannel inbox** met marketplace integratie.
 
-**Bestaande FAQ's bijwerken:**
-- "Hoe werkt de gratis trial?" → Toevoegen: "Je kiest je plan tijdens onboarding, maar betaalt pas na 14 dagen."
+---
 
-### Fase 3: Publieke Pagina's Aanmaken
-Creëer de volgende pagina's onder `/src/pages/public/`:
+### 3. Mini Sidebar Update
+Huidige icons: Euro, ShoppingBag, Package, Heart, TrendingUp
 
-| Pagina | Route | Inhoud |
-|--------|-------|--------|
-| `About.tsx` | `/about` | Over SellQo pagina met team/missie info |
-| `Contact.tsx` | `/contact` | Contact formulier + contactgegevens |
-| `Blog.tsx` | `/blog` | Placeholder blog overzicht |
-| `Partners.tsx` | `/partners` | Partner programma informatie |
-| `Careers.tsx` | `/careers` | Vacatures placeholder |
-| `HelpCenter.tsx` | `/help` | Help center met FAQ links |
-| `Status.tsx` | `/status` | Simpele status pagina |
-| `Integrations.tsx` | `/integrations` | Overzicht van alle integraties |
-| `ApiDocs.tsx` | `/api-docs` | API documentatie placeholder |
-| `PublicChangelog.tsx` | `/changelog` | Publieke changelog view |
+Nieuwe icons toevoegen:
+- **MessageSquare** (Inbox)
+- **Bot** (AI Coach)
+- **Zap** (Quick Actions)
 
-### Fase 4: Routes Toevoegen aan App.tsx
-**Bestand:** `src/App.tsx`
+Dit benadrukt de AI en communicatie features.
 
-Toevoegen van nieuwe routes:
-```
-/about → AboutPage
-/contact → ContactPage
-/blog → BlogPage
-/partners → PartnersPage
-/careers → CareersPage
-/help → HelpCenterPage
-/status → StatusPage
-/integrations → IntegrationsPage
-/api-docs → ApiDocsPage
-/changelog → PublicChangelogPage
+---
+
+### 4. Live Activity Indicator (NIEUW)
+Klein element onder de stats:
+- 🟢 Pulserende groene dot
+- "Live: 3 bezoekers op je shop"
+- Subtiele real-time feel
+
+---
+
+## Nieuwe Layout Design
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│  [Trial Banner - 14 dagen gratis]                       │
+├─────────────────────────────────────────────────────────┤
+│  [Health Score: 92%]              [3 verbeterpunten →]  │
+├─────────────────────────────────────────────────────────┤
+│  [Omzet]  [Orders]  [Klanten]  [Health]    ← Stats      │
+├──────────────────────────┬──────────────────────────────┤
+│                          │                              │
+│   📊 Omzet Grafiek       │   🤖 AI Coach Suggestie      │
+│   [Chart]                │   "Je bestseller raakt op.." │
+│                          │   [Bestel nu] [Later]        │
+│                          │                              │
+├──────────────────────────┴──────────────────────────────┤
+│   📬 Klantberichten (3 ongelezen)                       │
+│   ┌─────────────────────────────────────────────────┐   │
+│   │ 👤 Jan de Vries  📧  "Vraag over bezorging..."  │   │
+│   │ 👤 Lisa Bakker   💬  "Hallo, is dit nog..."    🔴│   │
+│   │ 👤 Bol.com Klant 🛒  "Wanneer wordt mijn..."   🔴│   │
+│   └─────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────┤
+│   🟢 Live: 5 bezoekers op je shop                       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Fase 5: Footer Links Updaten
-**Bestand:** `src/components/landing/LandingFooter.tsx`
-
-1. Update alle `href="#"` naar correcte routes
-2. Wijzig `<button>` naar `<Link>` voor pagina navigatie
-3. Legal links aanpassen naar correcte `/terms`, `/privacy`, `/cookies` routes
-
-### Fase 6: Pricing Enterprise Fix
-**Bestand:** `src/components/landing/PricingSection.tsx`
-
-Lijn 286: Wijzig `/contact` naar de nieuwe werkende `/contact` route.
-
 ---
 
-## Technische Details
+## Technische Implementatie
 
-### Nieuwe Bestanden Aanmaken:
+### Bestand
+`src/components/landing/HeroDashboardMockup.tsx`
 
-| Bestand | Type |
-|---------|------|
-| `src/pages/public/About.tsx` | Landingspagina |
-| `src/pages/public/Contact.tsx` | Formulier pagina |
-| `src/pages/public/Blog.tsx` | Placeholder |
-| `src/pages/public/Partners.tsx` | Info pagina |
-| `src/pages/public/Careers.tsx` | Placeholder |
-| `src/pages/public/HelpCenter.tsx` | Verzamelpagina |
-| `src/pages/public/Status.tsx` | Status overview |
-| `src/pages/public/Integrations.tsx` | Features showcase |
-| `src/pages/public/ApiDocs.tsx` | Placeholder |
-| `src/pages/public/PublicChangelog.tsx` | Changelog view |
-| `src/components/landing/PublicPageLayout.tsx` | Shared layout voor publieke pagina's |
+### Data Structures
 
-### Bestaande Bestanden Wijzigen:
+**AI Coach Message (nieuw)**:
+```typescript
+const aiCoachSuggestion = {
+  priority: 'high',
+  emoji: '📈',
+  message: "Je bestseller 'Premium Headphones' is bijna uitverkocht. Bestel nu bij om €2.340 aan gemiste verkopen te voorkomen.",
+  actions: ['Bestel nu', 'Later']
+};
+```
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/landing/HeroDashboardMockup.tsx` | Trial banner + Health Score toevoegen |
-| `src/components/landing/FaqSection.tsx` | 5 nieuwe FAQ's + 1 update |
-| `src/components/landing/LandingFooter.tsx` | Alle links werkend maken |
-| `src/components/landing/PricingSection.tsx` | Enterprise button fix |
-| `src/App.tsx` | 10 nieuwe routes toevoegen |
+**Inbox Messages (nieuw)**:
+```typescript
+const inboxMessages = [
+  { 
+    name: 'Jan de Vries', 
+    channel: 'email', 
+    preview: 'Vraag over bezorging...', 
+    unread: false 
+  },
+  { 
+    name: 'Lisa Bakker', 
+    channel: 'whatsapp', 
+    preview: 'Hallo, is dit nog op voorraad?', 
+    unread: true 
+  },
+  { 
+    name: 'Bol.com Klant', 
+    channel: 'bol', 
+    preview: 'Wanneer wordt mijn bestelling verzonden?', 
+    unread: true,
+    marketplace: 'bol_com'
+  },
+];
+```
 
----
+### UI Components binnen Mockup
 
-## Pagina Content Overzicht
+1. **AICoachMockup** - Gradient card met bot icon, priority badge, message, action buttons
+2. **InboxMockup** - List met avatar, channel icon, preview, unread indicator
+3. **LiveIndicator** - Pulserende groene dot met bezoekerscount
 
-### About Page
-- Hero sectie met missie statement
-- "Ons Team" sectie met foto placeholders
-- "Waarom SellQo" value propositions
-- CTA naar registratie
-
-### Contact Page
-- Contact formulier (naam, email, onderwerp, bericht)
-- Bedrijfsgegevens sidebar
-- Map embed placeholder
-- Direct contact opties (WhatsApp, Email)
-
-### Integrations Page
-- Grid met alle ondersteunde platforms (Bol.com, Amazon, Shopify, etc.)
-- Per integratie: logo, beschrijving, "Binnenkort" badge indien relevant
-- Link naar SellQo Connect in admin
-
-### Help Center Page
-- Zoekbalk
-- Categorieën: "Aan de slag", "Producten", "Bestellingen", "Betalingen", etc.
-- Links naar FAQ sectie
-- Contact support button
-
-### Status Page
-- Simpele "All Systems Operational" indicator
-- Lijst van services met groene checkmarks
-- Laatst bijgewerkt timestamp
+### Icons toe te voegen
+```typescript
+import { 
+  // Bestaand
+  Euro, ShoppingBag, Users, TrendingUp, Package, Heart, Clock,
+  // Nieuw
+  Bot, MessageSquare, Mail, Zap, ShoppingCart, Circle
+} from 'lucide-react';
+```
 
 ---
 
 ## Verwacht Resultaat
 
-Na implementatie:
-1. **Hero mockup** toont het moderne dashboard met trial banner en health score
-2. **FAQ sectie** bevat 16 vragen (11 bestaand + 5 nieuw) die alle veelgestelde vragen beantwoorden
-3. **Alle footer links** leiden naar werkende pagina's
-4. **Enterprise button** opent werkende contact pagina
-5. **Legal pagina's** zijn toegankelijk (routes werken, maar content moet nog gepubliceerd worden via Platform Admin)
+Het nieuwe mockup demonstreert visueel:
+1. **AI dat meedenkt** - Proactieve suggesties in realtime
+2. **Unified Inbox** - Alle kanalen (Email, WhatsApp, Marketplaces) in één view
+3. **Live activiteit** - Real-time feel met bezoekersdata
+4. **Moderne SaaS UI** - Gradient accents, micro-animations
+
+Dit maakt direct duidelijk wat SellQo onderscheidt van generieke e-commerce platforms.
