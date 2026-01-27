@@ -1,103 +1,84 @@
 
 
-# Header & Footer Tablet Layout Optimalisatie
+# Dashboard Mockup Floating Effect Herstellen
 
-## Huidige Situatie
+## Geïdentificeerd Probleem
 
-### Header (LandingNavbar.tsx)
-- Breakpoint `md:` (768px) schakelt van hamburger naar desktop navigatie
-- Op tablet (768-1024px) past de volledige navigatie + CTA buttons soms krap
+Op regel 93 in `HeroSection.tsx` staat nu:
+```tsx
+<div className="relative overflow-hidden">
+```
 
-### Footer (LandingFooter.tsx)
-- Grid: `md:grid-cols-2 lg:grid-cols-4`
-- Bottom bar: `flex-col md:flex-row` - op tablet komen 3 elementen naast elkaar
-- Logo breedte: `width={400}` - te groot voor tablet
+Deze `overflow-hidden` was toegevoegd om horizontale scroll op mobile te voorkomen, maar het heeft een ongewenst neveneffect: de dashboard mockup en floating cards worden nu "afgeknipt" waardoor het geheel in een box lijkt te zitten.
 
----
-
-## Oplossingen
-
-### 1. LandingNavbar - Hamburger Menu Tot Tablet
-
-**Wijzigingen:**
-| Element | Oud | Nieuw |
-|---------|-----|-------|
-| Desktop nav | `hidden md:flex` | `hidden lg:flex` |
-| Desktop CTA | `hidden md:flex` | `hidden lg:flex` |
-| Hamburger knop | `md:hidden` | `lg:hidden` |
-| Mobile menu | `md:hidden` | `lg:hidden` |
-
-Dit zorgt ervoor dat het hamburger menu zichtbaar blijft tot 1024px (tablet landscape).
+**Gewenst gedrag:**
+- Dashboard en floating cards "zweven" buiten hun container
+- Geen horizontale scroll op de pagina
 
 ---
 
-### 2. LandingFooter - Betere Tablet Layout
+## Oplossing
 
-**Grid aanpassingen:**
-| Element | Oud | Nieuw |
-|---------|-----|-------|
-| Main grid | `md:grid-cols-2 lg:grid-cols-4` | `sm:grid-cols-2 lg:grid-cols-4` |
-| Logo width | `width={400}` | Responsive: `w-full max-w-[200px] md:max-w-[280px]` |
+### Aanpak: Selectieve overflow control
 
-**Bottom bar aanpassingen:**
-| Element | Oud | Nieuw |
-|---------|-----|-------|
-| Container | `flex-col md:flex-row` | `flex-col lg:flex-row` |
-| Legal links | `flex-wrap justify-center gap-6` | `flex-wrap justify-center gap-4 md:gap-6` |
-| Language selector | Inline separators | Compacter op tablet |
+| Wijziging | Beschrijving |
+|-----------|--------------|
+| Verwijder `overflow-hidden` van dashboard wrapper | Laat mockup weer vrij floaten |
+| Voeg `overflow-hidden` toe aan de `<section>` tag | Voorkomt horizontale scroll op paginaniveau (al aanwezig op regel 29!) |
+| Pas floating card posities aan | Zorg dat ze binnen de viewport blijven op mobile |
 
-Op tablet (768-1024px) stapelt de bottom bar nu verticaal voor betere leesbaarheid.
+De `<section>` heeft al `overflow-hidden` (regel 29), dus de parent div hoeft dit niet te dupliceren.
 
 ---
 
-## Technische Details
+## Technische Wijzigingen
 
-### Bestand 1: `src/components/landing/LandingNavbar.tsx`
-- Regel 52: `hidden md:flex` → `hidden lg:flex`
-- Regel 65: `hidden md:flex` → `hidden lg:flex`
-- Regel 80: `md:hidden` → `lg:hidden`
-- Regel 91: `md:hidden` → `lg:hidden`
+### Bestand: `src/components/landing/HeroSection.tsx`
 
-### Bestand 2: `src/components/landing/LandingFooter.tsx`
-- Regel 53: Grid aanpassen naar `sm:grid-cols-2 lg:grid-cols-4`
-- Regel 56: Logo responsive width
-- Regel 145: Bottom bar `flex-col lg:flex-row`
-- Regel 150: Legal links gap aanpassen
-- Optioneel: Taalselector compacter maken
+**Regel 93 - Verwijder overflow-hidden:**
+```tsx
+// Oud:
+<div className="relative overflow-hidden">
+
+// Nieuw:
+<div className="relative">
+```
+
+Dit zorgt ervoor dat:
+1. De floating cards weer buiten de container kunnen "floaten"
+2. De dashboard mockup niet meer afgeknipt wordt
+3. De `section` overflow-hidden (regel 29) voorkomt nog steeds horizontale pagina-scroll
 
 ---
 
 ## Visueel Resultaat
 
 ```text
-TABLET (768-1024px):
+VOOR (huidige situatie):
+┌───────────────────────────────┐
+│  ┌─────────────────────┐      │
+│  │   Dashboard Box     │      │  ← Afgekapt
+│  │   (clipped)         │      │
+│  └─────────────────────┘      │
+└───────────────────────────────┘
 
-HEADER:
-┌─────────────────────────────────────┐
-│ [Logo]              [☰ Hamburger]   │
-└─────────────────────────────────────┘
-
-FOOTER GRID:
-┌────────────────┬────────────────────┐
-│ Brand + Social │ Product Links      │
-├────────────────┼────────────────────┤
-│ Bedrijf Links  │ Support Links      │
-└────────────────┴────────────────────┘
-
-FOOTER BOTTOM:
-┌─────────────────────────────────────┐
-│        © 2025 SellQo BV             │
-│   Privacy | Terms | Cookies         │
-│      🇳🇱 | 🇬🇧 | 🇫🇷 | 🇩🇪              │
-└─────────────────────────────────────┘
+NA (gewenste situatie):
+        ┌─ Float ─┐
+┌───────│─────────│─────────────┐
+│  ┌────┴─────────┴────┐        │
+│  │    Dashboard      │        │  ← Vrij floatend
+│  │    (floating)     │   Float│
+│  └───────────────────┴────────┤
+└───────────────────────────────┘
 ```
 
 ---
 
 ## Verwacht Resultaat
 
-1. **Header:** Hamburger menu blijft zichtbaar op tablet tot 1024px
-2. **Footer grid:** 2 kolommen op tablet, netjes gepositioneerd
-3. **Footer bottom:** Gestapeld op tablet, naast elkaar op desktop
-4. **Logo:** Schaalt mee met schermgrootte
+Na deze eenvoudige wijziging:
+- Dashboard mockup en floating cards zweven weer mooi
+- Geen "box" effect meer zichtbaar
+- Geen horizontale scroll (dankzij section-level overflow-hidden)
+- Mobile layout blijft intact door de responsive scaling
 
