@@ -21,6 +21,8 @@ export function useStripeConnect(tenantId: string | undefined) {
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const { toast } = useToast();
 
+  const [isOpeningDashboard, setIsOpeningDashboard] = useState(false);
+
   const checkStatus = useCallback(async () => {
     if (!tenantId) return;
     
@@ -129,12 +131,40 @@ export function useStripeConnect(tenantId: string | undefined) {
     return 'bg-yellow-500';
   }, [status]);
 
+  const openStripeDashboard = useCallback(async () => {
+    if (!tenantId) return;
+    
+    setIsOpeningDashboard(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-stripe-login-link', {
+        body: { tenant_id: tenantId },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      console.error('Error opening Stripe dashboard:', error);
+      toast({
+        title: 'Fout',
+        description: 'Kon Stripe Dashboard niet openen. Probeer het opnieuw.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsOpeningDashboard(false);
+    }
+  }, [tenantId, toast]);
+
   return {
     status,
     isLoading,
     isCreatingAccount,
+    isOpeningDashboard,
     checkStatus,
     createConnectAccount,
+    openStripeDashboard,
     getStatusText,
     getStatusColor,
   };

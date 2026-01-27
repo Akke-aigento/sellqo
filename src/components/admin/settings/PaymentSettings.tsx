@@ -39,8 +39,10 @@ export function PaymentSettings() {
     status,
     isLoading,
     isCreatingAccount,
+    isOpeningDashboard,
     checkStatus,
     createConnectAccount,
+    openStripeDashboard,
   } = useStripeConnect(currentTenant?.id);
 
   useEffect(() => {
@@ -174,13 +176,15 @@ export function PaymentSettings() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <Percent className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Platform fee</p>
-                  <p className="text-xs text-muted-foreground">5% per transactie</p>
+              {!currentTenant?.is_internal_tenant && (
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Percent className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Platform fee</p>
+                    <p className="text-xs text-muted-foreground">5% per transactie</p>
+                  </div>
                 </div>
-              </div>
+              )}
               
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Shield className="h-5 w-5 text-muted-foreground" />
@@ -204,10 +208,14 @@ export function PaymentSettings() {
               </Button>
               <Button
                 variant="outline"
-                onClick={createConnectAccount}
-                disabled={isCreatingAccount}
+                onClick={openStripeDashboard}
+                disabled={isOpeningDashboard}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
+                {isOpeningDashboard ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                )}
                 Stripe Dashboard openen
               </Button>
             </div>

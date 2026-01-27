@@ -263,3 +263,6 @@ verify_jwt = false
 
 [functions.execute-plan-switch]
 verify_jwt = false
+
+[functions.get-stripe-login-link]
+verify_jwt = false
