@@ -1,8 +1,15 @@
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Check, CheckCheck, Mail, MessageSquare } from 'lucide-react';
+import { Check, CheckCheck, Mail, MessageSquare, ShoppingBag, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InboxMessage } from '@/hooks/useInbox';
+
+interface MessageContextData {
+  marketplace?: 'bol_com' | 'amazon' | null;
+  bol_order_id?: string | null;
+  has_attachments?: boolean;
+  attachment_count?: number;
+}
 
 interface MessageBubbleProps {
   message: InboxMessage;
@@ -11,6 +18,10 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isOutbound = message.direction === 'outbound';
   const ChannelIcon = message.channel === 'whatsapp' ? MessageSquare : Mail;
+  
+  // Extract marketplace info from context_data
+  const contextData = (message as any).context_data as MessageContextData | undefined;
+  const marketplace = contextData?.marketplace;
 
   // Get status check icons for outbound messages
   const getStatusIcon = () => {
@@ -57,6 +68,26 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             : 'bg-muted rounded-tl-sm'
         )}
       >
+        {/* Marketplace badge */}
+        {marketplace && (
+          <div className={cn(
+            'flex items-center gap-1 mb-1.5',
+            isOutbound ? 'text-primary-foreground/80' : ''
+          )}>
+            {marketplace === 'bol_com' ? (
+              <>
+                <ShoppingBag className="h-3 w-3 text-orange-500" />
+                <span className="text-xs font-medium text-orange-600">Bol.com</span>
+              </>
+            ) : marketplace === 'amazon' ? (
+              <>
+                <Store className="h-3 w-3 text-amber-600" />
+                <span className="text-xs font-medium text-amber-700">Amazon</span>
+              </>
+            ) : null}
+          </div>
+        )}
+
         {/* Subject line for emails */}
         {message.channel === 'email' && message.subject && (
           <p className={cn('text-xs font-medium mb-1', isOutbound ? 'text-primary-foreground/80' : 'text-muted-foreground')}>

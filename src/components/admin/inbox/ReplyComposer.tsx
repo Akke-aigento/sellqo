@@ -130,6 +130,20 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         if (error) throw error;
       }
 
+      // Mark the last inbound message as replied
+      const lastInbound = conversation.messages.find(
+        m => m.direction === 'inbound' && !m.replied_at
+      );
+      
+      if (lastInbound) {
+        await supabase
+          .from('customer_messages')
+          .update({ 
+            replied_at: new Date().toISOString(),
+          })
+          .eq('id', lastInbound.id);
+      }
+
       toast({
         title: 'Bericht verzonden',
         description: `Antwoord verstuurd via ${channel === 'whatsapp' ? 'WhatsApp' : 'email'}.`,

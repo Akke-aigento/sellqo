@@ -1,8 +1,9 @@
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, Check } from 'lucide-react';
+import { Mail, MessageSquare, Check, ShoppingBag, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Conversation } from '@/hooks/useInbox';
 
 interface ConversationItemProps {
@@ -15,6 +16,10 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
   const { customer, lastMessage, unreadCount, channel } = conversation;
   const isUnread = unreadCount > 0;
   const isReplied = lastMessage.direction === 'inbound' && lastMessage.replied_at;
+  
+  // Check for marketplace source
+  const contextData = (lastMessage as any).context_data as { marketplace?: string } | undefined;
+  const marketplace = contextData?.marketplace;
 
   const initials = customer?.name
     ? customer.name
@@ -57,9 +62,28 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className={cn('font-medium truncate', isUnread && 'font-semibold')}>
-              {customer?.name || 'Onbekend'}
-            </span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={cn('font-medium truncate', isUnread && 'font-semibold')}>
+                {customer?.name || 'Onbekend'}
+              </span>
+              {/* Marketplace badge */}
+              {marketplace === 'bol_com' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>Bol.com bericht</TooltipContent>
+                </Tooltip>
+              )}
+              {marketplace === 'amazon' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Store className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>Amazon bericht</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
               <ChannelIcon className="h-3 w-3" />
               <span>

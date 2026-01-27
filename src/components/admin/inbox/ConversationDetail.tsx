@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, User, ExternalLink } from 'lucide-react';
+import { Mail, MessageSquare, User, ExternalLink, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -49,6 +49,11 @@ export function ConversationDetail({
     : '?';
 
   const ChannelIcon = channel === 'whatsapp' ? MessageSquare : Mail;
+  
+  // Find linked order from any message in conversation
+  const linkedOrderId = useMemo(() => {
+    return messages.find(m => m.order_id)?.order_id || null;
+  }, [messages]);
 
   // Group messages by date
   const messagesByDate = messages.reduce((acc, msg) => {
@@ -85,15 +90,26 @@ export function ConversationDetail({
             )}
           </div>
         </div>
-        {customer?.id && (
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/admin/customers/${customer.id}`}>
-              <User className="h-4 w-4 mr-1" />
-              Klantprofiel
-              <ExternalLink className="h-3 w-3 ml-1" />
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {linkedOrderId && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/admin/orders/${linkedOrderId}`}>
+                <Package className="h-4 w-4 mr-1" />
+                Bestelling
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          )}
+          {customer?.id && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/admin/customers/${customer.id}`}>
+                <User className="h-4 w-4 mr-1" />
+                Klantprofiel
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}

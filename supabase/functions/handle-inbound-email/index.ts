@@ -217,6 +217,51 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to store message: ${insertError.message}`);
     }
 
+    // Upload attachments if present
+    if (payload.attachments && payload.attachments.length > 0) {
+      console.log(`Processing ${payload.attachments.length} attachments`);
+      
+      for (const attachment of payload.attachments) {
+        try {
+          const storagePath = `${tenantId}/messages/${message.id}/${attachment.filename}`;
+          
+          // Decode base64 content
+          const binaryString = atob(attachment.content);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('message-attachments')
+            .upload(storagePath, bytes, {
+              contentType: attachment.content_type,
+              upsert: true,
+            });
+          
+          if (uploadError) {
+            console.error(`Failed to upload attachment ${attachment.filename}:`, uploadError);
+            continue;
+          }
+          
+          // Save reference in database
+          await supabase.from('customer_message_attachments').insert({
+            message_id: message.id,
+            tenant_id: tenantId,
+            filename: attachment.filename,
+            content_type: attachment.content_type,
+            size_bytes: bytes.length,
+            storage_path: storagePath,
+          });
+          
+          console.log(`Uploaded attachment: ${attachment.filename}`);
+        } catch (attachError) {
+          console.error(`Error processing attachment ${attachment.filename}:`, attachError);
+        }
+      }
+    }
+
     // Get customer name for notification
     let customerName = "Onbekende afzender";
     if (customerId) {
