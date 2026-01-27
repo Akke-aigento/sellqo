@@ -1,9 +1,9 @@
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Check, CheckCheck, Mail, MessageSquare, ShoppingBag, Store, Paperclip } from 'lucide-react';
+import { Check, CheckCheck, Mail, MessageSquare, ShoppingBag, Store, Paperclip, Facebook, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessageAttachments } from './MessageAttachments';
-import type { InboxMessage } from '@/hooks/useInbox';
+import type { InboxMessage, MessageChannel } from '@/hooks/useInbox';
 
 interface MessageContextData {
   marketplace?: 'bol_com' | 'amazon' | null;
@@ -16,9 +16,23 @@ interface MessageBubbleProps {
   message: InboxMessage;
 }
 
+// Channel icon mapping
+const getChannelIcon = (channel: MessageChannel) => {
+  switch (channel) {
+    case 'whatsapp':
+      return MessageSquare;
+    case 'facebook':
+      return Facebook;
+    case 'instagram':
+      return Instagram;
+    default:
+      return Mail;
+  }
+};
+
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isOutbound = message.direction === 'outbound';
-  const ChannelIcon = message.channel === 'whatsapp' ? MessageSquare : Mail;
+  const ChannelIcon = getChannelIcon(message.channel);
   
   // Extract marketplace info from context_data
   const contextData = (message as any).context_data as MessageContextData | undefined;

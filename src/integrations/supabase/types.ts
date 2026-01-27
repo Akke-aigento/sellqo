@@ -2626,6 +2626,9 @@ export type Database = {
           error_message: string | null
           from_email: string
           id: string
+          meta_message_id: string | null
+          meta_page_id: string | null
+          meta_sender_id: string | null
           opened_at: string | null
           order_id: string | null
           quote_id: string | null
@@ -2657,6 +2660,9 @@ export type Database = {
           error_message?: string | null
           from_email: string
           id?: string
+          meta_message_id?: string | null
+          meta_page_id?: string | null
+          meta_sender_id?: string | null
           opened_at?: string | null
           order_id?: string | null
           quote_id?: string | null
@@ -2688,6 +2694,9 @@ export type Database = {
           error_message?: string | null
           from_email?: string
           id?: string
+          meta_message_id?: string | null
+          meta_page_id?: string | null
+          meta_sender_id?: string | null
           opened_at?: string | null
           order_id?: string | null
           quote_id?: string | null
@@ -2812,10 +2821,12 @@ export type Database = {
           email_subscribed: boolean | null
           email_subscribed_at: string | null
           external_id: string | null
+          facebook_psid: string | null
           first_name: string | null
           id: string
           import_job_id: string | null
           imported_at: string | null
+          instagram_id: string | null
           last_email_opened_at: string | null
           last_email_sent_at: string | null
           last_name: string | null
@@ -2858,10 +2869,12 @@ export type Database = {
           email_subscribed?: boolean | null
           email_subscribed_at?: string | null
           external_id?: string | null
+          facebook_psid?: string | null
           first_name?: string | null
           id?: string
           import_job_id?: string | null
           imported_at?: string | null
+          instagram_id?: string | null
           last_email_opened_at?: string | null
           last_email_sent_at?: string | null
           last_name?: string | null
@@ -2904,10 +2917,12 @@ export type Database = {
           email_subscribed?: boolean | null
           email_subscribed_at?: string | null
           external_id?: string | null
+          facebook_psid?: string | null
           first_name?: string | null
           id?: string
           import_job_id?: string | null
           imported_at?: string | null
+          instagram_id?: string | null
           last_email_opened_at?: string | null
           last_email_sent_at?: string | null
           last_name?: string | null
@@ -5337,6 +5352,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "media_assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_messaging_connections: {
+        Row: {
+          created_at: string | null
+          id: string
+          instagram_account_id: string | null
+          is_active: boolean | null
+          page_access_token: string
+          page_id: string
+          page_name: string | null
+          platform: string
+          tenant_id: string
+          updated_at: string | null
+          webhook_verify_token: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          instagram_account_id?: string | null
+          is_active?: boolean | null
+          page_access_token: string
+          page_id: string
+          page_name?: string | null
+          platform: string
+          tenant_id: string
+          updated_at?: string | null
+          webhook_verify_token?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instagram_account_id?: string | null
+          is_active?: boolean | null
+          page_access_token?: string
+          page_id?: string
+          page_name?: string | null
+          platform?: string
+          tenant_id?: string
+          updated_at?: string | null
+          webhook_verify_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_messaging_connections_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

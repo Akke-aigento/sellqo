@@ -21,7 +21,9 @@ export default function MessagesPage() {
   const counts = useMemo(() => {
     const email = conversations.filter((c) => c.channel === 'email').length;
     const whatsapp = conversations.filter((c) => c.channel === 'whatsapp').length;
-    return { email, whatsapp };
+    const facebook = conversations.filter((c) => c.channel === 'facebook').length;
+    const instagram = conversations.filter((c) => c.channel === 'instagram').length;
+    return { email, whatsapp, facebook, instagram };
   }, [conversations]);
 
   return (
@@ -45,6 +47,8 @@ export default function MessagesPage() {
               onFiltersChange={setFilters}
               emailCount={counts.email}
               whatsappCount={counts.whatsapp}
+              facebookCount={counts.facebook}
+              instagramCount={counts.instagram}
               unreadCount={unreadTotal}
             />
             <div className="flex-1 overflow-hidden">
