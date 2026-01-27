@@ -1,4 +1,4 @@
-import { Euro, ShoppingBag, Users, TrendingUp, Package, Heart, Clock } from 'lucide-react';
+import { Euro, ShoppingBag, Users, TrendingUp, Heart, Clock, Bot, MessageSquare, Mail, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const statsData = [
@@ -8,22 +8,41 @@ const statsData = [
   { label: 'Health Score', value: '92%', change: '+4%', icon: Heart, positive: true },
 ];
 
-const recentOrders = [
-  { id: '#1234', customer: 'Jan de Vries', amount: '€149,99', status: 'shipped' as const },
-  { id: '#1233', customer: 'Lisa Bakker', amount: '€89,50', status: 'paid' as const },
-  { id: '#1232', customer: 'Peter Jansen', amount: '€245,00', status: 'processing' as const },
+const aiCoachSuggestion = {
+  priority: 'high' as const,
+  emoji: '📈',
+  message: "Je bestseller 'Premium Headphones' is bijna uitverkocht. Bestel nu bij om €2.340 aan gemiste verkopen te voorkomen.",
+  actions: ['Bestel nu', 'Later']
+};
+
+const inboxMessages = [
+  { 
+    name: 'Jan de Vries', 
+    channel: 'email' as const, 
+    preview: 'Vraag over bezorging van mijn bestelling...', 
+    unread: false,
+    time: '2 min'
+  },
+  { 
+    name: 'Lisa Bakker', 
+    channel: 'whatsapp' as const, 
+    preview: 'Hallo, is dit product nog op voorraad?', 
+    unread: true,
+    time: '5 min'
+  },
+  { 
+    name: 'Bol.com Klant', 
+    channel: 'bol' as const, 
+    preview: 'Wanneer wordt mijn bestelling verzonden?', 
+    unread: true,
+    time: '12 min'
+  },
 ];
 
-const topProducts = [
-  { name: 'Premium Headphones', sold: 234, revenue: '€5.850', progress: 85 },
-  { name: 'Wireless Charger', sold: 189, revenue: '€2.835', progress: 65 },
-  { name: 'Phone Case Pro', sold: 156, revenue: '€1.560', progress: 50 },
-];
-
-const statusStyles = {
-  shipped: { label: 'Verzonden', bg: 'bg-green-500/10', text: 'text-green-600', dot: 'bg-green-500' },
-  paid: { label: 'Betaald', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
-  processing: { label: 'In behandeling', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-500' },
+const channelStyles = {
+  email: { icon: Mail, bg: 'bg-blue-500/10', text: 'text-blue-500', label: 'Email' },
+  whatsapp: { icon: MessageSquare, bg: 'bg-green-500/10', text: 'text-green-500', label: 'WhatsApp' },
+  bol: { icon: ShoppingBag, bg: 'bg-orange-500/10', text: 'text-orange-500', label: 'Bol.com' },
 };
 
 export function HeroDashboardMockup() {
@@ -37,16 +56,21 @@ export function HeroDashboardMockup() {
         <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
           <ShoppingBag className="w-3 h-3 text-muted-foreground" />
         </div>
+        <div className="w-6 h-6 rounded-lg bg-accent/20 flex items-center justify-center hover:bg-accent/30 transition-colors cursor-pointer relative">
+          <MessageSquare className="w-3 h-3 text-accent" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
+        </div>
         <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
-          <Package className="w-3 h-3 text-muted-foreground" />
+          <Bot className="w-3 h-3 text-muted-foreground" />
         </div>
         <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
           <Heart className="w-3 h-3 text-muted-foreground" />
         </div>
         <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
-          <TrendingUp className="w-3 h-3 text-muted-foreground" />
+          <Zap className="w-3 h-3 text-muted-foreground" />
         </div>
       </div>
+
       {/* Browser Chrome Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-secondary/50 border-b border-border">
         <div className="flex items-center gap-2">
@@ -202,62 +226,105 @@ export function HeroDashboardMockup() {
             </div>
           </div>
 
-          {/* Top Products */}
-          <div className="bg-background rounded-xl p-4 border border-border/50">
-            <h4 className="text-xs font-semibold text-foreground mb-3">Top Producten</h4>
-            <div className="space-y-3">
-              {topProducts.map((product, index) => (
-                <div key={index} className="animate-fade-in" style={{ animationDelay: `${0.3 + index * 0.1}s` }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded bg-secondary flex items-center justify-center">
-                        <Package className="w-3 h-3 text-muted-foreground" />
-                      </div>
-                      <span className="text-[10px] font-medium text-foreground truncate max-w-[80px]">
-                        {product.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-semibold text-foreground">{product.revenue}</span>
-                  </div>
-                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent rounded-full transition-all duration-1000"
-                      style={{ width: `${product.progress}%` }}
-                    />
-                  </div>
+          {/* AI Coach Suggestion Card */}
+          <div className="bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 rounded-xl p-4 border border-primary/20 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-white" />
                 </div>
-              ))}
+                <span className="text-xs font-semibold text-foreground">AI Coach</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">
+                ⚠️ Hoog
+              </span>
+            </div>
+            <p className="text-[11px] text-foreground/80 leading-relaxed mb-3">
+              {aiCoachSuggestion.emoji} {aiCoachSuggestion.message}
+            </p>
+            <div className="flex gap-2">
+              <button className="flex-1 text-[10px] font-medium py-1.5 px-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                Bestel nu
+              </button>
+              <button className="flex-1 text-[10px] font-medium py-1.5 px-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors">
+                Later
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Recent Orders Table */}
-        <div className="bg-background rounded-xl p-4 border border-border/50">
-          <h4 className="text-xs font-semibold text-foreground mb-3">Recente Bestellingen</h4>
+        {/* Unified Inbox Preview */}
+        <div className="bg-background rounded-xl p-4 border border-border/50 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-semibold text-foreground">Klantberichten</h4>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 font-medium">
+                2 ongelezen
+              </span>
+            </div>
+            <span className="text-[10px] text-accent font-medium cursor-pointer hover:underline">
+              Bekijk alles →
+            </span>
+          </div>
           <div className="space-y-2">
-            {recentOrders.map((order, index) => {
-              const status = statusStyles[order.status];
+            {inboxMessages.map((message, index) => {
+              const channel = channelStyles[message.channel];
+              const ChannelIcon = channel.icon;
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 animate-fade-in"
-                  style={{ animationDelay: `${0.5 + index * 0.15}s` }}
+                  className={cn(
+                    "flex items-center gap-3 py-2 px-2 rounded-lg transition-colors cursor-pointer",
+                    message.unread ? "bg-accent/5 hover:bg-accent/10" : "hover:bg-secondary/50"
+                  )}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-mono text-muted-foreground">{order.id}</span>
-                    <span className="text-xs font-medium text-foreground">{order.customer}</span>
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-semibold text-foreground">
+                      {message.name.split(' ').map(n => n[0]).join('')}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-foreground">{order.amount}</span>
-                    <div className={cn('flex items-center gap-1.5 px-2 py-0.5 rounded-full', status.bg)}>
-                      <div className={cn('w-1.5 h-1.5 rounded-full', status.dot)} />
-                      <span className={cn('text-[9px] font-medium', status.text)}>{status.label}</span>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-[11px] font-medium",
+                        message.unread ? "text-foreground" : "text-muted-foreground"
+                      )}>
+                        {message.name}
+                      </span>
+                      <div className={cn("w-4 h-4 rounded flex items-center justify-center", channel.bg)}>
+                        <ChannelIcon className={cn("w-2.5 h-2.5", channel.text)} />
+                      </div>
                     </div>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {message.preview}
+                    </p>
+                  </div>
+
+                  {/* Time & Unread */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[9px] text-muted-foreground">{message.time}</span>
+                    {message.unread && (
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
+        </div>
+
+        {/* Live Activity Indicator */}
+        <div className="flex items-center justify-center gap-2 py-2 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+          <div className="relative">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping" />
+          </div>
+          <span className="text-[11px] text-muted-foreground">
+            <span className="font-medium text-foreground">Live:</span> 5 bezoekers op je shop
+          </span>
         </div>
       </div>
     </div>
