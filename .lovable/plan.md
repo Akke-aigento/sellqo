@@ -1,291 +1,271 @@
 
+# Plan: Betalingen & Synchronisatie Logica Optimalisatie
 
-# Plan: eBay Product Listing Functionaliteit
+## Overzicht
 
-## Huidige Situatie
-
-De eBay integratie heeft al **order sync** en **inventory sync**, maar mist nog de mogelijkheid om producten direct naar eBay te pushen. Dit plan voegt volledige **Product Listing** toe, consistent met hoe Bol.com en Amazon werken.
-
----
-
-## 1. Database Migratie
-
-Nieuwe kolommen toevoegen aan de `products` tabel:
-
-```sql
--- eBay listing fields
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_listing_status TEXT DEFAULT 'not_listed';
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_offer_id TEXT;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_item_id TEXT;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_optimized_title TEXT;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_optimized_description TEXT;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_last_synced_at TIMESTAMPTZ;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_listing_error TEXT;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_category_id TEXT;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS ebay_condition TEXT DEFAULT 'NEW';
-
--- Index
-CREATE INDEX IF NOT EXISTS idx_products_ebay_listing_status ON products(ebay_listing_status);
-```
+Dit plan richt zich op twee kritieke gebieden waar logica ontbreekt of verbeterd moet worden:
+1. **Betalingen**: Upgrade/downgrade flows, proration previews, en automatische add-on migratie
+2. **Synchronisatie**: Marketplace listing bescherming met slimme defaults per platformtype
 
 ---
 
-## 2. TypeScript Type Uitbreidingen
+## Deel 1: Betalingslogica
 
-### `src/types/product.ts`
+### 1.1 Huidige Situatie
 
-Nieuwe velden toevoegen aan de `Product` interface:
+| Aspect | Status | Probleem |
+|--------|--------|----------|
+| Plan upgrades | Via Stripe Billing Portal | Geen in-app preview van proration |
+| Plan downgrades | Automatisch via webhook | Geen waarschuwing over feature-verlies |
+| Add-on migratie | Niet geimplementeerd | Betaalde add-ons blijven actief na upgrade naar plan waar feature inbegrepen is |
+| Yearly naar Monthly | Via Stripe Portal | Geen duidelijke restwaarde communicatie |
 
-```typescript
-// eBay listing fields
-ebay_listing_status?: string | null;
-ebay_offer_id?: string | null;
-ebay_item_id?: string | null;
-ebay_optimized_title?: string | null;
-ebay_optimized_description?: string | null;
-ebay_last_synced_at?: string | null;
-ebay_listing_error?: string | null;
-ebay_category_id?: string | null;
-ebay_condition?: string | null;
-```
+### 1.2 Implementatieplan
 
-### `src/types/marketplace.ts`
+#### A. In-App Upgrade Preview Flow
 
-Al aanwezig - de `MarketplaceCredentials` bevat al de eBay-specifieke velden.
-
----
-
-## 3. useMarketplaceListing Hook Uitbreiden
-
-### `src/hooks/useMarketplaceListing.ts`
-
-Toevoegen aan bestaande hook (~80 regels):
-
-1. **EbayOfferData interface**:
-```typescript
-export interface EbayOfferData {
-  sku: string;
-  price: number;
-  quantity: number;
-  condition: 'NEW' | 'USED_EXCELLENT' | 'USED_VERY_GOOD' | 'USED_GOOD' | 'USED_ACCEPTABLE';
-  category_id?: string;
-  title?: string;
-  description?: string;
-}
-```
-
-2. **createEbayOffer mutation**:
-   - Roept `create-ebay-listing` Edge Function aan
-   - Valideert SKU en prijs
-   - Update product met eBay listing status
-
-3. **checkEbayListingStatus function**:
-   - Controleert status van pending listings
-   - Update product met definitieve item ID
-
-4. **MarketplaceSettings interface uitbreiden**:
-```typescript
-// eBay fields
-ebay_optimized_title?: string;
-ebay_optimized_description?: string;
-ebay_condition?: string;
-ebay_category_id?: string;
-```
-
-5. **optimizeContent functie**:
-   - `'ebay'` toevoegen aan marketplace union type
-
----
-
-## 4. Edge Function: `create-ebay-listing`
-
-### `supabase/functions/create-ebay-listing/index.ts`
-
-Nieuwe Edge Function (~200 regels):
-
-```typescript
-// eBay Inventory API flow:
-// 1. Create/Update inventory_item (SKU-based)
-// 2. Create offer for the inventory item
-// 3. Publish the offer to get listing
-
-const EBAY_API_URL = 'https://api.ebay.com';
-
-// Endpoints:
-// PUT /sell/inventory/v1/inventory_item/{sku}
-// POST /sell/inventory/v1/offer
-// POST /sell/inventory/v1/offer/{offerId}/publish
-
-interface CreateListingRequest {
-  product_id: string;
-  tenant_id: string;
-  connection_id: string;
-  offer_data: EbayOfferData;
-}
-```
-
-**Flow:**
-1. Haal credentials op uit marketplace_connections
-2. Verkrijg OAuth access token
-3. Maak/update inventory item met product details
-4. Maak offer aan met prijs en voorraad
-5. Publiceer offer naar eBay
-6. Update product met listing status en item ID
-
----
-
-## 5. Edge Function: `check-ebay-listing-status`
-
-### `supabase/functions/check-ebay-listing-status/index.ts`
-
-Nieuwe Edge Function (~80 regels):
-
-```typescript
-// Controleer status van eBay listing
-// GET /sell/inventory/v1/offer/{offerId}
-// GET /sell/fulfillment/v1/order (voor verkochte items)
-```
-
----
-
-## 6. Config.toml Uitbreiden
-
-```toml
-[functions.create-ebay-listing]
-verify_jwt = false
-
-[functions.check-ebay-listing-status]
-verify_jwt = false
-```
-
----
-
-## 7. AI Content Optimalisatie
-
-### `supabase/functions/ai-optimize-marketplace-content/index.ts`
-
-eBay toevoegen aan marketplace-specifieke prompts:
-
-```typescript
-case 'ebay':
-  return {
-    title_max_length: 80,
-    description_format: 'html',
-    prompt_additions: 'eBay favors clear, searchable titles with brand + key features. Use HTML for descriptions.',
-  };
-```
-
----
-
-## 8. ProductMarketplaceTab UI
-
-### `src/components/admin/marketplace/ProductMarketplaceTab.tsx`
-
-Nieuwe eBay sectie toevoegen (~150 regels):
-
-1. **State variabelen**:
-```typescript
-const [ebayEnabled, setEbayEnabled] = useState(false);
-const [ebayCondition, setEbayCondition] = useState('NEW');
-const [ebayOptimizedTitle, setEbayOptimizedTitle] = useState('');
-const [ebayOptimizedDescription, setEbayOptimizedDescription] = useState('');
-const [isPublishingEbay, setIsPublishingEbay] = useState(false);
-```
-
-2. **eBay connection check**:
-```typescript
-const ebayConnection = getConnectionByType('ebay');
-const hasEbayConnection = !!ebayConnection;
-```
-
-3. **eBay Card sectie** (na Odoo):
-   - Enable/disable toggle
-   - Conditie selector (Nieuw, Gebruikt, etc.)
-   - AI-geoptimaliseerde titel en beschrijving
-   - Publiceer naar eBay knop
-   - Status badge (pending, listed, error)
-
-4. **eBay specifieke constanten**:
-```typescript
-const EBAY_CONDITIONS = [
-  { value: 'NEW', label: 'Nieuw' },
-  { value: 'USED_EXCELLENT', label: 'Gebruikt - Uitstekend' },
-  { value: 'USED_VERY_GOOD', label: 'Gebruikt - Zeer goed' },
-  { value: 'USED_GOOD', label: 'Gebruikt - Goed' },
-  { value: 'USED_ACCEPTABLE', label: 'Gebruikt - Acceptabel' },
-];
-```
-
----
-
-## Technische Details
-
-### eBay Inventory API Flow
+Nieuwe Edge Function `calculate-plan-switch`:
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    eBay Listing Flow                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. PUT /inventory_item/{sku}                               │
-│     └─ Product details, images, condition                   │
-│                                                             │
-│  2. POST /offer                                             │
-│     └─ Prijs, voorraad, marketplace, format                 │
-│     └─ Returns: offerId                                     │
-│                                                             │
-│  3. POST /offer/{offerId}/publish                           │
-│     └─ Publiceert naar eBay                                 │
-│     └─ Returns: listingId (eBay item ID)                    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  calculate-plan-switch                                   │
+├─────────────────────────────────────────────────────────┤
+│  Input: current_plan_id, target_plan_id, interval       │
+│                                                          │
+│  1. Haal huidige subscription op via Stripe API         │
+│  2. Gebruik stripe.subscriptions.retrieveUpcoming()     │
+│     om proration preview te berekenen                   │
+│  3. Bereken:                                            │
+│     - Resterende waarde huidige periode                 │
+│     - Kosten nieuwe plan (pro rata)                     │
+│     - Te betalen bedrag NU                              │
+│     - Tegoed indien downgrade                           │
+│                                                          │
+│  Output: { credit, debit, net_amount, next_invoice }    │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### eBay Condition Mapping
+Frontend component `PlanSwitchPreview.tsx`:
+- Toont visueel overzicht van proration berekening
+- Duidelijke uitleg van wat er gebeurt met resterende dagen
+- "Bevestig Wijziging" knop die direct via Stripe API switcht (niet via Portal)
 
-| SellQo Condition | eBay Enum |
-|------------------|-----------|
-| Nieuw | NEW |
-| Gebruikt - Uitstekend | USED_EXCELLENT |
-| Gebruikt - Zeer goed | USED_VERY_GOOD |
-| Gebruikt - Goed | USED_GOOD |
-| Gebruikt - Acceptabel | USED_ACCEPTABLE |
+#### B. Automatische Add-on Migratie
 
-### Listing Status Flow
+Webhook uitbreiding in `platform-stripe-webhook`:
 
-| Status | Betekenis |
-|--------|-----------|
-| `not_listed` | Niet gepubliceerd |
-| `pending` | Wordt verwerkt door eBay |
-| `listed` | Actief op eBay |
-| `error` | Fout bij publicatie |
-| `ended` | Listing beëindigd |
+```text
+Bij event "customer.subscription.updated":
+
+1. Detecteer plan upgrade (old_plan → new_plan)
+2. Voor elke feature in nieuwe plan:
+   - Check of feature nu inbegrepen is
+   - Als ja, check tenant_addons voor actieve add-on
+   - Als add-on actief:
+     a. Cancel add-on subscription in Stripe
+     b. Update tenant_addons.status = 'migrated_to_plan'
+     c. Stuur notificatie: "Peppol is nu inbegrepen in je Pro plan"
+```
+
+Database update:
+- Nieuw veld `tenant_addons.migrated_at` (timestamp)
+- Nieuwe status `migrated_to_plan` in add-on status enum
+
+#### C. Downgrade Feature Waarschuwing
+
+Nieuwe component `DowngradeWarningDialog.tsx`:
+- Vergelijkt features tussen huidige en doel plan
+- Toont lijst van features die verloren gaan
+- Toont actieve add-ons die opnieuw gekocht moeten worden
+- Bevestigingsscherm met "Ik begrijp dat ik toegang verlies tot..."
 
 ---
 
-## Bestanden Overzicht
+## Deel 2: Synchronisatie Logica
 
-| Bestand | Actie | Regels |
-|---------|-------|--------|
-| Database migratie | Nieuw (eBay kolommen) | ~12 |
-| `src/types/product.ts` | Uitbreiden met eBay velden | ~10 |
-| `src/hooks/useMarketplaceListing.ts` | createEbayOffer, checkStatus | ~80 |
-| `supabase/functions/create-ebay-listing/index.ts` | Nieuw | ~200 |
-| `supabase/functions/check-ebay-listing-status/index.ts` | Nieuw | ~80 |
-| `supabase/functions/ai-optimize-marketplace-content/index.ts` | eBay prompt | ~20 |
-| `src/components/admin/marketplace/ProductMarketplaceTab.tsx` | eBay sectie | ~150 |
-| `supabase/config.toml` | 2 entries | ~4 |
+### 2.1 Huidige Architectuur (Reeds Goed)
+
+| Platform | Orders | Producten | Voorraad | Risico |
+|----------|--------|-----------|----------|--------|
+| Bol.com | Import | Export | Export | Laag (eenrichtingsverkeer) |
+| Amazon | Import | Export | Export | Laag (eenrichtingsverkeer) |
+| eBay | Import | Export | Export | Laag (eenrichtingsverkeer) |
+| Shopify | Bidirectioneel | Bidirectioneel | Bidirectioneel | Hoog (conflict mogelijk) |
+| WooCommerce | Bidirectioneel | Bidirectioneel | Bidirectioneel | Hoog (conflict mogelijk) |
+
+### 2.2 Identificeerde Gaps
+
+1. **Geen Conflict Review UI**: Bij `manual` strategy worden conflicten gemarkeerd maar er is geen dashboard om ze te reviewen
+2. **Geen Sync History Logging**: Geen audit trail van sync activiteiten
+3. **Geen Field-Level Conflict Resolution**: Alles is record-level, niet per veld
+4. **Marketplace Listing Bescherming**: Geen "soft lock" na succesvolle publish
+
+### 2.3 Implementatieplan
+
+#### A. Sync Conflict Queue & Review Dashboard
+
+Database tabel `sync_conflicts`:
+```text
+id, tenant_id, connection_id, data_type, record_id
+sellqo_data (JSONB), platform_data (JSONB)
+detected_at, resolved_at, resolved_by, resolution (sellqo|platform|merged)
+```
+
+Nieuwe pagina `/admin/connect/conflicts`:
+- Lijst van openstaande conflicten per kanaal
+- Side-by-side vergelijking van beide versies
+- Per-veld selectie mogelijkheid (merge mode)
+- Bulk resolve optie
+
+#### B. Sync Activity Logging
+
+Database tabel `sync_activity_log`:
+```text
+id, tenant_id, connection_id, data_type, direction
+records_processed, records_created, records_updated, records_failed
+started_at, completed_at, status, error_message
+```
+
+UI integratie:
+- Recent sync log in connection detail pagina
+- Filter op data type en status
+- Retry failed syncs knop
+
+#### C. Marketplace Listing Protection
+
+Nieuwe velden in `products` tabel:
+```text
+marketplace_lock_[platform]: boolean
+marketplace_lock_reason: 'live_listing' | 'pending_review' | 'manual'
+marketplace_last_synced_hash: text (content hash voor change detection)
+```
+
+Beschermingslogica:
+1. Na succesvolle publish naar Bol.com/Amazon/eBay → zet `marketplace_lock_bol_com = true`
+2. Bij export sync: 
+   - Vergelijk content hash
+   - Als lock actief en data gewijzigd: toon bevestigingsdialoog
+   - "Deze wijziging wordt naar je live Bol.com listing gestuurd. Doorgaan?"
+3. Override mogelijk met expliciete bevestiging
+
+#### D. Smart Conflict Defaults per Data Type
+
+Uitbreiding van `getDefaultSyncRules()`:
+
+```text
+Voor bidirectionele platforms (Shopify/WooCommerce):
+
+orders:
+  conflictStrategy: 'platform_wins'  # Platform is bron van bestellingen
+  reason: "Klant bestelt via webshop, die is leading"
+
+products:
+  conflictStrategy: 'sellqo_wins'    # SellQo is productmaster
+  reason: "Centrale productbeheer in SellQo"
+
+inventory:
+  conflictStrategy: 'newest_wins'    # Meest recente voorraadstand
+  reason: "Voorraad kan van beide kanten wijzigen"
+
+customers:
+  conflictStrategy: 'platform_wins'  # Klant data komt van webshop
+  reason: "Klanten registreren zich op webshop"
+```
+
+UI verbetering:
+- Toon "aanbevolen" badge bij smart default strategy
+- Tooltip met uitleg waarom dit de beste keuze is
 
 ---
 
-## Na Implementatie
+## Deel 3: Technische Specificaties
 
-Merchants kunnen:
-1. ✅ eBay account koppelen via SellQo Connect
-2. ✅ Orders automatisch importeren  
-3. ✅ Voorraad real-time synchroniseren
-4. ✅ **Nieuw:** Producten publiceren naar eBay met AI-geoptimaliseerde content
-5. ✅ **Nieuw:** Listing status monitoren en errors afhandelen
+### 3.1 Nieuwe Edge Functions
 
-Dit maakt eBay een **volledig geïntegreerde marketplace** naast Bol.com en Amazon.
+| Functie | Doel |
+|---------|------|
+| `calculate-plan-switch` | Proration preview voor plan wijzigingen |
+| `execute-plan-switch` | Directe plan switch zonder portal redirect |
+| `cancel-redundant-addons` | Annuleer add-ons die nu in plan zitten |
+
+### 3.2 Database Migraties
+
+```sql
+-- Add-on migratie tracking
+ALTER TABLE tenant_addons 
+ADD COLUMN migrated_at TIMESTAMPTZ,
+ADD COLUMN migrated_to_plan TEXT;
+
+-- Sync conflict queue
+CREATE TABLE sync_conflicts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  connection_id UUID REFERENCES marketplace_connections(id),
+  data_type TEXT NOT NULL,
+  record_id TEXT NOT NULL,
+  sellqo_data JSONB NOT NULL,
+  platform_data JSONB NOT NULL,
+  detected_at TIMESTAMPTZ DEFAULT now(),
+  resolved_at TIMESTAMPTZ,
+  resolved_by UUID REFERENCES auth.users(id),
+  resolution TEXT CHECK (resolution IN ('sellqo', 'platform', 'merged', 'dismissed'))
+);
+
+-- Sync activity log
+CREATE TABLE sync_activity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  connection_id UUID REFERENCES marketplace_connections(id),
+  data_type TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  records_processed INT DEFAULT 0,
+  records_created INT DEFAULT 0,
+  records_updated INT DEFAULT 0,
+  records_failed INT DEFAULT 0,
+  started_at TIMESTAMPTZ DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  status TEXT DEFAULT 'running',
+  error_details JSONB
+);
+
+-- Marketplace listing protection
+ALTER TABLE products
+ADD COLUMN marketplace_lock_bol_com BOOLEAN DEFAULT false,
+ADD COLUMN marketplace_lock_amazon BOOLEAN DEFAULT false,
+ADD COLUMN marketplace_lock_ebay BOOLEAN DEFAULT false,
+ADD COLUMN marketplace_lock_reason TEXT,
+ADD COLUMN marketplace_last_sync_hash TEXT;
+```
+
+### 3.3 Nieuwe UI Componenten
+
+| Component | Locatie | Doel |
+|-----------|---------|------|
+| `PlanSwitchPreview.tsx` | `/admin/billing` | Proration overzicht |
+| `DowngradeWarningDialog.tsx` | `/admin/billing` | Feature verlies waarschuwing |
+| `SyncConflictQueue.tsx` | `/admin/connect/conflicts` | Conflict review dashboard |
+| `SyncActivityLog.tsx` | `/admin/connect/[id]` | Sync geschiedenis |
+| `ListingProtectionBadge.tsx` | Product editor | Lock indicator |
+| `ListingUpdateConfirmDialog.tsx` | Product editor | Bevestiging bij locked listing |
+
+---
+
+## Deel 4: Samenvatting Prioriteiten
+
+### Hoge Prioriteit (Direct Implementeren)
+
+1. **Add-on Migratie bij Upgrade** - Voorkomt dubbele facturatie
+2. **Marketplace Lock na Publish** - Voorkomt onbedoelde listing wijzigingen
+3. **Smart Conflict Defaults** - Betere UX bij nieuwe verbindingen
+
+### Medium Prioriteit
+
+4. **In-App Proration Preview** - Betere transparantie
+5. **Sync Activity Logging** - Audit trail en debugging
+6. **Downgrade Feature Warning** - Voorkomt onverwachte feature verlies
+
+### Lagere Prioriteit
+
+7. **Conflict Review Dashboard** - Alleen relevant bij bidirectionele sync
+8. **Field-Level Merge** - Geavanceerde feature voor power users
 
