@@ -224,7 +224,12 @@ export default function TenantsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{tenant.name}</p>
-                          {tenant.is_demo && (
+                          {tenant.is_internal_tenant && (
+                            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs">
+                              OWNER
+                            </Badge>
+                          )}
+                          {tenant.is_demo && !tenant.is_internal_tenant && (
                             <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 text-xs">
                               DEMO
                             </Badge>
@@ -241,14 +246,14 @@ export default function TenantsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {tenant.is_demo ? (
+                    {tenant.is_internal_tenant ? null : tenant.is_demo ? (
                       <Badge variant="secondary">N/A</Badge>
                     ) : (
                       getPlanBadge(tenant.subscription_plan)
                     )}
                   </TableCell>
                   <TableCell>
-                    {tenant.is_demo ? (
+                    {tenant.is_internal_tenant ? null : tenant.is_demo ? (
                       <Badge variant="secondary">N/A</Badge>
                     ) : (
                       getStatusBadge(tenant.subscription_status)

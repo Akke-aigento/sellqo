@@ -31,6 +31,7 @@ export interface Tenant {
   auto_generate_invoice: boolean | null;
   auto_send_invoice_email: boolean | null;
   is_demo: boolean | null;
+  is_internal_tenant: boolean | null;
 }
 
 export interface TenantFormData {
