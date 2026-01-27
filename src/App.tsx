@@ -64,6 +64,7 @@ import PlatformSupport from "./pages/platform/PlatformSupport";
 import PlatformChangelog from "./pages/platform/PlatformChangelog";
 import PlatformHealth from "./pages/platform/PlatformHealth";
 import PlatformLegal from "./pages/platform/PlatformLegal";
+import { PendingPlatformPaymentsPage } from "./pages/admin/PendingPlatformPaymentsPage";
 import SellqoLegal from "./pages/SellqoLegal";
 import About from "./pages/public/About";
 import Contact from "./pages/public/Contact";
@@ -233,6 +234,11 @@ const App = () => (
               <Route path="platform/legal" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <PlatformLegal />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/payments" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PendingPlatformPaymentsPage />
                 </ProtectedRoute>
               } />
             </Route>

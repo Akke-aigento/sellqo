@@ -6248,6 +6248,71 @@ export type Database = {
           },
         ]
       }
+      pending_platform_payments: {
+        Row: {
+          addon_type: string | null
+          amount: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          credits_amount: number | null
+          currency: string
+          expires_at: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          ogm_reference: string
+          package_id: string | null
+          payment_type: Database["public"]["Enums"]["platform_payment_type"]
+          status: Database["public"]["Enums"]["pending_payment_status"]
+          tenant_id: string
+        }
+        Insert: {
+          addon_type?: string | null
+          amount: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          credits_amount?: number | null
+          currency?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          ogm_reference: string
+          package_id?: string | null
+          payment_type: Database["public"]["Enums"]["platform_payment_type"]
+          status?: Database["public"]["Enums"]["pending_payment_status"]
+          tenant_id: string
+        }
+        Update: {
+          addon_type?: string | null
+          amount?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          credits_amount?: number | null
+          currency?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          ogm_reference?: string
+          package_id?: string | null
+          payment_type?: Database["public"]["Enums"]["platform_payment_type"]
+          status?: Database["public"]["Enums"]["pending_payment_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_platform_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_changelogs: {
         Row: {
           acknowledged_at: string | null
@@ -6539,7 +6604,14 @@ export type Database = {
           invoice_date: string | null
           invoice_number: string | null
           invoice_pdf_url: string | null
+          ogm_reference: string | null
           paid_at: string | null
+          payment_method:
+            | Database["public"]["Enums"]["platform_payment_method"]
+            | null
+          payment_type:
+            | Database["public"]["Enums"]["platform_payment_type"]
+            | null
           period_end: string | null
           period_start: string | null
           status: string
@@ -6557,7 +6629,14 @@ export type Database = {
           invoice_date?: string | null
           invoice_number?: string | null
           invoice_pdf_url?: string | null
+          ogm_reference?: string | null
           paid_at?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["platform_payment_method"]
+            | null
+          payment_type?:
+            | Database["public"]["Enums"]["platform_payment_type"]
+            | null
           period_end?: string | null
           period_start?: string | null
           status?: string
@@ -6575,7 +6654,14 @@ export type Database = {
           invoice_date?: string | null
           invoice_number?: string | null
           invoice_pdf_url?: string | null
+          ogm_reference?: string | null
           paid_at?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["platform_payment_method"]
+            | null
+          payment_type?:
+            | Database["public"]["Enums"]["platform_payment_type"]
+            | null
           period_end?: string | null
           period_start?: string | null
           status?: string
@@ -6635,6 +6721,27 @@ export type Database = {
           requires_confirmation?: boolean | null
           sort_order?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }
@@ -12283,6 +12390,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: string
       }
+      generate_platform_ogm: { Args: never; Returns: string }
       generate_po_number: { Args: { p_tenant_id: string }; Returns: string }
       generate_proforma_number: {
         Args: { _tenant_id: string }
@@ -12523,6 +12631,9 @@ export type Database = {
         | "delivered"
         | "cancelled"
       payment_status: "pending" | "paid" | "refunded" | "failed"
+      pending_payment_status: "pending" | "confirmed" | "expired" | "cancelled"
+      platform_payment_method: "stripe" | "bank_transfer"
+      platform_payment_type: "subscription" | "addon" | "ai_credits"
       product_type:
         | "physical"
         | "digital"
@@ -12783,6 +12894,9 @@ export const Constants = {
         "cancelled",
       ],
       payment_status: ["pending", "paid", "refunded", "failed"],
+      pending_payment_status: ["pending", "confirmed", "expired", "cancelled"],
+      platform_payment_method: ["stripe", "bank_transfer"],
+      platform_payment_type: ["subscription", "addon", "ai_credits"],
       product_type: [
         "physical",
         "digital",
