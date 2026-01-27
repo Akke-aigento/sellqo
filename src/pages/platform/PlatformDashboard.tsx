@@ -14,13 +14,15 @@ import {
   Clock,
   AlertCircle,
   Building2,
-  Sparkles
+  Sparkles,
+  DollarSign
 } from "lucide-react";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { usePlatformChangelogs } from "@/hooks/usePlatformChangelogs";
 import { usePlatformHealth, STATUS_COLORS } from "@/hooks/usePlatformHealth";
 import { usePlatformFeedback } from "@/hooks/usePlatformFeedback";
 import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
+import { usePlatformBilling } from "@/hooks/usePlatformBilling";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
 
@@ -31,6 +33,7 @@ export default function PlatformDashboard() {
   const { getStats: getFeedbackStats } = usePlatformFeedback();
   const { useTenantStats } = usePlatformAdmin();
   const { data: tenantStats, isLoading: tenantStatsLoading } = useTenantStats();
+  const { metrics, isLoading: metricsLoading } = usePlatformBilling();
 
   const ticketStats = getTicketStats();
   const changelogStats = getChangelogStats();
@@ -104,6 +107,45 @@ export default function PlatformDashboard() {
           </div>
           <Button variant="link" className="p-0 h-auto mt-4" asChild>
             <Link to="/admin/platform">Alle tenants bekijken →</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Revenue Stats Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Omzet Overzicht
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-emerald-50 rounded-lg">
+              <p className="text-3xl font-bold text-emerald-700">
+                {metricsLoading ? '-' : `€${Math.round(metrics?.mrr || 0).toLocaleString()}`}
+              </p>
+              <p className="text-sm text-muted-foreground">MRR</p>
+            </div>
+            <div className="text-center p-4 bg-emerald-50 rounded-lg">
+              <p className="text-3xl font-bold text-emerald-700">
+                {metricsLoading ? '-' : `€${Math.round(metrics?.arr || 0).toLocaleString()}`}
+              </p>
+              <p className="text-sm text-muted-foreground">ARR</p>
+            </div>
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <p className="text-3xl font-bold">{metricsLoading ? '-' : metrics?.payingCustomers || 0}</p>
+              <p className="text-sm text-muted-foreground">Betalende Klanten</p>
+            </div>
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <p className="text-3xl font-bold">
+                {metricsLoading ? '-' : `${(metrics?.churnRate || 0).toFixed(1)}%`}
+              </p>
+              <p className="text-sm text-muted-foreground">Churn Rate</p>
+            </div>
+          </div>
+          <Button variant="link" className="p-0 h-auto mt-4" asChild>
+            <Link to="/admin/platform/billing">Bekijk facturatie →</Link>
           </Button>
         </CardContent>
       </Card>
