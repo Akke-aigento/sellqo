@@ -5,6 +5,8 @@ import type { AdPlatformConnection, AdPlatform } from '@/types/ads';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
 
+export type PlatformStatus = 'ready' | 'requires_connection' | 'coming_soon';
+
 export function useAdPlatforms() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -25,6 +27,45 @@ export function useAdPlatforms() {
     },
     enabled: !!currentTenant?.id,
   });
+
+  // Query marketplace connections to check for Bol.com retailer connection
+  const { data: marketplaceConnections = [] } = useQuery({
+    queryKey: ['marketplace-connections-for-ads', currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant?.id) return [];
+      const { data, error } = await supabase
+        .from('marketplace_connections')
+        .select('id, marketplace_type, is_active')
+        .eq('tenant_id', currentTenant.id)
+        .eq('is_active', true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentTenant?.id,
+  });
+
+  // Check if Bol.com retailer connection exists
+  const hasBolRetailerConnection = () => {
+    return marketplaceConnections.some(c => 
+      c.marketplace_type === 'bol_com' && c.is_active
+    );
+  };
+
+  // Get the Bol.com retailer connection
+  const getBolRetailerConnection = () => {
+    return marketplaceConnections.find(c => 
+      c.marketplace_type === 'bol_com' && c.is_active
+    );
+  };
+
+  // Get platform availability status
+  const getPlatformStatus = (platform: AdPlatform): PlatformStatus => {
+    if (platform === 'bol_ads') {
+      return hasBolRetailerConnection() ? 'ready' : 'requires_connection';
+    }
+    // Meta, Google, Amazon are coming soon
+    return 'coming_soon';
+  };
 
   const connectPlatform = useMutation({
     mutationFn: async (input: {
@@ -104,5 +145,10 @@ export function useAdPlatforms() {
     disconnectPlatform,
     getConnection,
     isConnected,
+    // New validation helpers
+    marketplaceConnections,
+    hasBolRetailerConnection,
+    getBolRetailerConnection,
+    getPlatformStatus,
   };
 }
