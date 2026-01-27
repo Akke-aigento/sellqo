@@ -50,10 +50,10 @@ export function LandingFooter() {
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Brand column */}
           <div>
-            <SellqoLogo variant="tagline" width={400} className="mb-4" />
+            <SellqoLogo variant="tagline" className="mb-4 w-full max-w-[200px] md:max-w-[280px]" />
             <p className="text-muted-foreground text-sm mb-6">
               E-commerce management, zoals het hoort.
             </p>
@@ -142,12 +142,12 @@ export function LandingFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="pt-8 border-t border-border flex flex-col lg:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground text-center lg:text-left">
             © 2025 SellQo BV - Made with ❤️ in Belgium
           </p>
           
-          <div className="flex flex-wrap justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-4 md:gap-6">
             {legalLinks.map((link) => (
               <Link
                 key={link.label}
