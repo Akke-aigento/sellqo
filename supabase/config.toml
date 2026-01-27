@@ -233,3 +233,9 @@ verify_jwt = false
 
 [functions.ai-generate-storefront-copy]
 verify_jwt = false
+
+[functions.meta-messaging-webhook]
+verify_jwt = false
+
+[functions.send-meta-message]
+verify_jwt = false
