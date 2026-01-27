@@ -1,271 +1,355 @@
 
-# Plan: Betalingen & Synchronisatie Logica Optimalisatie
+# SellQo Super Admin Platform
 
 ## Overzicht
 
-Dit plan richt zich op twee kritieke gebieden waar logica ontbreekt of verbeterd moet worden:
-1. **Betalingen**: Upgrade/downgrade flows, proration previews, en automatische add-on migratie
-2. **Synchronisatie**: Marketplace listing bescherming met slimme defaults per platformtype
+Dit plan beschrijft de uitbreiding van het huidige platform admin systeem naar een volwaardig "Super Admin" dashboard voor het SellQo-team. Hiermee kunnen jullie:
+
+1. **SellQo onboarden als eigen tenant** - Gebruik alle features zelf
+2. **Gecentraliseerd feedback ontvangen** - Van alle merchants
+3. **Klantsupport bieden** - Via een support inbox
+4. **Platform-updates monitoren** - Changelogs van Bol.com, Amazon, Stripe etc.
+5. **Proactief bugs detecteren** - Voordat ze impact hebben
+6. **Betalingen beheren** - Via Stripe (maandabonnementen)
+7. **Juridische pagina's beheren** - Voor SellQo zelf
 
 ---
 
-## Deel 1: Betalingslogica
+## Module 1: SellQo Tenant + Super Admin Account
 
-### 1.1 Huidige Situatie
+### Wat wordt gemaakt
+- **Nieuwe tenant**: `sellqo` slug met alle Enterprise features
+- **Nieuw account**: info@sellqo.ai met platform_admin + tenant_admin rollen
+- **Feature flag**: `is_internal_tenant` voor SellQo-specifieke features
 
-| Aspect | Status | Probleem |
-|--------|--------|----------|
-| Plan upgrades | Via Stripe Billing Portal | Geen in-app preview van proration |
-| Plan downgrades | Automatisch via webhook | Geen waarschuwing over feature-verlies |
-| Add-on migratie | Niet geimplementeerd | Betaalde add-ons blijven actief na upgrade naar plan waar feature inbegrepen is |
-| Yearly naar Monthly | Via Stripe Portal | Geen duidelijke restwaarde communicatie |
-
-### 1.2 Implementatieplan
-
-#### A. In-App Upgrade Preview Flow
-
-Nieuwe Edge Function `calculate-plan-switch`:
-
+### Database wijzigingen
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  calculate-plan-switch                                   │
-├─────────────────────────────────────────────────────────┤
-│  Input: current_plan_id, target_plan_id, interval       │
-│                                                          │
-│  1. Haal huidige subscription op via Stripe API         │
-│  2. Gebruik stripe.subscriptions.retrieveUpcoming()     │
-│     om proration preview te berekenen                   │
-│  3. Bereken:                                            │
-│     - Resterende waarde huidige periode                 │
-│     - Kosten nieuwe plan (pro rata)                     │
-│     - Te betalen bedrag NU                              │
-│     - Tegoed indien downgrade                           │
-│                                                          │
-│  Output: { credit, debit, net_amount, next_invoice }    │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│ tenants                                         │
+├─────────────────────────────────────────────────┤
+│ + is_internal_tenant BOOLEAN DEFAULT false      │
+│                                                 │
+│ Nieuwe row:                                     │
+│   slug: sellqo                                  │
+│   name: SellQo                                  │
+│   owner_email: info@sellqo.ai                   │
+│   is_internal_tenant: true                      │
+└─────────────────────────────────────────────────┘
 ```
 
-Frontend component `PlanSwitchPreview.tsx`:
-- Toont visueel overzicht van proration berekening
-- Duidelijke uitleg van wat er gebeurt met resterende dagen
-- "Bevestig Wijziging" knop die direct via Stripe API switcht (niet via Portal)
-
-#### B. Automatische Add-on Migratie
-
-Webhook uitbreiding in `platform-stripe-webhook`:
-
-```text
-Bij event "customer.subscription.updated":
-
-1. Detecteer plan upgrade (old_plan → new_plan)
-2. Voor elke feature in nieuwe plan:
-   - Check of feature nu inbegrepen is
-   - Als ja, check tenant_addons voor actieve add-on
-   - Als add-on actief:
-     a. Cancel add-on subscription in Stripe
-     b. Update tenant_addons.status = 'migrated_to_plan'
-     c. Stuur notificatie: "Peppol is nu inbegrepen in je Pro plan"
-```
-
-Database update:
-- Nieuw veld `tenant_addons.migrated_at` (timestamp)
-- Nieuwe status `migrated_to_plan` in add-on status enum
-
-#### C. Downgrade Feature Waarschuwing
-
-Nieuwe component `DowngradeWarningDialog.tsx`:
-- Vergelijkt features tussen huidige en doel plan
-- Toont lijst van features die verloren gaan
-- Toont actieve add-ons die opnieuw gekocht moeten worden
-- Bevestigingsscherm met "Ik begrijp dat ik toegang verlies tot..."
+**Belangrijk**: Wachtwoorden kunnen niet in code worden opgeslagen. Je moet het account aanmaken via de normale auth flow, daarna voeg ik de rollen toe.
 
 ---
 
-## Deel 2: Synchronisatie Logica
+## Module 2: Centraal Feedback Dashboard
 
-### 2.1 Huidige Architectuur (Reeds Goed)
+### Wat wordt gemaakt
+- **Nieuwe pagina**: `/admin/platform/feedback`
+- **Feedback overzicht** met filters op:
+  - Rating (1-5 sterren)
+  - Tenant
+  - Datum
+  - Feature requests
 
-| Platform | Orders | Producten | Voorraad | Risico |
-|----------|--------|-----------|----------|--------|
-| Bol.com | Import | Export | Export | Laag (eenrichtingsverkeer) |
-| Amazon | Import | Export | Export | Laag (eenrichtingsverkeer) |
-| eBay | Import | Export | Export | Laag (eenrichtingsverkeer) |
-| Shopify | Bidirectioneel | Bidirectioneel | Bidirectioneel | Hoog (conflict mogelijk) |
-| WooCommerce | Bidirectioneel | Bidirectioneel | Bidirectioneel | Hoog (conflict mogelijk) |
+### UI Componenten
+- `PlatformFeedbackDashboard.tsx` - Hoofdpagina
+- `FeedbackMetrics.tsx` - NPS score, average rating, trends
+- `FeedbackList.tsx` - Doorzoekbare lijst van feedback
+- `FeatureRequestBoard.tsx` - Kanban-achtige view van feature requests
 
-### 2.2 Identificeerde Gaps
-
-1. **Geen Conflict Review UI**: Bij `manual` strategy worden conflicten gemarkeerd maar er is geen dashboard om ze te reviewen
-2. **Geen Sync History Logging**: Geen audit trail van sync activiteiten
-3. **Geen Field-Level Conflict Resolution**: Alles is record-level, niet per veld
-4. **Marketplace Listing Bescherming**: Geen "soft lock" na succesvolle publish
-
-### 2.3 Implementatieplan
-
-#### A. Sync Conflict Queue & Review Dashboard
-
-Database tabel `sync_conflicts`:
+### Data Flow
 ```text
-id, tenant_id, connection_id, data_type, record_id
-sellqo_data (JSONB), platform_data (JSONB)
-detected_at, resolved_at, resolved_by, resolution (sellqo|platform|merged)
+app_feedback (alle tenants) 
+    ↓ 
+Platform Admin RLS policy (kan alles zien)
+    ↓
+PlatformFeedbackDashboard
+    ↓
+Metrics + List + Feature Board
 ```
-
-Nieuwe pagina `/admin/connect/conflicts`:
-- Lijst van openstaande conflicten per kanaal
-- Side-by-side vergelijking van beide versies
-- Per-veld selectie mogelijkheid (merge mode)
-- Bulk resolve optie
-
-#### B. Sync Activity Logging
-
-Database tabel `sync_activity_log`:
-```text
-id, tenant_id, connection_id, data_type, direction
-records_processed, records_created, records_updated, records_failed
-started_at, completed_at, status, error_message
-```
-
-UI integratie:
-- Recent sync log in connection detail pagina
-- Filter op data type en status
-- Retry failed syncs knop
-
-#### C. Marketplace Listing Protection
-
-Nieuwe velden in `products` tabel:
-```text
-marketplace_lock_[platform]: boolean
-marketplace_lock_reason: 'live_listing' | 'pending_review' | 'manual'
-marketplace_last_synced_hash: text (content hash voor change detection)
-```
-
-Beschermingslogica:
-1. Na succesvolle publish naar Bol.com/Amazon/eBay → zet `marketplace_lock_bol_com = true`
-2. Bij export sync: 
-   - Vergelijk content hash
-   - Als lock actief en data gewijzigd: toon bevestigingsdialoog
-   - "Deze wijziging wordt naar je live Bol.com listing gestuurd. Doorgaan?"
-3. Override mogelijk met expliciete bevestiging
-
-#### D. Smart Conflict Defaults per Data Type
-
-Uitbreiding van `getDefaultSyncRules()`:
-
-```text
-Voor bidirectionele platforms (Shopify/WooCommerce):
-
-orders:
-  conflictStrategy: 'platform_wins'  # Platform is bron van bestellingen
-  reason: "Klant bestelt via webshop, die is leading"
-
-products:
-  conflictStrategy: 'sellqo_wins'    # SellQo is productmaster
-  reason: "Centrale productbeheer in SellQo"
-
-inventory:
-  conflictStrategy: 'newest_wins'    # Meest recente voorraadstand
-  reason: "Voorraad kan van beide kanten wijzigen"
-
-customers:
-  conflictStrategy: 'platform_wins'  # Klant data komt van webshop
-  reason: "Klanten registreren zich op webshop"
-```
-
-UI verbetering:
-- Toon "aanbevolen" badge bij smart default strategy
-- Tooltip met uitleg waarom dit de beste keuze is
 
 ---
 
-## Deel 3: Technische Specificaties
+## Module 3: Support Inbox
 
-### 3.1 Nieuwe Edge Functions
+### Wat wordt gemaakt
+- **Nieuwe pagina**: `/admin/platform/support`
+- **Unified inbox** voor:
+  - Inbound emails naar support@sellqo.ai
+  - Merchant vragen via in-app chat
+  - Escalaties van AI chatbot
 
-| Functie | Doel |
-|---------|------|
-| `calculate-plan-switch` | Proration preview voor plan wijzigingen |
-| `execute-plan-switch` | Directe plan switch zonder portal redirect |
-| `cancel-redundant-addons` | Annuleer add-ons die nu in plan zitten |
+### Database uitbreiding
+```text
+┌─────────────────────────────────────────────────┐
+│ support_tickets (nieuw)                         │
+├─────────────────────────────────────────────────┤
+│ id UUID PRIMARY KEY                             │
+│ tenant_id UUID (nullable - kan ook non-tenant)  │
+│ subject TEXT                                    │
+│ status: 'open' | 'in_progress' | 'resolved'     │
+│ priority: 'low' | 'medium' | 'high' | 'urgent'  │
+│ category: billing | technical | feature | other │
+│ assigned_to UUID (SellQo team member)           │
+│ created_at, updated_at                          │
+└─────────────────────────────────────────────────┘
 
-### 3.2 Database Migraties
-
-```sql
--- Add-on migratie tracking
-ALTER TABLE tenant_addons 
-ADD COLUMN migrated_at TIMESTAMPTZ,
-ADD COLUMN migrated_to_plan TEXT;
-
--- Sync conflict queue
-CREATE TABLE sync_conflicts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-  connection_id UUID REFERENCES marketplace_connections(id),
-  data_type TEXT NOT NULL,
-  record_id TEXT NOT NULL,
-  sellqo_data JSONB NOT NULL,
-  platform_data JSONB NOT NULL,
-  detected_at TIMESTAMPTZ DEFAULT now(),
-  resolved_at TIMESTAMPTZ,
-  resolved_by UUID REFERENCES auth.users(id),
-  resolution TEXT CHECK (resolution IN ('sellqo', 'platform', 'merged', 'dismissed'))
-);
-
--- Sync activity log
-CREATE TABLE sync_activity_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-  connection_id UUID REFERENCES marketplace_connections(id),
-  data_type TEXT NOT NULL,
-  direction TEXT NOT NULL,
-  records_processed INT DEFAULT 0,
-  records_created INT DEFAULT 0,
-  records_updated INT DEFAULT 0,
-  records_failed INT DEFAULT 0,
-  started_at TIMESTAMPTZ DEFAULT now(),
-  completed_at TIMESTAMPTZ,
-  status TEXT DEFAULT 'running',
-  error_details JSONB
-);
-
--- Marketplace listing protection
-ALTER TABLE products
-ADD COLUMN marketplace_lock_bol_com BOOLEAN DEFAULT false,
-ADD COLUMN marketplace_lock_amazon BOOLEAN DEFAULT false,
-ADD COLUMN marketplace_lock_ebay BOOLEAN DEFAULT false,
-ADD COLUMN marketplace_lock_reason TEXT,
-ADD COLUMN marketplace_last_sync_hash TEXT;
+┌─────────────────────────────────────────────────┐
+│ support_messages (nieuw)                        │
+├─────────────────────────────────────────────────┤
+│ id UUID PRIMARY KEY                             │
+│ ticket_id UUID REFERENCES support_tickets       │
+│ sender_type: 'merchant' | 'support' | 'system'  │
+│ message TEXT                                    │
+│ attachments JSONB                               │
+│ created_at                                      │
+└─────────────────────────────────────────────────┘
 ```
 
-### 3.3 Nieuwe UI Componenten
-
-| Component | Locatie | Doel |
-|-----------|---------|------|
-| `PlanSwitchPreview.tsx` | `/admin/billing` | Proration overzicht |
-| `DowngradeWarningDialog.tsx` | `/admin/billing` | Feature verlies waarschuwing |
-| `SyncConflictQueue.tsx` | `/admin/connect/conflicts` | Conflict review dashboard |
-| `SyncActivityLog.tsx` | `/admin/connect/[id]` | Sync geschiedenis |
-| `ListingProtectionBadge.tsx` | Product editor | Lock indicator |
-| `ListingUpdateConfirmDialog.tsx` | Product editor | Bevestiging bij locked listing |
+### UI Componenten
+- `SupportInbox.tsx` - Overzicht van alle tickets
+- `SupportTicketDetail.tsx` - Chat-achtige interface
+- `SupportQuickActions.tsx` - Templates, AI suggesties
 
 ---
 
-## Deel 4: Samenvatting Prioriteiten
+## Module 4: Platform Changelog Monitor
 
-### Hoge Prioriteit (Direct Implementeren)
+### Wat wordt gemaakt
+- **Nieuwe pagina**: `/admin/platform/changelog`
+- **Automatische tracking** van:
+  - Bol.com Plaza API versies
+  - Amazon SP-API updates
+  - Stripe API wijzigingen
+  - eBay API deprecations
+  - Shopify/WooCommerce versies
 
-1. **Add-on Migratie bij Upgrade** - Voorkomt dubbele facturatie
-2. **Marketplace Lock na Publish** - Voorkomt onbedoelde listing wijzigingen
-3. **Smart Conflict Defaults** - Betere UX bij nieuwe verbindingen
+### Database
+```text
+┌─────────────────────────────────────────────────┐
+│ platform_changelogs (nieuw)                     │
+├─────────────────────────────────────────────────┤
+│ id UUID PRIMARY KEY                             │
+│ platform: bol_com | amazon | stripe | ebay etc. │
+│ version TEXT                                    │
+│ change_type: breaking | feature | deprecation   │
+│ title TEXT                                      │
+│ description TEXT                                │
+│ impact_level: none | low | medium | high        │
+│ affected_features TEXT[]                        │
+│ source_url TEXT                                 │
+│ detected_at TIMESTAMPTZ                         │
+│ acknowledged_at TIMESTAMPTZ                     │
+│ acknowledged_by UUID                            │
+│ action_taken TEXT                               │
+└─────────────────────────────────────────────────┘
+```
 
-### Medium Prioriteit
+### Edge Function: `check-platform-changelogs`
+- Dagelijkse cron job
+- Checkt RSS feeds en API endpoints van platforms
+- Parst changelogs en detecteert breaking changes
+- Creëert notificaties voor het SellQo team
 
-4. **In-App Proration Preview** - Betere transparantie
-5. **Sync Activity Logging** - Audit trail en debugging
-6. **Downgrade Feature Warning** - Voorkomt onverwachte feature verlies
+### UI
+- Timeline view van alle platform updates
+- Impact assessment per wijziging
+- Action items en status tracking
 
-### Lagere Prioriteit
+---
 
-7. **Conflict Review Dashboard** - Alleen relevant bij bidirectionele sync
-8. **Field-Level Merge** - Geavanceerde feature voor power users
+## Module 5: Bug Detection System
 
+### Wat wordt gemaakt
+- **Nieuwe pagina**: `/admin/platform/health`
+- **Proactieve monitoring** van:
+  - Edge function error rates
+  - Sync failures per platform
+  - API response times
+  - Database performance
+  - User-reported issues
+
+### Database
+```text
+┌─────────────────────────────────────────────────┐
+│ platform_health_metrics (nieuw)                 │
+├─────────────────────────────────────────────────┤
+│ id UUID PRIMARY KEY                             │
+│ metric_type TEXT                                │
+│ component TEXT (edge_function, sync, api, db)   │
+│ value NUMERIC                                   │
+│ threshold_warning NUMERIC                       │
+│ threshold_critical NUMERIC                      │
+│ status: healthy | warning | critical            │
+│ recorded_at TIMESTAMPTZ                         │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│ platform_incidents (nieuw)                      │
+├─────────────────────────────────────────────────┤
+│ id UUID PRIMARY KEY                             │
+│ title TEXT                                      │
+│ severity: low | medium | high | critical        │
+│ status: detected | investigating | resolved     │
+│ affected_tenants UUID[]                         │
+│ root_cause TEXT                                 │
+│ resolution TEXT                                 │
+│ detected_at TIMESTAMPTZ                         │
+│ resolved_at TIMESTAMPTZ                         │
+└─────────────────────────────────────────────────┘
+```
+
+### Edge Function: `platform-health-monitor`
+- Aggregeert sync_activity_log failures
+- Monitort edge function error rates
+- Detecteert anomalieën (spike in errors)
+- Creëert automatisch incidents
+
+### UI Componenten
+- `PlatformHealthDashboard.tsx` - Status overview
+- `HealthMetricsGrid.tsx` - Real-time metrics
+- `IncidentTimeline.tsx` - Historische incidenten
+- `AlertConfiguration.tsx` - Threshold settings
+
+---
+
+## Module 6: SellQo Juridische Pagina's
+
+### Wat wordt gemaakt
+- **Publieke pagina's** op sellqo.lovable.app:
+  - `/terms` - Algemene Voorwaarden
+  - `/privacy` - Privacybeleid
+  - `/cookies` - Cookiebeleid
+  - `/sla` - Service Level Agreement
+  - `/acceptable-use` - Acceptable Use Policy
+  - `/dpa` - Data Processing Agreement
+
+### Belangrijke clausules
+1. **Prijsindexatie clausule**:
+   > "SellQo behoudt zich het recht voor om tarieven jaarlijks te indexeren conform de CBS consumentenprijsindex (CPI). Bestaande klanten worden minimaal 60 dagen vooraf geïnformeerd."
+
+2. **Aansprakelijkheid**:
+   > Platform-as-a-service disclaimer, uptime garantie (99.5%), data eigendom
+
+3. **Fair use policy**:
+   > Limieten op API calls, storage, transacties per plan
+
+### Database
+```text
+┌─────────────────────────────────────────────────┐
+│ sellqo_legal_pages (nieuw)                      │
+├─────────────────────────────────────────────────┤
+│ id UUID PRIMARY KEY                             │
+│ page_type TEXT UNIQUE                           │
+│ title TEXT                                      │
+│ content TEXT (Markdown)                         │
+│ version INTEGER                                 │
+│ effective_date DATE                             │
+│ published BOOLEAN                               │
+│ created_at, updated_at                          │
+└─────────────────────────────────────────────────┘
+```
+
+### Admin pagina
+- `/admin/platform/legal` - Beheer van SellQo's eigen juridische docs
+- Markdown editor met preview
+- Versie historie
+
+---
+
+## Module 7: Betalingen (Stripe Integratie)
+
+### Huidige situatie
+De Stripe integratie is **al volledig geïmplementeerd**:
+- `platform-stripe-webhook` handelt maandelijkse betalingen af
+- `create-platform-checkout` maakt checkout sessies
+- `tenant_subscriptions` en `platform_invoices` tabellen bestaan
+
+### Waarom Stripe noodzakelijk is
+Je vraag over QR-codes vs Stripe:
+- **QR-codes (SEPA)**: Alleen voor eenmalige betalingen, geen automatische maandelijkse incasso
+- **Stripe Subscriptions**: Automatische maandelijkse facturatie, retry bij failed payments, customer portal
+
+### Wat nog ontbreekt
+- **Stripe Product/Price IDs** in de `pricing_plans` tabel
+- Je moet deze aanmaken in het Stripe dashboard
+
+### Actie vereist
+1. Ga naar Stripe Dashboard → Products
+2. Maak producten aan voor Free, Starter, Pro, Enterprise
+3. Voeg de `stripe_price_id_monthly` en `stripe_price_id_yearly` toe aan de database
+
+---
+
+## Sidebar Uitbreiding
+
+### Huidige Platform sectie
+```text
+Platform
+├── Tenants
+└── Platform Billing
+```
+
+### Na implementatie
+```text
+Platform
+├── Dashboard (nieuw - overzicht)
+├── Tenants
+├── Platform Billing
+├── Feedback (nieuw)
+├── Support (nieuw)
+├── Changelog (nieuw)
+├── Health Monitor (nieuw)
+└── Legal (nieuw)
+```
+
+---
+
+## Implementatie Volgorde
+
+| Fase | Module | Geschatte complexiteit |
+|------|--------|----------------------|
+| 1 | SellQo Tenant + Account | Laag |
+| 2 | Feedback Dashboard | Medium |
+| 3 | Support Inbox | Medium-Hoog |
+| 4 | Platform Changelog | Medium |
+| 5 | Health Monitor | Hoog |
+| 6 | Legal Pages | Laag |
+
+---
+
+## Technische Details
+
+### Nieuwe Edge Functions
+1. `check-platform-changelogs` - Cron job voor changelog monitoring
+2. `platform-health-monitor` - Cron job voor health metrics
+3. `ingest-support-email` - Webhook voor inbound support emails
+
+### Nieuwe React Pagina's
+- `src/pages/platform/PlatformDashboard.tsx`
+- `src/pages/platform/PlatformFeedback.tsx`
+- `src/pages/platform/PlatformSupport.tsx`
+- `src/pages/platform/PlatformChangelog.tsx`
+- `src/pages/platform/PlatformHealth.tsx`
+- `src/pages/platform/PlatformLegal.tsx`
+- `src/pages/SellqoLegal.tsx` (publieke pagina's)
+
+### Nieuwe Hooks
+- `usePlatformFeedback.ts`
+- `useSupportTickets.ts`
+- `usePlatformChangelogs.ts`
+- `usePlatformHealth.ts`
+- `useSellqoLegal.ts`
+
+---
+
+## Veiligheidsnota
+
+Het aanmaken van een account met een hardcoded wachtwoord in de code is een **beveiligingsrisico**. In plaats daarvan:
+
+1. Ik maak de SellQo tenant aan
+2. Je registreert jezelf via de normale signup flow met info@sellqo.ai
+3. Ik voeg de `platform_admin` en `tenant_admin` rollen toe via database
+4. Of: je gebruikt je bestaande account (vanxcel@outlook.com) dat al platform_admin is
+
+Wil je doorgaan met dit plan?
