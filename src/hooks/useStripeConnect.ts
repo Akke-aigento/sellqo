@@ -2,6 +2,25 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+interface PayoutSchedule {
+  interval: string;
+  delay_days: number;
+  weekly_anchor?: string;
+  monthly_anchor?: number;
+}
+
+interface Balance {
+  available: number;
+  pending: number;
+  currency: string;
+}
+
+interface UpcomingPayout {
+  amount: number;
+  currency: string;
+  arrival_date: number;
+}
+
 interface ConnectStatus {
   configured: boolean;
   account_id?: string;
@@ -13,6 +32,9 @@ interface ConnectStatus {
     eventually_due?: string[];
     past_due?: string[];
   };
+  payout_schedule?: PayoutSchedule;
+  balance?: Balance;
+  upcoming_payout?: UpcomingPayout;
 }
 
 export function useStripeConnect(tenantId: string | undefined) {

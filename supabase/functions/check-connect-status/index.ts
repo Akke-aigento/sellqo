@@ -100,6 +100,63 @@ serve(async (req) => {
       logStep("Tenant status updated in database");
     }
 
+    // Fetch payout schedule and balance if account is active
+    let payoutSchedule = null;
+    let balance = null;
+    let upcomingPayout = null;
+
+    if (account.charges_enabled && account.payouts_enabled) {
+      try {
+        // Get balance
+        const balanceData = await stripe.balance.retrieve({
+          stripeAccount: tenantData.stripe_account_id,
+        });
+        
+        const availableBalance = balanceData.available?.[0];
+        const pendingBalance = balanceData.pending?.[0];
+        
+        balance = {
+          available: availableBalance?.amount || 0,
+          pending: pendingBalance?.amount || 0,
+          currency: availableBalance?.currency || pendingBalance?.currency || 'eur',
+        };
+        logStep("Balance retrieved", balance);
+
+        // Get payout schedule from account settings
+        if (account.settings?.payouts?.schedule) {
+          const schedule = account.settings.payouts.schedule;
+          payoutSchedule = {
+            interval: schedule.interval,
+            delay_days: schedule.delay_days,
+            weekly_anchor: schedule.weekly_anchor,
+            monthly_anchor: schedule.monthly_anchor,
+          };
+          logStep("Payout schedule retrieved", payoutSchedule);
+        }
+
+        // Get next scheduled payout if any balance available
+        if (balance.available > 0) {
+          const payouts = await stripe.payouts.list({
+            limit: 1,
+            status: 'pending',
+          }, {
+            stripeAccount: tenantData.stripe_account_id,
+          });
+          
+          if (payouts.data.length > 0) {
+            upcomingPayout = {
+              amount: payouts.data[0].amount,
+              currency: payouts.data[0].currency,
+              arrival_date: payouts.data[0].arrival_date,
+            };
+            logStep("Upcoming payout found", upcomingPayout);
+          }
+        }
+      } catch (balanceError) {
+        logStep("Could not fetch balance/schedule", { error: String(balanceError) });
+      }
+    }
+
     return new Response(JSON.stringify({
       configured: true,
       account_id: account.id,
@@ -107,6 +164,9 @@ serve(async (req) => {
       charges_enabled: account.charges_enabled || false,
       payouts_enabled: account.payouts_enabled || false,
       requirements: account.requirements,
+      payout_schedule: payoutSchedule,
+      balance: balance,
+      upcoming_payout: upcomingPayout,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

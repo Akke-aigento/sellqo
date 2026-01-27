@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2 } from 'lucide-react';
+import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +107,29 @@ export function PaymentSettings() {
     );
   };
 
+  const formatCurrency = (amount: number, currency: string = 'eur') => {
+    return new Intl.NumberFormat('nl-NL', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+  };
+
+  const getPayoutScheduleText = () => {
+    if (!status?.payout_schedule) return null;
+    const { interval, delay_days, weekly_anchor, monthly_anchor } = status.payout_schedule;
+    
+    if (interval === 'daily') {
+      return `Dagelijks (${delay_days} werkdag${delay_days === 1 ? '' : 'en'} vertraging)`;
+    } else if (interval === 'weekly') {
+      const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+      const anchor = weekly_anchor ? days[['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(weekly_anchor)] : '';
+      return `Wekelijks op ${anchor}`;
+    } else if (interval === 'monthly') {
+      return `Maandelijks op dag ${monthly_anchor || 1}`;
+    }
+    return interval;
+  };
+
   const handleCountryChange = async (value: string) => {
     setSelectedCountry(value);
     setIsSavingCountry(true);
@@ -164,6 +187,59 @@ export function PaymentSettings() {
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-medium">Betalingen zijn actief</span>
             </div>
+            
+            {/* Balance & Payout Info */}
+            {(status.balance || status.upcoming_payout || status.payout_schedule) && (
+              <div className="grid sm:grid-cols-3 gap-4 py-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                {status.balance && (
+                  <div className="flex items-center gap-3">
+                    <Wallet className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">Beschikbaar saldo</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                        {formatCurrency(status.balance.available, status.balance.currency)}
+                      </p>
+                      {status.balance.pending > 0 && (
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          + {formatCurrency(status.balance.pending, status.balance.currency)} in behandeling
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {status.upcoming_payout && (
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">Volgende uitbetaling</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                        {formatCurrency(status.upcoming_payout.amount, status.upcoming_payout.currency)}
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {new Date(status.upcoming_payout.arrival_date * 1000).toLocaleDateString('nl-NL', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {status.payout_schedule && (
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">Uitbetalingsschema</p>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                        {getPayoutScheduleText()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="grid sm:grid-cols-3 gap-4 py-4">
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
