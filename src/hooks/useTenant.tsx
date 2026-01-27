@@ -98,16 +98,29 @@ interface TenantContextType {
 
 export const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
+const TENANT_STORAGE_KEY = 'sellqo_selected_tenant_id';
+
 export function TenantProvider({ children }: { children: ReactNode }) {
   const { user, roles, loading: authLoading } = useAuth();
-  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [currentTenant, setCurrentTenantState] = useState<Tenant | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Wrapper to persist tenant selection
+  const setCurrentTenant = (tenant: Tenant | null) => {
+    setCurrentTenantState(tenant);
+    if (tenant) {
+      localStorage.setItem(TENANT_STORAGE_KEY, tenant.id);
+    } else {
+      localStorage.removeItem(TENANT_STORAGE_KEY);
+    }
+  };
 
   const fetchTenants = async () => {
     if (!user) {
       setTenants([]);
-      setCurrentTenant(null);
+      setCurrentTenantState(null);
+      localStorage.removeItem(TENANT_STORAGE_KEY);
       setLoading(false);
       return;
     }
@@ -148,8 +161,16 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     setTenants(enrichedTenants);
     
-    // Auto-select first tenant if none selected
-    if (!currentTenant && enrichedTenants.length > 0) {
+    // Try to restore previously selected tenant from localStorage
+    const savedTenantId = localStorage.getItem(TENANT_STORAGE_KEY);
+    const savedTenant = savedTenantId 
+      ? enrichedTenants.find(t => t.id === savedTenantId) 
+      : null;
+    
+    if (savedTenant) {
+      setCurrentTenantState(savedTenant);
+    } else if (!currentTenant && enrichedTenants.length > 0) {
+      // Only auto-select first tenant if no saved tenant exists
       setCurrentTenant(enrichedTenants[0]);
     }
 
