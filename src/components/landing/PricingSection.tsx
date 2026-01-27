@@ -82,7 +82,7 @@ const plans = [
       'Onbeperkte producten',
       'Onbeperkte bestellingen',
       '50 teamleden',
-      '✨ Onbeperkte AI credits',
+      '✨ 5.000 AI credits/maand',
       '🛒 Alle premium themes',
       'Amazon & eBay sync',
       'White-label opties',
