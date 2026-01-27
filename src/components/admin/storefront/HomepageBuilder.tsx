@@ -14,16 +14,20 @@ import {
   MessageSquare,
   Play,
   PanelRightOpen,
-  PanelRightClose
+  PanelRightClose,
+  LayoutPanelTop,
+  List,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useStorefront } from '@/hooks/useStorefront';
 import { SECTION_TYPES, type HomepageSectionType, type HomepageSection } from '@/types/storefront';
 import { SectionEditor } from './SectionEditor';
 import { PreviewPanel } from './PreviewPanel';
+import { VisualEditorCanvas } from './visual-editor';
 import {
   DndContext,
   closestCenter,
@@ -144,11 +148,14 @@ function SortableSection({ section, onEdit, onToggleVisibility, onDelete }: Sort
   );
 }
 
+type ViewMode = 'list' | 'visual';
+
 export function HomepageBuilder() {
   const { sections, sectionsLoading, createSection, updateSection, deleteSection, reorderSections } = useStorefront();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -203,6 +210,44 @@ export function HomepageBuilder() {
     setEditingSection(null);
   };
 
+  // Visual Editor mode
+  if (viewMode === 'visual') {
+    return (
+      <div className="space-y-4">
+        {/* Mode toggle header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Homepage Secties</h2>
+            <p className="text-sm text-muted-foreground">
+              Bewerk secties direct in de preview
+            </p>
+          </div>
+          <ToggleGroup 
+            type="single" 
+            value={viewMode} 
+            onValueChange={(v) => v && setViewMode(v as ViewMode)}
+            size="sm"
+          >
+            <ToggleGroupItem value="list" aria-label="Lijst weergave">
+              <List className="h-4 w-4 mr-2" />
+              Lijst
+            </ToggleGroupItem>
+            <ToggleGroupItem value="visual" aria-label="Visual Editor">
+              <LayoutPanelTop className="h-4 w-4 mr-2" />
+              Visual Editor
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        {/* Visual Editor Canvas */}
+        <div className="border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+          <VisualEditorCanvas />
+        </div>
+      </div>
+    );
+  }
+
+  // List mode (original)
   return (
     <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-2' : ''}`}>
       <div>
@@ -216,6 +261,21 @@ export function HomepageBuilder() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {/* View mode toggle */}
+              <ToggleGroup 
+                type="single" 
+                value={viewMode} 
+                onValueChange={(v) => v && setViewMode(v as ViewMode)}
+                size="sm"
+              >
+                <ToggleGroupItem value="list" aria-label="Lijst weergave">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="visual" aria-label="Visual Editor">
+                  <LayoutPanelTop className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+
               <Button
                 variant="outline"
                 size="sm"
