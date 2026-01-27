@@ -7345,6 +7345,13 @@ export type Database = {
           last_inventory_sync: string | null
           license_generator: string | null
           low_stock_threshold: number | null
+          marketplace_last_sync_hash: string | null
+          marketplace_lock_amazon: boolean | null
+          marketplace_lock_bol_com: boolean | null
+          marketplace_lock_ebay: boolean | null
+          marketplace_lock_reason: string | null
+          marketplace_lock_shopify: boolean | null
+          marketplace_lock_woocommerce: boolean | null
           marketplace_mappings: Json | null
           meta_description: string | null
           meta_title: string | null
@@ -7456,6 +7463,13 @@ export type Database = {
           last_inventory_sync?: string | null
           license_generator?: string | null
           low_stock_threshold?: number | null
+          marketplace_last_sync_hash?: string | null
+          marketplace_lock_amazon?: boolean | null
+          marketplace_lock_bol_com?: boolean | null
+          marketplace_lock_ebay?: boolean | null
+          marketplace_lock_reason?: string | null
+          marketplace_lock_shopify?: boolean | null
+          marketplace_lock_woocommerce?: boolean | null
           marketplace_mappings?: Json | null
           meta_description?: string | null
           meta_title?: string | null
@@ -7567,6 +7581,13 @@ export type Database = {
           last_inventory_sync?: string | null
           license_generator?: string | null
           low_stock_threshold?: number | null
+          marketplace_last_sync_hash?: string | null
+          marketplace_lock_amazon?: boolean | null
+          marketplace_lock_bol_com?: boolean | null
+          marketplace_lock_ebay?: boolean | null
+          marketplace_lock_reason?: string | null
+          marketplace_lock_shopify?: boolean | null
+          marketplace_lock_woocommerce?: boolean | null
           marketplace_mappings?: Json | null
           meta_description?: string | null
           meta_title?: string | null
@@ -9822,6 +9843,72 @@ export type Database = {
           },
         ]
       }
+      sync_conflicts: {
+        Row: {
+          conflict_fields: string[] | null
+          connection_id: string
+          created_at: string | null
+          data_type: string
+          detected_at: string | null
+          id: string
+          platform_data: Json
+          record_id: string
+          resolution: string | null
+          resolution_data: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sellqo_data: Json
+          tenant_id: string
+        }
+        Insert: {
+          conflict_fields?: string[] | null
+          connection_id: string
+          created_at?: string | null
+          data_type: string
+          detected_at?: string | null
+          id?: string
+          platform_data?: Json
+          record_id: string
+          resolution?: string | null
+          resolution_data?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sellqo_data?: Json
+          tenant_id: string
+        }
+        Update: {
+          conflict_fields?: string[] | null
+          connection_id?: string
+          created_at?: string | null
+          data_type?: string
+          detected_at?: string | null
+          id?: string
+          platform_data?: Json
+          record_id?: string
+          resolution?: string | null
+          resolution_data?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sellqo_data?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_conflicts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_conflicts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_queue: {
         Row: {
           attempts: number | null
@@ -9933,6 +10020,8 @@ export type Database = {
           cancelled_at: string | null
           created_at: string | null
           id: string
+          migrated_at: string | null
+          migrated_to_plan: string | null
           price_monthly: number | null
           status: string | null
           stripe_price_id: string | null
@@ -9946,6 +10035,8 @@ export type Database = {
           cancelled_at?: string | null
           created_at?: string | null
           id?: string
+          migrated_at?: string | null
+          migrated_to_plan?: string | null
           price_monthly?: number | null
           status?: string | null
           stripe_price_id?: string | null
@@ -9959,6 +10050,8 @@ export type Database = {
           cancelled_at?: string | null
           created_at?: string | null
           id?: string
+          migrated_at?: string | null
+          migrated_to_plan?: string | null
           price_monthly?: number | null
           status?: string | null
           stripe_price_id?: string | null
@@ -11832,6 +11925,30 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: number
       }
+      complete_sync_activity: {
+        Args: {
+          p_activity_id: string
+          p_error_details?: Json
+          p_records_created?: number
+          p_records_failed?: number
+          p_records_processed?: number
+          p_records_updated?: number
+          p_status: string
+        }
+        Returns: undefined
+      }
+      create_sync_conflict: {
+        Args: {
+          p_conflict_fields?: string[]
+          p_connection_id: string
+          p_data_type: string
+          p_platform_data: Json
+          p_record_id: string
+          p_sellqo_data: Json
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
@@ -11931,6 +12048,14 @@ export type Database = {
             Args: { p_monthly_credits: number; p_tenant_id: string }
             Returns: undefined
           }
+      resolve_sync_conflict: {
+        Args: {
+          p_conflict_id: string
+          p_resolution: string
+          p_resolution_data?: Json
+        }
+        Returns: undefined
+      }
       schedule_automation_run: {
         Args: {
           p_automation_id: string
@@ -11952,6 +12077,15 @@ export type Database = {
           p_type: string
         }
         Returns: undefined
+      }
+      start_sync_activity: {
+        Args: {
+          p_connection_id: string
+          p_data_type: string
+          p_direction: string
+          p_tenant_id: string
+        }
+        Returns: string
       }
       track_user_behavior: {
         Args: {

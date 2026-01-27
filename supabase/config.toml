@@ -257,3 +257,9 @@ verify_jwt = false
 
 [functions.search-ebay-categories]
 verify_jwt = false
+
+[functions.calculate-plan-switch]
+verify_jwt = false
+
+[functions.execute-plan-switch]
+verify_jwt = false
