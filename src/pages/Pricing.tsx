@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Link } from 'react-router-dom';
+import { ForcedLightMode } from '@/components/ForcedLightMode';
 
 const featureLabels: Record<string, { nl: string; en: string }> = {
   customDomain: { nl: 'Eigen domein', en: 'Custom domain' },
@@ -59,19 +60,22 @@ export default function PricingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container py-16">
-          <div className="grid gap-6 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-[600px]" />
-            ))}
+      <ForcedLightMode>
+        <div className="min-h-screen bg-background">
+          <div className="container py-16">
+            <div className="grid gap-6 md:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-[600px]" />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </ForcedLightMode>
     );
   }
 
   return (
+    <ForcedLightMode>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
@@ -251,5 +255,6 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+    </ForcedLightMode>
   );
 }

@@ -5,6 +5,7 @@ import { nl } from "date-fns/locale";
 import { Loader2, FileText, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ForcedLightMode } from "@/components/ForcedLightMode";
 
 export default function SellqoLegal() {
   const { slug } = useParams<{ slug: string }>();
@@ -12,26 +13,31 @@ export default function SellqoLegal() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <ForcedLightMode>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </ForcedLightMode>
     );
   }
 
   if (error || !page) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-        <h1 className="text-2xl font-bold">Pagina niet gevonden</h1>
-        <p className="text-muted-foreground mt-2">Deze pagina bestaat niet of is niet gepubliceerd.</p>
-        <Button asChild className="mt-6">
-          <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" /> Terug naar Home</Link>
-        </Button>
-      </div>
+      <ForcedLightMode>
+        <div className="min-h-screen flex flex-col items-center justify-center">
+          <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+          <h1 className="text-2xl font-bold">Pagina niet gevonden</h1>
+          <p className="text-muted-foreground mt-2">Deze pagina bestaat niet of is niet gepubliceerd.</p>
+          <Button asChild className="mt-6">
+            <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" /> Terug naar Home</Link>
+          </Button>
+        </div>
+      </ForcedLightMode>
     );
   }
 
   return (
+    <ForcedLightMode>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
@@ -107,5 +113,6 @@ export default function SellqoLegal() {
         </div>
       </footer>
     </div>
+    </ForcedLightMode>
   );
 }
