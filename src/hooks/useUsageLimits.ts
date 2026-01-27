@@ -14,7 +14,13 @@ export function useUsageLimits() {
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  // Demo tenants have unlimited everything
+  const isDemo = currentTenant?.is_demo === true;
+
   const checkLimit = async (limitType: LimitType): Promise<boolean> => {
+    // Demo tenants bypass all limits
+    if (isDemo) return true;
+    
     if (!currentTenant?.id) {
       return true; // Allow if no tenant context
     }
@@ -98,6 +104,9 @@ export function useUsageLimits() {
   };
 
   const enforceLimit = async (limitType: LimitType): Promise<boolean> => {
+    // Demo tenants bypass all limits
+    if (isDemo) return true;
+    
     const withinLimit = await checkLimit(limitType);
     
     if (!withinLimit) {
@@ -119,6 +128,9 @@ export function useUsageLimits() {
   };
 
   const checkFeature = (featureKey: string): boolean => {
+    // Demo tenants have all features enabled
+    if (isDemo) return true;
+    
     // 1. Check plan features first
     if (subscription?.pricing_plan?.features) {
       const features = subscription.pricing_plan.features;
@@ -140,6 +152,9 @@ export function useUsageLimits() {
   };
 
   const getUsagePercentage = async (limitType: LimitType): Promise<number> => {
+    // Demo tenants always show 0% (unlimited)
+    if (isDemo) return 0;
+    
     if (!currentTenant?.id) return 0;
 
     let limit: number | null = null;

@@ -222,7 +222,14 @@ export default function TenantsPage() {
                         <Store className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">{tenant.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{tenant.name}</p>
+                          {tenant.is_demo && (
+                            <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 text-xs">
+                              DEMO
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">{tenant.slug}</p>
                       </div>
                     </div>

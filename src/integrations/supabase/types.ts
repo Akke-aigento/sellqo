@@ -11279,6 +11279,7 @@ export type Database = {
           invoice_format: string | null
           invoice_prefix: string | null
           invoice_start_number: number | null
+          is_demo: boolean
           is_internal_tenant: boolean | null
           kvk_number: string | null
           language: string | null
@@ -11371,6 +11372,7 @@ export type Database = {
           invoice_format?: string | null
           invoice_prefix?: string | null
           invoice_start_number?: number | null
+          is_demo?: boolean
           is_internal_tenant?: boolean | null
           kvk_number?: string | null
           language?: string | null
@@ -11463,6 +11465,7 @@ export type Database = {
           invoice_format?: string | null
           invoice_prefix?: string | null
           invoice_start_number?: number | null
+          is_demo?: boolean
           is_internal_tenant?: boolean | null
           kvk_number?: string | null
           language?: string | null

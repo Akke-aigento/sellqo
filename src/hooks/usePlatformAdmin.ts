@@ -78,6 +78,7 @@ export interface TenantStats {
   active: number;
   trialing: number;
   internal: number;
+  demo: number;
 }
 
 export function usePlatformAdmin() {
@@ -90,15 +91,19 @@ export function usePlatformAdmin() {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('tenants')
-          .select('id, subscription_status, is_internal_tenant');
+          .select('id, subscription_status, is_internal_tenant, is_demo');
         
         if (error) throw error;
         
+        // Exclude demo and internal tenants from main counts
+        const realTenants = data?.filter(t => !t.is_demo && !t.is_internal_tenant) || [];
+        
         const stats: TenantStats = {
-          total: data?.length || 0,
-          active: data?.filter(t => t.subscription_status === 'active').length || 0,
-          trialing: data?.filter(t => t.subscription_status === 'trialing').length || 0,
+          total: realTenants.length,
+          active: realTenants.filter(t => t.subscription_status === 'active').length,
+          trialing: realTenants.filter(t => t.subscription_status === 'trialing').length,
           internal: data?.filter(t => t.is_internal_tenant).length || 0,
+          demo: data?.filter(t => t.is_demo).length || 0,
         };
         
         return stats;
