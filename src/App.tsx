@@ -234,7 +234,6 @@ const App = () => (
             <Route path="/sla" element={<SellqoLegal />} />
             <Route path="/acceptable-use" element={<SellqoLegal />} />
             <Route path="/dpa" element={<SellqoLegal />} />
-            </Route>
             
             <Route path="*" element={<NotFound />} />
           </Routes>
