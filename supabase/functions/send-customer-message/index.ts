@@ -21,6 +21,9 @@ interface SendMessageRequest {
   quote_id?: string;
   customer_id?: string;
   context_data?: Record<string, unknown>;
+  // Email threading headers
+  in_reply_to?: string;
+  references?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -46,6 +49,8 @@ const handler = async (req: Request): Promise<Response> => {
       quote_id,
       customer_id,
       context_data = {},
+      in_reply_to,
+      references,
     }: SendMessageRequest = await req.json();
 
     // Fetch tenant info for branding and reply-to
@@ -174,6 +179,15 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to create message record: ${insertError.message}`);
     }
 
+    // Build email headers for threading
+    const emailHeaders: Record<string, string> = {};
+    if (in_reply_to) {
+      emailHeaders['In-Reply-To'] = in_reply_to;
+    }
+    if (references) {
+      emailHeaders['References'] = references;
+    }
+
     // Send email via Resend
     const emailResponse = await resend.emails.send({
       from: `${fromName} <onboarding@resend.dev>`,
@@ -182,6 +196,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject,
       html: emailHtml,
       text: body_text || body_html.replace(/<[^>]*>/g, ''),
+      ...(Object.keys(emailHeaders).length > 0 && { headers: emailHeaders }),
     });
 
     if (emailResponse.error) {
