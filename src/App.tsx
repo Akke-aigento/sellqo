@@ -67,6 +67,7 @@ import TranslationHub from "./pages/admin/TranslationHub";
 import StorefrontPage from "./pages/admin/Storefront";
 import FulfillmentPage from "./pages/admin/Fulfillment";
 import BadgesPage from "./pages/admin/Badges";
+import SyncConflictsPage from "./pages/admin/SyncConflicts";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
@@ -147,6 +148,7 @@ const App = () => (
               <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="connect" element={<MarketplacesPage />} />
+              <Route path="connect/conflicts" element={<SyncConflictsPage />} />
               <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
               <Route path="marketing" element={<MarketingPage />} />
               <Route path="marketing/ai" element={<AIMarketingHub />} />
