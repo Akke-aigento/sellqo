@@ -7315,6 +7315,15 @@ export type Database = {
             | null
           download_expiry_hours: number | null
           download_limit: number | null
+          ebay_category_id: string | null
+          ebay_condition: string | null
+          ebay_item_id: string | null
+          ebay_last_synced_at: string | null
+          ebay_listing_error: string | null
+          ebay_listing_status: string | null
+          ebay_offer_id: string | null
+          ebay_optimized_description: string | null
+          ebay_optimized_title: string | null
           external_id: string | null
           featured_image: string | null
           file_size_bytes: number | null
@@ -7409,6 +7418,15 @@ export type Database = {
             | null
           download_expiry_hours?: number | null
           download_limit?: number | null
+          ebay_category_id?: string | null
+          ebay_condition?: string | null
+          ebay_item_id?: string | null
+          ebay_last_synced_at?: string | null
+          ebay_listing_error?: string | null
+          ebay_listing_status?: string | null
+          ebay_offer_id?: string | null
+          ebay_optimized_description?: string | null
+          ebay_optimized_title?: string | null
           external_id?: string | null
           featured_image?: string | null
           file_size_bytes?: number | null
@@ -7503,6 +7521,15 @@ export type Database = {
             | null
           download_expiry_hours?: number | null
           download_limit?: number | null
+          ebay_category_id?: string | null
+          ebay_condition?: string | null
+          ebay_item_id?: string | null
+          ebay_last_synced_at?: string | null
+          ebay_listing_error?: string | null
+          ebay_listing_status?: string | null
+          ebay_offer_id?: string | null
+          ebay_optimized_description?: string | null
+          ebay_optimized_title?: string | null
           external_id?: string | null
           featured_image?: string | null
           file_size_bytes?: number | null

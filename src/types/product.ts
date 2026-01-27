@@ -112,6 +112,16 @@ export interface Product {
   odoo_optimized_title?: string | null;
   odoo_optimized_description?: string | null;
   odoo_last_synced_at?: string | null;
+  // eBay listing fields
+  ebay_listing_status?: string | null;
+  ebay_offer_id?: string | null;
+  ebay_item_id?: string | null;
+  ebay_optimized_title?: string | null;
+  ebay_optimized_description?: string | null;
+  ebay_last_synced_at?: string | null;
+  ebay_listing_error?: string | null;
+  ebay_category_id?: string | null;
+  ebay_condition?: string | null;
   // Social channels
   social_channels?: Record<string, boolean> | null;
 }

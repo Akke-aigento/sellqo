@@ -18,7 +18,7 @@ interface OptimizeRequest {
     tags?: string[];
     images?: string[];
   };
-  marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce';
+  marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'ebay';
   language?: string;
 }
 
@@ -83,7 +83,7 @@ serve(async (req) => {
         - Meta description optimized for search engines (max 160 chars)
         - Focus on conversion-oriented copywriting
       `;
-    } else {
+    } else if (marketplace === 'woocommerce') {
       marketplaceName = 'WooCommerce';
       marketplaceRules = `
         - Title: SEO-optimized, 70 characters max for best display in search results
@@ -93,6 +93,17 @@ serve(async (req) => {
         - Focus on WooCommerce SEO best practices
         - Include schema-friendly product attributes
         - Optimize for WordPress search and Google
+      `;
+    } else {
+      // eBay
+      marketplaceName = 'eBay';
+      marketplaceRules = `
+        - Title: Max 80 characters, brand + key features + product type, highly searchable
+        - 5 bullet points for key features and specs
+        - Description: HTML-formatted, structured with clear sections
+        - Focus on eBay SEO: include popular search terms buyers use
+        - Condition-specific language when applicable
+        - Include compatible models/sizes if relevant
       `;
     }
 
@@ -176,7 +187,7 @@ Only return valid JSON, no markdown or explanation.`;
     }
 
     // Validate and clean response based on marketplace
-    const titleMaxLength = marketplace === 'bol_com' ? 150 : marketplace === 'amazon' ? 200 : marketplace === 'woocommerce' ? 70 : 255;
+    const titleMaxLength = marketplace === 'bol_com' ? 150 : marketplace === 'amazon' ? 200 : marketplace === 'woocommerce' ? 70 : marketplace === 'ebay' ? 80 : 255;
     const bulletMaxLength = marketplace === 'bol_com' ? 150 : 500;
     
     const validatedContent: OptimizedContent = {
