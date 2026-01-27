@@ -54,11 +54,13 @@ const categories: IntegrationCategory[] = [
     ],
   },
   {
-    title: 'Social Commerce',
+    title: 'Social Commerce & Messaging',
     icon: Share2,
     integrations: [
       { name: 'Facebook Shop', icon: Share2, status: 'live' },
       { name: 'Instagram Shopping', icon: Instagram, status: 'live' },
+      { name: 'Facebook Messenger', icon: MessageCircle, status: 'live', badge: 'Nieuw' },
+      { name: 'Instagram DMs', icon: Instagram, status: 'live', badge: 'Nieuw' },
       { name: 'WhatsApp Business', icon: MessageCircle, status: 'live' },
       { name: 'Google Shopping', icon: Globe, status: 'live' },
     ],

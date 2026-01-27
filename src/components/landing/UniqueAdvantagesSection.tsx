@@ -43,8 +43,8 @@ const advantages = [
     icon: Inbox,
     emoji: '📬',
     title: 'Unified Inbox',
-    description: 'Email, WhatsApp én marketplace berichten in één inbox. AI stelt antwoorden voor, jij keurt goed.',
-    highlight: 'Nooit meer schakelen',
+    description: 'Email, WhatsApp, Facebook Messenger, Instagram DMs én marketplace berichten in één inbox. AI stelt antwoorden voor.',
+    highlight: 'Alle kanalen op één plek',
   },
 ];
 

@@ -67,9 +67,14 @@ const features: Feature[] = [
     icon: MessageSquare,
     title: 'Unified Inbox',
     subtitle: 'Alle Communicatie Op Één Plek',
-    description: 'Email en WhatsApp in één inbox. Bol.com en Amazon berichten worden automatisch gerouteerd. AI stelt antwoorden voor.',
-    badge: 'WhatsApp Business',
-    gridSpan: 1,
+    description: 'Email, WhatsApp, Facebook Messenger én Instagram DMs in één inbox. Marketplace berichten worden automatisch gerouteerd.',
+    badge: 'Social Messaging',
+    features: [
+      'WhatsApp, Facebook & Instagram',
+      'Bol.com & Amazon berichten',
+      'AI-suggesties voor antwoorden',
+    ],
+    gridSpan: 2,
   },
   {
     icon: Paintbrush,
