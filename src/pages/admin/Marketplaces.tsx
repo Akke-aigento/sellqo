@@ -175,7 +175,7 @@ export default function MarketplacesPage() {
         <TabsContent value="marketplaces" className="mt-6">
           {/* Marketplace Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'odoo'] as MarketplaceType[]).map((type) => {
+            {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'odoo', 'ebay'] as MarketplaceType[]).map((type) => {
               const info = MARKETPLACE_INFO[type];
               const connection = getConnectionByType(type);
               

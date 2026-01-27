@@ -1,4 +1,4 @@
-export type MarketplaceType = 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo';
+export type MarketplaceType = 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo' | 'ebay';
 
 export interface MarketplaceConnection {
   id: string;
@@ -33,6 +33,11 @@ export interface MarketplaceCredentials {
   odooDatabase?: string;
   odooUsername?: string;
   odooApiKey?: string;
+  // eBay-specific
+  ebayAppId?: string;        // Production App ID (Client ID)
+  ebayCertId?: string;       // Cert ID (Client Secret)
+  ebayRefreshToken?: string; // OAuth refresh token
+  ebayMarketplaceId?: string; // bijv. EBAY_NL, EBAY_BE, EBAY_DE
 }
 
 import type { SyncRules } from './syncRules';
@@ -194,6 +199,20 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
       { text: 'Klant synchronisatie (res.partner)', available: true },
       { text: 'BTW mapping', available: true },
       { text: 'AI Product listing', available: true },
+    ],
+  },
+  ebay: {
+    type: 'ebay',
+    name: 'eBay',
+    icon: 'ShoppingBag',
+    color: 'text-red-600',
+    bgColor: 'bg-red-100',
+    description: 'Verkoop op eBay Benelux, Duitsland en meer',
+    features: [
+      { text: 'Automatische order import', available: true },
+      { text: 'Realtime voorraad sync', available: true },
+      { text: 'Product listing', available: true },
+      { text: 'AI geoptimaliseerde titels', available: true },
     ],
   },
   request: {

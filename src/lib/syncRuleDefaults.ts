@@ -65,6 +65,17 @@ export const PLATFORM_CAPABILITIES: Record<MarketplaceType, PlatformSyncCapabili
     categories: { import: true, export: true, bidirectional: true },
     taxes: { import: true, export: true, bidirectional: true },
   },
+  ebay: {
+    orders: { import: true, export: false, bidirectional: false },
+    products: { import: false, export: true, bidirectional: false },
+    inventory: { import: false, export: true, bidirectional: false },
+    customers: { import: true, export: false, bidirectional: false },
+    invoices: null,
+    returns: { import: true, export: false, bidirectional: false },
+    shipments: { import: false, export: true, bidirectional: false },
+    categories: null,
+    taxes: null,
+  },
 };
 
 // Default field mappings per data type
@@ -186,6 +197,13 @@ export const DEFAULT_STATUS_MAPPINGS: Record<MarketplaceType, StatusMapping[]> =
     { externalStatus: 'done', internalStatus: 'delivered', label: 'Afgerond' },
     { externalStatus: 'cancel', internalStatus: 'cancelled', label: 'Geannuleerd' },
   ],
+  ebay: [
+    { externalStatus: 'AWAITING_PAYMENT', internalStatus: 'pending', label: 'Wacht op betaling' },
+    { externalStatus: 'AWAITING_SHIPMENT', internalStatus: 'processing', label: 'Wacht op verzending' },
+    { externalStatus: 'SHIPPED', internalStatus: 'shipped', label: 'Verzonden' },
+    { externalStatus: 'DELIVERED', internalStatus: 'delivered', label: 'Afgeleverd' },
+    { externalStatus: 'CANCELLED', internalStatus: 'cancelled', label: 'Geannuleerd' },
+  ],
 };
 
 // Default sync rules per platform
@@ -264,6 +282,16 @@ export function getDefaultSyncRules(marketplaceType: MarketplaceType): SyncRules
         shipments: createRule('shipments', true, 'bidirectional', true),
         categories: createRule('categories', true, 'bidirectional', false),
         taxes: createRule('taxes', true, 'bidirectional', false),
+      };
+    
+    case 'ebay':
+      return {
+        orders: createRule('orders', true, 'import', true),
+        products: createRule('products', true, 'export', false),
+        inventory: createRule('inventory', true, 'export', true),
+        customers: createRule('customers', false, 'import', true),
+        returns: createRule('returns', true, 'import', true),
+        shipments: createRule('shipments', true, 'export', true),
       };
     
     default:
@@ -399,6 +427,25 @@ export const SYNC_PRESETS: Record<MarketplaceType, SyncPreset[]> = {
         customers: { enabled: true, direction: 'bidirectional', autoSync: true, fieldMappings: DEFAULT_FIELD_MAPPINGS.customers, customSettings: {} },
         invoices: { enabled: true, direction: 'export', autoSync: false, fieldMappings: DEFAULT_FIELD_MAPPINGS.invoices, customSettings: {} },
         taxes: { enabled: true, direction: 'bidirectional', autoSync: false, fieldMappings: DEFAULT_FIELD_MAPPINGS.taxes, customSettings: {} },
+      },
+    },
+  ],
+  ebay: [
+    {
+      id: 'minimal',
+      name: 'Minimaal',
+      description: 'Alleen orders importeren',
+      rules: {
+        orders: { enabled: true, direction: 'import', autoSync: true, fieldMappings: DEFAULT_FIELD_MAPPINGS.orders, customSettings: {} },
+      },
+    },
+    {
+      id: 'standard',
+      name: 'Standaard',
+      description: 'Orders + Voorraad synchronisatie',
+      rules: {
+        orders: { enabled: true, direction: 'import', autoSync: true, fieldMappings: DEFAULT_FIELD_MAPPINGS.orders, customSettings: {} },
+        inventory: { enabled: true, direction: 'export', autoSync: true, fieldMappings: DEFAULT_FIELD_MAPPINGS.inventory, customSettings: { safetyStock: 5 } },
       },
     },
   ],
