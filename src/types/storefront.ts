@@ -104,6 +104,60 @@ export interface StorefrontPage {
   updated_at: string;
 }
 
+// Page Block types for visual editing
+export type PageBlockType = 'richtext' | 'image_text' | 'faq' | 'heading' | 'spacer';
+
+export interface PageBlock {
+  id: string;
+  type: PageBlockType;
+  content: PageBlockContent;
+  settings: PageBlockSettings;
+  sort_order: number;
+}
+
+export interface RichTextBlockContent {
+  html: string;
+}
+
+export interface ImageTextBlockContent {
+  title?: string;
+  text?: string;
+  image_url?: string;
+  image_position?: 'left' | 'right';
+  button_text?: string;
+  button_link?: string;
+}
+
+export interface FaqBlockContent {
+  items: Array<{
+    id: string;
+    question: string;
+    answer: string;
+  }>;
+}
+
+export interface HeadingBlockContent {
+  text: string;
+  level: 'h1' | 'h2' | 'h3';
+}
+
+export interface SpacerBlockContent {
+  height: 'small' | 'medium' | 'large';
+}
+
+export type PageBlockContent = 
+  | RichTextBlockContent 
+  | ImageTextBlockContent 
+  | FaqBlockContent 
+  | HeadingBlockContent
+  | SpacerBlockContent
+  | Record<string, unknown>;
+
+export interface PageBlockSettings {
+  background_color?: string;
+  padding?: string;
+}
+
 export type HomepageSectionType = 
   | 'hero'
   | 'featured_products'

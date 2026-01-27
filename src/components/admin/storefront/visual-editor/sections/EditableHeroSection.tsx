@@ -63,6 +63,9 @@ export function EditableHeroSection({ section, onUpdate }: EditableHeroSectionPr
             as="h1"
             placeholder="Voeg een titel toe..."
             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4"
+            showAIButton
+            fieldType="title"
+            sectionType="hero"
           />
           <InlineTextEditor
             value={section.subtitle || ''}
@@ -70,6 +73,9 @@ export function EditableHeroSection({ section, onUpdate }: EditableHeroSectionPr
             as="p"
             placeholder="Voeg een subtitel toe..."
             className="text-lg md:text-xl text-white/90 mb-8"
+            showAIButton
+            fieldType="subtitle"
+            sectionType="hero"
           />
           {(content.button_text || content.button_link) && (
             <Link

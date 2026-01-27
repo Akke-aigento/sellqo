@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react';
-import { Plus, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { Plus, Monitor, Smartphone, Tablet, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
 import { SECTION_TYPES, type HomepageSectionType, type HomepageSection } from '@/types/storefront';
 import { VisualEditorProvider, useVisualEditor } from './VisualEditorContext';
+import { useUndoRedo } from './hooks/useUndoRedo';
 import { EditableSection } from './EditableSection';
 import { QuickEditPanel } from './QuickEditPanel';
 import {
@@ -60,7 +61,8 @@ const sectionIcons: Record<HomepageSectionType, React.ReactNode> = {
 function VisualEditorCanvasInner() {
   const { sections, sectionsLoading, createSection, updateSection, deleteSection, reorderSections } = useStorefront();
   const { currentTenant } = useTenant();
-  const { setSelectedSectionId } = useVisualEditor();
+  const { setSelectedSectionId, pushHistory } = useVisualEditor();
+  const { canUndo, canRedo, undo, redo, undoCount, redoCount } = useUndoRedo();
   
   const [device, setDevice] = useState<DeviceType>('desktop');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -98,11 +100,22 @@ function VisualEditorCanvasInner() {
   };
 
   const handleUpdateSection = useCallback((section: HomepageSection, updates: Partial<HomepageSection>) => {
+    // Push to history for undo/redo
+    const previousState: Partial<HomepageSection> = {};
+    for (const key of Object.keys(updates) as (keyof HomepageSection)[]) {
+      previousState[key] = section[key] as never;
+    }
+    pushHistory({
+      sectionId: section.id,
+      previousState,
+      newState: updates,
+    });
+    
     updateSection.mutate({
       id: section.id,
       ...updates,
     });
-  }, [updateSection]);
+  }, [updateSection, pushHistory]);
 
   const handleToggleVisibility = (section: HomepageSection) => {
     updateSection.mutate({ id: section.id, is_visible: !section.is_visible });
@@ -147,22 +160,60 @@ function VisualEditorCanvasInner() {
       <div className="flex flex-col h-full">
         {/* Toolbar */}
         <div className="flex items-center justify-between p-3 border-b bg-background sticky top-0 z-30">
-          <ToggleGroup 
-            type="single" 
-            value={device} 
-            onValueChange={(value) => value && setDevice(value as DeviceType)}
-            size="sm"
-          >
-            <ToggleGroupItem value="desktop" aria-label="Desktop view">
-              <Monitor className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="tablet" aria-label="Tablet view">
-              <Tablet className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="mobile" aria-label="Mobile view">
-              <Smartphone className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex items-center gap-2">
+            <ToggleGroup 
+              type="single" 
+              value={device} 
+              onValueChange={(value) => value && setDevice(value as DeviceType)}
+              size="sm"
+            >
+              <ToggleGroupItem value="desktop" aria-label="Desktop view">
+                <Monitor className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="tablet" aria-label="Tablet view">
+                <Tablet className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="mobile" aria-label="Mobile view">
+                <Smartphone className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            {/* Undo/Redo Buttons */}
+            <div className="flex items-center gap-1 ml-2 border-l pl-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={undo}
+                    disabled={!canUndo}
+                  >
+                    <Undo2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Ongedaan maken (Ctrl+Z){undoCount > 0 && ` · ${undoCount}`}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={redo}
+                    disabled={!canRedo}
+                  >
+                    <Redo2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Opnieuw (Ctrl+Shift+Z){redoCount > 0 && ` · ${redoCount}`}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
 
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>

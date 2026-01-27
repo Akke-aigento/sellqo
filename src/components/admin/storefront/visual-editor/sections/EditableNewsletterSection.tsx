@@ -28,6 +28,9 @@ export function EditableNewsletterSection({ section, onUpdate }: EditableNewslet
             as="h2"
             placeholder="Nieuwsbrief titel..."
             className="text-3xl font-bold mb-4"
+            showAIButton
+            fieldType="title"
+            sectionType="newsletter"
           />
           <InlineTextEditor
             value={section.subtitle || content.description || ''}
@@ -35,6 +38,9 @@ export function EditableNewsletterSection({ section, onUpdate }: EditableNewslet
             as="p"
             placeholder="Schrijf een korte beschrijving..."
             className="text-muted-foreground mb-6"
+            showAIButton
+            fieldType="subtitle"
+            sectionType="newsletter"
           />
           
           {/* Form preview (non-functional in editor) */}
