@@ -10,7 +10,8 @@ export type AnalysisType =
   | 'quotes' 
   | 'subscriptions'
   | 'marketplace'
-  | 'reviews';
+  | 'reviews'
+  | 'storefront';
 
 export interface AICoachSettings {
   id: string;

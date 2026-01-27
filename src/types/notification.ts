@@ -12,7 +12,7 @@ export type NotificationCategory =
   | 'ai_coach';
 
 // Quick Action types for inline notification buttons
-export type QuickActionType = 'navigate' | 'execute' | 'dismiss' | 'snooze';
+export type QuickActionType = 'navigate' | 'execute' | 'dismiss' | 'snooze' | 'open_visual_editor';
 export type QuickActionVariant = 'default' | 'primary' | 'secondary' | 'destructive' | 'outline';
 
 export interface NotificationQuickAction {

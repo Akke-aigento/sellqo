@@ -8,6 +8,14 @@ interface LearnFromEditOptions {
   contentType?: string;
 }
 
+export interface CopyVariationForLearning {
+  id: string;
+  text: string;
+  style: string;
+  style_label: string;
+  keywords_used: string[];
+}
+
 export function useAILearning() {
   const { currentTenant } = useTenant();
 
@@ -78,5 +86,53 @@ export function useAILearning() {
     }
   }, [currentTenant?.id]);
 
-  return { learnFromEdit };
+  // Track which A/B variation was chosen
+  const trackVariationChoice = useCallback(async (
+    chosenVariation: CopyVariationForLearning,
+    rejectedVariations: CopyVariationForLearning[]
+  ) => {
+    if (!currentTenant?.id) {
+      console.warn('No tenant ID available for AI learning');
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Store the choice as feedback
+      await supabase.from('ai_feedback').insert({
+        tenant_id: currentTenant.id,
+        user_id: user?.id,
+        feedback_type: 'variation_choice',
+        content_type: 'storefront_copy',
+        metadata: {
+          chosen: {
+            id: chosenVariation.id,
+            style: chosenVariation.style,
+            text: chosenVariation.text,
+          },
+          rejected: rejectedVariations.map(v => ({
+            id: v.id,
+            style: v.style,
+            text: v.text,
+          })),
+        },
+      });
+
+      // Update learning patterns - style preference
+      await supabase.rpc('update_ai_learning_pattern', {
+        p_tenant_id: currentTenant.id,
+        p_pattern_type: 'preferred_copy_style',
+        p_learned_value: {
+          preference: chosenVariation.style,
+          last_example: chosenVariation.text.substring(0, 100),
+        },
+      });
+
+    } catch (error) {
+      console.error('Error tracking variation choice:', error);
+    }
+  }, [currentTenant?.id]);
+
+  return { learnFromEdit, trackVariationChoice };
 }

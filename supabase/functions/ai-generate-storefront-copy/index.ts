@@ -10,12 +10,20 @@ interface GenerateRequest {
   fieldType: 'title' | 'subtitle' | 'cta' | 'button' | 'description';
   sectionType: 'hero' | 'newsletter' | 'text_image' | 'featured_products' | 'testimonials';
   currentValue?: string;
-  action: 'generate' | 'rewrite' | 'shorter' | 'longer';
+  action: 'generate' | 'rewrite' | 'shorter' | 'longer' | 'generate_variations';
   tenantContext?: {
     businessName?: string;
     industry?: string;
     tone?: string;
   };
+}
+
+interface CopyVariation {
+  id: string;
+  text: string;
+  style: string;
+  style_label: string;
+  keywords_used: string[];
 }
 
 interface MarketingContext {
@@ -408,6 +416,25 @@ serve(async (req) => {
       case 'longer':
         userPrompt = `Breid de volgende tekst uit met meer detail of overtuigingskracht: "${currentValue}"\n\nMaak het ongeveer 50% langer.`;
         break;
+      case 'generate_variations':
+        userPrompt = `Genereer PRECIES 3 verschillende variaties van ${fieldDescription}.
+
+Geef de output als een JSON array met exact deze structuur:
+[
+  {"style": "professional", "style_label": "Zakelijk", "text": "..."},
+  {"style": "playful", "style_label": "Speels", "text": "..."},
+  {"style": "concise", "style_label": "Kort & Krachtig", "text": "..."}
+]
+
+Elke variant heeft een unieke stijl:
+- professional: Zakelijk, betrouwbaar, formeel
+- playful: Speels, creatief, leuk
+- concise: Kort, direct, to-the-point
+
+${fieldType === 'title' ? 'Maximaal 8 woorden per variant.' : fieldType === 'subtitle' ? 'Maximaal 15 woorden per variant.' : fieldType === 'cta' || fieldType === 'button' ? 'Maximaal 3 woorden per variant.' : 'Maximaal 25 woorden per variant.'}
+
+Antwoord ALLEEN met de JSON array, geen extra tekst.`;
+        break;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -422,7 +449,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 150,
+        max_tokens: action === 'generate_variations' ? 500 : 150,
         temperature: 0.7,
       }),
     });
@@ -448,12 +475,15 @@ serve(async (req) => {
     const data = await response.json();
     const generatedText = data.choices?.[0]?.message?.content?.trim() || "";
 
+    // Determine credits used (2 for variations, 1 for single)
+    const creditsUsed = action === 'generate_variations' ? 2 : 1;
+
     // Log AI usage if tenant is identified
     if (tenantId) {
       await supabase.from("ai_usage_log").insert({
         tenant_id: tenantId,
         feature: "storefront_copy",
-        credits_used: 1,
+        credits_used: creditsUsed,
         model_used: "google/gemini-3-flash-preview",
         metadata: { 
           fieldType, 
@@ -467,8 +497,54 @@ serve(async (req) => {
       // Use credits
       await supabase.rpc("use_ai_credits", {
         p_tenant_id: tenantId,
-        p_credits_needed: 1,
+        p_credits_needed: creditsUsed,
       });
+    }
+
+    // Handle variations response
+    if (action === 'generate_variations') {
+      try {
+        // Extract JSON from the response
+        let jsonStr = generatedText;
+        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        }
+        
+        const parsedVariations = JSON.parse(jsonStr) as Array<{
+          style: string;
+          style_label: string;
+          text: string;
+        }>;
+
+        // Find which keywords are used in each variation
+        const variations: CopyVariation[] = parsedVariations.map((v, idx) => {
+          const textLower = v.text.toLowerCase();
+          const keywordsUsed = seoKeywords
+            .filter(kw => textLower.includes(kw.keyword.toLowerCase()))
+            .map(kw => kw.keyword);
+          
+          return {
+            id: `var-${idx}-${Date.now()}`,
+            text: v.text,
+            style: v.style,
+            style_label: v.style_label,
+            keywords_used: keywordsUsed,
+          };
+        });
+
+        return new Response(
+          JSON.stringify({ variations }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (parseError) {
+        console.error("Error parsing variations:", parseError);
+        // Fallback: return single text
+        return new Response(
+          JSON.stringify({ text: generatedText }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     return new Response(

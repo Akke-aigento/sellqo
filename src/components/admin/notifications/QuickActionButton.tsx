@@ -56,6 +56,17 @@ export function QuickActionButton({
           }
           break;
 
+        case 'open_visual_editor':
+          // Navigate to visual editor with specific context
+          const sectionType = action.action_params?.section_type || 'hero';
+          const context = action.action_params?.context || {};
+          const queryParams = new URLSearchParams({
+            section: String(sectionType),
+            aiContext: JSON.stringify(context),
+          });
+          navigate(`/admin/storefront/edit?${queryParams.toString()}`);
+          break;
+
         case 'dismiss':
           // Just close/dismiss
           break;

@@ -14,7 +14,7 @@ interface QuickAction {
   id: string;
   label: string;
   icon?: string;
-  action_type: 'navigate' | 'execute' | 'dismiss' | 'snooze';
+  action_type: 'navigate' | 'execute' | 'dismiss' | 'snooze' | 'open_visual_editor';
   action_url?: string;
   action_function?: string;
   action_params?: Record<string, unknown>;
@@ -184,6 +184,57 @@ function generateQuickActions(type: string, data: Record<string, unknown>): Quic
         icon: 'ShoppingCart',
         action_type: 'navigate',
         action_url: '/admin/marketing/automations?trigger=abandoned_cart',
+        variant: 'primary',
+      });
+      break;
+
+    // STOREFRONT SUGGESTIONS
+    case 'storefront_hero_update':
+      actions.push({
+        id: 'generate_hero',
+        label: 'Genereer Hero',
+        icon: 'Sparkles',
+        action_type: 'open_visual_editor',
+        action_params: { 
+          section_type: 'hero',
+          context: data,
+        },
+        variant: 'primary',
+      });
+      actions.push({
+        id: 'edit_hero',
+        label: 'Bewerk handmatig',
+        icon: 'Edit',
+        action_type: 'navigate',
+        action_url: '/admin/storefront/edit',
+        variant: 'outline',
+      });
+      break;
+
+    case 'storefront_seasonal_banner':
+      actions.push({
+        id: 'generate_banner',
+        label: 'Maak banner',
+        icon: 'Sparkles',
+        action_type: 'open_visual_editor',
+        action_params: { 
+          section_type: 'hero',
+          context: data,
+        },
+        variant: 'primary',
+      });
+      break;
+
+    case 'storefront_social_proof':
+      actions.push({
+        id: 'add_social_proof',
+        label: 'Voeg toe aan Hero',
+        icon: 'Star',
+        action_type: 'open_visual_editor',
+        action_params: { 
+          section_type: 'hero',
+          context: data,
+        },
         variant: 'primary',
       });
       break;
