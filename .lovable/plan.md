@@ -1,174 +1,103 @@
 
 
-# Marketing Landing Page - Layout Fixes (Desktop & Mobile)
+# Header & Footer Tablet Layout Optimalisatie
 
-## Geïdentificeerde Problemen
+## Huidige Situatie
 
-### Desktop (Screenshots 1-2)
-De FeaturesSection toont "witte gaten" in het grid omdat:
-- Het grid is 3 kolommen breed (`lg:grid-cols-3`)
-- Sommige cards hebben `gridSpan: 2` (beslaan 2 kolommen)
-- De huidige volgorde zorgt ervoor dat er 1-kolom gaten ontstaan
+### Header (LandingNavbar.tsx)
+- Breakpoint `md:` (768px) schakelt van hamburger naar desktop navigatie
+- Op tablet (768-1024px) past de volledige navigatie + CTA buttons soms krap
 
-**Huidige volgorde en spans:**
-| # | Feature | Span | Rij |
-|---|---------|------|-----|
-| 1 | Multi-Channel Verkoop | 2 | Rij 1: 2 cols |
-| 2 | Voorraadsync | 1 | Rij 1: + 1 = 3 ✅ |
-| 3 | AI Marketing Suite | 2 | Rij 2: 2 cols |
-| 4 | AI SEO | 1 | Rij 2: + 1 = 3 ✅ |
-| 5 | Promotietypen | 2 | Rij 3: 2 cols |
-| 6 | Unified Inbox | 2 | Rij 3: GAT! (2+2=4, past niet) |
-| 7 | Webshop Builder | 2 | Rij 4: 2 cols |
-| 8 | Slimme Financiën | 1 | Rij 4: + 1 = 3 ✅ |
-| 9 | Groei-Insights & POS | 1 | Rij 5: 1 col - GAT! |
-
-**Oplossing:** Herorden features zodat elke rij exact 3 kolommen vult.
+### Footer (LandingFooter.tsx)
+- Grid: `md:grid-cols-2 lg:grid-cols-4`
+- Bottom bar: `flex-col md:flex-row` - op tablet komen 3 elementen naast elkaar
+- Logo breedte: `width={400}` - te groot voor tablet
 
 ---
 
-### Mobile (Screenshots 3-5)
+## Oplossingen
 
-**Probleem 1: Hero tekst loopt over**
-- Grote fonts breken niet goed op smalle schermen
-- "Volledig Onder Controle" past niet op één regel
+### 1. LandingNavbar - Hamburger Menu Tot Tablet
 
-**Probleem 2: Dashboard mockup te breed**
-- De `HeroDashboardMockup` heeft `max-w-2xl` maar geen goede mobile constraints
-- Scrollt horizontaal op kleine schermen
+**Wijzigingen:**
+| Element | Oud | Nieuw |
+|---------|-----|-------|
+| Desktop nav | `hidden md:flex` | `hidden lg:flex` |
+| Desktop CTA | `hidden md:flex` | `hidden lg:flex` |
+| Hamburger knop | `md:hidden` | `lg:hidden` |
+| Mobile menu | `md:hidden` | `lg:hidden` |
 
-**Probleem 3: Comparison tabel horizontaal scrollen**
-- Tabel met 5 kolommen past niet op mobile
-- `min-w-[640px]` forceert horizontaal scrollen
+Dit zorgt ervoor dat het hamburger menu zichtbaar blijft tot 1024px (tablet landscape).
 
 ---
 
-## Voorgestelde Oplossingen
+### 2. LandingFooter - Betere Tablet Layout
 
-### 1. FeaturesSection - Grid Rebalanceren
+**Grid aanpassingen:**
+| Element | Oud | Nieuw |
+|---------|-----|-------|
+| Main grid | `md:grid-cols-2 lg:grid-cols-4` | `sm:grid-cols-2 lg:grid-cols-4` |
+| Logo width | `width={400}` | Responsive: `w-full max-w-[200px] md:max-w-[280px]` |
 
-**Nieuwe feature volgorde:**
+**Bottom bar aanpassingen:**
+| Element | Oud | Nieuw |
+|---------|-----|-------|
+| Container | `flex-col md:flex-row` | `flex-col lg:flex-row` |
+| Legal links | `flex-wrap justify-center gap-6` | `flex-wrap justify-center gap-4 md:gap-6` |
+| Language selector | Inline separators | Compacter op tablet |
+
+Op tablet (768-1024px) stapelt de bottom bar nu verticaal voor betere leesbaarheid.
+
+---
+
+## Technische Details
+
+### Bestand 1: `src/components/landing/LandingNavbar.tsx`
+- Regel 52: `hidden md:flex` → `hidden lg:flex`
+- Regel 65: `hidden md:flex` → `hidden lg:flex`
+- Regel 80: `md:hidden` → `lg:hidden`
+- Regel 91: `md:hidden` → `lg:hidden`
+
+### Bestand 2: `src/components/landing/LandingFooter.tsx`
+- Regel 53: Grid aanpassen naar `sm:grid-cols-2 lg:grid-cols-4`
+- Regel 56: Logo responsive width
+- Regel 145: Bottom bar `flex-col lg:flex-row`
+- Regel 150: Legal links gap aanpassen
+- Optioneel: Taalselector compacter maken
+
+---
+
+## Visueel Resultaat
 
 ```text
-Rij 1: [Multi-Channel (2)] + [Voorraadsync (1)] = 3 ✅
-Rij 2: [AI Marketing (2)] + [AI SEO (1)] = 3 ✅  
-Rij 3: [Promoties (2)] + [Financiën (1)] = 3 ✅
-Rij 4: [Unified Inbox (2)] + [Groei-Insights (1)] = 3 ✅
-Rij 5: [Webshop Builder (2)] + [LEGE RUIMTE] = ? ← PROBLEEM
-```
+TABLET (768-1024px):
 
-**Betere oplossing:** Maak Webshop Builder ook `gridSpan: 1`, of voeg een 10e feature toe, of gebruik een andere layout.
+HEADER:
+┌─────────────────────────────────────┐
+│ [Logo]              [☰ Hamburger]   │
+└─────────────────────────────────────┘
 
-**Aanbevolen aanpak:**
-- Wijzig `Unified Inbox` naar `gridSpan: 1`
-- Wijzig `Webshop Builder` naar `gridSpan: 1`
-- Dit geeft 9 features met balans: 3 rijen van 3 cards
+FOOTER GRID:
+┌────────────────┬────────────────────┐
+│ Brand + Social │ Product Links      │
+├────────────────┼────────────────────┤
+│ Bedrijf Links  │ Support Links      │
+└────────────────┴────────────────────┘
 
-OF gebruik een hybrid benadering:
-- Eerste 6 features: 3 rijen met afwisselend 2+1 patroon
-- Laatste 3 features: 1 rij met 3x span-1
-
----
-
-### 2. HeroSection - Mobile Typography
-
-**Wijzigingen:**
-- Verklein hero titel op mobile van `text-5xl` naar `text-3xl`/`text-4xl`
-- Voeg `break-words` of betere line breaks toe
-- Controleer container padding
-
----
-
-### 3. HeroDashboardMockup - Mobile Responsiveness
-
-**Wijzigingen:**
-- Voeg `overflow-hidden` toe aan parent container
-- Schaal mockup op mobile met `transform: scale(0.85)` of vergelijkbaar
-- Verberg sommige elementen op mobile (bijv. sidebar altijd hidden op mobile - al gedaan)
-- Zorg dat inhoud niet breder is dan viewport
-
----
-
-### 4. ComparisonSection - Mobile Friendly
-
-**Opties:**
-
-**Optie A: Horizontale scroll verbeteren**
-- Voeg scroll indicators toe
-- Maak Feature kolom sticky
-
-**Optie B: Card-based layout voor mobile**
-- Toon op mobile cards per feature ipv tabel
-- Elke card toont SellQo vs concurrenten verticaal
-
-**Aanbevolen: Optie A** met sticky eerste kolom + scroll hint
-
----
-
-## Technische Implementatie
-
-### Bestand 1: `src/components/landing/FeaturesSection.tsx`
-
-**Wijzigingen:**
-- Herorden `features` array voor betere grid flow
-- Pas `gridSpan` aan voor specifieke items
-- Alternatief: gebruik CSS `grid-auto-flow: dense` om gaten automatisch te vullen
-
-### Bestand 2: `src/components/landing/HeroSection.tsx`
-
-**Wijzigingen:**
-- Hero titel: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl`
-- Container: betere padding op mobile
-- Dashboard wrapper: `overflow-hidden` en responsive scaling
-
-### Bestand 3: `src/components/landing/HeroDashboardMockup.tsx`
-
-**Wijzigingen:**
-- Outer container: `max-w-full overflow-hidden`
-- Responsive wrapper met mobile scaling
-- Verklein stat grid naar 2 kolommen op mobile (al gedaan: `grid-cols-2 lg:grid-cols-4`)
-
-### Bestand 4: `src/components/landing/ComparisonSection.tsx`
-
-**Wijzigingen:**
-- Wrapper div: `overflow-x-auto -mx-4 px-4` voor edge-to-edge scroll
-- Feature kolom: `sticky left-0 bg-card z-10` zodat deze zichtbaar blijft
-- Scroll indicator visueel element toevoegen
-
----
-
-## Visuele Weergave Nieuwe Grid
-
-```text
-DESKTOP (3 kolommen):
-┌─────────────────────┬────────────┐
-│ Multi-Channel (2)   │ Voorraad(1)│
-├─────────────────────┼────────────┤
-│ AI Marketing (2)    │ AI SEO (1) │
-├─────────────────────┼────────────┤
-│ Promoties (2)       │ Financiën(1)│
-├─────────────────────┴────────────┤
-│ Unified Inbox │ Webshop │ Groei  │ ← Alle 1-span
-└───────────────┴─────────┴────────┘
-
-MOBILE (1 kolom):
-┌──────────────────┐
-│ Multi-Channel    │
-├──────────────────┤
-│ Voorraad         │
-├──────────────────┤
-│ AI Marketing     │
-│  ...etc          │
-└──────────────────┘
+FOOTER BOTTOM:
+┌─────────────────────────────────────┐
+│        © 2025 SellQo BV             │
+│   Privacy | Terms | Cookies         │
+│      🇳🇱 | 🇬🇧 | 🇫🇷 | 🇩🇪              │
+└─────────────────────────────────────┘
 ```
 
 ---
 
 ## Verwacht Resultaat
 
-Na implementatie:
-1. **Desktop**: Geen witte gaten meer - alle rijen volledig gevuld
-2. **Mobile Hero**: Tekst past binnen viewport, geen overflow
-3. **Mobile Dashboard**: Mockup schaalt netjes, geen horizontaal scrollen
-4. **Mobile Comparison**: Smooth horizontale scroll met zichtbare feature namen
+1. **Header:** Hamburger menu blijft zichtbaar op tablet tot 1024px
+2. **Footer grid:** 2 kolommen op tablet, netjes gepositioneerd
+3. **Footer bottom:** Gestapeld op tablet, naast elkaar op desktop
+4. **Logo:** Schaalt mee met schermgrootte
 
