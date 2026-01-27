@@ -30,6 +30,7 @@ export interface Tenant {
   updated_at: string | null;
   auto_generate_invoice: boolean | null;
   auto_send_invoice_email: boolean | null;
+  is_demo: boolean | null;
 }
 
 export interface TenantFormData {
@@ -51,6 +52,7 @@ export interface TenantFormData {
   shipping_enabled?: boolean;
   auto_generate_invoice?: boolean;
   auto_send_invoice_email?: boolean;
+  is_demo?: boolean;
 }
 
 export function useTenants() {
@@ -135,6 +137,7 @@ export function useTenants() {
           currency: data.currency,
           tax_percentage: data.tax_percentage,
           shipping_enabled: data.shipping_enabled,
+          is_demo: data.is_demo,
         })
         .eq('id', id)
         .select()

@@ -48,6 +48,7 @@ const tenantSchema = z.object({
   currency: z.string().optional(),
   tax_percentage: z.coerce.number().min(0).max(100).optional(),
   shipping_enabled: z.boolean().optional(),
+  is_demo: z.boolean().optional(),
 });
 
 interface TenantFormDialogProps {
@@ -84,6 +85,7 @@ export function TenantFormDialog({
       currency: 'EUR',
       tax_percentage: 21,
       shipping_enabled: true,
+      is_demo: false,
     },
   });
 
@@ -106,6 +108,7 @@ export function TenantFormDialog({
         currency: tenant.currency || 'EUR',
         tax_percentage: tenant.tax_percentage ?? 21,
         shipping_enabled: tenant.shipping_enabled ?? true,
+        is_demo: tenant.is_demo ?? false,
       });
     } else {
       form.reset({
@@ -125,6 +128,7 @@ export function TenantFormDialog({
         currency: 'EUR',
         tax_percentage: 21,
         shipping_enabled: true,
+        is_demo: false,
       });
     }
   }, [tenant, form]);
@@ -441,6 +445,27 @@ export function TenantFormDialog({
                         <FormLabel>Verzending ingeschakeld</FormLabel>
                         <p className="text-sm text-muted-foreground">
                           Schakel verzendopties in voor deze tenant
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="is_demo"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50/50 p-4">
+                      <div>
+                        <FormLabel className="text-purple-900">Demo winkel</FormLabel>
+                        <p className="text-sm text-purple-700">
+                          Demo winkels hebben onbeperkte functionaliteit en worden niet meegeteld in platform statistieken
                         </p>
                       </div>
                       <FormControl>
