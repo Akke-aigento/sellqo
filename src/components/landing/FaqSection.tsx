@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     question: 'Hoe werken de AI credits?',
-    answer: 'AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise onbeperkt. Extra credits kun je bijkopen voor €19 per 500 credits.',
+    answer: 'AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise 5.000 credits/maand. Extra credits kun je bijkopen voor €19 per 500 credits.',
   },
   {
     question: 'Kan ik ook fysiek verkopen met SellQo?',
