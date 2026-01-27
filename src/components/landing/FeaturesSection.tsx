@@ -1,6 +1,6 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Store, Package, TrendingUp, FileText, Sparkles, Gift, Check } from 'lucide-react';
+import { Store, Package, TrendingUp, FileText, Sparkles, Gift, Check, Search, MessageSquare, Paintbrush } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { LucideIcon } from 'lucide-react';
 
@@ -19,34 +19,67 @@ const features: Feature[] = [
     icon: Store,
     title: 'Verkoop Overal, Beheer Centraal',
     subtitle: 'Multi-Channel Verkoop',
-    description: 'Koppel je Shopify, WooCommerce, Bol.com en Amazon. Alle bestellingen, voorraad en klanten op één dashboard.',
-    badge: '16+ integraties',
+    description: 'Koppel je Shopify, WooCommerce, Bol.com, Amazon én Odoo. Alle bestellingen, voorraad en klanten op één dashboard.',
+    badge: '20+ integraties',
     gridSpan: 2,
   },
   {
     icon: Package,
     title: 'Nooit Meer Uitverkocht',
     subtitle: 'Real-Time Voorraadsync',
-    description: 'Automatische synchronisatie tussen al je kanalen. Verkoop je iets op Bol? Je webshop wordt direct bijgewerkt.',
+    description: 'Automatische sync tussen al je kanalen. Verkoop je iets op Amazon? Je Bol.com en webshop worden direct bijgewerkt.',
     gridSpan: 1,
   },
   {
     icon: Sparkles,
-    title: 'AI Marketing Assistent',
-    subtitle: 'Content & Campagnes',
-    description: 'Genereer social posts, productbeschrijvingen en email content. A/B test automatisch je campagnes.',
+    title: 'Complete AI Marketing Suite',
+    subtitle: 'Content, SEO & Campagnes',
+    description: 'Genereer social posts, productbeschrijvingen, email content én afbeeldingen. Plan advertenties op Bol.com en Meta.',
     badge: 'AI-powered',
+    features: [
+      'AI Content Hub met agenda',
+      'Automatisch posten naar social media',
+      'Bol.com & Meta Ads manager',
+    ],
+    gridSpan: 2,
+  },
+  {
+    icon: Search,
+    title: 'AI SEO & Vertalingen',
+    subtitle: 'Gevonden Worden',
+    description: 'SEO Dashboard met Quick Wins, technische checks en AI Search optimalisatie. Bulk-vertaal naar EN/DE/FR met één klik.',
+    badge: 'Exclusief',
     gridSpan: 1,
   },
   {
     icon: Gift,
     title: '8 Promotietypen',
     subtitle: 'Kortingen & Loyaliteit',
-    description: 'Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen en een compleet loyaliteitsprogramma.',
+    description: 'Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen, klantgroepen en een compleet loyaliteitsprogramma.',
     features: [
       'Cadeaubonnen met QR-codes',
-      'Klantgroepen met speciale prijzen',
-      'Stapelbare kortingen',
+      'Stapelbare kortingen met regels',
+      'VIP tiers met punten multipliers',
+    ],
+    gridSpan: 2,
+  },
+  {
+    icon: MessageSquare,
+    title: 'Unified Inbox',
+    subtitle: 'Alle Communicatie Op Één Plek',
+    description: 'Email en WhatsApp in één inbox. Bol.com en Amazon berichten worden automatisch gerouteerd. AI stelt antwoorden voor.',
+    badge: 'WhatsApp Business',
+    gridSpan: 1,
+  },
+  {
+    icon: Paintbrush,
+    title: 'Drag & Drop Webshop Builder',
+    subtitle: 'Geen Code Nodig',
+    description: 'Kies een theme, pas kleuren aan, bouw je homepage visueel. Reviews van Google, Trustpilot en meer op één plek.',
+    features: [
+      'WYSIWYG Visual Editor',
+      'Multi-platform Reviews Hub',
+      'AI Chatbot voor 24/7 support',
     ],
     gridSpan: 2,
   },
@@ -54,15 +87,16 @@ const features: Feature[] = [
     icon: FileText,
     title: 'Slimme Financiën',
     subtitle: 'Facturen & BTW',
-    description: 'Factur-X PDF\'s in 4 talen, automatische BTW/OSS berekening, en Peppol e-invoicing voor B2B.',
-    badge: 'Peppol ready',
+    description: 'Factur-X PDF\'s in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-invoicing voor B2B.',
+    badge: 'Peppol 2026',
     gridSpan: 1,
   },
   {
     icon: TrendingUp,
-    title: 'Groei-Insights',
-    subtitle: 'Data & Analytics',
-    description: 'Real-time inzicht in omzet, winstmarges per product, best sellers en seizoenstrends.',
+    title: 'Groei-Insights & POS',
+    subtitle: 'Data & Fysieke Verkoop',
+    description: 'Real-time inzicht in omzet, winstmarges per product, best sellers. Plus een volledig POS kassasysteem voor je winkel.',
+    badge: 'Omnichannel',
     gridSpan: 1,
   },
 ];

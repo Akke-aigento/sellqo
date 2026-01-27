@@ -6,22 +6,22 @@ const solutions = [
   {
     icon: LayoutDashboard,
     title: 'Alles In Één Dashboard',
-    description: 'Eén plek voor al je verkoopkanalen, voorraad en klanten.',
+    description: 'Bol, Amazon, Shopify, Odoo - alles op één plek.',
   },
   {
     icon: Zap,
     title: 'Live In 5 Minuten',
-    description: 'Geen technische kennis nodig. Setup wizard doet het werk.',
+    description: 'Setup wizard importeert je producten automatisch.',
   },
   {
     icon: Brain,
     title: 'AI Die Meedenkt',
-    description: 'Proactief advies, niet alleen rapporten achteraf.',
+    description: 'SEO, content, vertalingen, chatbot - allemaal AI-powered.',
   },
   {
     icon: Globe,
-    title: 'Gebouwd Voor Jou',
-    description: 'Peppol, BTW, lokale betaalmethoden - alles ingebakken.',
+    title: 'Gebouwd Voor EU',
+    description: 'Peppol, BTW/OSS, GDPR, lokale betaalmethoden ingebakken.',
   },
 ];
 

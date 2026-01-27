@@ -1,6 +1,6 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Zap, Activity, Bot, Trophy, Wallet, Package } from 'lucide-react';
+import { Zap, Activity, Bot, MessageSquare, Wallet, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const advantages = [
@@ -26,11 +26,11 @@ const advantages = [
     highlight: 'AI die meedenkt',
   },
   {
-    icon: Trophy,
-    emoji: '🎮',
-    title: 'Gamification & Badges',
-    description: 'Verdien badges voor milestones, zie "vandaag heb je €X verdiend" en blijf gemotiveerd.',
-    highlight: 'Unieke motivatie',
+    icon: MessageSquare,
+    emoji: '💬',
+    title: 'AI Chatbot 24/7',
+    description: 'Je webshop heeft een slimme chatbot die vragen beantwoordt op basis van je producten, FAQ en policies.',
+    highlight: 'Klantenservice op automatische piloot',
   },
   {
     icon: Wallet,
@@ -40,11 +40,11 @@ const advantages = [
     highlight: 'Bespaar honderden euro\'s',
   },
   {
-    icon: Package,
-    emoji: '📦',
-    title: 'Bol.com VVB Labels',
-    description: 'Genereer verzendlabels direct vanuit SellQo. Verzend via Bol.com fulfillment zonder gedoe.',
-    highlight: 'Pro feature',
+    icon: Inbox,
+    emoji: '📬',
+    title: 'Unified Inbox',
+    description: 'Email, WhatsApp én marketplace berichten in één inbox. AI stelt antwoorden voor, jij keurt goed.',
+    highlight: 'Nooit meer schakelen',
   },
 ];
 
