@@ -1,93 +1,135 @@
 
-# Platform Eigenaar Badge voor SellQo
+# Stripe Configuratie Problemen Oplossen
 
-## Wat we gaan doen
+## Samenvatting van de Problemen
 
-SellQo is de platform eigenaar (`is_internal_tenant: true`) en moet anders worden weergegeven dan normale tenants of demo stores:
+### Probleem 1: Verkeerde 5% Transactie Fee Weergave
+- Op de instellingenpagina wordt **"5% per transactie"** hardcoded getoond
+- Als platform eigenaar (SellQo) zou dit niet van toepassing moeten zijn of anders weergegeven moeten worden
 
-- **Geen** abonnement badge
-- **Geen** status badge  
-- Optioneel: een "OWNER" of "PLATFORM" badge bij de naam
+### Probleem 2: "Stripe Dashboard openen" knop werkt niet correct
+- De knop roept `createConnectAccount` aan, wat een **onboarding link** genereert
+- Stripe onboarding links kunnen NIET worden embedded (CSP violations in console)
+- Er is geen functie om naar het echte Stripe Express Dashboard te navigeren
 
 ---
 
-## Technische Wijzigingen
+## Technische Oplossing
 
-### 1. useTenants.ts - Interface uitbreiden
+### 1. Platform Fee Weergave Aanpassen
 
-```typescript
-export interface Tenant {
-  // ... bestaande velden
-  is_demo: boolean | null;
-  is_internal_tenant: boolean | null;  // ← Toevoegen
-}
-```
+**Bestand:** `src/components/admin/settings/PaymentSettings.tsx`
 
-### 2. TenantsPage.tsx - Weergave aanpassen
+Drie opties:
+- **Optie A:** Verberg platform fee sectie volledig voor internal tenants
+- **Optie B:** Toon "0% - Ongelimiteerd" voor internal tenants
+- **Optie C:** Haal de werkelijke fee op uit een configuratie
 
-Bij het tonen van badges checken we nu 3 scenario's:
-
-| Type | Naam Badge | Abonnement | Status |
-|------|------------|------------|--------|
-| **Internal** (SellQo) | OWNER | — (niets) | — (niets) |
-| **Demo** | DEMO | N/A | N/A |
-| **Normaal** | (geen) | Plan badge | Status badge |
+Aanbevolen: **Optie A** - Verberg voor internal tenants
 
 ```tsx
-// Naam kolom
-{tenant.is_internal_tenant && (
-  <Badge className="bg-amber-100 text-amber-800">OWNER</Badge>
+// Conditie toevoegen rond de platform fee box
+{!currentTenant?.is_internal_tenant && (
+  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+    <Percent className="h-5 w-5 text-muted-foreground" />
+    <div>
+      <p className="text-sm font-medium">Platform fee</p>
+      <p className="text-xs text-muted-foreground">5% per transactie</p>
+    </div>
+  </div>
 )}
-{tenant.is_demo && !tenant.is_internal_tenant && (
-  <Badge className="bg-purple-100 text-purple-800">DEMO</Badge>
-)}
+```
 
-// Abonnement kolom
-{tenant.is_internal_tenant ? null : tenant.is_demo ? (
-  <Badge variant="secondary">N/A</Badge>
-) : (
-  getPlanBadge(tenant.subscription_plan)
-)}
+### 2. Nieuwe "Open Stripe Dashboard" Functie
 
-// Status kolom  
-{tenant.is_internal_tenant ? null : tenant.is_demo ? (
-  <Badge variant="secondary">N/A</Badge>
-) : (
-  getStatusBadge(tenant.subscription_status)
-)}
+**Nieuw bestand:** `supabase/functions/get-stripe-login-link/index.ts`
+
+Stripe biedt een speciale API voor Express accounts om een inlog-link te genereren:
+
+```typescript
+// Stripe biedt stripe.accounts.createLoginLink()
+const loginLink = await stripe.accounts.createLoginLink(
+  tenantData.stripe_account_id
+);
+// Retourneert een URL naar het Express Dashboard
+return { url: loginLink.url };
+```
+
+### 3. useStripeConnect Hook Uitbreiden
+
+**Bestand:** `src/hooks/useStripeConnect.ts`
+
+Nieuwe functie toevoegen:
+
+```typescript
+const openStripeDashboard = useCallback(async () => {
+  if (!tenantId) return;
+  
+  setIsLoading(true);
+  try {
+    const { data, error } = await supabase.functions.invoke('get-stripe-login-link', {
+      body: { tenant_id: tenantId },
+    });
+
+    if (error) throw error;
+    
+    if (data.url) {
+      window.open(data.url, '_blank');
+    }
+  } catch (error) {
+    toast({
+      title: 'Fout',
+      description: 'Kon Stripe Dashboard niet openen.',
+      variant: 'destructive',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+}, [tenantId, toast]);
+```
+
+### 4. PaymentSettings.tsx Button Fix
+
+**Bestand:** `src/components/admin/settings/PaymentSettings.tsx`
+
+Vervang de knop die `createConnectAccount` aanroept:
+
+```tsx
+// Van:
+<Button onClick={createConnectAccount}>
+  Stripe Dashboard openen
+</Button>
+
+// Naar:
+<Button onClick={openStripeDashboard}>
+  Stripe Dashboard openen
+</Button>
 ```
 
 ---
 
-## Visueel Resultaat
+## Bestanden te Wijzigen/Maken
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│ ☐ │ 🏪 SellQo [OWNER]         │ J. Vercammen    │     │     │
-│   │    sellqo                 │ info@sellqo.nl  │     │     │
-├───┼───────────────────────────┼─────────────────┼─────┼─────┤
-│ ☐ │ 🏪 Demo Bakkerij [DEMO]   │ Demo Account    │ N/A │ N/A │
-│   │    demo-bakkerij          │ demo@bakkerij.nl│     │     │
-├───┼───────────────────────────┼─────────────────┼─────┼─────┤
-│ ☐ │ 🏪 Fashion Store Demo     │ Demo Fashion    │ Pro │ ●   │
-│   │    fashion-demo           │ demo@fashion.nl │     │Actief│
-└───┴───────────────────────────┴─────────────────┴─────┴─────┘
-```
+| Bestand | Actie | Beschrijving |
+|---------|-------|--------------|
+| `supabase/functions/get-stripe-login-link/index.ts` | **Nieuw** | Edge function voor Stripe dashboard login link |
+| `src/hooks/useStripeConnect.ts` | Wijzigen | `openStripeDashboard` functie toevoegen |
+| `src/components/admin/settings/PaymentSettings.tsx` | Wijzigen | Platform fee verbergen voor internal tenant, nieuwe knop functie gebruiken |
 
 ---
 
-## Bestanden te Wijzigen
+## Stripe Login Link API Details
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/hooks/useTenants.ts` | `is_internal_tenant` toevoegen aan Tenant interface |
-| `src/pages/admin/Tenants.tsx` | Conditionele weergave voor internal tenant, OWNER badge |
+De Stripe API `accounts.createLoginLink` genereert een eenmalige URL waarmee de tenant-eigenaar rechtstreeks naar hun Stripe Express Dashboard kan navigeren. Deze link:
+- Is geldig voor 5 minuten
+- Werkt in een nieuwe tab (geen iframe issues)
+- Geeft toegang tot transacties, uitbetalingen, instellingen etc.
 
 ---
 
 ## Samenvatting
 
-- SellQo krijgt een gouden "OWNER" badge
-- Abonnement en status kolommen blijven leeg (geen N/A, gewoon niets)
-- Demo stores behouden hun paarse "DEMO" badge met N/A waardes
-- Beide types (internal + demo) hebben al onbeperkte functionaliteit via `useUsageLimits`
+Na deze wijzigingen:
+1. SellQo ziet geen "5% per transactie" meer (irrelevant als platform owner)
+2. "Stripe Dashboard openen" knop opent daadwerkelijk het Stripe dashboard in een nieuwe tab
+3. Geen CSP errors meer omdat we direct navigeren i.p.v. embedding proberen
