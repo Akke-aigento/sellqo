@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -30,6 +31,7 @@ import {
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Store, ExternalLink, Eye } from 'lucide-react';
 import { useTenants, Tenant, TenantFormData } from '@/hooks/useTenants';
 import { TenantFormDialog } from '@/components/admin/TenantFormDialog';
+import { TenantBulkActions } from '@/components/admin/TenantBulkActions';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -69,6 +71,7 @@ export default function TenantsPage() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filteredTenants = tenants.filter(
     (tenant) =>
@@ -76,6 +79,25 @@ export default function TenantsPage() {
       tenant.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tenant.owner_email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selectedTenants = tenants.filter((t) => selectedIds.has(t.id));
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === filteredTenants.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredTenants.map((t) => t.id)));
+    }
+  };
 
   const handleCreate = () => {
     setSelectedTenant(null);
@@ -145,10 +167,22 @@ export default function TenantsPage() {
         </div>
       </div>
 
+      <TenantBulkActions
+        selectedTenants={selectedTenants}
+        onComplete={() => {}}
+        onClearSelection={() => setSelectedIds(new Set())}
+      />
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={selectedIds.size === filteredTenants.length && filteredTenants.length > 0}
+                  onCheckedChange={toggleAll}
+                />
+              </TableHead>
               <TableHead>Winkel</TableHead>
               <TableHead>Eigenaar</TableHead>
               <TableHead>Abonnement</TableHead>
@@ -160,13 +194,13 @@ export default function TenantsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Laden...
                 </TableCell>
               </TableRow>
             ) : filteredTenants.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <Store className="h-8 w-8 text-muted-foreground" />
                     <p className="text-muted-foreground">Geen tenants gevonden</p>
@@ -176,6 +210,12 @@ export default function TenantsPage() {
             ) : (
               filteredTenants.map((tenant) => (
                 <TableRow key={tenant.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(tenant.id)}
+                      onCheckedChange={() => toggleSelection(tenant.id)}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
