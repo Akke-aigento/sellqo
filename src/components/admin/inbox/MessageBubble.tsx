@@ -1,7 +1,8 @@
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Check, CheckCheck, Mail, MessageSquare, ShoppingBag, Store } from 'lucide-react';
+import { Check, CheckCheck, Mail, MessageSquare, ShoppingBag, Store, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MessageAttachments } from './MessageAttachments';
 import type { InboxMessage } from '@/hooks/useInbox';
 
 interface MessageContextData {
@@ -22,6 +23,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   // Extract marketplace info from context_data
   const contextData = (message as any).context_data as MessageContextData | undefined;
   const marketplace = contextData?.marketplace;
+  const hasAttachments = contextData?.has_attachments || false;
+  const attachmentCount = contextData?.attachment_count || 0;
 
   // Get status check icons for outbound messages
   const getStatusIcon = () => {
@@ -97,6 +100,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
         {/* Message body */}
         <p className="text-sm whitespace-pre-wrap break-words">{getBodyContent()}</p>
+
+        {/* Attachments */}
+        {(hasAttachments || attachmentCount > 0) && (
+          <MessageAttachments 
+            messageId={message.id} 
+            isOutbound={isOutbound}
+          />
+        )}
 
         {/* Footer with time and status */}
         <div

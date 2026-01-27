@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Send, Paperclip, Mail, MessageSquare, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, Paperclip, Mail, MessageSquare, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +9,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionBox } from './AISuggestionBox';
+import { AttachmentUploader } from './AttachmentUploader';
 import type { Conversation } from '@/hooks/useInbox';
+
+interface UploadedFile {
+  file: File;
+  preview?: string;
+}
 
 interface ReplyComposerProps {
   conversation: Conversation;
@@ -19,11 +25,13 @@ interface ReplyComposerProps {
 export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
   const [channel, setChannel] = useState<'email' | 'whatsapp'>(
     conversation.channel === 'whatsapp' ? 'whatsapp' : 'email'
   );
   const [isSending, setIsSending] = useState(false);
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
 
   // AI Suggestion integration
   const { config: aiConfig } = useAIAssistant();
@@ -96,6 +104,28 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       },
     });
   };
+  const handleAttachmentClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newAttachments: UploadedFile[] = files.map(file => ({
+      file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+    }));
+    setAttachments(prev => [...prev, ...newAttachments].slice(0, 5));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => {
+      const updated = [...prev];
+      const removed = updated.splice(index, 1)[0];
+      if (removed.preview) URL.revokeObjectURL(removed.preview);
+      return updated;
+    });
+  };
 
   const handleSend = async () => {
     if (!message.trim() || !currentTenant?.id) return;
@@ -114,6 +144,14 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         });
         if (error) throw error;
       } else {
+        // Get threading headers from the last inbound message
+        const lastInbound = conversation.messages.find(m => m.direction === 'inbound');
+        const contextData = (lastInbound as any)?.context_data || {};
+        const inReplyTo = contextData.message_id || null;
+        const references = contextData.references 
+          ? `${contextData.references} ${inReplyTo || ''}`.trim()
+          : inReplyTo || null;
+
         // Send via email - use replyToEmail for marketplace messages (Bol.com, Amazon)
         const { error } = await supabase.functions.invoke('send-customer-message', {
           body: {
@@ -125,6 +163,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             body_text: message.trim(),
             context_type: 'general',
             customer_id: conversation.customer?.id,
+            in_reply_to: inReplyTo,
+            references: references,
           },
         });
         if (error) throw error;
@@ -150,6 +190,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       });
 
       setMessage('');
+      setAttachments([]);
       clearSuggestion();
       onSent();
     } catch (error) {
@@ -198,6 +239,35 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         />
       )}
 
+      {/* Attachments preview */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {attachments.map((att, idx) => (
+            <div key={idx} className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs">
+              {att.preview ? (
+                <img src={att.preview} alt="" className="h-4 w-4 rounded object-cover" />
+              ) : (
+                <Paperclip className="h-3 w-3" />
+              )}
+              <span className="max-w-[100px] truncate">{att.file.name}</span>
+              <button onClick={() => removeAttachment(idx)} className="ml-1 hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+      />
+
       {/* Message input */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
@@ -216,6 +286,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             variant="ghost"
             size="icon"
             className="absolute right-1 bottom-1 h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={handleAttachmentClick}
+            type="button"
           >
             <Paperclip className="h-4 w-4" />
           </Button>

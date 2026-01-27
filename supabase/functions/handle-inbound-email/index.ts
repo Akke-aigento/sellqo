@@ -184,6 +184,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Extract Message-ID from headers for threading
+    const incomingMessageId = payload.headers['message-id'] || payload.headers['Message-ID'] || null;
+    const incomingReferences = payload.headers['references'] || payload.headers['References'] || null;
+
     // Store the inbound message
     const { data: message, error: insertError } = await supabase
       .from("customer_messages")
@@ -207,6 +211,8 @@ const handler = async (req: Request): Promise<Response> => {
           bol_order_id: bolOrderId || null,
           has_attachments: (payload.attachments?.length || 0) > 0,
           attachment_count: payload.attachments?.length || 0,
+          message_id: incomingMessageId,
+          references: incomingReferences,
         },
       })
       .select()
