@@ -5,6 +5,7 @@ import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle
 import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
+import { usePaymentConfirmation } from '@/hooks/usePaymentConfirmation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +22,7 @@ import { TrackingInfoCard } from '@/components/admin/TrackingInfoCard';
 import { ServicePointCard } from '@/components/admin/ServicePointCard';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { BolActionsCard } from '@/components/admin/BolActionsCard';
+import { MarkAsPaidButton, PaymentMethodType } from '@/components/admin/MarkAsPaidButton';
 import type { OrderStatus, PaymentStatus } from '@/types/order';
 import type { ServicePointData } from '@/types/servicePoint';
 import { useState } from 'react';
@@ -32,8 +34,24 @@ export default function OrderDetailPage() {
   const { order, isLoading, error } = useOrder(id);
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
+  const { confirmPayment } = usePaymentConfirmation();
   const [internalNotes, setInternalNotes] = useState('');
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+
+  const handleMarkAsPaid = (data: { 
+    paymentMethod: PaymentMethodType; 
+    reference?: string; 
+    notes?: string; 
+  }) => {
+    if (!order || !currentTenant?.id) return;
+    confirmPayment.mutate({
+      orderId: order.id,
+      tenantId: currentTenant.id,
+      paymentMethod: data.paymentMethod,
+      reference: data.reference,
+      notes: data.notes,
+    });
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -252,6 +270,16 @@ export default function OrderDetailPage() {
               <CardTitle className="text-base">Acties</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Mark as Paid button - only show when payment is pending */}
+              {order.payment_status === 'pending' && (
+                <MarkAsPaidButton
+                  orderId={order.id}
+                  orderNumber={order.order_number}
+                  isPending={confirmPayment.isPending}
+                  onConfirm={handleMarkAsPaid}
+                />
+              )}
+              
               <div>
                 <label className="text-sm font-medium mb-2 block">Orderstatus</label>
                 <Select

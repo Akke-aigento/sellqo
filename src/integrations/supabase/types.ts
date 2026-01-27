@@ -6207,6 +6207,64 @@ export type Database = {
           },
         ]
       }
+      payment_confirmations: {
+        Row: {
+          confirmed_at: string
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          payment_method: string
+          reference: string | null
+          tenant_id: string
+        }
+        Insert: {
+          confirmed_at?: string
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          payment_method: string
+          reference?: string | null
+          tenant_id: string
+        }
+        Update: {
+          confirmed_at?: string
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          payment_method?: string
+          reference?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_confirmations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_confirmations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_reminders: {
         Row: {
           created_at: string | null
