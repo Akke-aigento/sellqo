@@ -25,8 +25,9 @@ interface Tenant {
   tax_percentage: number;
   created_at: string;
   updated_at: string;
-  // Demo flag
+  // Demo and internal flags
   is_demo?: boolean;
+  is_internal_tenant?: boolean;
   // Peppol
   peppol_id?: string | null;
   // Invoice settings
