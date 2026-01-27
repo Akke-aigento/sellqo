@@ -90,8 +90,8 @@ const dailyItems: NavItem[] = [
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
   { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
-  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe },
-  { id: 'ads', title: 'Advertenties', url: '/admin/ads', icon: MegaphoneIcon },
+  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder' },
+  { id: 'ads', title: 'Advertenties', url: '/admin/ads', icon: MegaphoneIcon, featureKey: 'social_commerce' },
   {
     id: 'promotions',
     title: 'Promoties',
@@ -99,14 +99,14 @@ const salesItems: NavItem[] = [
     icon: Percent,
     children: [
       { id: 'promo-codes', title: 'Kortingscodes', url: '/admin/promotions' },
-      { id: 'promo-bundles', title: 'Bundels', url: '/admin/promotions/bundles' },
-      { id: 'promo-bogo', title: 'BOGO acties', url: '/admin/promotions/bogo' },
-      { id: 'promo-volume', title: 'Staffelkorting', url: '/admin/promotions/volume' },
+      { id: 'promo-bundles', title: 'Bundels', url: '/admin/promotions/bundles', featureKey: 'promo_bundles' },
+      { id: 'promo-bogo', title: 'BOGO acties', url: '/admin/promotions/bogo', featureKey: 'promo_bogo' },
+      { id: 'promo-volume', title: 'Staffelkorting', url: '/admin/promotions/volume', featureKey: 'promo_volume' },
       { id: 'promo-auto', title: 'Auto-kortingen', url: '/admin/promotions/auto' },
       { id: 'promo-gifts', title: 'Cadeauacties', url: '/admin/promotions/gifts' },
-      { id: 'promo-loyalty', title: 'Loyaliteit', url: '/admin/promotions/loyalty' },
+      { id: 'promo-loyalty', title: 'Loyaliteit', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program' },
       { id: 'promo-groups', title: 'Klantgroepen', url: '/admin/promotions/customer-groups' },
-      { id: 'promo-giftcards', title: 'Cadeaubonnen', url: '/admin/promotions/gift-cards' },
+      { id: 'promo-giftcards', title: 'Cadeaubonnen', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards' },
     ],
   },
 ];
@@ -119,12 +119,13 @@ const marketingItems: NavItem[] = [
     title: 'AI Tools',
     url: '/admin/marketing/ai',
     icon: Sparkles,
+    featureKey: 'ai_marketing',
     children: [
-      { id: 'ai-content', title: 'AI Content Hub', url: '/admin/marketing/ai' },
-      { id: 'ai-actions', title: 'AI Actie Centrum', url: '/admin/marketing/ai-center' },
+      { id: 'ai-content', title: 'AI Content Hub', url: '/admin/marketing/ai', featureKey: 'ai_marketing' },
+      { id: 'ai-actions', title: 'AI Actie Centrum', url: '/admin/marketing/ai-center', featureKey: 'ai_coach' },
     ],
   },
-  { id: 'seo', title: 'SEO', url: '/admin/marketing/seo', icon: Search },
+  { id: 'seo', title: 'SEO', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo' },
   { id: 'translations', title: 'Vertalingen', url: '/admin/marketing/translations', icon: Globe },
 ];
 
