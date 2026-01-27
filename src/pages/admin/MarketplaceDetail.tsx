@@ -69,6 +69,7 @@ import { MARKETPLACE_INFO, type MarketplaceSettings } from '@/types/marketplace'
 import { SyncRulesTab } from '@/components/admin/marketplace/SyncRulesTab';
 import { BolVVBSettings } from '@/components/admin/marketplace/BolVVBSettings';
 import { AmazonBuyShippingSettings } from '@/components/admin/marketplace/AmazonBuyShippingSettings';
+import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWidget';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -338,26 +339,31 @@ export default function MarketplaceDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Snelle Acties</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-3 gap-3">
-              <Button variant="outline" className="justify-start">
-                <Download className="w-4 h-4 mr-2" />
-                Export Orders
-              </Button>
-              <Button variant="outline" className="justify-start">
-                <Upload className="w-4 h-4 mr-2" />
-                Bulk Voorraad Update
-              </Button>
-              <Button variant="outline" className="justify-start">
-                <FileText className="w-4 h-4 mr-2" />
-                Sync Rapport
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Quick Actions & Sync History */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Snelle Acties</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <Button variant="outline" className="justify-start">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Orders
+                </Button>
+                <Button variant="outline" className="justify-start">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Voorraad Update
+                </Button>
+                <Button variant="outline" className="justify-start">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Sync Rapport
+                </Button>
+              </CardContent>
+            </Card>
+            
+            {/* Sync History Widget */}
+            <SyncHistoryWidget connectionId={connection.id} />
+          </div>
         </TabsContent>
 
         {/* ORDERS TAB */}

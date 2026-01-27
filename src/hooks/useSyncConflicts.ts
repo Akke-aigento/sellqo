@@ -108,6 +108,37 @@ export function useSyncConflicts(connectionId?: string | null) {
   };
 }
 
+export function useSyncConflictActions() {
+  const queryClient = useQueryClient();
+
+  const resolveConflict = async (
+    conflictId: string,
+    resolution: 'sellqo' | 'platform' | 'merged' | 'dismissed',
+    resolutionData?: Record<string, unknown>
+  ) => {
+    const { error } = await supabase.rpc('resolve_sync_conflict' as any, {
+      p_conflict_id: conflictId,
+      p_resolution: resolution,
+      p_resolution_data: resolutionData || null,
+    });
+
+    if (error) {
+      toast.error('Kon conflict niet oplossen: ' + error.message);
+      throw error;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['sync-conflicts'] });
+    toast.success('Conflict opgelost');
+  };
+
+  const isResolving = false; // Could be enhanced with state if needed
+
+  return {
+    resolveConflict,
+    isResolving,
+  };
+}
+
 export function useAllSyncConflicts() {
   const { currentTenant } = useTenant();
 
