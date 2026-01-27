@@ -4,16 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import { 
   FileText, 
   Eye, 
   EyeOff, 
   Save,
   ExternalLink,
-  Clock
+  Clock,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { useSellqoLegal, LEGAL_PAGE_TYPES } from "@/hooks/useSellqoLegal";
 import { format } from "date-fns";
@@ -69,15 +71,51 @@ export default function PlatformLegal() {
     }
   };
 
+  const [isPublishingAll, setIsPublishingAll] = useState(false);
+  
+  const handlePublishAll = async () => {
+    const unpublishedPages = legalPages.filter(p => !p.is_published);
+    if (unpublishedPages.length === 0) {
+      toast.info('Alle pagina\'s zijn al gepubliceerd');
+      return;
+    }
+    
+    setIsPublishingAll(true);
+    try {
+      for (const page of unpublishedPages) {
+        await publishPage(page.id);
+      }
+      toast.success(`${unpublishedPages.length} pagina's gepubliceerd`);
+    } catch (error) {
+      toast.error('Fout bij publiceren van pagina\'s');
+    } finally {
+      setIsPublishingAll(false);
+    }
+  };
+
+  const unpublishedCount = legalPages.filter(p => !p.is_published).length;
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64">Laden...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Juridische Pagina's</h1>
-        <p className="text-muted-foreground">Beheer SellQo's algemene voorwaarden en policies</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Juridische Pagina's</h1>
+          <p className="text-muted-foreground">Beheer SellQo's algemene voorwaarden en policies</p>
+        </div>
+        {unpublishedCount > 0 && (
+          <Button onClick={handlePublishAll} disabled={isPublishingAll}>
+            {isPublishingAll ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Alles Publiceren ({unpublishedCount})
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

@@ -353,6 +353,36 @@ export function useExecuteQuickAction() {
           break;
         }
         
+        case 'apply_discount': {
+          const percent = config.percent as number;
+          const months = config.months as number;
+          const reason = config.reason as string || 'Churn prevention';
+          
+          // Get current subscription
+          const { data: sub } = await supabase
+            .from('tenant_subscriptions')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .single();
+          
+          if (sub) {
+            const discountEnd = new Date();
+            discountEnd.setMonth(discountEnd.getMonth() + months);
+            
+            await supabase
+              .from('tenant_subscriptions')
+              .update({ 
+                discount_percent: percent,
+                discount_end_date: discountEnd.toISOString(),
+              } as any)
+              .eq('tenant_id', tenantId);
+          }
+          
+          notificationTitle = '💰 Korting Geactiveerd!';
+          notificationMessage = `Je krijgt ${percent}% korting voor de komende ${months} ${months === 1 ? 'maand' : 'maanden'}. ${reason}`;
+          break;
+        }
+        
         default:
           throw new Error('Onbekend actie type: ' + action.action_type);
       }

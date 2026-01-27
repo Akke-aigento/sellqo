@@ -76,8 +76,9 @@ export function TenantCreditsTab({ tenantId }: TenantCreditsTabProps) {
     return <Skeleton className="h-64 w-full" />;
   }
 
-  const available = credits ? credits.credits_total - credits.credits_used : 0;
-  const percentage = credits ? (credits.credits_used / credits.credits_total) * 100 : 0;
+  const available = credits ? credits.credits_total + credits.credits_purchased - credits.credits_used : 0;
+  const total = credits ? credits.credits_total + credits.credits_purchased : 0;
+  const percentage = total > 0 ? (credits.credits_used / total) * 100 : 0;
 
   return (
     <div className="space-y-6">
