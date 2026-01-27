@@ -5,7 +5,9 @@ import type {
   PlatformSyncCapabilities, 
   FieldMapping,
   StatusMapping,
-  SyncPreset 
+  SyncPreset,
+  SyncDataType,
+  ConflictStrategy
 } from '@/types/syncRules';
 
 // Platform capabilities - what each marketplace supports
@@ -216,14 +218,38 @@ export function getDefaultSyncRules(marketplaceType: MarketplaceType): SyncRules
     enabled: boolean, 
     direction: 'import' | 'export' | 'bidirectional',
     autoSync: boolean
-  ): SyncRuleConfig => ({
-    enabled,
-    direction,
-    autoSync,
-    fieldMappings: DEFAULT_FIELD_MAPPINGS[dataType] || [],
-    statusMappings: dataType === 'orders' ? statusMappings : undefined,
-    customSettings: {},
-  });
+  ): SyncRuleConfig => {
+    // Import SMART_CONFLICT_DEFAULTS for bidirectional syncs
+    const conflictDefault = direction === 'bidirectional' 
+      ? getSmartConflictDefault(dataType as SyncDataType)
+      : undefined;
+    
+    return {
+      enabled,
+      direction,
+      autoSync,
+      fieldMappings: DEFAULT_FIELD_MAPPINGS[dataType] || [],
+      statusMappings: dataType === 'orders' ? statusMappings : undefined,
+      customSettings: {},
+      conflictStrategy: conflictDefault?.strategy,
+    };
+  };
+  
+  // Helper for smart conflict defaults
+  function getSmartConflictDefault(dataType: SyncDataType): { strategy: ConflictStrategy; reason: string } | undefined {
+    const defaults: Record<SyncDataType, { strategy: ConflictStrategy; reason: string }> = {
+      orders: { strategy: 'platform_wins', reason: 'Platform is bron van bestellingen' },
+      products: { strategy: 'sellqo_wins', reason: 'SellQo is productmaster' },
+      inventory: { strategy: 'newest_wins', reason: 'Nieuwste voorraadstand is accuraat' },
+      customers: { strategy: 'platform_wins', reason: 'Klanten registreren via platform' },
+      invoices: { strategy: 'sellqo_wins', reason: 'Facturatie centraal in SellQo' },
+      returns: { strategy: 'platform_wins', reason: 'Retouren komen via platform' },
+      shipments: { strategy: 'sellqo_wins', reason: 'Verzendingen vanuit SellQo' },
+      categories: { strategy: 'sellqo_wins', reason: 'Categorieën centraal beheerd' },
+      taxes: { strategy: 'sellqo_wins', reason: 'BTW centraal beheerd' },
+    };
+    return defaults[dataType];
+  }
 
   switch (marketplaceType) {
     case 'bol_com':

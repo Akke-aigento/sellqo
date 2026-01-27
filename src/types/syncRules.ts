@@ -140,6 +140,62 @@ export interface SyncPreset {
   rules: Partial<SyncRules>;
 }
 
+// Smart conflict strategy recommendation
+export interface ConflictStrategyRecommendation {
+  strategy: ConflictStrategy;
+  reason: string;
+  isRecommended: boolean;
+}
+
+// Smart defaults per data type for bidirectional platforms
+export const SMART_CONFLICT_DEFAULTS: Record<SyncDataType, ConflictStrategyRecommendation> = {
+  orders: {
+    strategy: 'platform_wins',
+    reason: 'Klanten bestellen via het platform, dat is de bron',
+    isRecommended: true,
+  },
+  products: {
+    strategy: 'sellqo_wins',
+    reason: 'SellQo is je centrale productmaster',
+    isRecommended: true,
+  },
+  inventory: {
+    strategy: 'newest_wins',
+    reason: 'Voorraad kan van beide kanten wijzigen, nieuwste is accuraat',
+    isRecommended: true,
+  },
+  customers: {
+    strategy: 'platform_wins',
+    reason: 'Klanten registreren zich op het platform',
+    isRecommended: true,
+  },
+  invoices: {
+    strategy: 'sellqo_wins',
+    reason: 'Facturatie wordt centraal beheerd in SellQo',
+    isRecommended: true,
+  },
+  returns: {
+    strategy: 'platform_wins',
+    reason: 'Retouren komen binnen via het platform',
+    isRecommended: true,
+  },
+  shipments: {
+    strategy: 'sellqo_wins',
+    reason: 'Verzendingen worden beheerd vanuit SellQo',
+    isRecommended: true,
+  },
+  categories: {
+    strategy: 'sellqo_wins',
+    reason: 'Categoriestructuur wordt centraal beheerd',
+    isRecommended: true,
+  },
+  taxes: {
+    strategy: 'sellqo_wins',
+    reason: 'BTW-instellingen worden centraal beheerd',
+    isRecommended: true,
+  },
+};
+
 // Export the data type info for UI rendering
 export const SYNC_DATA_TYPES: SyncDataTypeInfo[] = [
   {
