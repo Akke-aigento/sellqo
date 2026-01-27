@@ -164,7 +164,7 @@ export function FeaturesSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
 
   return (
-    <section id="features" className="py-20 md:py-28 bg-secondary/20">
+    <section id="features" className="pt-12 pb-20 md:pt-16 md:pb-28 bg-secondary/20">
       <div className="container mx-auto px-4">
         <div
           ref={ref}
