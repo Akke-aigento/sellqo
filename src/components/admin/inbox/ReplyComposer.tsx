@@ -114,11 +114,11 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         });
         if (error) throw error;
       } else {
-        // Send via email
+        // Send via email - use replyToEmail for marketplace messages (Bol.com, Amazon)
         const { error } = await supabase.functions.invoke('send-customer-message', {
           body: {
             tenant_id: currentTenant.id,
-            customer_email: conversation.customer?.email,
+            customer_email: conversation.replyToEmail || conversation.customer?.email,
             customer_name: conversation.customer?.name,
             subject: `Re: ${conversation.lastMessage.subject || 'Uw bericht'}`,
             body_html: message.trim().replace(/\n/g, '<br>'),
