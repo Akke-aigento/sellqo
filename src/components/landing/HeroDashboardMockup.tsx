@@ -1,11 +1,11 @@
-import { Euro, ShoppingBag, Users, TrendingUp, Package } from 'lucide-react';
+import { Euro, ShoppingBag, Users, TrendingUp, Package, Heart, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const statsData = [
   { label: 'Omzet Vandaag', value: '€12.453', change: '+18.2%', icon: Euro, positive: true },
   { label: 'Bestellingen', value: '847', change: '+12%', icon: ShoppingBag, positive: true },
   { label: 'Nieuwe Klanten', value: '234', change: '+8%', icon: Users, positive: true },
-  { label: 'Conversie', value: '3.2%', change: '+0.4%', icon: TrendingUp, positive: true },
+  { label: 'Health Score', value: '92%', change: '+4%', icon: Heart, positive: true },
 ];
 
 const recentOrders = [
@@ -41,6 +41,9 @@ export function HeroDashboardMockup() {
           <Package className="w-3 h-3 text-muted-foreground" />
         </div>
         <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
+          <Heart className="w-3 h-3 text-muted-foreground" />
+        </div>
+        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
           <TrendingUp className="w-3 h-3 text-muted-foreground" />
         </div>
       </div>
@@ -63,13 +66,51 @@ export function HeroDashboardMockup() {
 
       {/* Dashboard Content - offset for sidebar on desktop */}
       <div className="p-4 space-y-4 lg:pl-16">
+        {/* Trial Banner */}
+        <div className="bg-gradient-to-r from-accent/20 via-accent/10 to-primary/10 rounded-xl p-3 border border-accent/30 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-accent" />
+              <span className="text-xs font-medium text-foreground">
+                Je hebt nog <span className="font-bold text-accent">14 dagen</span> gratis trial
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-24 bg-secondary rounded-full overflow-hidden">
+                <div className="h-full w-full bg-gradient-to-r from-accent to-primary rounded-full" />
+              </div>
+              <span className="text-[10px] text-accent font-medium">100%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Health Score Badge */}
+        <div className="flex items-center justify-between animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Shop Health Score</p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-foreground">92%</span>
+                <span className="text-[10px] text-green-600 font-medium">🟢 Uitstekend</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground">3 verbeterpunten</p>
+            <p className="text-xs text-accent font-medium">Bekijk tips →</p>
+          </div>
+        </div>
+
         {/* Stat Cards Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statsData.map((stat, index) => (
             <div
               key={index}
               className="bg-background rounded-xl p-3 border border-border/50 animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              style={{ animationDelay: `${0.2 + index * 0.1}s` }}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
@@ -82,9 +123,10 @@ export function HeroDashboardMockup() {
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-bold text-foreground">{stat.value}</span>
                 <span className={cn(
-                  'text-[10px] font-medium',
+                  'text-[10px] font-medium flex items-center gap-0.5',
                   stat.positive ? 'text-green-600' : 'text-red-600'
                 )}>
+                  <TrendingUp className="w-2 h-2" />
                   {stat.change}
                 </span>
               </div>

@@ -65,6 +65,16 @@ import PlatformChangelog from "./pages/platform/PlatformChangelog";
 import PlatformHealth from "./pages/platform/PlatformHealth";
 import PlatformLegal from "./pages/platform/PlatformLegal";
 import SellqoLegal from "./pages/SellqoLegal";
+import About from "./pages/public/About";
+import Contact from "./pages/public/Contact";
+import Blog from "./pages/public/Blog";
+import Partners from "./pages/public/Partners";
+import Careers from "./pages/public/Careers";
+import HelpCenter from "./pages/public/HelpCenter";
+import Status from "./pages/public/Status";
+import Integrations from "./pages/public/Integrations";
+import ApiDocs from "./pages/public/ApiDocs";
+import PublicChangelog from "./pages/public/PublicChangelog";
 import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import POSTerminalPage from "./pages/admin/POSTerminal";
@@ -234,6 +244,18 @@ const App = () => (
             <Route path="/sla" element={<SellqoLegal />} />
             <Route path="/acceptable-use" element={<SellqoLegal />} />
             <Route path="/dpa" element={<SellqoLegal />} />
+            
+            {/* Public Pages */}
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/partners" element={<Partners />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/status" element={<Status />} />
+            <Route path="/integrations" element={<Integrations />} />
+            <Route path="/api-docs" element={<ApiDocs />} />
+            <Route path="/changelog" element={<PublicChangelog />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

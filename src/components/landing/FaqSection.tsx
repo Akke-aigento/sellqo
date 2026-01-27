@@ -6,7 +6,27 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     question: 'Hoe werkt de gratis trial?',
-    answer: '14 dagen volledig gratis, alle features beschikbaar. Geen creditcard nodig. Je kunt op elk moment upgraden naar een betaald plan.',
+    answer: '14 dagen volledig gratis, alle features beschikbaar. Geen creditcard nodig. Je kiest je plan tijdens onboarding, maar betaalt pas na 14 dagen. Je kunt op elk moment upgraden naar een betaald plan.',
+  },
+  {
+    question: 'Wat gebeurt er na de 14 dagen trial?',
+    answer: 'Na 14 dagen word je gevraagd een plan te kiezen. Tot die tijd blijft je account actief maar worden nieuwe functies geblokkeerd. Je data blijft veilig behouden en je kunt op elk moment upgraden.',
+  },
+  {
+    question: 'Hoe werkt het onboarding proces?',
+    answer: 'Bij registratie doorloop je een 7-stappen wizard: winkelnaam, plan selectie, bedrijfsgegevens, logo upload, eerste product, betalingen en lancering. Je kunt stappen overslaan en later voltooien via je instellingen.',
+  },
+  {
+    question: 'Wat is de Shop Health Score?',
+    answer: 'Een realtime score (0-100%) die de gezondheid van je shop meet op 6 gebieden: fulfillment, voorraad, klantenservice, financiën, SEO en compliance. Je krijgt dagelijks gepersonaliseerde tips om je score te verbeteren.',
+  },
+  {
+    question: 'Kan ik later van plan wisselen?',
+    answer: 'Ja! Je kunt op elk moment upgraden of downgraden via Instellingen → Abonnement. Upgrades zijn direct actief, downgrades gaan in bij de volgende facturatieperiode. Geen verborgen kosten.',
+  },
+  {
+    question: 'Welke talen ondersteunt SellQo?',
+    answer: 'Nederlands, Engels, Frans en Duits. Zowel de admin interface als je webshop zijn volledig vertaalbaar. AI vertalingen zijn beschikbaar voor productbeschrijvingen en marketing content.',
   },
   {
     question: 'Kan ik mijn bestaande webshop migreren?',
