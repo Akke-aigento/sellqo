@@ -19,32 +19,20 @@ export function InlineTextEditor({
   multiline = false,
 }: InlineTextEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update editValue when value prop changes
+  // Debounced auto-save - reads from DOM ref, not state
   useEffect(() => {
-    if (!isEditing) {
-      setEditValue(value);
-    }
-  }, [value, isEditing]);
-
-  const handleSave = useCallback(() => {
-    if (editValue !== value) {
-      onSave(editValue);
-    }
-    setIsEditing(false);
-  }, [editValue, value, onSave]);
-
-  // Debounced auto-save
-  useEffect(() => {
-    if (isEditing && editValue !== value) {
+    if (isEditing) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
       saveTimeoutRef.current = setTimeout(() => {
-        onSave(editValue);
+        const currentValue = editorRef.current?.textContent || '';
+        if (currentValue !== value && currentValue !== placeholder) {
+          onSave(currentValue);
+        }
       }, 2000);
     }
 
@@ -53,7 +41,16 @@ export function InlineTextEditor({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [editValue, isEditing, onSave, value]);
+  }, [isEditing, onSave, value, placeholder]);
+
+  const handleSave = useCallback(() => {
+    const newValue = editorRef.current?.textContent || '';
+    // Don't save the placeholder as a value
+    if (newValue !== value && newValue !== placeholder) {
+      onSave(newValue);
+    }
+    setIsEditing(false);
+  }, [value, onSave, placeholder]);
 
   const handleClick = () => {
     setIsEditing(true);
@@ -80,17 +77,19 @@ export function InlineTextEditor({
       handleSave();
     }
     if (e.key === 'Escape') {
-      setEditValue(value);
+      // Reset content to original value
+      if (editorRef.current) {
+        editorRef.current.textContent = value || placeholder;
+      }
       setIsEditing(false);
     }
   };
 
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    setEditValue(e.currentTarget.textContent || '');
-  };
+  // No handleInput - we don't update state during typing!
+  // This is the key fix: let the browser handle the contentEditable natively
 
-  const displayValue = editValue || placeholder;
-  const isEmpty = !editValue;
+  const displayValue = value || placeholder;
+  const isEmpty = !value;
 
   return (
     <div
@@ -102,7 +101,7 @@ export function InlineTextEditor({
       onClick={handleClick}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      onInput={handleInput}
+      // No onInput handler - this prevents the cursor reset issue
       className={cn(
         'outline-none transition-all cursor-text',
         isEditing && 'ring-2 ring-primary ring-offset-2 rounded px-1',
