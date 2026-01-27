@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Check, Star, Sparkles, Monitor, Plus } from 'lucide-react';
+import { Check, Star, Sparkles, Monitor, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -114,6 +114,16 @@ const addons = [
     description: 'Verkoop in je winkel',
     features: ['Touch interface', 'Barcode scanning', 'Stripe Terminal'],
     availableFor: 'Starter (Pro: gratis)',
+  },
+  {
+    icon: FileText,
+    name: 'Peppol e-Invoicing',
+    price: 12,
+    proPricing: 0,
+    description: 'Verplicht vanaf 2026 in BE',
+    features: ['Officiële Peppol koppeling', 'Automatische verzending', 'Ontvangstbevestigingen', 'B2B compliance'],
+    availableFor: 'Starter (Pro: gratis)',
+    urgencyBadge: '🇧🇪 Verplicht 2026',
   },
   {
     icon: Plus,
@@ -292,7 +302,7 @@ export function PricingSection() {
           <h3 className="text-2xl font-bold text-foreground text-center mb-8">
             Boost Je Plan Met Add-ons
           </h3>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {addons.map((addon, index) => (
               <div
                 key={index}
@@ -302,8 +312,15 @@ export function PricingSection() {
                   <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                     <addon.icon className="w-5 h-5 text-accent" />
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">{addon.name}</h4>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-foreground">{addon.name}</h4>
+                      {'urgencyBadge' in addon && addon.urgencyBadge && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs">
+                          {addon.urgencyBadge}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">{addon.description}</p>
                   </div>
                 </div>

@@ -9810,6 +9810,56 @@ export type Database = {
           },
         ]
       }
+      tenant_addons: {
+        Row: {
+          activated_at: string | null
+          addon_type: string
+          cancelled_at: string | null
+          created_at: string | null
+          id: string
+          price_monthly: number | null
+          status: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          addon_type: string
+          cancelled_at?: string | null
+          created_at?: string | null
+          id?: string
+          price_monthly?: number | null
+          status?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          addon_type?: string
+          cancelled_at?: string | null
+          created_at?: string | null
+          id?: string
+          price_monthly?: number | null
+          status?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_ai_credits: {
         Row: {
           created_at: string
@@ -11702,6 +11752,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_tenant_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_addon: {
+        Args: { _addon_type: string; _tenant_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
