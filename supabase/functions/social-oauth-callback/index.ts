@@ -212,6 +212,66 @@ serve(async (req) => {
         });
       }
 
+      // For Facebook: Extract page tokens and create meta_messaging_connections
+      if (platform === 'facebook') {
+        try {
+          // Get all pages the user manages
+          const pagesResponse = await fetch(
+            `https://graph.facebook.com/v18.0/me/accounts?access_token=${tokenData.access_token}`
+          );
+          const pagesData = await pagesResponse.json();
+
+          if (pagesData.data && Array.isArray(pagesData.data)) {
+            for (const page of pagesData.data) {
+              // Upsert Facebook Messenger connection for this page
+              await supabase.from('meta_messaging_connections').upsert({
+                tenant_id,
+                platform: 'facebook',
+                page_id: page.id,
+                page_name: page.name,
+                page_access_token: page.access_token,
+                is_active: true,
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'tenant_id,platform,page_id',
+              });
+
+              // Check for linked Instagram Business Account
+              const igResponse = await fetch(
+                `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
+              );
+              const igData = await igResponse.json();
+
+              if (igData.instagram_business_account?.id) {
+                // Get Instagram account details
+                const igDetailsResponse = await fetch(
+                  `https://graph.facebook.com/v18.0/${igData.instagram_business_account.id}?fields=username,name&access_token=${page.access_token}`
+                );
+                const igDetails = await igDetailsResponse.json();
+
+                // Upsert Instagram DM connection
+                await supabase.from('meta_messaging_connections').upsert({
+                  tenant_id,
+                  platform: 'instagram',
+                  page_id: page.id,
+                  instagram_account_id: igData.instagram_business_account.id,
+                  page_name: igDetails.username || igDetails.name || page.name,
+                  page_access_token: page.access_token,
+                  is_active: true,
+                  updated_at: new Date().toISOString(),
+                }, {
+                  onConflict: 'tenant_id,platform,page_id',
+                });
+              }
+            }
+          }
+          console.log('Meta messaging connections created successfully');
+        } catch (metaError) {
+          // Log but don't fail the OAuth flow - messaging is optional
+          console.error('Failed to create meta messaging connections:', metaError);
+        }
+      }
+
       // Clean up OAuth state
       await supabase.from('oauth_states').delete().eq('state', state);
 
