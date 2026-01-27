@@ -38,6 +38,7 @@ import {
   Bell as ChangelogIcon,
   Activity,
   FileText as LegalIcon,
+  Banknote,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -96,6 +97,7 @@ const dailyItems: NavItem[] = [
 const salesItems: NavItem[] = [
   { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
   { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder' },
+  { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote },
   { id: 'ads', title: 'Advertenties', url: '/admin/ads', icon: MegaphoneIcon, featureKey: 'social_commerce' },
   {
     id: 'promotions',
