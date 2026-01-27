@@ -7,7 +7,9 @@ export interface OnboardingData {
   // Step 1: Welcome
   shopName: string;
   shopSlug: string;
-  // Step 2: Business Details
+  // Step 2: Plan Selection (NEW)
+  selectedPlanId: string;
+  // Step 3: Business Details
   businessName: string;
   email: string;
   address: string;
@@ -16,14 +18,14 @@ export interface OnboardingData {
   country: string;
   vatNumber: string;
   chamberOfCommerce: string;
-  // Step 3: Logo
+  // Step 4: Logo
   logoUrl: string | null;
-  // Step 4: First Product
+  // Step 5: First Product
   productName: string;
   productPrice: number;
   productDescription: string;
   productImageUrl: string | null;
-  // Step 5: Payments
+  // Step 6: Payments
   stripeConnected: boolean;
 }
 
@@ -37,11 +39,12 @@ interface OnboardingState {
   createdProductId: string | null;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const initialData: OnboardingData = {
   shopName: '',
   shopSlug: '',
+  selectedPlanId: 'free', // Default to free trial
   businessName: '',
   email: '',
   address: '',
@@ -83,7 +86,7 @@ export function useOnboarding() {
       // Fetch profile to check onboarding status
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('onboarding_completed, onboarding_step, onboarding_skipped_at, email')
+        .select('onboarding_completed, onboarding_step, onboarding_skipped_at, email, created_at')
         .eq('id', user.id)
         .single();
 
@@ -93,8 +96,18 @@ export function useOnboarding() {
         return;
       }
 
-      // Skip if already completed or skipped
-      if (profile?.onboarding_completed || profile?.onboarding_skipped_at) {
+      // Check if this is a brand new user (created within last 5 minutes)
+      const isNewUser = profile?.created_at && 
+        (Date.now() - new Date(profile.created_at).getTime()) < 5 * 60 * 1000;
+
+      // Skip if already completed or skipped (unless brand new user who skipped quickly)
+      if (profile?.onboarding_completed) {
+        setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
+        return;
+      }
+
+      // If skipped, only re-show for truly new users
+      if (profile?.onboarding_skipped_at && !isNewUser) {
         setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
         return;
       }
@@ -102,7 +115,7 @@ export function useOnboarding() {
       // Check if user has any tenants with products
       const hasTenants = tenants && tenants.length > 0;
       
-      if (hasTenants && currentTenant) {
+      if (hasTenants && currentTenant && !isNewUser) {
         // Check if tenant has products
         const { data: products } = await supabase
           .from('products')
@@ -122,12 +135,15 @@ export function useOnboarding() {
         }
       }
 
-      // Show onboarding for new users
+      // Show onboarding for new users or users who haven't completed setup
       const savedStep = profile?.onboarding_step || 1;
+      
+      // Force step 1 for brand new users
+      const startStep = isNewUser ? 1 : savedStep;
       
       setState(prev => ({
         ...prev,
-        currentStep: savedStep,
+        currentStep: startStep,
         isOpen: true,
         isLoading: false,
         data: {
@@ -282,6 +298,14 @@ export function useOnboarding() {
       setCurrentTenant(tenant);
 
       setState(prev => ({ ...prev, createdTenantId: tenant.id }));
+
+      // Update subscription with selected plan if not free
+      if (state.data.selectedPlanId && state.data.selectedPlanId !== 'free') {
+        await supabase
+          .from('tenant_subscriptions')
+          .update({ plan_id: state.data.selectedPlanId })
+          .eq('tenant_id', tenant.id);
+      }
       
       return tenant;
     } catch (error) {
