@@ -90,7 +90,7 @@ export function HeroSection() {
           </div>
 
           {/* Right column - Dashboard mockup */}
-          <div className="relative">
+          <div className="relative overflow-hidden lg:overflow-visible">
             {/* Main dashboard mockup - responsive scaling */}
             <div className="relative animate-float transform scale-[0.85] sm:scale-90 md:scale-95 lg:scale-100 origin-top">
               <HeroDashboardMockup />
