@@ -17,6 +17,7 @@ export interface InboxMessage {
   body_text: string | null;
   from_email: string;
   to_email: string;
+  reply_to_email: string | null;
   channel: 'email' | 'whatsapp' | 'sms';
   status: string;
   whatsapp_status: string | null;
@@ -49,6 +50,7 @@ export interface Conversation {
   unreadCount: number;
   channel: 'email' | 'whatsapp' | 'mixed';
   messages: InboxMessage[];
+  replyToEmail?: string;
 }
 
 export interface InboxFilters {
@@ -145,6 +147,10 @@ export function useInbox() {
         (m) => m.direction === 'inbound' && !m.read_at
       ).length;
 
+      // Find the most recent inbound message to get the reply_to_email
+      const lastInboundMessage = sortedMsgs.find(m => m.direction === 'inbound');
+      const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
+
       convos.push({
         id: key,
         customer: customer
@@ -163,6 +169,7 @@ export function useInbox() {
         unreadCount,
         channel,
         messages: sortedMsgs,
+        replyToEmail,
       });
     }
 
