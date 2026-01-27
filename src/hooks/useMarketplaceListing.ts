@@ -12,6 +12,8 @@ export interface OptimizedContent {
   description: string;
   category_suggestion?: string;
   keywords: string[];
+  meta_title?: string;
+  meta_description?: string;
 }
 
 export interface BolOfferData {
@@ -60,9 +62,15 @@ export interface MarketplaceSettings {
   // Shopify fields
   shopify_optimized_title?: string;
   shopify_optimized_description?: string;
+  shopify_bullets?: string[];
+  shopify_meta_title?: string;
+  shopify_meta_description?: string;
   // WooCommerce fields
   woocommerce_optimized_title?: string;
   woocommerce_optimized_description?: string;
+  woocommerce_bullets?: string[];
+  woocommerce_meta_title?: string;
+  woocommerce_meta_description?: string;
   // Odoo fields
   odoo_optimized_title?: string;
   odoo_optimized_description?: string;
@@ -71,6 +79,8 @@ export interface MarketplaceSettings {
   ebay_optimized_description?: string;
   ebay_condition?: string;
   ebay_category_id?: string;
+  ebay_category_name?: string;
+  ebay_category_path?: string;
 }
 
 export function useMarketplaceListing() {
@@ -149,6 +159,9 @@ export function useMarketplaceListing() {
         updateData = {
           shopify_optimized_title: content.title,
           shopify_optimized_description: content.description,
+          shopify_bullets: content.bullets,
+          shopify_meta_title: content.meta_title,
+          shopify_meta_description: content.meta_description,
         };
       } else if (marketplace === 'odoo') {
         updateData = {
@@ -161,9 +174,13 @@ export function useMarketplaceListing() {
           ebay_optimized_description: content.description,
         };
       } else {
+        // woocommerce
         updateData = {
           woocommerce_optimized_title: content.title,
           woocommerce_optimized_description: content.description,
+          woocommerce_bullets: content.bullets,
+          woocommerce_meta_title: content.meta_title,
+          woocommerce_meta_description: content.meta_description,
         };
       }
 

@@ -7316,6 +7316,8 @@ export type Database = {
           download_expiry_hours: number | null
           download_limit: number | null
           ebay_category_id: string | null
+          ebay_category_name: string | null
+          ebay_category_path: string | null
           ebay_condition: string | null
           ebay_item_id: string | null
           ebay_last_synced_at: string | null
@@ -7358,9 +7360,12 @@ export type Database = {
           price: number
           product_type: Database["public"]["Enums"]["product_type"] | null
           requires_shipping: boolean | null
+          shopify_bullets: string[] | null
           shopify_last_synced_at: string | null
           shopify_listing_error: string | null
           shopify_listing_status: string | null
+          shopify_meta_description: string | null
+          shopify_meta_title: string | null
           shopify_optimized_description: string | null
           shopify_optimized_title: string | null
           shopify_product_id: string | null
@@ -7377,9 +7382,12 @@ export type Database = {
           updated_at: string | null
           vat_rate_id: string | null
           weight: number | null
+          woocommerce_bullets: string[] | null
           woocommerce_last_synced_at: string | null
           woocommerce_listing_error: string | null
           woocommerce_listing_status: string | null
+          woocommerce_meta_description: string | null
+          woocommerce_meta_title: string | null
           woocommerce_optimized_description: string | null
           woocommerce_optimized_title: string | null
           woocommerce_product_id: string | null
@@ -7419,6 +7427,8 @@ export type Database = {
           download_expiry_hours?: number | null
           download_limit?: number | null
           ebay_category_id?: string | null
+          ebay_category_name?: string | null
+          ebay_category_path?: string | null
           ebay_condition?: string | null
           ebay_item_id?: string | null
           ebay_last_synced_at?: string | null
@@ -7461,9 +7471,12 @@ export type Database = {
           price: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           requires_shipping?: boolean | null
+          shopify_bullets?: string[] | null
           shopify_last_synced_at?: string | null
           shopify_listing_error?: string | null
           shopify_listing_status?: string | null
+          shopify_meta_description?: string | null
+          shopify_meta_title?: string | null
           shopify_optimized_description?: string | null
           shopify_optimized_title?: string | null
           shopify_product_id?: string | null
@@ -7480,9 +7493,12 @@ export type Database = {
           updated_at?: string | null
           vat_rate_id?: string | null
           weight?: number | null
+          woocommerce_bullets?: string[] | null
           woocommerce_last_synced_at?: string | null
           woocommerce_listing_error?: string | null
           woocommerce_listing_status?: string | null
+          woocommerce_meta_description?: string | null
+          woocommerce_meta_title?: string | null
           woocommerce_optimized_description?: string | null
           woocommerce_optimized_title?: string | null
           woocommerce_product_id?: string | null
@@ -7522,6 +7538,8 @@ export type Database = {
           download_expiry_hours?: number | null
           download_limit?: number | null
           ebay_category_id?: string | null
+          ebay_category_name?: string | null
+          ebay_category_path?: string | null
           ebay_condition?: string | null
           ebay_item_id?: string | null
           ebay_last_synced_at?: string | null
@@ -7564,9 +7582,12 @@ export type Database = {
           price?: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           requires_shipping?: boolean | null
+          shopify_bullets?: string[] | null
           shopify_last_synced_at?: string | null
           shopify_listing_error?: string | null
           shopify_listing_status?: string | null
+          shopify_meta_description?: string | null
+          shopify_meta_title?: string | null
           shopify_optimized_description?: string | null
           shopify_optimized_title?: string | null
           shopify_product_id?: string | null
@@ -7583,9 +7604,12 @@ export type Database = {
           updated_at?: string | null
           vat_rate_id?: string | null
           weight?: number | null
+          woocommerce_bullets?: string[] | null
           woocommerce_last_synced_at?: string | null
           woocommerce_listing_error?: string | null
           woocommerce_listing_status?: string | null
+          woocommerce_meta_description?: string | null
+          woocommerce_meta_title?: string | null
           woocommerce_optimized_description?: string | null
           woocommerce_optimized_title?: string | null
           woocommerce_product_id?: string | null

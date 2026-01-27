@@ -96,6 +96,9 @@ export interface Product {
   shopify_optimized_title?: string | null;
   shopify_optimized_description?: string | null;
   shopify_last_synced_at?: string | null;
+  shopify_bullets?: string[] | null;
+  shopify_meta_title?: string | null;
+  shopify_meta_description?: string | null;
   // WooCommerce listing fields
   woocommerce_product_id?: string | null;
   woocommerce_variant_id?: string | null;
@@ -104,6 +107,9 @@ export interface Product {
   woocommerce_optimized_title?: string | null;
   woocommerce_optimized_description?: string | null;
   woocommerce_last_synced_at?: string | null;
+  woocommerce_bullets?: string[] | null;
+  woocommerce_meta_title?: string | null;
+  woocommerce_meta_description?: string | null;
   // Odoo listing fields
   odoo_product_id?: string | null;
   odoo_variant_id?: string | null;
@@ -122,6 +128,8 @@ export interface Product {
   ebay_listing_error?: string | null;
   ebay_category_id?: string | null;
   ebay_condition?: string | null;
+  ebay_category_name?: string | null;
+  ebay_category_path?: string | null;
   // Social channels
   social_channels?: Record<string, boolean> | null;
 }

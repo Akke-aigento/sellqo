@@ -28,6 +28,8 @@ interface OptimizedContent {
   description: string;
   category_suggestion?: string;
   keywords: string[];
+  meta_title?: string;
+  meta_description?: string;
 }
 
 serve(async (req) => {
@@ -77,22 +79,23 @@ serve(async (req) => {
       marketplaceName = 'Shopify';
       marketplaceRules = `
         - Title: Max 255 characters, SEO-optimized with primary keyword at start
-        - 5 bullet points for key product features and benefits
+        - 5 bullet points for key product features and benefits (for product tabs/accordions)
         - Description: Rich HTML-formatted, SEO-friendly with proper headings
         - Tags: Comma-separated product tags for Shopify collections
-        - Meta description optimized for search engines (max 160 chars)
-        - Focus on conversion-oriented copywriting
+        - meta_title: SEO title for browser tab/search (max 70 chars, include brand + keyword)
+        - meta_description: Meta description for Google snippets (max 160 chars, compelling CTA)
+        - Focus on conversion-oriented copywriting and SEO
       `;
     } else if (marketplace === 'woocommerce') {
       marketplaceName = 'WooCommerce';
       marketplaceRules = `
         - Title: SEO-optimized, 70 characters max for best display in search results
-        - 5 bullet points for key product features and benefits
+        - 5 bullet points for key product features (WooCommerce product tabs)
         - Short description: 150-300 characters, key selling points
         - Full description: HTML-formatted with h2/h3 headings, structured content
-        - Focus on WooCommerce SEO best practices
-        - Include schema-friendly product attributes
-        - Optimize for WordPress search and Google
+        - meta_title: Yoast/RankMath SEO title (max 60 chars, primary keyword first)
+        - meta_description: Yoast/RankMath meta description (max 160 chars, actionable)
+        - Focus on WooCommerce SEO best practices and WordPress search
       `;
     } else {
       // eBay
@@ -130,7 +133,9 @@ Return a JSON object with this exact structure:
   "bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5"],
   "description": "optimized product description paragraph",
   "category_suggestion": "suggested marketplace category path",
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "meta_title": "SEO meta title for browser/search (only for shopify/woocommerce)",
+  "meta_description": "SEO meta description for Google snippets (only for shopify/woocommerce)"
 }
 
 Only return valid JSON, no markdown or explanation.`;
@@ -190,6 +195,10 @@ Only return valid JSON, no markdown or explanation.`;
     const titleMaxLength = marketplace === 'bol_com' ? 150 : marketplace === 'amazon' ? 200 : marketplace === 'woocommerce' ? 70 : marketplace === 'ebay' ? 80 : 255;
     const bulletMaxLength = marketplace === 'bol_com' ? 150 : 500;
     
+    // Meta fields max lengths based on SEO best practices
+    const metaTitleMaxLength = marketplace === 'woocommerce' ? 60 : 70;
+    const metaDescMaxLength = 160;
+
     const validatedContent: OptimizedContent = {
       title: (optimizedContent.title || product.name).substring(0, titleMaxLength),
       bullets: (optimizedContent.bullets || []).slice(0, 5).map(b => 
@@ -198,6 +207,8 @@ Only return valid JSON, no markdown or explanation.`;
       description: optimizedContent.description || product.description || '',
       category_suggestion: optimizedContent.category_suggestion,
       keywords: (optimizedContent.keywords || []).slice(0, 10),
+      meta_title: optimizedContent.meta_title?.substring(0, metaTitleMaxLength),
+      meta_description: optimizedContent.meta_description?.substring(0, metaDescMaxLength),
     };
 
     return new Response(
