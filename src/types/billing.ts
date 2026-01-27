@@ -1,15 +1,55 @@
 export interface PricingPlanFeatures {
+  // Branding & Support
   customDomain: boolean;
   removeWatermark: boolean;
   prioritySupport: boolean;
+  whiteLabel: boolean;
+  
+  // Technical
   apiAccess: boolean;
   webhooks: boolean;
   advancedAnalytics: boolean;
-  whiteLabel: boolean;
-  multiCurrency: boolean;
+  
+  // Invoicing
   facturX: boolean;
   peppol: boolean;
-  ai_marketing?: boolean;
+  multiCurrency: boolean;
+  
+  // Modules
+  pos: boolean;
+  webshop_builder: boolean;
+  visual_editor: boolean;
+  
+  // AI Capabilities
+  ai_marketing: boolean;
+  ai_copywriting: boolean;
+  ai_images: boolean;
+  ai_seo: boolean;
+  ai_coach: boolean;
+  ai_chatbot: boolean;
+  ai_ab_testing: boolean;
+  
+  // Integrations
+  bol_com: boolean;
+  bol_vvb_labels: boolean;
+  amazon: boolean;
+  ebay: boolean;
+  social_commerce: boolean;
+  whatsapp: boolean;
+  
+  // Advanced Features
+  shop_health: boolean;
+  gamification: boolean;
+  live_activity: boolean;
+  loyalty_program: boolean;
+  recurring_subscriptions: boolean;
+  multi_warehouse: boolean;
+  
+  // Promotions
+  promo_bundles: boolean;
+  promo_bogo: boolean;
+  promo_volume: boolean;
+  promo_giftcards: boolean;
 }
 
 export interface PricingPlan {

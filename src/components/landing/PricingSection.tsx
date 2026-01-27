@@ -14,13 +14,14 @@ const plans = [
     yearlyPrice: 0,
     badge: 'Om te starten',
     features: [
-      'Tot 25 bestellingen/maand',
-      '50 producten',
-      'Basis voorraad',
+      '25 producten',
+      '50 bestellingen/maand',
+      '100 klanten',
       'Handmatige facturen',
+      'Kortingscodes',
       'Community support',
     ],
-    limitations: ['Geen webshop', 'Geen AI', 'Geen POS'],
+    limitations: ['Geen webshop', 'Geen AI', 'Geen POS', 'SellQo watermerk'],
     cta: 'Start Gratis',
     highlighted: false,
   },
@@ -30,13 +31,19 @@ const plans = [
     yearlyPrice: 290,
     badge: 'Perfect voor starters',
     features: [
-      'Tot 250 bestellingen/maand',
-      'Onbeperkte producten',
-      '1 verkoopkanaal',
-      'Automatische facturen (Factur-X)',
-      'Basis promoties (kortingscodes)',
+      '250 producten',
+      '500 bestellingen/maand',
+      '1.000 klanten',
+      '3 teamleden',
+      '✨ 50 AI credits/maand',
+      'Factur-X e-facturen',
+      'Alle promotietypes',
+      'Shop Health Score',
+      'Gamification & Badges',
       'Email support',
+      'Eigen domein',
     ],
+    addons: ['POS Kassa', 'Webshop', 'Bol.com', 'WhatsApp'],
     cta: 'Start Gratis',
     highlighted: false,
   },
@@ -46,16 +53,22 @@ const plans = [
     yearlyPrice: 790,
     badge: 'Meest gekozen',
     features: [
-      'Onbeperkte bestellingen',
-      'Onbeperkte verkoopkanalen',
-      '✨ AI Marketing Hub (500 credits/maand)',
-      '🛒 Webshop Builder + 1 premium theme',
-      '📊 Advanced analytics & SEO tools',
-      'Multi-warehouse management',
-      '8 promotietypen + Loyaliteit',
+      '2.500 producten',
+      '5.000 bestellingen/maand',
+      '10.000 klanten',
+      '10 teamleden',
+      '✨ 500 AI credits/maand',
+      '🛒 Webshop Builder + Visual Editor',
+      '💳 POS Kassa inclusief',
+      '🤖 AI Business Coach',
+      '📊 Bol.com + VVB Labels',
       'Peppol e-invoicing',
+      'Multi-warehouse',
+      'WhatsApp berichten',
+      'Social Commerce sync',
+      'Live Activity Feed',
+      'Loyaliteitsprogramma',
       'Priority support',
-      'API toegang',
     ],
     cta: 'Start Gratis',
     highlighted: true,
@@ -66,15 +79,17 @@ const plans = [
     yearlyPrice: 1990,
     badge: 'Voor schaalbare businesses',
     features: [
-      'Alles van Pro, onbeperkt',
+      'Onbeperkte producten',
+      'Onbeperkte bestellingen',
+      '50 teamleden',
       '✨ Onbeperkte AI credits',
       '🛒 Alle premium themes',
-      '💳 POS systeem inclusief',
+      'Amazon & eBay sync',
+      'White-label opties',
       'Dedicated account manager',
       'Phone support (NL/BE)',
-      'Gratis migratie (€2000 waarde)',
+      'Gratis migratie (€2.000 waarde)',
       'Custom integraties',
-      'White-label opties',
       'SLA 99.9%',
     ],
     cta: 'Neem Contact Op',
@@ -85,25 +100,28 @@ const plans = [
 const addons = [
   {
     icon: Sparkles,
-    name: 'AI Marketing Pack',
+    name: 'AI Credit Pack',
     price: 19,
     description: '500 extra AI credits/maand',
-    features: ['Social post generator', 'Email planner', 'A/B testing'],
+    features: ['Productbeschrijvingen', 'Social content', 'Afbeelding generatie'],
+    availableFor: 'Starter+',
   },
   {
     icon: Monitor,
     name: 'POS Kassa',
     price: 29,
-    proPricing: 15,
+    proPricing: 0,
     description: 'Verkoop in je winkel',
     features: ['Touch interface', 'Barcode scanning', 'Stripe Terminal'],
+    availableFor: 'Starter (Pro: gratis)',
   },
   {
     icon: Plus,
-    name: 'Extra Kanaal',
+    name: 'Extra Marketplace',
     price: 15,
-    description: 'Per marketplace/shop',
-    features: ['Order sync', 'Voorraad sync', 'Klant sync'],
+    description: 'Per extra kanaal',
+    features: ['Amazon, eBay, etc.', 'Order sync', 'Voorraad sync'],
+    availableFor: 'Pro+',
   },
 ];
 
@@ -226,6 +244,19 @@ export function PricingSection() {
                     ))}
                   </ul>
                 )}
+
+                {'addons' in plan && plan.addons && (
+                  <div className="pt-4 border-t border-border mb-6">
+                    <p className="text-xs text-muted-foreground mb-2">Beschikbare add-ons:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {plan.addons.map((addon, i) => (
+                        <span key={i} className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded">
+                          +{addon}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Button always at bottom */}
@@ -279,10 +310,18 @@ export function PricingSection() {
                 <div className="mb-4">
                   <span className="text-2xl font-bold text-foreground">€{addon.price}</span>
                   <span className="text-muted-foreground">/maand</span>
-                  {addon.proPricing && (
+                  {addon.proPricing === 0 && (
+                    <p className="text-xs text-green-600 mt-1">Gratis bij Pro</p>
+                  )}
+                  {addon.proPricing && addon.proPricing > 0 && (
                     <p className="text-xs text-accent mt-1">€{addon.proPricing}/maand bij Pro</p>
                   )}
                 </div>
+                {'availableFor' in addon && (
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Beschikbaar voor: {addon.availableFor}
+                  </p>
+                )}
                 <ul className="space-y-2">
                   {addon.features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -300,8 +339,13 @@ export function PricingSection() {
           <p className="text-muted-foreground">
             Alle plannen: <strong>14 dagen gratis</strong> • Geen creditcard nodig • Maandelijks opzegbaar
           </p>
+          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 max-w-2xl mx-auto">
+            <p className="text-sm text-green-700 dark:text-green-400">
+              💡 <strong>Bespaar op transactiekosten:</strong> Met onze Bank Transfer QR-codes betalen je klanten direct via hun bank app - €0 transactiekosten voor jou!
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Alleen Stripe betaalkosten: 1,5% + €0,25 per transactie • Geen extra transactiekosten
+            Stripe betalingen: 1,5% + €0,25 per transactie (standaard Stripe tarieven)
           </p>
         </div>
       </div>

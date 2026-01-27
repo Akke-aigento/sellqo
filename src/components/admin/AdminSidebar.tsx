@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
+import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
 import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
@@ -45,7 +46,18 @@ export function AdminSidebar() {
   const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
+  const { subscription } = useTenantSubscription();
   const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  // Check if item should be hidden based on subscription features
+  const isItemFeatureHidden = (item: NavItem): boolean => {
+    if (!item.featureKey) return false;
+    
+    const features = subscription?.pricing_plan?.features;
+    if (!features) return true; // No subscription = hide premium features
+    
+    return features[item.featureKey as keyof typeof features] !== true;
+  };
 
   // Check if item should be hidden based on user role
   const isItemRoleHidden = (item: NavItem): boolean => {
@@ -75,9 +87,9 @@ export function AdminSidebar() {
     return false;
   };
 
-  // Combined check for both preference hiding and role hiding
+  // Combined check for preference, role, AND feature hiding
   const shouldHideItem = (item: NavItem): boolean => {
-    return isItemHidden(item.id) || isItemRoleHidden(item);
+    return isItemHidden(item.id) || isItemRoleHidden(item) || isItemFeatureHidden(item);
   };
 
   const isActive = (path: string) => {
