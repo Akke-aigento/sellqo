@@ -133,6 +133,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   );
   const [shopifyOptimizedTitle, setShopifyOptimizedTitle] = useState(product.shopify_optimized_title || '');
   const [shopifyOptimizedDescription, setShopifyOptimizedDescription] = useState(product.shopify_optimized_description || '');
+  const [shopifyBullets, setShopifyBullets] = useState<string[]>(product.shopify_bullets || []);
+  const [shopifyMetaTitle, setShopifyMetaTitle] = useState(product.shopify_meta_title || '');
+  const [shopifyMetaDescription, setShopifyMetaDescription] = useState(product.shopify_meta_description || '');
   
   // WooCommerce state - initialized from product
   const [woocommerceEnabled, setWoocommerceEnabled] = useState(
@@ -140,6 +143,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   );
   const [woocommerceOptimizedTitle, setWoocommerceOptimizedTitle] = useState(product.woocommerce_optimized_title || '');
   const [woocommerceOptimizedDescription, setWoocommerceOptimizedDescription] = useState(product.woocommerce_optimized_description || '');
+  const [woocommerceBullets, setWoocommerceBullets] = useState<string[]>(product.woocommerce_bullets || []);
+  const [woocommerceMetaTitle, setWoocommerceMetaTitle] = useState(product.woocommerce_meta_title || '');
+  const [woocommerceMetaDescription, setWoocommerceMetaDescription] = useState(product.woocommerce_meta_description || '');
   
   // Odoo state - initialized from product
   const [odooEnabled, setOdooEnabled] = useState(
@@ -155,6 +161,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [ebayOptimizedTitle, setEbayOptimizedTitle] = useState(product.ebay_optimized_title || '');
   const [ebayOptimizedDescription, setEbayOptimizedDescription] = useState(product.ebay_optimized_description || '');
   const [ebayCondition, setEbayCondition] = useState(product.ebay_condition || 'NEW');
+  const [ebayCategoryId, setEbayCategoryId] = useState(product.ebay_category_id || '');
+  const [ebayCategoryName, setEbayCategoryName] = useState(product.ebay_category_name || '');
+  const [ebayCategoryPath, setEbayCategoryPath] = useState(product.ebay_category_path || '');
   
   // Track if settings have changed
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);

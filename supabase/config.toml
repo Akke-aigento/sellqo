@@ -254,3 +254,6 @@ verify_jwt = false
 
 [functions.check-ebay-listing-status]
 verify_jwt = false
+
+[functions.search-ebay-categories]
+verify_jwt = false
