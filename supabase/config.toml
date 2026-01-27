@@ -227,3 +227,6 @@ verify_jwt = false
 
 [functions.whatsapp-webhook]
 verify_jwt = false
+
+[functions.handle-inbound-email]
+verify_jwt = false
