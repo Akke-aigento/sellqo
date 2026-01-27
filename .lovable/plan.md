@@ -1,102 +1,108 @@
 
-# Fix: Visual Editor Gespiegelde Tekst (Robuuste Oplossing)
+# Fix: Achterstevoren Typen in InlineTextEditor
 
 ## Probleem
 
-De tekst in de Visual Editor wordt nog steeds gespiegeld weergegeven (bijv. "Van" wordt "naV") ondanks de eerder toegepaste `CSS.Translate` fix.
+Wanneer je tekst typt in de Visual Editor, verschijnen de karakters in omgekeerde volgorde. Dit komt doordat de cursor steeds naar het begin van het tekstveld springt na elke toetsaanslag.
 
-## Root Cause Analyse
+## Root Cause
 
-Na onderzoek van dnd-kit GitHub issues (#817, #1411) is het probleem geidentificeerd:
-
-| Oorzaak | Beschrijving |
-|---------|--------------|
-| Variable item heights | Hero secties zijn ~60vh, terwijl andere secties veel kleiner zijn |
-| Transform object pollution | De `transform` object van `useSortable` kan nog steeds scale waarden bevatten |
-| CSS.Translate limitatie | `CSS.Translate.toString()` leest alleen `x` en `y`, maar het probleem ontstaat elders in de render |
-
-De echte oorzaak is dat `dnd-kit` met `verticalListSortingStrategy` soms de items probeert te schalen om ze te laten "passen", wat leidt tot negatieve `scaleX` waarden.
-
----
-
-## Oplossing: Handmatige Transform String
-
-In plaats van `CSS.Translate.toString()` te gebruiken, bouwen we de transform string handmatig met alleen de `y` waarde (aangezien het een verticale lijst is):
+Het probleem zit in `InlineTextEditor.tsx` bij het gebruik van `contentEditable` met React's controlled state:
 
 ```typescript
-// In EditableSection.tsx
-const style = {
-  // Alleen verticale beweging toepassen, geen horizontale of scale transforms
-  transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
-  transition,
+// Huidige probleem:
+const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+  setEditValue(e.currentTarget.textContent || '');  // <- Triggert re-render
 };
+
+// In de render:
+<div contentEditable={isEditing}>
+  {displayValue}  // <- Bij re-render wordt dit opnieuw gerenderd, cursor reset
+</div>
 ```
 
-Dit forceert:
-- Geen horizontale beweging (`x = 0`)
-- Geen scale transforms (`scaleX`, `scaleY` genegeerd)
-- GPU-accelerated rendering via `translate3d`
+Elke `setEditValue()` triggert een re-render, waardoor React de `displayValue` opnieuw rendert en de browser cursor positie verliest.
 
----
+## Oplossing
 
-## Technische Wijziging
+Maak het `contentEditable` element **uncontrolled** tijdens het bewerken:
 
-**Bestand:** `src/components/admin/storefront/visual-editor/EditableSection.tsx`
+1. **Geen state updates tijdens typen** - Alleen opslaan bij blur/save
+2. **Behoud de ref-waarde** - Lees `textContent` alleen bij save
+3. **Initialiseer content bij edit start** - Zet initiele tekst via DOM
 
-**Huidige code (regel 44-47):**
+## Technische Wijzigingen
+
+### Bestand: `src/components/admin/storefront/visual-editor/InlineTextEditor.tsx`
+
+**Wijzigingen:**
+
+1. Verwijder `handleInput` callback (geen state updates tijdens typen)
+2. Bij `handleClick`, zet de initiele tekst in de ref
+3. Bij `handleSave`, lees de tekst uit de ref
+4. Auto-save blijft werken maar leest uit ref in plaats van state
+
 ```typescript
-const style = {
-  transform: CSS.Translate.toString(transform),
-  transition,
+// NIEUWE aanpak:
+const handleClick = () => {
+  setIsEditing(true);
+  // ... focus en selecteer tekst
 };
+
+// Geen handleInput meer - we updaten NIET de state tijdens typen!
+
+const handleSave = useCallback(() => {
+  const newValue = editorRef.current?.textContent || '';
+  if (newValue !== value) {
+    onSave(newValue);
+  }
+  setIsEditing(false);
+}, [value, onSave]);
+
+// Auto-save leest ook uit ref:
+useEffect(() => {
+  if (isEditing) {
+    saveTimeoutRef.current = setTimeout(() => {
+      const newValue = editorRef.current?.textContent || '';
+      if (newValue !== value) {
+        onSave(newValue);
+      }
+    }, 2000);
+  }
+  // ...
+}, [isEditing, onSave, value]);
+
+// In render: toon value prop, niet editValue state
+<div contentEditable={isEditing}>
+  {value || placeholder}
+</div>
 ```
 
-**Nieuwe code:**
-```typescript
-const style = {
-  // Handmatig transform string bouwen om mirroring te voorkomen
-  // Alleen Y-as translatie voor verticale drag & drop
-  transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
-  transition,
-};
-```
+**Volledige oplossing:**
 
----
+De `InlineTextEditor` wordt aangepast zodat:
+- `editValue` state wordt verwijderd (niet meer nodig)
+- `handleInput` wordt verwijderd (geen updates tijdens typen)
+- `handleSave` leest de waarde rechtstreeks uit `editorRef.current.textContent`
+- De debounced auto-save leest ook uit de ref
+- De render toont `value` prop, niet de state
 
 ## Waarom Dit Werkt
 
-1. **Expliciet geen scaleX/scaleY** - Door handmatig de transform te bouwen, worden scale transforms volledig genegeerd
-2. **Alleen Y-as** - Voor verticale lijsten is horizontale beweging niet nodig
-3. **translate3d** - Activeert GPU acceleratie voor smoother animaties
-4. **Null-safe** - Als `transform` undefined is, wordt geen transform toegepast
+| Probleem | Oplossing |
+|----------|-----------|
+| State update triggert re-render | Geen state updates tijdens typen |
+| Re-render reset cursor positie | Geen re-renders tijdens typen |
+| React controleert de DOM inhoud | Browser beheert de DOM tijdens editing |
 
----
+Door `contentEditable` uncontrolled te maken, laat je de browser de cursor en tekstinvoer beheren zoals normaal. Je leest de waarde alleen bij het opslaan.
 
-## Alternatieve Aanpak (Backup)
+## Alternatieve Overwegingen
 
-Als bovenstaande fix niet werkt, kunnen we ook de CSS `transform-style` property gebruiken om nested transforms te isoleren:
-
-```css
-.editable-section {
-  transform-style: flat;
-  backface-visibility: hidden;
-}
-```
-
-Dit voorkomt dat parent transforms worden geerfd door child elementen.
-
----
-
-## Test Scenario's
-
-Na implementatie testen:
-1. Tekst in Hero sectie moet correct renderen ("Van" niet "naV")
-2. Drag & drop moet nog steeds werken
-3. Secties verplaatsen moet visueel correct animeren
-4. Geen flikkering bij het slepen
-
----
+1. **Waarom geen cursor position restore?** - Dit is complex, error-prone, en werkt niet goed met selection ranges
+2. **Waarom geen input element?** - We willen inline styling behouden (h1, h2, etc.)
+3. **Waarom geen third-party library?** - Overkill voor simpele tekst editing
 
 ## Samenvatting
 
-De fix vervangt de dnd-kit CSS utility functie met een handmatige transform string die expliciet alleen verticale translatie toepast. Dit voorkomt alle mogelijke scale transforms die de tekst kunnen spiegelen.
+Het probleem is dat React's controlled state niet goed werkt met `contentEditable`. Door de state te verwijderen tijdens het bewerken en alleen de DOM ref te gebruiken, wordt het cursor probleem opgelost en typt de tekst in de juiste richting.
