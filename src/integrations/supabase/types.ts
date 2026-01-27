@@ -2564,6 +2564,54 @@ export type Database = {
           },
         ]
       }
+      customer_message_attachments: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          filename: string
+          id: string
+          message_id: string
+          size_bytes: number | null
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          filename: string
+          id?: string
+          message_id: string
+          size_bytes?: number | null
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          filename?: string
+          id?: string
+          message_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "customer_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_message_attachments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_messages: {
         Row: {
           body_html: string
