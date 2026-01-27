@@ -1,254 +1,110 @@
 
 
-# Hybride Betalingsmethode voor Platform (Add-ons & AI Credits)
+# Fix: Demo Gegevens en Opslaan van Bedrijfsgegevens
 
-## Concept
+## Geïdentificeerde Problemen
 
-Jullie eten je eigen dogfood! Dezelfde QR-code betalingsflow die werkt voor jullie klanten kan ook worden gebruikt voor platform betalingen zoals add-ons en AI credits.
+### Probleem 1: "Bakkerij De Gouden Korst" Demo Data
+De "Bakkerij De Gouden Korst" data zit niet in de applicatiecode - het is bestaande data in de database van een eerdere test tenant. Dit is geen bug in de applicatie zelf, maar eerder testdata die opgeruimd moet worden.
+
+**Echter**, er is wel een gerelateerd probleem: de placeholders in de formulieren zijn vrij generiek. Ze kunnen worden verbeterd om duidelijker aan te geven dat dit voorbeeldwaarden zijn.
+
+### Probleem 2: Gegevens Slaan Niet Op
+Dit is een **RLS (Row Level Security) probleem**. De huidige database policies zijn:
+
+| Actie | Wie mag het |
+|-------|-------------|
+| INSERT tenant | Alleen `platform_admin` |
+| UPDATE tenant | `platform_admin` OF `tenant_admin` van die tenant |
+
+**Het probleem**: De `createTenant` functie in de onboarding hook probeert direct een tenant aan te maken in de database, maar nieuwe gebruikers zijn nog geen `platform_admin`. Ze krijgen die rol pas NA het aanmaken van hun eerste tenant.
+
+Dit creëert een "chicken-and-egg" probleem: je hebt een tenant nodig om tenant_admin te worden, maar je moet platform_admin zijn om een tenant aan te maken.
 
 ---
 
-## Huidige Situatie vs. Nieuwe Aanpak
+## Oplossingsplan
 
-| Aspect | Huidig | Hybride Aanpak |
-|--------|--------|----------------|
-| **Add-ons (Peppol, POS, etc.)** | Stripe-only (recurring) | Stripe voor recurring OF vooruitbetaling via bankoverschrijving |
-| **AI Credits** | Stripe-only (eenmalig) | Keuze: Stripe kaart OF directe bankoverschrijving |
-| **Transactiekosten** | ~2-3% Stripe fees | €0 bij bankoverschrijving |
-| **Verificatie** | Automatisch via webhook | Automatisch via OGM-matching of manueel |
+### Fase 1: Database Fix - Tenant Aanmaken Toestaan
 
----
+Een nieuwe RLS policy toevoegen die geauthenticeerde gebruikers toestaat om hun eerste tenant aan te maken:
 
-## Technische Architectuur
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    CREDIT/ADDON PURCHASE DIALOG                      │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌─────────────────────┐      ┌─────────────────────────────────┐   │
-│  │ € Direct Betalen    │      │ 💳 Betalen met Kaart           │   │
-│  │ (Bankoverschrijving)│      │ (Stripe Checkout)              │   │
-│  │                     │      │                                 │   │
-│  │ • Geen kosten       │      │ • Direct actief                │   │
-│  │ • Instant SEPA      │      │ • Automatische verwerking      │   │
-│  └─────────────────────┘      └─────────────────────────────────┘   │
-│                                                                      │
-│  [QR Code + OGM]                              [Redirect → Stripe]    │
-└─────────────────────────────────────────────────────────────────────┘
+```sql
+-- Authenticated users can create their own tenant (for onboarding)
+CREATE POLICY "Authenticated users can insert their own tenant"
+  ON public.tenants FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    -- User email matches owner_email
+    owner_email = auth.jwt()->>'email'
+    -- AND user doesn't already have a tenant (prevents abuse)
+    AND NOT EXISTS (
+      SELECT 1 FROM public.user_roles 
+      WHERE user_id = auth.uid() 
+      AND role = 'tenant_admin'
+    )
+  );
 ```
 
+### Fase 2: Placeholder Verbetering
+
+De formulier placeholders aanpassen om neutraal en duidelijk te zijn:
+
+| Veld | Oud | Nieuw |
+|------|-----|-------|
+| Winkelnaam | "Mijn Webshop" | "Bijv. Jouw Winkel" |
+| Eigenaar naam | "Jan Jansen" | "Voornaam Achternaam" |
+| Adres | "Straatnaam 123" | "Straatnaam + huisnummer" |
+| Postcode | "1234 AB" | "1234 AB (NL) / 1000 (BE)" |
+| Stad | "Amsterdam" | "Jouw stad" |
+| KvK | "BE: 0123.456.789 \| NL: 12345678" | "8 cijfers (NL) / 10 cijfers (BE)" |
+
+### Fase 3: Validatie Verbetering in BusinessSettings
+
+De `handleSave` functie in `BusinessSettings.tsx` moet betere error handling krijgen zodat gebruikers duidelijk zien waarom opslaan faalt.
+
 ---
 
-## Implementatie Stappen
+## Technische Wijzigingen
 
-### Stap 1: Database Uitbreiding
+### Bestanden te wijzigen:
 
-Nieuw veld in `platform_invoices` tabel:
-- `payment_method` (text): 'stripe' | 'bank_transfer'
-- `ogm_reference` (text): OGM code voor bankbetalingen
-- `payment_type` (text): 'subscription' | 'addon' | 'ai_credits'
+1. **Database migratie (nieuw)**
+   - Nieuwe RLS policy voor tenant INSERT door geauthenticeerde gebruikers
 
-Nieuwe tabel `pending_platform_payments`:
-- Voor het tracken van lopende bankoverschrijvingen
-- Koppelt OGM aan verwachte betaling (tenant, bedrag, type)
+2. **`src/components/admin/settings/BusinessSettings.tsx`**
+   - Verbeterde placeholders
+   - Betere error handling bij opslaan
+   - Console logging voor debugging
 
-### Stap 2: SellQo Platform Bankgegevens
+3. **`src/components/onboarding/steps/BusinessDetailsStep.tsx`**
+   - Consistente placeholders
+   - Duidelijkere voorbeelden
 
-Centrale configuratie voor SellQo's eigen bankrekening:
-```typescript
-const SELLQO_BANK = {
-  iban: 'BE00 0000 0000 0000',  // SellQo's zakelijke rekening
-  bic: 'GEBABEBB',              // Bank BIC code
-  beneficiary: 'SellQo BV'
-};
+4. **`src/components/onboarding/steps/WelcomeStep.tsx`**
+   - Placeholder verbetering voor winkelnaam
+
+---
+
+## Database Clean-up Suggestie
+
+De "Bakkerij De Gouden Korst" testdata zou handmatig verwijderd kunnen worden via een SQL query:
+
+```sql
+-- Alleen uitvoeren als deze tenant niet meer nodig is!
+DELETE FROM tenants WHERE name = 'Bakkerij De Gouden Korst';
 ```
 
-Dit kan worden opgeslagen als environment variables of in een platform_settings tabel.
-
-### Stap 3: Nieuwe Payment Selector Component
-
-`PlatformPaymentMethodSelector.tsx`:
-- Twee opties: Bank (gratis) vs Kaart (Stripe)
-- Bij "Bank": toon QR-code met OGM
-- Bij "Kaart": redirect naar Stripe checkout
-
-### Stap 4: Aangepaste Dialogen
-
-**AI Credits Dialog Update:**
-- Voeg betalingsmethode selectie toe
-- Bij bankkeuze: genereer OGM, maak pending_platform_payment record, toon QR
-
-**Add-on Checkout Update:**
-- Idem voor module add-ons
-- Voor recurring add-ons: eerste betaling via bank, daarna automatisch of reminder
-
-### Stap 5: Bank Payment Verificatie
-
-Twee opties:
-
-**Optie A - Manuele Verificatie (eenvoudig)**
-- Admin ziet pending payments in dashboard
-- Matcht OGM met bankrekeningafschrift
-- Klikt "Bevestigen" → credits worden toegekend
-
-**Optie B - Automatisch via Bank API (geavanceerd)**
-- Integratie met bank API (bijv. Tink, Plaid, of directe bank feed)
-- Automatische OGM matching
-- Realtime activatie
-
-### Stap 6: Notificatie Systeem
-
-Wanneer tenant bank kiest:
-1. Email met betalingsinstructies + QR-code
-2. Pending status in hun dashboard
-3. Na bevestiging: email dat credits/addon actief is
+Of de data kan worden aangepast naar neutrale placeholders voor demo doeleinden.
 
 ---
 
-## Frontend Wijzigingen
+## Samenvatting Wijzigingen
 
-### Bestanden te wijzigen/maken:
-
-1. **`src/components/platform/PlatformPaymentMethodSelector.tsx`** (nieuw)
-   - Radio keuze: Bank vs Kaart
-   - Toon kostenvoordeel bank (€0 vs Stripe fees)
-
-2. **`src/components/platform/PlatformBankPaymentDialog.tsx`** (nieuw)
-   - Hergebruik `POSBankTransferDialog` logica
-   - Aangepast voor platform context met SellQo bankgegevens
-
-3. **`src/components/admin/marketing/CreditPurchaseDialog.tsx`** (aanpassen)
-   - Voeg PaymentMethodSelector toe
-   - Conditionally render Stripe button OF Bank dialog
-
-4. **`src/components/admin/billing/AddonCheckoutButton.tsx`** (aanpassen)
-   - Idem: keuze voor betaalmethode
-
-5. **`src/pages/admin/PendingPlatformPayments.tsx`** (nieuw)
-   - Admin view voor pending bankoverschrijvingen
-   - Mogelijkheid tot bevestigen/annuleren
-
----
-
-## Backend Wijzigingen
-
-### Edge Functions:
-
-1. **`create-platform-bank-payment`** (nieuw)
-   - Genereert OGM
-   - Maakt pending payment record
-   - Stuurt email met instructies
-
-2. **`confirm-platform-bank-payment`** (nieuw)
-   - Valideert OGM
-   - Activeert credits/addon
-   - Maakt platform_invoice record
-
-3. **`platform-stripe-webhook`** (bestaand)
-   - Blijft werken voor Stripe betalingen
-   - Geen wijzigingen nodig
-
----
-
-## Visueel Voorbeeld - Nieuwe Credit Purchase Flow
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│                  AI Credits Bijkopen                      │
-├──────────────────────────────────────────────────────────┤
-│                                                           │
-│  ○ 50 credits   - €4,99                                  │
-│  ● 100 credits  - €8,99  [POPULAIR]                      │
-│  ○ 250 credits  - €19,99                                 │
-│  ○ 500 credits  - €34,99                                 │
-│                                                           │
-├──────────────────────────────────────────────────────────┤
-│  Hoe wil je betalen?                                      │
-│                                                           │
-│  ┌─────────────────────┐  ┌─────────────────────────────┐│
-│  │ € BANK              │  │ 💳 KAART                   ││
-│  │                     │  │                             ││
-│  │ Geen transactie-    │  │ Betaal direct met          ││
-│  │ kosten              │  │ creditcard of iDEAL        ││
-│  │                     │  │                             ││
-│  │ [Geselecteerd ✓]    │  │                             ││
-│  └─────────────────────┘  └─────────────────────────────┘│
-│                                                           │
-│                        [Verder →]                         │
-└──────────────────────────────────────────────────────────┘
-
-         ↓ Bij keuze "BANK" ↓
-
-┌──────────────────────────────────────────────────────────┐
-│              Directe Bankoverschrijving                   │
-├──────────────────────────────────────────────────────────┤
-│                                                           │
-│              ┌─────────────────────┐                      │
-│              │    [QR CODE]        │                      │
-│              │                     │                      │
-│              └─────────────────────┘                      │
-│                                                           │
-│              Te betalen: €8,99                            │
-│                                                           │
-│  Begunstigde:  SellQo BV                                 │
-│  IBAN:         BE00 0000 0000 0000  [📋]                 │
-│  Mededeling:   +++123/4567/89012+++ [📋]                 │
-│                                                           │
-│  ⓘ Scan de QR-code met je bank-app of voer de           │
-│    gegevens handmatig in. Je credits worden binnen       │
-│    24 uur geactiveerd na ontvangst.                      │
-│                                                           │
-│                   [Sluiten]                               │
-└──────────────────────────────────────────────────────────┘
-```
-
----
-
-## Voordelen van deze Aanpak
-
-| Voordeel | Impact |
-|----------|--------|
-| **Geen transactiekosten** | ~3% besparing per transactie |
-| **Dogfooding** | Je gebruikt je eigen product |
-| **Vertrouwen** | Klanten zien dat het werkt |
-| **Flexibiliteit** | Klanten kunnen kiezen |
-| **Marketing** | "Wij gebruiken het zelf ook!" |
-
----
-
-## Overwegingen
-
-### Voor AI Credits (eenmalige betaling):
-- Bank optie is ideaal
-- Korte verificatietijd acceptabel (binnen 24u)
-
-### Voor Add-ons (recurring):
-- Eerste betaling via bank
-- Daarna: maandelijkse reminder email met QR OF automatische incasso
-- Alternatief: jaarlijkse vooruitbetaling (12 maanden korting) via bank
-
-### Admin Verificatie:
-- Start met manuele verificatie (simpel)
-- Later: bank feed integratie voor automatisering
-
----
-
-## Aanbevolen Eerste Stap
-
-Begin met **AI Credits** (eenmalige betalingen) omdat:
-1. Geen recurring complexiteit
-2. Directe waarde zichtbaar
-3. Lagere drempel om te testen
-4. Snelle implementatie (1-2 dagen)
-
-Daarna uitbreiden naar add-ons.
-
----
-
-## Volgende Stappen
-
-1. Bevestig SellQo's bankgegevens (IBAN/BIC)
-2. Kies: manuele of automatische verificatie
-3. Implementatie starten
+| Component | Wijziging |
+|-----------|-----------|
+| RLS Policy | Nieuwe INSERT policy voor onboarding |
+| BusinessSettings.tsx | Placeholders + error handling |
+| BusinessDetailsStep.tsx | Placeholders verbeteren |
+| WelcomeStep.tsx | Placeholder verbeteren |
 
