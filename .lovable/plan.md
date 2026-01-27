@@ -1,337 +1,194 @@
 
 
-# Plan: Feature Gating, Sidebar Filtering & Pricing Herziening
+# Plan: Peppol als Upsell Module voor Free & Starter
 
-## Analyse Huidige Situatie
+## Strategische Analyse
 
-### 1. Feature Gating - Bevindingen
+### Waarom dit slim is
 
-**Wat WEL werkt:**
-- `FeatureGate` component blokkeert UI met lock-icoon
-- `checkFeature()` controleert features uit `pricing_plans.features`
-- Limieten (products, orders, customers, users) worden gecontroleerd
+| Factor | Impact |
+|--------|--------|
+| **Wettelijk verplicht** | België B2B vanaf 2026 - elke ondernemer MOET dit |
+| **Jouw kosten** | €7,50/maand basis + €5/gebruiker (via Billit) |
+| **Weinig concurrenten bieden dit** | Shopify/Lightspeed hebben dit niet standaard |
+| **FOMO marketing** | "Bereid je voor op de verplichting" urgentie |
 
-**Wat NIET werkt:**
-| Probleem | Impact |
-|----------|--------|
-| Sidebar toont ALLE items ongeacht plan | Verwarrend voor Free users |
-| `featureKey` in sidebarConfig wordt **NIET** gebruikt | Items altijd zichtbaar |
-| AI credits staan op **0** voor alle plannen | Geen AI beschikbaar |
-| Slechts 11 features gedefinieerd in `PricingPlanFeatures` | Veel functies ongegated |
-| Geen `pos`, `ai_copywriting`, `bol_vvb`, `shop_health` etc. | Nieuwe features niet geblokkeerd |
+### Voorgestelde Pricing
 
-**Huidige `PricingPlanFeatures` interface (beperkt):**
-```
-customDomain, removeWatermark, prioritySupport, apiAccess, 
-webhooks, advancedAnalytics, whiteLabel, multiCurrency, 
-facturX, peppol, ai_marketing
-```
+| Plan | Peppol Status | Prijs |
+|------|---------------|-------|
+| **Free** | ❌ Niet beschikbaar (kan upgraden naar Starter of add-on) | - |
+| **Starter** | 🔒 Add-on beschikbaar | **€12/maand** |
+| **Pro** | ✅ Inbegrepen | Gratis |
+| **Enterprise** | ✅ Inbegrepen | Gratis |
 
-**Ontbrekende feature keys voor gating:**
-- `pos` - POS Kassa
-- `ai_copywriting` - AI voor storefront teksten
-- `ai_images` - AI afbeelding generatie
-- `bol_vvb_labels` - Bol.com VVB verzendlabels
-- `shop_health` - Shop Health Dashboard
-- `ai_coach` - Proactieve AI Business Coach
-- `gamification` - Badges & Milestones
-- `live_activity` - Live Activity Feed
-- `whatsapp_integration` - WhatsApp berichten
-- `multi_warehouse` - Multi-warehouse management
-- `seo_tools` - SEO analyse tools
-- `social_commerce` - Meta/Google Shop sync
+**Marge berekening bij Starter add-on (€12/maand):**
+- Jullie betalen: ~€7,50 + €5 = €12,50 basis
+- Per extra gebruiker: +€5
+- **Marge:** Minimaal als standalone, maar de waarde zit in de upsell naar Pro waar het gratis is
 
-### 2. Sidebar Filtering - Bevindingen
-
-**Probleem:** De `AdminSidebar` controleert alleen:
-- `isItemHidden()` - user preference (personaliseer menu)
-- `isItemRoleHidden()` - role-based (warehouse, staff, etc.)
-
-**NIET gecontroleerd:**
-- `featureKey` property wordt genegeerd in de render logic
-- Geen subscription-based filtering geïmplementeerd
-
-**Resultaat:** Een Free user ziet POS, AI Tools, etc. in sidebar maar krijgt lock-scherm bij klikken.
-
-### 3. AI Credits - Bevindingen
-
-**Database status:**
-```
-ai_credits_monthly = 0 voor ALLE plannen (Free, Starter, Pro, Enterprise)
-```
-
-Dit betekent dat niemand AI credits heeft, ongeacht plan!
-
-### 4. Marketing Pagina - Ontbrekende Features
-
-**Niet vermeld op landing/pricing:**
-- 5-minuten launch wizard
-- Shop Health Score dashboard
-- Proactieve AI Business Coach
-- "Vandaag verdien je..." gamification
-- Live Activity Feed
-- WhatsApp Support + Order Alerts
-- Bol.com VVB labels
-- Bank Transfer QR-codes (geen transactiekosten)
-
----
-
-## Voorgestelde Nieuwe Pricing Structuur
-
-### Kernfilosofie
-
-| Plan | Strategie |
-|------|-----------|
-| **Free** | Proefversie met upsell overal - laat waarde zien, blokkeer uitvoering |
-| **Starter** | Basis functionaliteit + modules als add-ons kopen |
-| **Pro** | Alle kernfuncties + AI - "sweet spot" voor groeiende shops |
-| **Enterprise** | Alles onbeperkt + white-label + dedicated support |
-
-### Gedetailleerde Plan Matrix
-
-```
-┌─────────────────────────────┬──────────┬──────────┬──────────┬─────────────┐
-│ Feature                     │ Free     │ Starter  │ Pro      │ Enterprise  │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ CORE LIMITS                 │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ Producten                   │ 25       │ 250      │ 2500     │ Onbeperkt   │
-│ Bestellingen/maand          │ 50       │ 500      │ 5000     │ Onbeperkt   │
-│ Klanten                     │ 100      │ 1000     │ 10000    │ Onbeperkt   │
-│ Teamleden                   │ 1        │ 3        │ 10       │ 50          │
-│ Opslag (GB)                 │ 1        │ 10       │ 50       │ 250         │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ DAGELIJKS                   │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ Dashboard                   │ ✅       │ ✅       │ ✅       │ ✅          │
-│ Shop Health Score           │ Beperkt  │ ✅       │ ✅       │ ✅          │
-│ Gamification & Badges       │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Live Activity Feed          │ ❌       │ ❌       │ ✅       │ ✅          │
-│ Klantgesprekken Inbox       │ 10/maand │ 100/m    │ Onbep.   │ Onbeperkt   │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ VERKOOP                     │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ POS Kassa                   │ ❌       │ Add-on   │ ✅       │ ✅          │
-│ Webshop Builder             │ ❌       │ Add-on   │ ✅       │ ✅          │
-│ Visual Editor               │ ❌       │ ❌       │ ✅       │ ✅          │
-│ Premium Themes              │ ❌       │ ❌       │ 1 gratis │ Alle        │
-│ Promoties (basis)           │ 1 type   │ 4 types  │ Alle 8   │ Alle 8      │
-│ Kortingscodes               │ ✅       │ ✅       │ ✅       │ ✅          │
-│ Bundels/BOGO/Volume         │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Cadeaubonnen                │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Loyaliteitsprogramma        │ ❌       │ ❌       │ ✅       │ ✅          │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ AI CAPABILITIES             │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ AI Credits/maand            │ 0        │ 50       │ 500      │ Onbeperkt   │
-│ AI Marketing Content        │ ❌       │ ✅       │ ✅       │ ✅          │
-│ AI Productbeschrijvingen    │ ❌       │ ✅       │ ✅       │ ✅          │
-│ AI Storefront Copy          │ ❌       │ ❌       │ ✅       │ ✅          │
-│ AI A/B Test Variaties       │ ❌       │ ❌       │ ✅       │ ✅          │
-│ AI SEO Analyse              │ ❌       │ Basis    │ ✅       │ ✅          │
-│ AI Afbeelding Generatie     │ ❌       │ ❌       │ ✅       │ ✅          │
-│ AI Business Coach           │ ❌       │ ❌       │ ✅       │ ✅          │
-│ AI Chatbot (storefront)     │ ❌       │ ❌       │ ✅       │ ✅          │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ INTEGRATIES                 │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ Bol.com Sync                │ ❌       │ Add-on   │ ✅       │ ✅          │
-│ Bol.com VVB Labels          │ ❌       │ ❌       │ ✅       │ ✅          │
-│ Amazon/eBay                 │ ❌       │ ❌       │ Add-on   │ ✅          │
-│ Sendcloud/MyParcel          │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Social Commerce (Meta/Google)│ ❌       │ ❌       │ ✅       │ ✅          │
-│ WhatsApp Berichten          │ ❌       │ Add-on   │ ✅       │ ✅          │
-│ API Toegang                 │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Webhooks                    │ ❌       │ ✅       │ ✅       │ ✅          │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ FACTURATIE                  │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ Handmatige Facturen         │ ✅       │ ✅       │ ✅       │ ✅          │
-│ Factur-X (PDF/A)            │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Peppol e-Invoicing          │ ❌       │ ❌       │ ✅       │ ✅          │
-│ Multi-valuta                │ ❌       │ ❌       │ ✅       │ ✅          │
-│ Offertes                    │ ✅       │ ✅       │ ✅       │ ✅          │
-│ Creditnota's                │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Abonnementen (recurring)    │ ❌       │ ❌       │ ✅       │ ✅          │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ TRANSACTIEKOSTEN            │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ Stripe Transacties Incl.    │ 0        │ 100      │ 1000     │ Onbeperkt   │
-│ Overage fee per extra       │ €2,50    │ €0,50    │ €0,25    │ €0,00       │
-│ Bank Transfer (QR) - GRATIS │ ✅       │ ✅       │ ✅       │ ✅          │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ SUPPORT                     │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ Community/Docs              │ ✅       │ ✅       │ ✅       │ ✅          │
-│ Email Support               │ ❌       │ ✅       │ ✅       │ ✅          │
-│ Priority Support            │ ❌       │ ❌       │ ✅       │ ✅          │
-│ Phone Support (NL/BE)       │ ❌       │ ❌       │ ❌       │ ✅          │
-│ Dedicated Account Manager   │ ❌       │ ❌       │ ❌       │ ✅          │
-│ SLA 99.9%                   │ ❌       │ ❌       │ ❌       │ ✅          │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ BRANDING                    │          │          │          │             │
-├─────────────────────────────┼──────────┼──────────┼──────────┼─────────────┤
-│ SellQo Watermerk            │ ✅       │ ❌       │ ❌       │ ❌          │
-│ Eigen Domein                │ ❌       │ ✅       │ ✅       │ ✅          │
-│ White-label                 │ ❌       │ ❌       │ ❌       │ ✅          │
-│ Gratis Migratie             │ ❌       │ ❌       │ ❌       │ ✅(€2000)   │
-└─────────────────────────────┴──────────┴──────────┴──────────┴─────────────┘
-```
-
-### Add-on Prijzen (voor Free & Starter)
-
-| Add-on | Prijs | Beschikbaar voor |
-|--------|-------|------------------|
-| **AI Credit Pack** (500 credits) | €19/maand | Starter |
-| **POS Kassa Module** | €29/maand | Starter |
-| **Webshop Builder** | €19/maand | Starter |
-| **Bol.com Kanaal** | €15/maand | Starter |
-| **WhatsApp Berichten** | €9/maand | Starter |
-| **Extra Marketplace** | €15/maand/kanaal | Pro |
+**Alternatief: €15/maand** voor betere marge of koppelen aan Pro upgrade incentive.
 
 ---
 
 ## Technische Implementatie
 
-### Fase 1: Database & Types Updaten
+### Fase 1: Database - Add-on Systeem
 
-**1.1 Uitbreiden `PricingPlanFeatures` interface:**
+**Nieuwe tabel: `tenant_addons`**
+
+```sql
+CREATE TABLE public.tenant_addons (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid REFERENCES tenants(id) NOT NULL,
+  addon_type text NOT NULL, -- 'peppol', 'pos', 'whatsapp', etc.
+  status text DEFAULT 'active', -- 'active', 'cancelled'
+  stripe_subscription_id text,
+  stripe_price_id text,
+  price_monthly numeric(10,2),
+  activated_at timestamptz DEFAULT now(),
+  cancelled_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(tenant_id, addon_type)
+);
+```
+
+**RLS Policies:**
+- Tenants kunnen alleen hun eigen add-ons zien
+- Service role kan alles beheren
+
+### Fase 2: Feature Check Uitbreiden
+
+**Update `useUsageLimits.ts`:**
+
+Huidige `checkFeature()` kijkt alleen naar plan features. We breiden dit uit:
 
 ```typescript
-export interface PricingPlanFeatures {
-  // Bestaand
-  customDomain: boolean;
-  removeWatermark: boolean;
-  prioritySupport: boolean;
-  apiAccess: boolean;
-  webhooks: boolean;
-  advancedAnalytics: boolean;
-  whiteLabel: boolean;
-  multiCurrency: boolean;
-  facturX: boolean;
-  peppol: boolean;
-  ai_marketing: boolean;
+const checkFeature = (featureKey: string): boolean => {
+  // 1. Check plan features eerst
+  const planHasFeature = subscription?.pricing_plan?.features?.[featureKey];
+  if (planHasFeature) return true;
   
-  // NIEUW - Modules
-  pos: boolean;
-  webshop_builder: boolean;
-  visual_editor: boolean;
+  // 2. Check actieve add-ons
+  const hasAddon = addons?.some(
+    addon => addon.addon_type === featureKey && addon.status === 'active'
+  );
+  return hasAddon;
+};
+```
+
+**Nieuwe hook: `useTenantAddons.ts`:**
+
+```typescript
+export function useTenantAddons() {
+  const { currentTenant } = useTenant();
   
-  // NIEUW - AI Capabilities
-  ai_copywriting: boolean;
-  ai_images: boolean;
-  ai_seo: boolean;
-  ai_coach: boolean;
-  ai_chatbot: boolean;
-  ai_ab_testing: boolean;
-  
-  // NIEUW - Integraties
-  bol_com: boolean;
-  bol_vvb_labels: boolean;
-  amazon: boolean;
-  ebay: boolean;
-  social_commerce: boolean;
-  whatsapp: boolean;
-  
-  // NIEUW - Geavanceerd
-  shop_health: boolean;
-  gamification: boolean;
-  live_activity: boolean;
-  loyalty_program: boolean;
-  recurring_subscriptions: boolean;
-  multi_warehouse: boolean;
-  
-  // NIEUW - Promoties
-  promo_bundles: boolean;
-  promo_bogo: boolean;
-  promo_volume: boolean;
-  promo_giftcards: boolean;
+  return useQuery({
+    queryKey: ['tenant-addons', currentTenant?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tenant_addons')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'active');
+      return data || [];
+    },
+    enabled: !!currentTenant?.id
+  });
 }
 ```
 
-**1.2 Database migratie:**
+### Fase 3: Peppol Add-on Purchase Flow
 
-```sql
--- Update pricing_plans met uitgebreide features
-UPDATE pricing_plans SET features = jsonb_build_object(
-  -- Bestaande features
-  'customDomain', false,
-  'removeWatermark', false,
-  -- ... etc
-  
-  -- Nieuwe AI features
-  'ai_copywriting', false,
-  'ai_images', false,
-  'ai_coach', false,
-  
-  -- Nieuwe modules
-  'pos', false,
-  'webshop_builder', false,
-  'bol_vvb_labels', false
-  -- etc
-), ai_credits_monthly = 0
-WHERE slug = 'free';
+**Nieuwe component: `PeppolUpgradeCard.tsx`**
 
--- Herhaal voor starter, pro, enterprise met juiste waarden
+In `PeppolSettings.tsx`, als feature niet beschikbaar:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 🇧🇪 Peppol e-Invoicing                                      │
+│                                                              │
+│ ⚠️ Vanaf 2026 verplicht voor alle B2B facturen in België    │
+│                                                              │
+│ [📋 Wat is Peppol?]                                         │
+│                                                              │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Twee opties om Peppol te activeren:                     │ │
+│ │                                                         │ │
+│ │ 💎 Upgrade naar Pro                                     │ │
+│ │    Peppol + alle AI features + VVB labels              │ │
+│ │    €79/maand                                            │ │
+│ │    [Upgrade naar Pro]                                   │ │
+│ │                                                         │ │
+│ │ ─────────── OF ───────────                              │ │
+│ │                                                         │ │
+│ │ 📦 Peppol Add-on                                        │ │
+│ │    Alleen Peppol e-invoicing voor je huidige plan       │ │
+│ │    €12/maand                                            │ │
+│ │    [Activeer Peppol Add-on]                             │ │
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Fase 2: Sidebar Feature Gating Implementeren
-
-**2.1 Update `AdminSidebar.tsx` - Toevoegen subscription check:**
+**Edge Function: `create-addon-checkout`**
 
 ```typescript
-const { subscription } = useTenantSubscription();
-
-const isItemFeatureHidden = (item: NavItem): boolean => {
-  if (!item.featureKey) return false;
-  
-  const features = subscription?.pricing_plan?.features;
-  if (!features) return true; // Free plan: feature niet beschikbaar
-  
-  return !features[item.featureKey as keyof typeof features];
-};
-
-const shouldHideItem = (item: NavItem): boolean => {
-  return isItemHidden(item.id) || 
-         isItemRoleHidden(item) || 
-         isItemFeatureHidden(item); // NIEUW
-};
+// supabase/functions/create-addon-checkout/index.ts
+// Maakt Stripe Checkout voor add-on subscriptions
+// Parameters: tenantId, addonType, priceId
+// Returns: Stripe checkout URL
 ```
 
-**2.2 Update `sidebarConfig.ts` met feature keys:**
+**Webhook handler uitbreiden:**
+- Bij succesvolle betaling: `tenant_addons` record aanmaken
+- Bij annulering: status naar 'cancelled'
+
+### Fase 4: Admin Add-on Management
+
+**Nieuwe component: `TenantAddonsTab.tsx`**
+
+In admin settings, een overzicht van actieve add-ons:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Actieve Add-ons                                             │
+├─────────────────────────────────────────────────────────────┤
+│ ✅ Peppol e-Invoicing          €12/maand    [Beheren]       │
+│ ✅ WhatsApp Berichten          €9/maand     [Beheren]       │
+│                                                              │
+│ ─────────────────────────────────────────────────────────── │
+│                                                              │
+│ Beschikbare Add-ons                                         │
+│ 🔒 POS Kassa                   €29/maand    [Activeren]     │
+│ 🔒 Bol.com Kanaal              €15/maand    [Activeren]     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Fase 5: Marketing Update
+
+**Update `PricingSection.tsx` add-ons:**
 
 ```typescript
-const salesItems: NavItem[] = [
-  { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
-  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder' },
-  // ...
-];
-
-const marketingItems: NavItem[] = [
-  { id: 'ai-tools', title: 'AI Tools', url: '/admin/marketing/ai', icon: Sparkles, featureKey: 'ai_marketing' },
-  // ...
+const addons = [
+  // ... existing
+  {
+    icon: FileText, // of Network
+    name: 'Peppol e-Invoicing',
+    price: 12,
+    proPricing: 0, // Gratis bij Pro
+    description: 'Verplicht vanaf 2026 in BE',
+    features: [
+      'Officiële Peppol koppeling',
+      'Automatische e-factuurverzending',
+      'Ontvangstbevestigingen',
+      'B2B compliance'
+    ],
+    availableFor: 'Starter (Pro: gratis)',
+    urgencyBadge: '🇧🇪 Verplicht 2026' // Nieuwe property voor FOMO
+  },
 ];
 ```
-
-### Fase 3: Marketing Pagina Uitbreiden
-
-**3.1 Nieuwe sectie: "SellQo Voordelen vs Concurrenten"**
-
-Toevoegen aan `ComparisonSection.tsx`:
-
-| Feature | SellQo | Shopify | Lightspeed |
-|---------|--------|---------|------------|
-| 5-minuten setup | ✅ | ❌ | ❌ |
-| Shop Health Score | ✅ | ❌ | ❌ |
-| Proactieve AI Coach | ✅ | ❌ | ❌ |
-| Gamification | ✅ | ❌ | ❌ |
-| WhatsApp Alerts | ✅ | Via app | Via app |
-| Bol.com VVB Labels | ✅ | ❌ | ❌ |
-| Bank Transfer QR | ✅ | ❌ | ❌ |
-
-**3.2 Update `PricingSection.tsx` met nieuwe features**
-
-**3.3 Nieuwe "Unique Features" sectie**
 
 ---
 
@@ -341,55 +198,114 @@ Toevoegen aan `ComparisonSection.tsx`:
 
 | Actie | Details |
 |-------|---------|
-| Update `pricing_plans.features` | Alle nieuwe feature keys toevoegen |
-| Update `pricing_plans.ai_credits_monthly` | 0/50/500/-1 per plan |
-| Update `pricing_plans.included_transactions_monthly` | Correcte waarden |
-
-### Aangepaste Bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/types/billing.ts` | Uitbreiden `PricingPlanFeatures` interface |
-| `src/components/admin/AdminSidebar.tsx` | Subscription-based filtering |
-| `src/components/admin/sidebar/sidebarConfig.ts` | Feature keys toevoegen |
-| `src/hooks/useUsageLimits.ts` | Nieuwe feature checks |
-| `src/components/landing/PricingSection.tsx` | Nieuwe pricing tabel |
-| `src/components/landing/ComparisonSection.tsx` | Nieuwe vergelijkingsrijen |
-| `src/pages/Pricing.tsx` | Sync met database |
+| Nieuwe tabel `tenant_addons` | Add-on tracking per tenant |
+| RLS policies | Tenant isolation |
+| Indexes | Performance op tenant_id + addon_type |
 
 ### Nieuwe Bestanden
 
 | Bestand | Doel |
 |---------|------|
-| `src/components/landing/UniqueAdvantagesSection.tsx` | "Wat maakt SellQo uniek" sectie |
-| `src/components/admin/billing/UpgradePrompt.tsx` | Contextuele upgrade suggesties |
+| `src/hooks/useTenantAddons.ts` | Hook voor add-on data ophalen |
+| `src/components/admin/billing/PeppolUpgradeCard.tsx` | Upgrade prompt voor Peppol |
+| `src/components/admin/billing/TenantAddonsTab.tsx` | Add-on management UI |
+| `supabase/functions/create-addon-checkout/index.ts` | Stripe checkout voor add-ons |
+
+### Aangepaste Bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/hooks/useUsageLimits.ts` | Add-on check in `checkFeature()` |
+| `src/components/admin/settings/PeppolSettings.tsx` | Upgrade prompt integratie |
+| `src/components/landing/PricingSection.tsx` | Peppol add-on toevoegen |
+| `supabase/functions/stripe-webhook/index.ts` | Add-on subscription handling |
 
 ---
 
-## Verwacht Resultaat
+## UI Flow
 
-### Voor Merchants
+```text
+Free/Starter user opent Facturatie → Peppol Settings
+    │
+    ├─► Ziet: "🔒 Peppol niet beschikbaar"
+    │
+    └─► Twee knoppen:
+         │
+         ├─► "Upgrade naar Pro" → /pricing
+         │
+         └─► "Activeer Peppol Add-on" 
+              │
+              └─► Stripe Checkout (€12/maand)
+                   │
+                   └─► Webhook → tenant_addons record
+                        │
+                        └─► Peppol settings nu beschikbaar!
+```
 
-| Voorheen | Nu |
-|----------|-----|
-| Alle sidebar items zichtbaar | Alleen toegankelijke items zichtbaar |
-| Lock-scherm bij klikken | Geen verwarrende items |
-| Geen AI credits | Duidelijke AI quota per plan |
-| Onduidelijk verschil tussen plannen | Glashelder wat je krijgt |
+---
 
-### Voor Marketing
+## Marketing Messaging
 
-| Voorheen | Nu |
-|----------|-----|
-| Generieke feature lijst | Concrete USPs (5-min setup, Shop Health) |
-| Geen vergelijking | "SellQo vs Rest" tabel |
-| Ontbrekende nieuwe features | VVB labels, AI Coach, etc. prominent |
+### In-app upsell tekst
 
-### Voor Conversie
+> **🇧🇪 Peppol e-Invoicing wordt verplicht**
+> 
+> Vanaf 1 januari 2026 zijn alle Belgische ondernemingen verplicht om B2B facturen via Peppol te versturen.
+> 
+> **Bereid je nu voor:**
+> - Ontvang automatische bevestigingen
+> - Voldoe aan de wetgeving
+> - Bespaar tijd op administratie
 
-| Metric | Verwacht Effect |
-|--------|-----------------|
-| Free → Starter | +15% door duidelijke upsells |
-| Starter → Pro | +20% door AI features |
-| Bounce rate pricing | -10% door helderheid |
+### Landing page add-on card
+
+> **Peppol e-Invoicing** - €12/maand
+> 
+> 🇧🇪 *Verplicht vanaf 2026 in België*
+> 
+> - Officiële Peppol-koppeling
+> - Automatische verzending aan B2B klanten
+> - Ontvangstbevestigingen
+> - Gratis bij Pro plan!
+
+---
+
+## Implementatie Volgorde
+
+```text
+Week 1: Basis
+├── Database: tenant_addons tabel + RLS
+├── Hook: useTenantAddons
+├── Uitbreiden: checkFeature() met add-on check
+└── Edge function: create-addon-checkout
+
+Week 2: UI & Marketing
+├── Component: PeppolUpgradeCard
+├── Update: PeppolSettings met upgrade prompt
+├── Update: PricingSection met Peppol add-on
+└── Component: TenantAddonsTab voor beheer
+
+Week 3: Stripe Integratie
+├── Webhook: add-on subscription events
+├── Stripe products/prices aanmaken
+└── Testen end-to-end flow
+```
+
+---
+
+## Alternatieve Pricing Opties
+
+### Optie A: Pure add-on (huidige voorstel)
+- Starter: €12/maand add-on
+- Pro+: Gratis
+
+### Optie B: Bundel met Factur-X
+- "Compliance Pack": Peppol + Factur-X + Credit Notes = €19/maand
+- Meer waarde, hogere marge
+
+### Optie C: Per-factuur pricing
+- €0,15 per Peppol factuur (pay-as-you-go)
+- Minder commitment, maar onvoorspelbare revenue
+
+**Aanbeveling:** Optie A (pure add-on €12/maand) met sterke upsell naar Pro waar het gratis is. Dit creëert de incentive om naar Pro te upgraden.
 
