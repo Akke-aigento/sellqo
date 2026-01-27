@@ -58,6 +58,13 @@ import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 import TenantDetailPage from "./pages/platform/TenantDetail";
 import PlatformCouponsPage from "./pages/platform/PlatformCoupons";
+import PlatformDashboard from "./pages/platform/PlatformDashboard";
+import PlatformFeedback from "./pages/platform/PlatformFeedback";
+import PlatformSupport from "./pages/platform/PlatformSupport";
+import PlatformChangelog from "./pages/platform/PlatformChangelog";
+import PlatformHealth from "./pages/platform/PlatformHealth";
+import PlatformLegal from "./pages/platform/PlatformLegal";
+import SellqoLegal from "./pages/SellqoLegal";
 import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import POSTerminalPage from "./pages/admin/POSTerminal";
@@ -188,6 +195,45 @@ const App = () => (
                   <PlatformCouponsPage />
                 </ProtectedRoute>
               } />
+              <Route path="platform/dashboard" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/feedback" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformFeedback />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/support" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformSupport />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/changelog" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformChangelog />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/health" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformHealth />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/legal" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformLegal />
+                </ProtectedRoute>
+              } />
+            </Route>
+
+            {/* Public SellQo Legal Pages */}
+            <Route path="/terms" element={<SellqoLegal />} />
+            <Route path="/privacy" element={<SellqoLegal />} />
+            <Route path="/cookies" element={<SellqoLegal />} />
+            <Route path="/sla" element={<SellqoLegal />} />
+            <Route path="/acceptable-use" element={<SellqoLegal />} />
+            <Route path="/dpa" element={<SellqoLegal />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

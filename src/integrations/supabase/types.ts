@@ -6248,6 +6248,69 @@ export type Database = {
           },
         ]
       }
+      platform_changelogs: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          action_completed_at: string | null
+          action_required: boolean | null
+          action_taken: string | null
+          affected_features: string[] | null
+          change_type: Database["public"]["Enums"]["changelog_change_type"]
+          created_at: string
+          deadline_date: string | null
+          description: string | null
+          detected_at: string
+          id: string
+          impact_level: Database["public"]["Enums"]["changelog_impact_level"]
+          platform: Database["public"]["Enums"]["changelog_platform"]
+          source_url: string | null
+          title: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          action_completed_at?: string | null
+          action_required?: boolean | null
+          action_taken?: string | null
+          affected_features?: string[] | null
+          change_type: Database["public"]["Enums"]["changelog_change_type"]
+          created_at?: string
+          deadline_date?: string | null
+          description?: string | null
+          detected_at?: string
+          id?: string
+          impact_level?: Database["public"]["Enums"]["changelog_impact_level"]
+          platform: Database["public"]["Enums"]["changelog_platform"]
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          action_completed_at?: string | null
+          action_required?: boolean | null
+          action_taken?: string | null
+          affected_features?: string[] | null
+          change_type?: Database["public"]["Enums"]["changelog_change_type"]
+          created_at?: string
+          deadline_date?: string | null
+          description?: string | null
+          detected_at?: string
+          id?: string
+          impact_level?: Database["public"]["Enums"]["changelog_impact_level"]
+          platform?: Database["public"]["Enums"]["changelog_platform"]
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       platform_coupon_redemptions: {
         Row: {
           applied_by: string | null
@@ -6363,6 +6426,105 @@ export type Database = {
           used_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      platform_health_metrics: {
+        Row: {
+          component: Database["public"]["Enums"]["health_component"]
+          current_value: number | null
+          details: Json | null
+          id: string
+          metric_name: string
+          recorded_at: string
+          status: Database["public"]["Enums"]["health_status"]
+          threshold_critical: number | null
+          threshold_warning: number | null
+        }
+        Insert: {
+          component: Database["public"]["Enums"]["health_component"]
+          current_value?: number | null
+          details?: Json | null
+          id?: string
+          metric_name: string
+          recorded_at?: string
+          status?: Database["public"]["Enums"]["health_status"]
+          threshold_critical?: number | null
+          threshold_warning?: number | null
+        }
+        Update: {
+          component?: Database["public"]["Enums"]["health_component"]
+          current_value?: number | null
+          details?: Json | null
+          id?: string
+          metric_name?: string
+          recorded_at?: string
+          status?: Database["public"]["Enums"]["health_status"]
+          threshold_critical?: number | null
+          threshold_warning?: number | null
+        }
+        Relationships: []
+      }
+      platform_incidents: {
+        Row: {
+          affected_components:
+            | Database["public"]["Enums"]["health_component"][]
+            | null
+          affected_tenants: string[] | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          detected_at: string
+          id: string
+          identified_at: string | null
+          postmortem_url: string | null
+          resolution: string | null
+          resolved_at: string | null
+          root_cause: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: Database["public"]["Enums"]["incident_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_components?:
+            | Database["public"]["Enums"]["health_component"][]
+            | null
+          affected_tenants?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          detected_at?: string
+          id?: string
+          identified_at?: string | null
+          postmortem_url?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_components?:
+            | Database["public"]["Enums"]["health_component"][]
+            | null
+          affected_tenants?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          detected_at?: string
+          id?: string
+          identified_at?: string | null
+          postmortem_url?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -8290,6 +8452,48 @@ export type Database = {
           },
         ]
       }
+      sellqo_legal_pages: {
+        Row: {
+          content: string
+          created_at: string
+          effective_date: string | null
+          id: string
+          is_published: boolean | null
+          last_published_at: string | null
+          page_type: string
+          slug: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          is_published?: boolean | null
+          last_published_at?: string | null
+          page_type: string
+          slug: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          is_published?: boolean | null
+          last_published_at?: string | null
+          page_type?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       seo_analysis_history: {
         Row: {
           analyzed_at: string | null
@@ -9783,6 +9987,112 @@ export type Database = {
           },
         ]
       }
+      support_messages: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          id: string
+          is_internal_note: boolean | null
+          message: string
+          sender_email: string | null
+          sender_id: string | null
+          sender_type: Database["public"]["Enums"]["support_sender_type"]
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          is_internal_note?: boolean | null
+          message: string
+          sender_email?: string | null
+          sender_id?: string | null
+          sender_type: Database["public"]["Enums"]["support_sender_type"]
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          is_internal_note?: boolean | null
+          message?: string
+          sender_email?: string | null
+          sender_id?: string | null
+          sender_type?: Database["public"]["Enums"]["support_sender_type"]
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["support_ticket_category"]
+          created_at: string
+          first_response_at: string | null
+          id: string
+          metadata: Json | null
+          priority: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_email: string
+          requester_name: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          tags: string[] | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["support_ticket_category"]
+          created_at?: string
+          first_response_at?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_email: string
+          requester_name?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          tags?: string[] | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["support_ticket_category"]
+          created_at?: string
+          first_response_at?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_email?: string
+          requester_name?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          tags?: string[] | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_activity_log: {
         Row: {
           completed_at: string | null
@@ -10862,6 +11172,7 @@ export type Database = {
           invoice_format: string | null
           invoice_prefix: string | null
           invoice_start_number: number | null
+          is_internal_tenant: boolean | null
           kvk_number: string | null
           language: string | null
           last_login: string | null
@@ -10953,6 +11264,7 @@ export type Database = {
           invoice_format?: string | null
           invoice_prefix?: string | null
           invoice_start_number?: number | null
+          is_internal_tenant?: boolean | null
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
@@ -11044,6 +11356,7 @@ export type Database = {
           invoice_format?: string | null
           invoice_prefix?: string | null
           invoice_start_number?: number | null
+          is_internal_tenant?: boolean | null
           kvk_number?: string | null
           language?: string | null
           last_login?: string | null
@@ -12142,6 +12455,24 @@ export type Database = {
         | "accountant"
         | "viewer"
         | "warehouse"
+      changelog_change_type:
+        | "breaking"
+        | "feature"
+        | "deprecation"
+        | "security"
+        | "bugfix"
+        | "enhancement"
+      changelog_impact_level: "none" | "low" | "medium" | "high" | "critical"
+      changelog_platform:
+        | "bol_com"
+        | "amazon"
+        | "stripe"
+        | "ebay"
+        | "shopify"
+        | "woocommerce"
+        | "meta"
+        | "resend"
+        | "other"
       digital_delivery_type:
         | "download"
         | "license_key"
@@ -12155,6 +12486,22 @@ export type Database = {
         | "redeem"
         | "refund"
         | "adjustment"
+      health_component:
+        | "edge_function"
+        | "sync"
+        | "api"
+        | "database"
+        | "storage"
+        | "auth"
+        | "webhook"
+      health_status: "healthy" | "warning" | "critical" | "unknown"
+      incident_severity: "low" | "medium" | "high" | "critical"
+      incident_status:
+        | "detected"
+        | "investigating"
+        | "identified"
+        | "monitoring"
+        | "resolved"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
       notification_category:
         | "orders"
@@ -12211,6 +12558,20 @@ export type Database = {
         | "paid"
         | "overdue"
         | "cancelled"
+      support_sender_type: "merchant" | "support" | "system" | "ai"
+      support_ticket_category:
+        | "billing"
+        | "technical"
+        | "feature"
+        | "bug"
+        | "other"
+      support_ticket_priority: "low" | "medium" | "high" | "urgent"
+      support_ticket_status:
+        | "open"
+        | "in_progress"
+        | "waiting"
+        | "resolved"
+        | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12346,6 +12707,26 @@ export const Constants = {
         "viewer",
         "warehouse",
       ],
+      changelog_change_type: [
+        "breaking",
+        "feature",
+        "deprecation",
+        "security",
+        "bugfix",
+        "enhancement",
+      ],
+      changelog_impact_level: ["none", "low", "medium", "high", "critical"],
+      changelog_platform: [
+        "bol_com",
+        "amazon",
+        "stripe",
+        "ebay",
+        "shopify",
+        "woocommerce",
+        "meta",
+        "resend",
+        "other",
+      ],
       digital_delivery_type: [
         "download",
         "license_key",
@@ -12360,6 +12741,24 @@ export const Constants = {
         "redeem",
         "refund",
         "adjustment",
+      ],
+      health_component: [
+        "edge_function",
+        "sync",
+        "api",
+        "database",
+        "storage",
+        "auth",
+        "webhook",
+      ],
+      health_status: ["healthy", "warning", "critical", "unknown"],
+      incident_severity: ["low", "medium", "high", "critical"],
+      incident_status: [
+        "detected",
+        "investigating",
+        "identified",
+        "monitoring",
+        "resolved",
       ],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
       notification_category: [
@@ -12423,6 +12822,22 @@ export const Constants = {
         "paid",
         "overdue",
         "cancelled",
+      ],
+      support_sender_type: ["merchant", "support", "system", "ai"],
+      support_ticket_category: [
+        "billing",
+        "technical",
+        "feature",
+        "bug",
+        "other",
+      ],
+      support_ticket_priority: ["low", "medium", "high", "urgent"],
+      support_ticket_status: [
+        "open",
+        "in_progress",
+        "waiting",
+        "resolved",
+        "closed",
       ],
     },
   },
