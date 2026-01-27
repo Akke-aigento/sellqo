@@ -47,7 +47,7 @@ const channelStyles = {
 
 export function HeroDashboardMockup() {
   return (
-    <div className="relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden max-w-2xl mx-auto">
+    <div className="relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden max-w-full lg:max-w-2xl mx-auto">
       {/* Desktop Mini-Sidebar - only visible on lg screens */}
       <div className="hidden lg:flex absolute left-0 top-0 bottom-0 w-12 bg-secondary/30 border-r border-border flex-col items-center py-4 gap-3 z-10">
         <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
