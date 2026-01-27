@@ -1,173 +1,226 @@
 
-# Plan: Inbound Email Functie Compleet Maken
+# Plan: Visual Content & Page Editor
 
 ## Overzicht
 
-Vier verbeteringen om de inbound email functie production-ready te maken:
-
-1. **Marketplace Badge** - Visuele indicator voor Bol.com/Amazon berichten
-2. **Bijlagen Opslaan** - Attachments opslaan in Supabase Storage  
-3. **Order Link** - Directe link naar gekoppelde order
-4. **Reply Tracking** - Markeer berichten als beantwoord
+Dit plan introduceert een **in-context visual editor** waarmee merchants direct op de storefront preview kunnen klikken om content te bewerken. Dit is een significante upgrade ten opzichte van de huidige "bewerken via dialoog" aanpak.
 
 ---
 
-## 1. Marketplace Badge in UI
+## Huidige Situatie
 
-### MessageBubble.tsx
+De huidige storefront beheer bestaat uit:
 
-Voeg een marketplace indicator toe boven het bericht:
+| Component | Functie | Editing Methode |
+|-----------|---------|-----------------|
+| `HomepageBuilder` | Homepage secties beheren | Dialoog (SectionEditor) |
+| `StorefrontPagesManager` | Statische pagina's (About, FAQ) | Dialoog met RichTextEditor |
+| `LegalPagesManager` | Juridische pagina's | Dialoog (LegalPageEditor) |
+| `ThemeCustomizer` | Kleuren, fonts, layout | Formulier velden |
+| `PreviewPanel` | Live preview in iframe | Alleen bekijken, geen editing |
 
-```typescript
-// Detecteer marketplace uit context_data
-const marketplace = (message as any).context_data?.marketplace;
-
-// Badge component in de bubble
-{marketplace === 'bol_com' && (
-  <div className="flex items-center gap-1 mb-1">
-    <ShoppingBag className="h-3 w-3 text-orange-500" />
-    <span className="text-xs text-orange-600 font-medium">Bol.com</span>
-  </div>
-)}
-```
-
-### ConversationItem.tsx
-
-Toon marketplace icoon naast channel icoon in de lijst.
+**Beperking**: Content bewerken vindt plaats in gescheiden dialoogvensters, niet direct in de preview.
 
 ---
 
-## 2. Bijlagen Opslaan
+## Voorgestelde Oplossing
 
-### Database Migratie
+Een **Visual Editor Mode** die:
 
-```sql
-CREATE TABLE customer_message_attachments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  message_id UUID NOT NULL REFERENCES customer_messages(id) ON DELETE CASCADE,
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  filename TEXT NOT NULL,
-  content_type TEXT NOT NULL,
-  size_bytes INTEGER,
-  storage_path TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+1. De preview iframe vervangt door een interactieve editor
+2. Click-to-edit functionaliteit biedt voor tekst, afbeeldingen en knoppen
+3. Real-time updates toont zonder page refresh
+4. Drag & drop voor secties behoudt
 
--- RLS policy
-ALTER TABLE customer_message_attachments ENABLE ROW LEVEL SECURITY;
+---
 
-CREATE POLICY "Tenant members can view attachments"
-  ON customer_message_attachments FOR SELECT
-  USING (tenant_id IN (SELECT tenant_id FROM user_roles WHERE user_id = auth.uid()));
+## Implementatie Strategie
+
+### Fase 1: Interactieve Preview Panel
+
+**Nieuwe `VisualEditorCanvas` component**:
+- Rendert homepage secties **direct in React** (geen iframe)
+- Voegt edit overlays toe aan elk bewerkbaar element
+- Communiceert met `useStorefront` voor real-time saves
+
+```text
++------------------------------------------+
+|  [Desktop] [Tablet] [Mobile]   [Refresh] |
++------------------------------------------+
+|                                          |
+|  +------------------------------------+  |
+|  |  HERO SECTION                [Edit]|  |
+|  |  "Welkom bij onze shop"           |  |
+|  |  [Klik om te bewerken]            |  |
+|  +------------------------------------+  |
+|                                          |
+|  +------------------------------------+  |
+|  |  FEATURED PRODUCTS         [Edit] |  |
+|  |  [Product 1] [Product 2] ...      |  |
+|  +------------------------------------+  |
+|                                          |
++------------------------------------------+
 ```
 
-### Edge Function Update
+### Fase 2: Inline Text Editing
 
-In `handle-inbound-email/index.ts`:
+**Voor tekstvelden** (titels, subtitels, knopteksten):
+- Klik om te selecteren
+- Contenteditable voor directe bewerking
+- Auto-save na blur of na 2 seconden inactiviteit
 
+**Component: `InlineTextEditor`**:
 ```typescript
-// Na message insert, upload attachments
-if (payload.attachments?.length) {
-  for (const attachment of payload.attachments) {
-    const storagePath = `${tenantId}/messages/${message.id}/${attachment.filename}`;
-    
-    // Decode base64 and upload
-    const bytes = Uint8Array.from(atob(attachment.content), c => c.charCodeAt(0));
-    
-    await supabase.storage
-      .from('message-attachments')
-      .upload(storagePath, bytes, {
-        contentType: attachment.content_type,
-      });
-    
-    // Save reference
-    await supabase.from('customer_message_attachments').insert({
-      message_id: message.id,
-      tenant_id: tenantId,
-      filename: attachment.filename,
-      content_type: attachment.content_type,
-      size_bytes: bytes.length,
-      storage_path: storagePath,
-    });
-  }
+interface InlineTextEditorProps {
+  value: string;
+  onSave: (newValue: string) => void;
+  as?: 'h1' | 'h2' | 'p' | 'span';
+  placeholder?: string;
 }
 ```
 
-### UI Component
+### Fase 3: Image & Media Picker
 
-Toon bijlagen onder het bericht met download links.
+**Voor afbeeldingsvelden** (hero images, sectie achtergronden):
+- Klik op afbeelding opent media picker
+- Upload naar Supabase Storage
+- Preview direct bijgewerkt
 
----
+**Component: `VisualMediaPicker`**:
+- Integreert met bestaande Storage functionaliteit
+- Toont recent geüploade afbeeldingen
+- Ondersteunt drag & drop upload
 
-## 3. Order Link in Conversatie Header
+### Fase 4: Section Management in Context
 
-### ConversationDetail.tsx
-
-```typescript
-// Haal order_id uit laatste bericht
-const linkedOrderId = messages.find(m => m.order_id)?.order_id;
-
-// In header, naast klantprofiel button
-{linkedOrderId && (
-  <Button variant="outline" size="sm" asChild>
-    <Link to={`/admin/orders/${linkedOrderId}`}>
-      <Package className="h-4 w-4 mr-1" />
-      Bestelling
-      <ExternalLink className="h-3 w-3 ml-1" />
-    </Link>
-  </Button>
-)}
+**Toolbar per sectie**:
+```text
++------------------------------------------+
+|  Hero Banner                             |
+|  [Grip ↕] [Settings ⚙] [Hide 👁] [Delete]|
++------------------------------------------+
 ```
 
----
-
-## 4. Reply Tracking (replied_at)
-
-### ReplyComposer.tsx
-
-Na succesvol verzenden, update het originele inbound bericht:
-
-```typescript
-// Na handleSend success
-// Update laatste inbound bericht als beantwoord
-const lastInbound = conversation.messages.find(
-  m => m.direction === 'inbound' && !m.replied_at
-);
-
-if (lastInbound) {
-  await supabase
-    .from('customer_messages')
-    .update({ 
-      replied_at: new Date().toISOString(),
-      reply_message_id: data.message_id // ID van het antwoord
-    })
-    .eq('id', lastInbound.id);
-}
-```
+**Quick-edit panel** (slide-in van rechts):
+- Verschijnt bij klik op Settings icoon
+- Sectie-specifieke instellingen
+- Kleiner dan huidige full-screen dialoog
 
 ---
 
-## Bestanden Overzicht
+## Nieuwe Bestanden
+
+| Bestand | Beschrijving |
+|---------|--------------|
+| `src/components/admin/storefront/visual-editor/VisualEditorCanvas.tsx` | Hoofdcontainer voor visual editing |
+| `src/components/admin/storefront/visual-editor/InlineTextEditor.tsx` | Click-to-edit tekstveld |
+| `src/components/admin/storefront/visual-editor/VisualMediaPicker.tsx` | Afbeelding selector/uploader |
+| `src/components/admin/storefront/visual-editor/EditableSection.tsx` | Wrapper voor elke sectie met edit controls |
+| `src/components/admin/storefront/visual-editor/SectionToolbar.tsx` | Hover toolbar per sectie |
+| `src/components/admin/storefront/visual-editor/QuickEditPanel.tsx` | Slide-in settings panel |
+| `src/components/admin/storefront/visual-editor/sections/*.tsx` | Editable versies van Hero, TextImage, etc. |
+
+---
+
+## Aanpassingen Bestaande Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `supabase/migrations/xxx.sql` | Attachments tabel + storage bucket |
-| `supabase/functions/handle-inbound-email/index.ts` | Bijlagen opslaan |
-| `src/components/admin/inbox/MessageBubble.tsx` | Marketplace badge + attachments |
-| `src/components/admin/inbox/ConversationDetail.tsx` | Order link in header |
-| `src/components/admin/inbox/ConversationItem.tsx` | Marketplace icoon |
-| `src/components/admin/inbox/ReplyComposer.tsx` | replied_at update |
-| `src/hooks/useInbox.ts` | context_data + order_id in query |
+| `HomepageBuilder.tsx` | Toggle tussen "List View" en "Visual Editor" mode |
+| `PreviewPanel.tsx` | Optionele "Edit Mode" prop voor interactieve preview |
+| `useStorefront.ts` | Optimistic updates voor snellere UX |
+| `Storefront.tsx` | Visual editor tab toevoegen |
 
 ---
 
-## Prioriteit
+## Database Wijzigingen
 
-| Feature | Impact | Complexiteit |
-|---------|--------|--------------|
-| Reply Tracking | Hoog | Laag |
-| Order Link | Hoog | Laag |
-| Marketplace Badge | Medium | Laag |
-| Bijlagen | Medium | Medium |
+**Geen database wijzigingen nodig** - alle data structuren zijn al aanwezig in:
+- `homepage_sections` (content, settings JSON)
+- `storefront_pages` (content HTML)
+- `tenant_theme_settings` (branding)
 
-Ik raad aan te starten met **Reply Tracking** en **Order Link** - deze zijn snel te implementeren en hebben de meeste impact op de gebruikerservaring.
+---
+
+## Technische Details
+
+### Communicatie Pattern
+
+```text
+VisualEditorCanvas
+    |
+    +-- EditableSection (per sectie)
+    |       |
+    |       +-- InlineTextEditor (voor title, subtitle)
+    |       +-- VisualMediaPicker (voor images)
+    |       +-- SectionToolbar (hover actions)
+    |
+    +-- QuickEditPanel (slide-in voor geavanceerde settings)
+```
+
+### Auto-Save Logica
+
+```typescript
+// Debounced save na 2 seconden
+const debouncedSave = useDebouncedCallback((updates) => {
+  updateSection.mutate(updates);
+}, 2000);
+
+// Optimistic update voor instant feedback
+queryClient.setQueryData(
+  ['homepage-sections', tenantId], 
+  (old) => old.map(s => s.id === id ? { ...s, ...updates } : s)
+);
+```
+
+### Edit Mode Detection
+
+```typescript
+// URL param of context voor edit mode
+const { isEditMode } = useVisualEditor();
+
+// Conditioneel renderen van edit controls
+{isEditMode && <SectionToolbar ... />}
+```
+
+---
+
+## UX Flow
+
+1. Merchant gaat naar **Webshop > Homepage**
+2. Klikt op **"Visual Editor"** toggle (nieuw)
+3. Ziet live preview met edit overlays
+4. **Hover** over sectie toont toolbar
+5. **Klik** op tekst opent inline editor
+6. **Klik** op afbeelding opent media picker
+7. Wijzigingen worden **automatisch opgeslagen**
+8. **Drag & drop** om secties te herschikken
+
+---
+
+## Prioriteit per Onderdeel
+
+| Feature | Impact | Complexiteit | Prioriteit |
+|---------|--------|--------------|------------|
+| VisualEditorCanvas | Hoog | Medium | 1 |
+| InlineTextEditor | Hoog | Laag | 2 |
+| EditableSection + Toolbar | Hoog | Medium | 3 |
+| VisualMediaPicker | Medium | Medium | 4 |
+| QuickEditPanel | Medium | Laag | 5 |
+| StaticPageVisualEditor | Medium | Medium | 6 |
+
+---
+
+## Toekomstige Uitbreidingen
+
+- **AI Content Suggesties**: "Genereer hero tekst" knop
+- **Undo/Redo**: History stack voor bewerkingen
+- **Mobile Preview Editing**: Touch-friendly versie
+- **Collaboration**: Realtime editing indicators
+- **Templates**: Pre-built sectie layouts
+
+---
+
+## Samenvatting
+
+Deze implementatie transformeert de storefront editor van een "configuratie-gebaseerd" systeem naar een **true WYSIWYG visual editor**, vergelijkbaar met Shopify's Online Store 2.0 of Squarespace's editing ervaring. De bestaande infrastructuur (useStorefront, RichTextEditor, PreviewPanel) wordt hergebruikt en uitgebreid.
