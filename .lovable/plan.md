@@ -1,289 +1,209 @@
 
+# Plan: Meta Messages (Facebook & Instagram) Toevoegen aan Unified Inbox
 
-# Plan: Complete Marketing Page Uitbreiding - Alle Features In de Verf
+## Analyse
 
-## Analyse: Ontdekte Features Die NIET Vermeld Worden
+De bestaande Unified Inbox architectuur is **uitstekend voorbereid** voor uitbreiding. De `customer_messages` tabel fungeert als universele opslag voor alle kanalen, en het WhatsApp webhook patroon kan direct hergebruikt worden voor Facebook Messenger en Instagram DMs.
 
-Na grondige analyse van de hele codebase ontdek ik dat jullie app **veel rijker is** dan de huidige marketing page laat zien. Hier is wat ik gevonden heb:
+### Waarom Dit Goed Past
 
-### Marketplace Integraties (Ondervertegenwoordigd)
-| Feature | Status op Marketing |
-|---------|---------------------|
-| Bol.com met VVB labels & auto-accept | Alleen VVB genoemd in UniqueAdvantages |
-| **Amazon sync** | Alleen in Pricing als Enterprise feature |
-| **Odoo ERP sync** | NIET vermeld |
-| Shopify/WooCommerce import | Alleen in FAQ |
-| eBay sync | Alleen in Pricing |
+| Aspect | Huidige Situatie | Meta Messages Fit |
+|--------|------------------|-------------------|
+| **Webhook Pattern** | WhatsApp gebruikt Meta Graph API webhooks | Facebook/Instagram gebruiken **dezelfde** Meta Graph API |
+| **Database** | `channel` kolom accepteert string values | Voeg `facebook` en `instagram` toe |
+| **Social Connections** | `social_channel_connections` tabel bestaat al | Credentials kunnen hier opgeslagen worden |
+| **Meta App** | Waarschijnlijk al een Meta App voor WhatsApp | Zelfde app kan Messenger/Instagram permissions krijgen |
 
-### AI Capabilities (Te Zwak Gepresenteerd)
-| Feature | Status op Marketing |
-|---------|---------------------|
-| AI Marketing Hub (posts, emails, images) | Alleen "AI Marketing Assistent" |
-| **AI SEO Dashboard** (Quick Wins, Score, Technische SEO) | NIET vermeld |
-| **AI Vertaal Hub** (EN/DE/FR bulk translate) | NIET vermeld |
-| **AI Chatbot voor webshop** (24/7 support) | NIET vermeld |
-| **AI Reply Suggestions** (inbox) | NIET vermeld |
-| AI Business Coach (proactieve alerts) | Alleen in UniqueAdvantages |
-| A/B testing variations | NIET vermeld |
+### Meta Messaging API's
 
-### Ads & Social (Volledig Ontbrekend)
-| Feature | Status op Marketing |
-|---------|---------------------|
-| **Bol.com Sponsored Products** | NIET vermeld |
-| **Meta Ads manager** | NIET vermeld |
-| **Social Commerce** (Facebook/Instagram Shop sync) | NIET vermeld |
-| **WhatsApp Business** (catalogs, transactional messages) | NIET vermeld |
-| Autopost naar X/LinkedIn/Facebook | NIET vermeld |
+| Platform | API | Webhook Events |
+|----------|-----|----------------|
+| Facebook Messenger | Messenger Platform API | `messaging`, `messaging_postbacks` |
+| Instagram DMs | Instagram Graph API | `messages`, `messaging_postbacks` |
 
-### Fulfillment & Operations (Ondervertegenwoordigd)
-| Feature | Status op Marketing |
-|---------|---------------------|
-| **Fulfillment Queue dashboard** | NIET vermeld |
-| 14+ internationale carriers | NIET vermeld |
-| **POS Kassasysteem** (multi-terminal) | NIET vermeld |
-| Recurring Subscriptions | NIET vermeld |
-| Multi-warehouse support | NIET vermeld |
-
-### Storefront Builder (Ondervertegenwoordigd)
-| Feature | Status op Marketing |
-|---------|---------------------|
-| Visual WYSIWYG Editor | NIET vermeld |
-| Theme gallery & customizer | NIET vermeld |
-| Homepage drag-and-drop builder | NIET vermeld |
-| **Reviews Hub** (Google, Trustpilot, etc.) | NIET vermeld |
-| Legal pages generator | NIET vermeld |
-
-### Unified Inbox (Volledig Ontbrekend)
-| Feature | Status op Marketing |
-|---------|---------------------|
-| Email + WhatsApp unified inbox | NIET vermeld |
-| Bol.com/Amazon message routing | NIET vermeld |
-| AI reply suggestions | NIET vermeld |
+Beide gebruiken hetzelfde webhook formaat als WhatsApp, met kleine verschillen in de payload structuur.
 
 ---
 
-## Voorgestelde Wijzigingen
+## Implementatie Overzicht
 
-### 1. Nieuwe Sectie: "IntegrationsShowcaseSection"
+### Fase 1: Database Updates
 
-**Doel**: Visueel laten zien welke platformen je kunt koppelen - dit is vaak HET beslismoment voor merchants.
+**Wijzigingen aan `customer_messages` tabel:**
+- Voeg nieuwe channel types toe: `facebook`, `instagram`
+- Voeg kolommen toe voor platform-specifieke IDs
 
-**Nieuw bestand**: `src/components/landing/IntegrationsShowcaseSection.tsx`
+```sql
+-- Add new channel types
+ALTER TABLE customer_messages 
+DROP CONSTRAINT IF EXISTS customer_messages_channel_check;
+
+ALTER TABLE customer_messages 
+ADD CONSTRAINT customer_messages_channel_check 
+CHECK (channel IN ('email', 'whatsapp', 'sms', 'facebook', 'instagram'));
+
+-- Add Meta platform specific columns
+ALTER TABLE customer_messages
+ADD COLUMN IF NOT EXISTS meta_sender_id TEXT,
+ADD COLUMN IF NOT EXISTS meta_page_id TEXT,
+ADD COLUMN IF NOT EXISTS meta_message_id TEXT;
+```
+
+**Nieuwe tabel voor Meta Messaging connections:**
+
+```sql
+CREATE TABLE public.meta_messaging_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL CHECK (platform IN ('facebook', 'instagram')),
+  page_id TEXT NOT NULL,
+  page_name TEXT,
+  page_access_token TEXT NOT NULL, -- Encrypted
+  instagram_account_id TEXT, -- Only for Instagram
+  webhook_verify_token TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(tenant_id, platform, page_id)
+);
+```
+
+### Fase 2: Edge Functions
+
+**Nieuw bestand: `supabase/functions/meta-messaging-webhook/index.ts`**
+
+Unified webhook handler voor zowel Facebook Messenger als Instagram DMs:
+
+```typescript
+// Key differences from WhatsApp:
+// 1. Identify platform from webhook payload (messaging vs instagram)
+// 2. Use page_id instead of phone_number_id for connection lookup
+// 3. Handle platform-specific message formats
+
+// Inbound message structure:
+// - Facebook: entry[].messaging[].message.text
+// - Instagram: entry[].messaging[].message.text (same structure)
+// - Sender ID: entry[].messaging[].sender.id (PSID for FB, IGSID for IG)
+```
+
+**Nieuw bestand: `supabase/functions/send-meta-message/index.ts`**
+
+Send messages via Facebook Messenger of Instagram API:
+
+```typescript
+// POST to: https://graph.facebook.com/v18.0/{page_id}/messages
+// Body: { recipient: { id: sender_id }, message: { text: "..." } }
+// Header: Authorization: Bearer {page_access_token}
+```
+
+### Fase 3: Frontend Updates
+
+**1. TypeScript Types (`src/hooks/useInbox.ts`)**
+
+```diff
+ export interface InboxMessage {
+   // ...existing fields...
+-  channel: 'email' | 'whatsapp' | 'sms';
++  channel: 'email' | 'whatsapp' | 'sms' | 'facebook' | 'instagram';
++  meta_sender_id?: string;
++  meta_page_id?: string;
+ }
+
+ export interface InboxFilters {
+-  channel: 'all' | 'email' | 'whatsapp';
++  channel: 'all' | 'email' | 'whatsapp' | 'facebook' | 'instagram' | 'social';
+   // 'social' = grouped filter for WhatsApp + Facebook + Instagram
+ }
+```
+
+**2. Inbox Filters (`src/components/admin/inbox/InboxFilters.tsx`)**
+
+Voeg tabs toe voor Facebook en Instagram, of groepeer ze onder "Social":
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ "Verbind Met Alle Platformen Die Je Gebruikt"                   │
-│                                                                  │
-│ [E-COMMERCE ROW]                                                │
-│ [Bol.com] [Amazon] [Shopify] [WooCommerce] [Odoo]              │
-│                                                                  │
-│ [ADVERTISING ROW]                                               │
-│ [Meta Ads] [Bol Sponsored] [Google Ads*] [Amazon Ads*]         │
-│                                     *Binnenkort                  │
-│                                                                  │
-│ [SOCIAL COMMERCE ROW]                                           │
-│ [Facebook Shop] [Instagram Shopping] [WhatsApp Business]       │
-│ [Google Shopping] [Pinterest*]                                  │
-│                                                                  │
-│ [OPERATIONS ROW]                                                │
-│ [PostNL] [DHL] [Sendcloud] [Resend] [Stripe] [Peppol]          │
-└─────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ [Alle] [Email] [Social ▾]                                     │
+│                 └── WhatsApp (5)                              │
+│                     Facebook (3)                              │
+│                     Instagram (2)                             │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Update FeaturesSection - Uitbreiding naar 9 Core Categories
+**3. Reply Composer (`src/components/admin/inbox/ReplyComposer.tsx`)**
 
-**Bestaand bestand**: `src/components/landing/FeaturesSection.tsx`
+```diff
+- const [channel, setChannel] = useState<'email' | 'whatsapp'>(...)
++ const [channel, setChannel] = useState<'email' | 'whatsapp' | 'facebook' | 'instagram'>(...)
 
-**Huidige 6 features -> Nieuwe 9 features:**
++ } else if (channel === 'facebook' || channel === 'instagram') {
++   const { error } = await supabase.functions.invoke('send-meta-message', {
++     body: {
++       tenant_id: currentTenant.id,
++       platform: channel,
++       recipient_id: conversation.customer?.meta_sender_id,
++       page_id: conversation.lastMessage.meta_page_id,
++       message: message.trim(),
++     },
++   });
+```
 
-| # | Huidige Feature | Actie |
-|---|-----------------|-------|
-| 1 | Multi-Channel Verkoop | Update: voeg Odoo, Amazon, Meta toe |
-| 2 | Real-Time Voorraadsync | Behouden |
-| 3 | AI Marketing Assistent | Update: uitbreiden met specifieke capabilities |
-| 4 | 8 Promotietypen | Behouden |
-| 5 | Slimme Financiën | Update: Peppol prominent |
-| 6 | Groei-Insights | Behouden |
-| **7** | **NIEUW: AI SEO & Vertalingen** | SEO Dashboard + Translation Hub |
-| **8** | **NIEUW: Unified Inbox** | Email + WhatsApp + AI suggestions |
-| **9** | **NIEUW: Webshop Builder** | Visual Editor + Themes + Reviews |
+**4. Message Bubble (`src/components/admin/inbox/MessageBubble.tsx`)**
 
-**Nieuwe features array:**
+Voeg icons toe voor Facebook en Instagram:
 
 ```typescript
-const features: Feature[] = [
-  {
-    icon: Store,
-    title: 'Verkoop Overal, Beheer Centraal',
-    subtitle: 'Multi-Channel Verkoop',
-    description: 'Koppel je Shopify, WooCommerce, Bol.com, Amazon én Odoo. Alle bestellingen, voorraad en klanten op één dashboard.',
-    badge: '20+ integraties',
-    gridSpan: 2,
-  },
-  {
-    icon: Package,
-    title: 'Nooit Meer Uitverkocht',
-    subtitle: 'Real-Time Voorraadsync',
-    description: 'Automatische sync tussen al je kanalen. Verkoop je iets op Amazon? Je Bol.com en webshop worden direct bijgewerkt.',
-    gridSpan: 1,
-  },
-  {
-    icon: Sparkles,
-    title: 'Complete AI Marketing Suite',
-    subtitle: 'Content, SEO & Campagnes',
-    description: 'Genereer social posts, productbeschrijvingen, email content én afbeeldingen. Plan advertenties op Bol.com en Meta.',
-    badge: 'AI-powered',
-    features: [
-      'AI Content Hub met agenda',
-      'Automatisch posten naar social media',
-      'Bol.com & Meta Ads manager',
-    ],
-    gridSpan: 2,
-  },
-  {
-    icon: Search,
-    title: 'AI SEO & Vertalingen',
-    subtitle: 'Gevonden Worden',
-    description: 'SEO Dashboard met Quick Wins, technische checks en AI Search optimalisatie. Bulk-vertaal naar EN/DE/FR met één klik.',
-    badge: 'Exclusief',
-    gridSpan: 1,
-  },
-  {
-    icon: Gift,
-    title: '8 Promotietypen',
-    subtitle: 'Kortingen & Loyaliteit',
-    description: 'Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen, klantgroepen en een compleet loyaliteitsprogramma.',
-    features: [
-      'Cadeaubonnen met QR-codes',
-      'Stapelbare kortingen met regels',
-      'VIP tiers met punten multipliers',
-    ],
-    gridSpan: 2,
-  },
-  {
-    icon: MessageSquare,
-    title: 'Unified Inbox',
-    subtitle: 'Alle Communicatie Op Één Plek',
-    description: 'Email en WhatsApp in één inbox. Bol.com en Amazon berichten worden automatisch gerouteerd. AI stelt antwoorden voor.',
-    badge: 'WhatsApp Business',
-    gridSpan: 1,
-  },
-  {
-    icon: Paintbrush,
-    title: 'Drag & Drop Webshop Builder',
-    subtitle: 'Geen Code Nodig',
-    description: 'Kies een theme, pas kleuren aan, bouw je homepage visueel. Reviews van Google, Trustpilot en meer op één plek.',
-    features: [
-      'WYSIWYG Visual Editor',
-      'Multi-platform Reviews Hub',
-      'AI Chatbot voor 24/7 support',
-    ],
-    gridSpan: 2,
-  },
-  {
-    icon: FileText,
-    title: 'Slimme Financiën',
-    subtitle: 'Facturen & BTW',
-    description: 'Factur-X PDF\'s in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-invoicing voor B2B.',
-    badge: 'Peppol 2026',
-    gridSpan: 1,
-  },
-  {
-    icon: TrendingUp,
-    title: 'Groei-Insights & POS',
-    subtitle: 'Data & Fysieke Verkoop',
-    description: 'Real-time inzicht in omzet, winstmarges per product, best sellers. Plus een volledig POS kassasysteem voor je winkel.',
-    badge: 'Omnichannel',
-    gridSpan: 1,
-  },
-];
+import { Facebook, Instagram } from 'lucide-react'; // Of custom icons
+
+const ChannelIcon = {
+  email: Mail,
+  whatsapp: MessageSquare,
+  facebook: Facebook,      // Blauw icon
+  instagram: Instagram,    // Gradient/paars icon
+}[message.channel];
 ```
 
-### 3. Update UniqueAdvantagesSection - Meer AI & Social Focus
+**5. Conversation Item (`src/components/admin/inbox/ConversationItem.tsx`)**
 
-**Bestaand bestand**: `src/components/landing/UniqueAdvantagesSection.tsx`
-
-**Huidige 6 advantages -> Nieuwe 6 met betere focus:**
-
-| # | Huidig | Nieuw |
-|---|--------|-------|
-| 1 | 5-Minuten Setup | Behouden |
-| 2 | Shop Health Score | Behouden |
-| 3 | Proactieve AI Coach | Behouden |
-| 4 | Gamification & Badges | **Vervangen: AI Chatbot 24/7** |
-| 5 | €0 Transactiekosten | Behouden |
-| 6 | Bol.com VVB Labels | **Vervangen: Unified Inbox** |
-
-**Rationale**: Gamification en VVB labels zijn niche features. AI Chatbot en Unified Inbox zijn grotere selling points.
+Voeg visuele indicators toe:
 
 ```typescript
-const advantages = [
-  // ... eerste 3 behouden ...
-  {
-    icon: MessageSquare,
-    emoji: '🤖',
-    title: 'AI Chatbot 24/7',
-    description: 'Je webshop heeft een slimme chatbot die vragen beantwoordt op basis van je producten, FAQ en policies.',
-    highlight: 'Klantenservice op automatische piloot',
-  },
-  {
-    icon: Wallet,
-    emoji: '💸',
-    title: '€0 Transactiekosten',
-    description: 'Met Bank Transfer QR-codes betalen klanten direct via iDEAL/Bancontact zonder Stripe fees.',
-    highlight: 'Bespaar honderden euro\'s',
-  },
-  {
-    icon: Inbox,
-    emoji: '📬',
-    title: 'Unified Inbox',
-    description: 'Email, WhatsApp én marketplace berichten in één inbox. AI stelt antwoorden voor, jij keurt goed.',
-    highlight: 'Nooit meer schakelen',
-  },
-];
+// Badge colors per channel
+const channelColors = {
+  email: 'bg-blue-100 text-blue-700',
+  whatsapp: 'bg-green-100 text-green-700',
+  facebook: 'bg-indigo-100 text-indigo-700',
+  instagram: 'bg-pink-100 text-pink-700',
+};
 ```
 
-### 4. Update SolutionOverviewSection - Meer Integratie Focus
+### Fase 4: Settings Page voor Meta Connections
 
-**Bestaand bestand**: `src/components/landing/SolutionOverviewSection.tsx`
+**Nieuw component: `src/components/admin/settings/MetaMessagingSettings.tsx`**
 
-**Nieuwe solutions array:**
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Meta Messaging Koppelingen                                  │
+├─────────────────────────────────────────────────────────────┤
+│ [Facebook Icon] Facebook Messenger                          │
+│ Status: ● Verbonden met "Mijn Webshop"                     │
+│ [Beheren] [Ontkoppelen]                                    │
+├─────────────────────────────────────────────────────────────┤
+│ [Instagram Icon] Instagram Direct                           │
+│ Status: ○ Niet verbonden                                   │
+│ [Verbinden via Facebook Business Suite]                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Fase 5: OAuth Flow voor Meta Permissions
+
+De bestaande `social-oauth-init` en `social-oauth-callback` edge functions moeten uitgebreid worden om Messaging permissions te vragen:
 
 ```typescript
-const solutions = [
-  {
-    icon: LayoutDashboard,
-    title: 'Alles In Één Dashboard',
-    description: 'Bol, Amazon, Shopify, Odoo - alles op één plek.',
-  },
-  {
-    icon: Zap,
-    title: 'Live In 5 Minuten',
-    description: 'Setup wizard importeert je producten automatisch.',
-  },
-  {
-    icon: Brain,
-    title: 'AI Die Meedenkt',
-    description: 'SEO, content, vertalingen, chatbot - allemaal AI-powered.',
-  },
-  {
-    icon: Globe,
-    title: 'Gebouwd Voor EU',
-    description: 'Peppol, BTW/OSS, GDPR, lokale betaalmethoden ingebakken.',
-  },
-];
+// Additional scopes needed:
+// - pages_messaging (for Facebook Messenger)
+// - instagram_manage_messages (for Instagram DMs)
+// - pages_manage_metadata (for webhook subscription)
 ```
-
-### 5. Update ComparisonSection - Nieuwe Features Toevoegen
-
-**Bestaand bestand**: Zoeken naar `ComparisonSection.tsx`
-
-Voeg toe aan de vergelijkingstabel:
-- AI SEO Dashboard: SellQo ✅, Shopify ❌, Lightspeed ❌
-- Unified Inbox: SellQo ✅, Shopify ❌, Lightspeed ❌
-- Odoo Integration: SellQo ✅, Shopify ❌, Lightspeed ❌
-- Bol.com Ads: SellQo ✅, Shopify ❌, Lightspeed ❌
-- AI Chatbot: SellQo ✅, Shopify Plugin, Lightspeed ❌
 
 ---
 
@@ -293,115 +213,128 @@ Voeg toe aan de vergelijkingstabel:
 
 | Bestand | Doel |
 |---------|------|
-| `IntegrationsShowcaseSection.tsx` | Visuele integratie-grid met alle platformen |
+| `supabase/functions/meta-messaging-webhook/index.ts` | Webhook handler voor FB/IG berichten |
+| `supabase/functions/send-meta-message/index.ts` | Verstuur berichten via FB/IG |
+| `src/components/admin/settings/MetaMessagingSettings.tsx` | Settings UI voor connections |
+| `src/hooks/useMetaMessaging.ts` | Hook voor Meta messaging functionaliteit |
 
 ### Aangepaste Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `Landing.tsx` | Voeg IntegrationsShowcaseSection toe (na SolutionOverview) |
-| `FeaturesSection.tsx` | Uitbreiden van 6 naar 9 core features |
-| `UniqueAdvantagesSection.tsx` | Vervang Gamification + VVB met AI Chatbot + Unified Inbox |
-| `SolutionOverviewSection.tsx` | Update teksten voor meer integratie focus |
-| `ComparisonSection.tsx` | Voeg 5 nieuwe vergelijkingsrijen toe |
+| `src/hooks/useInbox.ts` | Nieuwe channel types, customer fields |
+| `src/components/admin/inbox/InboxFilters.tsx` | Facebook/Instagram filter tabs |
+| `src/components/admin/inbox/ReplyComposer.tsx` | Send via FB/IG support |
+| `src/components/admin/inbox/MessageBubble.tsx` | FB/IG icons en styling |
+| `src/components/admin/inbox/ConversationItem.tsx` | Channel badges |
+| `supabase/functions/social-oauth-init/index.ts` | Messaging permissions |
+| `supabase/functions/social-oauth-callback/index.ts` | Handle messaging scopes |
+
+### Database Migraties
+
+| Migratie | Doel |
+|----------|------|
+| `add_meta_messaging_channels.sql` | Channel types uitbreiden |
+| `create_meta_messaging_connections.sql` | Connections tabel |
+| `add_meta_message_columns.sql` | Platform-specifieke kolommen |
 
 ---
 
-## Nieuwe Landing Page Flow
+## Technische Overwegingen
+
+### 1. Meta App Configuration
+
+Je huidige Meta App voor WhatsApp kan uitgebreid worden met:
+- **Messenger** product (voor Facebook pages)
+- **Instagram** product (voor Instagram Business accounts)
+
+Beide vereisen:
+- Webhook subscription voor `messages` events
+- Page Access Tokens met juiste permissions
+
+### 2. Customer Matching
+
+Voor Facebook/Instagram moeten we klanten matchen op:
+- `meta_sender_id` (PSID voor Facebook, IGSID voor Instagram)
+- Of via email als de klant die heeft gedeeld
+
+Nieuw veld in `customers` tabel:
+
+```sql
+ALTER TABLE customers
+ADD COLUMN IF NOT EXISTS facebook_psid TEXT,
+ADD COLUMN IF NOT EXISTS instagram_id TEXT;
+```
+
+### 3. Rate Limits
+
+| Platform | Rate Limit |
+|----------|------------|
+| Facebook Messenger | 200 calls/hour per page |
+| Instagram DMs | 1000 messages/day per account |
+
+Implementeer queue-based sending voor hoge volumes.
+
+### 4. 24-Hour Window Rule
+
+Net als WhatsApp heeft Facebook/Instagram een 24-uurs regel:
+- Na 24 uur zonder klantinteractie kun je alleen "message tags" gebruiken
+- Of de klant moet opnieuw een bericht sturen
+
+---
+
+## Visueel Eindresultaat
 
 ```text
-1. HeroSection
-2. SocialProofSection
-3. ProblemSection
-4. SolutionOverviewSection (updated)
-5. IntegrationsShowcaseSection (NIEUW)
-6. UniqueAdvantagesSection (updated)
-7. FeaturesSection (expanded to 9)
-8. ComparisonSection (expanded)
-9. TestimonialsSection
-10. PricingSection
-11. FaqSection
-12. FinalCtaSection
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Klantgesprekken                                                         │
+├────────────────────────────┬────────────────────────────────────────────┤
+│ [Alle] [Email] [Social ▾] │                                            │
+│                            │  Jan de Vries                              │
+│ ┌────────────────────────┐ │  ────────────────────────────────────────  │
+│ │ [IG] Emma Bakker   2m  │ │  [FB] Hallo, ik heb een vraag over        │
+│ │ Heb je nog voorraad?   │ │  mijn bestelling #1234                    │
+│ └────────────────────────┘ │                                     14:32  │
+│ ┌────────────────────────┐ │                                            │
+│ │ [FB] Jan de Vries  5m  │ │  [Jij] Hoi Jan! Ja, je bestelling is      │
+│ │ Vraag over bestelling  │ │  onderweg. Tracking: 3SXXXX               │
+│ └────────────────────────┘ │                                     14:35  │
+│ ┌────────────────────────┐ │                                            │
+│ │ [WA] Pieter Jansen 1u  │ │  ────────────────────────────────────────  │
+│ │ Is dit ook in blauw?   │ │                                            │
+│ └────────────────────────┘ │  [Email] [WhatsApp] [Facebook] [Instagram] │
+│                            │  ┌────────────────────────────────────────┐│
+│                            │  │ Typ je antwoord...                     ││
+│                            │  └────────────────────────────────────────┘│
+└────────────────────────────┴────────────────────────────────────────────┘
 ```
 
 ---
 
-## Technische Details
+## Implementatie Volgorde
 
-### IntegrationsShowcaseSection Component Structure
-
-```typescript
-interface IntegrationCategory {
-  title: string;
-  integrations: {
-    name: string;
-    logo?: string; // Of icon component
-    status: 'live' | 'coming-soon';
-    badge?: string; // bijv. "Nieuw" of "Pro"
-  }[];
-}
-
-const categories: IntegrationCategory[] = [
-  {
-    title: 'E-commerce & ERP',
-    integrations: [
-      { name: 'Bol.com', status: 'live', badge: 'VVB Labels' },
-      { name: 'Amazon', status: 'live' },
-      { name: 'Shopify', status: 'live' },
-      { name: 'WooCommerce', status: 'live' },
-      { name: 'Odoo', status: 'live', badge: 'Nieuw' },
-      { name: 'eBay', status: 'live' },
-    ],
-  },
-  {
-    title: 'Advertenties',
-    integrations: [
-      { name: 'Bol.com Sponsored Products', status: 'live' },
-      { name: 'Meta Ads', status: 'live' },
-      { name: 'Google Ads', status: 'coming-soon' },
-      { name: 'Amazon Advertising', status: 'coming-soon' },
-    ],
-  },
-  {
-    title: 'Social Commerce',
-    integrations: [
-      { name: 'Facebook Shop', status: 'live' },
-      { name: 'Instagram Shopping', status: 'live' },
-      { name: 'WhatsApp Business', status: 'live' },
-      { name: 'Google Shopping', status: 'live' },
-    ],
-  },
-  {
-    title: 'Operations & Payments',
-    integrations: [
-      { name: 'PostNL', status: 'live' },
-      { name: 'DHL', status: 'live' },
-      { name: 'Sendcloud', status: 'live' },
-      { name: 'Stripe Connect', status: 'live' },
-      { name: 'Peppol', status: 'live', badge: 'B2B' },
-      { name: 'Resend', status: 'live' },
-    ],
-  },
-];
-```
-
-### Imports Toevoegen aan FeaturesSection
-
-```typescript
-import { 
-  Store, Package, TrendingUp, FileText, Sparkles, Gift, Check,
-  Search, MessageSquare, Paintbrush // Nieuwe icons
-} from 'lucide-react';
-```
+| Stap | Actie | Prioriteit |
+|------|-------|------------|
+| 1 | Database migraties uitvoeren | Hoog |
+| 2 | `meta-messaging-webhook` edge function | Hoog |
+| 3 | `send-meta-message` edge function | Hoog |
+| 4 | Frontend types en filters updaten | Hoog |
+| 5 | ReplyComposer FB/IG support | Hoog |
+| 6 | Message/Conversation UI updates | Medium |
+| 7 | Settings page voor connections | Medium |
+| 8 | OAuth flow uitbreiden | Medium |
+| 9 | Customer matching logica | Medium |
+| 10 | Rate limiting en error handling | Laag |
 
 ---
 
-## Verwachte Impact
+## Samenvatting
 
-| Metric | Verwachting |
-|--------|-------------|
-| Feature awareness | +40% - bezoekers zien nu ALLE capabilities |
-| Integration confidence | +50% - visuele grid bewijst compatibiliteit |
-| AI perception | +35% - prominentere AI positioning |
-| Competitor differentiation | +25% - meer unieke features in comparison |
-
+| Aspect | Details |
+|--------|---------|
+| **Nieuwe kanalen** | Facebook Messenger + Instagram DMs |
+| **Hergebruik** | WhatsApp webhook pattern, Meta Graph API |
+| **Database** | 2 nieuwe tabellen, 3 kolom toevoegingen |
+| **Edge Functions** | 2 nieuwe, 2 aangepast |
+| **Frontend** | 5 componenten aangepast |
+| **Tijdsinschatting** | ~4-6 uur implementatie |
