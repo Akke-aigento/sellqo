@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Mail, MessageSquare, Sparkles, X } from 'lucide-react';
+import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,9 @@ import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionBox } from './AISuggestionBox';
 import { AttachmentUploader } from './AttachmentUploader';
-import type { Conversation } from '@/hooks/useInbox';
+import type { Conversation, MessageChannel, isSocialChannel } from '@/hooks/useInbox';
+
+type ReplyChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
 
 interface UploadedFile {
   file: File;
@@ -27,9 +29,17 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
-  const [channel, setChannel] = useState<'email' | 'whatsapp'>(
-    conversation.channel === 'whatsapp' ? 'whatsapp' : 'email'
-  );
+  
+  // Determine initial channel based on conversation
+  const getInitialChannel = (): ReplyChannel => {
+    const ch = conversation.channel;
+    if (ch === 'whatsapp') return 'whatsapp';
+    if (ch === 'facebook') return 'facebook';
+    if (ch === 'instagram') return 'instagram';
+    return 'email';
+  };
+  
+  const [channel, setChannel] = useState<ReplyChannel>(getInitialChannel());
   const [isSending, setIsSending] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
 
@@ -39,11 +49,19 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
 
   const canSendWhatsApp = conversation.customer?.phone && currentTenant?.whatsapp_enabled;
   const canSendEmail = !!conversation.customer?.email;
+  
+  // Check for Meta messaging - based on conversation channel or customer IDs
+  const canSendFacebook = conversation.channel === 'facebook' || 
+    (conversation.lastMessage?.meta_sender_id && conversation.lastMessage?.channel === 'facebook');
+  const canSendInstagram = conversation.channel === 'instagram' || 
+    (conversation.lastMessage?.meta_sender_id && conversation.lastMessage?.channel === 'instagram');
+  
+  const hasMultipleChannels = [canSendEmail, canSendWhatsApp, canSendFacebook, canSendInstagram].filter(Boolean).length > 1;
 
   // Check if AI suggestions are enabled for this channel
   const shouldShowAISuggestion = aiConfig?.reply_suggestions_enabled && (
     (channel === 'email' && aiConfig.reply_suggestions_for_email) ||
-    (channel === 'whatsapp' && aiConfig.reply_suggestions_for_whatsapp)
+    (['whatsapp', 'facebook', 'instagram'].includes(channel) && aiConfig.reply_suggestions_for_whatsapp)
   );
 
   // Fetch AI suggestion when conversation changes (only if enabled)
@@ -57,7 +75,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           conversationId: conversation.id,
           customerMessage: messageContent,
           customerName: conversation.customer?.name,
-          channel,
+          channel: channel === 'email' ? 'email' : 'whatsapp', // AI suggestions treat social as whatsapp
           context: {
             orderId: lastMessage.order_id || undefined,
             subject: lastMessage.subject || undefined,
@@ -97,7 +115,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       conversationId: conversation.id,
       customerMessage: messageContent,
       customerName: conversation.customer?.name,
-      channel,
+      channel: channel === 'email' ? 'email' : 'whatsapp', // AI suggestions treat social as whatsapp
       context: {
         orderId: conversation.lastMessage.order_id || undefined,
         subject: conversation.lastMessage.subject || undefined,
@@ -143,6 +161,19 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           },
         });
         if (error) throw error;
+      } else if (channel === 'facebook' || channel === 'instagram') {
+        // Send via Meta Messaging (Facebook/Instagram)
+        const { error } = await supabase.functions.invoke('send-meta-message', {
+          body: {
+            tenant_id: currentTenant.id,
+            platform: channel,
+            recipient_id: conversation.lastMessage?.meta_sender_id,
+            page_id: conversation.lastMessage?.meta_page_id,
+            message: message.trim(),
+            customer_id: conversation.customer?.id,
+          },
+        });
+        if (error) throw error;
       } else {
         // Get threading headers from the last inbound message
         const lastInbound = conversation.messages.find(m => m.direction === 'inbound');
@@ -152,7 +183,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           ? `${contextData.references} ${inReplyTo || ''}`.trim()
           : inReplyTo || null;
 
-        // Send via email - use replyToEmail for marketplace messages (Bol.com, Amazon)
+        // Send via email
         const { error } = await supabase.functions.invoke('send-customer-message', {
           body: {
             tenant_id: currentTenant.id,
@@ -184,9 +215,16 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           .eq('id', lastInbound.id);
       }
 
+      const channelLabels: Record<ReplyChannel, string> = {
+        email: 'email',
+        whatsapp: 'WhatsApp',
+        facebook: 'Facebook Messenger',
+        instagram: 'Instagram',
+      };
+
       toast({
         title: 'Bericht verzonden',
-        description: `Antwoord verstuurd via ${channel === 'whatsapp' ? 'WhatsApp' : 'email'}.`,
+        description: `Antwoord verstuurd via ${channelLabels[channel]}.`,
       });
 
       setMessage('');
@@ -208,8 +246,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   return (
     <div className="border-t p-4 bg-background">
       {/* Channel selector */}
-      {(canSendWhatsApp || conversation.channel === 'mixed') && (
-        <Tabs value={channel} onValueChange={(v) => setChannel(v as 'email' | 'whatsapp')} className="mb-3">
+      {hasMultipleChannels && (
+        <Tabs value={channel} onValueChange={(v) => setChannel(v as ReplyChannel)} className="mb-3">
           <TabsList className="h-8">
             {canSendEmail && (
               <TabsTrigger value="email" className="text-xs px-3 h-7">
@@ -221,6 +259,18 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
               <TabsTrigger value="whatsapp" className="text-xs px-3 h-7">
                 <MessageSquare className="h-3 w-3 mr-1" />
                 WhatsApp
+              </TabsTrigger>
+            )}
+            {canSendFacebook && (
+              <TabsTrigger value="facebook" className="text-xs px-3 h-7">
+                <Facebook className="h-3 w-3 mr-1" />
+                Facebook
+              </TabsTrigger>
+            )}
+            {canSendInstagram && (
+              <TabsTrigger value="instagram" className="text-xs px-3 h-7">
+                <Instagram className="h-3 w-3 mr-1" />
+                Instagram
               </TabsTrigger>
             )}
           </TabsList>

@@ -1,10 +1,10 @@
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, Check, ShoppingBag, Store } from 'lucide-react';
+import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Conversation } from '@/hooks/useInbox';
+import type { Conversation, ConversationChannel } from '@/hooks/useInbox';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -21,6 +21,25 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
   const contextData = (lastMessage as any).context_data as { marketplace?: string } | undefined;
   const marketplace = contextData?.marketplace;
 
+  // Get channel icon based on conversation channel
+  const getChannelIcon = (ch: ConversationChannel) => {
+    switch (ch) {
+      case 'whatsapp':
+        return MessageSquare;
+      case 'facebook':
+        return Facebook;
+      case 'instagram':
+        return Instagram;
+      case 'social':
+      case 'mixed':
+        return MessageSquare; // Default for mixed social
+      default:
+        return Mail;
+    }
+  };
+
+  const ChannelIcon = getChannelIcon(channel);
+
   const initials = customer?.name
     ? customer.name
         .split(' ')
@@ -29,8 +48,6 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
         .toUpperCase()
         .slice(0, 2)
     : '?';
-
-  const ChannelIcon = channel === 'whatsapp' ? MessageSquare : Mail;
 
   // Get preview text
   const previewText = lastMessage.body_text || 

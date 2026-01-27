@@ -5,6 +5,10 @@ import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import { useAuth } from './useAuth';
 
+export type MessageChannel = 'email' | 'whatsapp' | 'sms' | 'facebook' | 'instagram';
+export type ConversationChannel = MessageChannel | 'mixed' | 'social';
+export type FilterChannel = 'all' | 'email' | 'whatsapp' | 'facebook' | 'instagram' | 'social';
+
 export interface InboxMessage {
   id: string;
   tenant_id: string;
@@ -18,7 +22,7 @@ export interface InboxMessage {
   from_email: string;
   to_email: string;
   reply_to_email: string | null;
-  channel: 'email' | 'whatsapp' | 'sms';
+  channel: MessageChannel;
   status: string;
   whatsapp_status: string | null;
   read_at: string | null;
@@ -28,6 +32,10 @@ export interface InboxMessage {
   sent_at: string | null;
   created_at: string;
   updated_at: string;
+  // Meta messaging fields
+  meta_sender_id?: string | null;
+  meta_page_id?: string | null;
+  meta_message_id?: string | null;
   customers?: {
     id: string;
     first_name: string | null;
@@ -35,6 +43,8 @@ export interface InboxMessage {
     email: string;
     phone: string | null;
     whatsapp_number: string | null;
+    facebook_psid?: string | null;
+    instagram_id?: string | null;
   } | null;
 }
 
@@ -45,19 +55,26 @@ export interface Conversation {
     name: string;
     email: string;
     phone?: string;
+    facebook_psid?: string;
+    instagram_id?: string;
   } | null;
   lastMessage: InboxMessage;
   unreadCount: number;
-  channel: 'email' | 'whatsapp' | 'mixed';
+  channel: ConversationChannel;
   messages: InboxMessage[];
   replyToEmail?: string;
 }
 
 export interface InboxFilters {
-  channel: 'all' | 'email' | 'whatsapp';
+  channel: FilterChannel;
   status: 'all' | 'unread' | 'unanswered';
   search: string;
 }
+
+// Helper to check if channel is a social channel
+export const isSocialChannel = (channel: MessageChannel): boolean => {
+  return channel === 'whatsapp' || channel === 'facebook' || channel === 'instagram';
+};
 
 export function useInbox() {
   const { currentTenant } = useTenant();
@@ -95,7 +112,9 @@ export function useInbox() {
         .order('created_at', { ascending: false });
 
       // Apply channel filter
-      if (filters.channel !== 'all') {
+      if (filters.channel === 'social') {
+        query = query.in('channel', ['whatsapp', 'facebook', 'instagram']);
+      } else if (filters.channel !== 'all') {
         query = query.eq('channel', filters.channel);
       }
 
@@ -136,11 +155,17 @@ export function useInbox() {
       
       // Determine channel type
       const channels = new Set(msgs.map((m) => m.channel));
-      let channel: 'email' | 'whatsapp' | 'mixed' = 'email';
+      let channel: ConversationChannel = 'email';
       if (channels.size > 1) {
-        channel = 'mixed';
+        // Check if all are social channels
+        const allSocial = [...channels].every(c => isSocialChannel(c as MessageChannel));
+        channel = allSocial ? 'social' : 'mixed';
       } else if (channels.has('whatsapp')) {
         channel = 'whatsapp';
+      } else if (channels.has('facebook')) {
+        channel = 'facebook';
+      } else if (channels.has('instagram')) {
+        channel = 'instagram';
       }
 
       const unreadCount = msgs.filter(
@@ -159,6 +184,8 @@ export function useInbox() {
               name: [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email,
               email: customer.email,
               phone: customer.whatsapp_number || customer.phone || undefined,
+              facebook_psid: customer.facebook_psid || undefined,
+              instagram_id: customer.instagram_id || undefined,
             }
           : {
               id: key,
