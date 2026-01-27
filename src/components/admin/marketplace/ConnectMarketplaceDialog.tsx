@@ -104,6 +104,12 @@ export function ConnectMarketplaceDialog({
   const [odooModuleEcommerce, setOdooModuleEcommerce] = useState(true);
   const [odooModuleAccounting, setOdooModuleAccounting] = useState(false);
 
+  // eBay-specific state
+  const [ebayAppId, setEbayAppId] = useState('');
+  const [ebayCertId, setEbayCertId] = useState('');
+  const [ebayRefreshToken, setEbayRefreshToken] = useState('');
+  const [ebayMarketplace, setEbayMarketplace] = useState('EBAY_NL');
+
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
@@ -116,6 +122,8 @@ export function ConnectMarketplaceDialog({
         ? { siteUrl, consumerKey, consumerSecret }
         : marketplaceType === 'odoo'
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
+        : marketplaceType === 'ebay'
+        ? { ebayAppId, ebayCertId, ebayRefreshToken, ebayMarketplaceId: ebayMarketplace }
         : { clientId, clientSecret };
 
       const { data, error } = await supabase.functions.invoke('test-marketplace-connection', {
@@ -153,6 +161,8 @@ export function ConnectMarketplaceDialog({
         ? { siteUrl, consumerKey, consumerSecret }
         : marketplaceType === 'odoo'
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
+        : marketplaceType === 'ebay'
+        ? { ebayAppId, ebayCertId, ebayRefreshToken, ebayMarketplaceId: ebayMarketplace }
         : { clientId, clientSecret };
 
       const newConnection = await createConnection.mutateAsync({
@@ -196,6 +206,9 @@ export function ConnectMarketplaceDialog({
       } else if (marketplaceType === 'odoo') {
         syncOrdersFunction = 'sync-odoo-orders';
         syncInventoryFunction = 'sync-odoo-inventory';
+      } else if (marketplaceType === 'ebay') {
+        syncOrdersFunction = 'sync-ebay-orders';
+        syncInventoryFunction = 'sync-ebay-inventory';
       } else {
         syncOrdersFunction = 'sync-bol-orders';
         syncInventoryFunction = 'sync-bol-inventory';
@@ -291,6 +304,10 @@ export function ConnectMarketplaceDialog({
       setOdooApiKey('');
       setOdooModuleEcommerce(true);
       setOdooModuleAccounting(false);
+      setEbayAppId('');
+      setEbayCertId('');
+      setEbayRefreshToken('');
+      setEbayMarketplace('EBAY_NL');
       setTestResult(null);
       setSyncProgress(0);
       setSyncSteps({ orders: false, products: false, inventory: false });
@@ -360,6 +377,17 @@ export function ConnectMarketplaceDialog({
             'Klik op "Nieuwe API sleutel" en geef deze een naam',
             'Kopieer de API sleutel (wordt slechts één keer getoond)',
             'Noteer ook je database naam (zichtbaar in de URL)',
+          ],
+        };
+      case 'ebay':
+        return {
+          title: 'eBay Developer Program',
+          url: 'https://developer.ebay.com/my/keys',
+          steps: [
+            'Ga naar eBay Developer Program en log in',
+            'Maak een Application aan (Production)',
+            'Kopieer App ID (Client ID) en Cert ID (Client Secret)',
+            'Genereer een OAuth Refresh Token via de OAuth tool',
           ],
         };
       default:
@@ -626,6 +654,85 @@ export function ConnectMarketplaceDialog({
                   </p>
                 </div>
               </>
+            ) : marketplaceType === 'ebay' ? (
+              <>
+                <div>
+                  <Label>App ID (Client ID) *</Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="YourAppI-SellQo-PRD-xxxxxxx"
+                    className="mt-1 font-mono text-sm"
+                    value={ebayAppId}
+                    onChange={(e) => setEbayAppId(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Production App ID uit eBay Developer Program
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Cert ID (Client Secret) *</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showSecret ? 'text' : 'password'}
+                      required
+                      placeholder="PRD-xxxxxxx-xxxx-xxxx"
+                      className="pr-10 font-mono text-sm"
+                      value={ebayCertId}
+                      onChange={(e) => setEbayCertId(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>OAuth Refresh Token *</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showSecret ? 'text' : 'password'}
+                      required
+                      placeholder="v^1.1#i^1#r^1#f^0#p^3#..."
+                      className="pr-10 font-mono text-sm"
+                      value={ebayRefreshToken}
+                      onChange={(e) => setEbayRefreshToken(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Genereer via de OAuth tool in Developer Portal
+                  </p>
+                </div>
+
+                <div>
+                  <Label>eBay Marketplace</Label>
+                  <Select value={ebayMarketplace} onValueChange={setEbayMarketplace}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EBAY_NL">Nederland (ebay.nl)</SelectItem>
+                      <SelectItem value="EBAY_BE_NL">België NL (ebay.be)</SelectItem>
+                      <SelectItem value="EBAY_BE_FR">België FR (ebay.be)</SelectItem>
+                      <SelectItem value="EBAY_DE">Duitsland (ebay.de)</SelectItem>
+                      <SelectItem value="EBAY_FR">Frankrijk (ebay.fr)</SelectItem>
+                      <SelectItem value="EBAY_GB">UK (ebay.co.uk)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             ) : (
               <>
                 {/* Bol.com / Amazon credentials */}
@@ -675,6 +782,8 @@ export function ConnectMarketplaceDialog({
                   ? !siteUrl || !consumerKey || !consumerSecret || testing
                   : marketplaceType === 'odoo'
                   ? !odooUrl || !odooDatabase || !odooUsername || !odooApiKey || testing
+                  : marketplaceType === 'ebay'
+                  ? !ebayAppId || !ebayCertId || !ebayRefreshToken || testing
                   : !clientId || !clientSecret || testing
               }
               className="w-full"
@@ -722,6 +831,8 @@ export function ConnectMarketplaceDialog({
                   ? !siteUrl || !consumerKey || !consumerSecret
                   : marketplaceType === 'odoo'
                   ? !odooUrl || !odooDatabase || !odooUsername || !odooApiKey
+                  : marketplaceType === 'ebay'
+                  ? !ebayAppId || !ebayCertId || !ebayRefreshToken
                   : !clientId || !clientSecret
               }
             >

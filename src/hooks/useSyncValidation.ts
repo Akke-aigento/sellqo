@@ -106,6 +106,28 @@ const VALIDATION_RULES: Record<MarketplaceType, Partial<Record<SyncDataType, Val
       },
     ],
   },
+  ebay: {
+    products: [
+      {
+        condition: (config) => 
+          config.enabled && 
+          config.direction !== 'import' &&
+          !config.fieldMappings.find(f => f.id === 'sku')?.enabled,
+        message: 'SKU veld is vereist voor eBay product matching',
+        severity: 'error',
+        field: 'sku',
+      },
+    ],
+    inventory: [
+      {
+        condition: (config) => 
+          config.enabled && 
+          (config.customSettings?.safetyStock ?? 0) === 0,
+        message: 'Veiligheidsvoorraad is 0 - risico op overselling',
+        severity: 'warning',
+      },
+    ],
+  },
 };
 
 // Generic validation rules that apply to all platforms

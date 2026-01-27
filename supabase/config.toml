@@ -239,3 +239,12 @@ verify_jwt = false
 
 [functions.send-meta-message]
 verify_jwt = false
+
+[functions.sync-ebay-orders]
+verify_jwt = false
+
+[functions.sync-ebay-inventory]
+verify_jwt = false
+
+[functions.test-ebay-connection]
+verify_jwt = false

@@ -395,6 +395,24 @@ Deno.serve(async (req) => {
       })
     }
 
+    // eBay testing - delegate to separate function
+    if (marketplaceType === 'ebay') {
+      const ebayTestUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/test-ebay-connection`
+      const response = await fetch(ebayTestUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({ credentials }),
+      })
+      const data = await response.json()
+      return new Response(JSON.stringify(data), {
+        status: response.ok ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: 'Onbekend marketplace type' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
