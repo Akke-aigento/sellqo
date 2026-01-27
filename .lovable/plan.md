@@ -1,266 +1,109 @@
 
+# Plan: Enterprise AI Credits Beperking (5.000/maand)
 
-# Plan: Marketing Pagina Herstructurering - Van Samenraapsel naar Samenhangend Verhaal
+## Analyse
 
-## Probleemanalyse
+### Huidige Situatie
 
-Na grondige analyse van alle 12 landing page secties identificeer ik de volgende problemen:
+| Plan | AI Credits/maand |
+|------|------------------|
+| Free | 0 |
+| Starter | 50 |
+| Pro | 500 |
+| Enterprise | -1 (onbeperkt) ⚠️ |
 
-### 1. Incoherente Narrative Flow
+### Probleem
+De huidige implementatie met `-1` is technisch onveilig. De `use_ai_credits` functie behandelt `-1` niet expliciet - het werkt "toevallig" als onbeperkt omdat de berekening een negatief getal oplevert.
 
-| Huidige Volgorde | Probleem |
-|------------------|----------|
-| Hero -> Social Proof -> **Problem** -> Features | Problemen komen NA de oplossing wordt getoond |
-| Features -> Modules Grid -> Why SellQo | **Dubbele feature secties** die overlappen |
-| Comparison -> Pricing -> Testimonials -> Demo | Demo komt TE LAAT, testimonials staan niet bij social proof |
+### Aanbevolen Limiet: 5.000 credits/maand
 
-### 2. Overlappende & Redundante Secties
+**Redenering:**
+- Logische schaalstap: Free (0) → Starter (50) → Pro (500) → Enterprise (5.000)
+- 10x verhoging t.o.v. Pro, consistent met de pricing ratio
+- Ruim voldoende voor zelfs zeer actieve Enterprise klanten
+- Beschermt tegen misbruik (bijv. bulk scraping via AI)
+- Enterprise klanten kunnen altijd extra credits bijkopen (€19/500)
 
-| Sectie | Overlap met |
-|--------|-------------|
-| **FeaturesSection** (10 bento cards) | ModulesGrid (16 modules) - zelfde info anders verpakt |
-| **WhySellqoSection** (4 redenen) | Comparison table - "waarom SellQo" vs concurrenten |
-| **ModulesGrid** | Pricing features - lijsten overlappen |
+**Vergelijking met gebruikspatronen:**
 
-### 3. Messaging Inconsistenties
-
-| Plek | Zegt | Probleem |
-|------|------|----------|
-| WhySellqo | "Business plan" migratie | Er is geen Business plan, wel Enterprise |
-| FAQ | "€9 per 500 AI credits" | Pricing toont €19 per pack |
-| SocialProof | "500+ ondernemers" | Statistieken tonen "€2.4M verwerkt" wat klein lijkt voor 500 shops |
-
-### 4. Ontbrekende Unieke Selling Points
-
-De USPs die jullie onderscheiden zijn NIET prominent:
-
-- 5-minuten setup wizard
-- Shop Health Score
-- AI Business Coach
-- Gamification & Badges
-- Bank Transfer QR (€0 transactiekosten)
-- Bol.com VVB Labels
-
-### 5. Placeholder Content
-
-- **DemoSection**: Lege placeholder zonder echte video/demo
-- **Testimonials**: Fictieve namen en bedrijven
-- **Logo carousel**: Alleen tekst, geen echte logo's of partners
+| AI Actie | Kosten | 5.000 credits = |
+|----------|--------|-----------------|
+| Social post | 2 | 2.500 posts/maand |
+| Email content | 3 | 1.666 emails/maand |
+| Product beschrijving | 3 | 1.666 beschrijvingen |
+| Afbeelding generatie | 5 | 1.000 afbeeldingen |
+| Insights | 1 | 5.000 insights |
 
 ---
 
-## Voorgestelde Nieuwe Structuur
+## Implementatie
 
-### Storytelling Flow
+### Fase 1: Database Migratie
 
-```text
-EMOTIONELE HOOK
-1. Hero - "Jouw Online Imperium, Volledig Onder Controle"
-2. Social Proof (kort) - "500+ ondernemers vertrouwen SellQo"
+Update de `pricing_plans` tabel om Enterprise credits te wijzigen van `-1` naar `5000`:
 
-PROBLEEM IDENTIFICATIE  
-3. Problem Section - "Herken je dit?" (frustraties)
-
-OPLOSSING INTRODUCTIE
-4. Solution Overview (NIEUW) - Korte intro hoe SellQo helpt
-
-UNIEKE DIFFERENTIATORS
-5. Unique Advantages (NIEUW) - 5-min setup, Shop Health, AI Coach, Gamification
-
-FEATURES (GECONSOLIDEERD)
-6. Core Features - Gecombineerde FeaturesSection + ModulesGrid
-
-BEWIJS
-7. Comparison Table - SellQo vs concurrenten
-8. Testimonials - Klantquotes met resultaten
-
-ACTIE
-9. Pricing - Duidelijke tiers
-10. FAQ - Veelgestelde vragen
-11. Final CTA - Start gratis
+```sql
+UPDATE pricing_plans 
+SET ai_credits_monthly = 5000
+WHERE slug = 'enterprise';
 ```
 
-### Verwijderen/Samenvoegen
+### Fase 2: Frontend Updates
 
-| Actie | Sectie | Reden |
-|-------|--------|-------|
-| **Verwijderen** | ModulesGrid | Overlap met Features |
-| **Verwijderen** | DemoSection | Placeholder zonder content |
-| **Samenvoegen** | WhySellqoSection -> nieuwe "UniqueAdvantagesSection" | Focus op echte USPs |
-| **Verplaatsen** | Testimonials -> direct na Comparison | Bewijs na vergelijking |
-
----
-
-## Gedetailleerde Implementatie
-
-### Fase 1: Nieuwe "SolutionOverviewSection"
-
-**Doel**: Bridge tussen probleem en features - kort en krachtig
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ "SellQo Maakt Het Anders"                                   │
-│                                                              │
-│ [Icoon] Alles in één      [Icoon] Live in 5 min            │
-│ dashboard                  geen technische kennis nodig     │
-│                                                              │
-│ [Icoon] AI die meedenkt   [Icoon] Gebouwd voor             │
-│ niet alleen rapporteert    België & Nederland               │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Nieuw bestand**: `src/components/landing/SolutionOverviewSection.tsx`
-
-### Fase 2: Nieuwe "UniqueAdvantagesSection"
-
-**Vervangt**: WhySellqoSection
-**Focus**: Wat jullie UNIEK maakt vs wat iedereen biedt
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ "Wat SellQo Uniek Maakt"                                    │
-├─────────────────────────────────────────────────────────────┤
-│ ⚡ 5-Minuten Setup           │ 📊 Shop Health Score         │
-│ Live in 5 minuten,           │ Real-time gezondheid van je  │
-│ geen developer nodig         │ shop: voorraad, marges, SEO  │
-├─────────────────────────────────────────────────────────────┤
-│ 🤖 Proactieve AI Coach       │ 🎮 Gamification              │
-│ Krijg advies VOORDAT er      │ Badges, milestones en        │
-│ problemen ontstaan           │ "vandaag verdien je..."      │
-├─────────────────────────────────────────────────────────────┤
-│ 💸 €0 Transactiekosten       │ 📦 Bol.com VVB Labels        │
-│ Bank Transfer QR-codes       │ Direct verzenden via         │
-│ = geen Stripe fees           │ Bol.com fulfillment          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Nieuw bestand**: `src/components/landing/UniqueAdvantagesSection.tsx`
-
-### Fase 3: Consolideer FeaturesSection
-
-**Huidige**: 10 bento cards met overlappende info
-**Nieuw**: 6 kerncategorieën met duidelijke voordelen
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ 🛒 Verkoop Overal            │ 📦 Nooit Meer Uitverkocht    │
-│ Webshop, POS, Bol.com,       │ Real-time sync tussen        │
-│ Amazon - 1 dashboard         │ alle kanalen                 │
-├─────────────────────────────────────────────────────────────┤
-│ 🎁 8 Promotietypen           │ 💰 Slimme Financiën          │
-│ Van kortingscodes tot        │ Facturen, BTW, Peppol,       │
-│ loyaliteitspunten            │ winstmarges per product      │
-├─────────────────────────────────────────────────────────────┤
-│ 🤖 AI Marketing              │ 📈 Groei Insights            │
-│ Content, beschrijvingen,     │ Trends, best sellers,        │
-│ afbeeldingen genereren       │ optimale prijspunten         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Fase 4: Update PricingSection
-
-**Problemen**:
-- "Business plan" referentie in andere secties die niet bestaat
-- Transactiekosten uitleg is verwarrend
-
-**Fixes**:
-- Duidelijkere AI credits uitleg
-- Bank Transfer QR prominent als "€0 alternatief"
-- Peppol badge "Verplicht 2026" behouden
-
-### Fase 5: Fix Inconsistenties
-
-| Bestand | Fix |
-|---------|-----|
-| WhySellqoSection.tsx | "Business plan" -> "Enterprise plan" |
-| FaqSection.tsx | "€9 per 500 credits" -> "€19 per 500 credits" (of huidige prijzen) |
-| SocialProofSection.tsx | Meer realistische statistieken of verwijderen |
-
-### Fase 6: Update Landing.tsx Volgorde
-
-```typescript
-// NIEUW
-<HeroSection />
-<SocialProofSection /> // Verkort: alleen stats, geen logos
-<ProblemSection />
-<SolutionOverviewSection /> // NIEUW
-<UniqueAdvantagesSection /> // NIEUW - vervangt WhySellqo
-<FeaturesSection /> // Geconsolideerd
-// VERWIJDERD: ModulesGrid
-<ComparisonSection />
-<TestimonialsSection /> // Verplaatst: na comparison
-<PricingSection />
-<FaqSection />
-<FinalCtaSection />
-// VERWIJDERD: DemoSection (placeholder)
-```
-
----
-
-## Bestanden Overzicht
-
-### Nieuwe Bestanden
-
-| Bestand | Doel |
-|---------|------|
-| `SolutionOverviewSection.tsx` | Korte bridge tussen probleem en features |
-| `UniqueAdvantagesSection.tsx` | 6 unieke USPs die concurrenten niet hebben |
-
-### Aangepaste Bestanden
+**Bestanden aan te passen:**
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `Landing.tsx` | Nieuwe sectievolgorde, verwijder ModulesGrid en DemoSection |
-| `FeaturesSection.tsx` | Consolideer naar 6 kerncategorieën |
-| `SocialProofSection.tsx` | Verwijder logo carousel, focus op stats |
-| `ProblemSection.tsx` | Kleine tekstaanpassingen |
-| `FaqSection.tsx` | Fix prijsinconsistentie (€19 ipv €9) |
-| `TestimonialsSection.tsx` | Eventueel meer resultaat-gefocust |
+| `src/components/landing/PricingSection.tsx` | "Onbeperkte AI credits" → "✨ 5.000 AI credits/maand" |
+| `src/components/landing/FaqSection.tsx` | FAQ tekst aanpassen: "Enterprise onbeperkt" → "Enterprise 5.000 credits/maand" |
 
-### Verwijderde Bestanden
+### Fase 3: (Optioneel) Credit Check Robuustheid
 
-| Bestand | Reden |
-|---------|-------|
-| `ModulesGrid.tsx` | Overlap met FeaturesSection |
-| `DemoSection.tsx` | Placeholder zonder echte content |
-| `WhySellqoSection.tsx` | Vervangen door UniqueAdvantagesSection |
+De huidige `use_ai_credits` functie werkt correct met positieve getallen. Geen wijziging nodig zodra Enterprise 5000 is in plaats van -1.
 
 ---
 
-## Visuele Verbeteringen
+## Wijzigingen per Bestand
 
-### 1. Consistente Card Styling
-- Alle secties gebruiken `rounded-2xl border border-border shadow-sellqo`
-- Hover effect: `hover:shadow-sellqo-lg hover:-translate-y-1`
+### 1. Database Migratie (nieuw)
+**Pad:** `supabase/migrations/[timestamp]_enterprise_ai_credits_limit.sql`
 
-### 2. Kleurgebruik
-- Primary (navy): Headers, icoon achtergronden
-- Accent (oranje): CTAs, highlights, badges
-- Green: Succesvolle acties, checkmarks, positieve stats
+```sql
+-- Set Enterprise AI credits to 5000 instead of unlimited (-1)
+UPDATE pricing_plans 
+SET ai_credits_monthly = 5000
+WHERE slug = 'enterprise';
+```
 
-### 3. Spacing
-- Secties: `py-20 md:py-28` consistent
-- Alternerende achtergronden: `bg-background` vs `bg-secondary/20`
+### 2. PricingSection.tsx
+**Wijziging:** Regel 85
+
+```diff
+- '✨ Onbeperkte AI credits',
++ '✨ 5.000 AI credits/maand',
+```
+
+### 3. FaqSection.tsx
+**Wijziging:** Regel 25
+
+```diff
+- answer: 'AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise onbeperkt. Extra credits kun je bijkopen voor €19 per 500 credits.',
++ answer: 'AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise 5.000 credits/maand. Extra credits kun je bijkopen voor €19 per 500 credits.',
+```
 
 ---
 
-## Verwacht Resultaat
+## Samenvatting
 
-### Voor Bezoekers
+| Actie | Details |
+|-------|---------|
+| **Database** | Enterprise `ai_credits_monthly`: -1 → 5000 |
+| **Pricing pagina** | "Onbeperkte" → "5.000/maand" |
+| **FAQ** | "Enterprise onbeperkt" → "Enterprise 5.000 credits/maand" |
+| **Impact** | Bestaande Enterprise klanten krijgen nu een echte limiet |
 
-| Voorheen | Nu |
-|----------|-----|
-| 12 secties, veel overlap | 10 secties, logische flow |
-| USPs verstopt | USPs prominent in eigen sectie |
-| Placeholder demo | Geen lege beloftes |
-| Verwarrende vergelijking | Duidelijk "waarom SellQo" |
+### Alternatief: 10.000 credits/maand
 
-### Voor Conversie
+Als je wilt kun je ook kiezen voor 10.000 credits/maand als je Enterprise klanten meer ruimte wilt geven. Dit is nog steeds veilig en geeft hen 2x zoveel als de 10x schaalstap.
 
-| Metric | Verwacht Effect |
-|--------|-----------------|
-| Time on page | +20% door betere flow |
-| Scroll depth | +15% door minder herhaling |
-| CTA clicks | +25% door duidelijkere USPs |
-| Bounce rate | -10% door coherent verhaal |
-
+Welke limiet heb je liever: 5.000 of 10.000?
