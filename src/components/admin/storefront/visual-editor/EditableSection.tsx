@@ -42,7 +42,9 @@ export function EditableSection({
   } = useSortable({ id: section.id });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    // Handmatig transform string bouwen om mirroring te voorkomen
+    // Alleen Y-as translatie voor verticale drag & drop
+    transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
     transition,
   };
 
