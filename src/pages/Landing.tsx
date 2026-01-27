@@ -2,13 +2,12 @@ import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { SocialProofSection } from '@/components/landing/SocialProofSection';
 import { ProblemSection } from '@/components/landing/ProblemSection';
+import { SolutionOverviewSection } from '@/components/landing/SolutionOverviewSection';
+import { UniqueAdvantagesSection } from '@/components/landing/UniqueAdvantagesSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
-import { ModulesGrid } from '@/components/landing/ModulesGrid';
-import { WhySellqoSection } from '@/components/landing/WhySellqoSection';
 import { ComparisonSection } from '@/components/landing/ComparisonSection';
-import { PricingSection } from '@/components/landing/PricingSection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
-import { DemoSection } from '@/components/landing/DemoSection';
+import { PricingSection } from '@/components/landing/PricingSection';
 import { FaqSection } from '@/components/landing/FaqSection';
 import { FinalCtaSection } from '@/components/landing/FinalCtaSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -21,13 +20,12 @@ export default function LandingPage() {
         <HeroSection />
         <SocialProofSection />
         <ProblemSection />
+        <SolutionOverviewSection />
+        <UniqueAdvantagesSection />
         <FeaturesSection />
-        <ModulesGrid />
-        <WhySellqoSection />
         <ComparisonSection />
-        <PricingSection />
         <TestimonialsSection />
-        <DemoSection />
+        <PricingSection />
         <FaqSection />
         <FinalCtaSection />
       </main>
