@@ -12,12 +12,15 @@ import {
   Activity,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  Sparkles
 } from "lucide-react";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { usePlatformChangelogs } from "@/hooks/usePlatformChangelogs";
 import { usePlatformHealth, STATUS_COLORS } from "@/hooks/usePlatformHealth";
 import { usePlatformFeedback } from "@/hooks/usePlatformFeedback";
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
 
@@ -26,6 +29,8 @@ export default function PlatformDashboard() {
   const { getStats: getChangelogStats, changelogs } = usePlatformChangelogs();
   const { getOverallStatus, getActiveIncidents, getStats: getHealthStats } = usePlatformHealth();
   const { getStats: getFeedbackStats } = usePlatformFeedback();
+  const { useTenantStats } = usePlatformAdmin();
+  const { data: tenantStats, isLoading: tenantStatsLoading } = useTenantStats();
 
   const ticketStats = getTicketStats();
   const changelogStats = getChangelogStats();
@@ -66,6 +71,39 @@ export default function PlatformDashboard() {
           </div>
           <Button variant="outline" asChild>
             <Link to="/admin/platform/health">Bekijk Details</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Tenant Stats Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Tenant Overzicht
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <p className="text-3xl font-bold">{tenantStatsLoading ? '-' : tenantStats?.total || 0}</p>
+              <p className="text-sm text-muted-foreground">Totaal Tenants</p>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-3xl font-bold text-green-700">{tenantStatsLoading ? '-' : tenantStats?.active || 0}</p>
+              <p className="text-sm text-muted-foreground">Actief</p>
+            </div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <p className="text-3xl font-bold text-yellow-700">{tenantStatsLoading ? '-' : tenantStats?.trialing || 0}</p>
+              <p className="text-sm text-muted-foreground">Trial</p>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <p className="text-3xl font-bold text-blue-700">{tenantStatsLoading ? '-' : tenantStats?.internal || 0}</p>
+              <p className="text-sm text-muted-foreground">Intern</p>
+            </div>
+          </div>
+          <Button variant="link" className="p-0 h-auto mt-4" asChild>
+            <Link to="/admin/platform">Alle tenants bekijken →</Link>
           </Button>
         </CardContent>
       </Card>
@@ -192,6 +230,12 @@ export default function PlatformDashboard() {
               <Link to="/admin/platform/billing">
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Platform facturatie
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full justify-start" asChild>
+              <Link to="/admin/platform/coupons">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Platform coupons
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { TenantSubscription, PlatformInvoice } from '@/types/billing';
+import type { TenantSubscription, PlatformInvoice, PricingPlan } from '@/types/billing';
 
 export interface TenantDetail {
   id: string;
@@ -11,6 +11,11 @@ export interface TenantDetail {
   subscription_plan: string;
   created_at: string;
   updated_at: string;
+  lifetime_revenue?: number;
+  lifetime_order_count?: number;
+  lifetime_customer_count?: number;
+  stripe_account_id?: string;
+  stripe_onboarding_complete?: boolean;
 }
 
 export interface TenantAICredits {
@@ -60,8 +65,46 @@ export interface FeatureUsageStats {
   count: number;
 }
 
+export interface TenantOwner {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+}
+
+export interface TenantStats {
+  total: number;
+  active: number;
+  trialing: number;
+  internal: number;
+}
+
 export function usePlatformAdmin() {
   const queryClient = useQueryClient();
+
+  // Fetch platform tenant stats
+  const useTenantStats = () => {
+    return useQuery({
+      queryKey: ['platform-tenant-stats'],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('tenants')
+          .select('id, subscription_status, is_internal_tenant');
+        
+        if (error) throw error;
+        
+        const stats: TenantStats = {
+          total: data?.length || 0,
+          active: data?.filter(t => t.subscription_status === 'active').length || 0,
+          trialing: data?.filter(t => t.subscription_status === 'trialing').length || 0,
+          internal: data?.filter(t => t.is_internal_tenant).length || 0,
+        };
+        
+        return stats;
+      },
+    });
+  };
 
   // Fetch single tenant details
   const useTenantDetail = (tenantId: string) => {
@@ -76,6 +119,32 @@ export function usePlatformAdmin() {
         
         if (error) throw error;
         return data as TenantDetail;
+      },
+      enabled: !!tenantId,
+    });
+  };
+
+  // Fetch tenant owner info (from tenant record itself)
+  const useTenantOwner = (tenantId: string) => {
+    return useQuery({
+      queryKey: ['platform-tenant-owner', tenantId],
+      queryFn: async () => {
+        const { data: tenant, error } = await supabase
+          .from('tenants')
+          .select('owner_email, owner_name, created_at')
+          .eq('id', tenantId)
+          .single();
+        
+        if (error) throw error;
+        if (!tenant?.owner_email) return null;
+        
+        return {
+          id: tenantId,
+          email: tenant.owner_email,
+          full_name: tenant.owner_name || null,
+          created_at: tenant.created_at || '',
+          last_sign_in_at: null,
+        } as TenantOwner;
       },
       enabled: !!tenantId,
     });
@@ -114,6 +183,22 @@ export function usePlatformAdmin() {
         return data as (TenantSubscription & { pricing_plans: unknown }) | null;
       },
       enabled: !!tenantId,
+    });
+  };
+
+  // Fetch all pricing plans
+  const usePricingPlans = () => {
+    return useQuery({
+      queryKey: ['platform-pricing-plans'],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('pricing_plans')
+          .select('id, name, monthly_price, yearly_price')
+          .order('monthly_price', { ascending: true });
+        
+        if (error) throw error;
+        return data as { id: string; name: string; monthly_price: number; yearly_price: number }[];
+      },
     });
   };
 
@@ -235,6 +320,51 @@ export function usePlatformAdmin() {
     },
   });
 
+  // Update subscription mutation
+  const updateSubscription = useMutation({
+    mutationFn: async ({ 
+      tenantId, 
+      updates 
+    }: { 
+      tenantId: string; 
+      updates: Record<string, unknown>;
+    }) => {
+      const { error } = await supabase
+        .from('tenant_subscriptions')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('tenant_id', tenantId);
+
+      if (error) throw error;
+
+      // Update tenant subscription_status if status changed
+      if (updates.status) {
+        await supabase
+          .from('tenants')
+          .update({ 
+            subscription_status: updates.status as string,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', tenantId);
+      }
+
+      // Log the action
+      await supabase.rpc('log_admin_action', {
+        p_action_type: 'subscription_updated',
+        p_target_tenant_id: tenantId,
+        p_action_details: updates as unknown as Record<string, never>,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-tenant-subscription', variables.tenantId] });
+      queryClient.invalidateQueries({ queryKey: ['platform-tenant', variables.tenantId] });
+      queryClient.invalidateQueries({ queryKey: ['platform-tenant-actions', variables.tenantId] });
+      toast.success('Abonnement bijgewerkt');
+    },
+    onError: (error) => {
+      toast.error('Fout bij bijwerken abonnement: ' + error.message);
+    },
+  });
+
   // Update feature overrides mutation
   const updateFeatureOverrides = useMutation({
     mutationFn: async ({ 
@@ -281,14 +411,18 @@ export function usePlatformAdmin() {
   });
 
   return {
+    useTenantStats,
     useTenantDetail,
+    useTenantOwner,
     useTenantCredits,
     useTenantSubscription,
+    usePricingPlans,
     useTenantFeatureOverrides,
     useTenantInvoices,
     useTenantAdminActions,
     useFeatureUsageStats,
     adjustCredits,
+    updateSubscription,
     updateFeatureOverrides,
   };
 }

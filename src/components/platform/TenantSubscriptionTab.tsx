@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Gift, Calendar, CreditCard, ExternalLink } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Gift, Calendar, CreditCard, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { usePlatformBilling } from '@/hooks/usePlatformBilling';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TenantSubscriptionTabProps {
   tenantId: string;
@@ -17,19 +19,44 @@ interface TenantSubscriptionTabProps {
 
 export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) {
   const [giftMonths, setGiftMonths] = useState(1);
-  const { useTenantSubscription } = usePlatformAdmin();
+  const { useTenantSubscription, usePricingPlans, updateSubscription } = usePlatformAdmin();
   const { giftMonth } = usePlatformBilling();
   const { data: subscription, isLoading } = useTenantSubscription(tenantId);
+  const { data: pricingPlans, isLoading: plansLoading } = usePricingPlans();
+
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedInterval, setSelectedInterval] = useState<string>('');
 
   const handleGiftMonth = async () => {
     await giftMonth.mutateAsync({ tenantId, months: giftMonths });
   };
 
-  if (isLoading) {
+  const handleUpdateSubscription = async () => {
+    const updates: Record<string, unknown> = {};
+    if (selectedPlanId && selectedPlanId !== subscription?.plan_id) {
+      updates.plan_id = selectedPlanId;
+    }
+    if (selectedStatus && selectedStatus !== subscription?.status) {
+      updates.status = selectedStatus;
+    }
+    if (selectedInterval && selectedInterval !== subscription?.billing_interval) {
+      updates.billing_interval = selectedInterval;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await updateSubscription.mutateAsync({ tenantId, updates });
+    }
+  };
+
+  if (isLoading || plansLoading) {
     return <Skeleton className="h-64 w-full" />;
   }
 
   const plan = subscription?.pricing_plans as { name?: string; monthly_price?: number } | null;
+  const currentPlanId = subscription?.plan_id || '';
+  const currentStatus = subscription?.status || '';
+  const currentInterval = subscription?.billing_interval || 'monthly';
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
@@ -45,6 +72,19 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
         return 'secondary';
     }
   };
+
+  const statusOptions = [
+    { value: 'active', label: 'Actief' },
+    { value: 'trialing', label: 'Trial' },
+    { value: 'past_due', label: 'Achterstallig' },
+    { value: 'canceled', label: 'Geannuleerd' },
+    { value: 'paused', label: 'Gepauzeerd' },
+  ];
+
+  const hasChanges = 
+    (selectedPlanId && selectedPlanId !== currentPlanId) ||
+    (selectedStatus && selectedStatus !== currentStatus) ||
+    (selectedInterval && selectedInterval !== currentInterval);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -112,8 +152,93 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
         </CardContent>
       </Card>
 
-      {/* Gift Months */}
+      {/* Subscription Management */}
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5" />
+            Abonnement Wijzigen
+          </CardTitle>
+          <CardDescription>
+            Pas het plan, status of facturatie-interval aan
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="plan">Plan</Label>
+            <Select
+              value={selectedPlanId || currentPlanId}
+              onValueChange={setSelectedPlanId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecteer plan" />
+              </SelectTrigger>
+              <SelectContent>
+                {pricingPlans?.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} - €{p.monthly_price}/maand
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={selectedStatus || currentStatus}
+              onValueChange={setSelectedStatus}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecteer status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="interval">Facturatie-interval</Label>
+            <Select
+              value={selectedInterval || currentInterval}
+              onValueChange={setSelectedInterval}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecteer interval" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Maandelijks</SelectItem>
+                <SelectItem value="yearly">Jaarlijks</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {hasChanges && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Je hebt onopgeslagen wijzigingen. Klik op "Wijzigingen opslaan" om door te voeren.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Button
+            onClick={handleUpdateSubscription}
+            disabled={!hasChanges || updateSubscription.isPending}
+            className="w-full"
+          >
+            {updateSubscription.isPending ? 'Bezig...' : 'Wijzigingen opslaan'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Gift Months */}
+      <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Gift className="h-5 w-5" />
@@ -124,25 +249,26 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="months">Aantal maanden</Label>
-            <Input
-              id="months"
-              type="number"
-              min={1}
-              max={12}
-              value={giftMonths}
-              onChange={(e) => setGiftMonths(parseInt(e.target.value) || 1)}
-            />
+          <div className="flex gap-4 items-end">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="months">Aantal maanden</Label>
+              <Input
+                id="months"
+                type="number"
+                min={1}
+                max={12}
+                value={giftMonths}
+                onChange={(e) => setGiftMonths(parseInt(e.target.value) || 1)}
+              />
+            </div>
+            <Button
+              onClick={handleGiftMonth}
+              disabled={giftMonth.isPending}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              {giftMonth.isPending ? 'Bezig...' : `${giftMonths} maand(en) cadeau geven`}
+            </Button>
           </div>
-          <Button
-            onClick={handleGiftMonth}
-            disabled={giftMonth.isPending}
-            className="w-full"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            {giftMonth.isPending ? 'Bezig...' : `${giftMonths} maand(en) cadeau geven`}
-          </Button>
         </CardContent>
       </Card>
     </div>
