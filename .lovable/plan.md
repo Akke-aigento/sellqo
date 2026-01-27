@@ -1,145 +1,173 @@
 
-# Plan: Reply Flow Fix voor Bol.com Inbound Berichten
+# Plan: Inbound Email Functie Compleet Maken
 
-## Samenvatting
+## Overzicht
 
-De ReplyComposer stuurt nu altijd naar het klant email-adres, maar voor Bol.com berichten moeten we de `reply_to_email` uit het originele bericht gebruiken (het geanonimiseerde `klant@klantbericht.bol.com` adres).
+Vier verbeteringen om de inbound email functie production-ready te maken:
 
----
-
-## Wat Er Mis Gaat
-
-```text
-HUIDIGE SITUATIE (FOUT)
-────────────────────────────────────────────────────────────────────────────────
-1. Bol.com stuurt klantvraag
-   FROM: klant123@klantbericht.bol.com  (Bol.com proxy adres)
-   
-2. SellQo slaat op:
-   reply_to_email: "klant123@klantbericht.bol.com"  ✅ Correct opgeslagen
-   
-3. Merchant beantwoordt via ReplyComposer
-   TO: conversation.customer?.email → "jan@gmail.com"  ❌ FOUT!
-   
-4. Email gaat NIET via Bol.com → Klant ontvangt NIETS
-────────────────────────────────────────────────────────────────────────────────
-
-GEWENSTE SITUATIE
-────────────────────────────────────────────────────────────────────────────────
-1. Bol.com stuurt klantvraag
-   FROM: klant123@klantbericht.bol.com
-   
-2. SellQo slaat op:
-   reply_to_email: "klant123@klantbericht.bol.com"
-   
-3. Merchant beantwoordt via ReplyComposer
-   TO: reply_to_email → "klant123@klantbericht.bol.com"  ✅ CORRECT!
-   
-4. Bol.com ontvangt reply → Forward naar klant → Klant ziet antwoord ✅
-────────────────────────────────────────────────────────────────────────────────
-```
+1. **Marketplace Badge** - Visuele indicator voor Bol.com/Amazon berichten
+2. **Bijlagen Opslaan** - Attachments opslaan in Supabase Storage  
+3. **Order Link** - Directe link naar gekoppelde order
+4. **Reply Tracking** - Markeer berichten als beantwoord
 
 ---
 
-## Wijzigingen
+## 1. Marketplace Badge in UI
 
-### 1. InboxMessage Interface Updaten
+### MessageBubble.tsx
 
-**Bestand:** `src/hooks/useInbox.ts`
-
-Voeg `reply_to_email` toe aan de interface:
+Voeg een marketplace indicator toe boven het bericht:
 
 ```typescript
-export interface InboxMessage {
-  // ... existing fields
-  reply_to_email: string | null;  // ADD THIS
+// Detecteer marketplace uit context_data
+const marketplace = (message as any).context_data?.marketplace;
+
+// Badge component in de bubble
+{marketplace === 'bol_com' && (
+  <div className="flex items-center gap-1 mb-1">
+    <ShoppingBag className="h-3 w-3 text-orange-500" />
+    <span className="text-xs text-orange-600 font-medium">Bol.com</span>
+  </div>
+)}
+```
+
+### ConversationItem.tsx
+
+Toon marketplace icoon naast channel icoon in de lijst.
+
+---
+
+## 2. Bijlagen Opslaan
+
+### Database Migratie
+
+```sql
+CREATE TABLE customer_message_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID NOT NULL REFERENCES customer_messages(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size_bytes INTEGER,
+  storage_path TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS policy
+ALTER TABLE customer_message_attachments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant members can view attachments"
+  ON customer_message_attachments FOR SELECT
+  USING (tenant_id IN (SELECT tenant_id FROM user_roles WHERE user_id = auth.uid()));
+```
+
+### Edge Function Update
+
+In `handle-inbound-email/index.ts`:
+
+```typescript
+// Na message insert, upload attachments
+if (payload.attachments?.length) {
+  for (const attachment of payload.attachments) {
+    const storagePath = `${tenantId}/messages/${message.id}/${attachment.filename}`;
+    
+    // Decode base64 and upload
+    const bytes = Uint8Array.from(atob(attachment.content), c => c.charCodeAt(0));
+    
+    await supabase.storage
+      .from('message-attachments')
+      .upload(storagePath, bytes, {
+        contentType: attachment.content_type,
+      });
+    
+    // Save reference
+    await supabase.from('customer_message_attachments').insert({
+      message_id: message.id,
+      tenant_id: tenantId,
+      filename: attachment.filename,
+      content_type: attachment.content_type,
+      size_bytes: bytes.length,
+      storage_path: storagePath,
+    });
+  }
 }
 ```
 
-### 2. Conversation Interface Uitbreiden
+### UI Component
 
-**Bestand:** `src/hooks/useInbox.ts`
+Toon bijlagen onder het bericht met download links.
 
-Voeg `replyToEmail` toe aan de Conversation interface:
+---
+
+## 3. Order Link in Conversatie Header
+
+### ConversationDetail.tsx
 
 ```typescript
-export interface Conversation {
-  id: string;
-  customer: { ... };
-  lastMessage: InboxMessage;
-  unreadCount: number;
-  channel: 'email' | 'whatsapp' | 'mixed';
-  messages: InboxMessage[];
-  replyToEmail?: string;  // ADD THIS - het adres om naar te antwoorden
+// Haal order_id uit laatste bericht
+const linkedOrderId = messages.find(m => m.order_id)?.order_id;
+
+// In header, naast klantprofiel button
+{linkedOrderId && (
+  <Button variant="outline" size="sm" asChild>
+    <Link to={`/admin/orders/${linkedOrderId}`}>
+      <Package className="h-4 w-4 mr-1" />
+      Bestelling
+      <ExternalLink className="h-3 w-3 ml-1" />
+    </Link>
+  </Button>
+)}
+```
+
+---
+
+## 4. Reply Tracking (replied_at)
+
+### ReplyComposer.tsx
+
+Na succesvol verzenden, update het originele inbound bericht:
+
+```typescript
+// Na handleSend success
+// Update laatste inbound bericht als beantwoord
+const lastInbound = conversation.messages.find(
+  m => m.direction === 'inbound' && !m.replied_at
+);
+
+if (lastInbound) {
+  await supabase
+    .from('customer_messages')
+    .update({ 
+      replied_at: new Date().toISOString(),
+      reply_message_id: data.message_id // ID van het antwoord
+    })
+    .eq('id', lastInbound.id);
 }
 ```
 
-### 3. Reply Email Bepalen in useInbox
-
-**Bestand:** `src/hooks/useInbox.ts`
-
-Bij het bouwen van conversations, bepaal het juiste reply-adres:
-
-```typescript
-// In de conversation building logic
-const lastInboundMessage = sortedMsgs.find(m => m.direction === 'inbound');
-const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
-
-convos.push({
-  // ... existing fields
-  replyToEmail,  // ADD THIS
-});
-```
-
-### 4. ReplyComposer Aanpassen
-
-**Bestand:** `src/components/admin/inbox/ReplyComposer.tsx`
-
-Gebruik `replyToEmail` in plaats van `customer?.email`:
-
-```typescript
-// Lijn 117-129 aanpassen:
-const { error } = await supabase.functions.invoke('send-customer-message', {
-  body: {
-    tenant_id: currentTenant.id,
-    // USE replyToEmail WITH FALLBACK
-    customer_email: conversation.replyToEmail || conversation.customer?.email,
-    customer_name: conversation.customer?.name,
-    subject: `Re: ${conversation.lastMessage.subject || 'Uw bericht'}`,
-    body_html: message.trim().replace(/\n/g, '<br>'),
-    body_text: message.trim(),
-    context_type: 'general',
-    customer_id: conversation.customer?.id,
-  },
-});
-```
-
 ---
 
-## Resultaat
-
-| Scenario | Reply-to Adres |
-|----------|----------------|
-| Bol.com klantvraag | `klant123@klantbericht.bol.com` (via Bol.com) |
-| Amazon klantvraag | `buyer@marketplace.amazon.com` (via Amazon) |
-| Directe klant email | `jan@gmail.com` (klant email) |
-| WhatsApp | Gebruikt telefoon (ongewijzigd) |
-
----
-
-## Bestandsoverzicht
+## Bestanden Overzicht
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/hooks/useInbox.ts` | Interface uitbreiding + replyToEmail logica |
-| `src/components/admin/inbox/ReplyComposer.tsx` | Gebruik `replyToEmail` voor email replies |
+| `supabase/migrations/xxx.sql` | Attachments tabel + storage bucket |
+| `supabase/functions/handle-inbound-email/index.ts` | Bijlagen opslaan |
+| `src/components/admin/inbox/MessageBubble.tsx` | Marketplace badge + attachments |
+| `src/components/admin/inbox/ConversationDetail.tsx` | Order link in header |
+| `src/components/admin/inbox/ConversationItem.tsx` | Marketplace icoon |
+| `src/components/admin/inbox/ReplyComposer.tsx` | replied_at update |
+| `src/hooks/useInbox.ts` | context_data + order_id in query |
 
 ---
 
-## Verificatie
+## Prioriteit
 
-Na deze wijziging:
-- [ ] Inbound Bol.com berichten tonen het proxy-adres
-- [ ] Reply stuurt naar `reply_to_email` (niet naar klant email)
-- [ ] Fallback naar klant email als `reply_to_email` leeg is
-- [ ] WhatsApp flow blijft ongewijzigd
+| Feature | Impact | Complexiteit |
+|---------|--------|--------------|
+| Reply Tracking | Hoog | Laag |
+| Order Link | Hoog | Laag |
+| Marketplace Badge | Medium | Laag |
+| Bijlagen | Medium | Medium |
+
+Ik raad aan te starten met **Reply Tracking** en **Order Link** - deze zijn snel te implementeren en hebben de meeste impact op de gebruikerservaring.
