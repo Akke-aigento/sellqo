@@ -86,6 +86,7 @@ import StorefrontPage from "./pages/admin/Storefront";
 import FulfillmentPage from "./pages/admin/Fulfillment";
 import BadgesPage from "./pages/admin/Badges";
 import SyncConflictsPage from "./pages/admin/SyncConflicts";
+import PaymentsPage from "./pages/admin/Payments";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
@@ -163,6 +164,7 @@ const App = () => (
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
+              <Route path="payments" element={<PaymentsPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="connect" element={<MarketplacesPage />} />
