@@ -1,70 +1,96 @@
 
-# Plan: Fix Ads Platform Connection Validatie
+# Plan: Klantvragen Forwarding via Resend Inbound Email
 
 ## Samenvatting
 
-De Ads platform koppeling heeft geen echte validatie - als je op "Koppelen" klikt, wordt er direct een record opgeslagen als "gekoppeld" zonder te controleren of er daadwerkelijk een werkende connectie is. Dit plan implementeert correcte validatie voor alle ad platforms.
+Dit plan implementeert een systeem waarmee klantvragen van Bol.com (en andere kanalen) automatisch worden doorgestuurd naar de SellQo inbox. Hierdoor hoeven merchants niet meer in te loggen op Bol.com om klanten te beantwoorden - alles gaat via één centraal punt.
 
 ---
 
-## Probleem Analyse
+## Huidige Situatie Analyse
 
-### Huidige Flow (Gebroken)
+### Wat al werkt
+
+| Component | Status | Beschrijving |
+|-----------|--------|--------------|
+| `customer_messages` tabel | ✅ | Ondersteunt `direction: 'inbound'` en `channel: 'email'` |
+| `useInbox` hook | ✅ | Groepeert berichten in conversaties, toont unread/unanswered |
+| WhatsApp inbound | ✅ | `whatsapp-webhook` werkt perfect als voorbeeld |
+| Resend outbound | ✅ | E-mails worden verzonden via `send-customer-message` |
+| Notificaties | ✅ | Realtime toast bij nieuwe inbound berichten |
+
+### Wat nog ontbreekt
+
+| Component | Status | Nodig voor |
+|-----------|--------|------------|
+| Resend Inbound Webhook | ❌ | Ontvangen van doorgestuurde e-mails |
+| Tenant-specifiek email adres | ❌ | Routing naar juiste merchant |
+| Bol.com koppeling instructies | ❌ | Gebruikers vertellen hoe ze forwarden |
+| Reply-to-inbox flow | ⚠️ | Antwoorden die teruggaan via Bol.com |
+
+---
+
+## Hoe Bol.com Klantvragen Werken
+
+Bol.com heeft **geen API voor klantvragen**. In plaats daarvan werkt het als volgt:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  HUIDIGE SITUATIE                                                           │
+│  BOL.COM KLANTVRAGEN FLOW                                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  [Bol.com Ads - Klik "Activeren"]                                          │
-│       ↓                                                                     │
-│  connectPlatform.mutateAsync({                                             │
-│    platform: 'bol_ads',                                                    │
-│    account_name: 'Bol.com Advertenties',                                   │
-│    config: { uses_retailer_api: true }                                     │
-│  })                                                                         │
-│       ↓                                                                     │
-│  ❌ Direct opgeslagen als is_active: true                                  │
-│  ❌ GEEN check of marketplace_connections een Bol.com koppeling heeft     │
+│  1. KLANT STELT VRAAG                                                       │
+│     └── Via Bol.com "Contact met verkoper" knop                            │
 │                                                                             │
-│  [Meta/Google/Amazon - Klik "Koppelen"]                                    │
-│       ↓                                                                     │
-│  Toast: "OAuth wordt binnenkort ondersteund"                               │
-│       ↓                                                                     │
-│  ❌ Geen actie, maar button suggereert dat het werkt                       │
+│  2. BOL.COM STUURT EMAIL                                                    │
+│     ├── NAAR: Het "Klantenservice e-mailadres" in je Bol.com account       │
+│     ├── VAN: klant@klantbericht.bol.com (geanonimiseerd)                   │
+│     ├── SUBJECT: "Vraag over bestelling XXXXXXXXXX"                        │
+│     └── BODY: De vraag + link naar Bol.com dashboard                       │
+│                                                                             │
+│  3. JE ANTWOORDT                                                            │
+│     └── Reply op de email → Bol.com forward naar klant                     │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Gewenste Flow
+**Oplossing:** We laten merchants hun "Klantenservice e-mailadres" in Bol.com instellen op hun unieke SellQo forwarding adres. Dan ontvangen wij de emails via Resend Inbound.
+
+---
+
+## Architectuur Overzicht
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  CORRECTE FLOW                                                              │
+│  NIEUWE ARCHITECTUUR                                                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  [Bol.com Ads - Klik "Activeren"]                                          │
-│       ↓                                                                     │
-│  1. Check: Heeft tenant een actieve Bol.com retailer koppeling?            │
-│       ↓                                                                     │
-│  ❌ NEE → Toon melding: "Je moet eerst Bol.com koppelen in SellQo Connect" │
-│       │   + Link naar /admin/connect?tab=marketplace                        │
-│       ↓                                                                     │
-│  ✅ JA → Activeer Bol.com Ads met referentie naar retailer connection      │
+│  KANALEN                          SELLQO                      DATABASE      │
+│  ────────────────────────────────────────────────────────────────────────  │
 │                                                                             │
-│  [Meta Ads - Klik "Koppelen"]                                              │
-│       ↓                                                                     │
-│  1. Check: Is Meta OAuth geconfigureerd? (secrets aanwezig)                │
-│       ↓                                                                     │
-│  ❌ NEE → Toon melding: "Meta Ads koppeling is nog niet beschikbaar"       │
-│       │   + Badge "Binnenkort"                                              │
-│       ↓                                                                     │
-│  ✅ JA → Start OAuth flow via social-oauth-init                            │
-│                                                                             │
-│  [Google/Amazon - Klik "Koppelen"]                                         │
-│       ↓                                                                     │
-│  Toon melding: "Google/Amazon Ads koppeling komt binnenkort"               │
-│  + Disable button + Badge "Binnenkort"                                      │
+│  ┌─────────────┐                                                            │
+│  │ Bol.com     │────┐                                                       │
+│  │ Klantvraag  │    │         ┌────────────────────┐                       │
+│  └─────────────┘    │         │                    │                       │
+│                     │         │  handle-inbound-   │   ┌─────────────────┐ │
+│  ┌─────────────┐    ├────────▶│  email             │──▶│ customer_       │ │
+│  │ Webshop     │────┤   via   │  Edge Function     │   │ messages        │ │
+│  │ Contact     │    │  Resend │                    │   │                 │ │
+│  └─────────────┘    │         └────────────────────┘   │ direction:      │ │
+│                     │                 │                 │ 'inbound'       │ │
+│  ┌─────────────┐    │                 │                 │                 │ │
+│  │ Amazon/     │────┘                 ▼                 └─────────────────┘ │
+│  │ Andere      │              ┌────────────────────┐                       │
+│  └─────────────┘              │  Tenant Matching   │                       │
+│                               │  via unique email  │                       │
+│                               │  prefix            │                       │
+│                               └────────────────────┘                       │
+│                                       │                                     │
+│                                       ▼                                     │
+│                               ┌────────────────────┐                       │
+│                               │  notifications     │                       │
+│                               │  + realtime toast  │                       │
+│                               └────────────────────┘                       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -73,196 +99,265 @@ De Ads platform koppeling heeft geen echte validatie - als je op "Koppelen" klik
 
 ## Technische Implementatie
 
-### 1. Uitbreiden useAdPlatforms Hook
+### Stap 1: Database Uitbreiding
 
-De hook moet toegang krijgen tot `marketplace_connections` om te valideren of Bol.com retailer koppeling bestaat:
+Nieuwe kolommen in `tenants` tabel:
 
-```typescript
-// src/hooks/useAdPlatforms.ts
+```sql
+-- Uniek inbound email prefix per tenant
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS 
+  inbound_email_prefix TEXT UNIQUE;
 
-// Toevoegen: query voor marketplace connections
-const { data: marketplaceConnections = [] } = useQuery({
-  queryKey: ['marketplace-connections', currentTenant?.id],
-  queryFn: async () => {
-    if (!currentTenant?.id) return [];
-    const { data, error } = await supabase
-      .from('marketplace_connections')
-      .select('id, marketplace_type, is_active')
-      .eq('tenant_id', currentTenant.id)
-      .eq('is_active', true);
-    if (error) throw error;
-    return data;
-  },
-  enabled: !!currentTenant?.id,
-});
-
-// Helper: check of benodigde koppeling bestaat
-const hasBolRetailerConnection = () => {
-  return marketplaceConnections.some(c => 
-    c.marketplace_type === 'bol_com' && c.is_active
-  );
-};
-
-// Helper: platform availability status
-const getPlatformStatus = (platform: AdPlatform) => {
-  if (platform === 'bol_ads') {
-    return hasBolRetailerConnection() 
-      ? 'ready' 
-      : 'requires_connection';
-  }
-  // Meta OAuth nog niet geconfigureerd (toekomstig)
-  if (platform === 'meta_ads') {
-    return 'coming_soon'; // of 'ready' als OAuth is geconfigureerd
-  }
-  // Google en Amazon nog niet geïmplementeerd
-  return 'coming_soon';
-};
+-- Automatisch genereren bij nieuwe tenants
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS 
+  inbound_email_enabled BOOLEAN DEFAULT false;
 ```
 
-### 2. Update PlatformConnections Component
+De prefix wordt automatisch gegenereerd op basis van de tenant slug, bijvoorbeeld:
+- Tenant slug: `mijn-winkel`
+- Inbound adres: `mijn-winkel@inbound.sellqo.app`
 
-UI aanpassingen per platform status:
+### Stap 2: Resend Domain Configuratie
 
-| Platform | Status | Button | Actie |
-|----------|--------|--------|-------|
-| Bol.com | `ready` | "Activeren" (enabled) | Activeer koppeling |
-| Bol.com | `requires_connection` | "Eerst Bol.com koppelen" (link) | Navigeer naar Connect |
-| Meta | `ready` | "Koppelen via Facebook" | Start OAuth |
-| Meta | `coming_soon` | "Binnenkort" (disabled) | - |
-| Google | `coming_soon` | "Binnenkort" (disabled) | - |
-| Amazon | `coming_soon` | "Binnenkort" (disabled) | - |
+Voor inbound emails met Resend moet er een domein worden geconfigureerd:
+
+1. **Inbound Domain**: `inbound.sellqo.app` (of subdomain)
+2. **MX Records**: Resend MX records toevoegen aan DNS
+3. **Webhook URL**: `https://[project-id].supabase.co/functions/v1/handle-inbound-email`
+
+**Configuratie stappen (door jou uit te voeren):**
+1. Ga naar Resend Dashboard → Domains
+2. Voeg `inbound.sellqo.app` toe als inbound domain
+3. Configureer de MX records bij je DNS provider
+4. Stel de webhook URL in
+
+### Stap 3: Edge Function `handle-inbound-email`
 
 ```typescript
-// src/components/admin/ads/PlatformConnections.tsx
+// supabase/functions/handle-inbound-email/index.ts
 
-const handleConnect = async (platform: AdPlatform) => {
-  const status = getPlatformStatus(platform);
-  
-  if (status === 'requires_connection') {
-    toast({
-      title: 'Retailer koppeling vereist',
-      description: 'Koppel eerst je Bol.com account in SellQo Connect.',
-      action: (
-        <Button asChild size="sm">
-          <Link to="/admin/connect?tab=marketplace">Ga naar Connect</Link>
-        </Button>
-      ),
-    });
-    return;
-  }
-  
-  if (status === 'coming_soon') {
-    toast({
-      title: 'Binnenkort beschikbaar',
-      description: `${AD_PLATFORMS[platform].name} koppeling komt binnenkort.`,
-    });
-    return;
-  }
-  
-  // Alleen voor 'ready' status
-  if (platform === 'bol_ads') {
-    // Vind de bestaande Bol.com retailer connection
-    const bolConnection = marketplaceConnections.find(
-      c => c.marketplace_type === 'bol_com' && c.is_active
-    );
-    
-    await connectPlatform.mutateAsync({
-      platform,
-      account_name: 'Bol.com Advertenties',
-      account_id: bolConnection?.id, // Referentie naar retailer connection
-      config: { 
-        uses_retailer_api: true,
-        retailer_connection_id: bolConnection?.id 
-      }
-    });
-  } else if (platform === 'meta_ads') {
-    // Start OAuth flow
-    // ... (toekomstige implementatie)
-  }
-};
+// Resend stuurt inbound emails als JSON payload:
+interface ResendInboundPayload {
+  from: string;           // afzender email
+  to: string[];           // ontvangers (onze tenant prefix@inbound.sellqo.app)
+  subject: string;
+  text: string;           // plain text body
+  html: string;           // HTML body
+  headers: Record<string, string>;
+  attachments?: Array<{
+    filename: string;
+    content: string;      // base64
+    content_type: string;
+  }>;
+}
+
+// Verwerking:
+// 1. Parse "to" address om tenant prefix te vinden
+// 2. Lookup tenant by inbound_email_prefix
+// 3. Optioneel: match Bol.com order ID uit subject
+// 4. Optioneel: match klant op basis van email/order
+// 5. Sla bericht op in customer_messages met direction='inbound'
+// 6. Maak notificatie aan
 ```
 
-### 3. UI Verbeteringen
+### Stap 4: Tenant Routing Logica
 
-Visuele indicaties voor status per platform:
+```text
+INBOUND EMAIL: klantvraag@inbound.sellqo.app → tenant "mijn-winkel"
+
+Lookup flow:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  1. Parse TO address: "mijn-winkel@inbound.sellqo.app"                     │
+│                        ^^^^^^^^^^^^                                         │
+│                        prefix                                               │
+│                                                                             │
+│  2. SELECT * FROM tenants WHERE inbound_email_prefix = 'mijn-winkel'       │
+│                                                                             │
+│  3. Bol.com context detection (uit subject):                               │
+│     "Vraag over bestelling 1234567890" → parse order ID                    │
+│                                                                             │
+│  4. Order lookup (optioneel):                                               │
+│     SELECT * FROM orders WHERE marketplace_order_id = '1234567890'         │
+│     └── Hiermee linken we automatisch aan de juiste bestelling!            │
+│                                                                             │
+│  5. Customer matching (optioneel):                                          │
+│     - Via order.customer_id                                                 │
+│     - Via FROM email in customers tabel                                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Stap 5: UI voor Configuratie
+
+Nieuwe sectie in "Koppelingen & Kanalen" → "Email Inbox":
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  BOL.COM (zonder retailer koppeling)                                        │
+│  📥 Inkomende E-mails                                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  🛒 Bol.com                                                                 │
-│  Sponsored Products op Bol.com                                              │
 │                                                                             │
-│  ⚠️ Om Bol.com Ads te gebruiken moet je eerst je Bol.com                   │
-│  Retailer account koppelen in SellQo Connect.                               │
+│  Ontvang klantvragen direct in SellQo door je klantenservice e-mails       │
+│  door te sturen naar je unieke SellQo adres.                               │
 │                                                                             │
-│  [Ga naar SellQo Connect →]                                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  BOL.COM (met retailer koppeling)                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  🛒 Bol.com                                           ✅ Retailer gekoppeld │
-│  Sponsored Products op Bol.com                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Je unieke forwarding adres:                                        │   │
+│  │  ┌────────────────────────────────────────────────────────────────┐ │   │
+│  │  │  mijn-winkel@inbound.sellqo.app                       [Kopieer]│ │   │
+│  │  └────────────────────────────────────────────────────────────────┘ │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
-│  Gebruik je bestaande Bol.com Retailer API koppeling                       │
-│  voor advertenties.                                                         │
+│  📝 Zo koppel je Bol.com:                                                  │
+│  ─────────────────────────────────────────────────────────────────────     │
+│  1. Ga naar Bol.com → Instellingen → Winkelsettings                        │
+│  2. Zoek "Klantenservice e-mailadres"                                      │
+│  3. Vul in: mijn-winkel@inbound.sellqo.app                                 │
+│  4. Sla op - klaar!                                                        │
 │                                                                             │
-│  [Activeren]                                                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  META (coming soon)                                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  📱 Meta (FB/IG)                                            🏷️ Binnenkort  │
-│  Facebook & Instagram Ads                                                   │
+│  ✅ Alle klantvragen komen nu automatisch in je SellQo inbox.              │
 │                                                                             │
-│  Koppel je Facebook Business Manager account om te                          │
-│  adverteren op Facebook en Instagram.                                       │
+│  ──────────────────────────────────────────────────────────────────────    │
 │                                                                             │
-│  [Koppelen] (disabled, grayed out)                                          │
+│  📊 Status                                                                  │
+│  ─────────────────────────────────────────────────────────────────────     │
+│  🟢 Inbox actief - 23 berichten ontvangen deze week                        │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Bestandswijzigingen
+## Stapsgewijs Configuratie Plan
+
+Omdat je vroeg om een stapsgewijze handleiding voor de Resend inbound configuratie:
+
+### Fase 1: Resend Inbound Domain Setup (Handmatig, door jou)
+
+1. **Log in op Resend Dashboard** (https://resend.com/domains)
+2. **Voeg inbound domain toe**:
+   - Klik "Add Domain" → selecteer "Inbound"
+   - Domein: `inbound.sellqo.app` (of een ander subdomein)
+3. **Configureer DNS** (bij je domein provider):
+   ```text
+   MX   inbound.sellqo.app   10 feedback-smtp.us-east-1.amazonses.com
+   ```
+   (Exacte records worden getoond in Resend na toevoegen)
+4. **Configureer Webhook**:
+   - Webhook URL: `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/handle-inbound-email`
+   - Events: `inbound.email.received`
+
+### Fase 2: Database Migratie
+
+```sql
+-- Voeg inbound email velden toe aan tenants
+ALTER TABLE tenants 
+  ADD COLUMN IF NOT EXISTS inbound_email_prefix TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS inbound_email_enabled BOOLEAN DEFAULT false;
+
+-- Automatisch prefix genereren voor bestaande tenants
+UPDATE tenants 
+SET inbound_email_prefix = slug 
+WHERE inbound_email_prefix IS NULL;
+
+-- Trigger voor nieuwe tenants
+CREATE OR REPLACE FUNCTION set_default_inbound_prefix()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.inbound_email_prefix IS NULL THEN
+    NEW.inbound_email_prefix := NEW.slug;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Fase 3: Edge Function Development
+
+Nieuwe functie: `handle-inbound-email`
+- Ontvangt Resend webhook payload
+- Parsed TO address voor tenant matching
+- Detecteert Bol.com order context uit subject
+- Matcht klant en bestelling indien mogelijk
+- Slaat bericht op als `direction: 'inbound'`
+- Creëert notificatie
+
+### Fase 4: UI Component
+
+Nieuwe settings sectie: "Inkomende E-mails"
+- Toont unieke forwarding adres
+- Kopieer knop
+- Stapsgewijze instructies voor Bol.com
+- Statistieken (ontvangen berichten)
+
+---
+
+## Antwoord Flow (Reply-to-Inbox)
+
+Wanneer een merchant antwoordt vanuit de SellQo inbox:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  REPLY FLOW                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Merchant klikt "Beantwoorden" in SellQo inbox                          │
+│                                                                             │
+│  2. SellQo stuurt email via Resend:                                        │
+│     FROM: "Mijn Winkel <noreply@mijnwinkel.nl>"                            │
+│     TO: klant@klantbericht.bol.com (originele afzender)                    │
+│     REPLY-TO: klant@klantbericht.bol.com                                   │
+│     SUBJECT: Re: Vraag over bestelling 1234567890                          │
+│                                                                             │
+│  3. Bol.com ontvangt de reply en forward naar de klant                     │
+│                                                                             │
+│  4. Klant ziet antwoord in hun Bol.com account                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Dit werkt al grotendeels met de bestaande `send-customer-message` functie. We moeten alleen zorgen dat:
+- De originele `from_email` wordt bewaard als `reply_to_email`
+- De `ReplyComposer` deze waarde gebruikt
+
+---
+
+## Bestandsoverzicht
 
 | Bestand | Actie | Beschrijving |
 |---------|-------|--------------|
-| `src/hooks/useAdPlatforms.ts` | Update | Voeg marketplace connection check toe, platform status helper |
-| `src/components/admin/ads/PlatformConnections.tsx` | Update | Validatie voor connect, visuele status per platform |
+| **Database** | | |
+| `xxx_inbound_email.sql` | Nieuw | Migratie voor tenant inbound velden |
+| **Edge Functions** | | |
+| `supabase/functions/handle-inbound-email/index.ts` | Nieuw | Webhook handler voor Resend inbound |
+| **Components** | | |
+| `src/components/admin/settings/InboundEmailSettings.tsx` | Nieuw | Configuratie UI |
+| **Hooks** | | |
+| `src/hooks/useInboundEmail.ts` | Nieuw | Status & statistieken |
 
 ---
 
-## Implementatie Details
+## Verificatie Checklist
 
-### useAdPlatforms.ts - Wijzigingen
+Na implementatie kunnen we testen:
 
-1. **Nieuwe query** voor `marketplace_connections` (alleen `id`, `marketplace_type`, `is_active`)
-2. **Helper functie** `hasBolRetailerConnection()` 
-3. **Helper functie** `getPlatformStatus(platform)` returns `'ready' | 'requires_connection' | 'coming_soon'`
-4. **Export** nieuwe helpers
-
-### PlatformConnections.tsx - Wijzigingen
-
-1. **Import** nieuwe helpers uit hook
-2. **Conditional rendering** per platform status:
-   - `requires_connection`: Alert met link naar Connect
-   - `coming_soon`: Badge + disabled button
-   - `ready`: Normale connect flow
-3. **Button tekst** aangepast per status:
-   - "Activeren" voor Bol.com ready
-   - "Ga naar Connect" voor requires_connection  
-   - "Binnenkort" voor coming_soon
-4. **handleConnect** validatie voordat upsert wordt uitgevoerd
+- [ ] Resend domain is geconfigureerd en verified
+- [ ] MX records zijn correct ingesteld
+- [ ] Webhook ontvangt test emails
+- [ ] Tenant routing werkt correct
+- [ ] Bol.com order ID wordt geparsed uit subject
+- [ ] Berichten verschijnen in inbox
+- [ ] Notificaties worden aangemaakt
+- [ ] Reply flow werkt terug naar Bol.com
 
 ---
 
-## Resultaat
+## Conclusie
 
-Na deze wijzigingen:
-- ✅ Bol.com Ads kan alleen geactiveerd worden als er een werkende Bol.com retailer koppeling is
-- ✅ Duidelijke feedback als koppeling ontbreekt met directe link naar oplossing
-- ✅ Coming soon platforms tonen correct als "binnenkort" met disabled buttons
-- ✅ Geen valse "gekoppeld" statussen meer
+Dit plan maakt het mogelijk om:
+- ✅ Bol.com klantvragen automatisch te ontvangen in SellQo
+- ✅ Niet meer in te loggen op Bol.com voor klantenservice
+- ✅ Berichten te koppelen aan bestellingen en klanten
+- ✅ Direct te antwoorden vanuit één centrale inbox
+- ✅ Uitbreidbaar naar andere kanalen (Amazon, eigen webshop contactformulier)
+
+De eerste stap is de Resend inbound domain configuratie - wil je dat we daar mee beginnen?
