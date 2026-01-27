@@ -1,340 +1,164 @@
 
-# Plan: Meta Messages (Facebook & Instagram) Toevoegen aan Unified Inbox
+# Plan: Meta Messages Implementatie 100% Afronden
 
-## Analyse
+## Huidige Status
 
-De bestaande Unified Inbox architectuur is **uitstekend voorbereid** voor uitbreiding. De `customer_messages` tabel fungeert als universele opslag voor alle kanalen, en het WhatsApp webhook patroon kan direct hergebruikt worden voor Facebook Messenger en Instagram DMs.
+Na analyse zijn de volgende componenten **al geïmplementeerd**:
+- Database: `meta_messaging_connections` tabel + uitbreiding `customer_messages`
+- Edge Functions: `meta-messaging-webhook` en `send-meta-message` bestaan
+- Frontend: Inbox filters, message bubbles, reply composer met FB/IG support
+- Marketing: Landing page vermeldt Facebook Messenger & Instagram DMs
 
-### Waarom Dit Goed Past
+## 3 Kritieke Ontbrekende Items
 
-| Aspect | Huidige Situatie | Meta Messages Fit |
-|--------|------------------|-------------------|
-| **Webhook Pattern** | WhatsApp gebruikt Meta Graph API webhooks | Facebook/Instagram gebruiken **dezelfde** Meta Graph API |
-| **Database** | `channel` kolom accepteert string values | Voeg `facebook` en `instagram` toe |
-| **Social Connections** | `social_channel_connections` tabel bestaat al | Credentials kunnen hier opgeslagen worden |
-| **Meta App** | Waarschijnlijk al een Meta App voor WhatsApp | Zelfde app kan Messenger/Instagram permissions krijgen |
+### 1. Config.toml Entries Ontbreken
 
-### Meta Messaging API's
+De nieuwe edge functions staan **niet** in `supabase/config.toml`. Meta kan dus geen webhooks afleveren:
 
-| Platform | API | Webhook Events |
-|----------|-----|----------------|
-| Facebook Messenger | Messenger Platform API | `messaging`, `messaging_postbacks` |
-| Instagram DMs | Instagram Graph API | `messages`, `messaging_postbacks` |
+```toml
+# ONTBREEKT - moet worden toegevoegd:
+[functions.meta-messaging-webhook]
+verify_jwt = false
 
-Beide gebruiken hetzelfde webhook formaat als WhatsApp, met kleine verschillen in de payload structuur.
+[functions.send-meta-message]
+verify_jwt = false
+```
+
+### 2. OAuth Scopes Ontbreken
+
+`social-oauth-init/index.ts` vraagt **geen messaging permissions**. Huidige scopes zijn alleen voor Social Commerce (shops, catalogs), niet voor DMs:
+
+| Huidige Scopes | Ontbrekende Scopes |
+|----------------|-------------------|
+| `pages_manage_posts` | `pages_messaging` |
+| `instagram_basic` | `instagram_manage_messages` |
+| `catalog_management` | `pages_manage_metadata` |
+
+### 3. OAuth Callback Opslaan
+
+De `social-oauth-callback` slaat tokens op in `social_connections`, maar voor messaging hebben we ook entries nodig in `meta_messaging_connections` met:
+- `page_access_token` (per page, niet user token)
+- `page_id` en `instagram_account_id`
+- Webhook verify token
 
 ---
 
-## Implementatie Overzicht
+## Implementatie Plan
 
-### Fase 1: Database Updates
+### Stap 1: Config.toml Bijwerken
 
-**Wijzigingen aan `customer_messages` tabel:**
-- Voeg nieuwe channel types toe: `facebook`, `instagram`
-- Voeg kolommen toe voor platform-specifieke IDs
+Toevoegen aan `supabase/config.toml`:
 
-```sql
--- Add new channel types
-ALTER TABLE customer_messages 
-DROP CONSTRAINT IF EXISTS customer_messages_channel_check;
+```toml
+[functions.meta-messaging-webhook]
+verify_jwt = false
 
-ALTER TABLE customer_messages 
-ADD CONSTRAINT customer_messages_channel_check 
-CHECK (channel IN ('email', 'whatsapp', 'sms', 'facebook', 'instagram'));
-
--- Add Meta platform specific columns
-ALTER TABLE customer_messages
-ADD COLUMN IF NOT EXISTS meta_sender_id TEXT,
-ADD COLUMN IF NOT EXISTS meta_page_id TEXT,
-ADD COLUMN IF NOT EXISTS meta_message_id TEXT;
+[functions.send-meta-message]
+verify_jwt = false
 ```
 
-**Nieuwe tabel voor Meta Messaging connections:**
+### Stap 2: OAuth Scopes Uitbreiden
 
-```sql
-CREATE TABLE public.meta_messaging_connections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  platform TEXT NOT NULL CHECK (platform IN ('facebook', 'instagram')),
-  page_id TEXT NOT NULL,
-  page_name TEXT,
-  page_access_token TEXT NOT NULL, -- Encrypted
-  instagram_account_id TEXT, -- Only for Instagram
-  webhook_verify_token TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(tenant_id, platform, page_id)
+Update `social-oauth-init/index.ts` Facebook scopes array:
+
+```typescript
+scopes: [
+  // Bestaande Commerce scopes
+  'pages_manage_posts',
+  'pages_read_engagement', 
+  'instagram_basic',
+  'instagram_content_publish',
+  'catalog_management',
+  'business_management',
+  'pages_read_user_content',
+  // NIEUW: Messaging scopes
+  'pages_messaging',             // Facebook Messenger
+  'instagram_manage_messages',   // Instagram DMs
+  'pages_manage_metadata',       // Webhook subscriptions
+].join(','),
+```
+
+### Stap 3: OAuth Callback Uitbreiden
+
+Update `social-oauth-callback/index.ts` om ook:
+1. Page Access Tokens op te halen (user token → page tokens)
+2. Instagram Business Account IDs op te halen
+3. Entries aan te maken in `meta_messaging_connections`
+
+```typescript
+// Na token exchange, haal pages op:
+const pagesResponse = await fetch(
+  `https://graph.facebook.com/v18.0/me/accounts?access_token=${tokenData.access_token}`
 );
-```
+const pages = await pagesResponse.json();
 
-### Fase 2: Edge Functions
-
-**Nieuw bestand: `supabase/functions/meta-messaging-webhook/index.ts`**
-
-Unified webhook handler voor zowel Facebook Messenger als Instagram DMs:
-
-```typescript
-// Key differences from WhatsApp:
-// 1. Identify platform from webhook payload (messaging vs instagram)
-// 2. Use page_id instead of phone_number_id for connection lookup
-// 3. Handle platform-specific message formats
-
-// Inbound message structure:
-// - Facebook: entry[].messaging[].message.text
-// - Instagram: entry[].messaging[].message.text (same structure)
-// - Sender ID: entry[].messaging[].sender.id (PSID for FB, IGSID for IG)
-```
-
-**Nieuw bestand: `supabase/functions/send-meta-message/index.ts`**
-
-Send messages via Facebook Messenger of Instagram API:
-
-```typescript
-// POST to: https://graph.facebook.com/v18.0/{page_id}/messages
-// Body: { recipient: { id: sender_id }, message: { text: "..." } }
-// Header: Authorization: Bearer {page_access_token}
-```
-
-### Fase 3: Frontend Updates
-
-**1. TypeScript Types (`src/hooks/useInbox.ts`)**
-
-```diff
- export interface InboxMessage {
-   // ...existing fields...
--  channel: 'email' | 'whatsapp' | 'sms';
-+  channel: 'email' | 'whatsapp' | 'sms' | 'facebook' | 'instagram';
-+  meta_sender_id?: string;
-+  meta_page_id?: string;
- }
-
- export interface InboxFilters {
--  channel: 'all' | 'email' | 'whatsapp';
-+  channel: 'all' | 'email' | 'whatsapp' | 'facebook' | 'instagram' | 'social';
-   // 'social' = grouped filter for WhatsApp + Facebook + Instagram
- }
-```
-
-**2. Inbox Filters (`src/components/admin/inbox/InboxFilters.tsx`)**
-
-Voeg tabs toe voor Facebook en Instagram, of groepeer ze onder "Social":
-
-```text
-┌───────────────────────────────────────────────────────────────┐
-│ [Alle] [Email] [Social ▾]                                     │
-│                 └── WhatsApp (5)                              │
-│                     Facebook (3)                              │
-│                     Instagram (2)                             │
-└───────────────────────────────────────────────────────────────┘
-```
-
-**3. Reply Composer (`src/components/admin/inbox/ReplyComposer.tsx`)**
-
-```diff
-- const [channel, setChannel] = useState<'email' | 'whatsapp'>(...)
-+ const [channel, setChannel] = useState<'email' | 'whatsapp' | 'facebook' | 'instagram'>(...)
-
-+ } else if (channel === 'facebook' || channel === 'instagram') {
-+   const { error } = await supabase.functions.invoke('send-meta-message', {
-+     body: {
-+       tenant_id: currentTenant.id,
-+       platform: channel,
-+       recipient_id: conversation.customer?.meta_sender_id,
-+       page_id: conversation.lastMessage.meta_page_id,
-+       message: message.trim(),
-+     },
-+   });
-```
-
-**4. Message Bubble (`src/components/admin/inbox/MessageBubble.tsx`)**
-
-Voeg icons toe voor Facebook en Instagram:
-
-```typescript
-import { Facebook, Instagram } from 'lucide-react'; // Of custom icons
-
-const ChannelIcon = {
-  email: Mail,
-  whatsapp: MessageSquare,
-  facebook: Facebook,      // Blauw icon
-  instagram: Instagram,    // Gradient/paars icon
-}[message.channel];
-```
-
-**5. Conversation Item (`src/components/admin/inbox/ConversationItem.tsx`)**
-
-Voeg visuele indicators toe:
-
-```typescript
-// Badge colors per channel
-const channelColors = {
-  email: 'bg-blue-100 text-blue-700',
-  whatsapp: 'bg-green-100 text-green-700',
-  facebook: 'bg-indigo-100 text-indigo-700',
-  instagram: 'bg-pink-100 text-pink-700',
-};
-```
-
-### Fase 4: Settings Page voor Meta Connections
-
-**Nieuw component: `src/components/admin/settings/MetaMessagingSettings.tsx`**
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Meta Messaging Koppelingen                                  │
-├─────────────────────────────────────────────────────────────┤
-│ [Facebook Icon] Facebook Messenger                          │
-│ Status: ● Verbonden met "Mijn Webshop"                     │
-│ [Beheren] [Ontkoppelen]                                    │
-├─────────────────────────────────────────────────────────────┤
-│ [Instagram Icon] Instagram Direct                           │
-│ Status: ○ Niet verbonden                                   │
-│ [Verbinden via Facebook Business Suite]                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Fase 5: OAuth Flow voor Meta Permissions
-
-De bestaande `social-oauth-init` en `social-oauth-callback` edge functions moeten uitgebreid worden om Messaging permissions te vragen:
-
-```typescript
-// Additional scopes needed:
-// - pages_messaging (for Facebook Messenger)
-// - instagram_manage_messages (for Instagram DMs)
-// - pages_manage_metadata (for webhook subscription)
+// Voor elke page met messaging permissions:
+for (const page of pages.data) {
+  await supabase.from('meta_messaging_connections').upsert({
+    tenant_id,
+    platform: 'facebook',
+    page_id: page.id,
+    page_name: page.name,
+    page_access_token: page.access_token,
+    is_active: true,
+  });
+  
+  // Check voor gekoppeld Instagram account
+  const igResponse = await fetch(
+    `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
+  );
+  const igData = await igResponse.json();
+  
+  if (igData.instagram_business_account) {
+    await supabase.from('meta_messaging_connections').upsert({
+      tenant_id,
+      platform: 'instagram',
+      page_id: page.id,
+      instagram_account_id: igData.instagram_business_account.id,
+      page_access_token: page.access_token,
+      is_active: true,
+    });
+  }
+}
 ```
 
 ---
 
 ## Bestanden Overzicht
 
-### Nieuwe Bestanden
-
-| Bestand | Doel |
-|---------|------|
-| `supabase/functions/meta-messaging-webhook/index.ts` | Webhook handler voor FB/IG berichten |
-| `supabase/functions/send-meta-message/index.ts` | Verstuur berichten via FB/IG |
-| `src/components/admin/settings/MetaMessagingSettings.tsx` | Settings UI voor connections |
-| `src/hooks/useMetaMessaging.ts` | Hook voor Meta messaging functionaliteit |
-
-### Aangepaste Bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/hooks/useInbox.ts` | Nieuwe channel types, customer fields |
-| `src/components/admin/inbox/InboxFilters.tsx` | Facebook/Instagram filter tabs |
-| `src/components/admin/inbox/ReplyComposer.tsx` | Send via FB/IG support |
-| `src/components/admin/inbox/MessageBubble.tsx` | FB/IG icons en styling |
-| `src/components/admin/inbox/ConversationItem.tsx` | Channel badges |
-| `supabase/functions/social-oauth-init/index.ts` | Messaging permissions |
-| `supabase/functions/social-oauth-callback/index.ts` | Handle messaging scopes |
-
-### Database Migraties
-
-| Migratie | Doel |
-|----------|------|
-| `add_meta_messaging_channels.sql` | Channel types uitbreiden |
-| `create_meta_messaging_connections.sql` | Connections tabel |
-| `add_meta_message_columns.sql` | Platform-specifieke kolommen |
+| Bestand | Actie |
+|---------|-------|
+| `supabase/config.toml` | 2 entries toevoegen |
+| `supabase/functions/social-oauth-init/index.ts` | 3 scopes toevoegen |
+| `supabase/functions/social-oauth-callback/index.ts` | Page token extraction + meta_messaging_connections insert |
 
 ---
 
-## Technische Overwegingen
+## Post-Implementation: Meta App Setup
 
-### 1. Meta App Configuration
+Na deze code changes moet de merchant (of jij in de Facebook Developer Console):
 
-Je huidige Meta App voor WhatsApp kan uitgebreid worden met:
-- **Messenger** product (voor Facebook pages)
-- **Instagram** product (voor Instagram Business accounts)
-
-Beide vereisen:
-- Webhook subscription voor `messages` events
-- Page Access Tokens met juiste permissions
-
-### 2. Customer Matching
-
-Voor Facebook/Instagram moeten we klanten matchen op:
-- `meta_sender_id` (PSID voor Facebook, IGSID voor Instagram)
-- Of via email als de klant die heeft gedeeld
-
-Nieuw veld in `customers` tabel:
-
-```sql
-ALTER TABLE customers
-ADD COLUMN IF NOT EXISTS facebook_psid TEXT,
-ADD COLUMN IF NOT EXISTS instagram_id TEXT;
-```
-
-### 3. Rate Limits
-
-| Platform | Rate Limit |
-|----------|------------|
-| Facebook Messenger | 200 calls/hour per page |
-| Instagram DMs | 1000 messages/day per account |
-
-Implementeer queue-based sending voor hoge volumes.
-
-### 4. 24-Hour Window Rule
-
-Net als WhatsApp heeft Facebook/Instagram een 24-uurs regel:
-- Na 24 uur zonder klantinteractie kun je alleen "message tags" gebruiken
-- Of de klant moet opnieuw een bericht sturen
-
----
-
-## Visueel Eindresultaat
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ Klantgesprekken                                                         │
-├────────────────────────────┬────────────────────────────────────────────┤
-│ [Alle] [Email] [Social ▾] │                                            │
-│                            │  Jan de Vries                              │
-│ ┌────────────────────────┐ │  ────────────────────────────────────────  │
-│ │ [IG] Emma Bakker   2m  │ │  [FB] Hallo, ik heb een vraag over        │
-│ │ Heb je nog voorraad?   │ │  mijn bestelling #1234                    │
-│ └────────────────────────┘ │                                     14:32  │
-│ ┌────────────────────────┐ │                                            │
-│ │ [FB] Jan de Vries  5m  │ │  [Jij] Hoi Jan! Ja, je bestelling is      │
-│ │ Vraag over bestelling  │ │  onderweg. Tracking: 3SXXXX               │
-│ └────────────────────────┘ │                                     14:35  │
-│ ┌────────────────────────┐ │                                            │
-│ │ [WA] Pieter Jansen 1u  │ │  ────────────────────────────────────────  │
-│ │ Is dit ook in blauw?   │ │                                            │
-│ └────────────────────────┘ │  [Email] [WhatsApp] [Facebook] [Instagram] │
-│                            │  ┌────────────────────────────────────────┐│
-│                            │  │ Typ je antwoord...                     ││
-│                            │  └────────────────────────────────────────┘│
-└────────────────────────────┴────────────────────────────────────────────┘
-```
-
----
-
-## Implementatie Volgorde
-
-| Stap | Actie | Prioriteit |
-|------|-------|------------|
-| 1 | Database migraties uitvoeren | Hoog |
-| 2 | `meta-messaging-webhook` edge function | Hoog |
-| 3 | `send-meta-message` edge function | Hoog |
-| 4 | Frontend types en filters updaten | Hoog |
-| 5 | ReplyComposer FB/IG support | Hoog |
-| 6 | Message/Conversation UI updates | Medium |
-| 7 | Settings page voor connections | Medium |
-| 8 | OAuth flow uitbreiden | Medium |
-| 9 | Customer matching logica | Medium |
-| 10 | Rate limiting en error handling | Laag |
+1. **Messenger Product toevoegen** aan de Meta App
+2. **Instagram Product toevoegen** met Business Login
+3. **Webhook configureren**:
+   - Callback URL: `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/meta-messaging-webhook`
+   - Subscribe to: `messages`, `messaging_postbacks`
+4. **App Review** indienen voor:
+   - `pages_messaging` (Standard Access)
+   - `instagram_manage_messages` (Advanced Access na app review)
 
 ---
 
 ## Samenvatting
 
-| Aspect | Details |
-|--------|---------|
-| **Nieuwe kanalen** | Facebook Messenger + Instagram DMs |
-| **Hergebruik** | WhatsApp webhook pattern, Meta Graph API |
-| **Database** | 2 nieuwe tabellen, 3 kolom toevoegingen |
-| **Edge Functions** | 2 nieuwe, 2 aangepast |
-| **Frontend** | 5 componenten aangepast |
-| **Tijdsinschatting** | ~4-6 uur implementatie |
+| Item | Status | Actie |
+|------|--------|-------|
+| Database | Compleet | Geen |
+| Edge Functions Code | Compleet | Geen |
+| config.toml entries | ONTBREEKT | Toevoegen |
+| OAuth Scopes | ONTBREEKT | 3 scopes toevoegen |
+| Page Token Extraction | ONTBREEKT | Callback uitbreiden |
+| Frontend | Compleet | Geen |
+| Marketing | Compleet | Geen |
+
+Na deze 3 fixes is de implementatie **100% klaar** voor productie (mits Meta App correct geconfigureerd).
