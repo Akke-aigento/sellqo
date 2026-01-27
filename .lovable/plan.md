@@ -1,236 +1,268 @@
 
-
-# Plan: Dashboard Layout & Routing Fixes
+# Plan: Fix Ads Platform Connection Validatie
 
 ## Samenvatting
 
-Dit plan lost twee hoofdproblemen op:
-1. **Routing problemen** - Klikbare tegels leiden naar incorrecte of 404 pagina's
-2. **Layout problemen** - Rommelige layout met verschillende tegelformaten en tekst overflow
+De Ads platform koppeling heeft geen echte validatie - als je op "Koppelen" klikt, wordt er direct een record opgeslagen als "gekoppeld" zonder te controleren of er daadwerkelijk een werkende connectie is. Dit plan implementeert correcte validatie voor alle ad platforms.
 
 ---
 
 ## Probleem Analyse
 
-### 1. Routing Problemen Geïdentificeerd
-
-De Shop Health widget en andere dashboard tegels linken naar URLs die niet altijd bestaan:
-
-| URL in Code | Bestaat? | Probleem |
-|-------------|----------|----------|
-| `/admin/orders?status=pending` | ✅ | Query param wordt mogelijk niet gelezen |
-| `/admin/products?stock=out` | ⚠️ | Query param "stock" wordt niet ondersteund |
-| `/admin/products?stock=low` | ⚠️ | Query param "stock" wordt niet ondersteund |
-| `/admin/invoices?status=overdue` | ⚠️ | Route is `/admin/orders/invoices`, niet `/admin/invoices` |
-| `/admin/invoices` | ❌ | Bestaat niet! Moet `/admin/orders/invoices` zijn |
-| `/admin/quotes` | ❌ | Bestaat niet! Moet `/admin/orders/quotes` zijn |
-| `/admin/messages` | ✅ | Werkt |
-| `/admin/seo` | ❌ | Bestaat niet! Moet `/admin/marketing/seo` zijn |
-| `/admin/storefront?tab=legal` | ✅ | Werkt |
-| `/admin/settings?tab=payments` | ✅ | Werkt |
-
-### 2. Layout Problemen Geïdentificeerd
+### Huidige Flow (Gebroken)
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│  HUIDIGE SITUATIE (Rommelig)                                                            │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  SHOP HEALTH (full width) - Neemt HELE breedte + heeft INTERNE 6-kolom grid    │   │
-│  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐  ← 6 kleine kaarten     │   │
-│  │  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘                          │   │
-│  │  ┌──────────────────────────────────────────────────────────────────────────┐  │   │
-│  │  │ Actions     │ Achievements │ Trends                                      │  │   │
-│  │  └──────────────────────────────────────────────────────────────────────────┘  │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-│  ┌────────────────────────────────┐  ← TODAY WIDGET (lg = 2 cols) MAAR widget zelf    │
-│  │  VANDAAG                       │     is smal ontworpen                              │
-│  │  overflow tekst...              │                                                    │
-│  └────────────────────────────────┘                                                     │
-│                                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  STATS GRID (full width) - 4 stats in eigen row, breekt layout               │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-│  ┌────────┐ ┌────────┐ ┌────────┐  ← 3 medium widgets maar met verschillende          │
-│  │ Quick  │ │ Orders │ │ AI     │     interne hoogtes = rommelig                       │
-│  │ Actions│ │        │ │        │                                                       │
-│  └────────┘ └────────┘ └────────┘                                                       │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  HUIDIGE SITUATIE                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [Bol.com Ads - Klik "Activeren"]                                          │
+│       ↓                                                                     │
+│  connectPlatform.mutateAsync({                                             │
+│    platform: 'bol_ads',                                                    │
+│    account_name: 'Bol.com Advertenties',                                   │
+│    config: { uses_retailer_api: true }                                     │
+│  })                                                                         │
+│       ↓                                                                     │
+│  ❌ Direct opgeslagen als is_active: true                                  │
+│  ❌ GEEN check of marketplace_connections een Bol.com koppeling heeft     │
+│                                                                             │
+│  [Meta/Google/Amazon - Klik "Koppelen"]                                    │
+│       ↓                                                                     │
+│  Toast: "OAuth wordt binnenkort ondersteund"                               │
+│       ↓                                                                     │
+│  ❌ Geen actie, maar button suggereert dat het werkt                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-PROBLEMEN:
-1. Shop Health is te dominant (full width met eigen complexe layout)
-2. Today Widget krijgt 2 kolommen maar de content is smal
-3. Stats Grid (full width) dupliceert statistieken die al in Shop Health staan
-4. Alle widgets hebben verschillende hoogtes
-5. 6-kolom grid in Shop Health past niet in 3-kolom dashboard grid
-6. Tekst in compacte category cards wordt afgesneden (truncate)
+### Gewenste Flow
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CORRECTE FLOW                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [Bol.com Ads - Klik "Activeren"]                                          │
+│       ↓                                                                     │
+│  1. Check: Heeft tenant een actieve Bol.com retailer koppeling?            │
+│       ↓                                                                     │
+│  ❌ NEE → Toon melding: "Je moet eerst Bol.com koppelen in SellQo Connect" │
+│       │   + Link naar /admin/connect?tab=marketplace                        │
+│       ↓                                                                     │
+│  ✅ JA → Activeer Bol.com Ads met referentie naar retailer connection      │
+│                                                                             │
+│  [Meta Ads - Klik "Koppelen"]                                              │
+│       ↓                                                                     │
+│  1. Check: Is Meta OAuth geconfigureerd? (secrets aanwezig)                │
+│       ↓                                                                     │
+│  ❌ NEE → Toon melding: "Meta Ads koppeling is nog niet beschikbaar"       │
+│       │   + Badge "Binnenkort"                                              │
+│       ↓                                                                     │
+│  ✅ JA → Start OAuth flow via social-oauth-init                            │
+│                                                                             │
+│  [Google/Amazon - Klik "Koppelen"]                                         │
+│       ↓                                                                     │
+│  Toon melding: "Google/Amazon Ads koppeling komt binnenkort"               │
+│  + Disable button + Badge "Binnenkort"                                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Oplossing
+## Technische Implementatie
 
-### 1. Fix Alle Routing URLs
+### 1. Uitbreiden useAdPlatforms Hook
 
-```text
-VOOR                              → NA
-────────────────────────────────────────────────────────
-/admin/invoices                   → /admin/orders/invoices
-/admin/invoices?status=overdue    → /admin/orders/invoices
-/admin/quotes                     → /admin/orders/quotes
-/admin/seo                        → /admin/marketing/seo
-```
-
-**Bestand:** `src/lib/healthScoreCalculator.ts`
-
-### 2. Herstructureer Dashboard Layout
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│  NIEUWE LAYOUT (Clean & Consistent)                                                     │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│  ROW 1: Hero Banner (Score + Quick Stats)                                              │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  🟢 85/100  "Je winkel draait lekker!"     €1,250 omzet • 12 orders • 3 klanten │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-│  ROW 2: Health Categories (2 cols) + Live Feed (1 col)                                 │
-│  ┌─────────────────────────────────────────┐  ┌────────────────────────────────────┐   │
-│  │  Health Categories (2x3 grid)           │  │  📡 Live Feed                      │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ │  │  • Order #1234 - €125             │   │
-│  │  │ Orders   │ │ Inventory│ │ Service  │ │  │  • Nieuw product toegevoegd       │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ │  │  • Klant geregistreerd            │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ │  │                                    │   │
-│  │  │ Finance  │ │ SEO      │ │ Complianc│ │  │  📊 Vandaag: €1,250 • 12 orders   │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ │  └────────────────────────────────────┘   │
-│  └─────────────────────────────────────────┘                                            │
-│                                                                                         │
-│  ROW 3: Action Items (1 col) + Quick Actions (1 col) + AI Coach (1 col)                │
-│  ┌────────────────────────────┐ ┌──────────────────────┐ ┌──────────────────────────┐  │
-│  │  ⚠️ Actie-items (3)       │ │  ⚡ Snelle acties    │ │  🤖 AI Coach             │  │
-│  │  • 2 orders wachten       │ │  + Nieuw product     │ │  "VIP klant inactief..." │  │
-│  │  • 3 producten low stock  │ │  📦 Bestellingen     │ │  [Actie]                 │  │
-│  └────────────────────────────┘ └──────────────────────┘ └──────────────────────────┘  │
-│                                                                                         │
-│  ROW 4: Feature Widgets (Optional - based on enabled features)                         │
-│  ┌──────────────────────────────────┐  ┌────────────────────────────────────────────┐  │
-│  │  🏪 POS Overzicht               │  │  🛒 Marktplaatsen                          │  │
-│  │  €450 omzet • 2 actieve sessies │  │  Bol.com: 45 orders • Amazon: 12 orders   │  │
-│  └──────────────────────────────────┘  └────────────────────────────────────────────┘  │
-│                                                                                         │
-│  ROW 5: Badges (Full width, compact)                                                   │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  🏆 [Badge1] [Badge2] [Badge3]...  Progress: ████████░░ 80% naar volgende      │   │
-│  └─────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 3. Widget Size Adjustments
-
-| Widget | Oude Size | Nieuwe Size | Reden |
-|--------|-----------|-------------|-------|
-| `shop-health` | `full` | **Splitsen in 2 widgets** | Te dominant, overlapt stats-grid |
-| `today-widget` | `lg` | `md` | Content is compact, past in 1 kolom |
-| `stats-grid` | `full` | **Verwijderen** | Dupliceert Shop Health stats |
-| `quick-actions` | `md` | `md` | OK |
-| `recent-orders` | `md` | **Verwijderen** | Live feed in Today Widget is beter |
-| `ai-marketing` | `md` | `md` | OK |
-| `pos-overview` | `md` | `md` | OK |
-| `marketplace` | `full` | `lg` | Hoeft niet full width |
-| `low-stock` | `full` | **Verwijderen** | Al in Inventory health card |
-| `badges` | `md` | `full` | Compacte horizontal view |
-
-### 4. Fix Text Overflow
-
-**HealthCategoryCardCompact:** 
-- Voeg `min-h-[X]` toe voor consistente hoogte
-- Gebruik `line-clamp-1` ipv `truncate` voor betere tekst afkapping
-- Vergroot padding voor leesbaarheid
-
-**HealthActionList:**
-- Gebruik `line-clamp-2` voor descriptions
-- Wrap op kleinere schermen
-
----
-
-## Technische Details
-
-### Bestanden die worden aangepast:
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/lib/healthScoreCalculator.ts` | Fix alle action URLs |
-| `src/config/dashboardWidgets.ts` | Pas widget sizes aan, verwijder redundante widgets |
-| `src/components/admin/DashboardGrid.tsx` | Update grid layout logic |
-| `src/components/admin/widgets/ShopHealthWidget.tsx` | Refactor naar 2 widgets: Banner + Categories |
-| `src/components/shop-health/HealthCategoryCard.tsx` | Fix overflow, consistente sizing |
-| `src/components/shop-health/HealthActionList.tsx` | Fix text overflow |
-| `src/components/admin/widgets/TodayWidget.tsx` | Optimaliseer voor md size |
-| `src/components/admin/widgets/BadgesWidget.tsx` | Maak horizontale compact versie |
-
-### Nieuwe Widget Structuur:
+De hook moet toegang krijgen tot `marketplace_connections` om te valideren of Bol.com retailer koppeling bestaat:
 
 ```typescript
-// Oude widgets die worden BEHOUDEN (met aanpassingen):
-'health-banner'     // Nieuw: Alleen score banner
-'health-categories' // Nieuw: Alleen 6 category cards
-'today-widget'      // Geoptimaliseerd voor 1 kolom
-'quick-actions'     // Ongewijzigd
-'ai-marketing'      // Ongewijzigd  
-'pos-overview'      // Ongewijzigd
-'marketplace'       // Verkleind naar lg
-'badges'            // Horizontale versie
+// src/hooks/useAdPlatforms.ts
 
-// Widgets die VERWIJDERD worden:
-'stats-grid'        // Duplicatie van health banner
-'recent-orders'     // Duplicatie van today widget
-'low-stock'         // Duplicatie van inventory health
-'shop-health'       // Wordt gesplitst in banner + categories
+// Toevoegen: query voor marketplace connections
+const { data: marketplaceConnections = [] } = useQuery({
+  queryKey: ['marketplace-connections', currentTenant?.id],
+  queryFn: async () => {
+    if (!currentTenant?.id) return [];
+    const { data, error } = await supabase
+      .from('marketplace_connections')
+      .select('id, marketplace_type, is_active')
+      .eq('tenant_id', currentTenant.id)
+      .eq('is_active', true);
+    if (error) throw error;
+    return data;
+  },
+  enabled: !!currentTenant?.id,
+});
+
+// Helper: check of benodigde koppeling bestaat
+const hasBolRetailerConnection = () => {
+  return marketplaceConnections.some(c => 
+    c.marketplace_type === 'bol_com' && c.is_active
+  );
+};
+
+// Helper: platform availability status
+const getPlatformStatus = (platform: AdPlatform) => {
+  if (platform === 'bol_ads') {
+    return hasBolRetailerConnection() 
+      ? 'ready' 
+      : 'requires_connection';
+  }
+  // Meta OAuth nog niet geconfigureerd (toekomstig)
+  if (platform === 'meta_ads') {
+    return 'coming_soon'; // of 'ready' als OAuth is geconfigureerd
+  }
+  // Google en Amazon nog niet geïmplementeerd
+  return 'coming_soon';
+};
+```
+
+### 2. Update PlatformConnections Component
+
+UI aanpassingen per platform status:
+
+| Platform | Status | Button | Actie |
+|----------|--------|--------|-------|
+| Bol.com | `ready` | "Activeren" (enabled) | Activeer koppeling |
+| Bol.com | `requires_connection` | "Eerst Bol.com koppelen" (link) | Navigeer naar Connect |
+| Meta | `ready` | "Koppelen via Facebook" | Start OAuth |
+| Meta | `coming_soon` | "Binnenkort" (disabled) | - |
+| Google | `coming_soon` | "Binnenkort" (disabled) | - |
+| Amazon | `coming_soon` | "Binnenkort" (disabled) | - |
+
+```typescript
+// src/components/admin/ads/PlatformConnections.tsx
+
+const handleConnect = async (platform: AdPlatform) => {
+  const status = getPlatformStatus(platform);
+  
+  if (status === 'requires_connection') {
+    toast({
+      title: 'Retailer koppeling vereist',
+      description: 'Koppel eerst je Bol.com account in SellQo Connect.',
+      action: (
+        <Button asChild size="sm">
+          <Link to="/admin/connect?tab=marketplace">Ga naar Connect</Link>
+        </Button>
+      ),
+    });
+    return;
+  }
+  
+  if (status === 'coming_soon') {
+    toast({
+      title: 'Binnenkort beschikbaar',
+      description: `${AD_PLATFORMS[platform].name} koppeling komt binnenkort.`,
+    });
+    return;
+  }
+  
+  // Alleen voor 'ready' status
+  if (platform === 'bol_ads') {
+    // Vind de bestaande Bol.com retailer connection
+    const bolConnection = marketplaceConnections.find(
+      c => c.marketplace_type === 'bol_com' && c.is_active
+    );
+    
+    await connectPlatform.mutateAsync({
+      platform,
+      account_name: 'Bol.com Advertenties',
+      account_id: bolConnection?.id, // Referentie naar retailer connection
+      config: { 
+        uses_retailer_api: true,
+        retailer_connection_id: bolConnection?.id 
+      }
+    });
+  } else if (platform === 'meta_ads') {
+    // Start OAuth flow
+    // ... (toekomstige implementatie)
+  }
+};
+```
+
+### 3. UI Verbeteringen
+
+Visuele indicaties voor status per platform:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  BOL.COM (zonder retailer koppeling)                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🛒 Bol.com                                                                 │
+│  Sponsored Products op Bol.com                                              │
+│                                                                             │
+│  ⚠️ Om Bol.com Ads te gebruiken moet je eerst je Bol.com                   │
+│  Retailer account koppelen in SellQo Connect.                               │
+│                                                                             │
+│  [Ga naar SellQo Connect →]                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  BOL.COM (met retailer koppeling)                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🛒 Bol.com                                           ✅ Retailer gekoppeld │
+│  Sponsored Products op Bol.com                                              │
+│                                                                             │
+│  Gebruik je bestaande Bol.com Retailer API koppeling                       │
+│  voor advertenties.                                                         │
+│                                                                             │
+│  [Activeren]                                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  META (coming soon)                                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📱 Meta (FB/IG)                                            🏷️ Binnenkort  │
+│  Facebook & Instagram Ads                                                   │
+│                                                                             │
+│  Koppel je Facebook Business Manager account om te                          │
+│  adverteren op Facebook en Instagram.                                       │
+│                                                                             │
+│  [Koppelen] (disabled, grayed out)                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Implementatie Volgorde
+## Bestandswijzigingen
 
-1. **Fix Routing URLs** - `healthScoreCalculator.ts`
-   - `/admin/invoices` → `/admin/orders/invoices`
-   - `/admin/quotes` → `/admin/orders/quotes`  
-   - `/admin/seo` → `/admin/marketing/seo`
-
-2. **Update Widget Configuratie** - `dashboardWidgets.ts`
-   - Splits `shop-health` in `health-banner` en `health-categories`
-   - Verwijder `stats-grid`, `recent-orders`, `low-stock`
-   - Pas sizes aan
-
-3. **Refactor ShopHealthWidget** 
-   - Maak `HealthBannerWidget` (full width, compact)
-   - Maak `HealthCategoriesWidget` (lg, 2x3 grid)
-
-4. **Fix Text Overflow**
-   - `HealthCategoryCardCompact`: consistente min-height, line-clamp
-   - `HealthActionList`: responsive text wrapping
-
-5. **Update DashboardGrid**
-   - Nieuwe default widget order
-   - Betere grid class mapping voor consistent spacing
-
-6. **Update TodayWidget & BadgesWidget**
-   - Optimaliseer voor nieuwe sizes
+| Bestand | Actie | Beschrijving |
+|---------|-------|--------------|
+| `src/hooks/useAdPlatforms.ts` | Update | Voeg marketplace connection check toe, platform status helper |
+| `src/components/admin/ads/PlatformConnections.tsx` | Update | Validatie voor connect, visuele status per platform |
 
 ---
 
-## Conclusie
+## Implementatie Details
 
-Dit plan:
-- ✅ Fixt alle 404 routing problemen
-- ✅ Maakt een cleane, consistente grid layout
-- ✅ Verwijdert duplicatie (stats-grid, low-stock)
-- ✅ Fixt text overflow issues
-- ✅ Behoudt alle belangrijke informatie in een compactere vorm
+### useAdPlatforms.ts - Wijzigingen
 
+1. **Nieuwe query** voor `marketplace_connections` (alleen `id`, `marketplace_type`, `is_active`)
+2. **Helper functie** `hasBolRetailerConnection()` 
+3. **Helper functie** `getPlatformStatus(platform)` returns `'ready' | 'requires_connection' | 'coming_soon'`
+4. **Export** nieuwe helpers
+
+### PlatformConnections.tsx - Wijzigingen
+
+1. **Import** nieuwe helpers uit hook
+2. **Conditional rendering** per platform status:
+   - `requires_connection`: Alert met link naar Connect
+   - `coming_soon`: Badge + disabled button
+   - `ready`: Normale connect flow
+3. **Button tekst** aangepast per status:
+   - "Activeren" voor Bol.com ready
+   - "Ga naar Connect" voor requires_connection  
+   - "Binnenkort" voor coming_soon
+4. **handleConnect** validatie voordat upsert wordt uitgevoerd
+
+---
+
+## Resultaat
+
+Na deze wijzigingen:
+- ✅ Bol.com Ads kan alleen geactiveerd worden als er een werkende Bol.com retailer koppeling is
+- ✅ Duidelijke feedback als koppeling ontbreekt met directe link naar oplossing
+- ✅ Coming soon platforms tonen correct als "binnenkort" met disabled buttons
+- ✅ Geen valse "gekoppeld" statussen meer
