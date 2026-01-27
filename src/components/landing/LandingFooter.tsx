@@ -3,26 +3,26 @@ import { SellqoLogo } from '@/components/SellqoLogo';
 import { Linkedin, Twitter, Facebook } from 'lucide-react';
 
 const productLinks = [
-  { label: 'Features', href: '#features' },
-  { label: 'Prijzen', href: '#pricing' },
-  { label: 'Integraties', href: '#' },
-  { label: 'API Docs', href: '#' },
-  { label: 'Changelog', href: '#' },
+  { label: 'Features', href: '#features', isAnchor: true },
+  { label: 'Prijzen', href: '#pricing', isAnchor: true },
+  { label: 'Integraties', href: '/integrations', isAnchor: false },
+  { label: 'API Docs', href: '/api-docs', isAnchor: false },
+  { label: 'Changelog', href: '/changelog', isAnchor: false },
 ];
 
 const companyLinks = [
-  { label: 'Over Ons', href: '#' },
-  { label: 'Blog', href: '#' },
-  { label: 'Contact', href: '#' },
-  { label: 'Careers', href: '#' },
-  { label: 'Partners', href: '#' },
+  { label: 'Over Ons', href: '/about' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'Careers', href: '/careers' },
+  { label: 'Partners', href: '/partners' },
 ];
 
 const supportLinks = [
-  { label: 'Help Center', href: '#' },
-  { label: 'FAQ', href: '#faq' },
-  { label: 'Status Page', href: '#' },
-  { label: 'Neem Contact Op', href: '#' },
+  { label: 'Help Center', href: '/help', isAnchor: false },
+  { label: 'FAQ', href: '#faq', isAnchor: true },
+  { label: 'Status Page', href: '/status', isAnchor: false },
+  { label: 'Neem Contact Op', href: '/contact', isAnchor: false },
 ];
 
 const socialLinks = [
@@ -32,13 +32,13 @@ const socialLinks = [
 ];
 
 const legalLinks = [
-  { label: 'Privacy Policy', href: '#' },
-  { label: 'Algemene Voorwaarden', href: '#' },
-  { label: 'Cookie Policy', href: '#' },
+  { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Algemene Voorwaarden', href: '/terms' },
+  { label: 'Cookie Policy', href: '/cookies' },
 ];
 
 export function LandingFooter() {
-  const handleNavClick = (href: string) => {
+  const handleAnchorClick = (href: string) => {
     if (href.startsWith('#')) {
       const element = document.querySelector(href);
       if (element) {
@@ -77,12 +77,21 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {productLinks.map((link) => (
                 <li key={link.label}>
-                  <button
-                    onClick={() => handleNavClick(link.href)}
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-                  >
-                    {link.label}
-                  </button>
+                  {link.isAnchor ? (
+                    <button
+                      onClick={() => handleAnchorClick(link.href)}
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <Link
+                      to={link.href}
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -94,12 +103,12 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {companyLinks.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-muted-foreground hover:text-foreground transition-colors text-sm"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -111,12 +120,21 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {supportLinks.map((link) => (
                 <li key={link.label}>
-                  <button
-                    onClick={() => handleNavClick(link.href)}
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-                  >
-                    {link.label}
-                  </button>
+                  {link.isAnchor ? (
+                    <button
+                      onClick={() => handleAnchorClick(link.href)}
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <Link
+                      to={link.href}
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -131,13 +149,13 @@ export function LandingFooter() {
           
           <div className="flex flex-wrap justify-center gap-6">
             {legalLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
-                href={link.href}
+                to={link.href}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
 
