@@ -83,9 +83,14 @@ export function ComparisonSection() {
           </h2>
         </div>
 
+        {/* Scroll hint for mobile */}
+        <div className="flex items-center justify-end gap-2 mb-2 md:hidden">
+          <span className="text-xs text-muted-foreground">Scroll →</span>
+        </div>
+
         <div
           className={cn(
-            'overflow-x-auto',
+            'overflow-x-auto -mx-4 px-4',
             isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
           )}
           style={{ animationDelay: '0.2s' }}
@@ -93,12 +98,12 @@ export function ComparisonSection() {
           <table className="w-full min-w-[640px] bg-card rounded-2xl border border-border shadow-sellqo overflow-hidden">
             <thead>
               <tr className="border-b border-border">
-                <th className="p-4 text-left text-foreground font-semibold">Feature</th>
+                <th className="p-4 text-left text-foreground font-semibold sticky left-0 bg-card z-10 min-w-[140px]">Feature</th>
                 {platforms.map((platform) => (
                   <th
                     key={platform.key}
                     className={cn(
-                      'p-4 text-center font-semibold',
+                      'p-4 text-center font-semibold whitespace-nowrap',
                       platform.highlight ? 'bg-accent/10 text-accent' : 'text-foreground'
                     )}
                   >
@@ -113,7 +118,7 @@ export function ComparisonSection() {
             <tbody>
               {comparisonData.map((row, index) => (
                 <tr key={index} className="border-b border-border last:border-0">
-                  <td className="p-4 text-foreground">{row.feature}</td>
+                  <td className="p-4 text-foreground sticky left-0 bg-card z-10 text-sm">{row.feature}</td>
                   {platforms.map((platform) => (
                     <td
                       key={platform.key}

@@ -14,7 +14,9 @@ interface Feature {
   gridSpan: 1 | 2;
 }
 
+// Features herordend zodat elke rij exact 3 kolommen vult (2+1 of 1+1+1 patroon)
 const features: Feature[] = [
+  // Rij 1: 2 + 1 = 3
   {
     icon: Store,
     title: 'Verkoop Overal, Beheer Centraal',
@@ -30,6 +32,7 @@ const features: Feature[] = [
     description: 'Automatische sync tussen al je kanalen. Verkoop je iets op Amazon? Je Bol.com en webshop worden direct bijgewerkt.',
     gridSpan: 1,
   },
+  // Rij 2: 2 + 1 = 3
   {
     icon: Sparkles,
     title: 'Complete AI Marketing Suite',
@@ -51,6 +54,7 @@ const features: Feature[] = [
     badge: 'Exclusief',
     gridSpan: 1,
   },
+  // Rij 3: 2 + 1 = 3
   {
     icon: Gift,
     title: '8 Promotietypen',
@@ -64,31 +68,6 @@ const features: Feature[] = [
     gridSpan: 2,
   },
   {
-    icon: MessageSquare,
-    title: 'Unified Inbox',
-    subtitle: 'Alle Communicatie Op Één Plek',
-    description: 'Email, WhatsApp, Facebook Messenger én Instagram DMs in één inbox. Marketplace berichten worden automatisch gerouteerd.',
-    badge: 'Social Messaging',
-    features: [
-      'WhatsApp, Facebook & Instagram',
-      'Bol.com & Amazon berichten',
-      'AI-suggesties voor antwoorden',
-    ],
-    gridSpan: 2,
-  },
-  {
-    icon: Paintbrush,
-    title: 'Drag & Drop Webshop Builder',
-    subtitle: 'Geen Code Nodig',
-    description: 'Kies een theme, pas kleuren aan, bouw je homepage visueel. Reviews van Google, Trustpilot en meer op één plek.',
-    features: [
-      'WYSIWYG Visual Editor',
-      'Multi-platform Reviews Hub',
-      'AI Chatbot voor 24/7 support',
-    ],
-    gridSpan: 2,
-  },
-  {
     icon: FileText,
     title: 'Slimme Financiën',
     subtitle: 'Facturen & BTW',
@@ -96,11 +75,27 @@ const features: Feature[] = [
     badge: 'Peppol 2026',
     gridSpan: 1,
   },
+  // Rij 4: 1 + 1 + 1 = 3 (alle span-1 voor balans)
+  {
+    icon: MessageSquare,
+    title: 'Unified Inbox',
+    subtitle: 'Alle Communicatie Op Één Plek',
+    description: 'Email, WhatsApp, Facebook Messenger én Instagram DMs in één inbox. Marketplace berichten automatisch gerouteerd.',
+    badge: 'Social Messaging',
+    gridSpan: 1,
+  },
+  {
+    icon: Paintbrush,
+    title: 'Webshop Builder',
+    subtitle: 'Geen Code Nodig',
+    description: 'Kies een theme, pas kleuren aan, bouw je homepage visueel. Reviews van Google, Trustpilot en meer op één plek.',
+    gridSpan: 1,
+  },
   {
     icon: TrendingUp,
     title: 'Groei-Insights & POS',
     subtitle: 'Data & Fysieke Verkoop',
-    description: 'Real-time inzicht in omzet, winstmarges per product, best sellers. Plus een volledig POS kassasysteem voor je winkel.',
+    description: 'Real-time inzicht in omzet, winstmarges per product. Plus een volledig POS kassasysteem voor je winkel.',
     badge: 'Omnichannel',
     gridSpan: 1,
   },
