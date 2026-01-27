@@ -10546,6 +10546,8 @@ export type Database = {
           export_text: string | null
           iban: string | null
           id: string
+          inbound_email_enabled: boolean | null
+          inbound_email_prefix: string | null
           invoice_bcc_email: string | null
           invoice_cc_email: string | null
           invoice_email_body: string | null
@@ -10635,6 +10637,8 @@ export type Database = {
           export_text?: string | null
           iban?: string | null
           id?: string
+          inbound_email_enabled?: boolean | null
+          inbound_email_prefix?: string | null
           invoice_bcc_email?: string | null
           invoice_cc_email?: string | null
           invoice_email_body?: string | null
@@ -10724,6 +10728,8 @@ export type Database = {
           export_text?: string | null
           iban?: string | null
           id?: string
+          inbound_email_enabled?: boolean | null
+          inbound_email_prefix?: string | null
           invoice_bcc_email?: string | null
           invoice_cc_email?: string | null
           invoice_email_body?: string | null

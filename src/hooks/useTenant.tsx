@@ -80,6 +80,9 @@ interface Tenant {
   whatsapp_shipping_updates?: boolean;
   whatsapp_abandoned_cart?: boolean;
   whatsapp_abandoned_cart_delay_hours?: number;
+  // Inbound email settings
+  inbound_email_prefix?: string | null;
+  inbound_email_enabled?: boolean;
 }
 
 interface TenantContextType {

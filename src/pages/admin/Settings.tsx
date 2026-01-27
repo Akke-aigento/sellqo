@@ -43,7 +43,9 @@ import { FulfillmentAPISettings } from '@/components/admin/settings/FulfillmentA
 import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
+import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { useAuth } from '@/hooks/useAuth';
+import { Inbox } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
@@ -108,6 +110,7 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },
+      { id: 'inbound-email', title: 'Email Inbox', icon: Inbox, component: InboundEmailSettings },
       { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings },
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
