@@ -29,7 +29,7 @@ export function SolutionOverviewSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
 
   return (
-    <section className="py-16 md:py-20 bg-background">
+    <section className="pt-8 md:pt-10 pb-16 md:pb-20 bg-background">
       <div className="container mx-auto px-4">
         <div
           ref={ref}
