@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Sparkles, Loader2, RefreshCw, ArrowDown, ArrowUp, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +18,7 @@ interface AICopyButtonProps {
   fieldType: FieldType;
   sectionType: SectionType;
   currentValue: string;
-  onGenerate: (newValue: string) => void;
+  onGenerate: (newValue: string, wasAIGenerated: boolean) => void;
   className?: string;
 }
 
@@ -69,7 +69,7 @@ export function AICopyButton({
       if (error) throw error;
 
       if (data?.text) {
-        onGenerate(data.text);
+        onGenerate(data.text, true); // Mark as AI-generated
         toast.success('Tekst gegenereerd!');
         setIsOpen(false);
       } else {
