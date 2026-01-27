@@ -1,108 +1,216 @@
 
-# Fix: Achterstevoren Typen in InlineTextEditor
+# Plan: Visual Editor Uitbreidingen
 
-## Probleem
+Dit plan beschrijft de implementatie van drie belangrijke features voor de Visual Editor: AI Copywriting, Undo/Redo, en Static Pages Visual Editor.
 
-Wanneer je tekst typt in de Visual Editor, verschijnen de karakters in omgekeerde volgorde. Dit komt doordat de cursor steeds naar het begin van het tekstveld springt na elke toetsaanslag.
+---
 
-## Root Cause
+## Feature 1: AI Copywriting in Visual Editor
 
-Het probleem zit in `InlineTextEditor.tsx` bij het gebruik van `contentEditable` met React's controlled state:
+### Wat het doet
+Een "✨ AI" knop naast elk tekstveld in de Visual Editor die automatisch professionele teksten genereert op basis van de context (sectie type, bestaande content, tenant branding).
 
+### Gebruikerservaring
+1. Gebruiker ziet een sparkle-icoon (✨) naast elk bewerkbaar tekstveld
+2. Klik op de knop opent een kleine popover met opties:
+   - "Genereer titel" / "Genereer subtitel" / "Genereer CTA"
+   - "Herschrijf professioneler"
+   - "Maak korter" / "Maak langer"
+3. AI genereert tekst op basis van sectie context
+4. Gegenereerde tekst wordt direct in het veld geplaatst
+5. Gebruiker kan accepteren (klik erbuiten) of annuleren (Escape)
+
+### Technische Aanpak
+
+**Nieuw Component: `AICopyButton.tsx`**
 ```typescript
-// Huidige probleem:
-const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-  setEditValue(e.currentTarget.textContent || '');  // <- Triggert re-render
-};
-
-// In de render:
-<div contentEditable={isEditing}>
-  {displayValue}  // <- Bij re-render wordt dit opnieuw gerenderd, cursor reset
-</div>
+// Props: fieldType, currentValue, sectionType, onGenerate
+// Toont sparkle icoon + popover met opties
+// Roept edge function aan en toont loading state
 ```
 
-Elke `setEditValue()` triggert een re-render, waardoor React de `displayValue` opnieuw rendert en de browser cursor positie verliest.
+**Nieuwe Edge Function: `ai-generate-storefront-copy`**
+- Input: fieldType (title/subtitle/cta/button), sectionType (hero/newsletter/etc), currentValue, tenantContext
+- Gebruikt Lovable AI Gateway (google/gemini-3-flash-preview)
+- Output: gegenereerde tekst
+- Verbruikt 1 AI credit per generatie
 
-## Oplossing
+**Wijzigingen bestaande bestanden:**
+| Bestand | Wijziging |
+|---------|-----------|
+| `InlineTextEditor.tsx` | Nieuwe prop `showAIButton`, render `AICopyButton` naast tekstveld |
+| `EditableHeroSection.tsx` | Voeg `showAIButton` prop toe aan alle `InlineTextEditor` componenten |
+| `EditableTextImageSection.tsx` | Idem |
+| `EditableNewsletterSection.tsx` | Idem |
 
-Maak het `contentEditable` element **uncontrolled** tijdens het bewerken:
+---
 
-1. **Geen state updates tijdens typen** - Alleen opslaan bij blur/save
-2. **Behoud de ref-waarde** - Lees `textContent` alleen bij save
-3. **Initialiseer content bij edit start** - Zet initiele tekst via DOM
+## Feature 2: Undo/Redo Functionaliteit
 
-## Technische Wijzigingen
+### Wat het doet
+Ongedaan maken van wijzigingen in de Visual Editor met Ctrl+Z (undo) en Ctrl+Shift+Z (redo).
 
-### Bestand: `src/components/admin/storefront/visual-editor/InlineTextEditor.tsx`
+### Gebruikerservaring
+1. Elke wijziging wordt opgeslagen in een history stack
+2. Ctrl+Z maakt de laatste wijziging ongedaan
+3. Ctrl+Shift+Z herstelt de ongedaan gemaakte wijziging
+4. Visuele indicator toont aantal undo-stappen beschikbaar
+5. Undo/Redo knoppen in de toolbar als alternatief
 
-**Wijzigingen:**
+### Technische Aanpak
 
-1. Verwijder `handleInput` callback (geen state updates tijdens typen)
-2. Bij `handleClick`, zet de initiele tekst in de ref
-3. Bij `handleSave`, lees de tekst uit de ref
-4. Auto-save blijft werken maar leest uit ref in plaats van state
-
+**Uitbreiding `VisualEditorContext.tsx`:**
 ```typescript
-// NIEUWE aanpak:
-const handleClick = () => {
-  setIsEditing(true);
-  // ... focus en selecteer tekst
-};
+interface VisualEditorContextType {
+  // Bestaand...
+  
+  // Nieuw: History management
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+  pushHistory: (state: HistoryEntry) => void;
+}
 
-// Geen handleInput meer - we updaten NIET de state tijdens typen!
-
-const handleSave = useCallback(() => {
-  const newValue = editorRef.current?.textContent || '';
-  if (newValue !== value) {
-    onSave(newValue);
-  }
-  setIsEditing(false);
-}, [value, onSave]);
-
-// Auto-save leest ook uit ref:
-useEffect(() => {
-  if (isEditing) {
-    saveTimeoutRef.current = setTimeout(() => {
-      const newValue = editorRef.current?.textContent || '';
-      if (newValue !== value) {
-        onSave(newValue);
-      }
-    }, 2000);
-  }
-  // ...
-}, [isEditing, onSave, value]);
-
-// In render: toon value prop, niet editValue state
-<div contentEditable={isEditing}>
-  {value || placeholder}
-</div>
+interface HistoryEntry {
+  sectionId: string;
+  previousState: Partial<HomepageSection>;
+  newState: Partial<HomepageSection>;
+  timestamp: number;
+}
 ```
 
-**Volledige oplossing:**
+**History Stack Logica:**
+- Maximum 50 entries in history
+- Elke `updateSection` call pusht naar history via `pushHistory`
+- Undo: past `previousState` toe en verplaatst entry naar redo stack
+- Redo: past `newState` toe en verplaatst terug naar undo stack
 
-De `InlineTextEditor` wordt aangepast zodat:
-- `editValue` state wordt verwijderd (niet meer nodig)
-- `handleInput` wordt verwijderd (geen updates tijdens typen)
-- `handleSave` leest de waarde rechtstreeks uit `editorRef.current.textContent`
-- De debounced auto-save leest ook uit de ref
-- De render toont `value` prop, niet de state
+**Keyboard Shortcuts:**
+- Nieuwe hook: `useUndoRedo()` met `useEffect` voor keyboard events
+- Luistert naar `keydown` events op document level
+- Ctrl+Z → `undo()`, Ctrl+Shift+Z → `redo()`
 
-## Waarom Dit Werkt
+**UI Aanpassingen:**
+| Bestand | Wijziging |
+|---------|-----------|
+| `VisualEditorCanvas.tsx` | Undo/Redo knoppen in toolbar |
+| `useStorefront.ts` | Wrapper rond `updateSection` om history te pushen |
 
-| Probleem | Oplossing |
-|----------|-----------|
-| State update triggert re-render | Geen state updates tijdens typen |
-| Re-render reset cursor positie | Geen re-renders tijdens typen |
-| React controleert de DOM inhoud | Browser beheert de DOM tijdens editing |
+---
 
-Door `contentEditable` uncontrolled te maken, laat je de browser de cursor en tekstinvoer beheren zoals normaal. Je leest de waarde alleen bij het opslaan.
+## Feature 3: Static Pages Visual Editor
 
-## Alternatieve Overwegingen
+### Wat het doet
+Dezelfde WYSIWYG ervaring als de Homepage Builder, maar voor statische pagina's zoals "Over Ons", "FAQ", "Contact", etc.
 
-1. **Waarom geen cursor position restore?** - Dit is complex, error-prone, en werkt niet goed met selection ranges
-2. **Waarom geen input element?** - We willen inline styling behouden (h1, h2, etc.)
-3. **Waarom geen third-party library?** - Overkill voor simpele tekst editing
+### Gebruikerservaring
+1. In de pagina's tabel, klik op "Bewerken" opent visuele editor (niet de huidige dialog)
+2. Editor toont de pagina met inline editing voor alle content
+3. Ondersteunt verschillende block types:
+   - Rich text blokken
+   - Afbeelding + tekst blokken
+   - FAQ accordions
+   - Contact formulieren
+   - Video embeds
+4. Drag & drop om blokken te herschikken
+5. Zelfde responsive preview (desktop/tablet/mobile)
 
-## Samenvatting
+### Technische Aanpak
 
-Het probleem is dat React's controlled state niet goed werkt met `contentEditable`. Door de state te verwijderen tijdens het bewerken en alleen de DOM ref te gebruiken, wordt het cursor probleem opgelost en typt de tekst in de juiste richting.
+**Database Wijziging:**
+De `storefront_pages` tabel heeft al een `content` veld (text). We structureren dit als JSON met blokken:
+
+```typescript
+interface PageBlock {
+  id: string;
+  type: 'richtext' | 'image_text' | 'faq' | 'contact_form' | 'video';
+  content: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  sort_order: number;
+}
+```
+
+**Nieuwe Componenten:**
+
+| Component | Doel |
+|-----------|------|
+| `StaticPageEditor.tsx` | Container voor de visuele page editor |
+| `PageBlockRenderer.tsx` | Rendert block type met juiste editable component |
+| `EditableRichTextBlock.tsx` | TipTap editor voor rich text |
+| `EditableFaqBlock.tsx` | Bewerkbare FAQ accordions |
+| `PageBlockToolbar.tsx` | Drag handle + visibility + delete voor blocks |
+
+**Wijzigingen bestaande bestanden:**
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `StorefrontPagesManager.tsx` | "Bewerken" knop opent `StaticPageEditor` in full-screen mode |
+| `useStorefront.ts` | Nieuwe functies voor page block CRUD |
+| `storefront.ts` (types) | Nieuwe types voor PageBlock |
+
+**Hergebruik van bestaande componenten:**
+- `InlineTextEditor` - voor titels en korte teksten
+- `VisualMediaPicker` - voor afbeeldingen
+- `RichTextEditor` - voor uitgebreide tekst (met TipTap)
+- Drag & drop setup van `VisualEditorCanvas`
+
+---
+
+## Implementatie Volgorde
+
+```text
+Fase 1: AI Copywriting (snelste waarde)
+├── Edge function: ai-generate-storefront-copy
+├── Component: AICopyButton
+└── Integratie in InlineTextEditor
+
+Fase 2: Undo/Redo
+├── Uitbreiding VisualEditorContext
+├── History hook
+└── Toolbar knoppen
+
+Fase 3: Static Pages Editor
+├── Database migratie (content structuur)
+├── StaticPageEditor component
+├── Block type components
+└── Integratie in StorefrontPagesManager
+```
+
+---
+
+## Bestanden Overzicht
+
+### Nieuwe bestanden
+- `src/components/admin/storefront/visual-editor/AICopyButton.tsx`
+- `src/components/admin/storefront/visual-editor/hooks/useUndoRedo.ts`
+- `src/components/admin/storefront/visual-editor/StaticPageEditor.tsx`
+- `src/components/admin/storefront/visual-editor/blocks/PageBlockRenderer.tsx`
+- `src/components/admin/storefront/visual-editor/blocks/EditableRichTextBlock.tsx`
+- `src/components/admin/storefront/visual-editor/blocks/EditableFaqBlock.tsx`
+- `supabase/functions/ai-generate-storefront-copy/index.ts`
+
+### Aangepaste bestanden
+- `src/components/admin/storefront/visual-editor/InlineTextEditor.tsx`
+- `src/components/admin/storefront/visual-editor/VisualEditorContext.tsx`
+- `src/components/admin/storefront/visual-editor/VisualEditorCanvas.tsx`
+- `src/components/admin/storefront/visual-editor/sections/EditableHeroSection.tsx`
+- `src/components/admin/storefront/visual-editor/sections/EditableTextImageSection.tsx`
+- `src/components/admin/storefront/visual-editor/sections/EditableNewsletterSection.tsx`
+- `src/components/admin/storefront/StorefrontPagesManager.tsx`
+- `src/hooks/useStorefront.ts`
+- `src/types/storefront.ts`
+- `supabase/config.toml` (nieuwe edge function registratie)
+
+---
+
+## AI Credits Verbruik
+
+| Feature | Credits per actie |
+|---------|-------------------|
+| Genereer titel | 1 credit |
+| Genereer subtitel | 1 credit |
+| Genereer CTA | 1 credit |
+| Herschrijf tekst | 1 credit |
+
+Totaal maandelijks budget afhankelijk van tenant's abonnement.
