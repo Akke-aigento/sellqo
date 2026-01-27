@@ -13,13 +13,14 @@ import {
   ArrowDownToLine, 
   AlertCircle,
   Banknote,
-  ExternalLink,
   RefreshCw,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useMerchantTransactions, useMerchantPayouts, useBankTransferStats } from '@/hooks/useMerchantPayments';
 import { useTenant } from '@/hooks/useTenant';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { BankReconciliationUpload } from '@/components/admin/BankReconciliationUpload';
 
 function formatCurrency(amount: number, currency: string = 'eur') {
   return new Intl.NumberFormat('nl-NL', {
@@ -208,6 +209,10 @@ export default function PaymentsPage() {
         <TabsList>
           <TabsTrigger value="overview">Transacties</TabsTrigger>
           <TabsTrigger value="payouts">Uitbetalingen</TabsTrigger>
+          <TabsTrigger value="reconciliation">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Bank Reconciliatie
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -336,6 +341,10 @@ export default function PaymentsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="reconciliation" className="space-y-4">
+          <BankReconciliationUpload />
         </TabsContent>
       </Tabs>
     </div>
