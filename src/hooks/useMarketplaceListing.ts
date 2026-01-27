@@ -36,6 +36,16 @@ export interface AmazonOfferData {
   description?: string;
 }
 
+export interface EbayOfferData {
+  sku: string;
+  price: number;
+  quantity: number;
+  condition: 'NEW' | 'USED_EXCELLENT' | 'USED_VERY_GOOD' | 'USED_GOOD' | 'USED_ACCEPTABLE';
+  category_id?: string;
+  title?: string;
+  description?: string;
+}
+
 export interface MarketplaceSettings {
   bol_ean?: string;
   bol_delivery_code?: string;
@@ -56,6 +66,11 @@ export interface MarketplaceSettings {
   // Odoo fields
   odoo_optimized_title?: string;
   odoo_optimized_description?: string;
+  // eBay fields
+  ebay_optimized_title?: string;
+  ebay_optimized_description?: string;
+  ebay_condition?: string;
+  ebay_category_id?: string;
 }
 
 export function useMarketplaceListing() {
@@ -66,8 +81,9 @@ export function useMarketplaceListing() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isCheckingAmazonStatus, setIsCheckingAmazonStatus] = useState(false);
+  const [isCheckingEbayStatus, setIsCheckingEbayStatus] = useState(false);
 
-  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo'): Promise<OptimizedContent | null> => {
+  const optimizeContent = async (product: Product, marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo' | 'ebay'): Promise<OptimizedContent | null> => {
     if (!currentTenant) return null;
 
     setIsOptimizing(true);
@@ -112,7 +128,7 @@ export function useMarketplaceListing() {
       content 
     }: { 
       productId: string; 
-      marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo'; 
+      marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'odoo' | 'ebay'; 
       content: OptimizedContent;
     }) => {
       let updateData: Record<string, unknown>;
@@ -138,6 +154,11 @@ export function useMarketplaceListing() {
         updateData = {
           odoo_optimized_title: content.title,
           odoo_optimized_description: content.description,
+        };
+      } else if (marketplace === 'ebay') {
+        updateData = {
+          ebay_optimized_title: content.title,
+          ebay_optimized_description: content.description,
         };
       } else {
         updateData = {
@@ -583,6 +604,147 @@ export function useMarketplaceListing() {
     }
   };
 
+  // eBay mutations
+  const createEbayOffer = useMutation({
+    mutationFn: async ({ 
+      product, 
+      offerData 
+    }: { 
+      product: Product; 
+      offerData: EbayOfferData;
+    }) => {
+      if (!currentTenant) throw new Error('Geen tenant geselecteerd');
+
+      const connection = getConnectionByType('ebay');
+      if (!connection) throw new Error('Geen eBay connectie gevonden');
+
+      // Validate SKU
+      if (!offerData.sku) {
+        throw new Error('SKU is verplicht voor eBay');
+      }
+
+      // Validate price
+      if (offerData.price <= 0) {
+        throw new Error('Prijs moet groter dan 0 zijn');
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-ebay-listing', {
+        body: {
+          product_id: product.id,
+          tenant_id: currentTenant.id,
+          connection_id: connection.id,
+          offer_data: offerData,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'eBay API fout');
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      toast({ 
+        title: data.status === 'listed' ? 'Gepubliceerd!' : 'Publicatie gestart', 
+        description: data.message || 'Je product wordt naar eBay verzonden.' 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Publicatie mislukt', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  // Check eBay listing status
+  const checkEbayListingStatus = async (product: Product): Promise<{
+    success: boolean;
+    listing_status?: string;
+    item_id?: string;
+    error_message?: string;
+  }> => {
+    if (!currentTenant) {
+      toast({
+        title: 'Fout',
+        description: 'Geen tenant gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    const connection = getConnectionByType('ebay');
+    if (!connection) {
+      toast({
+        title: 'Fout',
+        description: 'Geen eBay verbinding gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    if (!product.ebay_offer_id) {
+      toast({
+        title: 'Fout',
+        description: 'Geen eBay offer ID gevonden',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+
+    setIsCheckingEbayStatus(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-ebay-listing-status', {
+        body: {
+          product_id: product.id,
+          tenant_id: currentTenant.id,
+          connection_id: connection.id,
+          offer_id: product.ebay_offer_id,
+        },
+      });
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+
+      if (data.success) {
+        if (data.listing_status === 'listed') {
+          toast({
+            title: 'Product actief!',
+            description: `Je product is actief op eBay${data.item_id ? ` (Item: ${data.item_id})` : ''}`,
+          });
+        } else if (data.listing_status === 'error') {
+          toast({
+            title: 'Publicatie probleem',
+            description: data.error_message || 'Er is een fout opgetreden bij eBay',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Nog in verwerking',
+            description: 'eBay verwerkt je aanbieding nog. Probeer het later opnieuw.',
+          });
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Check eBay listing status error:', error);
+      toast({
+        title: 'Status controle mislukt',
+        description: error instanceof Error ? error.message : 'Kon de status niet ophalen',
+        variant: 'destructive',
+      });
+      return { success: false };
+    } finally {
+      setIsCheckingEbayStatus(false);
+    }
+  };
+
   return {
     // AI Optimization
     optimizeContent,
@@ -600,10 +762,15 @@ export function useMarketplaceListing() {
     createAmazonOffer,
     updateAmazonOffer,
     
+    // eBay offers
+    createEbayOffer,
+    
     // Status checking
     checkBolProcessStatus,
     isCheckingStatus,
     checkAmazonListingStatus,
     isCheckingAmazonStatus,
+    checkEbayListingStatus,
+    isCheckingEbayStatus,
   };
 }

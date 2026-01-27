@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useMarketplaceListing, type OptimizedContent, type BolOfferData, type AmazonOfferData } from '@/hooks/useMarketplaceListing';
+import { useMarketplaceListing, type OptimizedContent, type BolOfferData, type AmazonOfferData, type EbayOfferData } from '@/hooks/useMarketplaceListing';
 import { Store } from 'lucide-react';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { getEANValidationStatus } from '@/lib/eanValidation';
@@ -67,6 +67,14 @@ const AMAZON_FULFILLMENT = [
   { value: 'AFN', label: 'Door Amazon (FBA)' },
 ];
 
+const EBAY_CONDITIONS = [
+  { value: 'NEW', label: 'Nieuw' },
+  { value: 'USED_EXCELLENT', label: 'Gebruikt - Uitstekend' },
+  { value: 'USED_VERY_GOOD', label: 'Gebruikt - Zeer goed' },
+  { value: 'USED_GOOD', label: 'Gebruikt - Goed' },
+  { value: 'USED_ACCEPTABLE', label: 'Gebruikt - Acceptabel' },
+];
+
 export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplaceTabProps) {
   const { getConnectionByType } = useMarketplaceConnections();
   const { 
@@ -82,6 +90,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     updateAmazonOffer,
     checkAmazonListingStatus,
     isCheckingAmazonStatus,
+    createEbayOffer,
+    checkEbayListingStatus,
+    isCheckingEbayStatus,
   } = useMarketplaceListing();
   const { toast } = useToast();
 
@@ -95,6 +106,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const hasWooCommerceConnection = !!woocommerceConnection;
   const odooConnection = getConnectionByType('odoo');
   const hasOdooConnection = !!odooConnection;
+  const ebayConnection = getConnectionByType('ebay');
+  const hasEbayConnection = !!ebayConnection;
 
   // Bol.com state - initialized from product
   const [bolEnabled, setBolEnabled] = useState(product.bol_listing_status !== 'not_listed');
@@ -135,12 +148,21 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const [odooOptimizedTitle, setOdooOptimizedTitle] = useState(product.odoo_optimized_title || '');
   const [odooOptimizedDescription, setOdooOptimizedDescription] = useState(product.odoo_optimized_description || '');
   
+  // eBay state - initialized from product
+  const [ebayEnabled, setEbayEnabled] = useState(
+    product.ebay_listing_status !== null && product.ebay_listing_status !== 'not_listed'
+  );
+  const [ebayOptimizedTitle, setEbayOptimizedTitle] = useState(product.ebay_optimized_title || '');
+  const [ebayOptimizedDescription, setEbayOptimizedDescription] = useState(product.ebay_optimized_description || '');
+  const [ebayCondition, setEbayCondition] = useState(product.ebay_condition || 'NEW');
+  
   // Track if settings have changed
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasAmazonUnsavedChanges, setHasAmazonUnsavedChanges] = useState(false);
   const [hasShopifyUnsavedChanges, setHasShopifyUnsavedChanges] = useState(false);
   const [hasWooCommerceUnsavedChanges, setHasWooCommerceUnsavedChanges] = useState(false);
   const [hasOdooUnsavedChanges, setHasOdooUnsavedChanges] = useState(false);
+  const [hasEbayUnsavedChanges, setHasEbayUnsavedChanges] = useState(false);
   
   // Shopify action states
   const [isPublishingShopify, setIsPublishingShopify] = useState(false);
@@ -153,6 +175,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   // Odoo action states
   const [isPublishingOdoo, setIsPublishingOdoo] = useState(false);
   const [isSyncingOdoo, setIsSyncingOdoo] = useState(false);
+  
+  // eBay action states
+  const [isPublishingEbay, setIsPublishingEbay] = useState(false);
 
   // Bol.com Offer ID lookup state
   const [isLookingUpOfferId, setIsLookingUpOfferId] = useState(false);
@@ -193,11 +218,18 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     setOdooOptimizedTitle(product.odoo_optimized_title || '');
     setOdooOptimizedDescription(product.odoo_optimized_description || '');
     
+    // eBay state
+    setEbayEnabled(product.ebay_listing_status !== null && product.ebay_listing_status !== 'not_listed');
+    setEbayOptimizedTitle(product.ebay_optimized_title || '');
+    setEbayOptimizedDescription(product.ebay_optimized_description || '');
+    setEbayCondition(product.ebay_condition || 'NEW');
+    
     setHasUnsavedChanges(false);
     setHasAmazonUnsavedChanges(false);
     setHasShopifyUnsavedChanges(false);
     setHasWooCommerceUnsavedChanges(false);
     setHasOdooUnsavedChanges(false);
+    setHasEbayUnsavedChanges(false);
   }, [product]);
 
   // Track Bol.com changes
@@ -228,6 +260,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const handleOdooFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
     setter(value);
     setHasOdooUnsavedChanges(true);
+  }, []);
+
+  // Track eBay changes
+  const handleEbayFieldChange = useCallback((setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    setHasEbayUnsavedChanges(true);
   }, []);
 
   const handleSaveSettings = async () => {
@@ -780,6 +818,73 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     }
   };
 
+  // eBay handlers
+  const handleOptimizeEbay = async () => {
+    const content = await optimizeContent(product, 'ebay');
+    if (content) {
+      setEbayOptimizedTitle(content.title);
+      setEbayOptimizedDescription(content.description);
+      setHasEbayUnsavedChanges(true);
+      
+      // Auto-save optimized content
+      saveOptimizedContent.mutate({
+        productId: product.id,
+        marketplace: 'ebay',
+        content,
+      });
+    }
+  };
+
+  const handleSaveEbaySettings = async () => {
+    try {
+      await saveMarketplaceSettings.mutateAsync({
+        productId: product.id,
+        settings: {
+          ebay_optimized_title: ebayOptimizedTitle,
+          ebay_optimized_description: ebayOptimizedDescription,
+          ebay_condition: ebayCondition,
+        },
+      });
+      setHasEbayUnsavedChanges(false);
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handlePublishToEbay = async () => {
+    if (!ebayConnection) return;
+    
+    setIsPublishingEbay(true);
+    try {
+      const offerData: EbayOfferData = {
+        sku: product.sku || product.id,
+        price: product.price,
+        quantity: product.stock ?? 0,
+        condition: (ebayCondition || 'NEW') as EbayOfferData['condition'],
+        title: ebayOptimizedTitle || product.name,
+        description: ebayOptimizedDescription || product.description || undefined,
+      };
+
+      await createEbayOffer.mutateAsync({
+        product,
+        offerData,
+      });
+      onRefresh?.();
+    } catch (error) {
+      // Error handled by mutation
+    } finally {
+      setIsPublishingEbay(false);
+    }
+  };
+
+  const handleCheckEbayStatus = async () => {
+    const result = await checkEbayListingStatus(product);
+    if (result.success) {
+      onRefresh?.();
+    }
+  };
+
   const isListed = product.bol_listing_status === 'listed';
   const isPending = product.bol_listing_status === 'pending';
   const hasError = product.bol_listing_status === 'error';
@@ -799,6 +904,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const isOdooListed = product.odoo_listing_status === 'listed';
   const isOdooPending = product.odoo_listing_status === 'pending';
   const hasOdooError = product.odoo_listing_status === 'error';
+
+  const isEbayListed = product.ebay_listing_status === 'listed';
+  const isEbayPending = product.ebay_listing_status === 'pending';
+  const hasEbayError = product.ebay_listing_status === 'error';
 
   return (
     <div className="space-y-6">
@@ -2112,6 +2221,140 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Button variant="outline" asChild>
                 <a href="/admin/connect">Naar Connect</a>
               </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* eBay Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">eBay</CardTitle>
+                <CardDescription>
+                  {hasEbayConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {getStatusBadge(product.ebay_listing_status)}
+              <Switch
+                checked={ebayEnabled}
+                onCheckedChange={(checked) => handleEbayFieldChange(setEbayEnabled, checked)}
+                disabled={!hasEbayConnection}
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+        {ebayEnabled && hasEbayConnection && (
+          <CardContent className="space-y-6">
+            {hasEbayUnsavedChanges && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <Button size="sm" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
+                    {saveMarketplaceSettings.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                    Opslaan
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {hasEbayError && product.ebay_listing_error && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>{product.ebay_listing_error}</AlertDescription>
+              </Alert>
+            )}
+
+            {isEbayPending && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Je product wordt verwerkt door eBay...</span>
+                  <Button size="sm" variant="outline" onClick={handleCheckEbayStatus} disabled={isCheckingEbayStatus}>
+                    {isCheckingEbayStatus ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                    Status controleren
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Condition */}
+            <div className="space-y-2">
+              <Label>Conditie</Label>
+              <Select value={ebayCondition} onValueChange={(v) => handleEbayFieldChange(setEbayCondition, v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EBAY_CONDITIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* AI Optimization */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <p className="text-sm text-muted-foreground">Laat AI je productcontent optimaliseren voor eBay</p>
+                </div>
+                <Button variant="outline" onClick={handleOptimizeEbay} disabled={isOptimizing}>
+                  {isOptimizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  Optimaliseer
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Geoptimaliseerde titel (max 80 tekens)</Label>
+                <Input value={ebayOptimizedTitle} onChange={(e) => handleEbayFieldChange(setEbayOptimizedTitle, e.target.value)} maxLength={80} placeholder={product.name} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Geoptimaliseerde beschrijving</Label>
+                <Textarea value={ebayOptimizedDescription} onChange={(e) => handleEbayFieldChange(setEbayOptimizedDescription, e.target.value)} rows={4} placeholder="HTML-geformatteerde beschrijving..." />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Actions */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {isEbayListed && product.ebay_item_id && <span>Item ID: {product.ebay_item_id}</span>}
+              </div>
+              <div className="flex gap-2">
+                {hasEbayUnsavedChanges && (
+                  <Button variant="outline" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
+                    {saveMarketplaceSettings.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    Opslaan
+                  </Button>
+                )}
+                {!isEbayListed && !isEbayPending && (
+                  <Button onClick={handlePublishToEbay} disabled={isPublishingEbay || createEbayOffer.isPending}>
+                    {isPublishingEbay || createEbayOffer.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+                    Publiceer naar eBay
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        )}
+
+        {!hasEbayConnection && (
+          <CardContent>
+            <div className="text-center py-6">
+              <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground mb-4">Verbind eerst je eBay account om producten te kunnen publiceren</p>
+              <Button variant="outline" asChild><a href="/admin/connect">Naar Connect</a></Button>
             </div>
           </CardContent>
         )}

@@ -248,3 +248,9 @@ verify_jwt = false
 
 [functions.test-ebay-connection]
 verify_jwt = false
+
+[functions.create-ebay-listing]
+verify_jwt = false
+
+[functions.check-ebay-listing-status]
+verify_jwt = false
