@@ -95,7 +95,7 @@ export function WelcomeStep({
             id="shopName"
             value={data.shopName}
             onChange={(e) => updateData({ shopName: e.target.value })}
-            placeholder="Bijv. Mijn Webshop"
+            placeholder="Bijv. Jouw Winkel"
             autoFocus
             className="text-lg"
           />

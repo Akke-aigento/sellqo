@@ -256,7 +256,7 @@ export function BusinessSettings() {
               id="name"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Mijn Webshop"
+              placeholder="Bijv. Jouw Winkel"
             />
           </div>
 
@@ -266,7 +266,7 @@ export function BusinessSettings() {
               id="owner_name"
               value={formData.owner_name}
               onChange={(e) => handleChange('owner_name', e.target.value)}
-              placeholder="Jan Jansen"
+              placeholder="Voornaam Achternaam"
             />
           </div>
 
@@ -287,7 +287,7 @@ export function BusinessSettings() {
               id="address"
               value={formData.address}
               onChange={(e) => handleChange('address', e.target.value)}
-              placeholder="Straatnaam 123"
+              placeholder="Straatnaam + huisnummer"
             />
           </div>
 
@@ -297,7 +297,7 @@ export function BusinessSettings() {
               id="postal_code"
               value={formData.postal_code}
               onChange={(e) => handleChange('postal_code', e.target.value)}
-              placeholder="1234 AB"
+              placeholder="1234 AB (NL) / 1000 (BE)"
             />
           </div>
 
@@ -307,7 +307,7 @@ export function BusinessSettings() {
               id="city"
               value={formData.city}
               onChange={(e) => handleChange('city', e.target.value)}
-              placeholder="Amsterdam"
+              placeholder="Jouw stad"
             />
           </div>
 
@@ -339,7 +339,7 @@ export function BusinessSettings() {
               id="kvk_number"
               value={formData.kvk_number}
               onChange={(e) => handleChange('kvk_number', e.target.value)}
-              placeholder="BE: 0123.456.789 | NL: 12345678"
+              placeholder="8 cijfers (NL) / 10 cijfers (BE)"
             />
             <p className="text-xs text-muted-foreground">
               {formData.country === 'BE' ? 'KBO-nummer' : 'KvK-nummer'}

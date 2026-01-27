@@ -118,7 +118,7 @@ export function BusinessDetailsStep({
             id="address"
             value={data.address}
             onChange={(e) => updateData({ address: e.target.value })}
-            placeholder="Straatnaam 123"
+            placeholder="Straatnaam + huisnummer"
           />
         </div>
 
@@ -129,7 +129,7 @@ export function BusinessDetailsStep({
               id="postalCode"
               value={data.postalCode}
               onChange={(e) => updateData({ postalCode: e.target.value })}
-              placeholder="1234 AB"
+              placeholder="1234 AB (NL) / 1000 (BE)"
             />
           </div>
 
@@ -139,7 +139,7 @@ export function BusinessDetailsStep({
               id="city"
               value={data.city}
               onChange={(e) => updateData({ city: e.target.value })}
-              placeholder="Amsterdam"
+              placeholder="Jouw stad"
             />
           </div>
 
