@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { nl, enUS } from 'date-fns/locale';
@@ -7,10 +8,25 @@ import {
   ExternalLink, 
   AlertTriangle,
   TrendingUp,
-  Settings
+  Settings,
+  ArrowUpDown
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
+import { useCalculatePlanSwitch, useExecutePlanSwitch, type PlanSwitchPreview } from '@/hooks/usePlanSwitch';
+import { PlanSwitchPreviewCard } from '@/components/admin/billing/PlanSwitchPreview';
+import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +48,15 @@ export default function BillingPage() {
     openCustomerPortal 
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
+  const calculatePlanSwitch = useCalculatePlanSwitch();
+  const executePlanSwitch = useExecutePlanSwitch();
+  
+  // Plan switch state
+  const [showPlanSwitchDialog, setShowPlanSwitchDialog] = useState(false);
+  const [showDowngradeWarning, setShowDowngradeWarning] = useState(false);
+  const [planSwitchPreview, setPlanSwitchPreview] = useState<PlanSwitchPreview | null>(null);
+  const [selectedTargetPlanId, setSelectedTargetPlanId] = useState<string | null>(null);
+  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
 
   const dateLocale = i18n.language === 'nl' ? nl : enUS;
 
@@ -51,6 +76,56 @@ export default function BillingPage() {
     };
     return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
   };
+
+  // Plan switch handlers
+  const handlePreviewPlanSwitch = async (targetPlanId: string) => {
+    setSelectedTargetPlanId(targetPlanId);
+    
+    const preview = await calculatePlanSwitch.mutateAsync({
+      target_plan_id: targetPlanId,
+      target_interval: selectedInterval,
+    });
+    
+    setPlanSwitchPreview(preview);
+    
+    // Show downgrade warning first if features will be lost
+    if (!preview.is_upgrade && preview.features.lost.length > 0) {
+      setShowDowngradeWarning(true);
+    } else {
+      setShowPlanSwitchDialog(true);
+    }
+  };
+
+  const handleConfirmDowngrade = () => {
+    setShowDowngradeWarning(false);
+    setShowPlanSwitchDialog(true);
+  };
+
+  const handleExecutePlanSwitch = async () => {
+    if (!selectedTargetPlanId) return;
+    
+    await executePlanSwitch.mutateAsync({
+      target_plan_id: selectedTargetPlanId,
+      target_interval: selectedInterval,
+      proration_behavior: 'create_prorations',
+    });
+    
+    setShowPlanSwitchDialog(false);
+    setPlanSwitchPreview(null);
+    setSelectedTargetPlanId(null);
+    // Refresh page to show new subscription
+    window.location.reload();
+  };
+
+  const handleCancelPlanSwitch = () => {
+    setShowPlanSwitchDialog(false);
+    setShowDowngradeWarning(false);
+    setPlanSwitchPreview(null);
+    setSelectedTargetPlanId(null);
+  };
+
+  // Filter plans that can be switched to (exclude current plan)
+  const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
 
   if (isLoading) {
     return (
@@ -110,6 +185,39 @@ export default function BillingPage() {
                   {t('billing.subscription_canceled')} {' '}
                   {subscription.current_period_end && format(new Date(subscription.current_period_end), 'PPP', { locale: dateLocale })}
                 </span>
+              </div>
+            )}
+
+            {/* Plan Switch Section */}
+            {subscription?.stripe_subscription_id && switchablePlans.length > 0 && (
+              <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ArrowUpDown className="h-4 w-4" />
+                  Wissel van plan
+                </div>
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedTargetPlanId || ''} 
+                    onValueChange={setSelectedTargetPlanId}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecteer een plan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {switchablePlans.map(plan => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name} - {formatPrice(plan.monthly_price)}/mnd
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={() => selectedTargetPlanId && handlePreviewPlanSwitch(selectedTargetPlanId)}
+                    disabled={!selectedTargetPlanId || calculatePlanSwitch.isPending}
+                  >
+                    {calculatePlanSwitch.isPending ? 'Laden...' : 'Bekijk wijziging'}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -293,6 +401,32 @@ export default function BillingPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Plan Switch Preview Dialog */}
+      <Dialog open={showPlanSwitchDialog} onOpenChange={setShowPlanSwitchDialog}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          {planSwitchPreview && (
+            <PlanSwitchPreviewCard
+              preview={planSwitchPreview}
+              isLoading={executePlanSwitch.isPending}
+              onConfirm={handleExecutePlanSwitch}
+              onCancel={handleCancelPlanSwitch}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Downgrade Warning Dialog */}
+      {planSwitchPreview && (
+        <DowngradeWarningDialog
+          open={showDowngradeWarning}
+          onOpenChange={setShowDowngradeWarning}
+          featuresLost={planSwitchPreview.features.lost}
+          currentPlanName={planSwitchPreview.current_plan.name}
+          targetPlanName={planSwitchPreview.target_plan.name}
+          onConfirm={handleConfirmDowngrade}
+        />
+      )}
     </div>
   );
 }
