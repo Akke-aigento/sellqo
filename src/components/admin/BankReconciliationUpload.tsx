@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2, ShoppingCart, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,9 +18,10 @@ interface BankTransaction {
 
 interface ReconciliationResult {
   transaction: BankTransaction;
-  status: 'matched' | 'not_found' | 'already_paid' | 'error';
+  status: 'matched_order' | 'matched_platform' | 'not_found' | 'already_paid' | 'error';
   payment_id?: string;
   order_id?: string;
+  order_number?: string;
   error?: string;
 }
 
@@ -146,6 +147,17 @@ export function BankReconciliationUpload() {
     const reconciliationResults: ReconciliationResult[] = [];
     
     try {
+      // Get pending orders with bank transfer for this tenant
+      const { data: pendingOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, order_number, ogm_reference, total, payment_status')
+        .eq('tenant_id', currentTenant.id)
+        .eq('payment_method', 'bank_transfer')
+        .eq('payment_status', 'pending')
+        .not('ogm_reference', 'is', null);
+      
+      if (ordersError) throw ordersError;
+      
       // Get pending platform payments for this tenant
       const { data: pendingPayments, error: fetchError } = await supabase
         .from('pending_platform_payments')
@@ -155,6 +167,10 @@ export function BankReconciliationUpload() {
       
       if (fetchError) throw fetchError;
       
+      // Create lookup maps
+      const ordersByOGM = new Map(
+        (pendingOrders || []).map(o => [o.ogm_reference, o])
+      );
       const paymentsByOGM = new Map(
         (pendingPayments || []).map(p => [p.ogm_reference, p])
       );
@@ -169,13 +185,88 @@ export function BankReconciliationUpload() {
           continue;
         }
         
+        // First try to match against orders
+        const order = ordersByOGM.get(tx.ogm_reference);
+        if (order) {
+          // Verify amount matches (with small tolerance for rounding)
+          if (Math.abs(order.total - tx.amount) > 0.01) {
+            reconciliationResults.push({
+              transaction: tx,
+              status: 'error',
+              order_id: order.id,
+              order_number: order.order_number,
+              error: `Bedrag komt niet overeen (verwacht: €${order.total.toFixed(2)})`,
+            });
+            continue;
+          }
+          
+          // Update order payment status
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({
+              payment_status: 'paid',
+              status: 'processing',
+            })
+            .eq('id', order.id);
+          
+          if (updateError) {
+            reconciliationResults.push({
+              transaction: tx,
+              status: 'error',
+              order_id: order.id,
+              order_number: order.order_number,
+              error: updateError.message,
+            });
+          } else {
+            // Create audit log in payment_confirmations
+            await supabase
+              .from('payment_confirmations')
+              .insert({
+                tenant_id: currentTenant.id,
+                order_id: order.id,
+                confirmed_by: (await supabase.auth.getUser()).data.user?.id,
+                payment_method: 'bank_transfer',
+                amount: tx.amount,
+                notes: `Bank reconciliatie: ${tx.date} - ${tx.description}`,
+                metadata: {
+                  bank_reconciliation: {
+                    date: tx.date,
+                    description: tx.description,
+                    ogm_reference: tx.ogm_reference,
+                    reconciled_at: new Date().toISOString(),
+                  },
+                },
+              });
+            
+            // Record transaction for usage tracking
+            try {
+              await supabase.rpc('record_transaction', {
+                p_tenant_id: currentTenant.id,
+                p_transaction_type: 'bank_transfer',
+                p_order_id: order.id,
+              });
+            } catch (txError) {
+              console.warn('Failed to record transaction:', txError);
+            }
+            
+            reconciliationResults.push({
+              transaction: tx,
+              status: 'matched_order',
+              order_id: order.id,
+              order_number: order.order_number,
+            });
+          }
+          continue;
+        }
+        
+        // Then try platform payments
         const payment = paymentsByOGM.get(tx.ogm_reference);
         
         if (!payment) {
           reconciliationResults.push({
             transaction: tx,
             status: 'not_found',
-            error: 'OGM niet gevonden in openstaande betalingen',
+            error: 'OGM niet gevonden in openstaande orders of platform betalingen',
           });
           continue;
         }
@@ -191,7 +282,7 @@ export function BankReconciliationUpload() {
           continue;
         }
         
-        // Mark payment as confirmed
+        // Mark platform payment as confirmed
         const { error: updateError } = await supabase
           .from('pending_platform_payments')
           .update({
@@ -218,7 +309,7 @@ export function BankReconciliationUpload() {
         } else {
           reconciliationResults.push({
             transaction: tx,
-            status: 'matched',
+            status: 'matched_platform',
             payment_id: payment.id,
           });
         }
@@ -226,10 +317,11 @@ export function BankReconciliationUpload() {
       
       setResults(reconciliationResults);
       
-      const matched = reconciliationResults.filter(r => r.status === 'matched').length;
+      const matchedOrders = reconciliationResults.filter(r => r.status === 'matched_order').length;
+      const matchedPlatform = reconciliationResults.filter(r => r.status === 'matched_platform').length;
       toast({
         title: 'Reconciliatie voltooid',
-        description: `${matched} van ${reconciliationResults.length} transacties gematcht`,
+        description: `${matchedOrders} klant-orders en ${matchedPlatform} platform betalingen gematcht`,
       });
       
     } catch (error) {
@@ -244,10 +336,22 @@ export function BankReconciliationUpload() {
     }
   };
 
-  const getStatusBadge = (status: ReconciliationResult['status']) => {
-    switch (status) {
-      case 'matched':
-        return <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> Gematcht</Badge>;
+  const getStatusBadge = (result: ReconciliationResult) => {
+    switch (result.status) {
+      case 'matched_order':
+        return (
+          <Badge className="bg-green-500">
+            <ShoppingCart className="h-3 w-3 mr-1" />
+            Klant Order
+          </Badge>
+        );
+      case 'matched_platform':
+        return (
+          <Badge className="bg-blue-500">
+            <Building2 className="h-3 w-3 mr-1" />
+            Platform
+          </Badge>
+        );
       case 'already_paid':
         return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" /> Al betaald</Badge>;
       case 'not_found':
@@ -255,6 +359,16 @@ export function BankReconciliationUpload() {
       case 'error':
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Fout</Badge>;
     }
+  };
+
+  const getTypeLabel = (result: ReconciliationResult) => {
+    if (result.status === 'matched_order' && result.order_number) {
+      return `🛒 ${result.order_number}`;
+    }
+    if (result.status === 'matched_platform') {
+      return '🏢 AI Credits/Add-on';
+    }
+    return '-';
   };
 
   return (
@@ -265,7 +379,7 @@ export function BankReconciliationUpload() {
           Bank Reconciliatie
         </CardTitle>
         <CardDescription>
-          Upload een CSV-export van je bankafschrift om betalingen automatisch te matchen via OGM
+          Upload een CSV-export van je bankafschrift om betalingen automatisch te matchen via OGM (klant-orders én platform betalingen)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -313,6 +427,7 @@ export function BankReconciliationUpload() {
                       <TableHead>Datum</TableHead>
                       <TableHead>Bedrag</TableHead>
                       <TableHead>OGM</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Details</TableHead>
                     </TableRow>
@@ -325,7 +440,10 @@ export function BankReconciliationUpload() {
                         <TableCell className="font-mono text-xs">
                           {result.transaction.ogm_reference || '-'}
                         </TableCell>
-                        <TableCell>{getStatusBadge(result.status)}</TableCell>
+                        <TableCell className="text-sm">
+                          {getTypeLabel(result)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(result)}</TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                           {result.error || result.transaction.description}
                         </TableCell>

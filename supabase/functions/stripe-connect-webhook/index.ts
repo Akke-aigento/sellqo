@@ -1,16 +1,77 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-CONNECT-WEBHOOK] ${step}${detailsStr}`);
 };
+
+// Helper function to send payout notifications
+async function sendPayoutNotification(
+  supabaseClient: SupabaseClient,
+  stripeAccountId: string,
+  notificationType: string,
+  title: string,
+  message: string,
+  priority: string,
+  metadata: Record<string, unknown>
+) {
+  try {
+    // Find tenant by stripe_account_id
+    const { data: tenant, error: tenantError } = await supabaseClient
+      .from("tenants")
+      .select("id")
+      .eq("stripe_account_id", stripeAccountId)
+      .single();
+
+    if (tenantError || !tenant) {
+      logStep("Could not find tenant for stripe account", { stripeAccountId, error: tenantError?.message });
+      return;
+    }
+
+    // Send notification using RPC
+    const { error: notifError } = await supabaseClient.rpc("send_notification", {
+      p_tenant_id: tenant.id,
+      p_category: "payments",
+      p_type: notificationType,
+      p_title: title,
+      p_message: message,
+      p_priority: priority,
+      p_action_url: "/admin/payments",
+      p_data: metadata,
+    });
+
+    if (notifError) {
+      logStep("Error sending notification", { error: notifError.message });
+    } else {
+      logStep("Notification sent successfully", { type: notificationType, tenantId: tenant.id });
+    }
+  } catch (err) {
+    logStep("Exception sending notification", { error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+// Format currency amount (Stripe uses cents)
+function formatAmount(amount: number, currency: string): string {
+  const decimalAmount = amount / 100;
+  const symbol = currency.toUpperCase() === 'EUR' ? '€' : currency.toUpperCase();
+  return `${symbol}${decimalAmount.toFixed(2)}`;
+}
+
+// Format date for display
+function formatDate(timestamp: number): string {
+  return new Date(timestamp * 1000).toLocaleDateString('nl-BE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -86,6 +147,115 @@ serve(async (req) => {
         }
         break;
       }
+
+      // ==================== PAYOUT EVENTS ====================
+      case "payout.created": {
+        const payout = event.data.object as Stripe.Payout;
+        logStep("Payout created", { 
+          payoutId: payout.id,
+          amount: payout.amount,
+          currency: payout.currency,
+          arrivalDate: payout.arrival_date
+        });
+
+        const arrivalDate = payout.arrival_date ? formatDate(payout.arrival_date) : 'binnenkort';
+        const amountFormatted = formatAmount(payout.amount, payout.currency);
+
+        await sendPayoutNotification(
+          supabaseClient,
+          event.account || '',
+          'payout_available',
+          `Uitbetaling gepland: ${amountFormatted}`,
+          `Een uitbetaling van ${amountFormatted} is gepland voor ${arrivalDate}`,
+          'medium',
+          {
+            payout_id: payout.id,
+            amount: payout.amount,
+            currency: payout.currency,
+            arrival_date: payout.arrival_date,
+          }
+        );
+        break;
+      }
+
+      case "payout.paid": {
+        const payout = event.data.object as Stripe.Payout;
+        logStep("Payout paid", { 
+          payoutId: payout.id,
+          amount: payout.amount,
+          currency: payout.currency
+        });
+
+        const amountFormatted = formatAmount(payout.amount, payout.currency);
+
+        await sendPayoutNotification(
+          supabaseClient,
+          event.account || '',
+          'payout_completed',
+          `Uitbetaling ontvangen: ${amountFormatted}`,
+          `De uitbetaling van ${amountFormatted} is succesvol op je bankrekening gestort`,
+          'low',
+          {
+            payout_id: payout.id,
+            amount: payout.amount,
+            currency: payout.currency,
+          }
+        );
+        break;
+      }
+
+      case "payout.failed": {
+        const payout = event.data.object as Stripe.Payout;
+        logStep("Payout failed", { 
+          payoutId: payout.id,
+          amount: payout.amount,
+          failureCode: payout.failure_code,
+          failureMessage: payout.failure_message
+        });
+
+        const amountFormatted = formatAmount(payout.amount, payout.currency);
+
+        await sendPayoutNotification(
+          supabaseClient,
+          event.account || '',
+          'stripe_account_issue',
+          `Uitbetaling mislukt: ${amountFormatted}`,
+          `De uitbetaling van ${amountFormatted} is mislukt. Reden: ${payout.failure_message || payout.failure_code || 'Onbekend'}. Controleer je bankgegevens.`,
+          'urgent',
+          {
+            payout_id: payout.id,
+            amount: payout.amount,
+            currency: payout.currency,
+            failure_code: payout.failure_code,
+            failure_message: payout.failure_message,
+          }
+        );
+        break;
+      }
+
+      case "payout.canceled": {
+        const payout = event.data.object as Stripe.Payout;
+        logStep("Payout canceled", { payoutId: payout.id });
+
+        const amountFormatted = formatAmount(payout.amount, payout.currency);
+
+        await sendPayoutNotification(
+          supabaseClient,
+          event.account || '',
+          'payout_available',
+          `Uitbetaling geannuleerd: ${amountFormatted}`,
+          `De geplande uitbetaling van ${amountFormatted} is geannuleerd`,
+          'medium',
+          {
+            payout_id: payout.id,
+            amount: payout.amount,
+            currency: payout.currency,
+            status: 'canceled',
+          }
+        );
+        break;
+      }
+      // ========================================================
 
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
