@@ -1,135 +1,146 @@
 
-# Stripe Configuratie Problemen Oplossen
+# Betalingsinfrastructuur Klant → Merchant Optimalisatie
 
-## Samenvatting van de Problemen
+## Huidige Status ✅
 
-### Probleem 1: Verkeerde 5% Transactie Fee Weergave
-- Op de instellingenpagina wordt **"5% per transactie"** hardcoded getoond
-- Als platform eigenaar (SellQo) zou dit niet van toepassing moeten zijn of anders weergegeven moeten worden
-
-### Probleem 2: "Stripe Dashboard openen" knop werkt niet correct
-- De knop roept `createConnectAccount` aan, wat een **onboarding link** genereert
-- Stripe onboarding links kunnen NIET worden embedded (CSP violations in console)
-- Er is geen functie om naar het echte Stripe Express Dashboard te navigeren
+De kerninfrastructuur is reeds werkend:
+- **Stripe Connect Express**: Merchants kunnen onboarden en betalingen ontvangen
+- **Dynamische Checkout**: Producten worden on-the-fly geprijsd (geen Stripe product setup nodig)
+- **Platform Fee**: 5% wordt automatisch afgetrokken via `application_fee_amount`
+- **Bankoverschrijving**: OGM/EPC QR-code flow werkt
 
 ---
 
-## Technische Oplossing
+## Te Implementeren
 
-### 1. Platform Fee Weergave Aanpassen
+### 1. Stripe Webhook Productie Setup
+**Prioriteit: HOOG** | **Complexiteit: Laag**
 
-**Bestand:** `src/components/admin/settings/PaymentSettings.tsx`
+Huidige situatie: Webhook functie bestaat (`stripe-connect-webhook`) maar vereist configuratie.
 
-Drie opties:
-- **Optie A:** Verberg platform fee sectie volledig voor internal tenants
-- **Optie B:** Toon "0% - Ongelimiteerd" voor internal tenants
-- **Optie C:** Haal de werkelijke fee op uit een configuratie
+**Taken:**
+- [ ] `STRIPE_WEBHOOK_SECRET` secret toevoegen voor productie
+- [ ] Webhook endpoint registreren in Stripe Dashboard
+- [ ] Testen van `checkout.session.completed` flow
+- [ ] Testen van `payment_intent.succeeded` en `payment_intent.payment_failed`
 
-Aanbevolen: **Optie A** - Verberg voor internal tenants
+**Endpoint:** `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/stripe-connect-webhook`
 
-```tsx
-// Conditie toevoegen rond de platform fee box
-{!currentTenant?.is_internal_tenant && (
-  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-    <Percent className="h-5 w-5 text-muted-foreground" />
-    <div>
-      <p className="text-sm font-medium">Platform fee</p>
-      <p className="text-xs text-muted-foreground">5% per transactie</p>
-    </div>
-  </div>
-)}
+---
+
+### 2. Automatische Bank Reconciliatie
+**Prioriteit: MIDDEL** | **Complexiteit: Hoog**
+
+Doel: Automatisch matchen van binnenkomende bankoverschrijvingen met openstaande orders.
+
+**Opties:**
+
+| Optie | Beschrijving | Voordeel | Nadeel |
+|-------|--------------|----------|--------|
+| A. Handmatig | Merchant markeert order als betaald in admin | Simpel | Arbeidsintensief |
+| B. OGM Matching | Cron job die bank CSV importeert en OGM matcht | Betrouwbaar | Vereist bank export |
+| C. Open Banking API | Realtime via Plaid/Salt Edge/Tink | Volledig automatisch | Kosten + complexiteit |
+
+**Aanbevolen: Optie A + B**
+- Start met handmatige verificatie (snel te bouwen)
+- Voeg later CSV import toe voor bulk matching
+
+**Taken Optie A:**
+- [ ] "Markeer als betaald" knop in order detail
+- [ ] Betalingsstatus update flow
+- [ ] Audit log voor handmatige betalingsregistratie
+
+**Taken Optie B (later):**
+- [ ] Bank CSV import functie
+- [ ] OGM parsing en matching logica
+- [ ] Automatische order status update
+
+---
+
+### 3. Merchant Betalingsdashboard
+**Prioriteit: MIDDEL** | **Complexiteit: Middel**
+
+Doel: Merchants inzicht geven in hun transacties, fees en uitbetalingen.
+
+**Componenten:**
+
+```
+📊 Betalingsdashboard
+├── Transactie Overzicht
+│   ├── Lijst alle transacties
+│   ├── Filter: periode, status, type
+│   └── Totalen: omzet, fees, netto
+├── Platform Fee Inzicht
+│   ├── Totaal afgedragen fees
+│   └── Fee per transactie
+├── Uitbetalingen (Stripe Payouts)
+│   ├── Geplande uitbetalingen
+│   └── Voltooide uitbetalingen
+└── Bankoverschrijvingen
+    ├── Openstaand
+    ├── Gematcht
+    └── Te verifiëren
 ```
 
-### 2. Nieuwe "Open Stripe Dashboard" Functie
+**Taken:**
+- [ ] Nieuwe pagina: `/admin/payments` of tab in instellingen
+- [ ] Edge function: `get-merchant-transactions` (Stripe Balance Transactions API)
+- [ ] Edge function: `get-merchant-payouts` (Stripe Payouts API)
+- [ ] UI componenten voor transactie lijst en filters
+- [ ] Samenvattingskaarten (totaal, fees, pending)
 
-**Nieuw bestand:** `supabase/functions/get-stripe-login-link/index.ts`
+---
 
-Stripe biedt een speciale API voor Express accounts om een inlog-link te genereren:
+### 4. Stripe Connect Status Monitoring
+**Prioriteit: LAAG** | **Complexiteit: Laag**
 
-```typescript
-// Stripe biedt stripe.accounts.createLoginLink()
-const loginLink = await stripe.accounts.createLoginLink(
-  tenantData.stripe_account_id
-);
-// Retourneert een URL naar het Express Dashboard
-return { url: loginLink.url };
+Doel: Merchants informeren over hun account status.
+
+**Taken:**
+- [ ] Account verificatie status tonen
+- [ ] Waarschuwing bij incomplete onboarding
+- [ ] Link naar Stripe om problemen op te lossen
+- [ ] Payout schedule informatie
+
+---
+
+## Implementatie Volgorde
+
 ```
+Week 1: Webhook Setup + Handmatige Betaling Markering
+        └── Core functionaliteit werkend
 
-### 3. useStripeConnect Hook Uitbreiden
+Week 2: Betalingsdashboard Basis
+        └── Transactie overzicht voor merchants
 
-**Bestand:** `src/hooks/useStripeConnect.ts`
+Week 3: Dashboard Uitbreiding + Status Monitoring
+        └── Payouts, fees, account status
 
-Nieuwe functie toevoegen:
-
-```typescript
-const openStripeDashboard = useCallback(async () => {
-  if (!tenantId) return;
-  
-  setIsLoading(true);
-  try {
-    const { data, error } = await supabase.functions.invoke('get-stripe-login-link', {
-      body: { tenant_id: tenantId },
-    });
-
-    if (error) throw error;
-    
-    if (data.url) {
-      window.open(data.url, '_blank');
-    }
-  } catch (error) {
-    toast({
-      title: 'Fout',
-      description: 'Kon Stripe Dashboard niet openen.',
-      variant: 'destructive',
-    });
-  } finally {
-    setIsLoading(false);
-  }
-}, [tenantId, toast]);
-```
-
-### 4. PaymentSettings.tsx Button Fix
-
-**Bestand:** `src/components/admin/settings/PaymentSettings.tsx`
-
-Vervang de knop die `createConnectAccount` aanroept:
-
-```tsx
-// Van:
-<Button onClick={createConnectAccount}>
-  Stripe Dashboard openen
-</Button>
-
-// Naar:
-<Button onClick={openStripeDashboard}>
-  Stripe Dashboard openen
-</Button>
+Week 4+: Automatische Bank Reconciliatie (optioneel)
+         └── CSV import of Open Banking
 ```
 
 ---
 
-## Bestanden te Wijzigen/Maken
+## Technische Details
 
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| `supabase/functions/get-stripe-login-link/index.ts` | **Nieuw** | Edge function voor Stripe dashboard login link |
-| `src/hooks/useStripeConnect.ts` | Wijzigen | `openStripeDashboard` functie toevoegen |
-| `src/components/admin/settings/PaymentSettings.tsx` | Wijzigen | Platform fee verbergen voor internal tenant, nieuwe knop functie gebruiken |
+### Stripe APIs te gebruiken:
+- `stripe.balanceTransactions.list()` - Transacties ophalen
+- `stripe.payouts.list()` - Uitbetalingen ophalen
+- `stripe.accounts.retrieve()` - Account status
+- `stripe.accounts.createLoginLink()` - Dashboard toegang (reeds geïmplementeerd)
 
----
-
-## Stripe Login Link API Details
-
-De Stripe API `accounts.createLoginLink` genereert een eenmalige URL waarmee de tenant-eigenaar rechtstreeks naar hun Stripe Express Dashboard kan navigeren. Deze link:
-- Is geldig voor 5 minuten
-- Werkt in een nieuwe tab (geen iframe issues)
-- Geeft toegang tot transacties, uitbetalingen, instellingen etc.
+### Database wijzigingen:
+- Mogelijk nieuwe tabel `payment_reconciliations` voor bank matching
+- Index op `orders.ogm_reference` voor snelle lookups
 
 ---
 
-## Samenvatting
+## Samenvatting Merchant Experience
 
-Na deze wijzigingen:
-1. SellQo ziet geen "5% per transactie" meer (irrelevant als platform owner)
-2. "Stripe Dashboard openen" knop opent daadwerkelijk het Stripe dashboard in een nieuwe tab
-3. Geen CSP errors meer omdat we direct navigeren i.p.v. embedding proberen
+Na implementatie:
+1. **Geen Stripe setup nodig** - Alleen onboarding, geen producten aanmaken
+2. **Automatische fee afdracht** - 5% wordt direct afgetrokken
+3. **Inzicht in transacties** - Dashboard met alle betalingen
+4. **Flexibele betaalmethodes** - Stripe + Bankoverschrijving
+5. **Eenvoudige reconciliatie** - Handmatig of automatisch
