@@ -1,33 +1,33 @@
 
 
-# Dashboard Mockup Floating Effect Herstellen
+# Mobile Horizontal Overflow Fix + Desktop Float Behouden
 
-## Geïdentificeerd Probleem
+## Probleemanalyse
 
-Op regel 93 in `HeroSection.tsx` staat nu:
-```tsx
-<div className="relative overflow-hidden">
-```
+De huidige situatie veroorzaakt een conflict:
 
-Deze `overflow-hidden` was toegevoegd om horizontale scroll op mobile te voorkomen, maar het heeft een ongewenst neveneffect: de dashboard mockup en floating cards worden nu "afgeknipt" waardoor het geheel in een box lijkt te zitten.
+| Vereiste | Desktop | Mobile |
+|----------|---------|--------|
+| Floating cards | Mogen buiten container vallen ✅ | Moeten binnen viewport blijven |
+| Dashboard mockup | Volledige breedte | Schaalt met `scale-[0.85]` maar overflow niet beperkt |
+| Section overflow-hidden | Effectief | **Werkt niet** omdat inhoud bredere breedte forceert |
 
-**Gewenst gedrag:**
-- Dashboard en floating cards "zweven" buiten hun container
-- Geen horizontale scroll op de pagina
+**Root cause:** De `scale()` transform behoudt de oorspronkelijke box-dimensies in de layout. Een element van 600px breed geschaald naar 85% neemt nog steeds 600px ruimte in, alleen visueel kleiner.
 
 ---
 
-## Oplossing
+## Oplossing: Responsive Overflow Control
 
-### Aanpak: Selectieve overflow control
+### Strategie
 
-| Wijziging | Beschrijving |
-|-----------|--------------|
-| Verwijder `overflow-hidden` van dashboard wrapper | Laat mockup weer vrij floaten |
-| Voeg `overflow-hidden` toe aan de `<section>` tag | Voorkomt horizontale scroll op paginaniveau (al aanwezig op regel 29!) |
-| Pas floating card posities aan | Zorg dat ze binnen de viewport blijven op mobile |
+1. **Desktop (lg+):** Geen overflow restriction - floating effect behouden
+2. **Mobile/Tablet (<lg):** Strikte overflow control via wrapper
 
-De `<section>` heeft al `overflow-hidden` (regel 29), dus de parent div hoeft dit niet te dupliceren.
+### Technische Aanpak
+
+Voeg een wrapper toe rond de dashboard mockup sectie die:
+- Op mobile `overflow-hidden` heeft
+- Op desktop `overflow-visible` heeft (of geen restriction)
 
 ---
 
@@ -35,50 +35,63 @@ De `<section>` heeft al `overflow-hidden` (regel 29), dus de parent div hoeft di
 
 ### Bestand: `src/components/landing/HeroSection.tsx`
 
-**Regel 93 - Verwijder overflow-hidden:**
+**Regel 92-93 - Voeg responsive overflow toe:**
+
 ```tsx
 // Oud:
-<div className="relative overflow-hidden">
+<div className="relative">
 
 // Nieuw:
-<div className="relative">
+<div className="relative overflow-hidden lg:overflow-visible">
 ```
 
 Dit zorgt ervoor dat:
-1. De floating cards weer buiten de container kunnen "floaten"
-2. De dashboard mockup niet meer afgeknipt wordt
-3. De `section` overflow-hidden (regel 29) voorkomt nog steeds horizontale pagina-scroll
+- Mobile/tablet: `overflow-hidden` voorkomt horizontale scroll
+- Desktop: `overflow-visible` laat floating cards buiten container zweven
+
+### Alternatief (als floating cards op mobile niet nodig zijn):
+
+De floating cards zijn al `hidden md:flex`, dus ze worden alleen op md+ getoond. We kunnen de overflow breakpoint daarop afstemmen:
+
+```tsx
+<div className="relative overflow-hidden md:overflow-visible">
+```
 
 ---
 
 ## Visueel Resultaat
 
 ```text
-VOOR (huidige situatie):
-┌───────────────────────────────┐
-│  ┌─────────────────────┐      │
-│  │   Dashboard Box     │      │  ← Afgekapt
-│  │   (clipped)         │      │
-│  └─────────────────────┘      │
-└───────────────────────────────┘
+MOBILE (<768px):
+┌─────────────────────────┐
+│  Hero Text              │
+│                         │
+│  ┌───────────────────┐  │
+│  │   Dashboard       │  │ ← Netjes binnen viewport
+│  │   (scaled 85%)    │  │
+│  └───────────────────┘  │
+│                         │
+│  [Floating cards: HIDDEN]
+└─────────────────────────┘
 
-NA (gewenste situatie):
-        ┌─ Float ─┐
-┌───────│─────────│─────────────┐
-│  ┌────┴─────────┴────┐        │
-│  │    Dashboard      │        │  ← Vrij floatend
-│  │    (floating)     │   Float│
-│  └───────────────────┴────────┤
-└───────────────────────────────┘
+DESKTOP (≥1024px):
+         ← Float buiten box
+┌────────┬────────────────────────────┐
+│ Text   │  ┌──────────────────┐      │
+│ Content│  │   Dashboard      │ Float│
+│        │  │   (full size)    ├──────┤
+│        │  └──────────────────┘      │
+│        │              ↑ Float       │
+└────────┴────────────────────────────┘
 ```
 
 ---
 
 ## Verwacht Resultaat
 
-Na deze eenvoudige wijziging:
-- Dashboard mockup en floating cards zweven weer mooi
-- Geen "box" effect meer zichtbaar
-- Geen horizontale scroll (dankzij section-level overflow-hidden)
-- Mobile layout blijft intact door de responsive scaling
+Na deze wijziging:
+1. **Mobile:** Geen horizontale scroll meer - content blijft binnen viewport
+2. **Tablet:** Idem - overflow beperkt
+3. **Desktop:** Floating effect volledig behouden - cards zweven buiten container
+4. **Floating cards:** Alleen zichtbaar op md+ (al zo geconfigureerd)
 
