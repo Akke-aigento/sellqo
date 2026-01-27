@@ -230,3 +230,6 @@ verify_jwt = false
 
 [functions.handle-inbound-email]
 verify_jwt = false
+
+[functions.ai-generate-storefront-copy]
+verify_jwt = false

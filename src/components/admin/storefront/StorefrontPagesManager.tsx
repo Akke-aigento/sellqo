@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileText, Pencil, Trash2, Eye, EyeOff, GripVertical, ExternalLink } from 'lucide-react';
+import { Plus, FileText, Pencil, Trash2, Eye, EyeOff, GripVertical, Edit3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useStorefront } from '@/hooks/useStorefront';
 import { RichTextEditor } from './RichTextEditor';
-import type { StorefrontPage } from '@/types/storefront';
+import { StaticPageEditor } from './visual-editor/StaticPageEditor';
+import type { StorefrontPage, PageBlock } from '@/types/storefront';
+import { toast } from 'sonner';
 
 interface PageFormData {
   slug: string;
@@ -37,6 +40,8 @@ export function StorefrontPagesManager() {
   const { pages, pagesLoading, createPage, updatePage, deletePage } = useStorefront();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<StorefrontPage | null>(null);
+  const [visualEditingPage, setVisualEditingPage] = useState<StorefrontPage | null>(null);
+  const [isSavingVisualEditor, setIsSavingVisualEditor] = useState(false);
   const [formData, setFormData] = useState<PageFormData>({
     slug: '',
     title: '',
@@ -108,6 +113,28 @@ export function StorefrontPagesManager() {
       id: page.id,
       is_published: !page.is_published,
     });
+  };
+
+  const handleOpenVisualEditor = (page: StorefrontPage) => {
+    setVisualEditingPage(page);
+  };
+
+  const handleSaveVisualEditor = async (blocks: PageBlock[]) => {
+    if (!visualEditingPage) return;
+    
+    setIsSavingVisualEditor(true);
+    try {
+      await updatePage.mutateAsync({
+        id: visualEditingPage.id,
+        content: JSON.stringify(blocks),
+      });
+      toast.success('Pagina opgeslagen');
+      setVisualEditingPage(null);
+    } catch (error) {
+      toast.error('Kon pagina niet opslaan');
+    } finally {
+      setIsSavingVisualEditor(false);
+    }
   };
 
   // Find which default pages are not yet created
@@ -300,31 +327,62 @@ export function StorefrontPagesManager() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleTogglePublish(page)}
-                      >
-                        {page.is_published ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenEdit(page)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(page.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleTogglePublish(page)}
+                            >
+                              {page.is_published ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {page.is_published ? 'Verbergen' : 'Publiceren'}
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenVisualEditor(page)}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Visueel bewerken</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenEdit(page)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Instellingen</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(page.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Verwijderen</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -333,6 +391,16 @@ export function StorefrontPagesManager() {
           </Table>
         )}
       </CardContent>
+
+      {/* Visual Editor Full-Screen */}
+      {visualEditingPage && (
+        <StaticPageEditor
+          page={visualEditingPage}
+          onClose={() => setVisualEditingPage(null)}
+          onSave={handleSaveVisualEditor}
+          isSaving={isSavingVisualEditor}
+        />
+      )}
     </Card>
   );
 }

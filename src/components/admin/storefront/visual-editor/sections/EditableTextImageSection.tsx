@@ -41,6 +41,9 @@ export function EditableTextImageSection({ section, onUpdate }: EditableTextImag
               as="h2"
               placeholder="Voeg een titel toe..."
               className="text-3xl font-bold mb-4"
+              showAIButton
+              fieldType="title"
+              sectionType="text_image"
             />
             <InlineTextEditor
               value={section.subtitle || ''}
@@ -48,6 +51,9 @@ export function EditableTextImageSection({ section, onUpdate }: EditableTextImag
               as="p"
               placeholder="Voeg een subtitel toe..."
               className="text-lg text-muted-foreground mb-4"
+              showAIButton
+              fieldType="subtitle"
+              sectionType="text_image"
             />
             {content.text && (
               <div 

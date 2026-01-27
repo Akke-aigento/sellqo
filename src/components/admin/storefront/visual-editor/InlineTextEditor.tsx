@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
+import { AICopyButton } from './AICopyButton';
+
+type FieldType = 'title' | 'subtitle' | 'cta' | 'button' | 'description';
+type SectionType = 'hero' | 'newsletter' | 'text_image' | 'featured_products' | 'testimonials';
 
 interface InlineTextEditorProps {
   value: string;
@@ -8,6 +12,9 @@ interface InlineTextEditorProps {
   placeholder?: string;
   className?: string;
   multiline?: boolean;
+  showAIButton?: boolean;
+  fieldType?: FieldType;
+  sectionType?: SectionType;
 }
 
 export function InlineTextEditor({
@@ -17,8 +24,12 @@ export function InlineTextEditor({
   placeholder = 'Klik om te bewerken...',
   className,
   multiline = false,
+  showAIButton = false,
+  fieldType = 'title',
+  sectionType = 'hero',
 }: InlineTextEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -85,6 +96,15 @@ export function InlineTextEditor({
     }
   };
 
+  const handleAIGenerate = (newValue: string) => {
+    // Update the DOM content
+    if (editorRef.current) {
+      editorRef.current.textContent = newValue;
+    }
+    // Save immediately
+    onSave(newValue);
+  };
+
   // No handleInput - we don't update state during typing!
   // This is the key fix: let the browser handle the contentEditable natively
 
@@ -92,28 +112,46 @@ export function InlineTextEditor({
   const isEmpty = !value;
 
   return (
-    <div
-      ref={editorRef}
-      role="textbox"
-      tabIndex={0}
-      contentEditable={isEditing}
-      suppressContentEditableWarning
-      onClick={handleClick}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      // No onInput handler - this prevents the cursor reset issue
-      className={cn(
-        'outline-none transition-all cursor-text',
-        isEditing && 'ring-2 ring-primary ring-offset-2 rounded px-1',
-        !isEditing && 'hover:ring-2 hover:ring-primary/30 hover:ring-offset-2 rounded',
-        isEmpty && !isEditing && 'text-muted-foreground italic',
-        className
-      )}
-      style={{
-        minHeight: Component === 'h1' ? '3rem' : Component === 'h2' ? '2.5rem' : '1.5rem',
-      }}
+    <div 
+      className="relative group inline-block w-full"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {displayValue}
+      <div
+        ref={editorRef}
+        role="textbox"
+        tabIndex={0}
+        contentEditable={isEditing}
+        suppressContentEditableWarning
+        onClick={handleClick}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        // No onInput handler - this prevents the cursor reset issue
+        className={cn(
+          'outline-none transition-all cursor-text',
+          isEditing && 'ring-2 ring-primary ring-offset-2 rounded px-1',
+          !isEditing && 'hover:ring-2 hover:ring-primary/30 hover:ring-offset-2 rounded',
+          isEmpty && !isEditing && 'text-muted-foreground italic',
+          className
+        )}
+        style={{
+          minHeight: Component === 'h1' ? '3rem' : Component === 'h2' ? '2.5rem' : '1.5rem',
+        }}
+      >
+        {displayValue}
+      </div>
+      
+      {/* AI Button - shows on hover or when editing */}
+      {showAIButton && (isHovered || isEditing) && (
+        <div className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <AICopyButton
+            fieldType={fieldType}
+            sectionType={sectionType}
+            currentValue={value}
+            onGenerate={handleAIGenerate}
+          />
+        </div>
+      )}
     </div>
   );
 }
