@@ -1,110 +1,108 @@
 
+# Demo Tenant Feature voor Klantdemonstraties
 
-# Fix: Demo Gegevens en Opslaan van Bedrijfsgegevens
+## Overzicht
 
-## Geïdentificeerde Problemen
-
-### Probleem 1: "Bakkerij De Gouden Korst" Demo Data
-De "Bakkerij De Gouden Korst" data zit niet in de applicatiecode - het is bestaande data in de database van een eerdere test tenant. Dit is geen bug in de applicatie zelf, maar eerder testdata die opgeruimd moet worden.
-
-**Echter**, er is wel een gerelateerd probleem: de placeholders in de formulieren zijn vrij generiek. Ze kunnen worden verbeterd om duidelijker aan te geven dat dit voorbeeldwaarden zijn.
-
-### Probleem 2: Gegevens Slaan Niet Op
-Dit is een **RLS (Row Level Security) probleem**. De huidige database policies zijn:
-
-| Actie | Wie mag het |
-|-------|-------------|
-| INSERT tenant | Alleen `platform_admin` |
-| UPDATE tenant | `platform_admin` OF `tenant_admin` van die tenant |
-
-**Het probleem**: De `createTenant` functie in de onboarding hook probeert direct een tenant aan te maken in de database, maar nieuwe gebruikers zijn nog geen `platform_admin`. Ze krijgen die rol pas NA het aanmaken van hun eerste tenant.
-
-Dit creëert een "chicken-and-egg" probleem: je hebt een tenant nodig om tenant_admin te worden, maar je moet platform_admin zijn om een tenant aan te maken.
+Je wilt demo stores kunnen markeren die:
+1. **Onbeperkte functionaliteit** hebben (geen credit/feature limieten)
+2. **Duidelijk gemarkeerd** zijn in de tenant lijst
+3. **Uitgesloten** worden van platform statistieken
 
 ---
 
-## Oplossingsplan
+## Technische Aanpak
 
-### Fase 1: Database Fix - Tenant Aanmaken Toestaan
+### Database Wijziging
 
-Een nieuwe RLS policy toevoegen die geauthenticeerde gebruikers toestaat om hun eerste tenant aan te maken:
+Er bestaat al een `is_internal_tenant` veld in de database (voor SellQo zelf), maar voor demo stores maken we een apart veld:
 
-```sql
--- Authenticated users can create their own tenant (for onboarding)
-CREATE POLICY "Authenticated users can insert their own tenant"
-  ON public.tenants FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    -- User email matches owner_email
-    owner_email = auth.jwt()->>'email'
-    -- AND user doesn't already have a tenant (prevents abuse)
-    AND NOT EXISTS (
-      SELECT 1 FROM public.user_roles 
-      WHERE user_id = auth.uid() 
-      AND role = 'tenant_admin'
-    )
-  );
+```text
+tenants tabel
++-- is_demo: boolean (default: false)
 ```
 
-### Fase 2: Placeholder Verbetering
-
-De formulier placeholders aanpassen om neutraal en duidelijk te zijn:
-
-| Veld | Oud | Nieuw |
-|------|-----|-------|
-| Winkelnaam | "Mijn Webshop" | "Bijv. Jouw Winkel" |
-| Eigenaar naam | "Jan Jansen" | "Voornaam Achternaam" |
-| Adres | "Straatnaam 123" | "Straatnaam + huisnummer" |
-| Postcode | "1234 AB" | "1234 AB (NL) / 1000 (BE)" |
-| Stad | "Amsterdam" | "Jouw stad" |
-| KvK | "BE: 0123.456.789 \| NL: 12345678" | "8 cijfers (NL) / 10 cijfers (BE)" |
-
-### Fase 3: Validatie Verbetering in BusinessSettings
-
-De `handleSave` functie in `BusinessSettings.tsx` moet betere error handling krijgen zodat gebruikers duidelijk zien waarom opslaan faalt.
+Waarom apart van `is_internal_tenant`?
+- **Internal** = SellQo's eigen winkel (dogfooding)
+- **Demo** = Demonstratie winkels voor klanten
 
 ---
 
-## Technische Wijzigingen
+### UI Wijzigingen
 
-### Bestanden te wijzigen:
+#### 1. Tenant Lijst (TenantsPage.tsx)
+- Demo badge naast winkelnaam met lichtpaarse achtergrond
+- Filter optie om demo stores te tonen/verbergen
 
-1. **Database migratie (nieuw)**
-   - Nieuwe RLS policy voor tenant INSERT door geauthenticeerde gebruikers
+#### 2. Tenant Formulier (TenantFormDialog.tsx)
+- Toggle switch in "Instellingen" tab: "Demo winkel"
+- Beschrijving: "Demo winkels hebben onbeperkte functionaliteit en worden niet meegeteld in statistieken"
 
-2. **`src/components/admin/settings/BusinessSettings.tsx`**
-   - Verbeterde placeholders
-   - Betere error handling bij opslaan
-   - Console logging voor debugging
-
-3. **`src/components/onboarding/steps/BusinessDetailsStep.tsx`**
-   - Consistente placeholders
-   - Duidelijkere voorbeelden
-
-4. **`src/components/onboarding/steps/WelcomeStep.tsx`**
-   - Placeholder verbetering voor winkelnaam
+#### 3. Platform Statistieken (usePlatformAdmin.ts)
+- Nieuwe `demo` counter naast `internal`
+- Platform totalen excluderen demo tenants
 
 ---
 
-## Database Clean-up Suggestie
+### Feature Gating Bypass
 
-De "Bakkerij De Gouden Korst" testdata zou handmatig verwijderd kunnen worden via een SQL query:
+#### useUsageLimits.ts
+Demo tenants krijgen:
+- `checkLimit()` → altijd `true`
+- `checkFeature()` → altijd `true`
+- `enforceLimit()` → altijd `true`
 
-```sql
--- Alleen uitvoeren als deze tenant niet meer nodig is!
-DELETE FROM tenants WHERE name = 'Bakkerij De Gouden Korst';
+#### useTenantSubscription.ts
+- Usage percentages tonen "Onbeperkt" voor demo tenants
+
+---
+
+## Bestanden te Wijzigen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| **Database migratie** | `is_demo` column toevoegen aan tenants |
+| `src/hooks/useTenants.ts` | `is_demo` property toevoegen aan interface en mutations |
+| `src/hooks/useTenant.tsx` | `is_demo` property in Tenant interface |
+| `src/hooks/useUsageLimits.ts` | Check voor demo tenant, bypass alle limieten |
+| `src/hooks/usePlatformAdmin.ts` | Demo count toevoegen, exclude demo in stats |
+| `src/pages/admin/Tenants.tsx` | Demo badge tonen, filter optie |
+| `src/components/admin/TenantFormDialog.tsx` | Demo toggle switch |
+
+---
+
+## Visueel Ontwerp
+
+### Demo Badge in Tenant Lijst
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ ☐ │ 🏪 Demo Bakkerij  [DEMO]  │ Demo Account    │ Enterprise │
+│   │    demo-bakkerij          │ demo@bakkerij.nl│ ⬤ Actief   │
+├───┼───────────────────────────┼─────────────────┼────────────┤
+│ ☐ │ 🏪 SellQo                 │ J. Vercammen    │ Enterprise │
+│   │    sellqo                 │ info@sellqo.nl  │ ⬤ Actief   │
+└───┴───────────────────────────┴─────────────────┴────────────┘
 ```
 
-Of de data kan worden aangepast naar neutrale placeholders voor demo doeleinden.
+### Demo Toggle in Formulier
+
+```text
+┌──────────────────────────────────────────────────────────┐
+│  Demo winkel                              [========●]    │
+│  Demo winkels hebben onbeperkte functionaliteit en       │
+│  worden niet meegeteld in platform statistieken          │
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Samenvatting Wijzigingen
+## Samenvatting
 
-| Component | Wijziging |
-|-----------|-----------|
-| RLS Policy | Nieuwe INSERT policy voor onboarding |
-| BusinessSettings.tsx | Placeholders + error handling |
-| BusinessDetailsStep.tsx | Placeholders verbeteren |
-| WelcomeStep.tsx | Placeholder verbeteren |
+| Functie | Implementatie |
+|---------|---------------|
+| Demo markeren | Toggle in tenant form |
+| Badge in lijst | Paarse [DEMO] badge |
+| Onbeperkt | Bypass in useUsageLimits |
+| Stats exclusie | Filter in usePlatformAdmin |
 
+Na implementatie kun je eenvoudig bestaande tenants als demo markeren via het bewerkformulier, en nieuwe demo stores aanmaken voor klantdemonstraties.
