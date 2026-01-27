@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { AICopyButton } from './AICopyButton';
+import { useAILearning } from '@/hooks/useAILearning';
 
 type FieldType = 'title' | 'subtitle' | 'cta' | 'button' | 'description';
 type SectionType = 'hero' | 'newsletter' | 'text_image' | 'featured_products' | 'testimonials';
@@ -30,8 +31,10 @@ export function InlineTextEditor({
 }: InlineTextEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [lastAIGenerated, setLastAIGenerated] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { learnFromEdit } = useAILearning();
 
   // Debounced auto-save - reads from DOM ref, not state
   useEffect(() => {
@@ -58,10 +61,19 @@ export function InlineTextEditor({
     const newValue = editorRef.current?.textContent || '';
     // Don't save the placeholder as a value
     if (newValue !== value && newValue !== placeholder) {
+      // Check if the user edited AI-generated content
+      if (lastAIGenerated && newValue !== lastAIGenerated) {
+        // Trigger learning from the edit
+        learnFromEdit(lastAIGenerated, newValue, {
+          contentType: `storefront_${sectionType}_${fieldType}`,
+          showToast: true,
+        });
+        setLastAIGenerated(null); // Clear after learning
+      }
       onSave(newValue);
     }
     setIsEditing(false);
-  }, [value, onSave, placeholder]);
+  }, [value, onSave, placeholder, lastAIGenerated, learnFromEdit, sectionType, fieldType]);
 
   const handleClick = () => {
     setIsEditing(true);
@@ -96,14 +108,18 @@ export function InlineTextEditor({
     }
   };
 
-  const handleAIGenerate = (newValue: string) => {
+  const handleAIGenerate = useCallback((newValue: string, wasAIGenerated: boolean) => {
     // Update the DOM content
     if (editorRef.current) {
       editorRef.current.textContent = newValue;
     }
+    // Track AI-generated content for learning
+    if (wasAIGenerated) {
+      setLastAIGenerated(newValue);
+    }
     // Save immediately
     onSave(newValue);
-  };
+  }, [onSave]);
 
   // No handleInput - we don't update state during typing!
   // This is the key fix: let the browser handle the contentEditable natively
