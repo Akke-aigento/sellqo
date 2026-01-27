@@ -1,266 +1,215 @@
 
+# Registratie & Onboarding Flow - Complete Herziening
 
-# Super Admin Platform - Uitgebreide Analyse & Verbeteringsplan
+## Huidige Situatie Analyse
 
-## Huidige Status Overzicht
-
-Na een grondige analyse van alle componenten is de Super Admin implementatie grotendeels correct en functioneel. Hieronder volgt een complete inventarisatie.
-
----
-
-## ✅ VOLLEDIG WERKENDE COMPONENTEN
-
-### 1. Authenticatie & Autorisatie
+### Wat werkt WEL:
 | Component | Status | Locatie |
 |-----------|--------|---------|
-| Platform Admin Rol | ✅ OK | `info@sellqo.ai` heeft `platform_admin` + `tenant_admin` rollen |
-| ProtectedRoute | ✅ OK | `requirePlatformAdmin` flag werkt correct |
-| isPlatformAdmin check | ✅ OK | Via `useAuth` hook |
+| Auth pagina (login/registratie) | ✅ Werkt | `src/pages/Auth.tsx` |
+| Onboarding Wizard UI | ✅ Werkt | `src/components/onboarding/OnboardingWizard.tsx` |
+| 6-stappen flow | ✅ Werkt | Welcome → Business → Logo → Product → Payments → Launch |
+| Skip/Resume mogelijkheid | ✅ Werkt | Via `profiles.onboarding_skipped_at` |
+| Profiles tabel tracking | ✅ Werkt | `onboarding_completed`, `onboarding_step` velden |
 
-### 2. Database Infrastructuur
-| Tabel | Aanwezig | Gebruikt Door |
-|-------|----------|---------------|
-| `platform_changelogs` | ✅ | PlatformChangelog pagina |
-| `platform_coupons` | ✅ | PlatformCoupons pagina |
-| `platform_coupon_redemptions` | ✅ | Coupon tracking |
-| `platform_health_metrics` | ✅ | PlatformHealth pagina |
-| `platform_incidents` | ✅ | Incident management |
-| `platform_invoices` | ✅ | TenantInvoicesTab |
-| `platform_quick_actions` | ✅ | 6 actieve acties geconfigureerd |
-| `admin_actions_log` | ✅ | TenantActivityTab |
-| `admin_billing_actions` | ✅ | platform-gift-month edge function |
-| `sellqo_legal_pages` | ✅ | 6 juridische pagina's |
-| `feature_usage_events` | ✅ | Feature analytics |
-| `app_feedback` | ✅ | PlatformFeedback |
-| `support_tickets` | ✅ | PlatformSupport |
+### Wat ONTBREEKT (kritieke problemen):
 
-### 3. Sidebar Navigatie (Volledig)
-Alle 9 platform items correct geconfigureerd:
-- Dashboard, Tenants, Platform Billing, Coupons, Feedback, Support, Changelog, Health Monitor, Juridisch
+| Probleem | Impact | Prioriteit |
+|----------|--------|------------|
+| **Geen 14-dagen trial enforcement** | Gebruikers kunnen onbeperkt blijven gebruiken zonder te betalen | KRITIEK |
+| **Geen tenant_subscription aangemaakt** | Nieuwe tenants hebben geen subscription record met trial_end datum | KRITIEK |
+| **Geen plan selectie in onboarding** | Gebruikers kiezen geen plan tijdens registratie | HOOG |
+| **Geen trial expiry check** | Geen blokkade na 14 dagen trial | HOOG |
+| **Onboarding opent niet automatisch voor nieuwe users** | Wizard toont alleen als er geen tenants zijn, niet bij eerste login | MEDIUM |
 
-### 4. Routing (Alle Routes Beveiligd)
+### Database Status:
 ```text
-/admin/platform              → TenantsPage
-/admin/platform/dashboard    → PlatformDashboard
-/admin/platform/billing      → PlatformBillingPage
-/admin/platform/tenants/:id  → TenantDetailPage
-/admin/platform/coupons      → PlatformCouponsPage
-/admin/platform/feedback     → PlatformFeedback
-/admin/platform/support      → PlatformSupport
-/admin/platform/changelog    → PlatformChangelog
-/admin/platform/health       → PlatformHealth
-/admin/platform/legal        → PlatformLegal
+┌─────────────────────────────────────────────────────────────────┐
+│  HUIDIGE SITUATIE                                                │
+├─────────────────────────────────────────────────────────────────┤
+│  - tenants tabel: WEL aanwezig                                  │
+│  - tenant_subscriptions: heeft trial_end kolom                  │
+│  - pricing_plans: 4 plannen (Free, Starter €29, Pro €79, Ent)   │
+│  - MAAR: geen trigger die subscription aanmaakt bij new tenant  │
+│  - MAAR: geen check op trial_end bij toegang                    │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-### 5. Tenant Management Tabs (7 Tabs)
-| Tab | Component | Functionaliteit |
-|-----|-----------|-----------------|
-| Overview | `TenantOverviewTab` | ✅ Lifetime metrics, owner info, Stripe status |
-| Subscription | `TenantSubscriptionTab` | ✅ Plan wijzigen, status, interval, gift months |
-| Credits | `TenantCreditsTab` | ✅ Balans, aanpassen, geschiedenis |
-| Actions | `TenantActionsTab` | ✅ Quick actions, coupon toepassen |
-| Invoices | `TenantInvoicesTab` | ✅ Platform facturen |
-| Modules | `TenantModulesTab` | ✅ Feature overrides |
-| Activity | `TenantActivityTab` | ✅ Admin action log |
-
-### 6. Edge Functions
-| Functie | Status | Doel |
-|---------|--------|------|
-| `platform-gift-month` | ✅ OK | Gratis maanden via Stripe |
-| `reset-monthly-ai-credits` | ✅ OK | Maandelijkse credit reset |
-| `platform-stripe-webhook` | ✅ Bestaat | Webhook handling |
-| `platform-customer-portal` | ✅ Bestaat | Customer portal |
-| `create-platform-checkout` | ✅ Bestaat | Checkout sessies |
-
-### 7. Hooks Volledigheid
-| Hook | Queries | Mutations |
-|------|---------|-----------|
-| `usePlatformAdmin` | ✅ 10+ queries | ✅ 3 mutations |
-| `usePlatformBilling` | ✅ 4 queries | ✅ giftMonth |
-| `usePlatformPromotions` | ✅ 5+ queries | ✅ 5+ mutations |
-| `usePlatformHealth` | ✅ 2 queries | ✅ 3 mutations |
-| `usePlatformFeedback` | ✅ 1 query | - |
-| `usePlatformChangelogs` | ✅ 1 query | ✅ 3 mutations |
-| `useSupportTickets` | ✅ 2 queries | ✅ 3 mutations |
-| `useSellqoLegal` | ✅ 1 query | ✅ 3 mutations |
 
 ---
 
-## ⚠️ GEÏDENTIFICEERDE VERBETERPUNTEN
+## Oplossingsplan
 
-### 1. Quick Action "apply_discount" Niet Geïmplementeerd
+### Fase 1: Database & Backend (Kritiek)
 
-**Probleem**: De `Churn Prevention` quick action heeft `action_type: apply_discount`, maar deze case ontbreekt in de `useExecuteQuickAction` switch statement.
+#### 1.1 Database Trigger voor Auto-Subscription
+Bij aanmaken van nieuwe tenant automatisch een subscription record aanmaken met:
+- `plan_id = 'free'`
+- `status = 'trialing'`
+- `trial_end = NOW() + 14 days`
 
-**Huidige code** (regel 257-358 in `usePlatformPromotions.ts`):
-```typescript
-switch (action.action_type) {
-  case 'add_credits': ...
-  case 'gift_months': ...
-  case 'unlock_feature': ...
-  case 'extend_trial': ...
-  default: throw new Error('Onbekend actie type');
-}
-```
+Dit vereist een nieuwe database trigger.
 
-**Ontbreekt**: `case 'apply_discount'`
-
-### 2. SellQo Tenant Mist owner_name
-
-**Probleem**: De SellQo interne tenant heeft geen `owner_name` ingesteld.
-
-**Database check**:
-```
-SellQo: owner_email=info@sellqo.ai, owner_name=NULL
-```
-
-### 3. Platform Dashboard Mist Revenue Overzicht
-
-**Probleem**: Het dashboard toont tenant tellingen maar geen MRR/ARR metrics. Deze zijn wel beschikbaar in PlatformBilling.
-
-### 4. Changelog Pagina Mist Create Functie
-
-**Probleem**: De `PlatformChangelog` pagina heeft geen UI voor het aanmaken van nieuwe changelog entries, alleen voor het bekijken en acknowledgeren.
-
-### 5. Legal Pages Niet Gepubliceerd
-
-**Probleem**: Alle 6 juridische pagina's staan nog op `is_published: false`.
-
-### 6. Credits Tab Percentage Berekening
-
-**Probleem**: Bij 0 credits total ontstaat een `NaN%` in de progress bar.
-
-**Code** (regel 80-81 in `TenantCreditsTab.tsx`):
-```typescript
-const percentage = credits ? (credits.credits_used / credits.credits_total) * 100 : 0;
-```
-
-**Fix nodig**: Delen door 0 voorkomen.
-
-### 7. Geen Bulk Operaties voor Tenants
-
-**Probleem**: In de Tenants lijst kunnen geen bulk acties uitgevoerd worden (bijv. bulk credits toevoegen, bulk notifications sturen).
-
-### 8. Geen Export Functionaliteit
-
-**Probleem**: Geen mogelijkheid om tenant data, subscriptions of invoices te exporteren naar CSV/Excel.
+#### 1.2 Subscription Status Check Hook
+Nieuwe hook `useTrialStatus` die:
+- Checkt of subscription status = 'trialing' en trial_end < NOW()
+- Retourneert `isTrialExpired`, `daysRemaining`, `isBlocked`
 
 ---
 
-## IMPLEMENTATIE PLAN
+### Fase 2: Frontend Flows (Hoog)
 
-### Fase 1: Kritieke Fixes (Prioriteit Hoog)
+#### 2.1 Nieuwe Onboarding Stap: Plan Selectie
+Toevoegen van een "Kies je plan" stap aan de onboarding wizard:
+- Toon de 4 pricing plans
+- Default selectie op "Free" (14 dagen trial)
+- Optioneel direct upgraden naar betaald plan
+- Bij keuze: subscription record updaten met gekozen plan
 
-#### 1.1 Apply Discount Quick Action Implementeren
-**Bestand**: `src/hooks/usePlatformPromotions.ts`
-
-Voeg toe aan de switch statement:
-```typescript
-case 'apply_discount': {
-  const percent = config.percent as number;
-  const months = config.months as number;
-  const reason = config.reason as string;
-  
-  // Update subscription met korting
-  const { data: sub } = await supabase
-    .from('tenant_subscriptions')
-    .select('id, discount_percent, discount_end_date')
-    .eq('tenant_id', tenantId)
-    .single();
-  
-  if (sub) {
-    const discountEnd = new Date();
-    discountEnd.setMonth(discountEnd.getMonth() + months);
-    
-    await supabase
-      .from('tenant_subscriptions')
-      .update({ 
-        discount_percent: percent,
-        discount_end_date: discountEnd.toISOString(),
-      })
-      .eq('tenant_id', tenantId);
-  }
-  
-  notificationTitle = '💰 Korting Geactiveerd!';
-  notificationMessage = `Je krijgt ${percent}% korting voor de komende ${months} maanden.`;
-  break;
-}
+**Nieuwe stap flow:**
+```text
+1. Welcome (winkelnaam)
+2. Plan Selectie ← NIEUW
+3. Business Details
+4. Logo Upload
+5. First Product
+6. Payments (Stripe)
+7. Launch
 ```
 
-#### 1.2 Fix Credits Percentage Bug
-**Bestand**: `src/components/platform/TenantCreditsTab.tsx`
+#### 2.2 Trial Banner Component
+Nieuwe component `TrialBanner` die toont:
+- "Je hebt nog X dagen gratis trial"
+- Progressbar van trial periode
+- "Upgrade nu" button
+- Wordt oranje bij < 3 dagen, rood bij verlopen
 
-Wijzig regel 80-81:
-```typescript
-const percentage = credits && credits.credits_total > 0 
-  ? (credits.credits_used / credits.credits_total) * 100 
-  : 0;
+#### 2.3 Trial Expired Blocker
+Bij verlopen trial:
+- Toon full-screen overlay
+- "Je trial is verlopen"
+- Alleen optie: plan kiezen of uitloggen
+- Blokkeer toegang tot admin features
+
+---
+
+### Fase 3: Verbeterde Auth Flow
+
+#### 3.1 Auth Page Verbetering
+Na succesvolle registratie:
+- Direct doorsturen naar onboarding (niet naar /admin)
+- Welkomstscherm met "Welkom bij SellQo!" animatie
+- Duidelijke call-to-action om onboarding te starten
+
+#### 3.2 Onboarding Trigger Logic Verbeteren
+Huidige logica controleert:
+- `profiles.onboarding_completed = false`
+- EN geen tenants met producten
+
+Nieuwe logica moet ook:
+- Forceren bij `profiles.created_at` binnen laatste 5 minuten
+- Tonen bij eerste login na registratie
+
+---
+
+## Implementatie Details
+
+### Bestanden die worden aangemaakt:
+
+| Bestand | Doel |
+|---------|------|
+| `src/hooks/useTrialStatus.ts` | Hook voor trial status checking |
+| `src/components/onboarding/steps/PlanSelectionStep.tsx` | Plan keuze stap |
+| `src/components/admin/TrialBanner.tsx` | Trial status banner |
+| `src/components/admin/TrialExpiredBlocker.tsx` | Blocker bij verlopen trial |
+
+### Bestanden die worden aangepast:
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/hooks/useOnboarding.ts` | Toevoegen step 2 (plan selectie), TOTAL_STEPS naar 7 |
+| `src/components/onboarding/OnboardingWizard.tsx` | Nieuwe stap renderen |
+| `src/components/admin/AdminLayout.tsx` | TrialBanner + TrialExpiredBlocker integreren |
+| `src/pages/Auth.tsx` | Redirect naar onboarding na registratie |
+
+### Database Migratie:
+
+```sql
+-- Trigger om automatisch subscription aan te maken bij nieuwe tenant
+CREATE OR REPLACE FUNCTION public.create_tenant_trial_subscription()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  INSERT INTO tenant_subscriptions (
+    tenant_id,
+    plan_id,
+    status,
+    trial_end,
+    billing_interval
+  ) VALUES (
+    NEW.id,
+    'free',
+    'trialing',
+    (NOW() + INTERVAL '14 days')::timestamptz,
+    'monthly'
+  );
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger koppelen aan tenants tabel
+CREATE TRIGGER on_tenant_created_create_subscription
+  AFTER INSERT ON tenants
+  FOR EACH ROW
+  EXECUTE FUNCTION create_tenant_trial_subscription();
 ```
 
-#### 1.3 Update SellQo Tenant owner_name
-**Database operatie**: Update tenants set owner_name = 'SellQo Team' where slug = 'sellqo'
+---
+
+## Verwachte Eindresultaat
+
+### Nieuwe User Journey:
+
+```text
+1. Landing page → "Start Gratis" button
+   ↓
+2. Registratie (email + wachtwoord)
+   ↓
+3. Onboarding Wizard opent automatisch
+   ├── Stap 1: Welkom + Winkelnaam
+   ├── Stap 2: Kies je plan (Free trial default)
+   ├── Stap 3: Bedrijfsgegevens
+   ├── Stap 4: Logo upload (optioneel)
+   ├── Stap 5: Eerste product
+   ├── Stap 6: Stripe koppeling (optioneel)
+   └── Stap 7: Klaar! 🎉
+   ↓
+4. Dashboard met Trial Banner
+   "Je hebt nog 14 dagen gratis trial"
+   ↓
+5. Bij trial verlopen → Upgrade blocker
+```
+
+### Trial Status Gedrag:
+
+| Dagen over | Banner kleur | Actie |
+|------------|--------------|-------|
+| 14-4 | Groen | Subtiele reminder |
+| 3-1 | Oranje | Prominente waarschuwing |
+| 0 | Rood | Full-screen blocker |
 
 ---
 
-### Fase 2: UX Verbeteringen (Prioriteit Medium)
-
-#### 2.1 Dashboard Revenue Card Toevoegen
-**Bestand**: `src/pages/platform/PlatformDashboard.tsx`
-
-Voeg een nieuwe card toe met MRR/ARR uit `usePlatformBilling`:
-- MRR metric
-- ARR metric
-- Betalende klanten
-- Churn rate
-
-#### 2.2 Changelog Create Dialog
-**Bestand**: `src/pages/platform/PlatformChangelog.tsx`
-
-Voeg een "Nieuwe Changelog" button en dialog toe vergelijkbaar met PlatformCoupons.
-
-#### 2.3 Legal Pages Publiceer Functie
-**Actie**: Voeg een "Alles Publiceren" button toe aan PlatformLegal die alle draft pagina's in één keer publiceert.
-
----
-
-### Fase 3: Geavanceerde Features (Prioriteit Laag)
-
-#### 3.1 Bulk Actions voor Tenants
-**Bestand**: `src/pages/admin/Tenants.tsx`
-
-- Checkbox selectie per tenant
-- Bulk actions dropdown (Credits toevoegen, Notificatie sturen, Export)
-
-#### 3.2 Export Functionaliteit
-- CSV export voor tenants lijst
-- CSV export voor subscriptions
-- PDF export voor facturen
-
-#### 3.3 Real-time Notifications
-- Websocket voor nieuwe support tickets
-- Browser push voor kritieke incidents
-
----
-
-## SAMENVATTING WIJZIGINGEN
-
-| Bestand | Wijziging | Prioriteit |
-|---------|-----------|------------|
-| `src/hooks/usePlatformPromotions.ts` | Add `apply_discount` case | Hoog |
-| `src/components/platform/TenantCreditsTab.tsx` | Fix NaN percentage | Hoog |
-| `src/pages/platform/PlatformDashboard.tsx` | Add revenue cards | Medium |
-| `src/pages/platform/PlatformChangelog.tsx` | Add create dialog | Medium |
-| `src/pages/platform/PlatformLegal.tsx` | Add bulk publish | Medium |
-| Database | Update SellQo owner_name | Hoog |
-
----
-
-## GESCHATTE TIJDSINVESTERING
+## Geschatte Tijdsinvestering
 
 | Fase | Taken | Tijd |
 |------|-------|------|
-| Fase 1 | Kritieke fixes | ~45 min |
-| Fase 2 | UX verbeteringen | ~1.5 uur |
-| Fase 3 | Geavanceerde features | ~3 uur |
-| **Totaal** | | **~5 uur** |
-
+| Fase 1 | Database trigger + useTrialStatus hook | ~45 min |
+| Fase 2.1 | Plan Selection Step | ~30 min |
+| Fase 2.2 | Trial Banner Component | ~20 min |
+| Fase 2.3 | Trial Expired Blocker | ~30 min |
+| Fase 3 | Auth flow verbeteringen | ~20 min |
+| Testing & fixes | Integratie testen | ~30 min |
+| **Totaal** | | **~3 uur** |
