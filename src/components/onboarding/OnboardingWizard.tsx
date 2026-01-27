@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { OnboardingProgress } from './OnboardingProgress';
 import { WelcomeStep } from './steps/WelcomeStep';
+import { PlanSelectionStep } from './steps/PlanSelectionStep';
 import { BusinessDetailsStep } from './steps/BusinessDetailsStep';
 import { LogoUploadStep } from './steps/LogoUploadStep';
 import { FirstProductStep } from './steps/FirstProductStep';
@@ -56,7 +57,15 @@ export function OnboardingWizard() {
 
     try {
       switch (fromStep) {
+        case 1:
+          // After welcome, just move to plan selection
+          break;
+
         case 2:
+          // After plan selection, just move to business details
+          break;
+
+        case 3:
           // After business details, create the tenant
           if (!createdTenantId) {
             await createTenant();
@@ -67,7 +76,7 @@ export function OnboardingWizard() {
           }
           break;
 
-        case 4:
+        case 5:
           // After product step, create the product
           if (data.productName && data.productPrice > 0) {
             await createFirstProduct();
@@ -123,9 +132,9 @@ export function OnboardingWizard() {
 
       case 2:
         return (
-          <BusinessDetailsStep
-            data={data}
-            updateData={updateData}
+          <PlanSelectionStep
+            selectedPlanId={data.selectedPlanId}
+            onSelectPlan={(planId) => updateData({ selectedPlanId: planId })}
             onNext={() => handleStepTransition(2)}
             onPrev={prevStep}
           />
@@ -133,39 +142,49 @@ export function OnboardingWizard() {
 
       case 3:
         return (
-          <LogoUploadStep
+          <BusinessDetailsStep
             data={data}
             updateData={updateData}
             onNext={() => handleStepTransition(3)}
             onPrev={prevStep}
-            tenantId={createdTenantId}
           />
         );
 
       case 4:
         return (
-          <FirstProductStep
+          <LogoUploadStep
             data={data}
             updateData={updateData}
             onNext={() => handleStepTransition(4)}
+            onPrev={prevStep}
+            tenantId={createdTenantId}
+          />
+        );
+
+      case 5:
+        return (
+          <FirstProductStep
+            data={data}
+            updateData={updateData}
+            onNext={() => handleStepTransition(5)}
             onPrev={prevStep}
             tenantId={createdTenantId}
             isLoading={isProcessing}
           />
         );
 
-      case 5:
+      case 6:
         return (
           <PaymentsStep
             data={data}
             updateData={updateData}
-            onNext={() => handleStepTransition(5)}
+            onNext={() => handleStepTransition(6)}
             onPrev={prevStep}
             tenantId={createdTenantId}
           />
         );
 
-      case 6:
+      case 7:
         return <LaunchStep onComplete={handleComplete} />;
 
       default:
@@ -195,7 +214,7 @@ export function OnboardingWizard() {
           </div>
 
           {/* Progress indicator */}
-          {currentStep < 6 && (
+          {currentStep < 7 && (
             <div className="p-6 border-b">
               <OnboardingProgress currentStep={currentStep} totalSteps={totalSteps} />
             </div>
