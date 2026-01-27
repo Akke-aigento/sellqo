@@ -240,8 +240,20 @@ export default function TenantsPage() {
                       <p className="text-sm text-muted-foreground">{tenant.owner_email}</p>
                     </div>
                   </TableCell>
-                  <TableCell>{getPlanBadge(tenant.subscription_plan)}</TableCell>
-                  <TableCell>{getStatusBadge(tenant.subscription_status)}</TableCell>
+                  <TableCell>
+                    {tenant.is_demo ? (
+                      <Badge variant="secondary">N/A</Badge>
+                    ) : (
+                      getPlanBadge(tenant.subscription_plan)
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {tenant.is_demo ? (
+                      <Badge variant="secondary">N/A</Badge>
+                    ) : (
+                      getStatusBadge(tenant.subscription_status)
+                    )}
+                  </TableCell>
                   <TableCell>
                     {tenant.created_at
                       ? format(new Date(tenant.created_at), 'd MMM yyyy', { locale: nl })
