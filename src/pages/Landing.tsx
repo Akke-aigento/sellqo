@@ -12,26 +12,29 @@ import { PricingSection } from '@/components/landing/PricingSection';
 import { FaqSection } from '@/components/landing/FaqSection';
 import { FinalCtaSection } from '@/components/landing/FinalCtaSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { ForcedLightMode } from '@/components/ForcedLightMode';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <LandingNavbar />
-      <main>
-        <HeroSection />
-        <SocialProofSection />
-        <ProblemSection />
-        <SolutionOverviewSection />
-        <IntegrationsShowcaseSection />
-        <UniqueAdvantagesSection />
-        <FeaturesSection />
-        <ComparisonSection />
-        <TestimonialsSection />
-        <PricingSection />
-        <FaqSection />
-        <FinalCtaSection />
-      </main>
-      <LandingFooter />
-    </div>
+    <ForcedLightMode>
+      <div className="min-h-screen bg-background">
+        <LandingNavbar />
+        <main>
+          <HeroSection />
+          <SocialProofSection />
+          <ProblemSection />
+          <SolutionOverviewSection />
+          <IntegrationsShowcaseSection />
+          <UniqueAdvantagesSection />
+          <FeaturesSection />
+          <ComparisonSection />
+          <TestimonialsSection />
+          <PricingSection />
+          <FaqSection />
+          <FinalCtaSection />
+        </main>
+        <LandingFooter />
+      </div>
+    </ForcedLightMode>
   );
 }
