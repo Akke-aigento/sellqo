@@ -23,9 +23,9 @@ interface ResendInboundPayload {
   }>;
 }
 
-// Extract email prefix from address like "prefix@inbound.sellqo.app"
+// Extract email prefix from address like "prefix@sellqo.app"
 function extractPrefix(email: string): string | null {
-  const match = email.match(/^([^@]+)@inbound\./i);
+  const match = email.match(/^([^@]+)@sellqo\.app$/i);
   return match ? match[1].toLowerCase() : null;
 }
 

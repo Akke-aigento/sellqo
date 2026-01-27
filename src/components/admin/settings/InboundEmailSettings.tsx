@@ -20,7 +20,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 
-const INBOUND_DOMAIN = 'inbound.sellqo.app';
+const INBOUND_DOMAIN = 'sellqo.app';
 
 export function InboundEmailSettings() {
   const { currentTenant, refreshTenants } = useTenant();
