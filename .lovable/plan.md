@@ -1,134 +1,266 @@
 
-# Super Admin Platform - Volledige Validatie & Verbeteringen
 
-## Huidige Status Analyse
+# Super Admin Platform - Uitgebreide Analyse & Verbeteringsplan
 
-Na grondige inspectie van de codebase is de Super Admin implementatie grotendeels correct opgezet, maar er zijn enkele verbeteringen nodig voor een volledig functioneel platform.
+## Huidige Status Overzicht
 
-### Wat al correct werkt
+Na een grondige analyse van alle componenten is de Super Admin implementatie grotendeels correct en functioneel. Hieronder volgt een complete inventarisatie.
 
-| Component | Status | Details |
+---
+
+## ✅ VOLLEDIG WERKENDE COMPONENTEN
+
+### 1. Authenticatie & Autorisatie
+| Component | Status | Locatie |
 |-----------|--------|---------|
-| Platform Admin Rol | OK | info@sellqo.ai heeft platform_admin + tenant_admin rollen |
-| SellQo Internal Tenant | OK | Tenant met is_internal_tenant=true bestaat |
-| Sidebar Navigatie | OK | Platform groep met alle 8 menu-items zichtbaar voor admins |
-| Routing & Protection | OK | Alle /admin/platform/* routes beveiligd met requirePlatformAdmin |
-| Database Tabellen | OK | Alle platform_* tabellen bestaan (changelogs, health_metrics, incidents, invoices, etc.) |
-| Pricing Plans | OK | 4 tiers: Free, Starter (€29), Pro (€79), Enterprise (€199) |
-| Legal Pages | OK | 6 juridische pagina's aanwezig (nog niet gepubliceerd) |
-| Quick Actions | OK | 6 acties geconfigureerd (credits, gratis maand, trial verlenging, etc.) |
+| Platform Admin Rol | ✅ OK | `info@sellqo.ai` heeft `platform_admin` + `tenant_admin` rollen |
+| ProtectedRoute | ✅ OK | `requirePlatformAdmin` flag werkt correct |
+| isPlatformAdmin check | ✅ OK | Via `useAuth` hook |
 
-### Te verbeteren onderdelen
+### 2. Database Infrastructuur
+| Tabel | Aanwezig | Gebruikt Door |
+|-------|----------|---------------|
+| `platform_changelogs` | ✅ | PlatformChangelog pagina |
+| `platform_coupons` | ✅ | PlatformCoupons pagina |
+| `platform_coupon_redemptions` | ✅ | Coupon tracking |
+| `platform_health_metrics` | ✅ | PlatformHealth pagina |
+| `platform_incidents` | ✅ | Incident management |
+| `platform_invoices` | ✅ | TenantInvoicesTab |
+| `platform_quick_actions` | ✅ | 6 actieve acties geconfigureerd |
+| `admin_actions_log` | ✅ | TenantActivityTab |
+| `admin_billing_actions` | ✅ | platform-gift-month edge function |
+| `sellqo_legal_pages` | ✅ | 6 juridische pagina's |
+| `feature_usage_events` | ✅ | Feature analytics |
+| `app_feedback` | ✅ | PlatformFeedback |
+| `support_tickets` | ✅ | PlatformSupport |
 
-## 1. Tenant Overview Tab - Meer Metrics Toevoegen
+### 3. Sidebar Navigatie (Volledig)
+Alle 9 platform items correct geconfigureerd:
+- Dashboard, Tenants, Platform Billing, Coupons, Feedback, Support, Changelog, Health Monitor, Juridisch
 
-**Probleem**: De TenantOverviewTab toont beperkte informatie. Ontbrekende velden:
-- Lifetime revenue (lifetime_revenue)
-- Lifetime orders (lifetime_order_count)  
-- Lifetime customers (lifetime_customer_count)
-- Owner email en naam
-- Stripe status
-
-**Oplossing**: Uitbreiden met extra statistieken en tenant metadata.
-
----
-
-## 2. Platform Dashboard - Tenant Tellingen Toevoegen
-
-**Probleem**: Het Platform Dashboard mist een kaart met totale tenant statistieken.
-
-**Oplossing**: Toevoegen van een stats kaart met:
-- Totaal aantal tenants
-- Actieve tenants
-- Trial tenants
-- Internal tenants
-
----
-
-## 3. Platform Coupons Sidebar Link Ontbreekt
-
-**Probleem**: In de sidebarConfig staat geen directe link naar Platform Coupons, alleen via TenantActionsTab.
-
-**Oplossing**: Coupons toevoegen aan platformItems in sidebarConfig.
-
----
-
-## 4. Tenant Detail - Subscription Tab Uitbreiden
-
-**Probleem**: De TenantSubscriptionTab bestaat maar is niet volledig geïmplementeerd voor het wijzigen van abonnementen.
-
-**Oplossing**: Toevoegen van functionaliteit om:
-- Plan te upgraden/downgraden
-- Billing interval te wijzigen
-- Subscription status te wijzigen
-
----
-
-## 5. Security Linter Waarschuwingen
-
-**Probleem**: 5x RLS policies met `USING (true)` voor INSERT/UPDATE/DELETE operaties.
-
-**Actie**: Dit is een bekende configuratie voor sommige tabellen maar moet worden gereviewed per tabel.
-
----
-
-## Implementatie Plan
-
-### Stap 1: Sidebar Link voor Coupons
-Bestand: `src/components/admin/sidebar/sidebarConfig.ts`
-- Voeg `platform-coupons` item toe aan platformItems array
-
-### Stap 2: Tenant Overview Tab Uitbreiden
-Bestand: `src/components/platform/TenantOverviewTab.tsx`
-- Uitbreiden met lifetime metrics
-- Owner informatie toevoegen
-- Stripe account status tonen
-
-### Stap 3: Platform Dashboard - Tenant Stats
-Bestand: `src/pages/platform/PlatformDashboard.tsx`
-- Nieuwe stats kaart met tenant tellingen
-- Query toevoegen voor tenant statistieken
-
-### Stap 4: Tenant Subscription Tab Verbeteren
-Bestand: `src/components/platform/TenantSubscriptionTab.tsx`
-- Plan selectie dropdown
-- Status wijziging mogelijkheid
-- Billing interval toggle
-
-### Stap 5: usePlatformAdmin Hook - Tenant Stats Query
-Bestand: `src/hooks/usePlatformAdmin.ts`
-- Nieuwe query voor tenant overview statistieken
-- Mutation voor subscription updates
-
----
-
-## Technische Details
-
-### Database Queries (Alleen Lezen - Geen Wijzigingen)
-De huidige database structuur is correct:
-- `tenants` tabel bevat: lifetime_revenue, lifetime_order_count, lifetime_customer_count
-- `tenant_subscriptions` tabel heeft relatie met pricing_plans
-- `platform_quick_actions` heeft 6 actieve acties
-
-### Component Structuur
+### 4. Routing (Alle Routes Beveiligd)
 ```text
-src/
-├── components/platform/
-│   ├── TenantOverviewTab.tsx    ← Uitbreiden
-│   ├── TenantSubscriptionTab.tsx ← Verbeteren
-│   └── ...
-├── pages/platform/
-│   └── PlatformDashboard.tsx    ← Tenant stats toevoegen
-└── hooks/
-    └── usePlatformAdmin.ts      ← Stats query toevoegen
+/admin/platform              → TenantsPage
+/admin/platform/dashboard    → PlatformDashboard
+/admin/platform/billing      → PlatformBillingPage
+/admin/platform/tenants/:id  → TenantDetailPage
+/admin/platform/coupons      → PlatformCouponsPage
+/admin/platform/feedback     → PlatformFeedback
+/admin/platform/support      → PlatformSupport
+/admin/platform/changelog    → PlatformChangelog
+/admin/platform/health       → PlatformHealth
+/admin/platform/legal        → PlatformLegal
 ```
 
-### Estimated Effort
-| Taak | Geschatte tijd |
-|------|----------------|
-| Sidebar coupons link | 5 min |
-| Tenant Overview uitbreiden | 15 min |
-| Dashboard tenant stats | 15 min |
-| Subscription tab verbeteren | 30 min |
-| Hook uitbreidingen | 15 min |
-| **Totaal** | **~1.5 uur** |
+### 5. Tenant Management Tabs (7 Tabs)
+| Tab | Component | Functionaliteit |
+|-----|-----------|-----------------|
+| Overview | `TenantOverviewTab` | ✅ Lifetime metrics, owner info, Stripe status |
+| Subscription | `TenantSubscriptionTab` | ✅ Plan wijzigen, status, interval, gift months |
+| Credits | `TenantCreditsTab` | ✅ Balans, aanpassen, geschiedenis |
+| Actions | `TenantActionsTab` | ✅ Quick actions, coupon toepassen |
+| Invoices | `TenantInvoicesTab` | ✅ Platform facturen |
+| Modules | `TenantModulesTab` | ✅ Feature overrides |
+| Activity | `TenantActivityTab` | ✅ Admin action log |
+
+### 6. Edge Functions
+| Functie | Status | Doel |
+|---------|--------|------|
+| `platform-gift-month` | ✅ OK | Gratis maanden via Stripe |
+| `reset-monthly-ai-credits` | ✅ OK | Maandelijkse credit reset |
+| `platform-stripe-webhook` | ✅ Bestaat | Webhook handling |
+| `platform-customer-portal` | ✅ Bestaat | Customer portal |
+| `create-platform-checkout` | ✅ Bestaat | Checkout sessies |
+
+### 7. Hooks Volledigheid
+| Hook | Queries | Mutations |
+|------|---------|-----------|
+| `usePlatformAdmin` | ✅ 10+ queries | ✅ 3 mutations |
+| `usePlatformBilling` | ✅ 4 queries | ✅ giftMonth |
+| `usePlatformPromotions` | ✅ 5+ queries | ✅ 5+ mutations |
+| `usePlatformHealth` | ✅ 2 queries | ✅ 3 mutations |
+| `usePlatformFeedback` | ✅ 1 query | - |
+| `usePlatformChangelogs` | ✅ 1 query | ✅ 3 mutations |
+| `useSupportTickets` | ✅ 2 queries | ✅ 3 mutations |
+| `useSellqoLegal` | ✅ 1 query | ✅ 3 mutations |
+
+---
+
+## ⚠️ GEÏDENTIFICEERDE VERBETERPUNTEN
+
+### 1. Quick Action "apply_discount" Niet Geïmplementeerd
+
+**Probleem**: De `Churn Prevention` quick action heeft `action_type: apply_discount`, maar deze case ontbreekt in de `useExecuteQuickAction` switch statement.
+
+**Huidige code** (regel 257-358 in `usePlatformPromotions.ts`):
+```typescript
+switch (action.action_type) {
+  case 'add_credits': ...
+  case 'gift_months': ...
+  case 'unlock_feature': ...
+  case 'extend_trial': ...
+  default: throw new Error('Onbekend actie type');
+}
+```
+
+**Ontbreekt**: `case 'apply_discount'`
+
+### 2. SellQo Tenant Mist owner_name
+
+**Probleem**: De SellQo interne tenant heeft geen `owner_name` ingesteld.
+
+**Database check**:
+```
+SellQo: owner_email=info@sellqo.ai, owner_name=NULL
+```
+
+### 3. Platform Dashboard Mist Revenue Overzicht
+
+**Probleem**: Het dashboard toont tenant tellingen maar geen MRR/ARR metrics. Deze zijn wel beschikbaar in PlatformBilling.
+
+### 4. Changelog Pagina Mist Create Functie
+
+**Probleem**: De `PlatformChangelog` pagina heeft geen UI voor het aanmaken van nieuwe changelog entries, alleen voor het bekijken en acknowledgeren.
+
+### 5. Legal Pages Niet Gepubliceerd
+
+**Probleem**: Alle 6 juridische pagina's staan nog op `is_published: false`.
+
+### 6. Credits Tab Percentage Berekening
+
+**Probleem**: Bij 0 credits total ontstaat een `NaN%` in de progress bar.
+
+**Code** (regel 80-81 in `TenantCreditsTab.tsx`):
+```typescript
+const percentage = credits ? (credits.credits_used / credits.credits_total) * 100 : 0;
+```
+
+**Fix nodig**: Delen door 0 voorkomen.
+
+### 7. Geen Bulk Operaties voor Tenants
+
+**Probleem**: In de Tenants lijst kunnen geen bulk acties uitgevoerd worden (bijv. bulk credits toevoegen, bulk notifications sturen).
+
+### 8. Geen Export Functionaliteit
+
+**Probleem**: Geen mogelijkheid om tenant data, subscriptions of invoices te exporteren naar CSV/Excel.
+
+---
+
+## IMPLEMENTATIE PLAN
+
+### Fase 1: Kritieke Fixes (Prioriteit Hoog)
+
+#### 1.1 Apply Discount Quick Action Implementeren
+**Bestand**: `src/hooks/usePlatformPromotions.ts`
+
+Voeg toe aan de switch statement:
+```typescript
+case 'apply_discount': {
+  const percent = config.percent as number;
+  const months = config.months as number;
+  const reason = config.reason as string;
+  
+  // Update subscription met korting
+  const { data: sub } = await supabase
+    .from('tenant_subscriptions')
+    .select('id, discount_percent, discount_end_date')
+    .eq('tenant_id', tenantId)
+    .single();
+  
+  if (sub) {
+    const discountEnd = new Date();
+    discountEnd.setMonth(discountEnd.getMonth() + months);
+    
+    await supabase
+      .from('tenant_subscriptions')
+      .update({ 
+        discount_percent: percent,
+        discount_end_date: discountEnd.toISOString(),
+      })
+      .eq('tenant_id', tenantId);
+  }
+  
+  notificationTitle = '💰 Korting Geactiveerd!';
+  notificationMessage = `Je krijgt ${percent}% korting voor de komende ${months} maanden.`;
+  break;
+}
+```
+
+#### 1.2 Fix Credits Percentage Bug
+**Bestand**: `src/components/platform/TenantCreditsTab.tsx`
+
+Wijzig regel 80-81:
+```typescript
+const percentage = credits && credits.credits_total > 0 
+  ? (credits.credits_used / credits.credits_total) * 100 
+  : 0;
+```
+
+#### 1.3 Update SellQo Tenant owner_name
+**Database operatie**: Update tenants set owner_name = 'SellQo Team' where slug = 'sellqo'
+
+---
+
+### Fase 2: UX Verbeteringen (Prioriteit Medium)
+
+#### 2.1 Dashboard Revenue Card Toevoegen
+**Bestand**: `src/pages/platform/PlatformDashboard.tsx`
+
+Voeg een nieuwe card toe met MRR/ARR uit `usePlatformBilling`:
+- MRR metric
+- ARR metric
+- Betalende klanten
+- Churn rate
+
+#### 2.2 Changelog Create Dialog
+**Bestand**: `src/pages/platform/PlatformChangelog.tsx`
+
+Voeg een "Nieuwe Changelog" button en dialog toe vergelijkbaar met PlatformCoupons.
+
+#### 2.3 Legal Pages Publiceer Functie
+**Actie**: Voeg een "Alles Publiceren" button toe aan PlatformLegal die alle draft pagina's in één keer publiceert.
+
+---
+
+### Fase 3: Geavanceerde Features (Prioriteit Laag)
+
+#### 3.1 Bulk Actions voor Tenants
+**Bestand**: `src/pages/admin/Tenants.tsx`
+
+- Checkbox selectie per tenant
+- Bulk actions dropdown (Credits toevoegen, Notificatie sturen, Export)
+
+#### 3.2 Export Functionaliteit
+- CSV export voor tenants lijst
+- CSV export voor subscriptions
+- PDF export voor facturen
+
+#### 3.3 Real-time Notifications
+- Websocket voor nieuwe support tickets
+- Browser push voor kritieke incidents
+
+---
+
+## SAMENVATTING WIJZIGINGEN
+
+| Bestand | Wijziging | Prioriteit |
+|---------|-----------|------------|
+| `src/hooks/usePlatformPromotions.ts` | Add `apply_discount` case | Hoog |
+| `src/components/platform/TenantCreditsTab.tsx` | Fix NaN percentage | Hoog |
+| `src/pages/platform/PlatformDashboard.tsx` | Add revenue cards | Medium |
+| `src/pages/platform/PlatformChangelog.tsx` | Add create dialog | Medium |
+| `src/pages/platform/PlatformLegal.tsx` | Add bulk publish | Medium |
+| Database | Update SellQo owner_name | Hoog |
+
+---
+
+## GESCHATTE TIJDSINVESTERING
+
+| Fase | Taken | Tijd |
+|------|-------|------|
+| Fase 1 | Kritieke fixes | ~45 min |
+| Fase 2 | UX verbeteringen | ~1.5 uur |
+| Fase 3 | Geavanceerde features | ~3 uur |
+| **Totaal** | | **~5 uur** |
+
