@@ -22,7 +22,7 @@ export function ProblemSection() {
     ref,
     isIntersecting
   } = useIntersectionObserver();
-  return <section className="py-20 md:py-28 bg-background">
+  return <section className="pt-20 md:pt-28 pb-8 md:pb-12 bg-background">
       <div className="container mx-auto px-4">
         <div ref={ref} className={cn('text-center mb-16', isIntersecting ? 'animate-fade-in-up' : 'opacity-0')}>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
