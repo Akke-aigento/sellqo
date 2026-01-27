@@ -1,32 +1,41 @@
 
-# Fix: Visual Editor Spiegelbeeld Tekst
+# Fix: Visual Editor Gespiegelde Tekst (Robuuste Oplossing)
 
 ## Probleem
 
-De tekst in de Visual Editor wordt gespiegeld weergegeven (bijv. "VanShop" wordt "pohSnaV"). Dit gebeurt in alle editable sections.
+De tekst in de Visual Editor wordt nog steeds gespiegeld weergegeven (bijv. "Van" wordt "naV") ondanks de eerder toegepaste `CSS.Translate` fix.
 
-## Oorzaak
+## Root Cause Analyse
 
-Het probleem zit in `EditableSection.tsx` regel 45:
+Na onderzoek van dnd-kit GitHub issues (#817, #1411) is het probleem geidentificeerd:
+
+| Oorzaak | Beschrijving |
+|---------|--------------|
+| Variable item heights | Hero secties zijn ~60vh, terwijl andere secties veel kleiner zijn |
+| Transform object pollution | De `transform` object van `useSortable` kan nog steeds scale waarden bevatten |
+| CSS.Translate limitatie | `CSS.Translate.toString()` leest alleen `x` en `y`, maar het probleem ontstaat elders in de render |
+
+De echte oorzaak is dat `dnd-kit` met `verticalListSortingStrategy` soms de items probeert te schalen om ze te laten "passen", wat leidt tot negatieve `scaleX` waarden.
+
+---
+
+## Oplossing: Handmatige Transform String
+
+In plaats van `CSS.Translate.toString()` te gebruiken, bouwen we de transform string handmatig met alleen de `y` waarde (aangezien het een verticale lijst is):
 
 ```typescript
+// In EditableSection.tsx
 const style = {
-  transform: CSS.Transform.toString(transform),  // <- Dit is de boosdoener
+  // Alleen verticale beweging toepassen, geen horizontale of scale transforms
+  transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
   transition,
 };
 ```
 
-De `CSS.Transform.toString()` functie van `@dnd-kit/utilities` berekent niet alleen de positie (`translate`), maar ook een **schaal (`scale`)** om items visueel te laten passen bij het wisselen. Bij secties met variabele hoogtes (zoals een Hero sectie vs. een Newsletter sectie) kan dit resulteren in negatieve schaalwaarden, wat de tekst spiegelt.
-
-## Oplossing
-
-Vervang `CSS.Transform.toString` door `CSS.Translate.toString`:
-
-| Huidig | Nieuw |
-|--------|-------|
-| `CSS.Transform.toString(transform)` | `CSS.Translate.toString(transform)` |
-
-Dit negeert de schaal-component en past alleen de X/Y verplaatsing toe tijdens drag & drop.
+Dit forceert:
+- Geen horizontale beweging (`x = 0`)
+- Geen scale transforms (`scaleX`, `scaleY` genegeerd)
+- GPU-accelerated rendering via `translate3d`
 
 ---
 
@@ -34,41 +43,60 @@ Dit negeert de schaal-component en past alleen de X/Y verplaatsing toe tijdens d
 
 **Bestand:** `src/components/admin/storefront/visual-editor/EditableSection.tsx`
 
-**Regel 4:** Import aanpassen
+**Huidige code (regel 44-47):**
 ```typescript
-// Van:
-import { CSS } from '@dnd-kit/utilities';
-
-// Naar (geen wijziging nodig, CSS bevat beide):
-import { CSS } from '@dnd-kit/utilities';
-```
-
-**Regel 44-47:** Style object aanpassen
-```typescript
-// Van:
-const style = {
-  transform: CSS.Transform.toString(transform),
-  transition,
-};
-
-// Naar:
 const style = {
   transform: CSS.Translate.toString(transform),
   transition,
 };
 ```
 
+**Nieuwe code:**
+```typescript
+const style = {
+  // Handmatig transform string bouwen om mirroring te voorkomen
+  // Alleen Y-as translatie voor verticale drag & drop
+  transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+  transition,
+};
+```
+
 ---
 
-## Resultaat
+## Waarom Dit Werkt
 
-Na deze fix:
-- Tekst wordt correct weergegeven (niet meer gespiegeld)
-- Drag & drop blijft volledig functioneel
-- Geen visuele vervorming meer bij het slepen van secties met verschillende hoogtes
+1. **Expliciet geen scaleX/scaleY** - Door handmatig de transform te bouwen, worden scale transforms volledig genegeerd
+2. **Alleen Y-as** - Voor verticale lijsten is horizontale beweging niet nodig
+3. **translate3d** - Activeert GPU acceleratie voor smoother animaties
+4. **Null-safe** - Als `transform` undefined is, wordt geen transform toegepast
+
+---
+
+## Alternatieve Aanpak (Backup)
+
+Als bovenstaande fix niet werkt, kunnen we ook de CSS `transform-style` property gebruiken om nested transforms te isoleren:
+
+```css
+.editable-section {
+  transform-style: flat;
+  backface-visibility: hidden;
+}
+```
+
+Dit voorkomt dat parent transforms worden geerfd door child elementen.
+
+---
+
+## Test Scenario's
+
+Na implementatie testen:
+1. Tekst in Hero sectie moet correct renderen ("Van" niet "naV")
+2. Drag & drop moet nog steeds werken
+3. Secties verplaatsen moet visueel correct animeren
+4. Geen flikkering bij het slepen
 
 ---
 
 ## Samenvatting
 
-Dit is een bekende issue in `@dnd-kit` bij sorteerbare lijsten met items van variabele grootte. De `CSS.Translate` functie is de aanbevolen oplossing uit de officiële documentatie en GitHub issues.
+De fix vervangt de dnd-kit CSS utility functie met een handmatige transform string die expliciet alleen verticale translatie toepast. Dit voorkomt alle mogelijke scale transforms die de tekst kunnen spiegelen.
