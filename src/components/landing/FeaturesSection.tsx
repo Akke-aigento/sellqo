@@ -1,6 +1,6 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Store, Package, TrendingUp, FileText, Users, Zap, Check, Sparkles, Gift, Globe, Monitor } from 'lucide-react';
+import { Store, Package, TrendingUp, FileText, Sparkles, Gift, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { LucideIcon } from 'lucide-react';
 
@@ -24,81 +24,46 @@ const features: Feature[] = [
     gridSpan: 2,
   },
   {
-    icon: Sparkles,
-    title: 'AI Die Je Marketing Doet',
-    subtitle: 'Sellqo AI',
-    description: 'Genereer social posts, email content en complete productpromoties met één klik. A/B test automatisch je campagnes.',
-    badge: 'Pro feature',
+    icon: Package,
+    title: 'Nooit Meer Uitverkocht',
+    subtitle: 'Real-Time Voorraadsync',
+    description: 'Automatische synchronisatie tussen al je kanalen. Verkoop je iets op Bol? Je webshop wordt direct bijgewerkt.',
     gridSpan: 1,
   },
   {
-    icon: Package,
-    title: 'Nooit Meer Uitverkocht Door Fout',
-    subtitle: 'Real-Time Voorraadsync',
-    description: 'Automatische voorraadsynchronisatie tussen al je kanalen. Verkoop je iets op Bol? Je Shopify wordt direct bijgewerkt.',
+    icon: Sparkles,
+    title: 'AI Marketing Assistent',
+    subtitle: 'Content & Campagnes',
+    description: 'Genereer social posts, productbeschrijvingen en email content. A/B test automatisch je campagnes.',
+    badge: 'AI-powered',
     gridSpan: 1,
   },
   {
     icon: Gift,
-    title: 'Klanten Die Terugkomen',
-    subtitle: '8 Promotietypen + Loyaliteit',
-    description: 'Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen en een compleet loyaliteitsprogramma met punten en tiers.',
+    title: '8 Promotietypen',
+    subtitle: 'Kortingen & Loyaliteit',
+    description: 'Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen en een compleet loyaliteitsprogramma.',
     features: [
-      'Automatische cadeaubonnen met QR',
+      'Cadeaubonnen met QR-codes',
       'Klantgroepen met speciale prijzen',
-      'Stapelbare kortingen met prioriteiten',
+      'Stapelbare kortingen',
     ],
     gridSpan: 2,
   },
   {
-    icon: Globe,
-    title: 'Jouw Merk, Jouw Webshop',
-    subtitle: 'Drag & Drop Builder',
-    description: 'Bouw je eigen webshop met themes, homepage secties en custom domeinen. Geen code nodig.',
-    badge: '3 premium themes',
-    gridSpan: 1,
-  },
-  {
-    icon: Monitor,
-    title: 'Verkoop Ook In De Winkel',
-    subtitle: 'Touch-Optimized POS',
-    description: 'Complete kassa met barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Offline-first design.',
-    badge: 'Add-on module',
-    gridSpan: 1,
-  },
-  {
     icon: FileText,
-    title: "Factur-X PDF's in 4 Talen",
-    subtitle: 'Professionele Facturen',
-    description: 'Automatische facturen die Odoo en andere boekhoudpakketten direct kunnen inlezen. Nederlands, Engels, Frans, Duits.',
-    badge: 'Compliance guaranteed',
+    title: 'Slimme Financiën',
+    subtitle: 'Facturen & BTW',
+    description: 'Factur-X PDF\'s in 4 talen, automatische BTW/OSS berekening, en Peppol e-invoicing voor B2B.',
+    badge: 'Peppol ready',
     gridSpan: 1,
   },
   {
     icon: TrendingUp,
-    title: 'Weet Precies Waar Je Staat',
-    subtitle: 'Slimme Financiën & Rapportage',
-    description: 'Real-time inzicht in omzet, kosten, winstmarges en BTW. Exporteer alles naar je boekhouder in één klik.',
-    features: [
-      'Automatische BTW berekening (OSS compliant)',
-      'Winstmarge per product en kanaal',
-      'Peppol e-invoicing ready (verplicht vanaf 2026)',
-    ],
-    gridSpan: 2,
-  },
-  {
-    icon: Users,
-    title: 'Ken Je Klanten',
-    subtitle: 'Klantenmanagement + SEO',
-    description: 'Volledige klantprofielen, aankoopgeschiedenis, en geautomatiseerde follow-ups. Plus ingebouwde SEO tools voor je webshop.',
+    title: 'Groei-Insights',
+    subtitle: 'Data & Analytics',
+    description: 'Real-time inzicht in omzet, winstmarges per product, best sellers en seizoenstrends.',
     gridSpan: 1,
-  },
-  {
-    icon: Zap,
-    title: 'Datagedreven Groeien',
-    subtitle: 'Groei-Insights',
-    description: 'Ontdek je best verkopende producten, optimale prijspunten en seizoenstrends met AI-gestuurde analyses.',
-    gridSpan: 2,
   },
 ];
 
