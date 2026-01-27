@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,34 +7,60 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { AD_PLATFORMS, type AdPlatform } from '@/types/ads';
-import { Link2, Unlink, ExternalLink, Info, CheckCircle2 } from 'lucide-react';
+import { Link2, Unlink, ExternalLink, Info, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export function PlatformConnections() {
-  const { connections, isLoading, connectPlatform, disconnectPlatform, isConnected } = useAdPlatforms();
+  const { 
+    connections, 
+    isLoading, 
+    connectPlatform, 
+    disconnectPlatform, 
+    isConnected,
+    hasBolRetailerConnection,
+    getBolRetailerConnection,
+    getPlatformStatus,
+  } = useAdPlatforms();
   const { campaigns } = useAdCampaigns();
   const [connecting, setConnecting] = useState<AdPlatform | null>(null);
 
   const handleConnect = async (platform: AdPlatform) => {
+    const status = getPlatformStatus(platform);
+    
+    // Validate before connecting
+    if (status === 'requires_connection') {
+      toast({
+        title: 'Retailer koppeling vereist',
+        description: 'Koppel eerst je Bol.com account in SellQo Connect.',
+      });
+      return;
+    }
+    
+    if (status === 'coming_soon') {
+      toast({
+        title: 'Binnenkort beschikbaar',
+        description: `${AD_PLATFORMS[platform].name} koppeling komt binnenkort.`,
+      });
+      return;
+    }
+
     setConnecting(platform);
     
-    // For Bol.com, we can use existing retailer connection
     if (platform === 'bol_ads') {
       try {
+        const bolConnection = getBolRetailerConnection();
         await connectPlatform.mutateAsync({
           platform,
           account_name: 'Bol.com Advertenties',
-          config: { uses_retailer_api: true }
+          account_id: bolConnection?.id,
+          config: { 
+            uses_retailer_api: true,
+            retailer_connection_id: bolConnection?.id 
+          }
         });
       } catch (error) {
         // Error handled in hook
       }
-    } else {
-      // For other platforms, we would initiate OAuth flow
-      toast({
-        title: 'OAuth koppeling',
-        description: `${AD_PLATFORMS[platform].name} koppeling via OAuth wordt binnenkort ondersteund.`,
-      });
     }
     
     setConnecting(null);
@@ -62,6 +89,148 @@ export function PlatformConnections() {
     );
   }
 
+  const renderPlatformCard = (platform: AdPlatform) => {
+    const info = AD_PLATFORMS[platform];
+    const connection = connections.find(c => c.platform === platform && c.is_active);
+    const campaignCount = campaigns.filter(c => c.platform === platform).length;
+    const isConnecting = connecting === platform;
+    const status = getPlatformStatus(platform);
+    const isComingSoon = status === 'coming_soon';
+    const requiresConnection = status === 'requires_connection';
+
+    return (
+      <Card key={platform} className={connection ? 'border-primary/50' : ''}>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${info.color}`}>
+                {info.icon}
+              </div>
+              <div>
+                <CardTitle className="text-lg">{info.name}</CardTitle>
+                <CardDescription>{info.description}</CardDescription>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {connection && (
+                <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Gekoppeld
+                </Badge>
+              )}
+              {isComingSoon && !connection && (
+                <Badge variant="secondary" className="gap-1">
+                  <Clock className="h-3 w-3" />
+                  Binnenkort
+                </Badge>
+              )}
+              {requiresConnection && !connection && (
+                <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
+                  <AlertTriangle className="h-3 w-3" />
+                  Actie vereist
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {connection ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Account</span>
+                <span className="font-medium">{connection.account_name || connection.account_id || 'Gekoppeld'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Campagnes</span>
+                <span className="font-medium">{campaignCount}</span>
+              </div>
+              {connection.last_sync_at && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Laatste sync</span>
+                  <span className="font-medium">
+                    {new Date(connection.last_sync_at).toLocaleDateString('nl-NL')}
+                  </span>
+                </div>
+              )}
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" size="sm" className="flex-1">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Beheren
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleDisconnect(platform)}
+                >
+                  <Unlink className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Show alert for Bol.com requiring retailer connection */}
+              {requiresConnection && platform === 'bol_ads' && (
+                <Alert className="border-amber-200 bg-amber-50">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    Om Bol.com Ads te gebruiken moet je eerst je Bol.com Retailer account koppelen.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {/* Description based on status */}
+              {!requiresConnection && (
+                <p className="text-sm text-muted-foreground">
+                  {platform === 'bol_ads' 
+                    ? 'Gebruik je bestaande Bol.com Retailer API koppeling voor advertenties.'
+                    : platform === 'meta_ads'
+                    ? 'Koppel je Facebook Business Manager account om te adverteren op Facebook en Instagram.'
+                    : platform === 'google_ads'
+                    ? 'Verbind je Google Ads account voor Shopping, Search en Display campagnes.'
+                    : 'Koppel je Amazon Seller Central account voor Sponsored Products.'}
+                </p>
+              )}
+              
+              {/* Buttons based on status */}
+              {requiresConnection ? (
+                <Button asChild className="w-full">
+                  <Link to="/admin/connect?tab=marketplace">
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Ga naar SellQo Connect
+                  </Link>
+                </Button>
+              ) : isComingSoon ? (
+                <Button 
+                  className="w-full"
+                  disabled
+                  variant="secondary"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Binnenkort beschikbaar
+                </Button>
+              ) : (
+                <Button 
+                  className="w-full"
+                  onClick={() => handleConnect(platform)}
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? (
+                    'Verbinden...'
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      {platform === 'bol_ads' ? 'Activeren' : 'Koppelen'}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Alert>
@@ -73,97 +242,7 @@ export function PlatformConnections() {
       </Alert>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {(Object.keys(AD_PLATFORMS) as AdPlatform[]).map(platform => {
-          const info = AD_PLATFORMS[platform];
-          const connection = connections.find(c => c.platform === platform && c.is_active);
-          const campaignCount = campaigns.filter(c => c.platform === platform).length;
-          const isConnecting = connecting === platform;
-
-          return (
-            <Card key={platform} className={connection ? 'border-primary/50' : ''}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${info.color}`}>
-                      {info.icon}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{info.name}</CardTitle>
-                      <CardDescription>{info.description}</CardDescription>
-                    </div>
-                  </div>
-                  {connection && (
-                    <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Gekoppeld
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {connection ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Account</span>
-                      <span className="font-medium">{connection.account_name || connection.account_id || 'Gekoppeld'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Campagnes</span>
-                      <span className="font-medium">{campaignCount}</span>
-                    </div>
-                    {connection.last_sync_at && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Laatste sync</span>
-                        <span className="font-medium">
-                          {new Date(connection.last_sync_at).toLocaleDateString('nl-NL')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Beheren
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDisconnect(platform)}
-                      >
-                        <Unlink className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      {platform === 'bol_ads' 
-                        ? 'Gebruik je bestaande Bol.com Retailer API koppeling voor advertenties.'
-                        : platform === 'meta_ads'
-                        ? 'Koppel je Facebook Business Manager account om te adverteren op Facebook en Instagram.'
-                        : platform === 'google_ads'
-                        ? 'Verbind je Google Ads account voor Shopping, Search en Display campagnes.'
-                        : 'Koppel je Amazon Seller Central account voor Sponsored Products.'}
-                    </p>
-                    <Button 
-                      className="w-full"
-                      onClick={() => handleConnect(platform)}
-                      disabled={isConnecting}
-                    >
-                      {isConnecting ? (
-                        'Verbinden...'
-                      ) : (
-                        <>
-                          <Link2 className="h-4 w-4 mr-2" />
-                          {platform === 'bol_ads' ? 'Activeren' : 'Koppelen'}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+        {(Object.keys(AD_PLATFORMS) as AdPlatform[]).map(renderPlatformCard)}
       </div>
     </div>
   );
