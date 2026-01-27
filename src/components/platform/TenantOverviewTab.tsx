@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, Package, ShoppingCart, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -10,17 +11,18 @@ interface TenantOverviewTabProps {
 }
 
 export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
-  const { useTenantDetail, useTenantSubscription, useTenantCredits } = usePlatformAdmin();
+  const { useTenantDetail, useTenantSubscription, useTenantCredits, useTenantOwner } = usePlatformAdmin();
   const { data: tenant, isLoading: tenantLoading } = useTenantDetail(tenantId);
   const { data: subscription, isLoading: subLoading } = useTenantSubscription(tenantId);
   const { data: credits, isLoading: creditsLoading } = useTenantCredits(tenantId);
+  const { data: owner, isLoading: ownerLoading } = useTenantOwner(tenantId);
 
-  const isLoading = tenantLoading || subLoading || creditsLoading;
+  const isLoading = tenantLoading || subLoading || creditsLoading || ownerLoading;
 
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <Skeleton key={i} className="h-32" />
         ))}
       </div>
@@ -28,10 +30,27 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
   }
 
   const planName = (subscription?.pricing_plans as { name?: string } | null)?.name || 'Geen plan';
+  const tenantData = tenant as {
+    name?: string;
+    slug?: string;
+    subscription_status?: string;
+    created_at?: string;
+    updated_at?: string;
+    lifetime_revenue?: number;
+    lifetime_order_count?: number;
+    lifetime_customer_count?: number;
+    stripe_account_id?: string;
+    stripe_onboarding_complete?: boolean;
+  } | null;
+
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount == null) return '€0,00';
+    return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(amount);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - Primary Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -79,11 +98,76 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tenant?.created_at
-                ? format(new Date(tenant.created_at), 'dd MMM yyyy', { locale: nl })
+              {tenantData?.created_at
+                ? format(new Date(tenantData.created_at), 'dd MMM yyyy', { locale: nl })
                 : '-'}
             </div>
             <p className="text-xs text-muted-foreground">Registratiedatum</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Lifetime Metrics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lifetime Revenue</CardTitle>
+            <Euro className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(tenantData?.lifetime_revenue)}
+            </div>
+            <p className="text-xs text-muted-foreground">Totale omzet</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lifetime Orders</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tenantData?.lifetime_order_count || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Totaal bestellingen</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lifetime Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tenantData?.lifetime_customer_count || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Totaal klanten</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Stripe Status</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tenantData?.stripe_account_id ? (
+                tenantData?.stripe_onboarding_complete ? (
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actief</Badge>
+                ) : (
+                  <Badge variant="secondary">Onboarding</Badge>
+                )
+              ) : (
+                <Badge variant="outline">Niet verbonden</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground truncate">
+              {tenantData?.stripe_account_id || 'Geen account'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -97,27 +181,67 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Naam</p>
-              <p className="text-lg">{tenant?.name}</p>
+              <p className="text-lg">{tenantData?.name}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Slug</p>
-              <p className="text-lg">{tenant?.slug}</p>
+              <p className="text-lg">{tenantData?.slug}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Status</p>
-              <p className="text-lg">{tenant?.subscription_status || 'Onbekend'}</p>
+              <p className="text-lg">{tenantData?.subscription_status || 'Onbekend'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Laatst bijgewerkt</p>
               <p className="text-lg">
-                {tenant?.updated_at
-                  ? format(new Date(tenant.updated_at), 'dd MMM yyyy HH:mm', { locale: nl })
+                {tenantData?.updated_at
+                  ? format(new Date(tenantData.updated_at), 'dd MMM yyyy HH:mm', { locale: nl })
                   : '-'}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Owner Details */}
+      {owner && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Eigenaar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Naam</p>
+                <p className="text-lg">{owner.full_name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Email</p>
+                <p className="text-lg">{owner.email || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Laatste login</p>
+                <p className="text-lg">
+                  {owner.last_sign_in_at
+                    ? format(new Date(owner.last_sign_in_at), 'dd MMM yyyy HH:mm', { locale: nl })
+                    : 'Nog nooit'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Account aangemaakt</p>
+                <p className="text-lg">
+                  {owner.created_at
+                    ? format(new Date(owner.created_at), 'dd MMM yyyy', { locale: nl })
+                    : '-'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

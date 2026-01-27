@@ -183,6 +183,7 @@ const platformItems: NavItem[] = [
   { id: 'platform-dashboard', title: 'Dashboard', url: '/admin/platform/dashboard', icon: PlatformDashboardIcon },
   { id: 'platform-tenants', title: 'Tenants', url: '/admin/platform', icon: Building2 },
   { id: 'platform-billing', title: 'Platform Billing', url: '/admin/platform/billing', icon: Receipt },
+  { id: 'platform-coupons', title: 'Coupons', url: '/admin/platform/coupons', icon: Gift },
   { id: 'platform-feedback', title: 'Feedback', url: '/admin/platform/feedback', icon: MessageCircle },
   { id: 'platform-support', title: 'Support', url: '/admin/platform/support', icon: MessageSquare },
   { id: 'platform-changelog', title: 'Changelog', url: '/admin/platform/changelog', icon: ChangelogIcon },
