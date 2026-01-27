@@ -24,6 +24,8 @@ import { getEANValidationStatus } from '@/lib/eanValidation';
 import { getASINValidationStatus } from '@/lib/asinValidation';
 import { useToast } from '@/hooks/use-toast';
 import { ProductSocialChannels } from './ProductSocialChannels';
+import { ListingProtectionBadge } from './ListingProtectionBadge';
+import { ListingUpdateConfirmDialog } from './ListingUpdateConfirmDialog';
 import type { Product } from '@/types/product';
 
 interface ProductMarketplaceTabProps {
@@ -190,6 +192,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
   // Bol.com Offer ID lookup state
   const [isLookingUpOfferId, setIsLookingUpOfferId] = useState(false);
+
+  // Listing protection dialog state
+  const [showListingConfirmDialog, setShowListingConfirmDialog] = useState(false);
+  const [pendingPlatform, setPendingPlatform] = useState<'bol_com' | 'amazon' | 'ebay' | 'shopify' | 'woocommerce' | null>(null);
+  const [pendingChanges, setPendingChanges] = useState<Array<{ field: string; label: string; oldValue: string; newValue: string }>>([]);
+  const [pendingSyncAction, setPendingSyncAction] = useState<(() => Promise<void>) | null>(null);
 
   // Validations
   const eanValidation = getEANValidationStatus(bolEan);
@@ -918,6 +926,48 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
   const isEbayPending = product.ebay_listing_status === 'pending';
   const hasEbayError = product.ebay_listing_status === 'error';
 
+  // Check listing protection status based on product fields
+  // A listing is "locked" if it's currently listed (live)
+  const isBolLocked = isListed;
+  const isAmazonLocked = isAmazonListed;
+  const isShopifyLocked = isShopifyListed;
+  const isWooCommerceLocked = isWooCommerceListed;
+  const isEbayLocked = isEbayListed;
+
+  // Handler to intercept sync actions for protected listings
+  const handleProtectedSync = (
+    platform: 'bol_com' | 'amazon' | 'ebay' | 'shopify' | 'woocommerce',
+    syncAction: () => Promise<void>,
+    isLocked: boolean,
+    changes: Array<{ field: string; label: string; oldValue: string; newValue: string }>
+  ) => {
+    if (isLocked && changes.length > 0) {
+      setPendingPlatform(platform);
+      setPendingChanges(changes);
+      setPendingSyncAction(() => syncAction);
+      setShowListingConfirmDialog(true);
+    } else {
+      syncAction();
+    }
+  };
+
+  const handleConfirmListingUpdate = async () => {
+    if (pendingSyncAction) {
+      await pendingSyncAction();
+      setShowListingConfirmDialog(false);
+      setPendingPlatform(null);
+      setPendingChanges([]);
+      setPendingSyncAction(null);
+    }
+  };
+
+  const handleCancelListingUpdate = () => {
+    setShowListingConfirmDialog(false);
+    setPendingPlatform(null);
+    setPendingChanges([]);
+    setPendingSyncAction(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Bol.com Section */}
@@ -936,6 +986,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isBolLocked && (
+                <ListingProtectionBadge 
+                  platform="bol_com" 
+                  isLocked={isBolLocked} 
+                  lockReason="live_listing" 
+                />
+              )}
               {getStatusBadge(product.bol_listing_status)}
               <Switch
                 checked={bolEnabled}
@@ -1310,6 +1367,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isAmazonLocked && (
+                <ListingProtectionBadge 
+                  platform="amazon" 
+                  isLocked={isAmazonLocked} 
+                  lockReason="live_listing" 
+                />
+              )}
               {getStatusBadge(product.amazon_listing_status)}
               <Switch
                 checked={amazonEnabled}
@@ -1636,6 +1700,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isShopifyLocked && (
+                <ListingProtectionBadge 
+                  platform="shopify" 
+                  isLocked={isShopifyLocked} 
+                  lockReason="live_listing" 
+                />
+              )}
               {getStatusBadge(product.shopify_listing_status)}
               <Switch
                 checked={shopifyEnabled}
@@ -1841,6 +1912,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isWooCommerceLocked && (
+                <ListingProtectionBadge 
+                  platform="woocommerce" 
+                  isLocked={isWooCommerceLocked} 
+                  lockReason="live_listing" 
+                />
+              )}
               {getStatusBadge(product.woocommerce_listing_status)}
               <Switch
                 checked={woocommerceEnabled}
@@ -2251,6 +2329,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isEbayLocked && (
+                <ListingProtectionBadge 
+                  platform="ebay" 
+                  isLocked={isEbayLocked} 
+                  lockReason="live_listing" 
+                />
+              )}
               {getStatusBadge(product.ebay_listing_status)}
               <Switch
                 checked={ebayEnabled}
@@ -2371,6 +2456,19 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
       {/* Social Commerce Channels */}
       <ProductSocialChannels product={product} onRefresh={onRefresh} />
+
+      {/* Listing Update Confirmation Dialog */}
+      {pendingPlatform && (
+        <ListingUpdateConfirmDialog
+          open={showListingConfirmDialog}
+          onOpenChange={setShowListingConfirmDialog}
+          platform={pendingPlatform}
+          productName={product.name}
+          changedFields={pendingChanges}
+          onConfirm={handleConfirmListingUpdate}
+          onCancel={handleCancelListingUpdate}
+        />
+      )}
     </div>
   );
 }
