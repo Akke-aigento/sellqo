@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Network, Save, AlertCircle, Info } from 'lucide-react';
+import { Network, Save, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,18 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
+import { PeppolUpgradeCard } from '@/components/admin/billing/PeppolUpgradeCard';
 
 export function PeppolSettings() {
   const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
+  const { checkFeature } = useUsageLimits();
   const [isSaving, setIsSaving] = useState(false);
   const [peppolId, setPeppolId] = useState('');
+
+  const hasPeppolAccess = checkFeature('peppol');
 
   useEffect(() => {
     if (currentTenant) {
@@ -53,6 +58,11 @@ export function PeppolSettings() {
       setIsSaving(false);
     }
   };
+
+  // Show upgrade card if user doesn't have Peppol access
+  if (!hasPeppolAccess) {
+    return <PeppolUpgradeCard />;
+  }
 
   return (
     <Card>

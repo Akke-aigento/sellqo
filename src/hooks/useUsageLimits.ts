@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantSubscription } from './useTenantSubscription';
+import { useTenantAddons } from './useTenantAddons';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +10,7 @@ type LimitType = 'products' | 'orders' | 'customers' | 'users';
 export function useUsageLimits() {
   const { currentTenant } = useTenant();
   const { subscription } = useTenantSubscription();
+  const { addons } = useTenantAddons();
   const { toast } = useToast();
   const { t } = useTranslation();
 
@@ -117,13 +119,24 @@ export function useUsageLimits() {
   };
 
   const checkFeature = (featureKey: string): boolean => {
-    if (!subscription?.pricing_plan?.features) {
-      // Free plan features
-      return false;
+    // 1. Check plan features first
+    if (subscription?.pricing_plan?.features) {
+      const features = subscription.pricing_plan.features;
+      if (features[featureKey as keyof typeof features] === true) {
+        return true;
+      }
     }
     
-    const features = subscription.pricing_plan.features;
-    return features[featureKey as keyof typeof features] === true;
+    // 2. Check active add-ons (e.g., peppol purchased separately)
+    const hasAddon = addons?.some(
+      addon => addon.addon_type === featureKey && addon.status === 'active'
+    );
+    if (hasAddon) {
+      return true;
+    }
+    
+    // Free plan or feature not available
+    return false;
   };
 
   const getUsagePercentage = async (limitType: LimitType): Promise<number> => {
