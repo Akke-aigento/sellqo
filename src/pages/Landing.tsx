@@ -3,6 +3,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { SocialProofSection } from '@/components/landing/SocialProofSection';
 import { ProblemSection } from '@/components/landing/ProblemSection';
 import { SolutionOverviewSection } from '@/components/landing/SolutionOverviewSection';
+import { IntegrationsShowcaseSection } from '@/components/landing/IntegrationsShowcaseSection';
 import { UniqueAdvantagesSection } from '@/components/landing/UniqueAdvantagesSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { ComparisonSection } from '@/components/landing/ComparisonSection';
@@ -21,6 +22,7 @@ export default function LandingPage() {
         <SocialProofSection />
         <ProblemSection />
         <SolutionOverviewSection />
+        <IntegrationsShowcaseSection />
         <UniqueAdvantagesSection />
         <FeaturesSection />
         <ComparisonSection />
