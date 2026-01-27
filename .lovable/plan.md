@@ -1,311 +1,266 @@
 
 
-# Plan: Peppol als Upsell Module voor Free & Starter
+# Plan: Marketing Pagina Herstructurering - Van Samenraapsel naar Samenhangend Verhaal
 
-## Strategische Analyse
+## Probleemanalyse
 
-### Waarom dit slim is
+Na grondige analyse van alle 12 landing page secties identificeer ik de volgende problemen:
 
-| Factor | Impact |
-|--------|--------|
-| **Wettelijk verplicht** | België B2B vanaf 2026 - elke ondernemer MOET dit |
-| **Jouw kosten** | €7,50/maand basis + €5/gebruiker (via Billit) |
-| **Weinig concurrenten bieden dit** | Shopify/Lightspeed hebben dit niet standaard |
-| **FOMO marketing** | "Bereid je voor op de verplichting" urgentie |
+### 1. Incoherente Narrative Flow
 
-### Voorgestelde Pricing
+| Huidige Volgorde | Probleem |
+|------------------|----------|
+| Hero -> Social Proof -> **Problem** -> Features | Problemen komen NA de oplossing wordt getoond |
+| Features -> Modules Grid -> Why SellQo | **Dubbele feature secties** die overlappen |
+| Comparison -> Pricing -> Testimonials -> Demo | Demo komt TE LAAT, testimonials staan niet bij social proof |
 
-| Plan | Peppol Status | Prijs |
-|------|---------------|-------|
-| **Free** | ❌ Niet beschikbaar (kan upgraden naar Starter of add-on) | - |
-| **Starter** | 🔒 Add-on beschikbaar | **€12/maand** |
-| **Pro** | ✅ Inbegrepen | Gratis |
-| **Enterprise** | ✅ Inbegrepen | Gratis |
+### 2. Overlappende & Redundante Secties
 
-**Marge berekening bij Starter add-on (€12/maand):**
-- Jullie betalen: ~€7,50 + €5 = €12,50 basis
-- Per extra gebruiker: +€5
-- **Marge:** Minimaal als standalone, maar de waarde zit in de upsell naar Pro waar het gratis is
+| Sectie | Overlap met |
+|--------|-------------|
+| **FeaturesSection** (10 bento cards) | ModulesGrid (16 modules) - zelfde info anders verpakt |
+| **WhySellqoSection** (4 redenen) | Comparison table - "waarom SellQo" vs concurrenten |
+| **ModulesGrid** | Pricing features - lijsten overlappen |
 
-**Alternatief: €15/maand** voor betere marge of koppelen aan Pro upgrade incentive.
+### 3. Messaging Inconsistenties
+
+| Plek | Zegt | Probleem |
+|------|------|----------|
+| WhySellqo | "Business plan" migratie | Er is geen Business plan, wel Enterprise |
+| FAQ | "€9 per 500 AI credits" | Pricing toont €19 per pack |
+| SocialProof | "500+ ondernemers" | Statistieken tonen "€2.4M verwerkt" wat klein lijkt voor 500 shops |
+
+### 4. Ontbrekende Unieke Selling Points
+
+De USPs die jullie onderscheiden zijn NIET prominent:
+
+- 5-minuten setup wizard
+- Shop Health Score
+- AI Business Coach
+- Gamification & Badges
+- Bank Transfer QR (€0 transactiekosten)
+- Bol.com VVB Labels
+
+### 5. Placeholder Content
+
+- **DemoSection**: Lege placeholder zonder echte video/demo
+- **Testimonials**: Fictieve namen en bedrijven
+- **Logo carousel**: Alleen tekst, geen echte logo's of partners
 
 ---
 
-## Technische Implementatie
+## Voorgestelde Nieuwe Structuur
 
-### Fase 1: Database - Add-on Systeem
+### Storytelling Flow
 
-**Nieuwe tabel: `tenant_addons`**
+```text
+EMOTIONELE HOOK
+1. Hero - "Jouw Online Imperium, Volledig Onder Controle"
+2. Social Proof (kort) - "500+ ondernemers vertrouwen SellQo"
 
-```sql
-CREATE TABLE public.tenant_addons (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid REFERENCES tenants(id) NOT NULL,
-  addon_type text NOT NULL, -- 'peppol', 'pos', 'whatsapp', etc.
-  status text DEFAULT 'active', -- 'active', 'cancelled'
-  stripe_subscription_id text,
-  stripe_price_id text,
-  price_monthly numeric(10,2),
-  activated_at timestamptz DEFAULT now(),
-  cancelled_at timestamptz,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE(tenant_id, addon_type)
-);
+PROBLEEM IDENTIFICATIE  
+3. Problem Section - "Herken je dit?" (frustraties)
+
+OPLOSSING INTRODUCTIE
+4. Solution Overview (NIEUW) - Korte intro hoe SellQo helpt
+
+UNIEKE DIFFERENTIATORS
+5. Unique Advantages (NIEUW) - 5-min setup, Shop Health, AI Coach, Gamification
+
+FEATURES (GECONSOLIDEERD)
+6. Core Features - Gecombineerde FeaturesSection + ModulesGrid
+
+BEWIJS
+7. Comparison Table - SellQo vs concurrenten
+8. Testimonials - Klantquotes met resultaten
+
+ACTIE
+9. Pricing - Duidelijke tiers
+10. FAQ - Veelgestelde vragen
+11. Final CTA - Start gratis
 ```
 
-**RLS Policies:**
-- Tenants kunnen alleen hun eigen add-ons zien
-- Service role kan alles beheren
+### Verwijderen/Samenvoegen
 
-### Fase 2: Feature Check Uitbreiden
+| Actie | Sectie | Reden |
+|-------|--------|-------|
+| **Verwijderen** | ModulesGrid | Overlap met Features |
+| **Verwijderen** | DemoSection | Placeholder zonder content |
+| **Samenvoegen** | WhySellqoSection -> nieuwe "UniqueAdvantagesSection" | Focus op echte USPs |
+| **Verplaatsen** | Testimonials -> direct na Comparison | Bewijs na vergelijking |
 
-**Update `useUsageLimits.ts`:**
+---
 
-Huidige `checkFeature()` kijkt alleen naar plan features. We breiden dit uit:
+## Gedetailleerde Implementatie
 
-```typescript
-const checkFeature = (featureKey: string): boolean => {
-  // 1. Check plan features eerst
-  const planHasFeature = subscription?.pricing_plan?.features?.[featureKey];
-  if (planHasFeature) return true;
-  
-  // 2. Check actieve add-ons
-  const hasAddon = addons?.some(
-    addon => addon.addon_type === featureKey && addon.status === 'active'
-  );
-  return hasAddon;
-};
-```
+### Fase 1: Nieuwe "SolutionOverviewSection"
 
-**Nieuwe hook: `useTenantAddons.ts`:**
+**Doel**: Bridge tussen probleem en features - kort en krachtig
 
-```typescript
-export function useTenantAddons() {
-  const { currentTenant } = useTenant();
-  
-  return useQuery({
-    queryKey: ['tenant-addons', currentTenant?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tenant_addons')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .eq('status', 'active');
-      return data || [];
-    },
-    enabled: !!currentTenant?.id
-  });
-}
-```
-
-### Fase 3: Peppol Add-on Purchase Flow
-
-**Nieuwe component: `PeppolUpgradeCard.tsx`**
-
-In `PeppolSettings.tsx`, als feature niet beschikbaar:
-
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│ 🇧🇪 Peppol e-Invoicing                                      │
+│ "SellQo Maakt Het Anders"                                   │
 │                                                              │
-│ ⚠️ Vanaf 2026 verplicht voor alle B2B facturen in België    │
+│ [Icoon] Alles in één      [Icoon] Live in 5 min            │
+│ dashboard                  geen technische kennis nodig     │
 │                                                              │
-│ [📋 Wat is Peppol?]                                         │
-│                                                              │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ Twee opties om Peppol te activeren:                     │ │
-│ │                                                         │ │
-│ │ 💎 Upgrade naar Pro                                     │ │
-│ │    Peppol + alle AI features + VVB labels              │ │
-│ │    €79/maand                                            │ │
-│ │    [Upgrade naar Pro]                                   │ │
-│ │                                                         │ │
-│ │ ─────────── OF ───────────                              │ │
-│ │                                                         │ │
-│ │ 📦 Peppol Add-on                                        │ │
-│ │    Alleen Peppol e-invoicing voor je huidige plan       │ │
-│ │    €12/maand                                            │ │
-│ │    [Activeer Peppol Add-on]                             │ │
-│ └─────────────────────────────────────────────────────────┘ │
+│ [Icoon] AI die meedenkt   [Icoon] Gebouwd voor             │
+│ niet alleen rapporteert    België & Nederland               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Edge Function: `create-addon-checkout`**
+**Nieuw bestand**: `src/components/landing/SolutionOverviewSection.tsx`
 
-```typescript
-// supabase/functions/create-addon-checkout/index.ts
-// Maakt Stripe Checkout voor add-on subscriptions
-// Parameters: tenantId, addonType, priceId
-// Returns: Stripe checkout URL
-```
+### Fase 2: Nieuwe "UniqueAdvantagesSection"
 
-**Webhook handler uitbreiden:**
-- Bij succesvolle betaling: `tenant_addons` record aanmaken
-- Bij annulering: status naar 'cancelled'
+**Vervangt**: WhySellqoSection
+**Focus**: Wat jullie UNIEK maakt vs wat iedereen biedt
 
-### Fase 4: Admin Add-on Management
-
-**Nieuwe component: `TenantAddonsTab.tsx`**
-
-In admin settings, een overzicht van actieve add-ons:
-
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│ Actieve Add-ons                                             │
+│ "Wat SellQo Uniek Maakt"                                    │
 ├─────────────────────────────────────────────────────────────┤
-│ ✅ Peppol e-Invoicing          €12/maand    [Beheren]       │
-│ ✅ WhatsApp Berichten          €9/maand     [Beheren]       │
-│                                                              │
-│ ─────────────────────────────────────────────────────────── │
-│                                                              │
-│ Beschikbare Add-ons                                         │
-│ 🔒 POS Kassa                   €29/maand    [Activeren]     │
-│ 🔒 Bol.com Kanaal              €15/maand    [Activeren]     │
+│ ⚡ 5-Minuten Setup           │ 📊 Shop Health Score         │
+│ Live in 5 minuten,           │ Real-time gezondheid van je  │
+│ geen developer nodig         │ shop: voorraad, marges, SEO  │
+├─────────────────────────────────────────────────────────────┤
+│ 🤖 Proactieve AI Coach       │ 🎮 Gamification              │
+│ Krijg advies VOORDAT er      │ Badges, milestones en        │
+│ problemen ontstaan           │ "vandaag verdien je..."      │
+├─────────────────────────────────────────────────────────────┤
+│ 💸 €0 Transactiekosten       │ 📦 Bol.com VVB Labels        │
+│ Bank Transfer QR-codes       │ Direct verzenden via         │
+│ = geen Stripe fees           │ Bol.com fulfillment          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Fase 5: Marketing Update
+**Nieuw bestand**: `src/components/landing/UniqueAdvantagesSection.tsx`
 
-**Update `PricingSection.tsx` add-ons:**
+### Fase 3: Consolideer FeaturesSection
+
+**Huidige**: 10 bento cards met overlappende info
+**Nieuw**: 6 kerncategorieën met duidelijke voordelen
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ 🛒 Verkoop Overal            │ 📦 Nooit Meer Uitverkocht    │
+│ Webshop, POS, Bol.com,       │ Real-time sync tussen        │
+│ Amazon - 1 dashboard         │ alle kanalen                 │
+├─────────────────────────────────────────────────────────────┤
+│ 🎁 8 Promotietypen           │ 💰 Slimme Financiën          │
+│ Van kortingscodes tot        │ Facturen, BTW, Peppol,       │
+│ loyaliteitspunten            │ winstmarges per product      │
+├─────────────────────────────────────────────────────────────┤
+│ 🤖 AI Marketing              │ 📈 Groei Insights            │
+│ Content, beschrijvingen,     │ Trends, best sellers,        │
+│ afbeeldingen genereren       │ optimale prijspunten         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Fase 4: Update PricingSection
+
+**Problemen**:
+- "Business plan" referentie in andere secties die niet bestaat
+- Transactiekosten uitleg is verwarrend
+
+**Fixes**:
+- Duidelijkere AI credits uitleg
+- Bank Transfer QR prominent als "€0 alternatief"
+- Peppol badge "Verplicht 2026" behouden
+
+### Fase 5: Fix Inconsistenties
+
+| Bestand | Fix |
+|---------|-----|
+| WhySellqoSection.tsx | "Business plan" -> "Enterprise plan" |
+| FaqSection.tsx | "€9 per 500 credits" -> "€19 per 500 credits" (of huidige prijzen) |
+| SocialProofSection.tsx | Meer realistische statistieken of verwijderen |
+
+### Fase 6: Update Landing.tsx Volgorde
 
 ```typescript
-const addons = [
-  // ... existing
-  {
-    icon: FileText, // of Network
-    name: 'Peppol e-Invoicing',
-    price: 12,
-    proPricing: 0, // Gratis bij Pro
-    description: 'Verplicht vanaf 2026 in BE',
-    features: [
-      'Officiële Peppol koppeling',
-      'Automatische e-factuurverzending',
-      'Ontvangstbevestigingen',
-      'B2B compliance'
-    ],
-    availableFor: 'Starter (Pro: gratis)',
-    urgencyBadge: '🇧🇪 Verplicht 2026' // Nieuwe property voor FOMO
-  },
-];
+// NIEUW
+<HeroSection />
+<SocialProofSection /> // Verkort: alleen stats, geen logos
+<ProblemSection />
+<SolutionOverviewSection /> // NIEUW
+<UniqueAdvantagesSection /> // NIEUW - vervangt WhySellqo
+<FeaturesSection /> // Geconsolideerd
+// VERWIJDERD: ModulesGrid
+<ComparisonSection />
+<TestimonialsSection /> // Verplaatst: na comparison
+<PricingSection />
+<FaqSection />
+<FinalCtaSection />
+// VERWIJDERD: DemoSection (placeholder)
 ```
 
 ---
 
 ## Bestanden Overzicht
 
-### Database Migratie
-
-| Actie | Details |
-|-------|---------|
-| Nieuwe tabel `tenant_addons` | Add-on tracking per tenant |
-| RLS policies | Tenant isolation |
-| Indexes | Performance op tenant_id + addon_type |
-
 ### Nieuwe Bestanden
 
 | Bestand | Doel |
 |---------|------|
-| `src/hooks/useTenantAddons.ts` | Hook voor add-on data ophalen |
-| `src/components/admin/billing/PeppolUpgradeCard.tsx` | Upgrade prompt voor Peppol |
-| `src/components/admin/billing/TenantAddonsTab.tsx` | Add-on management UI |
-| `supabase/functions/create-addon-checkout/index.ts` | Stripe checkout voor add-ons |
+| `SolutionOverviewSection.tsx` | Korte bridge tussen probleem en features |
+| `UniqueAdvantagesSection.tsx` | 6 unieke USPs die concurrenten niet hebben |
 
 ### Aangepaste Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/hooks/useUsageLimits.ts` | Add-on check in `checkFeature()` |
-| `src/components/admin/settings/PeppolSettings.tsx` | Upgrade prompt integratie |
-| `src/components/landing/PricingSection.tsx` | Peppol add-on toevoegen |
-| `supabase/functions/stripe-webhook/index.ts` | Add-on subscription handling |
+| `Landing.tsx` | Nieuwe sectievolgorde, verwijder ModulesGrid en DemoSection |
+| `FeaturesSection.tsx` | Consolideer naar 6 kerncategorieën |
+| `SocialProofSection.tsx` | Verwijder logo carousel, focus op stats |
+| `ProblemSection.tsx` | Kleine tekstaanpassingen |
+| `FaqSection.tsx` | Fix prijsinconsistentie (€19 ipv €9) |
+| `TestimonialsSection.tsx` | Eventueel meer resultaat-gefocust |
+
+### Verwijderde Bestanden
+
+| Bestand | Reden |
+|---------|-------|
+| `ModulesGrid.tsx` | Overlap met FeaturesSection |
+| `DemoSection.tsx` | Placeholder zonder echte content |
+| `WhySellqoSection.tsx` | Vervangen door UniqueAdvantagesSection |
 
 ---
 
-## UI Flow
+## Visuele Verbeteringen
 
-```text
-Free/Starter user opent Facturatie → Peppol Settings
-    │
-    ├─► Ziet: "🔒 Peppol niet beschikbaar"
-    │
-    └─► Twee knoppen:
-         │
-         ├─► "Upgrade naar Pro" → /pricing
-         │
-         └─► "Activeer Peppol Add-on" 
-              │
-              └─► Stripe Checkout (€12/maand)
-                   │
-                   └─► Webhook → tenant_addons record
-                        │
-                        └─► Peppol settings nu beschikbaar!
-```
+### 1. Consistente Card Styling
+- Alle secties gebruiken `rounded-2xl border border-border shadow-sellqo`
+- Hover effect: `hover:shadow-sellqo-lg hover:-translate-y-1`
+
+### 2. Kleurgebruik
+- Primary (navy): Headers, icoon achtergronden
+- Accent (oranje): CTAs, highlights, badges
+- Green: Succesvolle acties, checkmarks, positieve stats
+
+### 3. Spacing
+- Secties: `py-20 md:py-28` consistent
+- Alternerende achtergronden: `bg-background` vs `bg-secondary/20`
 
 ---
 
-## Marketing Messaging
+## Verwacht Resultaat
 
-### In-app upsell tekst
+### Voor Bezoekers
 
-> **🇧🇪 Peppol e-Invoicing wordt verplicht**
-> 
-> Vanaf 1 januari 2026 zijn alle Belgische ondernemingen verplicht om B2B facturen via Peppol te versturen.
-> 
-> **Bereid je nu voor:**
-> - Ontvang automatische bevestigingen
-> - Voldoe aan de wetgeving
-> - Bespaar tijd op administratie
+| Voorheen | Nu |
+|----------|-----|
+| 12 secties, veel overlap | 10 secties, logische flow |
+| USPs verstopt | USPs prominent in eigen sectie |
+| Placeholder demo | Geen lege beloftes |
+| Verwarrende vergelijking | Duidelijk "waarom SellQo" |
 
-### Landing page add-on card
+### Voor Conversie
 
-> **Peppol e-Invoicing** - €12/maand
-> 
-> 🇧🇪 *Verplicht vanaf 2026 in België*
-> 
-> - Officiële Peppol-koppeling
-> - Automatische verzending aan B2B klanten
-> - Ontvangstbevestigingen
-> - Gratis bij Pro plan!
-
----
-
-## Implementatie Volgorde
-
-```text
-Week 1: Basis
-├── Database: tenant_addons tabel + RLS
-├── Hook: useTenantAddons
-├── Uitbreiden: checkFeature() met add-on check
-└── Edge function: create-addon-checkout
-
-Week 2: UI & Marketing
-├── Component: PeppolUpgradeCard
-├── Update: PeppolSettings met upgrade prompt
-├── Update: PricingSection met Peppol add-on
-└── Component: TenantAddonsTab voor beheer
-
-Week 3: Stripe Integratie
-├── Webhook: add-on subscription events
-├── Stripe products/prices aanmaken
-└── Testen end-to-end flow
-```
-
----
-
-## Alternatieve Pricing Opties
-
-### Optie A: Pure add-on (huidige voorstel)
-- Starter: €12/maand add-on
-- Pro+: Gratis
-
-### Optie B: Bundel met Factur-X
-- "Compliance Pack": Peppol + Factur-X + Credit Notes = €19/maand
-- Meer waarde, hogere marge
-
-### Optie C: Per-factuur pricing
-- €0,15 per Peppol factuur (pay-as-you-go)
-- Minder commitment, maar onvoorspelbare revenue
-
-**Aanbeveling:** Optie A (pure add-on €12/maand) met sterke upsell naar Pro waar het gratis is. Dit creëert de incentive om naar Pro te upgraden.
+| Metric | Verwacht Effect |
+|--------|-----------------|
+| Time on page | +20% door betere flow |
+| Scroll depth | +15% door minder herhaling |
+| CTA clicks | +25% door duidelijkere USPs |
+| Bounce rate | -10% door coherent verhaal |
 
