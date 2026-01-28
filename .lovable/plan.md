@@ -1,119 +1,158 @@
 
-# Fix: Onboarding Blokkeert Bestaande Tenant Gebruikers
+# Fix: Gebruikers Kunnen Niet Inloggen/Uitloggen
 
-## Probleem Analyse
-Wanneer een gebruiker met een bestaand account (bijv. tenant_admin van bedrijf A) inlogt, wordt hij onterecht in de onboarding-flow gedwongen. Dit komt door twee issues:
-
-1. **Race Condition**: De `checkOnboardingStatus()` functie draait voordat tenants/roles geladen zijn
-   - `useTenant.loading` wordt niet gecheckt
-   - `tenants` is nog `[]` wanneer de check draait → systeem denkt "nieuwe gebruiker"
-
-2. **Ontbrekende Check**: Er is geen expliciete check of de user al `tenant_admin` is van een bestaande tenant
+## Probleem
+Wanneer een gebruiker al ingelogd is (sessie in browser) en op "Inloggen" klikt:
+1. `/auth` pagina redirect direct naar `/admin` (Auth.tsx regel 43-45)
+2. `/admin` toont de fullscreen OnboardingWizard
+3. Er is geen uitlog-knop zichtbaar → gebruiker zit vast
 
 ## Oplossing
 
-### 1. `src/hooks/useOnboarding.ts` - Loading States Respecteren
+### 1. Auth Page: Keuze-scherm voor Ingelogde Gebruikers
+**Bestand:** `src/pages/Auth.tsx`
 
-**Wijzigingen:**
-- Haal `loading` state op uit `useTenant`
-- Wacht tot tenants geladen zijn voordat onboarding-beslissing wordt genomen
-- Voeg expliciete check toe: "Heeft user al een tenant_admin role?"
-
-```text
-Huidige code:
-const { currentTenant, tenants, setCurrentTenant, refreshTenants } = useTenant();
-
-Nieuwe code:
-const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
-
-En in checkOnboardingStatus():
-// WACHT tot tenants geladen zijn
-if (tenantsLoading) {
-  return; // Doe niets, wacht op volgende run wanneer loading false is
-}
-
-// Als user al tenants heeft → SKIP onboarding
-if (tenants && tenants.length > 0) {
-  // Markeer onboarding als compleet voor deze gebruiker
-  await supabase.from('profiles')
-    .update({ onboarding_completed: true })
-    .eq('id', user.id);
-  setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-  return;
-}
-```
-
-### 2. Dependency Array Updaten
-
-De `checkOnboardingStatus` callback moet ook `tenantsLoading` in zijn dependencies hebben:
+In plaats van automatisch redirecten naar `/admin`, toon een keuze-scherm:
+- "Naar mijn dashboard" → ga naar /admin
+- "Wissel van account" → log uit en toon login formulier
 
 ```text
-}, [user, tenants, currentTenant, tenantsLoading]);
+Huidige logica:
+useEffect(() => {
+  if (user) {
+    navigate('/admin');  // <-- Probleem: geen keuze
+  }
+}, [user, navigate]);
+
+Nieuwe logica:
+- Nieuwe state: showAccountSwitch (default false)
+- Als user ingelogd is EN showAccountSwitch=false → toon keuze-scherm
+- Als user kiest "Wissel account" → signOut() + setShowAccountSwitch(true)
+- Als user kiest "Naar dashboard" → navigate('/admin')
 ```
 
-### 3. Volgorde van Checks Aanpassen
+### 2. Onboarding Wizard: Uitlog-knop Toevoegen
+**Bestand:** `src/components/onboarding/OnboardingWizard.tsx`
 
-De nieuwe volgorde wordt:
-1. Geen user → sluit onboarding
-2. **NIEUW: Tenants nog aan het laden → wacht (return early)**
-3. Onboarding al compleet → sluit onboarding
-4. **NIEUW: User heeft al tenants → markeer compleet, sluit onboarding**
-5. Onboarding geskipt → sluit (tenzij nieuwe user)
-6. Anders → toon onboarding
+Voeg naast de "Overslaan" knop een "Uitloggen" optie toe:
+- Positie: In de header of footer van de wizard
+- Actie: `signOut()` + navigeer naar `/auth`
+- Tekst: "Ander account gebruiken"
 
-## Verwacht Gedrag Na Fix
+### 3. Resume Dialog: Uitlog-optie Toevoegen
+**Bestand:** `src/components/onboarding/ResumeOnboardingDialog.tsx`
 
-| Scenario | Huidig | Na Fix |
-|----------|--------|--------|
-| Nieuwe user, geen tenants | Onboarding | Onboarding |
-| User met bestaande tenant | Onboarding (BUG) | Dashboard |
-| User uitgenodigd bij andere tenant | Onboarding (BUG) | Dashboard |
-| User met partial onboarding, geen tenant | Resume dialog | Resume dialog |
-| User met partial onboarding, maar nu tenant | Resume dialog (BUG) | Dashboard |
+Voeg een derde optie toe onder "Verder waar ik was" en "Opnieuw beginnen":
+- "Uitloggen / Ander account"
+- Dit logt de gebruiker uit en brengt hem naar /auth
+
+---
 
 ## Technische Details
 
-### Bestand: `src/hooks/useOnboarding.ts`
+### Auth.tsx Wijzigingen
 
 ```text
-Regel ~66: Voeg loading toe aan destructuring
-- const { currentTenant, tenants, setCurrentTenant, refreshTenants } = useTenant();
-+ const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
+Nieuwe imports:
+import { useAuth } from '@/hooks/useAuth';
+// (al aanwezig, maar we gebruiken ook signOut)
 
-Regel ~82-86: Early return als tenants nog laden
-+ // Wait for tenants to load before making onboarding decision
-+ if (tenantsLoading) {
-+   return;
-+ }
+Nieuwe state:
+const [showAccountSwitch, setShowAccountSwitch] = useState(false);
 
-Regel ~118-139: Verplaats en vereenvoudig tenant check
-- if (hasTenants && currentTenant && !isNewUser) { ... }
-+ // If user already has access to tenants, skip onboarding
-+ if (tenants && tenants.length > 0) {
-+   await supabase.from('profiles')
-+     .update({ onboarding_completed: true })
-+     .eq('id', user.id);
-+   setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-+   return;
-+ }
+Nieuwe logica (vervang de huidige useEffect):
+- Als !user || showAccountSwitch → toon login/register tabs (huidige flow)
+- Als user && !showAccountSwitch → toon keuze-component:
+  
+  <Card>
+    <CardHeader>
+      <CardTitle>Welkom terug!</CardTitle>
+      <CardDescription>
+        Je bent ingelogd als {user.email}
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      <Button className="w-full" onClick={() => navigate('/admin')}>
+        Naar mijn dashboard
+      </Button>
+      <Button variant="outline" className="w-full" onClick={handleSwitchAccount}>
+        Wissel van account
+      </Button>
+    </CardContent>
+  </Card>
 
-Regel ~165: Update dependencies
-- }, [user, tenants, currentTenant]);
-+ }, [user, tenants, currentTenant, tenantsLoading]);
+handleSwitchAccount:
+  await signOut();
+  setShowAccountSwitch(true);
 ```
 
-## Risico's & Mitigatie
+### OnboardingWizard.tsx Wijzigingen
 
-- **Risk**: Korte flicker van loading state
-  - **Mitigatie**: `isLoading: true` default zorgt voor skeleton/spinner tot beslissing is genomen
+```text
+Nieuwe imports:
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
-- **Risk**: User toegevoegd aan tenant door iemand anders krijgt nooit onboarding
-  - **Acceptabel**: Als je uitgenodigd bent, is de tenant al opgezet. Je hoeft geen nieuwe te maken.
+In component:
+const { signOut, user } = useAuth();
+const navigate = useNavigate();
 
-## Test Scenario's
+Nieuwe handler:
+const handleLogout = async () => {
+  await signOut();
+  navigate('/auth');
+};
 
-1. **Nieuwe user**: Registreer → Onboarding start bij stap 1
-2. **Bestaande tenant_admin**: Login → Gaat direct naar dashboard
-3. **User uitgenodigd bij tenant**: Login → Gaat direct naar dashboard (geen onboarding)
-4. **User met partial progress, geen tenant**: Login → Resume dialog
-5. **User met partial progress, maar inmiddels toegevoegd aan tenant**: Login → Dashboard (onboarding geskipt)
+In header (naast "Overslaan" knop), voeg toe:
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={handleLogout}
+  className="text-muted-foreground hover:text-foreground"
+>
+  <LogOut className="h-4 w-4 mr-1" />
+  Uitloggen
+</Button>
+```
+
+### ResumeOnboardingDialog.tsx Wijzigingen
+
+```text
+Nieuwe prop:
+onLogout: () => void;
+
+Nieuwe knop (onder "Opnieuw beginnen"):
+<Button 
+  variant="ghost" 
+  onClick={onLogout}
+  className="w-full justify-between text-muted-foreground"
+>
+  <span>Uitloggen / Ander account</span>
+  <LogOut className="h-4 w-4 ml-2" />
+</Button>
+```
+
+---
+
+## Verwacht Gedrag Na Fix
+
+| Situatie | Actie | Resultaat |
+|----------|-------|-----------|
+| Niet ingelogd, klik "Inloggen" | - | Login/register scherm |
+| Ingelogd, klik "Inloggen" | - | Keuze: Dashboard of Wissel account |
+| Ingelogd, kiest "Wissel account" | signOut() | Login formulier |
+| In onboarding, wil uitloggen | Klik "Uitloggen" | Naar /auth, uitgelogd |
+| In resume dialog, wil uitloggen | Klik "Uitloggen" | Naar /auth, uitgelogd |
+
+---
+
+## Bestanden te Wijzigen
+1. `src/pages/Auth.tsx` - Keuze-scherm voor ingelogde users
+2. `src/components/onboarding/OnboardingWizard.tsx` - Logout knop in header
+3. `src/components/onboarding/ResumeOnboardingDialog.tsx` - Logout optie toevoegen
+
+## Samenvatting
+Deze fix zorgt ervoor dat:
+- Je ALTIJD op een login-scherm kunt komen
+- Je ALTIJD kunt uitloggen, zelfs midden in onboarding
+- De flow logisch is zoals bij andere applicaties
