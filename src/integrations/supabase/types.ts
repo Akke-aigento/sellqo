@@ -12466,7 +12466,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      get_user_tenant_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_user_tenant_ids: { Args: { _user_id?: string }; Returns: string[] }
       has_addon: {
         Args: { _addon_type: string; _tenant_id: string }
         Returns: boolean
