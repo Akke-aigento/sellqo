@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
-import { User, Lock, Camera, Globe, Palette } from 'lucide-react';
+import { User, Lock, Camera, Globe, Palette, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -15,6 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -32,6 +41,12 @@ export function AccountSettings() {
   
   const [fullName, setFullName] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  
+  // Email change state
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+  const [emailChangeRequested, setEmailChangeRequested] = useState(false);
   
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -77,6 +92,54 @@ export function AccountSettings() {
       });
     } finally {
       setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleUpdateEmail = async () => {
+    if (!newEmail || !newEmail.includes('@')) {
+      toast({
+        title: 'Ongeldig e-mailadres',
+        description: 'Voer een geldig e-mailadres in.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newEmail === user?.email) {
+      toast({
+        title: 'Zelfde e-mailadres',
+        description: 'Het nieuwe e-mailadres is hetzelfde als het huidige.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail,
+      }, {
+        emailRedirectTo: `${window.location.origin}/admin`,
+      });
+      
+      if (error) throw error;
+      
+      setEmailChangeRequested(true);
+      setShowEmailDialog(false);
+      
+      toast({
+        title: 'Bevestigingsmail verzonden',
+        description: 'Check je inbox voor beide e-mailadressen om de wijziging te bevestigen.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'E-mail wijzigen mislukt',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdatingEmail(false);
     }
   };
 
@@ -174,18 +237,38 @@ export function AccountSettings() {
 
           <Separator />
 
+          {emailChangeRequested && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Mail className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Er is een bevestigingsmail verzonden. Check je inbox voor zowel je oude als nieuwe e-mailadres om de wijziging te voltooien.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">{t('common.email')}</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user?.email || ''}
-                disabled
-                className="bg-muted"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="bg-muted flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setNewEmail('');
+                    setShowEmailDialog(true);
+                  }}
+                >
+                  Wijzigen
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
-                {t('settings.account.emailReadOnly')}
+                Je ontvangt een bevestigingsmail op zowel je huidige als nieuwe e-mailadres.
               </p>
             </div>
             
@@ -342,6 +425,55 @@ export function AccountSettings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email Change Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>E-mailadres wijzigen</DialogTitle>
+            <DialogDescription>
+              Voer je nieuwe e-mailadres in. Je ontvangt een bevestigingsmail op zowel je huidige als nieuwe e-mailadres.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Huidig e-mailadres</Label>
+              <Input value={user?.email || ''} disabled className="bg-muted" />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-email">Nieuw e-mailadres</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="nieuw@voorbeeld.com"
+              />
+            </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Na het bevestigen via beide e-mailadressen wordt je automatisch uitgelogd en moet je opnieuw inloggen met je nieuwe e-mailadres.
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+              Annuleren
+            </Button>
+            <Button 
+              onClick={handleUpdateEmail} 
+              disabled={isUpdatingEmail || !newEmail}
+            >
+              {isUpdatingEmail ? 'Verzenden...' : 'Bevestigingsmail versturen'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
