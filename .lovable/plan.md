@@ -1,120 +1,76 @@
 
-# Stripe Webhook Testing Plan
+# Fix: Wijzig alle sellqo.ai emails naar sellqo.app
 
-## Huidige Status: ✅ Configuratie Correct
+## Gevonden Locaties
 
-Je Stripe webhook is correct ingesteld met alle 11 events:
+### Database (Kritiek - moet handmatig)
 
-| Event | Functie |
-|-------|---------|
-| checkout.session.completed | Checkout afgerond → subscription created |
-| customer.subscription.created | Abonnement aangemaakt |
-| customer.subscription.updated | Abonnement gewijzigd |
-| customer.subscription.deleted | Abonnement geannuleerd |
-| customer.subscription.trial_will_end | Trial eindigt binnenkort |
-| invoice.paid | Factuur betaald |
-| invoice.payment_failed | Betaling mislukt |
-| **payout.created** | Uitbetaling gepland (nieuw) |
-| **payout.paid** | Uitbetaling ontvangen (nieuw) |
-| **payout.failed** | Uitbetaling mislukt (nieuw) |
-| **payout.canceled** | Uitbetaling geannuleerd (nieuw) |
+| Tabel | Veld | Huidige Waarde | Nieuwe Waarde |
+|-------|------|----------------|---------------|
+| `tenants` | `owner_email` | info@sellqo.ai | info@sellqo.app |
+| `profiles` | `email` | info@sellqo.ai | info@sellqo.app |
+
+**Let op**: De `profiles.email` is gekoppeld aan je Supabase Auth account. Dit kan ik niet zomaar wijzigen - je moet mogelijk je email updaten via de auth flow.
+
+### Codebase Wijzigingen
+
+| Bestand | Huidige | Nieuw |
+|---------|---------|-------|
+| `src/pages/public/Contact.tsx` | hello@sellqo.com | hello@sellqo.app |
+| `src/pages/Pricing.tsx` | sales@sellqo.com | sales@sellqo.app |
+
+### Optioneel: API Docs (overweging)
+
+De `api.sellqo.com` URLs in `ApiDocs.tsx` zijn placeholder URLs voor documentatie. Deze kunnen ook naar `.app` als je dat domein gaat gebruiken voor de API.
+
+### Niet Wijzigen: Migratie Files
+
+De oude migratie file bevat `.ai` emails maar deze wijzigen we niet - migraties zijn historische records.
 
 ---
 
-## Belangrijke Bevinding
+## Implementatie
 
-Er is een kleine bug in de webhook code. De `sendPayoutNotification` functie zoekt naar `stripe_customer_id` in de `tenants` tabel als fallback, maar dit veld bestaat daar niet.
+### Stap 1: Database Updates (via SQL)
 
-**Oplossing nodig**: De fallback moet zoeken in `tenant_subscriptions` tabel (waar `stripe_customer_id` wél staat).
+```sql
+-- Update tenant owner email
+UPDATE tenants 
+SET owner_email = 'info@sellqo.app' 
+WHERE slug = 'sellqo';
 
----
-
-## Testing Stappen
-
-### Stap 1: Fix de Tenant Lookup
-
-De webhook code moet worden aangepast om correct de tenant te vinden:
-
-```text
-HUIDIG (fout):
-1. Zoek tenant via tenants.stripe_account_id ✅
-2. Zoek tenant via tenants.stripe_customer_id ❌ (bestaat niet)
-
-NIEUW (correct):
-1. Zoek tenant via tenants.stripe_account_id ✅
-2. Zoek tenant via tenant_subscriptions.stripe_customer_id ✅
+-- Update profile email (let op: dit wijzigt alleen de profile tabel, niet de auth email)
+UPDATE profiles 
+SET email = 'info@sellqo.app' 
+WHERE email = 'info@sellqo.ai';
 ```
 
-### Stap 2: Test via Stripe Dashboard
+### Stap 2: Code Wijzigingen
 
-1. Ga naar **Developers > Webhooks** in Stripe
-2. Klik op je "Sellqo Platform" webhook
-3. Klik op **"Test webhook verzenden"**
-4. Selecteer `payout.paid` event
-5. Klik **"Test webhook verzenden"**
+**Contact.tsx**: 
+- `hello@sellqo.com` → `hello@sellqo.app`
 
-### Stap 3: Verifieer in Edge Function Logs
-
-Na de test check je de logs voor:
-- `[PLATFORM-STRIPE-WEBHOOK] Processing event - {"type":"payout.paid"}`
-- `[PLATFORM-STRIPE-WEBHOOK] Sending payout notification`
-
-### Stap 4: Check Notificatie in Database
-
-Verifieer dat de notificatie is aangemaakt in de `notifications` tabel.
+**Pricing.tsx**:
+- `sales@sellqo.com` → `sales@sellqo.app`
 
 ---
 
-## Jouw Test Tenants
+## Belangrijk: Supabase Auth Email
 
-Je hebt 2 tenants met Stripe Connect accounts die payout notificaties kunnen ontvangen:
+Je Supabase Auth account email (`info@sellqo.ai`) kan niet via een database update gewijzigd worden. Hiervoor moet je:
 
-| Tenant | Stripe Account ID |
-|--------|-------------------|
-| SellQo | acct_1SuIYTRziCKgbo3A |
-| Demo Bakkerij | acct_1Sq805Rwtif7i2ny |
+1. In je app: ga naar account settings en wijzig je email
+2. Of: via Supabase Auth API de email updaten
 
----
-
-## Implementatie Wijzigingen
-
-### Bestand: `supabase/functions/platform-stripe-webhook/index.ts`
-
-**Huidige code (regel 46-52):**
-```typescript
-// Fallback to stripe_customer_id for platform payouts
-const { data: platformTenant } = await supabase
-  .from("tenants")
-  .select("id")
-  .eq("stripe_customer_id", stripeAccountId)
-  .single();
-```
-
-**Nieuwe code:**
-```typescript
-// Fallback to stripe_customer_id via tenant_subscriptions
-const { data: subscription } = await supabase
-  .from("tenant_subscriptions")
-  .select("tenant_id")
-  .eq("stripe_customer_id", stripeAccountId)
-  .single();
-tenantId = subscription?.tenant_id || null;
-```
+Dit is een aparte stap die je zelf moet doen na de code wijzigingen.
 
 ---
 
-## Bonus: Test Notificatie Knop (Optioneel)
+## Samenvatting
 
-Na de fix kunnen we een "Test Payout Notificatie" knop toevoegen in de admin settings, zodat merchants hun notificatie-instellingen kunnen verifiëren zonder echte Stripe events.
-
----
-
-## Samenvatting Acties
-
-| # | Actie | Status |
-|---|-------|--------|
-| 1 | Webhook events toegevoegd in Stripe | ✅ Klaar |
-| 2 | Payout handlers in webhook | ✅ Klaar |
-| 3 | Fix tenant lookup fallback | 🔧 Nodig |
-| 4 | Test via Stripe Dashboard | ⏳ Na fix |
-| 5 | Verifieer notificaties | ⏳ Na test |
+| Type | Aantal Items | Actie |
+|------|--------------|-------|
+| Database records | 2 | SQL update |
+| Frontend code | 2 bestanden | Code wijziging |
+| Auth email | 1 | Handmatig via settings |
+| Migratie files | 0 | Niet aanpassen |
