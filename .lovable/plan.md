@@ -1,163 +1,72 @@
 
-# Fix: Handle-Inbound-Email Edge Function Payload Parsing
+Doel
+- Zorgen dat e-mails naar `demo-bakkerij@sellqo.app` wél in de SellQo inbox verschijnen.
 
-## Het Probleem
+Wat ik nu zie (diagnose)
+- De webhook komt wél binnen: de logs tonen “Inbound email received … to: [demo-bakkerij@sellqo.app]”.
+- Daarna faalt het opslaan in `customer_messages` met:
+  - `null value in column "body_html" ... violates not-null constraint`
+- De reden: Resend stuurt in de webhook bewust géén `html`/`text` body mee (alleen metadata). Dat is ook zo gedocumenteerd: je moet de “Retrieve Received Email” API call doen met `email_id` om `html`/`text` op te halen.
+- Daardoor is `payload.html || payload.text` momenteel `undefined/null` en crasht de insert (en dus zie je niets in de inbox).
 
-Je configuratie is **100% correct**! Het probleem zit in de edge function code.
+Wat we gaan aanpassen (high-level)
+1) In de backend functie `handle-inbound-email`:
+   - Na ontvangst van webhook (`email.received`) halen we de volledige ontvangen e-mail op via Resend API: “retrieve received email” met `payload.email_id`.
+   - Daarna gebruiken we die opgehaalde `html`/`text` voor `body_html` en `body_text`.
+   - We zorgen dat `body_html` altijd een string is (nooit null), door een veilige fallback te zetten.
 
-### Wat Resend Stuurt (Event Wrapper Format)
-```json
-{
-  "type": "email.received",
-  "created_at": "2026-01-28T10:51:36.000Z",
-  "data": {
-    "email_id": "msg_38soB8DurfHw4i31Cbx8DPGdAnH",
-    "from": "afzender@example.com",
-    "to": ["demo-bakkerij@sellqo.app"],
-    "subject": "Test bericht",
-    "attachments": [...]
-  }
-}
-```
+2) Types/interfaces corrigeren:
+   - `ResendInboundEmailData.text` en `.html` moeten optioneel worden (want webhook bevat ze niet).
+   - Nieuwe interface toevoegen voor het “retrieved received email” response object (die bevat wel `html`, `text`, `headers`, `message_id`, `reply_to`, …).
 
-### Wat Onze Code Verwacht
-```typescript
-// FOUT - probeert direct payload.to te lezen
-const payload: ResendInboundPayload = await req.json();
-for (const toEmail of payload.to) { ... }  // ERROR: payload.to is undefined!
-```
+3) Insert verbeteren:
+   - `body_html`: `received.html ?? (received.text ? <pre>…</pre> : '<p>(Geen inhoud)</p>')`
+   - `body_text`: `received.text ?? null`
+   - `from_email/to_email/subject`: primair uit `received` nemen (met fallback op webhook data).
+   - `resend_id` kolom (bestaat al) invullen met de received email id voor traceerbaarheid/idempotentie.
+   - `context_data.message_id/references` bij voorkeur uit `received.message_id` en `received.headers` vullen.
 
-De code verwacht `payload.to` als array, maar Resend stuurt `payload.data.to`.
+4) Optioneel (sterk aangeraden) beveiliging & robuustheid
+   - Webhook signature verificatie (Resend gebruikt Svix headers). Dit vereist een extra secret `RESEND_WEBHOOK_SECRET`. Dit is niet nodig om het probleem op te lossen, maar wel om misbruik (spam inserts) te voorkomen.
+   - Idempotency: eerst checken of `customer_messages.resend_id = payload.email_id` al bestaat; zo vermijden we dubbel opslaan bij retries.
 
----
+Concrete implementatiestappen (code)
+A. Edge function uitbreiden met Resend API fetch
+- Lees `RESEND_API_KEY` uit env (die staat al als secret in je project).
+- Doe een `fetch('https://api.resend.com/emails/receiving/' + emailId, { headers: { Authorization: 'Bearer …' }})`
+- Controleer statuscode en parse JSON.
+- Map response naar `receivedEmail` object.
 
-## De Oplossing
+B. Gebruik `receivedEmail` in plaats van webhook payload voor body
+- Vervang:
+  - `body_html: payload.html || payload.text`
+  - `body_text: payload.text`
+- Door:
+  - `body_html: computedHtmlString` (altijd non-null)
+  - `body_text: receivedEmail.text ?? null`
 
-Update de edge function om de **event wrapper structuur** correct te parsen:
+C. Logging verbeteren (om toekomstige issues sneller te zien)
+- Log 1x kort:
+  - email_id, tenantPrefix, tenantId
+  - of receivedEmail.html/text aanwezig is (booleans/lengths, geen volledige inhoud)
+- Log bij Resend-fetch errors:
+  - statuscode + error body (ingekort)
 
-### Stap 1: Interface Aanpassen
+Testplan (end-to-end)
+1) Stuur een testmail (met duidelijke body tekst) naar `demo-bakkerij@sellqo.app`.
+2) Controleer backend logs:
+   - Je moet zien: webhook ontvangen → received email opgehaald → message inserted → notification inserted.
+3) Open in de app: Admin → Klantgesprekken (/admin/messages):
+   - Er moet een nieuwe conversatie/message zichtbaar zijn.
+4) Herhaal met:
+   - e-mail zonder body (alleen subject)
+   - e-mail met HTML body
+   - e-mail met bijlage (bijlage blijft voorlopig als “reference” opgeslagen; content ophalen kunnen we als vervolgstap doen)
 
-```typescript
-// Resend Webhook Event Wrapper
-interface ResendWebhookEvent {
-  type: string;
-  created_at: string;
-  data: ResendInboundEmailData;
-}
+Risico’s / aandachtspunten
+- Als Resend API tijdelijk faalt (timeout/401), dan kunnen we nog altijd een minimale placeholder opslaan zodat de inbox niet “leeg blijft”.
+- Signature verification is security-wise belangrijk omdat deze endpoint publiek bereikbaar is en met service-role writes doet; ik stel voor dit als korte vervolgstap te doen.
 
-interface ResendInboundEmailData {
-  email_id: string;
-  from: string;
-  to: string[];
-  cc?: string[];
-  bcc?: string[];
-  subject: string;
-  text: string;
-  html: string;
-  headers?: Record<string, string>;
-  message_id?: string;
-  attachments?: Array<{
-    id: string;
-    filename: string;
-    content_type: string;
-    content_disposition?: string;
-    content_id?: string;
-  }>;
-}
-```
+Resultaat na deze fix
+- Inbound e-mails komen binnen, de body wordt correct opgehaald via Resend, `customer_messages` insert faalt niet meer, en de inbox toont de berichten.
 
-### Stap 2: Payload Extractie Aanpassen
-
-```typescript
-const webhook: ResendWebhookEvent = await req.json();
-
-// Validate event type
-if (webhook.type !== 'email.received') {
-  console.log('Ignoring non-inbound event:', webhook.type);
-  return new Response(JSON.stringify({ message: 'Event ignored' }), { status: 200 });
-}
-
-// Extract the email data
-const payload = webhook.data;
-
-console.log("Inbound email received:", {
-  email_id: payload.email_id,
-  from: payload.from,
-  to: payload.to,
-  subject: payload.subject,
-});
-```
-
-### Stap 3: Attachments Verwerking Aanpassen
-
-Resend's attachment formaat is ook anders dan verwacht:
-- Geen `content` veld (base64 data)
-- Wel een `id` veld om de attachment op te halen via API
-
-```typescript
-// Oude code verwachtte:
-attachments?: Array<{
-  filename: string;
-  content: string;       // base64 data - ZIT HIER NIET IN!
-  content_type: string;
-}>;
-
-// Nieuwe Resend format:
-attachments?: Array<{
-  id: string;            // UUID om op te halen
-  filename: string;
-  content_type: string;
-  content_disposition?: string;
-  content_id?: string;
-}>;
-```
-
-**Opmerking**: Attachments worden door Resend apart opgeslagen en moeten via de Resend API opgehaald worden met de `id`. We kunnen dit voor nu overslaan of later implementeren.
-
----
-
-## Samenvatting Wijzigingen
-
-| Locatie | Wijziging |
-|---------|-----------|
-| `handle-inbound-email/index.ts` | Wrapper payload parsing toevoegen |
-| Lijn 10-24 | Interface aanpassen voor Resend webhook event format |
-| Lijn 95-100 | Event wrapper unwrappen voordat data wordt verwerkt |
-| Lijn 188 | Headers veld is optioneel, message_id is apart veld |
-| Lijn 227-268 | Attachments logic aanpassen (id-based ipv content) |
-
----
-
-## Technisch Overzicht
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    Resend Webhook                           │
-│  {                                                          │
-│    "type": "email.received",                                │
-│    "data": {                                                │
-│      "to": ["demo-bakkerij@sellqo.app"],  ← hier zit data!  │
-│      "from": "...",                                         │
-│      ...                                                    │
-│    }                                                        │
-│  }                                                          │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Edge Function (nu)                             │
-│  payload.to ← undefined (probeert top-level)                │
-│  ERROR: "payload.to is not iterable"                        │
-└─────────────────────────────────────────────────────────────┘
-
-                    NA DE FIX:
-
-┌─────────────────────────────────────────────────────────────┐
-│              Edge Function (straks)                         │
-│  const webhook = await req.json();                          │
-│  const payload = webhook.data;  ← unwrap first!             │
-│  payload.to ← ["demo-bakkerij@sellqo.app"] ✓                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-Na deze fix zullen de inbound emails correct worden verwerkt en in je SellQo inbox verschijnen.
