@@ -1,125 +1,94 @@
 
-# Fix: Sessie-dialog verschijnt onterecht na succesvolle tenant creatie
+# Fix: RLS fout bij tenant creatie op published site (definitieve oplossing)
 
-## Analyse van het Probleem
+## Root Cause Analyse
 
-Uit de console logs blijkt:
-1. De sessie IS geldig (`ensureAuthenticated: Valid session for info@vanxcel.com`)
-2. De tenant IS succesvol aangemaakt (toast "Winkel aangemaakt! VanXcel is succesvol aangemaakt")
-3. Maar daarna komt er een 403 error van een OPVOLGENDE call
-4. Die error triggert ten onrechte de `sessionExpired: true` state
+Na diepgaand onderzoek is het probleem geïdentificeerd:
 
-Het probleem zit in `useOnboarding.ts` - de error handling na tenant creatie is te strikt:
-- Na succesvolle creatie worden `refreshTenants()` en andere calls gedaan
-- Als één van die calls faalt (bijv. door RLS timing), wordt de hele flow geblokkeerd
-- De code behandelt elke 403 als "session expired" terwijl de tenant al bestaat
+1. **RLS Functie is correct**: `can_create_first_tenant()` geeft `true` bij directe test
+2. **Geen bestaande tenant/roles**: Database is "schoon" voor `info@vanxcel.com`
+3. **Browser-sessie lijkt geldig**: `ensureAuthenticated()` meldt success
+4. **Maar RLS faalt alsnog**: De Supabase INSERT krijgt toch een 403
 
-## Oplossing
+**Root cause**: Er zit een timing-/synchronisatie-issue tussen de browser auth state en de daadwerkelijke Authorization header die mee gaat met de request. `ensureAuthenticated()` checkt de lokale session state, maar garandeert niet dat de volgende API call de juiste token meestuurt.
 
-### Stap 1: `useOnboarding.ts` - Slimmere error handling
+## Oplossing: Token-refresh + Force-sync vóór INSERT
 
-**Huidige logica (fout):**
-```typescript
-// Als RLS error → repair → retry → nog steeds error → SESSION_EXPIRED
+### Stap 1: Verbeter `ensureAuthenticated()` in `useAuth.tsx`
+
+Huidige implementatie checkt alleen of een session bestaat. Nieuwe implementatie:
+- Doet een **expliciete token refresh** vóór kritieke database writes
+- Verifieert dat de refresh gelukt is door een simpele authenticated query te doen
+- Pas dan wordt "authenticated" teruggegeven
+
+```text
+// Pseudo-code van de verbetering
+ensureAuthenticated():
+  1. getSession() → check of session bestaat
+  2. ALS session bestaat → refreshSession() forceren (vernieuwt access_token)
+  3. Verifieer met simpele authenticated query (bijv. SELECT auth.uid())
+  4. Als alle stappen slagen → return true
+  5. Anders → clear storage + sign out
 ```
 
-**Nieuwe logica (correct):**
-```typescript
-// 1. Probeer tenant te maken
-// 2. Als RLS error:
-//    a. Check of tenant al bestaat (owner_email match) → SUCCESS met bestaande tenant
-//    b. Check of sessie geldig is → zo niet: session expired
-//    c. Retry ALLEEN als tenant nog niet bestaat
-// 3. Bij success: DIRECT returnen, geen onnodige retry-logica
+### Stap 2: Voeg een "verify token works" helper toe
+
+Nieuwe functie `verifyTokenWorks()`:
+- Doet een minimale Supabase call die alleen slaagt met geldige auth
+- Bijv. een SELECT op `profiles` waar RLS user-based is
+- Als dit faalt → sessie is niet bruikbaar voor writes
+
+### Stap 3: Update `createTenant()` flow
+
+```text
+createTenant():
+  1. ensureAuthenticated() (met forced refresh)
+  2. verifyTokenWorks() → als dit faalt, STOP en toon recovery dialog
+  3. Pas dan INSERT in tenants table
+  4. Bij success → door naar volgende stap
+  5. Bij RLS error na alle checks → dit zou nu niet meer moeten gebeuren,
+     maar als fallback: toon duidelijke foutmelding met "contact support"
 ```
 
-Key changes:
-- Voeg `sessionExpired: true` ALLEEN toe als tenant niet bestaat EN sessie echt invalid is
-- Na succesvolle tenant creatie: direct return, geen extra error checks
-- Verplaats de "bestaande tenant" check naar het BEGIN van de error handler
+### Stap 4: Recovery UX verbeteren
 
-### Stap 2: Error isolation
+Als de token-verificatie faalt:
+- Geen cryptische RLS error tonen
+- Directe modal: "Je sessie kon niet geverifieerd worden. Log opnieuw in."
+- Één klik: logout + redirect naar login
 
-De calls na `createTenant()` (zoals `refreshTenants()`) mogen niet de hele onboarding crashen:
-- Wrap opvolgende calls in try/catch
-- Als refreshTenants faalt maar tenant bestaat: doorgaan met de flow
-- Alleen kritieke fouten (geen tenant, geen sessie) blokkeren de flow
+## Technische Implementatie
 
-## Technische Details
+### Bestand: `src/hooks/useAuth.tsx`
 
-**`src/hooks/useOnboarding.ts` wijzigingen:**
+Wijzigingen:
+- `ensureAuthenticated()` krijgt een force-refresh stap
+- Nieuwe helper `verifyAuthenticatedRequest()` die een echte DB query doet om te bevestigen dat de token werkt
+- Betere error handling en logging
 
-```typescript
-const createTenant = useCallback(async () => {
-  // ... existing validation ...
+### Bestand: `src/hooks/useOnboarding.ts`
 
-  try {
-    let { tenant, tenantError } = await attemptCreate();
-
-    // SUCCESS PATH - return immediately, don't run more checks
-    if (tenant && !tenantError) {
-      // Safe to fail - tenant already created
-      try {
-        await refreshTenants();
-        setCurrentTenant(tenant);
-      } catch (e) {
-        console.warn('[Onboarding] refreshTenants failed but tenant exists:', e);
-      }
-      setState(prev => ({ ...prev, createdTenantId: tenant.id }));
-      return tenant;
-    }
-
-    // ERROR PATH - check if tenant already exists FIRST
-    if (tenantError) {
-      // Check if tenant already exists (common after retry scenarios)
-      const { data: existingTenants } = await supabase
-        .from('tenants')
-        .select('id, name')
-        .eq('owner_email', loginEmail)
-        .limit(1);
-
-      if (existingTenants && existingTenants.length > 0) {
-        // Tenant exists! Use it and continue
-        const foundTenant = existingTenants[0];
-        try { await refreshTenants(); } catch (e) { /* non-critical */ }
-        setCurrentTenant(foundTenant as any);
-        setState(prev => ({ ...prev, createdTenantId: foundTenant.id }));
-        return foundTenant;
-      }
-
-      // Only NOW check if it's a session issue
-      if (tenantError.code === '42501') {
-        const stillAuthenticated = await ensureAuthenticated();
-        if (!stillAuthenticated) {
-          setState(prev => ({ ...prev, sessionExpired: true }));
-          throw new Error('SESSION_EXPIRED');
-        }
-        // Session is valid but RLS still failing - this shouldn't happen
-        // Log detailed error but DON'T show session dialog
-        console.error('[Onboarding] RLS error with valid session:', tenantError);
-      }
-      
-      throw tenantError;
-    }
-  } catch (error: any) {
-    // Only show session dialog for explicit SESSION_EXPIRED
-    if (error.message === 'SESSION_EXPIRED') {
-      return null;
-    }
-    throw error;
-  }
-}, [...]);
-```
+Wijzigingen:
+- `createTenant()` roept de verbeterde auth-check aan
+- Strikte volgorde: verify → refresh → verify again → INSERT
+- Duidelijkere error states
 
 ## Verwacht Resultaat
 
 Na deze fix:
-1. Tenant creatie succeeds → je gaat direct naar stap 4 (Logo upload)
-2. Als tenant al bestaat → wordt automatisch gebruikt, geen error
-3. Sessie-dialog verschijnt ALLEEN bij echte auth problemen
+1. Gebruiker klikt "Volgende stap" bij bedrijfsgegevens
+2. App forceert token refresh achter de schermen
+3. App verifieert dat de verse token werkt met een test-query
+4. Pas dan wordt de tenant INSERT gedaan
+5. Geen RLS errors meer, tenzij er daadwerkelijk iets mis is met de auth (dan: duidelijke melding)
+
+## Database Acties Nodig
+
+Geen schema-wijzigingen nodig. De RLS policies en functies zijn correct. Dit is puur een client-side synchronisatie fix.
 
 ## Bestanden die aangepast worden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/hooks/useOnboarding.ts` | Herstructureer createTenant error handling |
+| `src/hooks/useAuth.tsx` | Verbeterde `ensureAuthenticated()` met force-refresh en verify |
+| `src/hooks/useOnboarding.ts` | Strikte auth-verificatie vóór tenant INSERT |
