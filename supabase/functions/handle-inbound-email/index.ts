@@ -13,7 +13,7 @@ interface ResendWebhookEvent {
   data: ResendInboundEmailData;
 }
 
-// Resend Inbound Email Data (inside wrapper)
+// Resend Inbound Email Data (inside webhook wrapper - minimal, no body)
 interface ResendInboundEmailData {
   email_id: string;
   from: string;
@@ -21,8 +21,8 @@ interface ResendInboundEmailData {
   cc?: string[];
   bcc?: string[];
   subject: string;
-  text: string;
-  html: string;
+  text?: string;  // Optional - webhook may not include
+  html?: string;  // Optional - webhook may not include
   headers?: Record<string, string>;
   message_id?: string;
   attachments?: Array<{
@@ -32,6 +32,27 @@ interface ResendInboundEmailData {
     content_disposition?: string;
     content_id?: string;
   }>;
+}
+
+// Resend Retrieved Email Response (from API call - includes full body)
+interface ResendRetrievedEmail {
+  id: string;
+  from: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  reply_to?: string[];
+  subject: string;
+  text?: string;
+  html?: string;
+  headers?: Record<string, string>;
+  message_id?: string;
+  attachments?: Array<{
+    id: string;
+    filename: string;
+    content_type: string;
+  }>;
+  created_at: string;
 }
 
 // Extract email prefix from address like "prefix@sellqo.app"
@@ -76,6 +97,31 @@ function detectSourceChannel(
   return { channel: 'email' };
 }
 
+// Fetch full email content from Resend API
+async function fetchEmailContent(emailId: string, apiKey: string): Promise<ResendRetrievedEmail | null> {
+  try {
+    const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Resend API error (${response.status}):`, errorText.substring(0, 200));
+      return null;
+    }
+
+    const data = await response.json();
+    return data as ResendRetrievedEmail;
+  } catch (error) {
+    console.error('Failed to fetch email from Resend:', error);
+    return null;
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -93,6 +139,15 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not configured");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     // Parse Resend webhook event wrapper
     const webhook: ResendWebhookEvent = await req.json();
@@ -115,6 +170,40 @@ const handler = async (req: Request): Promise<Response> => {
       to: payload.to,
       subject: payload.subject,
     });
+
+    // Fetch full email content from Resend API
+    const retrievedEmail = await fetchEmailContent(payload.email_id, resendApiKey);
+    
+    console.log("Retrieved email content:", {
+      email_id: payload.email_id,
+      has_html: !!retrievedEmail?.html,
+      has_text: !!retrievedEmail?.text,
+      html_length: retrievedEmail?.html?.length ?? 0,
+      text_length: retrievedEmail?.text?.length ?? 0,
+    });
+
+    // Compute body_html - MUST be non-null
+    let bodyHtml: string;
+    let bodyText: string | null = null;
+
+    if (retrievedEmail?.html) {
+      bodyHtml = retrievedEmail.html;
+      bodyText = retrievedEmail.text ?? null;
+    } else if (retrievedEmail?.text) {
+      bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${retrievedEmail.text}</pre>`;
+      bodyText = retrievedEmail.text;
+    } else if (payload.html) {
+      // Fallback to webhook data if available
+      bodyHtml = payload.html;
+      bodyText = payload.text ?? null;
+    } else if (payload.text) {
+      bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${payload.text}</pre>`;
+      bodyText = payload.text;
+    } else {
+      // Final fallback - empty email
+      bodyHtml = '<p style="color: #666; font-style: italic;">(Geen inhoud)</p>';
+      bodyText = null;
+    }
 
     // Find the tenant by parsing the TO address
     let tenantId: string | null = null;
@@ -193,8 +282,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Extract Message-ID from Resend data (message_id is a direct field in Resend format)
-    const incomingMessageId = payload.message_id || payload.headers?.['message-id'] || payload.headers?.['Message-ID'] || null;
+    // Extract Message-ID from retrieved email or webhook data
+    const incomingMessageId = retrievedEmail?.message_id || payload.message_id || payload.headers?.['message-id'] || payload.headers?.['Message-ID'] || null;
     const incomingReferences = payload.headers?.['references'] || payload.headers?.['References'] || null;
 
     // Store the inbound message
@@ -207,14 +296,15 @@ const handler = async (req: Request): Promise<Response> => {
         direction: "inbound",
         channel: channel,
         subject: payload.subject,
-        body_html: payload.html || payload.text,
-        body_text: payload.text,
+        body_html: bodyHtml,
+        body_text: bodyText,
         from_email: payload.from,
         to_email: payload.to[0] || "",
         reply_to_email: payload.from,
         status: "delivered",
         delivered_at: new Date().toISOString(),
         context_type: orderId ? "order" : "general",
+        resend_id: payload.email_id,
         context_data: {
           marketplace: marketplace || null,
           bol_order_id: bolOrderId || null,
@@ -234,25 +324,23 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Store attachment metadata (Resend provides id, not content)
-    // Actual content would need to be fetched via Resend API if needed
     if (payload.attachments && payload.attachments.length > 0) {
       console.log(`Processing ${payload.attachments.length} attachment metadata entries`);
       
       for (const attachment of payload.attachments) {
         try {
-          // Store attachment reference (without actual file - would need Resend API to fetch)
           await supabase.from('customer_message_attachments').insert({
             message_id: message.id,
             tenant_id: tenantId,
             filename: attachment.filename,
             content_type: attachment.content_type,
-            size_bytes: 0, // Unknown without fetching
-            storage_path: null, // Would need Resend API to fetch actual content
+            size_bytes: 0,
+            storage_path: null,
             metadata: {
               resend_attachment_id: attachment.id,
               content_disposition: attachment.content_disposition,
               content_id: attachment.content_id,
-              requires_fetch: true, // Flag indicating content needs to be fetched
+              requires_fetch: true,
             }
           });
           
@@ -315,6 +403,7 @@ const handler = async (req: Request): Promise<Response> => {
       channel,
       marketplace,
       matched_order: orderId ? true : false,
+      body_html_length: bodyHtml.length,
     });
 
     return new Response(
