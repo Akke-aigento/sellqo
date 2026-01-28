@@ -1,158 +1,91 @@
 
-# Fix: Gebruikers Kunnen Niet Inloggen/Uitloggen
+Doel
+- Je zit nog steeds vast omdat de onboarding bij “Winkel aanmaken” faalt met: “new row violates row-level security policy for table tenants”.
+- Dat betekent: de database weigert de INSERT in tenants (403) omdat de server-side check `can_create_first_tenant(auth.uid(), owner_email)` false teruggeeft.
 
-## Probleem
-Wanneer een gebruiker al ingelogd is (sessie in browser) en op "Inloggen" klikt:
-1. `/auth` pagina redirect direct naar `/admin` (Auth.tsx regel 43-45)
-2. `/admin` toont de fullscreen OnboardingWizard
-3. Er is geen uitlog-knop zichtbaar → gebruiker zit vast
+Wat er (bij jou) waarschijnlijk echt mis zit
+- De INSERT-policy op `public.tenants` laat een gebruiker alleen een “eerste tenant” aanmaken als:
+  1) `owner_email` gelijk is aan het login e-mailadres (JWT/profiles; case-insensitive), én
+  2) de gebruiker nog géén `tenant_admin` rol heeft.
+- In de praktijk zien we bij dit soort “ik kan niet verder”-gevallen dat er een “verweesde” rol bestaat:
+  - `public.user_roles` bevat al een rij met `role = tenant_admin`, maar `tenant_id = NULL`.
+  - Gevolg:
+    - Je ziet geen tenants (want tenant lijst komt uit `get_user_tenant_ids()` en die pakt alleen roles met `tenant_id IS NOT NULL`)
+    - Maar je mag óók geen nieuwe tenant maken (want je “hebt al tenant_admin” → check faalt)
+  - Dat veroorzaakt exact jouw loop: onboarding probeert tenant aan te maken → RLS blokkeert → je blijft hangen.
 
-## Oplossing
+Oplossing (robust, zoals “andere programma’s” dit doen)
+We fixen dit op 2 niveaus: database + app, zodat:
+- bestaande accounts automatisch herstellen (zonder handmatige support)
+- nieuwe data niet meer “verweesd” kan worden
 
-### 1. Auth Page: Keuze-scherm voor Ingelogde Gebruikers
-**Bestand:** `src/pages/Auth.tsx`
+1) Database: “orphan roles” automatisch repareren + voorkomen
+1.1 Voeg een SECURITY DEFINER functie toe: `public.repair_orphaned_user_roles()`
+- Doel: enkel voor de ingelogde gebruiker (`auth.uid()`), veilig.
+- Logica:
+  - Als user `tenant_admin` heeft met `tenant_id IS NULL`:
+    - Probeer tenant te vinden waar `tenants.owner_email` matcht met login email (JWT/profiles)
+      - Als gevonden: update die role(s) → set `tenant_id = gevonden_tenant_id`
+      - Als niet gevonden: delete de verweesde role(s) (want ze blokkeren alles en verwijzen naar niets)
+  - Voor rollen die nooit NULL tenant_id mogen hebben (staff/accountant/warehouse/viewer): delete ze als tenant_id NULL is.
+- Return: JSON met `{ fixed: n, deleted: n }` zodat de UI kan beslissen wat te doen.
 
-In plaats van automatisch redirecten naar `/admin`, toon een keuze-scherm:
-- "Naar mijn dashboard" → ga naar /admin
-- "Wissel van account" → log uit en toon login formulier
+1.2 Maak `can_create_first_tenant()` defensiever
+- Update de check “heeft al tenant_admin” naar:
+  - alleen blokkeren als er een `tenant_admin` bestaat met `tenant_id IS NOT NULL`
+- Daarmee voorkom je dat een oude/kapotte role met NULL tenant_id iemands onboarding permanent blokkeert.
 
-```text
-Huidige logica:
-useEffect(() => {
-  if (user) {
-    navigate('/admin');  // <-- Probleem: geen keuze
-  }
-}, [user, navigate]);
+1.3 Voeg een database-constraint toe om herhaling te voorkomen
+- Voeg een CHECK constraint toe op `public.user_roles`:
+  - `role = 'platform_admin' OR tenant_id IS NOT NULL`
+- Uitvoering veilig met migratie-volgorde:
+  1) Data cleanup (update/repair zoveel mogelijk; delete resterende orphan rows)
+  2) Constraint toevoegen (eventueel eerst `NOT VALID`, daarna `VALIDATE`)
 
-Nieuwe logica:
-- Nieuwe state: showAccountSwitch (default false)
-- Als user ingelogd is EN showAccountSwitch=false → toon keuze-scherm
-- Als user kiest "Wissel account" → signOut() + setShowAccountSwitch(true)
-- Als user kiest "Naar dashboard" → navigate('/admin')
-```
+2) Frontend: herstel automatisch bij login en vóór onboarding
+2.1 In `src/hooks/useAuth.tsx`
+- Na het ophalen van roles bij een actieve session:
+  - Call `supabase.rpc('repair_orphaned_user_roles')`
+  - Daarna: roles opnieuw ophalen en `setRoles()` updaten
+- Dit zorgt ervoor dat:
+  - zodra de gebruiker inlogt, zijn tenant_id in roles hersteld wordt
+  - `useTenant()` daarna wél tenants kan zien
+  - onboarding vervolgens automatisch sluit (omdat `tenants.length > 0`)
 
-### 2. Onboarding Wizard: Uitlog-knop Toevoegen
-**Bestand:** `src/components/onboarding/OnboardingWizard.tsx`
+2.2 (Extra safety) In `src/hooks/useTenant.tsx`
+- Als tenants fetch 0 tenants teruggeeft terwijl er wél roles bestaan:
+  - (optioneel) nogmaals `repair_orphaned_user_roles()` proberen en 1x re-fetchTenants()
+- Dit voorkomt dat een timing/race condition alsnog de onboarding triggert.
 
-Voeg naast de "Overslaan" knop een "Uitloggen" optie toe:
-- Positie: In de header of footer van de wizard
-- Actie: `signOut()` + navigeer naar `/auth`
-- Tekst: "Ander account gebruiken"
+2.3 UX fallback in onboarding (zodat je nooit “stil” vastzit)
+- In `createTenant()` error handling (in `useOnboarding.ts` of de wizard step transition):
+  - Als error een RLS/403 is:
+    1) call repair rpc
+    2) refreshTenants + refreshOnboarding
+    3) toon duidelijke boodschap:
+       - “Je account heeft al rechten voor een bestaande winkel. We hebben dit hersteld — je wordt doorgestuurd.”
+       - of als niets te herstellen: “Je account heeft al een rol maar zonder gekoppelde winkel. We hebben dit opgeschoond — probeer opnieuw.”
 
-### 3. Resume Dialog: Uitlog-optie Toevoegen
-**Bestand:** `src/components/onboarding/ResumeOnboardingDialog.tsx`
+3) Verificatie / Testplan (end-to-end)
+- Scenario A: user met orphaned tenant_admin (tenant_id NULL)
+  - Login → repair draait → tenant_id wordt gezet of opgeschoond → tenants laden → onboarding sluit → dashboard bereikbaar
+- Scenario B: user die echt al tenant_admin is van een tenant
+  - Login → tenants laden → onboarding sluit (geen “tenant aanmaken” meer)
+- Scenario C: echte nieuwe user zonder roles/tenants
+  - Onboarding → tenant create werkt
+- Scenario D: user zonder tenant maar met staff/accountant role NULL tenant_id (kapotte data)
+  - Login → cleanup → onboarding kan doorgaan
 
-Voeg een derde optie toe onder "Verder waar ik was" en "Opnieuw beginnen":
-- "Uitloggen / Ander account"
-- Dit logt de gebruiker uit en brengt hem naar /auth
+Bestanden / onderdelen die ik ga aanpassen (na approval)
+- Database migration:
+  - Create/replace `public.repair_orphaned_user_roles()`
+  - Update `public.can_create_first_tenant(...)`
+  - Data cleanup + CHECK constraint op `public.user_roles`
+- Frontend:
+  - `src/hooks/useAuth.tsx` (call repair rpc + refetch roles)
+  - Optioneel `src/hooks/useTenant.tsx` (1x auto-repair fallback)
+  - `src/hooks/useOnboarding.ts` of `OnboardingWizard.tsx` (RLS error → auto repair + refresh)
 
----
-
-## Technische Details
-
-### Auth.tsx Wijzigingen
-
-```text
-Nieuwe imports:
-import { useAuth } from '@/hooks/useAuth';
-// (al aanwezig, maar we gebruiken ook signOut)
-
-Nieuwe state:
-const [showAccountSwitch, setShowAccountSwitch] = useState(false);
-
-Nieuwe logica (vervang de huidige useEffect):
-- Als !user || showAccountSwitch → toon login/register tabs (huidige flow)
-- Als user && !showAccountSwitch → toon keuze-component:
-  
-  <Card>
-    <CardHeader>
-      <CardTitle>Welkom terug!</CardTitle>
-      <CardDescription>
-        Je bent ingelogd als {user.email}
-      </CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-3">
-      <Button className="w-full" onClick={() => navigate('/admin')}>
-        Naar mijn dashboard
-      </Button>
-      <Button variant="outline" className="w-full" onClick={handleSwitchAccount}>
-        Wissel van account
-      </Button>
-    </CardContent>
-  </Card>
-
-handleSwitchAccount:
-  await signOut();
-  setShowAccountSwitch(true);
-```
-
-### OnboardingWizard.tsx Wijzigingen
-
-```text
-Nieuwe imports:
-import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-
-In component:
-const { signOut, user } = useAuth();
-const navigate = useNavigate();
-
-Nieuwe handler:
-const handleLogout = async () => {
-  await signOut();
-  navigate('/auth');
-};
-
-In header (naast "Overslaan" knop), voeg toe:
-<Button
-  variant="ghost"
-  size="sm"
-  onClick={handleLogout}
-  className="text-muted-foreground hover:text-foreground"
->
-  <LogOut className="h-4 w-4 mr-1" />
-  Uitloggen
-</Button>
-```
-
-### ResumeOnboardingDialog.tsx Wijzigingen
-
-```text
-Nieuwe prop:
-onLogout: () => void;
-
-Nieuwe knop (onder "Opnieuw beginnen"):
-<Button 
-  variant="ghost" 
-  onClick={onLogout}
-  className="w-full justify-between text-muted-foreground"
->
-  <span>Uitloggen / Ander account</span>
-  <LogOut className="h-4 w-4 ml-2" />
-</Button>
-```
-
----
-
-## Verwacht Gedrag Na Fix
-
-| Situatie | Actie | Resultaat |
-|----------|-------|-----------|
-| Niet ingelogd, klik "Inloggen" | - | Login/register scherm |
-| Ingelogd, klik "Inloggen" | - | Keuze: Dashboard of Wissel account |
-| Ingelogd, kiest "Wissel account" | signOut() | Login formulier |
-| In onboarding, wil uitloggen | Klik "Uitloggen" | Naar /auth, uitgelogd |
-| In resume dialog, wil uitloggen | Klik "Uitloggen" | Naar /auth, uitgelogd |
-
----
-
-## Bestanden te Wijzigen
-1. `src/pages/Auth.tsx` - Keuze-scherm voor ingelogde users
-2. `src/components/onboarding/OnboardingWizard.tsx` - Logout knop in header
-3. `src/components/onboarding/ResumeOnboardingDialog.tsx` - Logout optie toevoegen
-
-## Samenvatting
-Deze fix zorgt ervoor dat:
-- Je ALTIJD op een login-scherm kunt komen
-- Je ALTIJD kunt uitloggen, zelfs midden in onboarding
-- De flow logisch is zoals bij andere applicaties
+Waarom dit jouw probleem écht oplost
+- Dit pakt de root-cause aan (kapotte role records) i.p.v. enkel de onboarding “weg te klikken”.
+- Daardoor kun je weer inloggen zoals het hoort: je krijgt ofwel je bestaande bedrijf te zien, of je kan een nieuwe tenant maken, maar je kan nooit meer vastlopen in “geen tenant zichtbaar” én “geen tenant kunnen aanmaken”.
