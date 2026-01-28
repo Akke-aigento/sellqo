@@ -11,6 +11,7 @@ import { LogoUploadStep } from './steps/LogoUploadStep';
 import { FirstProductStep } from './steps/FirstProductStep';
 import { PaymentsStep } from './steps/PaymentsStep';
 import { LaunchStep } from './steps/LaunchStep';
+import { ResumeOnboardingDialog } from './ResumeOnboardingDialog';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,11 +37,14 @@ export function OnboardingWizard() {
     isLoading,
     data,
     createdTenantId,
+    hasPartialProgress,
+    clearPartialProgress,
     updateData,
     nextStep,
     prevStep,
     skipOnboarding,
     completeOnboarding,
+    restartOnboarding,
     createTenant,
     createFirstProduct,
     generateSlug,
@@ -112,7 +116,7 @@ export function OnboardingWizard() {
   const handleComplete = async () => {
     await completeOnboarding();
     toast({
-      title: 'Welkom bij Sellqo!',
+      title: 'Welkom bij Sellqo!', 
       description: 'Je bent helemaal klaar om te beginnen.',
     });
   };
@@ -192,8 +196,26 @@ export function OnboardingWizard() {
     }
   };
 
+  // Handlers for resume dialog
+  const handleContinueFromDialog = () => {
+    clearPartialProgress();
+  };
+
+  const handleRestartFromDialog = async () => {
+    clearPartialProgress();
+    await restartOnboarding();
+  };
+
   return (
     <>
+      {/* Resume dialog for returning users with partial progress */}
+      <ResumeOnboardingDialog
+        open={hasPartialProgress}
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        onContinue={handleContinueFromDialog}
+        onRestart={handleRestartFromDialog}
+      />
       {/* Full-screen overlay */}
       <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
         <Card className="w-full max-w-2xl h-[90vh] max-h-[90vh] grid grid-rows-[auto_auto_1fr] shadow-2xl overflow-hidden">
