@@ -12551,14 +12551,14 @@ export type Database = {
         Args: {
           p_action_url?: string
           p_category: string
-          p_data?: Json
           p_message: string
+          p_metadata?: Json
           p_priority?: string
           p_tenant_id: string
           p_title: string
           p_type: string
         }
-        Returns: undefined
+        Returns: string
       }
       start_sync_activity: {
         Args: {
