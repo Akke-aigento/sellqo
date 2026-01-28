@@ -221,7 +221,7 @@ export function OnboardingWizard() {
           )}
 
           {/* Step content */}
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="flex-1 min-h-0 max-h-[calc(90vh-180px)]">
             <CardContent className="p-6">
               {isProcessing ? (
                 <div className="flex flex-col items-center justify-center py-12">
