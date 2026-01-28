@@ -316,27 +316,45 @@ export function useOnboarding() {
     try {
       let { tenant, tenantError } = await attemptCreate();
 
-      // If RLS policy violation (403 / 42501), it's likely a session issue
-      if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
-        console.warn('[Onboarding] RLS violation detected - likely session issue');
+      // ============================================
+      // SUCCESS PATH - return immediately, no extra checks
+      // ============================================
+      if (tenant && !tenantError) {
+        console.log('[Onboarding] Tenant created successfully:', tenant.id);
         
-        // Double-check session is still valid
-        const stillAuthenticated = await ensureAuthenticated();
-        if (!stillAuthenticated) {
-          console.error('[Onboarding] Session confirmed invalid after RLS error');
-          setState(prev => ({ ...prev, sessionExpired: true }));
-          throw new Error('SESSION_EXPIRED');
+        // Non-critical follow-up calls - wrapped in try/catch
+        try {
+          await refreshTenants();
+          setCurrentTenant(tenant);
+        } catch (refreshError) {
+          console.warn('[Onboarding] refreshTenants failed but tenant exists:', refreshError);
+          // Continue anyway - tenant is created
         }
+
+        setState(prev => ({ ...prev, createdTenantId: tenant.id }));
+
+        // Update subscription with selected plan if not free
+        if (state.data.selectedPlanId && state.data.selectedPlanId !== 'free') {
+          try {
+            await supabase
+              .from('tenant_subscriptions')
+              .update({ plan_id: state.data.selectedPlanId })
+              .eq('tenant_id', tenant.id);
+          } catch (subError) {
+            console.warn('[Onboarding] Subscription update failed:', subError);
+          }
+        }
+
+        return tenant;
+      }
+
+      // ============================================
+      // ERROR PATH - check if tenant already exists FIRST
+      // ============================================
+      if (tenantError) {
+        console.warn('[Onboarding] Tenant creation error:', tenantError.code, tenantError.message);
         
-        // Try to repair orphaned roles
-        console.log('[Onboarding] RLS violation on tenant create – attempting repair...');
-        const { data: repairResult, error: repairError } = await supabase.rpc('repair_orphaned_user_roles');
-        console.log('[Onboarding] repair_orphaned_user_roles result:', repairResult, repairError);
-
-        // Refresh tenants – maybe user already owns one via owner_email
-        await refreshTenants();
-
-        // Re-check if tenants exist after repair
+        // FIRST: Check if tenant already exists (common after retry scenarios)
         const { data: existingTenants } = await supabase
           .from('tenants')
           .select('id, name')
@@ -344,53 +362,50 @@ export function useOnboarding() {
           .limit(1);
 
         if (existingTenants && existingTenants.length > 0) {
-          // User already owns a tenant – just use that
+          // Tenant exists! Use it and continue - NO session dialog needed
           const foundTenant = existingTenants[0];
+          console.log('[Onboarding] Found existing tenant:', foundTenant.id, foundTenant.name);
+          
+          try {
+            await refreshTenants();
+          } catch (e) {
+            console.warn('[Onboarding] refreshTenants failed but tenant exists:', e);
+          }
+          
           setCurrentTenant(foundTenant as any);
           setState(prev => ({ ...prev, createdTenantId: foundTenant.id }));
 
           toast({
-            title: 'Bestaande winkel hersteld',
-            description: `Je bent nu gekoppeld aan ${foundTenant.name}.`,
+            title: 'Bestaande winkel gevonden',
+            description: `Je bent gekoppeld aan ${foundTenant.name}.`,
           });
 
           return foundTenant;
         }
 
-        // Retry creation
-        const retryResult = await attemptCreate();
-        tenant = retryResult.tenant;
-        tenantError = retryResult.tenantError;
-        
-        // If still failing with RLS after all attempts, show session dialog
-        if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
-          console.error('[Onboarding] Persistent RLS failure - triggering re-login');
-          setState(prev => ({ ...prev, sessionExpired: true }));
-          throw new Error('SESSION_EXPIRED');
+        // SECOND: If RLS error and no existing tenant, check if it's a session issue
+        if (tenantError.code === '42501' || tenantError.message?.includes('row-level security')) {
+          console.warn('[Onboarding] RLS violation - verifying session validity...');
+          
+          const stillAuthenticated = await ensureAuthenticated();
+          if (!stillAuthenticated) {
+            console.error('[Onboarding] Session confirmed invalid');
+            setState(prev => ({ ...prev, sessionExpired: true }));
+            throw new Error('SESSION_EXPIRED');
+          }
+          
+          // Session is valid but RLS still failing - log but DON'T show session dialog
+          // This is a genuine RLS configuration issue, not a session problem
+          console.error('[Onboarding] RLS error with valid session - this is unexpected:', tenantError);
         }
+        
+        // Throw the original error for proper handling
+        throw tenantError;
       }
 
-      if (tenantError) throw tenantError;
-      if (!tenant) throw new Error('Tenant creation returned no data');
-
-      // Note: tenant_admin role is automatically created by database trigger
-      // (assign_tenant_admin_role_on_tenant_insert)
-
-      // Refresh tenants and set as current
-      await refreshTenants();
-      setCurrentTenant(tenant);
-
-      setState(prev => ({ ...prev, createdTenantId: tenant.id }));
-
-      // Update subscription with selected plan if not free
-      if (state.data.selectedPlanId && state.data.selectedPlanId !== 'free') {
-        await supabase
-          .from('tenant_subscriptions')
-          .update({ plan_id: state.data.selectedPlanId })
-          .eq('tenant_id', tenant.id);
-      }
-
-      return tenant;
+      // Should not reach here
+      throw new Error('Tenant creation returned no data');
+      
     } catch (error: any) {
       console.error('[Onboarding] Error creating tenant:', error);
       
