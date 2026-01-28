@@ -43,13 +43,13 @@ const sendPayoutNotification = async (
   if (connectTenant?.id) {
     tenantId = connectTenant.id;
   } else {
-    // Fallback to stripe_customer_id for platform payouts
-    const { data: platformTenant } = await supabase
-      .from("tenants")
-      .select("id")
+    // Fallback to stripe_customer_id via tenant_subscriptions for platform payouts
+    const { data: subscription } = await supabase
+      .from("tenant_subscriptions")
+      .select("tenant_id")
       .eq("stripe_customer_id", stripeAccountId)
-      .single();
-    tenantId = platformTenant?.id || null;
+      .maybeSingle();
+    tenantId = subscription?.tenant_id || null;
   }
   
   if (!tenantId) {
