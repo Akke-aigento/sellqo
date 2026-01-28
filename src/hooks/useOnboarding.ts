@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthedClient } from '@/integrations/supabase/authedClient';
 import { restInsertSingle } from '@/integrations/supabase/authedRest';
+import { createTenantViaFunction } from '@/integrations/backend/createTenantViaFunction';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
@@ -360,9 +361,16 @@ export function useOnboarding() {
       // If we still get an RLS error here, try a raw REST fallback with explicit Authorization header.
       if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
         console.warn('[Onboarding] createTenant: RLS error via supabase-js, trying REST fallback...');
-        const restTenant = await restInsertSingle<any>('tenants', accessToken, payload);
-        console.log('[Onboarding] createTenant: REST fallback succeeded:', restTenant?.id);
-        return { tenant: restTenant, tenantError: null, wasExisting: false };
+        try {
+          const restTenant = await restInsertSingle<any>('tenants', accessToken, payload);
+          console.log('[Onboarding] createTenant: REST fallback succeeded:', restTenant?.id);
+          return { tenant: restTenant, tenantError: null, wasExisting: false };
+        } catch (restErr) {
+          console.warn('[Onboarding] createTenant: REST fallback failed, trying backend function...', restErr);
+          const fnTenant = await createTenantViaFunction<any>(accessToken, payload);
+          console.log('[Onboarding] createTenant: function fallback succeeded:', (fnTenant as any)?.id);
+          return { tenant: fnTenant, tenantError: null, wasExisting: false };
+        }
       }
 
       return { tenant, tenantError, wasExisting: false };
