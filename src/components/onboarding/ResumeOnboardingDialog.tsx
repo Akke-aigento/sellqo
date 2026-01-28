@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, ArrowRight } from 'lucide-react';
+import { RotateCcw, ArrowRight, LogOut } from 'lucide-react';
 
 interface ResumeOnboardingDialogProps {
   open: boolean;
@@ -14,6 +14,7 @@ interface ResumeOnboardingDialogProps {
   totalSteps: number;
   onContinue: () => void;
   onRestart: () => void;
+  onLogout: () => void;
 }
 
 export function ResumeOnboardingDialog({
@@ -22,6 +23,7 @@ export function ResumeOnboardingDialog({
   totalSteps,
   onContinue,
   onRestart,
+  onLogout,
 }: ResumeOnboardingDialogProps) {
   return (
     <Dialog open={open}>
@@ -50,6 +52,15 @@ export function ResumeOnboardingDialog({
           >
             <span>Opnieuw beginnen</span>
             <RotateCcw className="h-4 w-4 ml-2" />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            onClick={onLogout}
+            className="w-full justify-between text-muted-foreground"
+          >
+            <span>Uitloggen / Ander account</span>
+            <LogOut className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </DialogContent>
