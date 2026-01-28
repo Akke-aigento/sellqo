@@ -63,7 +63,7 @@ const initialData: OnboardingData = {
 
 export function useOnboarding() {
   const { user } = useAuth();
-  const { currentTenant, tenants, setCurrentTenant, refreshTenants } = useTenant();
+  const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
   
   const [state, setState] = useState<OnboardingState>({
     currentStep: 1,
@@ -81,6 +81,21 @@ export function useOnboarding() {
   // Check if user needs onboarding
   const checkOnboardingStatus = useCallback(async () => {
     if (!user) {
+      setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
+      return;
+    }
+
+    // Wait for tenants to load before making onboarding decision
+    if (tenantsLoading) {
+      return;
+    }
+
+    // If user already has access to tenants, skip onboarding entirely
+    if (tenants && tenants.length > 0) {
+      await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', user.id);
       setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
       return;
     }
@@ -115,28 +130,7 @@ export function useOnboarding() {
         return;
       }
 
-      // Check if user has any tenants with products
-      const hasTenants = tenants && tenants.length > 0;
-      
-      if (hasTenants && currentTenant && !isNewUser) {
-        // Check if tenant has products
-        const { data: products } = await supabase
-          .from('products')
-          .select('id')
-          .eq('tenant_id', currentTenant.id)
-          .limit(1);
-
-        // If they have products, mark onboarding as complete
-        if (products && products.length > 0) {
-          await supabase
-            .from('profiles')
-            .update({ onboarding_completed: true })
-            .eq('id', user.id);
-          
-          setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-          return;
-        }
-      }
+      // Note: Users with existing tenants are already filtered out at the top of this function
 
       // Show onboarding for new users or users who haven't completed setup
       const savedStep = profile?.onboarding_step || 1;
@@ -162,7 +156,7 @@ export function useOnboarding() {
       console.error('Onboarding check error:', err);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user, tenants, currentTenant]);
+  }, [user, tenants, currentTenant, tenantsLoading]);
 
   useEffect(() => {
     checkOnboardingStatus();
