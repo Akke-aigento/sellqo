@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
+import { useToast } from '@/hooks/use-toast';
 
 export interface OnboardingData {
   // Step 1: Welcome
@@ -63,6 +64,7 @@ const initialData: OnboardingData = {
 
 export function useOnboarding() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
   
   const [state, setState] = useState<OnboardingState>({
@@ -272,8 +274,7 @@ export function useOnboarding() {
 
     const { shopName, shopSlug, businessName, email, address, postalCode, city, country, vatNumber, chamberOfCommerce } = state.data;
 
-    try {
-      // Create the tenant
+    const attemptCreate = async () => {
       // owner_email = login email (for RLS security check)
       // billing_email = form email (for invoices/communication)
       const { data: tenant, error: tenantError } = await supabase
@@ -289,14 +290,57 @@ export function useOnboarding() {
           country: country || null,
           btw_number: vatNumber || null,
           kvk_number: chamberOfCommerce || null,
-          // Store form email as billing email (can differ from login)
           billing_email: email || loginEmail,
           billing_company_name: businessName || null,
         })
         .select()
         .single();
 
+      return { tenant, tenantError };
+    };
+
+    try {
+      let { tenant, tenantError } = await attemptCreate();
+
+      // If RLS policy violation (403 / 42501), try to repair orphaned roles and retry
+      if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
+        console.log('RLS violation on tenant create – attempting repair...');
+        
+        const { data: repairResult, error: repairError } = await supabase.rpc('repair_orphaned_user_roles');
+        console.log('repair_orphaned_user_roles result:', repairResult, repairError);
+
+        // Refresh tenants – maybe user already owns one via owner_email
+        await refreshTenants();
+
+        // Re-check if tenants exist after repair; if so, skip creation (user already owns a tenant)
+        const { data: existingTenants } = await supabase
+          .from('tenants')
+          .select('id, name')
+          .eq('owner_email', loginEmail)
+          .limit(1);
+
+        if (existingTenants && existingTenants.length > 0) {
+          // User already owns a tenant – just use that
+          const foundTenant = existingTenants[0];
+          setCurrentTenant(foundTenant as any);
+          setState(prev => ({ ...prev, createdTenantId: foundTenant.id }));
+
+          toast({
+            title: 'Bestaande winkel hersteld',
+            description: `Je bent nu gekoppeld aan ${foundTenant.name}.`,
+          });
+
+          return foundTenant;
+        }
+
+        // Retry creation
+        const retryResult = await attemptCreate();
+        tenant = retryResult.tenant;
+        tenantError = retryResult.tenantError;
+      }
+
       if (tenantError) throw tenantError;
+      if (!tenant) throw new Error('Tenant creation returned no data');
 
       // Note: tenant_admin role is automatically created by database trigger
       // (assign_tenant_admin_role_on_tenant_insert)
@@ -314,13 +358,13 @@ export function useOnboarding() {
           .update({ plan_id: state.data.selectedPlanId })
           .eq('tenant_id', tenant.id);
       }
-      
+
       return tenant;
     } catch (error) {
       console.error('Error creating tenant:', error);
       throw error;
     }
-  }, [user, state.data, refreshTenants, setCurrentTenant]);
+  }, [user, state.data, refreshTenants, setCurrentTenant, toast]);
 
   // Update tenant with logo
   const updateTenantLogo = useCallback(async (logoUrl: string) => {

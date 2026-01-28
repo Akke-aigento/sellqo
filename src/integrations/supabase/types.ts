@@ -12528,6 +12528,7 @@ export type Database = {
         Args: { p_amount: number; p_gift_card_id: string; p_order_id?: string }
         Returns: number
       }
+      repair_orphaned_user_roles: { Args: never; Returns: Json }
       reset_monthly_ai_credits:
         | { Args: never; Returns: number }
         | {
