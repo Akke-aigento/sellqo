@@ -12406,6 +12406,10 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: number
       }
+      can_create_first_tenant: {
+        Args: { _owner_email: string; _user_id: string }
+        Returns: boolean
+      }
       complete_sync_activity: {
         Args: {
           p_activity_id: string
