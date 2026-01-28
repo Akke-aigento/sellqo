@@ -48,6 +48,7 @@ export function OnboardingWizard() {
     updateData,
     nextStep,
     prevStep,
+    goToStep,
     skipOnboarding,
     completeOnboarding,
     restartOnboarding,
@@ -56,6 +57,7 @@ export function OnboardingWizard() {
     generateSlug,
     checkSlugAvailable,
     handleSessionExpiredRelogin,
+    isMissingCriticalData,
   } = useOnboarding();
 
   if (!isOpen || isLoading) {
@@ -102,6 +104,18 @@ export function OnboardingWizard() {
       nextStep();
     } catch (error: any) {
       console.error('Step transition error:', error);
+      
+      // Handle missing shop data - force restart from step 1
+      if (error.message === 'MISSING_SHOP_DATA') {
+        toast({
+          title: 'Winkelgegevens ontbreken',
+          description: 'Vul eerst je winkelnaam en URL in bij stap 1.',
+          variant: 'destructive',
+        });
+        goToStep(1);
+        return;
+      }
+      
       toast({
         title: 'Er ging iets mis',
         description: error.message || 'Probeer het opnieuw.',
@@ -230,6 +244,7 @@ export function OnboardingWizard() {
         open={hasPartialProgress && !sessionExpired}
         currentStep={currentStep}
         totalSteps={totalSteps}
+        isMissingCriticalData={isMissingCriticalData()}
         onContinue={handleContinueFromDialog}
         onRestart={handleRestartFromDialog}
         onLogout={handleLogout}

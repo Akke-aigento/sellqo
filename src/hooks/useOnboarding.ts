@@ -110,10 +110,10 @@ export function useOnboarding() {
     }
 
     try {
-      // Fetch profile to check onboarding status
+      // Fetch profile to check onboarding status + saved data
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('onboarding_completed, onboarding_step, onboarding_skipped_at, email, created_at')
+        .select('onboarding_completed, onboarding_step, onboarding_skipped_at, onboarding_data, email, created_at')
         .eq('id', user.id)
         .single();
 
@@ -139,8 +139,6 @@ export function useOnboarding() {
         return;
       }
 
-      // Note: Users with existing tenants are already filtered out at the top of this function
-
       // Show onboarding for new users or users who haven't completed setup
       const savedStep = profile?.onboarding_step || 1;
       
@@ -151,16 +149,31 @@ export function useOnboarding() {
       const partialProgress = !isNewUser && savedStep > 1;
       setHasPartialProgress(partialProgress);
       
+      // Restore saved onboarding data from database
+      const savedOnboardingData = (profile?.onboarding_data as Partial<OnboardingData>) || {};
+      const restoredData: OnboardingData = {
+        ...initialData,
+        ...savedOnboardingData,
+        email: savedOnboardingData.email || profile?.email || user.email || '',
+      };
+      
+      // Check if critical data is missing for a resumed session
+      const hasCriticalData = !partialProgress || (restoredData.shopName && restoredData.shopSlug);
+      
+      console.log('[Onboarding] checkOnboardingStatus: step=', startStep, 'hasCriticalData=', hasCriticalData, 'restoredData=', restoredData);
+      
       setState(prev => ({
         ...prev,
         currentStep: startStep,
         isOpen: true,
         isLoading: false,
-        data: {
-          ...prev.data,
-          email: profile?.email || user.email || '',
-        },
+        data: restoredData,
       }));
+      
+      // Flag if we have partial progress but missing critical data
+      if (partialProgress && !hasCriticalData) {
+        setHasPartialProgress(true); // Force dialog to show
+      }
     } catch (err) {
       console.error('Onboarding check error:', err);
       setState(prev => ({ ...prev, isLoading: false }));
@@ -171,13 +184,29 @@ export function useOnboarding() {
     checkOnboardingStatus();
   }, [checkOnboardingStatus]);
 
-  // Update data
+  // Persist onboarding data to database (debounced)
+  const persistOnboardingData = useCallback(async (data: OnboardingData) => {
+    if (!user) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update({ onboarding_data: data as any })
+        .eq('id', user.id);
+      console.log('[Onboarding] Data persisted to database');
+    } catch (err) {
+      console.warn('[Onboarding] Failed to persist data:', err);
+    }
+  }, [user]);
+
+  // Update data and persist to database
   const updateData = useCallback((updates: Partial<OnboardingData>) => {
-    setState(prev => ({
-      ...prev,
-      data: { ...prev.data, ...updates },
-    }));
-  }, []);
+    setState(prev => {
+      const newData = { ...prev.data, ...updates };
+      // Persist in background (non-blocking)
+      persistOnboardingData(newData);
+      return { ...prev, data: newData };
+    });
+  }, [persistOnboardingData]);
 
   // Go to next step
   const nextStep = useCallback(async () => {
@@ -273,6 +302,13 @@ export function useOnboarding() {
   const createTenant = useCallback(async () => {
     if (!user) return null;
 
+    // CRITICAL VALIDATION: Check if shopName and shopSlug are filled in
+    const { shopName, shopSlug } = state.data;
+    if (!shopName?.trim() || !shopSlug?.trim()) {
+      console.error('[Onboarding] createTenant: shopName or shopSlug is empty!', { shopName, shopSlug });
+      throw new Error('MISSING_SHOP_DATA');
+    }
+
     // CRITICAL: Verify session is valid BEFORE attempting database write
     console.log('[Onboarding] createTenant: verifying session...');
     const isAuthenticated = await ensureAuthenticated();
@@ -289,7 +325,7 @@ export function useOnboarding() {
       throw new Error('Je login e-mailadres ontbreekt. Log opnieuw in en probeer het nog eens.');
     }
 
-    const { shopName, shopSlug, businessName, email, address, postalCode, city, country, vatNumber, chamberOfCommerce } = state.data;
+    const { businessName, email, address, postalCode, city, country, vatNumber, chamberOfCommerce } = state.data;
 
     // ============================================
     // CRITICAL FIX: Get verified token and use explicit auth client
@@ -548,6 +584,12 @@ export function useOnboarding() {
     setState(prev => ({ ...prev, sessionExpired: false }));
   }, []);
 
+  // Check if critical data is missing (needed for resume dialog)
+  const isMissingCriticalData = useCallback(() => {
+    const { shopName, shopSlug } = state.data;
+    return !shopName?.trim() || !shopSlug?.trim();
+  }, [state.data]);
+
   return {
     ...state,
     hasPartialProgress,
@@ -568,5 +610,6 @@ export function useOnboarding() {
     refreshOnboarding: checkOnboardingStatus,
     handleSessionExpiredRelogin,
     clearSessionExpired,
+    isMissingCriticalData,
   };
 }
