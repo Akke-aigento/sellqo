@@ -1,75 +1,83 @@
 
-# Fix: Platform Admins Kunnen Geen Teamleden Uitnodigen voor Andere Tenants
+# Super Admin Rechten: Volledige Toegang Tot Alle Tenants
 
-## Probleem
+## Huidige Situatie
 
-De `send-team-invitation` edge function controleert of je admin bent door te zoeken naar een rol MET dezelfde `tenant_id`:
+Je hebt de `platform_admin` rol, maar die werkt niet zoals verwacht omdat:
 
-```typescript
-// HUIDIGE CODE (Lijn 55-60)
-const { data: userRole } = await supabase
-  .from("user_roles")
-  .select("role")
-  .eq("user_id", user.id)
-  .eq("tenant_id", tenantId)  // ❌ Platform admins hebben tenant_id = null!
-  .single();
-```
-
-Maar jouw `platform_admin` rol heeft `tenant_id = null` (platform-wide), dus de query vindt niets → "Not authorized".
+1. **Database functie probleem**: De `get_user_tenant_ids()` functie filtert op `tenant_id IS NOT NULL`, maar jouw platform_admin rol heeft `tenant_id = NULL`
+2. **RLS policies blokkeren je**: Veel tabellen (zoals `customer_messages`, `notifications`) gebruiken `tenant_id IN (get_user_tenant_ids())` - dit sluit platform admins uit
+3. **Edge functions inconsistent**: Sommige functies checken platform_admin correct, andere niet
 
 ## De Oplossing
 
-Update de autorisatie-check om:
-1. Eerst te controleren of de gebruiker een `platform_admin` is (met tenant_id = null)
-2. OF te controleren of ze `tenant_admin` zijn voor de specifieke tenant
+We passen de `get_user_tenant_ids()` functie aan zodat platform admins automatisch toegang krijgen tot ALLE tenants:
 
-### Code Wijziging
+### Stap 1: Database Functie Updaten
 
-**Bestand:** `supabase/functions/send-team-invitation/index.ts`
-
-**Lijn 54-64 vervangen met:**
-
-```typescript
-// Check if user is platform admin (can invite to any tenant)
-const { data: platformAdminRole } = await supabase
-  .from("user_roles")
-  .select("role")
-  .eq("user_id", user.id)
-  .eq("role", "platform_admin")
-  .is("tenant_id", null)
-  .maybeSingle();
-
-// If not platform admin, check if tenant admin for this specific tenant
-let isAuthorized = !!platformAdminRole;
-
-if (!isAuthorized) {
-  const { data: tenantRole } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("tenant_id", tenantId)
-    .eq("role", "tenant_admin")
-    .maybeSingle();
-    
-  isAuthorized = !!tenantRole;
-}
-
-if (!isAuthorized) {
-  throw new Error("Not authorized to invite users to this tenant");
-}
+Huidige code:
+```sql
+SELECT tenant_id
+FROM public.user_roles
+WHERE user_id = _user_id
+  AND tenant_id IS NOT NULL
 ```
+
+Nieuwe code:
+```sql
+-- Als platform admin: return alle tenant IDs
+IF EXISTS (
+  SELECT 1 FROM public.user_roles 
+  WHERE user_id = _user_id AND role = 'platform_admin'
+) THEN
+  RETURN QUERY SELECT id FROM public.tenants;
+ELSE
+  -- Normale gebruiker: alleen toegewezen tenants
+  RETURN QUERY SELECT tenant_id
+  FROM public.user_roles
+  WHERE user_id = _user_id
+    AND tenant_id IS NOT NULL;
+END IF;
+```
+
+### Waarom Dit Werkt
+
+Door de `get_user_tenant_ids()` functie aan te passen, krijgen platform admins automatisch toegang tot alle bestaande RLS policies zonder dat we elke policy individueel moeten aanpassen. Dit is de "single point of change" aanpak.
+
+| Tabel | Huidige Policy | Na Fix |
+|-------|----------------|--------|
+| customer_messages | Alleen eigen tenants | Alle tenants voor platform_admin |
+| notifications | Alleen eigen tenants | Alle tenants voor platform_admin |
+| orders, products, etc. | Alleen eigen tenants | Alle tenants voor platform_admin |
+
+### Stap 2: Bestaande Platform Admin Policies Behouden
+
+Sommige tabellen hebben al aparte `is_platform_admin()` checks:
+- `tenants` - al correct
+- `user_roles` - al correct  
+- `invoices`, `quotes`, etc. - al correct
+
+Deze blijven werken zoals ze zijn.
+
+### Stap 3: Edge Functions Audit (Optioneel)
+
+We hebben al `send-team-invitation` gefixt. Andere edge functions die mogelijk nog platform_admin check missen:
+- `accept-team-invitation` - controleert of user al in tenant zit
+- `create-addon-checkout` - controleert tenant access
+- `create-platform-bank-payment` - controleert tenant access
+
+Deze kunnen in een vervolgstap aangepakt worden als je er tegenaan loopt.
+
+## Resultaat Na Implementatie
+
+| Wat | Voorheen | Straks |
+|-----|----------|--------|
+| Inbox (customer_messages) | Geblokkeerd | Volledige toegang |
+| Notificaties | Geblokkeerd | Volledige toegang |
+| Team uitnodigen | Gefixed | Werkt |
+| Orders/Producten bekijken | Geblokkeerd | Volledige toegang |
+| Tenant settings aanpassen | Afhankelijk | Volledige toegang |
 
 ## Samenvatting
 
-| Wat | Wijziging |
-|-----|-----------|
-| Bestand | `supabase/functions/send-team-invitation/index.ts` |
-| Locatie | Lijn 54-64 |
-| Probleem | Query zoekt rol met specifieke tenant_id, maar platform_admin heeft tenant_id = null |
-| Oplossing | Twee-staps check: eerst platform_admin, dan tenant_admin |
-
-## Resultaat
-
-Na deze fix kunnen:
-- **Platform admins** teamleden uitnodigen voor **elke** tenant (inclusief Demo Bakkerij)
-- **Tenant admins** teamleden uitnodigen voor **hun eigen** tenant(s)
+Met één database migratie (update van `get_user_tenant_ids`) krijg je als platform admin automatisch volledige toegang tot alle tenant data, zonder elke RLS policy apart te moeten aanpassen. Dit is de meest elegante en onderhoudbare oplossing.
