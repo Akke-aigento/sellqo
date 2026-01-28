@@ -117,8 +117,9 @@ export function useInvoiceCompliance(): ComplianceResult {
         id: 'email',
         category: 'seller',
         label: 'E-mailadres',
-        passed: !!currentTenant.owner_email?.trim(),
-        value: currentTenant.owner_email || null,
+        // Use billing_email if set, otherwise fallback to owner_email
+        passed: !!(tenantData.billing_email?.trim() || currentTenant.owner_email?.trim()),
+        value: tenantData.billing_email || currentTenant.owner_email || null,
         required: true,
         severity: 'error',
       },

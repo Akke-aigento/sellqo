@@ -263,16 +263,24 @@ export function useOnboarding() {
   const createTenant = useCallback(async () => {
     if (!user) return null;
 
+    // CRITICAL: owner_email MUST be the login email for RLS to pass
+    const loginEmail = user.email;
+    if (!loginEmail) {
+      throw new Error('Je login e-mailadres ontbreekt. Log opnieuw in en probeer het nog eens.');
+    }
+
     const { shopName, shopSlug, businessName, email, address, postalCode, city, country, vatNumber, chamberOfCommerce } = state.data;
 
     try {
       // Create the tenant
+      // owner_email = login email (for RLS security check)
+      // billing_email = form email (for invoices/communication)
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
         .insert({
           name: shopName,
           slug: shopSlug,
-          owner_email: email || user.email || '',
+          owner_email: loginEmail, // Always use login email for RLS
           owner_name: businessName || shopName,
           address: address || null,
           postal_code: postalCode || null,
@@ -280,6 +288,9 @@ export function useOnboarding() {
           country: country || null,
           btw_number: vatNumber || null,
           kvk_number: chamberOfCommerce || null,
+          // Store form email as billing email (can differ from login)
+          billing_email: email || loginEmail,
+          billing_company_name: businessName || null,
         })
         .select()
         .single();
