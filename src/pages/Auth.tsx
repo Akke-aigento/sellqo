@@ -25,9 +25,10 @@ const signupSchema = loginSchema.extend({
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, signOut } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showAccountSwitch, setShowAccountSwitch] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -39,11 +40,10 @@ export default function Auth() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [signupFullName, setSignupFullName] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      navigate('/admin');
-    }
-  }, [user, navigate]);
+  const handleSwitchAccount = async () => {
+    await signOut();
+    setShowAccountSwitch(true);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +112,40 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show choice screen for logged-in users
+  if (user && !showAccountSwitch) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+        <div className="w-full max-w-md">
+          <div className="flex justify-center mb-8">
+            <SellqoLogo variant="tagline" width={280} />
+          </div>
+
+          <Card>
+            <CardHeader className="text-center">
+              <h2 className="text-xl font-semibold">Welkom terug!</h2>
+              <CardDescription>
+                Je bent ingelogd als {user.email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full" onClick={() => navigate('/admin')}>
+                Naar mijn dashboard
+              </Button>
+              <Button variant="outline" className="w-full" onClick={handleSwitchAccount}>
+                Wissel van account
+              </Button>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            Jouw webshop. Simpel online.
+          </p>
+        </div>
       </div>
     );
   }

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Loader2, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +29,8 @@ import {
 
 export function OnboardingWizard() {
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
 
@@ -111,6 +115,11 @@ export function OnboardingWizard() {
       title: 'Onboarding overgeslagen',
       description: 'Je kunt de wizard later opnieuw starten via instellingen.',
     });
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
   const handleComplete = async () => {
@@ -215,24 +224,36 @@ export function OnboardingWizard() {
         totalSteps={totalSteps}
         onContinue={handleContinueFromDialog}
         onRestart={handleRestartFromDialog}
+        onLogout={handleLogout}
       />
       {/* Full-screen overlay */}
       <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
         <Card className="w-full max-w-2xl h-[90vh] max-h-[90vh] grid grid-rows-[auto_auto_1fr] shadow-2xl overflow-hidden">
-          {/* Header with skip button */}
+          {/* Header with skip and logout buttons */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="text-sm font-medium text-muted-foreground">
               Nieuwe winkel instellen
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSkipDialog(true)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Overslaan
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Uitloggen
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSkipDialog(true)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Overslaan
+              </Button>
+            </div>
           </div>
 
           {/* Progress indicator */}
