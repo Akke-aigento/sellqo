@@ -195,8 +195,8 @@ export function OnboardingWizard() {
   return (
     <>
       {/* Full-screen overlay */}
-      <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <Card className="w-full max-w-2xl h-[90vh] max-h-[90vh] grid grid-rows-[auto_auto_1fr] shadow-2xl overflow-hidden">
           {/* Header with skip button */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="text-sm font-medium text-muted-foreground">
@@ -221,7 +221,7 @@ export function OnboardingWizard() {
           )}
 
           {/* Step content */}
-          <ScrollArea className="flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+          <ScrollArea className="min-h-0 h-full">
             <CardContent className="p-6">
               {isProcessing ? (
                 <div className="flex flex-col items-center justify-center py-12">
