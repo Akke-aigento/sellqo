@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthedClient } from '@/integrations/supabase/authedClient';
+import { restInsertSingle } from '@/integrations/supabase/authedRest';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
@@ -305,6 +306,19 @@ export function useOnboarding() {
     console.log('[Onboarding] createTenant: token obtained, creating authed client');
     const authedDb = getAuthedClient(accessToken);
 
+    // Quick sanity check: this MUST succeed if Authorization header is applied.
+    // If this returns 0 rows / errors, we know the request is effectively unauthenticated.
+    try {
+      const { data: profileCheck, error: profileCheckError } = await authedDb
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+      console.log('[Onboarding] createTenant: authed profile check ok:', !!profileCheck, profileCheckError?.code);
+    } catch (e) {
+      console.warn('[Onboarding] createTenant: authed profile check threw', e);
+    }
+
     const attemptCreate = async () => {
       // First check if tenant already exists (using authed client)
       console.log('[Onboarding] createTenant: checking for existing tenant...');
@@ -321,25 +335,35 @@ export function useOnboarding() {
 
       // owner_email = login email (for RLS security check)
       // billing_email = form email (for invoices/communication)
+      const payload = {
+        name: shopName,
+        slug: shopSlug,
+        owner_email: loginEmail, // Always use login email for RLS
+        owner_name: businessName || shopName,
+        address: address || null,
+        postal_code: postalCode || null,
+        city: city || null,
+        country: country || null,
+        btw_number: vatNumber || null,
+        kvk_number: chamberOfCommerce || null,
+        billing_email: email || loginEmail,
+        billing_company_name: businessName || null,
+      };
+
       console.log('[Onboarding] createTenant: inserting new tenant with explicit auth...');
       const { data: tenant, error: tenantError } = await authedDb
         .from('tenants')
-        .insert({
-          name: shopName,
-          slug: shopSlug,
-          owner_email: loginEmail, // Always use login email for RLS
-          owner_name: businessName || shopName,
-          address: address || null,
-          postal_code: postalCode || null,
-          city: city || null,
-          country: country || null,
-          btw_number: vatNumber || null,
-          kvk_number: chamberOfCommerce || null,
-          billing_email: email || loginEmail,
-          billing_company_name: businessName || null,
-        })
+        .insert(payload)
         .select()
         .single();
+
+      // If we still get an RLS error here, try a raw REST fallback with explicit Authorization header.
+      if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
+        console.warn('[Onboarding] createTenant: RLS error via supabase-js, trying REST fallback...');
+        const restTenant = await restInsertSingle<any>('tenants', accessToken, payload);
+        console.log('[Onboarding] createTenant: REST fallback succeeded:', restTenant?.id);
+        return { tenant: restTenant, tenantError: null, wasExisting: false };
+      }
 
       return { tenant, tenantError, wasExisting: false };
     };
