@@ -1,80 +1,120 @@
 
-# Payout Handlers Verplaatsen naar Platform Webhook
+# Stripe Webhook Testing Plan
 
-## Probleem
-Je hebt slechts één webhook geconfigureerd in Stripe: **"Sellqo Platform"** die wijst naar `platform-stripe-webhook`. De payout handlers die ik heb toegevoegd staan in `stripe-connect-webhook`, die niet actief is in Stripe.
+## Huidige Status: ✅ Configuratie Correct
 
-## Oplossing
-De payout event handlers verplaatsen van `stripe-connect-webhook` naar `platform-stripe-webhook`.
+Je Stripe webhook is correct ingesteld met alle 11 events:
+
+| Event | Functie |
+|-------|---------|
+| checkout.session.completed | Checkout afgerond → subscription created |
+| customer.subscription.created | Abonnement aangemaakt |
+| customer.subscription.updated | Abonnement gewijzigd |
+| customer.subscription.deleted | Abonnement geannuleerd |
+| customer.subscription.trial_will_end | Trial eindigt binnenkort |
+| invoice.paid | Factuur betaald |
+| invoice.payment_failed | Betaling mislukt |
+| **payout.created** | Uitbetaling gepland (nieuw) |
+| **payout.paid** | Uitbetaling ontvangen (nieuw) |
+| **payout.failed** | Uitbetaling mislukt (nieuw) |
+| **payout.canceled** | Uitbetaling geannuleerd (nieuw) |
 
 ---
 
-## Technische Wijzigingen
+## Belangrijke Bevinding
+
+Er is een kleine bug in de webhook code. De `sendPayoutNotification` functie zoekt naar `stripe_customer_id` in de `tenants` tabel als fallback, maar dit veld bestaat daar niet.
+
+**Oplossing nodig**: De fallback moet zoeken in `tenant_subscriptions` tabel (waar `stripe_customer_id` wél staat).
+
+---
+
+## Testing Stappen
+
+### Stap 1: Fix de Tenant Lookup
+
+De webhook code moet worden aangepast om correct de tenant te vinden:
+
+```text
+HUIDIG (fout):
+1. Zoek tenant via tenants.stripe_account_id ✅
+2. Zoek tenant via tenants.stripe_customer_id ❌ (bestaat niet)
+
+NIEUW (correct):
+1. Zoek tenant via tenants.stripe_account_id ✅
+2. Zoek tenant via tenant_subscriptions.stripe_customer_id ✅
+```
+
+### Stap 2: Test via Stripe Dashboard
+
+1. Ga naar **Developers > Webhooks** in Stripe
+2. Klik op je "Sellqo Platform" webhook
+3. Klik op **"Test webhook verzenden"**
+4. Selecteer `payout.paid` event
+5. Klik **"Test webhook verzenden"**
+
+### Stap 3: Verifieer in Edge Function Logs
+
+Na de test check je de logs voor:
+- `[PLATFORM-STRIPE-WEBHOOK] Processing event - {"type":"payout.paid"}`
+- `[PLATFORM-STRIPE-WEBHOOK] Sending payout notification`
+
+### Stap 4: Check Notificatie in Database
+
+Verifieer dat de notificatie is aangemaakt in de `notifications` tabel.
+
+---
+
+## Jouw Test Tenants
+
+Je hebt 2 tenants met Stripe Connect accounts die payout notificaties kunnen ontvangen:
+
+| Tenant | Stripe Account ID |
+|--------|-------------------|
+| SellQo | acct_1SuIYTRziCKgbo3A |
+| Demo Bakkerij | acct_1Sq805Rwtif7i2ny |
+
+---
+
+## Implementatie Wijzigingen
 
 ### Bestand: `supabase/functions/platform-stripe-webhook/index.ts`
 
-**Toevoegen:**
+**Huidige code (regel 46-52):**
+```typescript
+// Fallback to stripe_customer_id for platform payouts
+const { data: platformTenant } = await supabase
+  .from("tenants")
+  .select("id")
+  .eq("stripe_customer_id", stripeAccountId)
+  .single();
+```
 
-1. **Helper functie `sendPayoutNotification()`**
-   - Zoekt tenant via `stripe_customer_id` (in plaats van stripe_account_id)
-   - Roept `send_notification` RPC aan
-
-2. **Helper functies voor formatting:**
-   - `formatAmount()` - Converteert cents naar euros met symbool
-   - `formatDate()` - Formatteert timestamp naar NL-BE datum
-
-3. **Nieuwe case handlers in de switch:**
-
-```text
-case "payout.created":
-  → Notificatie: "Uitbetaling gepland: €X op DD-MM-YYYY"
-  → Type: payout_available
-  → Priority: medium
-
-case "payout.paid":
-  → Notificatie: "Uitbetaling ontvangen: €X"
-  → Type: payout_completed
-  → Priority: low
-
-case "payout.failed":
-  → Notificatie: "Uitbetaling mislukt - actie vereist"
-  → Type: stripe_account_issue
-  → Priority: urgent
-
-case "payout.canceled":
-  → Notificatie: "Uitbetaling geannuleerd: €X"
-  → Type: payout_available
-  → Priority: medium
+**Nieuwe code:**
+```typescript
+// Fallback to stripe_customer_id via tenant_subscriptions
+const { data: subscription } = await supabase
+  .from("tenant_subscriptions")
+  .select("tenant_id")
+  .eq("stripe_customer_id", stripeAccountId)
+  .single();
+tenantId = subscription?.tenant_id || null;
 ```
 
 ---
 
-## Belangrijk Verschil
+## Bonus: Test Notificatie Knop (Optioneel)
 
-**Platform webhook** gebruikt `stripe_customer_id` om tenants te vinden (voor platform subscriptions).
-
-Voor payouts moeten we tenants zoeken via `stripe_account_id` (Connect accounts).
-
-Dit betekent dat de helper functie moet checken op beide velden:
-1. Eerst `stripe_account_id` (voor Connect payouts van merchants)
-2. Dan `stripe_customer_id` (voor platform payouts naar het platform zelf)
+Na de fix kunnen we een "Test Payout Notificatie" knop toevoegen in de admin settings, zodat merchants hun notificatie-instellingen kunnen verifiëren zonder echte Stripe events.
 
 ---
 
-## Resultaat
+## Samenvatting Acties
 
-Na implementatie:
-- Payout events worden correct ontvangen door je bestaande webhook
-- Merchants krijgen automatisch notificaties over hun uitbetalingen
-- Geen nieuwe webhook nodig in Stripe Dashboard
-
----
-
-## Implementatie Stappen
-
-| Stap | Actie |
-|------|-------|
-| 1 | Helper functies toevoegen aan `platform-stripe-webhook` |
-| 2 | Payout case handlers toevoegen aan switch statement |
-| 3 | Edge function deployen |
-| 4 | Testen met "Send test webhook" in Stripe Dashboard |
+| # | Actie | Status |
+|---|-------|--------|
+| 1 | Webhook events toegevoegd in Stripe | ✅ Klaar |
+| 2 | Payout handlers in webhook | ✅ Klaar |
+| 3 | Fix tenant lookup fallback | 🔧 Nodig |
+| 4 | Test via Stripe Dashboard | ⏳ Na fix |
+| 5 | Verifieer notificaties | ⏳ Na test |
