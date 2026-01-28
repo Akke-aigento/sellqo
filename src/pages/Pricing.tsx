@@ -48,7 +48,7 @@ export default function PricingPage() {
 
   const handleSelectPlan = (planId: string) => {
     if (planId === 'enterprise') {
-      window.location.href = 'mailto:sales@sellqo.com?subject=Enterprise%20Plan';
+      window.location.href = 'mailto:sales@sellqo.app?subject=Enterprise%20Plan';
       return;
     }
     
