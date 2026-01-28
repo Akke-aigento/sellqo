@@ -68,6 +68,12 @@ interface AuthContextType {
    * If session is invalid, it will attempt to refresh, then force sign-out if that fails.
    */
   ensureAuthenticated: () => Promise<boolean>;
+  /**
+   * Gets a verified access token, optionally forcing a refresh first.
+   * Use this for critical database writes where you need to guarantee
+   * the Authorization header is present.
+   */
+  getVerifiedAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -174,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Ensures the user has a valid, non-expired session.
+   * Now includes server-side validation via getUser() to guarantee the token works.
    * Attempts to refresh if needed, forces sign-out on failure.
    */
   const ensureAuthenticated = useCallback(async (): Promise<boolean> => {
@@ -189,15 +196,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
     
-    // If we have a valid session with a user, we're good
+    // If we have a session, verify it's actually valid server-side
     if (currentSession?.user && currentSession.access_token) {
-      console.log('[Auth] ensureAuthenticated: valid session for', currentSession.user.email);
+      console.log('[Auth] ensureAuthenticated: session exists, verifying with server...');
+      
+      // getUser() makes a server call to verify the token
+      const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !verifiedUser) {
+        console.warn('[Auth] ensureAuthenticated: server rejected token, attempting refresh...', userError);
+        
+        // Token is stale, try to refresh
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          console.error('[Auth] ensureAuthenticated: refresh also failed', refreshError);
+          clearAuthStorage();
+          await supabase.auth.signOut();
+          toast({
+            title: 'Sessie verlopen',
+            description: 'Log opnieuw in om verder te gaan.',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        
+        console.log('[Auth] ensureAuthenticated: refresh succeeded after server rejection');
+        return true;
+      }
+      
+      console.log('[Auth] ensureAuthenticated: server verified session for', verifiedUser.email);
       return true;
     }
     
     // No session - try to refresh if we have storage (might be expired)
     if (hasStaleAuthStorage()) {
-      console.log('[Auth] ensureAuthenticated: attempting session refresh...');
+      console.log('[Auth] ensureAuthenticated: no session but storage exists, attempting refresh...');
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       
       if (refreshError || !refreshData.session) {
@@ -220,6 +254,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[Auth] ensureAuthenticated: no session found');
     return false;
   }, [toast]);
+
+  /**
+   * Gets a verified access token, optionally forcing a refresh first.
+   * Returns null if no valid token can be obtained.
+   * 
+   * Use this for critical database writes where you need to guarantee
+   * the Authorization header is present.
+   */
+  const getVerifiedAccessToken = useCallback(async (options?: { forceRefresh?: boolean }): Promise<string | null> => {
+    console.log('[Auth] getVerifiedAccessToken: starting...', options);
+    
+    // Optionally force a refresh first
+    if (options?.forceRefresh) {
+      console.log('[Auth] getVerifiedAccessToken: forcing token refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.warn('[Auth] getVerifiedAccessToken: refresh failed', refreshError);
+        // Don't return null yet - try getSession as fallback
+      } else if (refreshData.session?.access_token) {
+        // Verify the refreshed token works
+        const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+        if (verifiedUser && !userError) {
+          console.log('[Auth] getVerifiedAccessToken: refresh succeeded, token verified');
+          return refreshData.session.access_token;
+        }
+      }
+    }
+    
+    // Get current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session?.access_token) {
+      console.warn('[Auth] getVerifiedAccessToken: no session available');
+      return null;
+    }
+    
+    // Verify the token works server-side
+    const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !verifiedUser) {
+      console.warn('[Auth] getVerifiedAccessToken: token rejected by server', userError);
+      
+      // Last attempt: refresh and try again
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      if (refreshData.session?.access_token) {
+        const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser();
+        if (retryUser && !retryError) {
+          console.log('[Auth] getVerifiedAccessToken: got valid token after emergency refresh');
+          return refreshData.session.access_token;
+        }
+      }
+      
+      return null;
+    }
+    
+    console.log('[Auth] getVerifiedAccessToken: returning verified token for', verifiedUser.email);
+    return session.access_token;
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -315,6 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         ensureAuthenticated,
+        getVerifiedAccessToken,
       }}
     >
       {children}

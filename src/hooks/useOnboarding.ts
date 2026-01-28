@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthedClient } from '@/integrations/supabase/authedClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
@@ -65,7 +66,7 @@ const initialData: OnboardingData = {
 };
 
 export function useOnboarding() {
-  const { user, ensureAuthenticated, signOut } = useAuth();
+  const { user, ensureAuthenticated, getVerifiedAccessToken, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
@@ -288,10 +289,40 @@ export function useOnboarding() {
 
     const { shopName, shopSlug, businessName, email, address, postalCode, city, country, vatNumber, chamberOfCommerce } = state.data;
 
+    // ============================================
+    // CRITICAL FIX: Get verified token and use explicit auth client
+    // This ensures the Authorization header is ALWAYS present on the request
+    // ============================================
+    console.log('[Onboarding] createTenant: getting verified access token with force refresh...');
+    const accessToken = await getVerifiedAccessToken({ forceRefresh: true });
+    
+    if (!accessToken) {
+      console.error('[Onboarding] createTenant: could not get verified token, showing recovery dialog');
+      setState(prev => ({ ...prev, sessionExpired: true }));
+      throw new Error('SESSION_EXPIRED');
+    }
+    
+    console.log('[Onboarding] createTenant: token obtained, creating authed client');
+    const authedDb = getAuthedClient(accessToken);
+
     const attemptCreate = async () => {
+      // First check if tenant already exists (using authed client)
+      console.log('[Onboarding] createTenant: checking for existing tenant...');
+      const { data: existingCheck } = await authedDb
+        .from('tenants')
+        .select('id, name')
+        .eq('owner_email', loginEmail)
+        .limit(1);
+      
+      if (existingCheck && existingCheck.length > 0) {
+        console.log('[Onboarding] createTenant: existing tenant found, using it');
+        return { tenant: existingCheck[0], tenantError: null, wasExisting: true };
+      }
+
       // owner_email = login email (for RLS security check)
       // billing_email = form email (for invoices/communication)
-      const { data: tenant, error: tenantError } = await supabase
+      console.log('[Onboarding] createTenant: inserting new tenant with explicit auth...');
+      const { data: tenant, error: tenantError } = await authedDb
         .from('tenants')
         .insert({
           name: shopName,
@@ -310,22 +341,29 @@ export function useOnboarding() {
         .select()
         .single();
 
-      return { tenant, tenantError };
+      return { tenant, tenantError, wasExisting: false };
     };
 
     try {
-      let { tenant, tenantError } = await attemptCreate();
+      const { tenant, tenantError, wasExisting } = await attemptCreate();
 
       // ============================================
       // SUCCESS PATH - return immediately, no extra checks
       // ============================================
       if (tenant && !tenantError) {
-        console.log('[Onboarding] Tenant created successfully:', tenant.id);
+        console.log('[Onboarding] Tenant ' + (wasExisting ? 'found' : 'created') + ' successfully:', tenant.id);
+        
+        if (wasExisting) {
+          toast({
+            title: 'Bestaande winkel gevonden',
+            description: `Je bent gekoppeld aan ${tenant.name}.`,
+          });
+        }
         
         // Non-critical follow-up calls - wrapped in try/catch
         try {
           await refreshTenants();
-          setCurrentTenant(tenant);
+          setCurrentTenant(tenant as any);
         } catch (refreshError) {
           console.warn('[Onboarding] refreshTenants failed but tenant exists:', refreshError);
           // Continue anyway - tenant is created
@@ -349,54 +387,25 @@ export function useOnboarding() {
       }
 
       // ============================================
-      // ERROR PATH - check if tenant already exists FIRST
+      // ERROR PATH - this should be rare now with explicit auth
       // ============================================
       if (tenantError) {
-        console.warn('[Onboarding] Tenant creation error:', tenantError.code, tenantError.message);
+        console.error('[Onboarding] Tenant creation error (with explicit auth!):', tenantError.code, tenantError.message);
         
-        // FIRST: Check if tenant already exists (common after retry scenarios)
-        const { data: existingTenants } = await supabase
-          .from('tenants')
-          .select('id, name')
-          .eq('owner_email', loginEmail)
-          .limit(1);
-
-        if (existingTenants && existingTenants.length > 0) {
-          // Tenant exists! Use it and continue - NO session dialog needed
-          const foundTenant = existingTenants[0];
-          console.log('[Onboarding] Found existing tenant:', foundTenant.id, foundTenant.name);
-          
-          try {
-            await refreshTenants();
-          } catch (e) {
-            console.warn('[Onboarding] refreshTenants failed but tenant exists:', e);
-          }
-          
-          setCurrentTenant(foundTenant as any);
-          setState(prev => ({ ...prev, createdTenantId: foundTenant.id }));
-
-          toast({
-            title: 'Bestaande winkel gevonden',
-            description: `Je bent gekoppeld aan ${foundTenant.name}.`,
-          });
-
-          return foundTenant;
-        }
-
-        // SECOND: If RLS error and no existing tenant, check if it's a session issue
+        // If RLS error even with explicit auth, this is a genuine issue
         if (tenantError.code === '42501' || tenantError.message?.includes('row-level security')) {
-          console.warn('[Onboarding] RLS violation - verifying session validity...');
+          console.error('[Onboarding] RLS error despite explicit token - checking if session is truly valid...');
           
+          // Double-check: can we actually verify the user?
           const stillAuthenticated = await ensureAuthenticated();
           if (!stillAuthenticated) {
-            console.error('[Onboarding] Session confirmed invalid');
+            console.error('[Onboarding] Session confirmed invalid after all');
             setState(prev => ({ ...prev, sessionExpired: true }));
             throw new Error('SESSION_EXPIRED');
           }
           
-          // Session is valid but RLS still failing - log but DON'T show session dialog
-          // This is a genuine RLS configuration issue, not a session problem
-          console.error('[Onboarding] RLS error with valid session - this is unexpected:', tenantError);
+          // Session is valid but RLS still failing - this is a genuine RLS config issue
+          console.error('[Onboarding] RLS error with verified session - genuine policy issue');
         }
         
         // Throw the original error for proper handling
@@ -416,7 +425,7 @@ export function useOnboarding() {
       
       throw error;
     }
-  }, [user, state.data, ensureAuthenticated, refreshTenants, setCurrentTenant, toast]);
+  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, toast]);
 
   // Update tenant with logo
   const updateTenantLogo = useCallback(async (logoUrl: string) => {
