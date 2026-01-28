@@ -74,6 +74,9 @@ export function useOnboarding() {
     createdTenantId: null,
     createdProductId: null,
   });
+  
+  // Track if user had partial progress when loading
+  const [hasPartialProgress, setHasPartialProgress] = useState(false);
 
   // Check if user needs onboarding
   const checkOnboardingStatus = useCallback(async () => {
@@ -140,6 +143,10 @@ export function useOnboarding() {
       
       // Force step 1 for brand new users
       const startStep = isNewUser ? 1 : savedStep;
+      
+      // Track if returning user has partial progress (not brand new, step > 1)
+      const partialProgress = !isNewUser && savedStep > 1;
+      setHasPartialProgress(partialProgress);
       
       setState(prev => ({
         ...prev,
@@ -392,8 +399,15 @@ export function useOnboarding() {
     return !data || data.length === 0;
   }, []);
 
+  // Function to clear partial progress flag (after user makes choice)
+  const clearPartialProgress = useCallback(() => {
+    setHasPartialProgress(false);
+  }, []);
+
   return {
     ...state,
+    hasPartialProgress,
+    clearPartialProgress,
     updateData,
     nextStep,
     prevStep,
