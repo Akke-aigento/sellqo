@@ -51,15 +51,31 @@ serve(async (req) => {
 
     const { email, role, tenantId }: InvitationRequest = await req.json();
 
-    // Verify user is admin of this tenant
-    const { data: userRole, error: roleError } = await supabase
+    // Check if user is platform admin (can invite to any tenant)
+    const { data: platformAdminRole } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("tenant_id", tenantId)
-      .single();
+      .eq("role", "platform_admin")
+      .is("tenant_id", null)
+      .maybeSingle();
 
-    if (roleError || !userRole || !['tenant_admin', 'platform_admin'].includes(userRole.role)) {
+    // If not platform admin, check if tenant admin for this specific tenant
+    let isAuthorized = !!platformAdminRole;
+
+    if (!isAuthorized) {
+      const { data: tenantRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .eq("role", "tenant_admin")
+        .maybeSingle();
+        
+      isAuthorized = !!tenantRole;
+    }
+
+    if (!isAuthorized) {
       throw new Error("Not authorized to invite users to this tenant");
     }
 
