@@ -25,6 +25,9 @@ interface Tenant {
   tax_percentage: number;
   created_at: string;
   updated_at: string;
+  // Billing details (can differ from owner/login)
+  billing_email?: string | null;
+  billing_company_name?: string | null;
   // Demo and internal flags
   is_demo?: boolean;
   is_internal_tenant?: boolean;

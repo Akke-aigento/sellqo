@@ -90,10 +90,10 @@ export function BusinessDetailsStep({
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label htmlFor="email">E-mailadres *</Label>
+              <Label htmlFor="email">E-mailadres voor facturen *</Label>
               <OnboardingTooltip
-                title="E-mailadres"
-                content="Dit e-mailadres wordt gebruikt voor bestellingen, facturen en klantcommunicatie."
+                title="E-mailadres voor facturen"
+                content="Dit e-mailadres wordt gebruikt voor bestellingen, facturen en klantcommunicatie. Dit hoeft niet hetzelfde te zijn als je login e-mailadres."
               />
             </div>
             <Input
