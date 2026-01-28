@@ -7,6 +7,73 @@ const logStep = (step: string, details?: any) => {
   console.log(`[PLATFORM-STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
+// Helper: Format amount from cents to euros
+const formatAmount = (amountInCents: number, currency: string = 'eur'): string => {
+  const amount = amountInCents / 100;
+  const symbol = currency.toLowerCase() === 'eur' ? '€' : currency.toUpperCase() + ' ';
+  return `${symbol}${amount.toFixed(2).replace('.', ',')}`;
+};
+
+// Helper: Format date to NL-BE format
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+// Helper: Send payout notification to tenant
+const sendPayoutNotification = async (
+  supabase: any,
+  stripeAccountId: string,
+  type: string,
+  title: string,
+  message: string,
+  priority: string,
+  data: Record<string, unknown>
+) => {
+  // Find tenant by stripe_account_id (Connect) or stripe_customer_id (Platform)
+  let tenantId: string | null = null;
+  
+  // First try stripe_account_id for Connect merchants
+  const { data: connectTenant } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("stripe_account_id", stripeAccountId)
+    .single();
+  
+  if (connectTenant?.id) {
+    tenantId = connectTenant.id;
+  } else {
+    // Fallback to stripe_customer_id for platform payouts
+    const { data: platformTenant } = await supabase
+      .from("tenants")
+      .select("id")
+      .eq("stripe_customer_id", stripeAccountId)
+      .single();
+    tenantId = platformTenant?.id || null;
+  }
+  
+  if (!tenantId) {
+    logStep("Tenant not found for payout notification", { stripeAccountId });
+    return;
+  }
+
+  logStep("Sending payout notification", { tenantId, type, title });
+
+  // Use invoke to call the create-notification function
+  await supabase.functions.invoke("create-notification", {
+    body: {
+      tenant_id: tenantId,
+      category: "payments",
+      type,
+      title,
+      message,
+      priority,
+      action_url: "/admin/payouts",
+      data,
+    },
+  });
+};
+
 serve(async (req) => {
   try {
     logStep("Webhook received");
@@ -271,6 +338,115 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         logStep("Checkout completed", { sessionId: session.id });
         // Subscription is automatically handled by subscription.created event
+        break;
+      }
+
+      // ============================================
+      // PAYOUT EVENTS (Stripe Connect)
+      // ============================================
+
+      case "payout.created": {
+        const payout = event.data.object as Stripe.Payout;
+        const stripeAccountId = event.account || payout.destination as string;
+        
+        if (stripeAccountId) {
+          const amount = formatAmount(payout.amount, payout.currency);
+          const arrivalDate = payout.arrival_date ? formatDate(payout.arrival_date) : "binnenkort";
+          
+          await sendPayoutNotification(
+            supabase,
+            stripeAccountId,
+            "payout_available",
+            `Uitbetaling gepland: ${amount}`,
+            `Je uitbetaling van ${amount} wordt verwacht op ${arrivalDate}.`,
+            "medium",
+            {
+              payout_id: payout.id,
+              amount: payout.amount,
+              currency: payout.currency,
+              arrival_date: arrivalDate,
+            }
+          );
+          logStep("Payout created notification sent", { payoutId: payout.id, amount });
+        }
+        break;
+      }
+
+      case "payout.paid": {
+        const payout = event.data.object as Stripe.Payout;
+        const stripeAccountId = event.account || payout.destination as string;
+        
+        if (stripeAccountId) {
+          const amount = formatAmount(payout.amount, payout.currency);
+          
+          await sendPayoutNotification(
+            supabase,
+            stripeAccountId,
+            "payout_completed",
+            `Uitbetaling ontvangen: ${amount}`,
+            `Je uitbetaling van ${amount} is succesvol verwerkt en staat op je bankrekening.`,
+            "low",
+            {
+              payout_id: payout.id,
+              amount: payout.amount,
+              currency: payout.currency,
+            }
+          );
+          logStep("Payout paid notification sent", { payoutId: payout.id, amount });
+        }
+        break;
+      }
+
+      case "payout.failed": {
+        const payout = event.data.object as Stripe.Payout;
+        const stripeAccountId = event.account || payout.destination as string;
+        
+        if (stripeAccountId) {
+          const amount = formatAmount(payout.amount, payout.currency);
+          const failureMessage = payout.failure_message || "Onbekende fout";
+          
+          await sendPayoutNotification(
+            supabase,
+            stripeAccountId,
+            "stripe_account_issue",
+            `Uitbetaling mislukt: ${amount}`,
+            `Je uitbetaling van ${amount} is mislukt. Reden: ${failureMessage}. Controleer je bankgegevens in Stripe.`,
+            "urgent",
+            {
+              payout_id: payout.id,
+              amount: payout.amount,
+              currency: payout.currency,
+              failure_code: payout.failure_code,
+              failure_message: failureMessage,
+            }
+          );
+          logStep("Payout failed notification sent", { payoutId: payout.id, amount, failureMessage });
+        }
+        break;
+      }
+
+      case "payout.canceled": {
+        const payout = event.data.object as Stripe.Payout;
+        const stripeAccountId = event.account || payout.destination as string;
+        
+        if (stripeAccountId) {
+          const amount = formatAmount(payout.amount, payout.currency);
+          
+          await sendPayoutNotification(
+            supabase,
+            stripeAccountId,
+            "payout_available",
+            `Uitbetaling geannuleerd: ${amount}`,
+            `Je uitbetaling van ${amount} is geannuleerd. Het saldo blijft beschikbaar voor een volgende uitbetaling.`,
+            "medium",
+            {
+              payout_id: payout.id,
+              amount: payout.amount,
+              currency: payout.currency,
+            }
+          );
+          logStep("Payout canceled notification sent", { payoutId: payout.id, amount });
+        }
         break;
       }
 
