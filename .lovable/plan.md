@@ -1,171 +1,80 @@
 
-# Uitbreiding Betalingsinfrastructuur Plan
+# Payout Handlers Verplaatsen naar Platform Webhook
 
-Dit plan integreert drie nieuwe features in het bestaande betalingssysteem:
-1. **CSV Reconciliatie voor klant-orders** (naast platform payments)
-2. **Notificaties voor uitbetalingen** (payout events)
-3. **Bonus: Stripe payout webhook handler**
+## Probleem
+Je hebt slechts één webhook geconfigureerd in Stripe: **"Sellqo Platform"** die wijst naar `platform-stripe-webhook`. De payout handlers die ik heb toegevoegd staan in `stripe-connect-webhook`, die niet actief is in Stripe.
 
----
-
-## 1. CSV Bank Reconciliatie Uitbreiden voor Klant-Orders
-
-### Huidige Situatie
-De `BankReconciliationUpload.tsx` component matcht momenteel alleen tegen `pending_platform_payments` tabel (platform eigen betalingen voor AI credits/add-ons).
-
-### Uitbreiding
-Klant-orders hebben ook een `ogm_reference` kolom in de `orders` tabel. De reconciliatie moet nu ook openstaande klantorders matchen.
-
-### Wijzigingen
-
-**Bestand: `src/components/admin/BankReconciliationUpload.tsx`**
-
-```text
-Huidige flow:
-┌─────────────────┐     ┌──────────────────────────────┐
-│ CSV Bank Export │ --> │ Match tegen platform_payments │
-└─────────────────┘     └──────────────────────────────┘
-
-Nieuwe flow:
-┌─────────────────┐     ┌──────────────────────────────┐
-│ CSV Bank Export │ --> │ 1. Match tegen orders         │
-│                 │     │ 2. Match tegen platform_pay.  │
-└─────────────────┘     └──────────────────────────────┘
-```
-
-**Logica aanpassingen:**
-1. Eerst controleren in `orders` tabel waar:
-   - `payment_method = 'bank_transfer'`
-   - `payment_status = 'awaiting_payment'` of `pending`
-   - `ogm_reference` = OGM uit bankafschrift
-2. Bij match: order bijwerken naar `payment_status = 'paid'`
-3. Audit log aanmaken in `payment_confirmations` tabel
-4. Indien geen order match, dan terugvallen op `pending_platform_payments`
-
-**Nieuwe ReconciliationResult statuses:**
-- `matched_order` - Klantorder gematcht
-- `matched_platform` - Platform payment gematcht
-- `not_found` - Geen match
-- `error` - Fout
+## Oplossing
+De payout event handlers verplaatsen van `stripe-connect-webhook` naar `platform-stripe-webhook`.
 
 ---
 
-## 2. Notificaties voor Uitbetalingen
+## Technische Wijzigingen
 
-### Bestaande Infrastructuur
-Het notificatiesysteem is volledig geïmplementeerd:
-- `send_notification()` database function
-- `notifications` tabel met RLS
-- `useNotifications()` hook met realtime updates
-- Notification types al gedefinieerd in `src/types/notification.ts`:
-  - `payout_available` - Uitbetaling beschikbaar
-  - `payout_completed` - Uitbetaling voltooid
+### Bestand: `supabase/functions/platform-stripe-webhook/index.ts`
 
-### Nieuwe Webhook Events
+**Toevoegen:**
 
-**Bestand: `supabase/functions/stripe-connect-webhook/index.ts`**
+1. **Helper functie `sendPayoutNotification()`**
+   - Zoekt tenant via `stripe_customer_id` (in plaats van stripe_account_id)
+   - Roept `send_notification` RPC aan
 
-Toevoegen van handlers voor:
+2. **Helper functies voor formatting:**
+   - `formatAmount()` - Converteert cents naar euros met symbool
+   - `formatDate()` - Formatteert timestamp naar NL-BE datum
+
+3. **Nieuwe case handlers in de switch:**
 
 ```text
 case "payout.created":
   → Notificatie: "Uitbetaling gepland: €X op DD-MM-YYYY"
-  → Type: payout_available, Priority: medium
+  → Type: payout_available
+  → Priority: medium
 
 case "payout.paid":
   → Notificatie: "Uitbetaling ontvangen: €X"
-  → Type: payout_completed, Priority: low
+  → Type: payout_completed
+  → Priority: low
 
 case "payout.failed":
   → Notificatie: "Uitbetaling mislukt - actie vereist"
-  → Type: stripe_account_issue, Priority: urgent
-```
+  → Type: stripe_account_issue
+  → Priority: urgent
 
-**Helper functie toevoegen:**
-```typescript
-async function sendPayoutNotification(
-  supabase: SupabaseClient,
-  stripeAccountId: string,
-  type: string,
-  title: string,
-  message: string,
-  priority: string,
-  data: Record<string, unknown>
-) {
-  // Vind tenant via stripe_account_id
-  // Roep send_notification RPC aan
-}
+case "payout.canceled":
+  → Notificatie: "Uitbetaling geannuleerd: €X"
+  → Type: payout_available
+  → Priority: medium
 ```
 
 ---
 
-## 3. Bonus: Stripe Webhook Registratie Instructies
+## Belangrijk Verschil
 
-De webhook moet geconfigureerd worden om payout events te ontvangen:
+**Platform webhook** gebruikt `stripe_customer_id` om tenants te vinden (voor platform subscriptions).
 
-**Events toe te voegen in Stripe Dashboard:**
-- `payout.created`
-- `payout.paid`
-- `payout.failed`
-- `payout.canceled`
+Voor payouts moeten we tenants zoeken via `stripe_account_id` (Connect accounts).
 
----
-
-## Implementatie Details
-
-### Database Wijzigingen
-Geen database migraties nodig - alle tabellen bestaan al:
-- `orders.ogm_reference` ✅
-- `payment_confirmations` ✅
-- `notifications` ✅
-- `send_notification()` function ✅
-
-### Bestanden te Wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/admin/BankReconciliationUpload.tsx` | Uitbreiden met orders matching |
-| `supabase/functions/stripe-connect-webhook/index.ts` | Payout event handlers toevoegen |
-
-### UI Verbetering
-
-**Reconciliatie resultaten tabel uitbreiden:**
-
-```text
-┌─────────┬─────────┬────────────┬──────────────────┬─────────┐
-│ Datum   │ Bedrag  │ OGM        │ Type             │ Status  │
-├─────────┼─────────┼────────────┼──────────────────┼─────────┤
-│ 27-01   │ €89,00  │ +++123/... │ 🛒 Klant Order   │ ✅ OK   │
-│ 26-01   │ €25,00  │ +++456/... │ 🏢 AI Credits    │ ✅ OK   │
-│ 26-01   │ €45,00  │ (geen)     │ -                │ ❌ Geen │
-└─────────┴─────────┴────────────┴──────────────────┴─────────┘
-```
+Dit betekent dat de helper functie moet checken op beide velden:
+1. Eerst `stripe_account_id` (voor Connect payouts van merchants)
+2. Dan `stripe_customer_id` (voor platform payouts naar het platform zelf)
 
 ---
 
-## Samenvatting Deliverables
+## Resultaat
 
-1. **CSV Reconciliatie v2**
-   - Matcht nu ook klant-orders via OGM
-   - Duidelijke visuele indicatie van type match
-   - Audit trail via `payment_confirmations`
-
-2. **Payout Notificaties**
-   - Automatische meldingen bij uitbetalingen
-   - Urgente alerts bij mislukte uitbetalingen
-   - Geïntegreerd met bestaand notificatiesysteem
-
-3. **Verbeterde Webhook**
-   - Volledige payout lifecycle tracking
-   - Robuuste tenant lookup via stripe_account_id
+Na implementatie:
+- Payout events worden correct ontvangen door je bestaande webhook
+- Merchants krijgen automatisch notificaties over hun uitbetalingen
+- Geen nieuwe webhook nodig in Stripe Dashboard
 
 ---
 
-## Geschatte Tijdsinvestering
+## Implementatie Stappen
 
-| Feature | Tijd |
-|---------|------|
-| CSV reconciliatie uitbreiden | ~2 uur |
-| Payout webhook handlers | ~1 uur |
-| Testing & QA | ~1 uur |
-| **Totaal** | **~4 uur** |
+| Stap | Actie |
+|------|-------|
+| 1 | Helper functies toevoegen aan `platform-stripe-webhook` |
+| 2 | Payout case handlers toevoegen aan switch statement |
+| 3 | Edge function deployen |
+| 4 | Testen met "Send test webhook" in Stripe Dashboard |
