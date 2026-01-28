@@ -1,58 +1,76 @@
 
-Doel
-- Onboarding wizard moet op alle stappen (Welkom t/m Betalingen) altijd kunnen scrollen wanneer de content hoger is dan het scherm.
+<context>
+Gebruiker kan in onboarding stap “Bedrijfsgegevens” nog steeds niet verder/opslaan. Screenshot laat in console en toast zien:
+- 403 (Forbidden) bij POST naar `tenants`
+- `new row violates row-level security policy for table "tenants"`
 
-Wat er nu misgaat (waarschijnlijk)
-- De wizard gebruikt een Radix `ScrollArea` in een flex-layout waarbij de hoogte niet “hard” wordt vastgezet (Card heeft alleen `max-h-[90vh]`).
-- In zo’n situatie kan de `ScrollArea` eindigen met een “auto”-hoogte die groter wordt dan bedoeld, waardoor Radix geen echte overflow/scrollbar activeert en de content simpelweg wordt afgeknipt door `overflow-hidden` op de Card.
-- De eerdere fix met `max-h-[calc(...)]` is kwetsbaar (magic number) en lost dit niet stabiel op voor alle viewports/stappen.
+We hebben al een RLS-policy die bij INSERT controleert:
+`can_create_first_tenant(auth.uid(), owner_email) OR is_platform_admin(auth.uid())`
 
-Oplossing (robust, zonder magic numbers)
-- De wizard-card krijgt een expliciete hoogte (90vh) zodat er altijd een duidelijke “box” is waarbinnen de content moet passen.
-- De card-layout wordt omgezet naar CSS Grid met 3 rijen:
-  1) Header (auto)
-  2) Progress (auto)
-  3) Content (1fr)
-- De `ScrollArea` komt in rij 3 en krijgt `min-h-0` (cruciaal in grid/flex om overflow toe te laten), zodat Radix altijd de juiste viewport-hoogte heeft en scrolling gegarandeerd werkt.
-- Extra fallback: de overlay krijgt `overflow-y-auto` zodat, als het scherm extreem klein is, je alsnog kunt scrollen.
+`can_create_first_tenant()` eist dat `owner_email` exact gelijk is aan het e-mailadres in de login-JWT.
+</context>
 
-Concrete wijzigingen (frontend)
-1) Bestand: `src/components/onboarding/OnboardingWizard.tsx`
-   - Overlay wrapper:
-     - Voeg `overflow-y-auto` toe (en eventueel `py-4`) zodat de volledige overlay kan scrollen op kleine schermen.
-   - Card container:
-     - Wijzig className van:
-       - `max-h-[90vh] flex flex-col ... overflow-hidden`
-     - Naar bijvoorbeeld:
-       - `h-[90vh] max-h-[90vh] grid grid-rows-[auto,auto,1fr] ... overflow-hidden`
-   - Progress blok:
-     - Kan conditioneel blijven; als het niet gerenderd wordt (stap 7), wordt rij 2 automatisch “0 hoog” (geen probleem).
-   - ScrollArea:
-     - Vervang de huidige `ScrollArea` className:
-       - van: `flex-1 min-h-0 max-h-[calc(90vh-180px)]`
-       - naar: `min-h-0 h-full` (en géén calc).
-     - (Optioneel) `type="auto"` expliciet zetten, maar meestal niet nodig.
+<root-cause>
+In `useOnboarding.createTenant()` wordt `owner_email` gezet op `state.data.email` (het e-mailadres dat je in het formulier “Bedrijfsgegevens” invult):
 
-Waarom dit werkt
-- `h-[90vh]` op de Card maakt de beschikbare hoogte deterministisch.
-- `grid-rows-[auto,auto,1fr]` garandeert dat de content-zone exact de resterende hoogte krijgt.
-- `min-h-0` op de scroll container zorgt dat het element daadwerkelijk mág krimpen (anders blijft overflow vaak “vastzitten” en werkt scroll niet).
-- Geen vaste “180px” offsets meer, dus het blijft correct als header/progress padding wijzigt.
+```ts
+owner_email: email || user.email || ''
+```
 
-Testplan (end-to-end)
-- Desktop (zoals je screenshot):
-  - Open onboarding → stap 2 planselectie → scroll met muiswiel/trackpad: je moet de volledige kaarten (incl. knoppen onderaan) kunnen bereiken.
-  - Stap 3 bedrijfsgegevens → scroll tot de knoppen; inputs blijven bereikbaar.
-  - Stap 5 product → scroll tot image/velden/knoppen.
-- Kleinere viewport (responsive):
-  - Zet browserhoogte kleiner → check dat je nog steeds overal kunt scrollen (ofwel binnen de content-zone, of via overlay fallback).
-- Controle:
-  - Header + progress blijven “vast” (niet meegescrolled), alleen de stapcontent scrolt.
+Als de gebruiker in stap 3 een “bedrijf/contact e-mail” invult die afwijkt van het login e-mailadres, dan faalt de RLS-check en wordt de insert geblokkeerd. Dit verklaart exact de “new row violates row-level security policy … tenants” fout.
 
-Risico’s / aandachtspunten
-- Als een stap zelf een eigen scroll container heeft (zeldzaam), kan “nested scroll” vreemd aanvoelen. Voor nu zie ik in de steps geen extra scroll-wrappers, dus dit is veilig.
-- Als je stap 7 (Launch) juist volledig “zonder scroll” wil, blijft dit ook goed: content is meestal kort en de ScrollArea zal dan gewoon geen scrollbar tonen.
+Belangrijk: `owner_email` is in de database NOT NULL en wordt (in RLS) gebruikt om te bewijzen dat de ingelogde gebruiker deze tenant mag aanmaken. Het formulier gebruikt dit veld nu ook als “factuur/klant-communicatie e-mail”, maar dat botst met de security-regel.
+</root-cause>
 
-Wat ik na jouw goedkeuring ga doen
-- Alleen `OnboardingWizard.tsx` aanpassen volgens bovenstaande (grid layout + harde hoogte + min-h-0 + overlay overflow fallback).
-- Daarna end-to-end scrollen controleren op stap 2/3/5.
+<goal>
+- Gebruiker moet altijd door stap “Bedrijfsgegevens” kunnen gaan, ook als het factuur/contact e-mailadres anders is dan de login.
+- Security blijft intact (alleen ingelogde gebruiker kan hun eerste tenant aanmaken).
+- Het ingevoerde factuur/contact e-mailadres blijft wel opgeslagen (maar niet in `owner_email`).
+</goal>
+
+<plan>
+1) Code-fix: `useOnboarding.createTenant()` corrigeren (geen database changes nodig)
+   - Zet `owner_email` altijd op het login e-mailadres (`user.email`).
+   - Sla het e-mailadres uit de onboarding (“voor facturen/klantcommunicatie”) op in een passend veld op `tenants`:
+     - Gebruik `billing_email` (bestaat al in `tenants`).
+   - (Optioneel, maar logisch) vul ook:
+     - `billing_company_name` = `businessName`
+     - `billing_vat_number` = `vatNumber`
+     - `billing_address` (json) = `{ street: address, postal_code, city, country }` (alleen als we zeker zijn dat dit nergens anders een andere structuur verwacht; anders laten we dit weg).
+   - Voeg defensieve check toe: als `user.email` ontbreekt, toon een duidelijke foutmelding (“Je login e-mailadres ontbreekt, log opnieuw in”).
+
+2) UI-clarificatie (klein, maar voorkomt herhaling)
+   - Pas tekst/tooltip in `BusinessDetailsStep` aan zodat duidelijk is:
+     - Dit e-mailadres is voor facturen/communicatie
+     - Het hoeft niet hetzelfde te zijn als je login e-mailadres
+
+3) Compliance/validatie (optioneel maar aanbevolen om consistent te blijven)
+   - In `useInvoiceCompliance` wordt nu `currentTenant.owner_email` gebruikt als “E-mailadres” requirement.
+   - Update dit naar:
+     - `billing_email` als die bestaat, anders fallback naar `owner_email`.
+   - Update `Tenant` type in `useTenant.tsx` om `billing_email?: string | null` (en evt. `billing_company_name?: string | null`) toe te voegen, zodat we dit netjes kunnen gebruiken zonder `any`.
+
+4) Testplan (end-to-end)
+   - Log in met e-mailadres A.
+   - Start onboarding:
+     - Vul bij “Bedrijfsgegevens” e-mailadres B in (anders dan A).
+     - Klik “Volgende stap”.
+     - Verwacht: tenant wordt aangemaakt zonder RLS error; onboarding gaat door naar logo stap.
+   - Controleer in de app (tenant context / instellingen):
+     - `owner_email` = login e-mail A
+     - `billing_email` = ingevoerd e-mail B
+   - Controleer dat bestaande tenant-admin flows (tenants ophalen, wisselen, etc.) niet breken.
+
+</plan>
+
+<files-to-change>
+- `src/hooks/useOnboarding.ts` (createTenant: owner_email vs billing_email mapping)
+- `src/components/onboarding/steps/BusinessDetailsStep.tsx` (copy/tooltip verduidelijking)
+- `src/hooks/useInvoiceCompliance.ts` (valideer billing_email i.p.v. owner_email, met fallback)
+- `src/hooks/useTenant.tsx` (Tenant interface uitbreiden met billing_email (+ evt. billing_company_name))
+</files-to-change>
+
+<why-this-is-safe>
+- We houden de bestaande RLS-policy intact: hij blijft checken dat `owner_email` matcht met login. We passen alleen de app-code aan zodat die regel altijd wordt gerespecteerd.
+- Het “bedrijf/contact e-mailadres” blijft bewaard via `billing_email`, zonder security-conflict.
+</why-this-is-safe>
