@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export interface OnboardingData {
   // Step 1: Welcome
@@ -38,6 +39,7 @@ interface OnboardingState {
   data: OnboardingData;
   createdTenantId: string | null;
   createdProductId: string | null;
+  sessionExpired: boolean;
 }
 
 const TOTAL_STEPS = 7;
@@ -63,8 +65,9 @@ const initialData: OnboardingData = {
 };
 
 export function useOnboarding() {
-  const { user } = useAuth();
+  const { user, ensureAuthenticated, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
   
   const [state, setState] = useState<OnboardingState>({
@@ -75,6 +78,7 @@ export function useOnboarding() {
     data: initialData,
     createdTenantId: null,
     createdProductId: null,
+    sessionExpired: false,
   });
   
   // Track if user had partial progress when loading
@@ -266,6 +270,16 @@ export function useOnboarding() {
   const createTenant = useCallback(async () => {
     if (!user) return null;
 
+    // CRITICAL: Verify session is valid BEFORE attempting database write
+    console.log('[Onboarding] createTenant: verifying session...');
+    const isAuthenticated = await ensureAuthenticated();
+    
+    if (!isAuthenticated) {
+      console.error('[Onboarding] createTenant: session invalid, showing recovery dialog');
+      setState(prev => ({ ...prev, sessionExpired: true }));
+      throw new Error('SESSION_EXPIRED');
+    }
+
     // CRITICAL: owner_email MUST be the login email for RLS to pass
     const loginEmail = user.email;
     if (!loginEmail) {
@@ -302,17 +316,27 @@ export function useOnboarding() {
     try {
       let { tenant, tenantError } = await attemptCreate();
 
-      // If RLS policy violation (403 / 42501), try to repair orphaned roles and retry
+      // If RLS policy violation (403 / 42501), it's likely a session issue
       if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
-        console.log('RLS violation on tenant create – attempting repair...');
+        console.warn('[Onboarding] RLS violation detected - likely session issue');
         
+        // Double-check session is still valid
+        const stillAuthenticated = await ensureAuthenticated();
+        if (!stillAuthenticated) {
+          console.error('[Onboarding] Session confirmed invalid after RLS error');
+          setState(prev => ({ ...prev, sessionExpired: true }));
+          throw new Error('SESSION_EXPIRED');
+        }
+        
+        // Try to repair orphaned roles
+        console.log('[Onboarding] RLS violation on tenant create – attempting repair...');
         const { data: repairResult, error: repairError } = await supabase.rpc('repair_orphaned_user_roles');
-        console.log('repair_orphaned_user_roles result:', repairResult, repairError);
+        console.log('[Onboarding] repair_orphaned_user_roles result:', repairResult, repairError);
 
         // Refresh tenants – maybe user already owns one via owner_email
         await refreshTenants();
 
-        // Re-check if tenants exist after repair; if so, skip creation (user already owns a tenant)
+        // Re-check if tenants exist after repair
         const { data: existingTenants } = await supabase
           .from('tenants')
           .select('id, name')
@@ -337,6 +361,13 @@ export function useOnboarding() {
         const retryResult = await attemptCreate();
         tenant = retryResult.tenant;
         tenantError = retryResult.tenantError;
+        
+        // If still failing with RLS after all attempts, show session dialog
+        if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
+          console.error('[Onboarding] Persistent RLS failure - triggering re-login');
+          setState(prev => ({ ...prev, sessionExpired: true }));
+          throw new Error('SESSION_EXPIRED');
+        }
       }
 
       if (tenantError) throw tenantError;
@@ -360,11 +391,17 @@ export function useOnboarding() {
       }
 
       return tenant;
-    } catch (error) {
-      console.error('Error creating tenant:', error);
+    } catch (error: any) {
+      console.error('[Onboarding] Error creating tenant:', error);
+      
+      // Don't re-throw SESSION_EXPIRED - it's handled by the dialog
+      if (error.message === 'SESSION_EXPIRED') {
+        return null;
+      }
+      
       throw error;
     }
-  }, [user, state.data, refreshTenants, setCurrentTenant, toast]);
+  }, [user, state.data, ensureAuthenticated, refreshTenants, setCurrentTenant, toast]);
 
   // Update tenant with logo
   const updateTenantLogo = useCallback(async (logoUrl: string) => {
@@ -442,6 +479,19 @@ export function useOnboarding() {
     setHasPartialProgress(false);
   }, []);
 
+  // Handle session expired - force sign out and redirect to login
+  const handleSessionExpiredRelogin = useCallback(async () => {
+    console.log('[Onboarding] Session expired - signing out and redirecting to login');
+    setState(prev => ({ ...prev, sessionExpired: false, isOpen: false }));
+    await signOut();
+    navigate('/auth');
+  }, [signOut, navigate]);
+
+  // Clear session expired state (if user somehow recovers)
+  const clearSessionExpired = useCallback(() => {
+    setState(prev => ({ ...prev, sessionExpired: false }));
+  }, []);
+
   return {
     ...state,
     hasPartialProgress,
@@ -460,5 +510,7 @@ export function useOnboarding() {
     generateSlug,
     checkSlugAvailable,
     refreshOnboarding: checkOnboardingStatus,
+    handleSessionExpiredRelogin,
+    clearSessionExpired,
   };
 }

@@ -14,6 +14,7 @@ import { FirstProductStep } from './steps/FirstProductStep';
 import { PaymentsStep } from './steps/PaymentsStep';
 import { LaunchStep } from './steps/LaunchStep';
 import { ResumeOnboardingDialog } from './ResumeOnboardingDialog';
+import { SessionExpiredDialog } from '@/components/auth/SessionExpiredDialog';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -42,6 +43,7 @@ export function OnboardingWizard() {
     data,
     createdTenantId,
     hasPartialProgress,
+    sessionExpired,
     clearPartialProgress,
     updateData,
     nextStep,
@@ -53,6 +55,7 @@ export function OnboardingWizard() {
     createFirstProduct,
     generateSlug,
     checkSlugAvailable,
+    handleSessionExpiredRelogin,
   } = useOnboarding();
 
   if (!isOpen || isLoading) {
@@ -217,9 +220,14 @@ export function OnboardingWizard() {
 
   return (
     <>
+      {/* Session expired recovery dialog */}
+      <SessionExpiredDialog
+        open={sessionExpired}
+        onRelogin={handleSessionExpiredRelogin}
+      />
       {/* Resume dialog for returning users with partial progress */}
       <ResumeOnboardingDialog
-        open={hasPartialProgress}
+        open={hasPartialProgress && !sessionExpired}
         currentStep={currentStep}
         totalSteps={totalSteps}
         onContinue={handleContinueFromDialog}

@@ -1,7 +1,34 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Storage key used by Supabase auth
+const SUPABASE_AUTH_KEY = 'sb-gczmfcabnoofnmfpzeop-auth-token';
+
+/**
+ * Detects if there's stale auth data in localStorage without a valid session.
+ * This happens when tokens expire or get corrupted.
+ */
+function hasStaleAuthStorage(): boolean {
+  try {
+    const stored = localStorage.getItem(SUPABASE_AUTH_KEY);
+    return stored !== null && stored !== '';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Force clears all auth storage to allow clean re-login.
+ */
+function clearAuthStorage(): void {
+  try {
+    localStorage.removeItem(SUPABASE_AUTH_KEY);
+  } catch (e) {
+    console.warn('Failed to clear auth storage:', e);
+  }
+}
 
 export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer';
 
@@ -35,6 +62,12 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  /**
+   * Ensures the user has a valid authenticated session.
+   * Returns true if authenticated, false if session is invalid/expired.
+   * If session is invalid, it will attempt to refresh, then force sign-out if that fails.
+   */
+  ensureAuthenticated: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,16 +96,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      async (event, currentSession) => {
+        console.log('[Auth] State change:', event, currentSession?.user?.email);
         
-        // Defer role fetching to avoid deadlock
-        if (session?.user) {
+        // Handle sign out events - also clear any stale storage
+        if (event === 'SIGNED_OUT') {
+          clearAuthStorage();
+          setSession(null);
+          setUser(null);
+          setRoles([]);
+          setLoading(false);
+          return;
+        }
+        
+        // If we get a session, use it
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setUser(currentSession.user);
           setTimeout(() => {
-            fetchUserRoles(session.user.id).then(setRoles);
+            fetchUserRoles(currentSession.user.id).then(setRoles);
           }, 0);
+        } else if (hasStaleAuthStorage()) {
+          // No session but storage exists = corrupt/expired state
+          console.warn('[Auth] Stale auth storage detected, cleaning up...');
+          clearAuthStorage();
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setRoles([]);
         } else {
+          setSession(null);
+          setUser(null);
           setRoles([]);
         }
         
@@ -80,20 +134,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // THEN check for existing session with defensive cleanup
+    const initializeAuth = async () => {
+      const { data: { session: existingSession }, error } = await supabase.auth.getSession();
       
-      if (session?.user) {
-        fetchUserRoles(session.user.id).then(setRoles);
+      if (error) {
+        console.error('[Auth] Error getting session:', error);
+        // Clear corrupt storage if session fetch fails
+        if (hasStaleAuthStorage()) {
+          console.warn('[Auth] Session error with stale storage, cleaning up...');
+          clearAuthStorage();
+          await supabase.auth.signOut();
+        }
+        setSession(null);
+        setUser(null);
+        setRoles([]);
+        setLoading(false);
+        return;
+      }
+      
+      if (existingSession?.user) {
+        setSession(existingSession);
+        setUser(existingSession.user);
+        fetchUserRoles(existingSession.user.id).then(setRoles);
+      } else if (hasStaleAuthStorage()) {
+        // No session but we have storage = corrupt state
+        console.warn('[Auth] No session but stale storage exists, cleaning up...');
+        clearAuthStorage();
+        await supabase.auth.signOut();
       }
       
       setLoading(false);
-    });
+    };
+    
+    initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
+
+  /**
+   * Ensures the user has a valid, non-expired session.
+   * Attempts to refresh if needed, forces sign-out on failure.
+   */
+  const ensureAuthenticated = useCallback(async (): Promise<boolean> => {
+    console.log('[Auth] ensureAuthenticated: checking session...');
+    
+    // First, get current session state
+    const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('[Auth] ensureAuthenticated: session error', sessionError);
+      clearAuthStorage();
+      await supabase.auth.signOut();
+      return false;
+    }
+    
+    // If we have a valid session with a user, we're good
+    if (currentSession?.user && currentSession.access_token) {
+      console.log('[Auth] ensureAuthenticated: valid session for', currentSession.user.email);
+      return true;
+    }
+    
+    // No session - try to refresh if we have storage (might be expired)
+    if (hasStaleAuthStorage()) {
+      console.log('[Auth] ensureAuthenticated: attempting session refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !refreshData.session) {
+        console.warn('[Auth] ensureAuthenticated: refresh failed, forcing sign-out', refreshError);
+        clearAuthStorage();
+        await supabase.auth.signOut();
+        toast({
+          title: 'Sessie verlopen',
+          description: 'Log opnieuw in om verder te gaan.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      console.log('[Auth] ensureAuthenticated: refresh succeeded');
+      return true;
+    }
+    
+    // No session and no storage = not authenticated
+    console.log('[Auth] ensureAuthenticated: no session found');
+    return false;
+  }, [toast]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -188,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        ensureAuthenticated,
       }}
     >
       {children}
