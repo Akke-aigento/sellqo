@@ -297,12 +297,8 @@ export function useOnboarding() {
 
       if (tenantError) throw tenantError;
 
-      // Create user role for this tenant
-      await supabase.from('user_roles').insert({
-        user_id: user.id,
-        tenant_id: tenant.id,
-        role: 'tenant_admin',
-      });
+      // Note: tenant_admin role is automatically created by database trigger
+      // (assign_tenant_admin_role_on_tenant_insert)
 
       // Refresh tenants and set as current
       await refreshTenants();
