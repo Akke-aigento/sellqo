@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { useMilestones } from '@/hooks/useMilestones';
+import { useTenant } from '@/hooks/useTenant';  // FIX 3: Import useTenant
 import { MilestonePopup } from './MilestonePopup';
 import { FeedbackPopup } from './FeedbackPopup';
 
@@ -10,7 +11,20 @@ interface GamificationContextType {
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
 
 export function GamificationProvider({ children }: { children: ReactNode }) {
-  const { pendingMilestone, tenantStats, acknowledgeMilestone, isAcknowledging } = useMilestones();
+  // FIX 3: Check if tenant is ready before enabling milestone queries
+  // Refs: Console log analyse - 406 errors door queries op niet-bestaande tenant
+  const { currentTenant, loading: tenantsLoading } = useTenant();
+  
+  // Only enable milestone checks when:
+  // 1. Tenants have finished loading
+  // 2. A current tenant is selected
+  const shouldCheckMilestones = !tenantsLoading && !!currentTenant?.id;
+  
+  // FIX 3: Pass enabled flag to prevent queries during onboarding
+  const { pendingMilestone, tenantStats, acknowledgeMilestone, isAcknowledging } = useMilestones({
+    enabled: shouldCheckMilestones,
+  });
+  
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMilestoneId, setFeedbackMilestoneId] = useState<string | undefined>();
 

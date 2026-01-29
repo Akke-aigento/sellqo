@@ -98,8 +98,22 @@ export function useOnboarding() {
   // during active sessions (e.g., after tenant creation triggers refreshTenants)
   const hasInitiallyChecked = useRef(false);
 
+  // FIX 2: Track if we've created a tenant this session - prevents re-checks
+  // Refs: Console log analyse - step flip na refreshTenants
+  const hasCreatedTenantRef = useRef(false);
+
+  // FIX 2: Track debounce timer for checkOnboardingStatus
+  const checkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Check if user needs onboarding
   const checkOnboardingStatus = useCallback(async () => {
+    // FIX 2: Skip if we just created a tenant - prevents flip back to step 1
+    // Refs: Console log analyse - multiple checkOnboardingStatus calls na tenant creation
+    if (hasCreatedTenantRef.current) {
+      console.log('[Onboarding] checkOnboardingStatus: skipped (tenant just created)');
+      return;
+    }
+
     if (!user) {
       setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
       return;
@@ -193,10 +207,29 @@ export function useOnboarding() {
       console.error('Onboarding check error:', err);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user, tenants, currentTenant, tenantsLoading]);
+  // FIX 2: Remove tenants and currentTenant from dependencies
+  // These were causing re-runs after refreshTenants() which flipped the step back
+  // Refs: Console log analyse - onboarding step flip (step 1 <-> step 4)
+  }, [user, tenantsLoading]);
 
+  // FIX 2: Debounce the status check to prevent rapid re-runs
+  // Refs: Console log analyse - multiple rapid checkOnboardingStatus calls
   useEffect(() => {
-    checkOnboardingStatus();
+    // Clear any pending debounce
+    if (checkDebounceRef.current) {
+      clearTimeout(checkDebounceRef.current);
+    }
+    
+    // Debounce the check by 150ms
+    checkDebounceRef.current = setTimeout(() => {
+      checkOnboardingStatus();
+    }, 150);
+    
+    return () => {
+      if (checkDebounceRef.current) {
+        clearTimeout(checkDebounceRef.current);
+      }
+    };
   }, [checkOnboardingStatus]);
 
   // Persist onboarding data to database (debounced)
@@ -455,6 +488,9 @@ export function useOnboarding() {
       // SUCCESS PATH - return immediately, no extra checks
       // ============================================
       if (tenant && !tenantError) {
+        // FIX 2: Mark that we created a tenant - prevents checkOnboardingStatus re-runs
+        hasCreatedTenantRef.current = true;
+        
         console.log('[Onboarding] Tenant ' + (wasExisting ? 'found' : 'created') + ' successfully:', tenant.id);
         
         if (wasExisting) {
