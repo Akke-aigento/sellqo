@@ -12441,6 +12441,7 @@ export type Database = {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
       }
+      downgrade_expired_trials: { Args: never; Returns: number }
       find_order_by_reference: {
         Args: { p_reference: string; p_tenant_id: string }
         Returns: string
