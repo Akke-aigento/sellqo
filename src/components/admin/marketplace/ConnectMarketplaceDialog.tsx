@@ -39,6 +39,7 @@ import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import type { MarketplaceType, MarketplaceSettings } from '@/types/marketplace';
 import { MARKETPLACE_INFO } from '@/types/marketplace';
 import { supabase } from '@/integrations/supabase/client';
+import { ShopifyOAuthConnect } from './ShopifyOAuthConnect';
 
 interface ConnectMarketplaceDialogProps {
   open: boolean;
@@ -401,6 +402,23 @@ export function ConnectMarketplaceDialog({
 
   const instructions = getInstructions();
 
+  // For Shopify, use the OAuth flow instead of manual credentials
+  if (marketplaceType === 'shopify') {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-lg">
+          <ShopifyOAuthConnect 
+            onSuccess={() => {
+              handleClose();
+              onSuccess?.();
+            }}
+            onCancel={handleClose}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       {step === 'intro' && (
@@ -494,49 +512,8 @@ export function ConnectMarketplaceDialog({
               </p>
             </div>
 
-            {/* Shopify credentials */}
-            {marketplaceType === 'shopify' ? (
-              <>
-                <div>
-                  <Label>Store URL *</Label>
-                  <Input
-                    type="text"
-                    required
-                    placeholder="mijn-winkel.myshopify.com"
-                    className="mt-1 font-mono text-sm"
-                    value={storeUrl}
-                    onChange={(e) => setStoreUrl(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Je Shopify store URL (bijv: mijn-winkel.myshopify.com)
-                  </p>
-                </div>
-
-                <div>
-                  <Label>Admin API Access Token *</Label>
-                  <div className="relative mt-1">
-                    <Input
-                      type={showSecret ? 'text' : 'password'}
-                      required
-                      placeholder="shpat_••••••••••••••••"
-                      className="pr-10 font-mono text-sm"
-                      value={accessToken}
-                      onChange={(e) => setAccessToken(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSecret(!showSecret)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Vind deze onder Apps → Develop apps → [Jouw app] → API credentials
-                  </p>
-                </div>
-              </>
-            ) : marketplaceType === 'woocommerce' ? (
+            {/* WooCommerce credentials */}
+            {marketplaceType === 'woocommerce' ? (
               <>
                 <div>
                   <Label>Site URL *</Label>
@@ -776,9 +753,7 @@ export function ConnectMarketplaceDialog({
               variant="outline"
               onClick={handleTestConnection}
               disabled={
-                marketplaceType === 'shopify' 
-                  ? !storeUrl || !accessToken || testing
-                  : marketplaceType === 'woocommerce'
+                marketplaceType === 'woocommerce'
                   ? !siteUrl || !consumerKey || !consumerSecret || testing
                   : marketplaceType === 'odoo'
                   ? !odooUrl || !odooDatabase || !odooUsername || !odooApiKey || testing
@@ -825,9 +800,7 @@ export function ConnectMarketplaceDialog({
             <Button
               onClick={() => setStep(marketplaceType === 'odoo' ? 'modules' : 'settings')}
               disabled={
-                marketplaceType === 'shopify' 
-                  ? !storeUrl || !accessToken
-                  : marketplaceType === 'woocommerce'
+                marketplaceType === 'woocommerce'
                   ? !siteUrl || !consumerKey || !consumerSecret
                   : marketplaceType === 'odoo'
                   ? !odooUrl || !odooDatabase || !odooUsername || !odooApiKey
