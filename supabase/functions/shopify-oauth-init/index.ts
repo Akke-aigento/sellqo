@@ -20,6 +20,9 @@ const SHOPIFY_SCOPES = [
   'read_locations',
 ].join(',');
 
+// Custom redirect URI for sellqo.app
+const SHOPIFY_REDIRECT_URI = 'https://sellqo.app/api/shopify/callback';
+
 function generateState(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
@@ -102,13 +105,11 @@ serve(async (req) => {
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     });
 
-    // Build Shopify OAuth URL
-    const callbackUrl = `${supabaseUrl}/functions/v1/shopify-oauth-callback`;
-    
+    // Build Shopify OAuth URL with custom redirect URI
     const params = new URLSearchParams({
       client_id: clientId,
       scope: SHOPIFY_SCOPES,
-      redirect_uri: callbackUrl,
+      redirect_uri: SHOPIFY_REDIRECT_URI,
       state,
       'grant_options[]': 'per-user', // Request offline access
     });

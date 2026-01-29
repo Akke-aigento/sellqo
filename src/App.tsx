@@ -55,6 +55,7 @@ import SuppliersPage from "./pages/admin/Suppliers";
 import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
 import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import ShopifyCallback from "./pages/ShopifyCallback";
 import NotFound from "./pages/NotFound";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 import TenantDetailPage from "./pages/platform/TenantDetail";
@@ -120,6 +121,9 @@ const App = () => (
             
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
+            
+            {/* Shopify OAuth callback route */}
+            <Route path="/api/shopify/callback" element={<ShopifyCallback />} />
             
             {/* Public Storefront routes - wrapped in CartProvider */}
             <Route path="/shop/:tenantSlug" element={<CartProvider><ShopHome /></CartProvider>} />

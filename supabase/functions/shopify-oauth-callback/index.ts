@@ -68,65 +68,27 @@ async function getShopInfo(shop: string, accessToken: string): Promise<ShopifySh
   return response.json();
 }
 
-function validateHmac(query: URLSearchParams, secret: string): boolean {
-  const hmac = query.get('hmac');
-  if (!hmac) return false;
-
-  // Remove hmac from params for validation
-  const params: string[] = [];
-  query.forEach((value, key) => {
-    if (key !== 'hmac') {
-      params.push(`${key}=${value}`);
-    }
-  });
-  params.sort();
-  const message = params.join('&');
-
-  // Compute HMAC
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const messageData = encoder.encode(message);
-
-  // Use Web Crypto API for HMAC
-  // Note: This is a simplified check - in production you'd use crypto.subtle
-  // For now we skip strict validation since Shopify also validates server-side
-  return true; // Shopify validates this on their end during token exchange
-}
-
 serve(async (req) => {
-  const url = new URL(req.url);
-  
-  // Handle GET requests (OAuth callback redirect from Shopify)
-  if (req.method === 'GET') {
-    const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-    const shop = url.searchParams.get('shop');
-    const error = url.searchParams.get('error');
-    const errorDescription = url.searchParams.get('error_description');
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-    // Get base URL for redirects
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const projectRef = supabaseUrl.replace('https://', '').split('.')[0];
-    const appBaseUrl = `https://${projectRef}.lovable.app`;
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (error) {
-      console.error('Shopify OAuth error:', error, errorDescription);
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appBaseUrl}/admin/connect?error=${encodeURIComponent(errorDescription || error)}` },
-      });
-    }
-
-    if (!code || !state || !shop) {
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appBaseUrl}/admin/connect?error=missing_params` },
-      });
-    }
-
+  // Handle POST requests (from frontend callback page)
+  if (req.method === 'POST') {
     try {
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { code, state, shop } = await req.json();
+
+      if (!code || !state || !shop) {
+        return new Response(
+          JSON.stringify({ error: 'Ontbrekende parameters: code, state, of shop' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       // Verify state and get stored data
       const { data: oauthState, error: stateError } = await supabase
@@ -137,27 +99,27 @@ serve(async (req) => {
 
       if (stateError || !oauthState) {
         console.error('Invalid or missing state:', stateError);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appBaseUrl}/admin/connect?error=invalid_state` },
-        });
+        return new Response(
+          JSON.stringify({ error: 'Ongeldige of verlopen sessie. Probeer opnieuw.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Check if state expired
       if (new Date(oauthState.expires_at) < new Date()) {
         await supabase.from('oauth_states').delete().eq('state', state);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appBaseUrl}/admin/connect?error=state_expired` },
-        });
+        return new Response(
+          JSON.stringify({ error: 'Sessie verlopen. Probeer opnieuw.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      // Verify platform and shop match
+      // Verify platform
       if (oauthState.platform !== 'shopify') {
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appBaseUrl}/admin/connect?error=platform_mismatch` },
-        });
+        return new Response(
+          JSON.stringify({ error: 'Platform mismatch' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Get stored shop from code_verifier
@@ -171,13 +133,13 @@ serve(async (req) => {
       // Verify shop matches
       if (storedData.shop && storedData.shop !== shop) {
         console.error('Shop mismatch:', storedData.shop, '!=', shop);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appBaseUrl}/admin/connect?error=shop_mismatch` },
-        });
+        return new Response(
+          JSON.stringify({ error: 'Shop mismatch. Probeer opnieuw.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      const { tenant_id, redirect_url } = oauthState;
+      const { tenant_id } = oauthState;
 
       // Exchange code for token
       const tokenData = await exchangeCodeForToken(shop, code);
@@ -209,27 +171,29 @@ serve(async (req) => {
 
       if (insertError) {
         console.error('Failed to save connection:', insertError);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appBaseUrl}/admin/connect?error=save_failed` },
-        });
+        return new Response(
+          JSON.stringify({ error: 'Opslaan van koppeling mislukt' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Clean up OAuth state
       await supabase.from('oauth_states').delete().eq('state', state);
 
-      // Redirect back to app with success
-      const successUrl = redirect_url || '/admin/connect';
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appBaseUrl}${successUrl}?success=shopify_connected&shop=${encodeURIComponent(shopInfo.shop.name)}` },
-      });
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          shopName: shopInfo.shop.name,
+          shopDomain: shopInfo.shop.domain,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } catch (err: any) {
       console.error('Shopify OAuth callback error:', err);
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appBaseUrl}/admin/connect?error=${encodeURIComponent(err.message)}` },
-      });
+      return new Response(
+        JSON.stringify({ error: err.message || 'Onbekende fout opgetreden' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
   }
 
