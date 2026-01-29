@@ -117,6 +117,12 @@ verify_jwt = false
 [functions.test-shopify-connection]
 verify_jwt = false
 
+[functions.shopify-oauth-init]
+verify_jwt = false
+
+[functions.shopify-oauth-callback]
+verify_jwt = false
+
 [functions.sync-shopify-orders]
 verify_jwt = false
 
