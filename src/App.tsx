@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CartProvider } from "@/context/CartContext";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import LandingPage from "./pages/Landing";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -106,6 +107,7 @@ const App = () => (
           <Toaster />
           <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             {/* Public landing page */}
             <Route path="/" element={<LandingPage />} />

@@ -72,13 +72,13 @@ export function FirstProductStep({
     updateData({ productImageUrl: null });
   };
 
-  const canContinue = data.productName.trim().length >= 2 && data.productPrice > 0;
+  // Bepaal of product data is ingevuld (voor button tekst en API call)
+  // De stap is optioneel - net als Logo en Payments stappen
+  const hasProductData = data.productName.trim().length >= 2 && data.productPrice > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (canContinue) {
-      onNext();
-    }
+    onNext(); // Altijd doorgaan, ongeacht productdata - stap is optioneel
   };
 
   return (
@@ -252,16 +252,21 @@ export function FirstProductStep({
         <Button
           type="submit"
           className="flex-1"
-          disabled={!canContinue || isLoading}
+          disabled={isLoading}
         >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Bezig...
             </>
-          ) : (
+          ) : hasProductData ? (
             <>
               Volgende stap
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </>
+          ) : (
+            <>
+              Overslaan voor nu
               <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}

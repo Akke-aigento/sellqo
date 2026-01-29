@@ -94,14 +94,16 @@ export function OnboardingWizard() {
           break;
 
         case 5:
-          // After product step, create the product
-          if (data.productName && data.productPrice > 0) {
+          // After product step, create the product ONLY if data is filled in
+          // Product stap is optioneel - net als Logo en Payments stappen
+          if (data.productName?.trim() && data.productPrice > 0) {
             await createFirstProduct();
             toast({
               title: 'Product toegevoegd!',
               description: `${data.productName} is toegevoegd aan je catalogus.`,
             });
           }
+          // Geen error als product leeg is - stap is optioneel
           break;
       }
 
