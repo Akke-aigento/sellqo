@@ -70,9 +70,34 @@ serve(async (req) => {
 
     logStep("Successfully downgraded trials", { count: expiredTrials.length });
 
+    // Send post-downgrade notifications
+    for (const trial of expiredTrials) {
+      try {
+        await supabase
+          .from('notifications')
+          .insert({
+            tenant_id: trial.tenant_id,
+            category: 'billing',
+            type: 'trial_expired',
+            title: 'Je proefperiode is verlopen',
+            message: 'Je bent nu op het gratis plan. Al je data is behouden - upgrade om alle features te herstellen.',
+            priority: 'high',
+            action_url: '/admin/settings/billing',
+            data: {
+              previous_plan_id: trial.plan_id,
+              downgraded_at: new Date().toISOString(),
+            }
+          });
+        logStep("Post-downgrade notification sent", { tenant_id: trial.tenant_id });
+      } catch (notifErr) {
+        logStep("Error sending post-downgrade notification", { error: String(notifErr), tenant_id: trial.tenant_id });
+      }
+    }
+
     return new Response(JSON.stringify({ 
       downgraded: expiredTrials.length,
       tenant_ids: expiredTrials.map(t => t.tenant_id),
+      notifications_sent: expiredTrials.length,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
