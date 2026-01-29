@@ -143,14 +143,41 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // === AUTO-REPAIR: If no tenants but user has a tenant by owner_email, repair access ===
+    let effectiveTenantsData = tenantsData;
+    if ((!tenantsData || tenantsData.length === 0) && user.email) {
+      console.log('[useTenant] No tenants found, checking for orphaned tenant...');
+      
+      try {
+        const { data: repaired, error: repairError } = await supabase.functions.invoke('repair-tenant-access', {
+          body: { user_email: user.email },
+        });
+        
+        if (!repairError && repaired?.repaired) {
+          console.log('[useTenant] Access repaired, refetching tenants...');
+          // Refetch after repair
+          const { data: retriedData } = await supabase
+            .from('tenants')
+            .select('*')
+            .order('name');
+          
+          if (retriedData && retriedData.length > 0) {
+            effectiveTenantsData = retriedData;
+          }
+        }
+      } catch (repairErr) {
+        console.warn('[useTenant] Repair attempt failed:', repairErr);
+      }
+    }
+
     // Fetch subscription data for all tenants
     const { data: subscriptionsData } = await supabase
       .from('tenant_subscriptions')
       .select('tenant_id, plan_id, status, pricing_plans(name)')
-      .in('tenant_id', tenantsData?.map(t => t.id) || []);
+      .in('tenant_id', effectiveTenantsData?.map(t => t.id) || []);
 
     // Merge subscription data into tenants
-    const enrichedTenants = (tenantsData || []).map(tenant => {
+    const enrichedTenants = (effectiveTenantsData || []).map(tenant => {
       const subscription = subscriptionsData?.find(s => s.tenant_id === tenant.id);
       if (subscription) {
         return {

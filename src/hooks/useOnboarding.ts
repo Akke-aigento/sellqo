@@ -462,6 +462,7 @@ export function useOnboarding() {
         kvk_number: chamberOfCommerce || null,
         billing_email: email || loginEmail,
         billing_company_name: businessName || null,
+        selected_plan_id: state.data.selectedPlanId || 'free', // Pass selected plan to Edge Function
       };
 
       console.log('[Onboarding] createTenant: inserting new tenant with explicit auth...');
@@ -519,17 +520,8 @@ export function useOnboarding() {
 
         setState(prev => ({ ...prev, createdTenantId: tenant.id }));
 
-        // Update subscription with selected plan if not free
-        if (state.data.selectedPlanId && state.data.selectedPlanId !== 'free') {
-          try {
-            await supabase
-              .from('tenant_subscriptions')
-              .update({ plan_id: state.data.selectedPlanId })
-              .eq('tenant_id', tenant.id);
-          } catch (subError) {
-            console.warn('[Onboarding] Subscription update failed:', subError);
-          }
-        }
+        // NOTE: Subscription plan update is now handled in the Edge Function (create-tenant)
+        // This ensures it runs with service_role privileges and won't fail due to RLS
 
         return tenant;
       }

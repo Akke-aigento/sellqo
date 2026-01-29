@@ -54,6 +54,7 @@ type TenantPayload = {
   kvk_number?: string | null;
   billing_email?: string | null;
   billing_company_name?: string | null;
+  selected_plan_id?: string | null; // Plan selected during onboarding
 };
 
 serve(async (req) => {
@@ -215,6 +216,41 @@ serve(async (req) => {
     }
 
     logStep("Tenant created", { tenantId: tenant.id });
+
+    // === CRITICAL: Assign tenant_admin role (trigger fails in service_role context) ===
+    const { error: roleError } = await supabase
+      .from("user_roles")
+      .upsert({
+        user_id: user.id,
+        tenant_id: tenant.id,
+        role: 'tenant_admin',
+      }, { 
+        onConflict: 'user_id,role,tenant_id',
+        ignoreDuplicates: true 
+      });
+
+    if (roleError) {
+      logStep("WARNING: Failed to assign role", { error: roleError.message });
+      // Don't fail the request - tenant is created
+    } else {
+      logStep("Role assigned successfully");
+    }
+
+    // === Update subscription with selected plan (if not free) ===
+    const selectedPlanId = body.selected_plan_id;
+    if (selectedPlanId && selectedPlanId !== 'free') {
+      const { error: subError } = await supabase
+        .from("tenant_subscriptions")
+        .update({ plan_id: selectedPlanId })
+        .eq("tenant_id", tenant.id);
+      
+      if (subError) {
+        logStep("WARNING: Failed to update subscription plan", { error: subError.message });
+      } else {
+        logStep("Subscription plan updated", { plan: selectedPlanId });
+      }
+    }
+
     return new Response(JSON.stringify(tenant), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
