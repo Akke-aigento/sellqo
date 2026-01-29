@@ -1,206 +1,187 @@
 
-# Plan: Trial Expiry Notificaties + Data Behoud bij Downgrade/Upgrade
+
+# Plan: Prijzen Excl. BTW Indicatie + Billing Pagina Herstel
 
 ## Samenvatting
 
-Dit plan implementeert twee belangrijke features:
-1. **Trial Expiry Waarschuwing** - Email + in-app notificatie 1 dag voor trial afloopt
-2. **Data Behoud Garantie** - Alle instellingen/data blijven bewaard bij downgrade → upgrade
+Dit plan lost twee problemen op:
+1. **Marketing pagina's**: Duidelijk vermelden dat prijzen exclusief BTW zijn
+2. **Admin Billing pagina crash**: ReferenceError fixen + plan vergelijkingstabel toevoegen
 
 ---
 
-## Deel 1: Huidige Architectuur Analyse
+## Probleem 1: Prijzen Excl. BTW
 
-### Wat er al bestaat:
-- `check-expired-trials` Edge Function - downgrade naar Free na trial afloop
-- `create-notification` Edge Function - in-app + email notificaties (gebruikt Resend)
-- `useTrialStatus` hook - berekent `daysRemaining` en urgency levels
-- `RESEND_API_KEY` is geconfigureerd
+### Huidige Situatie
+De marketing pagina's (`/`, `/pricing`) tonen prijzen zonder BTW-indicatie. Dit is verwarrend voor klanten, vooral in B2B context waar prijzen typisch excl. BTW worden getoond.
 
-### Wat er ontbreekt:
-- Geen Edge Function die trials controleert die **bijna** verlopen (1 dag resterend)
-- Geen notificatie trigger voor trial expiry warning
+### Oplossing
+Voeg een duidelijke BTW-disclaimer toe aan alle prijzen secties:
 
----
+| Locatie | Wijziging |
+|---------|-----------|
+| `PricingSection.tsx` (Landing) | Footer tekst: "Alle prijzen exclusief BTW" |
+| `Pricing.tsx` (Standalone) | Dezelfde footer tekst |
+| Prijsweergave | Optioneel: kleine "excl. BTW" badge naast prijzen |
 
-## Deel 2: Trial Expiry Waarschuwing
+### Implementatie
 
-### Nieuwe Edge Function: `send-trial-expiry-warning`
+**Bestand: `src/components/landing/PricingSection.tsx`**
+- Regel 356-368: Voeg "Alle prijzen exclusief BTW" toe aan de bestaande footer
+- Styling: Subtiele tekst onder de Stripe kosten melding
 
-Deze functie zoekt tenants waar:
-- `status = 'trialing'`
-- `trial_end` is morgen (tussen 23-25 uur van nu)
-- `plan_id != 'free'`
-- Nog geen waarschuwing verstuurd (nieuwe kolom: `trial_warning_sent_at`)
-
-**Actie:**
-1. Verstuur in-app notificatie via `create-notification`
-2. Verstuur email met CTA naar upgrade pagina
-3. Markeer `trial_warning_sent_at` om duplicaten te voorkomen
-
-### Database Wijziging
-
-Nieuwe kolom op `tenant_subscriptions`:
-```sql
-ALTER TABLE tenant_subscriptions 
-ADD COLUMN trial_warning_sent_at timestamptz DEFAULT NULL;
-```
-
-### Email Template Content
-
-| Sectie | Inhoud |
-|--------|--------|
-| Subject | ⏰ Je proefperiode eindigt morgen |
-| Bericht | Je Enterprise trial loopt morgen af. Upgrade nu om al je features te behouden. |
-| CTA | "Upgrade naar Enterprise →" linkt naar `/admin/settings/billing` |
-| Urgentie badge | Ja (high priority oranje) |
-
-### Scheduling
-
-De functie wordt dagelijks aangeroepen (handmatig of via externe scheduler):
-```
-GET /functions/v1/send-trial-expiry-warning
-```
+**Bestand: `src/pages/Pricing.tsx`**
+- Voeg vergelijkbare disclaimer toe onder de plan cards
+- Tekst: "Alle prijzen zijn exclusief BTW"
 
 ---
 
-## Deel 3: Data Behoud Garantie
+## Probleem 2: Billing Pagina Crash
 
-### Huidige Situatie - Al Correct!
-
-Bij een plan wijziging wordt **alleen de `plan_id` geüpdatet** in `tenant_subscriptions`. Er wordt **niets verwijderd**:
-
-- Products, Orders, Customers → blijven
-- Shipping integrations → blijven
-- Email templates → blijven
-- Brand settings → blijven
-- AI learning patterns → blijven
-- Alle instellingen → blijven
-
-### Feature Gating vs Data Deletion
-
-De app gebruikt **feature gating** (sidebar items verbergen) in plaats van data deletion:
-
+### Oorzaak
+In `src/pages/admin/Billing.tsx` op regel 128:
 ```typescript
-// AdminSidebar.tsx - Line 54-57
-const features = subscription?.pricing_plan?.features;
-if (!features) return true; // Hide if no subscription
+const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
 ```
 
-**Dit betekent:**
-- Bij downgrade naar Free → sidebar items worden verborgen
-- Bij upgrade naar Pro/Enterprise → sidebar items verschijnen weer
-- **Data is nooit verwijderd - alleen toegang is beperkt**
-
-### Bevestiging in Code
-
-De `check-expired-trials` functie doet alleen:
+`currentPlan` wordt hier gebruikt VOOR het is gedeclareerd op regel 142:
 ```typescript
-.update({
-  plan_id: "free",      // Alleen plan wijzigen
-  status: "active",     // Status naar active
-  trial_end: null,      // Trial timestamp wissen
-})
+const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
 ```
 
-Geen DELETE statements, geen data removal.
+Dit veroorzaakt: `ReferenceError: Cannot access 'R' before initialization`
+
+### Fix
+Verplaats de `currentPlan` declaratie naar VOOR `switchablePlans`.
 
 ---
 
-## Deel 4: Implementatie Details
+## Probleem 3: Billing Pagina Redesign
 
-### Bestand 1: `supabase/functions/send-trial-expiry-warning/index.ts` (NIEUW)
+### Huidige Situatie
+De billing pagina toont alleen een dropdown met plannen. De gebruiker ziet niet wat hij krijgt of verliest bij een plan wijziging totdat hij klikt.
+
+### Gewenste Situatie
+Een visuele tabel vergelijkbaar met de marketing pagina met:
+- Alle plannen naast elkaar
+- Huidig plan gemarkeerd met badge
+- Hogere plannen: "Upgrade" knop + wat je erbij krijgt (groen)
+- Lagere plannen: "Downgrade" knop + wat je verliest (rood)
+
+### Nieuwe Component: `PlanComparisonTable`
 
 ```text
-Logica:
-1. Query tenant_subscriptions WHERE:
-   - status = 'trialing'
-   - trial_end BETWEEN now() AND now() + 25 hours
-   - plan_id != 'free'
-   - trial_warning_sent_at IS NULL
-   
-2. Voor elke trial:
-   a. Haal tenant + owner_email op
-   b. Invoke create-notification met:
-      - category: 'billing'
-      - type: 'trial_expiring'
-      - priority: 'high'
-      - action_url: '/admin/settings/billing'
-   c. Update trial_warning_sent_at = now()
-   
-3. Return count van verstuurde waarschuwingen
+Ontwerp (referentie: marketing pagina screenshot):
+
+┌─────────┬──────────┬──────────┬─────────────┐
+│  Free   │ Starter  │   Pro    │ Enterprise  │
+├─────────┼──────────┼──────────┼─────────────┤
+│ Gratis  │ €29/mnd  │ €79/mnd  │ €199/mnd    │
+├─────────┼──────────┼──────────┼─────────────┤
+│ [badge: │          │ [badge:  │             │
+│ Downgrade│          │ Huidig   │ [Upgrade]   │
+│ -7 features]        │  plan]   │ +12 features│
+└─────────┴──────────┴──────────┴─────────────┘
 ```
 
-### Bestand 2: Database Migratie
+### Features Vergelijking Logica
 
-```sql
-ALTER TABLE public.tenant_subscriptions 
-ADD COLUMN IF NOT EXISTS trial_warning_sent_at timestamptz DEFAULT NULL;
-```
+Voor elk plan berekenen:
+- `features.gained`: Features in target plan die niet in current plan zitten
+- `features.lost`: Features in current plan die niet in target plan zitten
+- Limits vergelijking (producten, orders, klanten)
 
-### Bestand 3: Update `check-expired-trials` (Optioneel)
+---
 
-Na downgrade, verstuur een bevestigingsnotificatie:
+## Technische Implementatie
+
+### Fase 1: Bug Fix (Kritiek)
+
+**Bestand: `src/pages/admin/Billing.tsx`**
+
+Huidige code (fout):
 ```typescript
-// Na succesvolle downgrade, notify tenant
-for (const trial of expiredTrials) {
-  await supabase.functions.invoke('create-notification', {
-    body: {
-      tenant_id: trial.tenant_id,
-      category: 'billing',
-      type: 'trial_expired',
-      title: 'Je proefperiode is verlopen',
-      message: 'Je bent nu op het gratis plan. Upgrade om alle features te herstellen.',
-      priority: 'high',
-      action_url: '/admin/settings/billing',
-    }
-  });
-}
+// Regel 128 - VOOR currentPlan is gedeclareerd
+const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
+
+// ... loading check ...
+
+// Regel 142 - currentPlan wordt pas hier gedeclareerd
+const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
 ```
 
+Nieuwe code (fix):
+```typescript
+// currentPlan EERST declareren
+const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+
+// switchablePlans NA currentPlan
+const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
+```
+
+### Fase 2: Excl. BTW Indicator
+
+**Bestanden:**
+- `src/components/landing/PricingSection.tsx`
+- `src/pages/Pricing.tsx`
+
+Toevoegen aan footer sectie:
+```typescript
+<p className="text-sm text-muted-foreground">
+  Alle prijzen zijn exclusief BTW
+</p>
+```
+
+### Fase 3: Plan Vergelijkingstabel (Optioneel upgrade)
+
+**Nieuw component: `src/components/admin/billing/PlanComparisonCards.tsx`**
+
+Props:
+- `plans`: Array van PricingPlan
+- `currentPlanId`: string
+- `currentInterval`: 'monthly' | 'yearly'
+- `onSelectPlan`: (planId: string, isUpgrade: boolean) => void
+
+Logica:
+1. Sorteer plannen op prijs (laag → hoog)
+2. Bepaal index van huidig plan
+3. Voor elk plan:
+   - Index < current = Downgrade (toon verloren features in rood)
+   - Index = current = "Huidig plan" badge
+   - Index > current = Upgrade (toon nieuwe features in groen)
+
 ---
 
-## Deel 5: Email Templates
+## Visueel Ontwerp Referentie
 
-### Trial Expiry Warning Email
+Op basis van de marketing pagina screenshot:
 
-| Element | Waarde |
-|---------|--------|
-| From | `{tenant.name} <notifications@resend.dev>` |
-| Subject | ⏰ Je proefperiode eindigt morgen |
-| Priority banner | Oranje "High Priority" badge |
-| Body | Beschrijving van wat er gebeurt + features die verloren gaan |
-| CTA button | "Upgrade nu →" |
-| Footer | Link naar pricing page |
-
-### Post-Downgrade Email
-
-| Element | Waarde |
-|---------|--------|
-| Subject | Je bent nu op het gratis plan |
-| Body | Bevestiging + wat nog beschikbaar is + upgrade optie |
-| CTA | "Bekijk upgrade opties →" |
+| Element | Stijl |
+|---------|-------|
+| Plan cards | Wit met border, schaduw bij highlighted |
+| Huidig plan | Ring-2 ring-primary + "Huidig plan" badge |
+| Upgrade | Groene CTA button, "+N features" badge |
+| Downgrade | Outline button, "-N features" badge in rood |
+| Features lijst | Checkmarks (groen) / X (grijs) |
+| Prijs | Groot, bold + "excl. BTW" subscript |
 
 ---
 
-## Technische Samenvatting
+## Bestanden Overzicht
 
-| Component | Actie |
-|-----------|-------|
-| `tenant_subscriptions` tabel | + `trial_warning_sent_at` kolom |
-| `send-trial-expiry-warning/index.ts` | Nieuw - dagelijks te runnen |
-| `check-expired-trials/index.ts` | Update - post-downgrade notificatie toevoegen |
-| Frontend | Geen wijzigingen nodig |
+| Bestand | Actie | Prioriteit |
+|---------|-------|------------|
+| `src/pages/admin/Billing.tsx` | Fix variabele volgorde + redesign | Kritiek |
+| `src/components/landing/PricingSection.tsx` | BTW disclaimer toevoegen | Hoog |
+| `src/pages/Pricing.tsx` | BTW disclaimer toevoegen | Hoog |
+| `src/components/admin/billing/PlanComparisonCards.tsx` | Nieuw component | Medium |
 
 ---
 
-## Data Behoud Garantie - Samenvatting
+## Verwachte Resultaat
 
-| Scenario | Data Gedrag |
-|----------|-------------|
-| Trial → Free (downgrade) | Alle data blijft, alleen feature access beperkt |
-| Free → Pro (upgrade) | Alle data beschikbaar, features ontgrendeld |
-| Pro → Enterprise | Alles blijft + extra features |
-| Enterprise → Pro | Alles blijft, sommige features verborgen |
+1. **Billing pagina werkt weer** - geen crash meer
+2. **Duidelijke BTW indicatie** - klanten weten dat prijzen excl. BTW zijn
+3. **Visuele plan vergelijking** - gebruikers zien precies wat ze krijgen/verliezen bij upgrade/downgrade
+4. **Consistente styling** - admin billing lijkt op marketing pagina
 
-**Conclusie:** De huidige architectuur behoudt al alle data. Er is geen extra werk nodig voor data preservation - dit is by design correct geïmplementeerd via feature gating in de sidebar en hooks.
