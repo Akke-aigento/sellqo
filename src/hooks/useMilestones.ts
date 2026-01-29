@@ -40,12 +40,16 @@ interface TenantStats {
   lifetime_customer_count: number;
 }
 
-export function useMilestones() {
+// FIX 1: Accept enabled parameter to conditionally run queries
+// Refs: Console log analyse - 406 errors door queries op niet-bestaande tenant
+export function useMilestones(options: { enabled?: boolean } = {}) {
+  const { enabled = true } = options;
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [pendingMilestone, setPendingMilestone] = useState<PendingMilestone | null>(null);
 
   // Fetch tenant stats
+  // FIX 1: Use .maybeSingle(), retry: false, and graceful error handling
   const { data: tenantStats } = useQuery({
     queryKey: ['tenant-stats', currentTenant?.id],
     queryFn: async () => {
@@ -55,15 +59,26 @@ export function useMilestones() {
         .from('tenants')
         .select('lifetime_order_count, lifetime_revenue, lifetime_customer_count')
         .eq('id', currentTenant.id)
-        .single();
+        .maybeSingle();  // FIX 1: .single() -> .maybeSingle() voor graceful null handling
       
-      if (error) throw error;
-      return data as TenantStats;
+      // FIX 1: Graceful error handling - don't throw on 406/PGRST116
+      if (error) {
+        // PGRST116 = "not found", 406 = "Not Acceptable" (geen match)
+        if (error.code === 'PGRST116' || error.message?.includes('406')) {
+          console.warn('[useMilestones] Tenant stats not found (expected during onboarding):', error.code);
+          return null;
+        }
+        throw error;
+      }
+      return data as TenantStats | null;
     },
-    enabled: !!currentTenant?.id,
+    enabled: enabled && !!currentTenant?.id,  // FIX 1: Combine with enabled prop
+    retry: false,        // FIX 1: Prevent infinite retry loop on 406 errors
+    staleTime: 30000,    // Cache for 30 seconds to reduce API calls
   });
 
   // Fetch achieved milestones
+  // FIX 1: Use retry: false and graceful error handling
   const { data: achievedMilestones } = useQuery({
     queryKey: ['tenant-milestones', currentTenant?.id],
     queryFn: async () => {
@@ -75,10 +90,15 @@ export function useMilestones() {
         .eq('tenant_id', currentTenant.id)
         .order('achieved_at', { ascending: false });
       
-      if (error) throw error;
+      // FIX 1: Graceful error handling - return empty array instead of throwing
+      if (error) {
+        console.warn('[useMilestones] Could not fetch milestones:', error.code);
+        return [];
+      }
       return data as TenantMilestone[];
     },
-    enabled: !!currentTenant?.id,
+    enabled: enabled && !!currentTenant?.id,  // FIX 1: Combine with enabled prop
+    retry: false,        // FIX 1: Prevent infinite retry loop
   });
 
   // Count total milestones for feedback timing
