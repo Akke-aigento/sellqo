@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthedClient } from '@/integrations/supabase/authedClient';
 import { restInsertSingle } from '@/integrations/supabase/authedRest';
-import { createTenantViaFunction } from '@/integrations/backend/createTenantViaFunction';
+import { createTenantViaFunction, SlugConflictError } from '@/integrations/backend/createTenantViaFunction';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
@@ -167,13 +167,16 @@ export function useOnboarding() {
       // Show onboarding for new users or users who haven't completed setup
       const savedStep = profile?.onboarding_step || 1;
       
-      // Force step 1 for brand new users
-      const startStep = isNewUser ? 1 : savedStep;
+      // FIX: Only force step 1 for brand new users on INITIAL load
+      // On subsequent re-checks (after tenant creation, token refresh, etc.), respect the saved step
+      // This prevents the wizard from resetting to step 1 mid-session
+      const isInitialCheck = !hasInitiallyChecked.current;
+      const startStep = (isNewUser && isInitialCheck) ? 1 : savedStep;
       
       // Track if returning user has partial progress (not brand new, step > 1)
       // ONLY set this on initial load, not on subsequent re-checks (e.g., after refreshTenants)
       const partialProgress = !isNewUser && savedStep > 1;
-      if (!hasInitiallyChecked.current) {
+      if (isInitialCheck) {
         setHasPartialProgress(partialProgress);
         hasInitiallyChecked.current = true;
       }
@@ -433,6 +436,29 @@ export function useOnboarding() {
       console.warn('[Onboarding] createTenant: authed profile check threw', e);
     }
 
+    // Helper: verify tenant is readable (RLS propagation can have delay)
+    const verifyTenantReadable = async (tenantId: string, maxRetries = 5, delayMs = 250): Promise<boolean> => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const { data, error } = await authedDb
+          .from('tenants')
+          .select('id')
+          .eq('id', tenantId)
+          .maybeSingle();
+        
+        if (data) {
+          console.log(`[Onboarding] verifyTenantReadable: tenant readable on attempt ${attempt}`);
+          return true;
+        }
+        
+        if (attempt < maxRetries) {
+          console.log(`[Onboarding] verifyTenantReadable: attempt ${attempt} failed, retrying in ${delayMs}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+      console.warn('[Onboarding] verifyTenantReadable: tenant NOT readable after max retries');
+      return false;
+    };
+
     const attemptCreate = async () => {
       // First check if tenant already exists (using authed client)
       console.log('[Onboarding] createTenant: checking for existing tenant...');
@@ -447,9 +473,11 @@ export function useOnboarding() {
         return { tenant: existingCheck[0], tenantError: null, wasExisting: true };
       }
 
-      // owner_email = login email (for RLS security check)
-      // billing_email = form email (for invoices/communication)
-      const payload = {
+      // ============================================
+      // PAYLOAD SEPARATION: tenantInsertPayload for DB, functionPayload for Edge Function
+      // selected_plan_id does NOT exist in tenants table - only pass to Edge Function
+      // ============================================
+      const tenantInsertPayload = {
         name: shopName,
         slug: shopSlug,
         owner_email: loginEmail, // Always use login email for RLS
@@ -462,13 +490,57 @@ export function useOnboarding() {
         kvk_number: chamberOfCommerce || null,
         billing_email: email || loginEmail,
         billing_company_name: businessName || null,
-        selected_plan_id: state.data.selectedPlanId || 'free', // Pass selected plan to Edge Function
+        // NOTE: NO selected_plan_id here - it doesn't exist in the tenants table!
       };
 
-      console.log('[Onboarding] createTenant: inserting new tenant with explicit auth...');
+      const selectedPlanId = state.data.selectedPlanId || 'free';
+      const functionPayload = {
+        ...tenantInsertPayload,
+        selected_plan_id: selectedPlanId, // Only for Edge Function, which handles tenant_subscriptions
+      };
+
+      // ============================================
+      // PRIMARY: Use Edge Function (handles plan correctly + bypasses RLS issues)
+      // ============================================
+      console.log('[Onboarding] createTenant: attempting via Edge Function (primary)...');
+      try {
+        const fnTenant = await createTenantViaFunction<any>(accessToken, functionPayload);
+        console.log('[Onboarding] createTenant: Edge Function succeeded:', fnTenant?.id);
+        
+        // Verify tenant is readable before proceeding (prevents step-flip)
+        if (fnTenant?.id) {
+          const isReadable = await verifyTenantReadable(fnTenant.id);
+          if (!isReadable) {
+            console.warn('[Onboarding] createTenant: tenant created but not yet readable - proceeding anyway');
+          }
+        }
+        
+        return { tenant: fnTenant, tenantError: null, wasExisting: false };
+      } catch (fnError: any) {
+        // Handle slug conflict from Edge Function
+        if (fnError instanceof SlugConflictError) {
+          console.log('[Onboarding] createTenant: Edge Function returned slug conflict');
+          setState(prev => ({
+            ...prev,
+            slugConflict: {
+              original: fnError.originalSlug,
+              suggested: fnError.suggestedSlug,
+            },
+          }));
+          throw new Error('SLUG_CONFLICT');
+        }
+        
+        // For auth/infra errors, try fallback
+        console.warn('[Onboarding] createTenant: Edge Function failed, trying direct insert fallback...', fnError);
+      }
+
+      // ============================================
+      // FALLBACK: Direct DB insert (without selected_plan_id!)
+      // ============================================
+      console.log('[Onboarding] createTenant: trying direct insert fallback...');
       const { data: tenant, error: tenantError } = await authedDb
         .from('tenants')
-        .insert(payload)
+        .insert(tenantInsertPayload) // Note: NO selected_plan_id
         .select()
         .single();
 
@@ -476,18 +548,57 @@ export function useOnboarding() {
       if (tenantError && (tenantError.code === '42501' || tenantError.message?.includes('row-level security'))) {
         console.warn('[Onboarding] createTenant: RLS error via supabase-js, trying REST fallback...');
         try {
-          const restTenant = await restInsertSingle<any>('tenants', accessToken, payload);
+          const restTenant = await restInsertSingle<any>('tenants', accessToken, tenantInsertPayload);
           console.log('[Onboarding] createTenant: REST fallback succeeded:', restTenant?.id);
+          
+          // Update subscription if non-free plan was selected (fallback route)
+          if (restTenant?.id && selectedPlanId !== 'free') {
+            await updateSubscriptionPlan(restTenant.id, selectedPlanId);
+          }
+          
           return { tenant: restTenant, tenantError: null, wasExisting: false };
         } catch (restErr) {
-          console.warn('[Onboarding] createTenant: REST fallback failed, trying backend function...', restErr);
-          const fnTenant = await createTenantViaFunction<any>(accessToken, payload);
-          console.log('[Onboarding] createTenant: function fallback succeeded:', (fnTenant as any)?.id);
-          return { tenant: fnTenant, tenantError: null, wasExisting: false };
+          console.error('[Onboarding] createTenant: All fallbacks failed', restErr);
+          throw restErr;
+        }
+      }
+
+      // If direct insert succeeded but plan is not free, update subscription
+      if (tenant && !tenantError && selectedPlanId !== 'free') {
+        await updateSubscriptionPlan(tenant.id, selectedPlanId);
+      }
+
+      // Verify tenant is readable before proceeding
+      if (tenant?.id) {
+        const isReadable = await verifyTenantReadable(tenant.id);
+        if (!isReadable) {
+          console.warn('[Onboarding] createTenant: tenant created but not yet readable - proceeding anyway');
         }
       }
 
       return { tenant, tenantError, wasExisting: false };
+    };
+
+    // Helper to update subscription plan when fallback route is used
+    const updateSubscriptionPlan = async (tenantId: string, planId: string) => {
+      console.log('[Onboarding] updateSubscriptionPlan: updating plan for fallback-created tenant...');
+      try {
+        // Wait a moment for the trigger to create the subscription row
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { error } = await authedDb
+          .from('tenant_subscriptions')
+          .update({ plan_id: planId })
+          .eq('tenant_id', tenantId);
+        
+        if (error) {
+          console.warn('[Onboarding] updateSubscriptionPlan: failed', error);
+        } else {
+          console.log('[Onboarding] updateSubscriptionPlan: success');
+        }
+      } catch (err) {
+        console.warn('[Onboarding] updateSubscriptionPlan: exception', err);
+      }
     };
 
     try {

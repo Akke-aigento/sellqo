@@ -20,6 +20,21 @@ async function readTextSafe(res: Response) {
   }
 }
 
+/**
+ * Custom error class for slug conflicts with structured data
+ */
+export class SlugConflictError extends Error {
+  readonly originalSlug: string;
+  readonly suggestedSlug: string;
+  
+  constructor(originalSlug: string, suggestedSlug: string, message?: string) {
+    super(message || `Slug '${originalSlug}' is already taken`);
+    this.name = 'SlugConflictError';
+    this.originalSlug = originalSlug;
+    this.suggestedSlug = suggestedSlug;
+  }
+}
+
 export async function createTenantViaFunction<T>(
   accessToken: string,
   payload: Record<string, unknown>
@@ -37,6 +52,29 @@ export async function createTenantViaFunction<T>(
     },
     body: JSON.stringify(payload),
   });
+
+  // Handle slug conflict (409) with structured error
+  if (res.status === 409) {
+    try {
+      const body = await res.json();
+      if (body.error === 'slug_conflict' && body.suggested_slug) {
+        console.log('[createTenantViaFunction] Slug conflict detected:', body);
+        throw new SlugConflictError(
+          body.original_slug || payload.slug as string || '',
+          body.suggested_slug,
+          body.message || `Slug is already taken`
+        );
+      }
+    } catch (parseError) {
+      // If it's already a SlugConflictError, re-throw it
+      if (parseError instanceof SlugConflictError) {
+        throw parseError;
+      }
+      // Otherwise fall through to generic error handling
+    }
+    const body = await readTextSafe(res);
+    throw new Error(`create-tenant function failed (409): ${body || res.statusText}`);
+  }
 
   if (!res.ok) {
     const body = await readTextSafe(res);
