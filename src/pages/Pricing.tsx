@@ -252,6 +252,9 @@ export default function PricingPage() {
               GDPR compliant
             </div>
           </div>
+          <p className="mt-6 text-sm text-muted-foreground font-medium">
+            Alle prijzen zijn exclusief BTW
+          </p>
         </div>
       </div>
     </div>

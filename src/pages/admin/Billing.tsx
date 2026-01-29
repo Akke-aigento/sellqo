@@ -9,24 +9,17 @@ import {
   AlertTriangle,
   TrendingUp,
   Settings,
-  ArrowUpDown
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { useCalculatePlanSwitch, useExecutePlanSwitch, type PlanSwitchPreview } from '@/hooks/usePlanSwitch';
 import { PlanSwitchPreviewCard } from '@/components/admin/billing/PlanSwitchPreview';
 import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
+import { PlanComparisonCards } from '@/components/admin/billing/PlanComparisonCards';
 import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -124,6 +117,9 @@ export default function BillingPage() {
     setSelectedTargetPlanId(null);
   };
 
+  // Determine current plan FIRST (before using it in filters)
+  const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+  
   // Filter plans that can be switched to (exclude current plan)
   const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
 
@@ -138,8 +134,6 @@ export default function BillingPage() {
       </div>
     );
   }
-
-  const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
 
   return (
     <div className="space-y-6">
@@ -188,43 +182,7 @@ export default function BillingPage() {
               </div>
             )}
 
-            {/* Plan Switch Section */}
-            {subscription?.stripe_subscription_id && switchablePlans.length > 0 && (
-              <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <ArrowUpDown className="h-4 w-4" />
-                  Wissel van plan
-                </div>
-                <div className="flex gap-2">
-                  <Select 
-                    value={selectedTargetPlanId || ''} 
-                    onValueChange={setSelectedTargetPlanId}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Selecteer een plan..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {switchablePlans.map(plan => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name} - {formatPrice(plan.monthly_price)}/mnd
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={() => selectedTargetPlanId && handlePreviewPlanSwitch(selectedTargetPlanId)}
-                    disabled={!selectedTargetPlanId || calculatePlanSwitch.isPending}
-                  >
-                    {calculatePlanSwitch.isPending ? 'Laden...' : 'Bekijk wijziging'}
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={() => window.location.href = '/pricing'}>
-                {t('billing.change_plan')}
-              </Button>
               {subscription?.stripe_subscription_id && (
                 <Button 
                   variant="ghost" 
@@ -299,7 +257,26 @@ export default function BillingPage() {
         </Card>
       </div>
 
-      {/* Payment Method */}
+      {/* Plan Comparison Cards */}
+      {plans.length > 0 && currentPlan && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Wissel van Plan</CardTitle>
+            <CardDescription>
+              Vergelijk alle plannen en bekijk wat je krijgt of verliest bij een wijziging
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PlanComparisonCards
+              plans={plans}
+              currentPlanId={currentPlan.id}
+              currentInterval={subscription?.billing_interval || 'monthly'}
+              isLoading={calculatePlanSwitch.isPending}
+              onSelectPlan={(planId, isUpgrade) => handlePreviewPlanSwitch(planId)}
+            />
+          </CardContent>
+        </Card>
+      )}
       {subscription?.stripe_payment_method_id && (
         <Card>
           <CardHeader>
