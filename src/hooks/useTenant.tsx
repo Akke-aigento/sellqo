@@ -172,8 +172,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     
     if (savedTenant) {
       setCurrentTenantState(savedTenant);
-    } else if (!currentTenant && enrichedTenants.length > 0) {
-      // Only auto-select first tenant if no saved tenant exists
+    } else if (enrichedTenants.length > 0) {
+      // Always select first tenant if none is selected
+      // This ensures new tenants are auto-selected after onboarding
       setCurrentTenant(enrichedTenants[0]);
     }
 
