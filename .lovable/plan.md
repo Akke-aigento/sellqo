@@ -1,187 +1,73 @@
 
+Doel
+- Voorkomen dat onboarding terug springt naar stap 1 na “Bedrijfsgegevens”.
+- Tenant creatie stabiel maken (incl. gekozen plan) zonder database-fouten.
 
-# Plan: Prijzen Excl. BTW Indicatie + Billing Pagina Herstel
+Wat er misgaat (oorzaak)
+- Tijdens stap 3 probeert de app een tenant aan te maken met een veld `selected_plan_id` in de `tenants` insert.
+- Die kolom bestaat niet in de database (zowel Test als Live), waardoor de insert faalt met: “Could not find the 'selected_plan_id' column of 'tenants'”.
+- Omdat tenant creatie faalt, kan de wizard niet netjes doorgaan. Bij een nieuwe gebruiker kan een her-check van onboarding status (bijv. na token refresh) de wizard terugzetten naar stap 1.
 
-## Samenvatting
+Oplossing in hoofdlijnen
+1) Tenant creatie payload opschonen: `selected_plan_id` nooit meer rechtstreeks in `tenants` inserten.
+2) Het gekozen plan nog steeds doorgeven, maar via de backend functie `create-tenant` (die het plan correct wegschrijft naar `tenant_subscriptions`).
+3) Extra stabiliteit:
+   - Slug-conflict (409) van de backend functie correct afvangen en de bestaande SlugConflictDialog tonen.
+   - “Readability verification”: na tenant creatie meteen verifiëren dat de tenant leesbaar is voordat we naar de volgende stap gaan (voorkomt race conditions/step-flips).
+4) Onboarding status check aanpassen zodat “nieuwe user => start op stap 1” alleen bij de éérste initial load geldt, en niet opnieuw tijdens een lopende onboarding-sessie (bijv. na token refresh).
 
-Dit plan lost twee problemen op:
-1. **Marketing pagina's**: Duidelijk vermelden dat prijzen exclusief BTW zijn
-2. **Admin Billing pagina crash**: ReferenceError fixen + plan vergelijkingstabel toevoegen
+Concrete wijzigingen (code)
+A) `src/hooks/useOnboarding.ts`
+- In `createTenant()`:
+  - Maak twee payloads:
+    - `tenantInsertPayload` (alleen bestaande `tenants` kolommen, dus zonder `selected_plan_id`)
+    - `functionPayload` (zelfde, maar mét `selected_plan_id` om door te geven aan `create-tenant` backend functie)
+  - Verander de create-flow:
+    1. Bestaande tenant check blijft.
+    2. Probeer tenant creatie primair via `createTenantViaFunction(accessToken, functionPayload)`.
+       - Dit dekt RLS/headers issues af en zet ook het subscription plan goed.
+    3. Als de functie faalt om “niet-auth/infra” redenen, fallback naar directe DB insert met `tenantInsertPayload` (zonder selected_plan_id).
+       - Indien fallback-route gebruikt wordt en `selectedPlanId !== 'free'`, update daarna expliciet `tenant_subscriptions.plan_id` voor deze tenant (met authed client).
+  - Slug conflict handling:
+    - Als de backend functie 409 teruggeeft met `suggested_slug`, set `state.slugConflict` en throw `new Error('SLUG_CONFLICT')` zodat de bestaande dialog verschijnt.
+  - Readability verification:
+    - Na succesvolle creatie (of bestaande tenant), doe een korte retry-loop (bijv. 5x met 200–300ms) die:
+      - `authedDb.from('tenants').select('id').eq('id', tenant.id).maybeSingle()` uitvoert
+      - Pas doorgaan als dit leesbaar is
+    - Als het na retries nog niet leesbaar is: duidelijke error/toast en niet naar volgende stap.
+- In `checkOnboardingStatus()`:
+  - Pas de “brand new user -> force step 1” logica aan:
+    - Alleen toepassen bij de allereerste run (wanneer `hasInitiallyChecked.current === false`)
+    - Bij latere re-runs: respecteer `profile.onboarding_step` zodat de wizard niet terugvalt naar 1 tijdens een actieve sessie.
+  - Dit behoudt het originele doel (nieuwe users starten op stap 1) zonder “step reset” wanneer auth state events of retries optreden.
 
----
+B) `src/integrations/backend/createTenantViaFunction.ts`
+- Verbeter error parsing:
+  - Als response status 409 is: parse JSON body en geef een gestructureerde error terug (of throw een error met extra properties) zodat `useOnboarding.createTenant()` de slug conflict correct kan herkennen en tonen.
+  - Zorg dat error messages niet alleen “create-tenant function failed (409): {…}” zijn, maar machine-readable (bijv. `errorCode = 'slug_conflict'`, `suggestedSlug`).
 
-## Probleem 1: Prijzen Excl. BTW
+Geen database wijzigingen nodig
+- We voegen geen kolommen toe. We passen de client aan zodat hij geen niet-bestaande kolom probeert te gebruiken.
+- Het gekozen plan blijft ondersteund via de bestaande backend functie en `tenant_subscriptions`.
 
-### Huidige Situatie
-De marketing pagina's (`/`, `/pricing`) tonen prijzen zonder BTW-indicatie. Dit is verwarrend voor klanten, vooral in B2B context waar prijzen typisch excl. BTW worden getoond.
+Testplan (end-to-end)
+1. Log in met een verse gebruiker (of verwijder test user uit auth in backend UI) en start onboarding.
+2. Vul stap 1 (shopnaam + slug) → stap 2 (plan) → stap 3 (bedrijfsgegevens).
+3. Klik “Volgende stap” op bedrijfsgegevens:
+   - Verwacht: tenant wordt aangemaakt en wizard gaat door naar stap 4 (Logo).
+   - Geen 400/PGRST errors meer.
+4. Kies een niet-free plan (bijv. enterprise) en verifieer in backend data dat `tenant_subscriptions.plan_id` correct gezet is.
+5. Forceer een token refresh scenario (even wachten/refreshen) terwijl wizard op stap 3/4 is:
+   - Verwacht: wizard blijft op huidige stap, niet terug naar stap 1.
+6. Slug conflict test:
+   - Gebruik bewust een slug die al bestaat.
+   - Verwacht: SlugConflictDialog verschijnt met voorstel.
 
-### Oplossing
-Voeg een duidelijke BTW-disclaimer toe aan alle prijzen secties:
+Risico’s / edge cases
+- Als fallback naar directe DB insert gebruikt wordt, kan `tenant_subscriptions` (trigger) net iets later beschikbaar zijn; daarom:
+  - Update van `tenant_subscriptions` ook met retry of check dat row bestaat.
+- We blijven de bestaande pre-flight slug check gebruiken, maar backend 409 blijft noodzakelijk voor race conditions.
 
-| Locatie | Wijziging |
-|---------|-----------|
-| `PricingSection.tsx` (Landing) | Footer tekst: "Alle prijzen exclusief BTW" |
-| `Pricing.tsx` (Standalone) | Dezelfde footer tekst |
-| Prijsweergave | Optioneel: kleine "excl. BTW" badge naast prijzen |
-
-### Implementatie
-
-**Bestand: `src/components/landing/PricingSection.tsx`**
-- Regel 356-368: Voeg "Alle prijzen exclusief BTW" toe aan de bestaande footer
-- Styling: Subtiele tekst onder de Stripe kosten melding
-
-**Bestand: `src/pages/Pricing.tsx`**
-- Voeg vergelijkbare disclaimer toe onder de plan cards
-- Tekst: "Alle prijzen zijn exclusief BTW"
-
----
-
-## Probleem 2: Billing Pagina Crash
-
-### Oorzaak
-In `src/pages/admin/Billing.tsx` op regel 128:
-```typescript
-const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
-```
-
-`currentPlan` wordt hier gebruikt VOOR het is gedeclareerd op regel 142:
-```typescript
-const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
-```
-
-Dit veroorzaakt: `ReferenceError: Cannot access 'R' before initialization`
-
-### Fix
-Verplaats de `currentPlan` declaratie naar VOOR `switchablePlans`.
-
----
-
-## Probleem 3: Billing Pagina Redesign
-
-### Huidige Situatie
-De billing pagina toont alleen een dropdown met plannen. De gebruiker ziet niet wat hij krijgt of verliest bij een plan wijziging totdat hij klikt.
-
-### Gewenste Situatie
-Een visuele tabel vergelijkbaar met de marketing pagina met:
-- Alle plannen naast elkaar
-- Huidig plan gemarkeerd met badge
-- Hogere plannen: "Upgrade" knop + wat je erbij krijgt (groen)
-- Lagere plannen: "Downgrade" knop + wat je verliest (rood)
-
-### Nieuwe Component: `PlanComparisonTable`
-
-```text
-Ontwerp (referentie: marketing pagina screenshot):
-
-┌─────────┬──────────┬──────────┬─────────────┐
-│  Free   │ Starter  │   Pro    │ Enterprise  │
-├─────────┼──────────┼──────────┼─────────────┤
-│ Gratis  │ €29/mnd  │ €79/mnd  │ €199/mnd    │
-├─────────┼──────────┼──────────┼─────────────┤
-│ [badge: │          │ [badge:  │             │
-│ Downgrade│          │ Huidig   │ [Upgrade]   │
-│ -7 features]        │  plan]   │ +12 features│
-└─────────┴──────────┴──────────┴─────────────┘
-```
-
-### Features Vergelijking Logica
-
-Voor elk plan berekenen:
-- `features.gained`: Features in target plan die niet in current plan zitten
-- `features.lost`: Features in current plan die niet in target plan zitten
-- Limits vergelijking (producten, orders, klanten)
-
----
-
-## Technische Implementatie
-
-### Fase 1: Bug Fix (Kritiek)
-
-**Bestand: `src/pages/admin/Billing.tsx`**
-
-Huidige code (fout):
-```typescript
-// Regel 128 - VOOR currentPlan is gedeclareerd
-const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
-
-// ... loading check ...
-
-// Regel 142 - currentPlan wordt pas hier gedeclareerd
-const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
-```
-
-Nieuwe code (fix):
-```typescript
-// currentPlan EERST declareren
-const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
-
-// switchablePlans NA currentPlan
-const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
-```
-
-### Fase 2: Excl. BTW Indicator
-
-**Bestanden:**
-- `src/components/landing/PricingSection.tsx`
-- `src/pages/Pricing.tsx`
-
-Toevoegen aan footer sectie:
-```typescript
-<p className="text-sm text-muted-foreground">
-  Alle prijzen zijn exclusief BTW
-</p>
-```
-
-### Fase 3: Plan Vergelijkingstabel (Optioneel upgrade)
-
-**Nieuw component: `src/components/admin/billing/PlanComparisonCards.tsx`**
-
-Props:
-- `plans`: Array van PricingPlan
-- `currentPlanId`: string
-- `currentInterval`: 'monthly' | 'yearly'
-- `onSelectPlan`: (planId: string, isUpgrade: boolean) => void
-
-Logica:
-1. Sorteer plannen op prijs (laag → hoog)
-2. Bepaal index van huidig plan
-3. Voor elk plan:
-   - Index < current = Downgrade (toon verloren features in rood)
-   - Index = current = "Huidig plan" badge
-   - Index > current = Upgrade (toon nieuwe features in groen)
-
----
-
-## Visueel Ontwerp Referentie
-
-Op basis van de marketing pagina screenshot:
-
-| Element | Stijl |
-|---------|-------|
-| Plan cards | Wit met border, schaduw bij highlighted |
-| Huidig plan | Ring-2 ring-primary + "Huidig plan" badge |
-| Upgrade | Groene CTA button, "+N features" badge |
-| Downgrade | Outline button, "-N features" badge in rood |
-| Features lijst | Checkmarks (groen) / X (grijs) |
-| Prijs | Groot, bold + "excl. BTW" subscript |
-
----
-
-## Bestanden Overzicht
-
-| Bestand | Actie | Prioriteit |
-|---------|-------|------------|
-| `src/pages/admin/Billing.tsx` | Fix variabele volgorde + redesign | Kritiek |
-| `src/components/landing/PricingSection.tsx` | BTW disclaimer toevoegen | Hoog |
-| `src/pages/Pricing.tsx` | BTW disclaimer toevoegen | Hoog |
-| `src/components/admin/billing/PlanComparisonCards.tsx` | Nieuw component | Medium |
-
----
-
-## Verwachte Resultaat
-
-1. **Billing pagina werkt weer** - geen crash meer
-2. **Duidelijke BTW indicatie** - klanten weten dat prijzen excl. BTW zijn
-3. **Visuele plan vergelijking** - gebruikers zien precies wat ze krijgen/verliezen bij upgrade/downgrade
-4. **Consistente styling** - admin billing lijkt op marketing pagina
-
+Bestanden die aangepast worden
+- src/hooks/useOnboarding.ts
+- src/integrations/backend/createTenantViaFunction.ts
