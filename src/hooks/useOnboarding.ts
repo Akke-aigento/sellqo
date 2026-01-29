@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthedClient } from '@/integrations/supabase/authedClient';
 import { restInsertSingle } from '@/integrations/supabase/authedRest';
@@ -86,6 +86,10 @@ export function useOnboarding() {
   
   // Track if user had partial progress when loading
   const [hasPartialProgress, setHasPartialProgress] = useState(false);
+  
+  // Track if we've done the initial check - prevents resume dialog from showing
+  // during active sessions (e.g., after tenant creation triggers refreshTenants)
+  const hasInitiallyChecked = useRef(false);
 
   // Check if user needs onboarding
   const checkOnboardingStatus = useCallback(async () => {
@@ -146,8 +150,12 @@ export function useOnboarding() {
       const startStep = isNewUser ? 1 : savedStep;
       
       // Track if returning user has partial progress (not brand new, step > 1)
+      // ONLY set this on initial load, not on subsequent re-checks (e.g., after refreshTenants)
       const partialProgress = !isNewUser && savedStep > 1;
-      setHasPartialProgress(partialProgress);
+      if (!hasInitiallyChecked.current) {
+        setHasPartialProgress(partialProgress);
+        hasInitiallyChecked.current = true;
+      }
       
       // Restore saved onboarding data from database
       const savedOnboardingData = (profile?.onboarding_data as Partial<OnboardingData>) || {};
@@ -277,6 +285,10 @@ export function useOnboarding() {
         })
         .eq('id', user.id);
     }
+    
+    // Reset the initial check flag so future page loads can show resume dialog if needed
+    hasInitiallyChecked.current = false;
+    setHasPartialProgress(false);
     
     setState(prev => ({ 
       ...prev, 
