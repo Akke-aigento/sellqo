@@ -1,238 +1,62 @@
 
-# Grondige Herziening Onboarding Flow
+# Volledige Reset: VanXcel & Gerelateerde Accounts Verwijderen
 
-## Probleem Analyse
+## Te Verwijderen Data
 
-Er zijn meerdere structurele problemen die samen tot deze foutenstroom leiden:
+### Auth Users (auth.users)
+| ID | Email | Actie |
+|----|-------|-------|
+| `6b57c08d-c991-4d17-8687-2e9a324216c8` | info@vanxcel.com | Verwijderen |
+| `50bd5600-94f3-4e7d-8d79-06278df802f2` | info@outlook.com | Verwijderen |
 
-### 1. Slug-Validatie Timing
-De slug "vanxcel" wordt alleen gecontroleerd in **Stap 1** (WelcomeStep). Maar:
-- Bij hervatten kan de gebruiker stap 1 overslaan
-- De opgeslagen slug kan intussen door iemand anders zijn geclaimd
-- Er is geen tweede check vóór tenant creatie
+### Profiles (public.profiles) - CASCADE via FK
+De profiles worden automatisch verwijderd door de `ON DELETE CASCADE` foreign key wanneer we de auth.users verwijderen.
 
-### 2. Owner Email Mismatch
-De bestaande tenant "vanxcel" is gekoppeld aan:
-```
-owner_email: info@outlook.com
-```
+| ID | Email | onboarding_step | onboarding_data bevat |
+|----|-------|-----------------|----------------------|
+| `6b57c08d-c991-4d17-8687-2e9a324216c8` | info@vanxcel.com | 3 | shopSlug: vanxcel |
+| `50bd5600-94f3-4e7d-8d79-06278df802f2` | info@outlook.com | 4 | shopSlug: vanxcel |
 
-De ingelogde gebruiker is:
-```
-email: info@vanxcel.com
-```
+### Tenants (public.tenants)
+Reeds verwijderd - geen tenants meer met slug "vanxcel" of owner_email van deze accounts.
 
-De `create-tenant` function zoekt naar bestaande tenant op `owner_email = info@vanxcel.com`, vindt niets, en probeert een nieuwe aan te maken met dezelfde slug → conflict.
+### User Roles (public.user_roles)
+Geen rollen gevonden voor deze twee users (info@vanxcel.com en info@outlook.com).
 
-### 3. Geen Slug-Conflict Afhandeling
-De backend function gooit simpelweg een 500 error bij duplicate slug, zonder de mogelijkheid om:
-- Een alternatieve slug voor te stellen
-- De gebruiker te informeren wat er mis is
-- Graceful recovery te bieden
+## Uitvoering
 
-## Oplossing: Robuuste Slug-Afhandeling
+**Stap 1: Verwijder auth.users (Test environment)**
+Dit triggert automatisch:
+- `profiles` verwijdering via CASCADE
+- Alle gerelateerde auth tokens worden ongeldig
 
-### Architectuur Wijzigingen
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    TENANT CREATION FLOW                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  [Stap 1: Welkom]                                               │
-│       ↓                                                         │
-│  checkSlugAvailable() → toon ✓ of ✗                            │
-│       ↓                                                         │
-│  [Stap 2-3: Plan + Gegevens]                                    │
-│       ↓                                                         │
-│  [Stap 3 → createTenant]                                        │
-│       ↓                                                         │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ PRE-FLIGHT CHECKS (nieuw)                               │   │
-│  │ 1. Valideer sessie                                       │   │
-│  │ 2. Check of slug nog beschikbaar is                      │   │
-│  │ 3. Indien niet: toon SlugConflictDialog                  │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│       ↓                                                         │
-│  [Backend: create-tenant]                                       │
-│  - Genereer unieke slug indien conflict                         │
-│  - Retourneer suggestie in response                             │
-│       ↓                                                         │
-│  [Succes of Conflict Dialog]                                    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```sql
+DELETE FROM auth.users 
+WHERE email IN ('info@vanxcel.com', 'info@outlook.com');
 ```
 
-### Technische Wijzigingen
+**Stap 2: Verwijder auth.users (Live environment)**  
+Dezelfde data in live environment opschonen.
 
-#### 1. Backend: Auto-Slug Resolutie in `create-tenant` Edge Function
-
-```typescript
-// Nieuwe functie: findAvailableSlug
-async function findAvailableSlug(supabase, baseSlug: string): Promise<string> {
-  // Check of baseslug vrij is
-  const { data: existing } = await supabase
-    .from("tenants")
-    .select("slug")
-    .eq("slug", baseSlug)
-    .limit(1);
-  
-  if (!existing || existing.length === 0) {
-    return baseSlug; // Vrij!
-  }
-  
-  // Probeer varianten: slug-2, slug-3, etc.
-  for (let i = 2; i <= 10; i++) {
-    const candidate = `${baseSlug}-${i}`;
-    const { data: check } = await supabase
-      .from("tenants")
-      .select("slug")
-      .eq("slug", candidate)
-      .limit(1);
-    if (!check || check.length === 0) {
-      return candidate;
-    }
-  }
-  
-  // Fallback: slug + random suffix
-  const randomSuffix = Math.random().toString(36).substring(2, 6);
-  return `${baseSlug}-${randomSuffix}`;
-}
+```sql
+DELETE FROM auth.users 
+WHERE email IN ('info@vanxcel.com', 'info@outlook.com');
 ```
 
-Bij duplicate key:
-- Detecteer de fout
-- Genereer een beschikbare slug
-- **Retourneer dit als voorstel** (status 409 Conflict)
+## Resultaat na Uitvoering
 
-#### 2. Frontend: SlugConflictDialog Component
+| Item | Status |
+|------|--------|
+| auth.users (info@vanxcel.com) | Verwijderd |
+| auth.users (info@outlook.com) | Verwijderd |
+| profiles (beide) | Verwijderd via CASCADE |
+| onboarding_data met "vanxcel" | Verwijderd met profiles |
+| tenants met slug "vanxcel" | Al verwijderd |
+| user_roles | Geen gevonden |
 
-Nieuw component: `src/components/onboarding/SlugConflictDialog.tsx`
+Na deze reset kun je opnieuw registreren met info@vanxcel.com en een volledig frisse onboarding doorlopen.
 
-```typescript
-interface SlugConflictDialogProps {
-  open: boolean;
-  originalSlug: string;
-  suggestedSlug: string;
-  onAccept: (newSlug: string) => void;
-  onGoToStep1: () => void;
-}
-```
+## Waarschuwing
 
-Toont:
-- "De URL 'vanxcel' is helaas al in gebruik."
-- "We stellen voor: **vanxcel-2**"
-- [Accepteer] [Zelf kiezen]
-
-#### 3. Frontend: Pre-flight Slug Check in `createTenant`
-
-Vóór het aanroepen van de backend:
-1. Check opnieuw of de slug beschikbaar is
-2. Indien niet: toon SlugConflictDialog
-3. Wacht op gebruikerskeuze voordat we verder gaan
-
-```typescript
-// In createTenant, vóór de API call:
-const slugStillAvailable = await checkSlugAvailable(shopSlug);
-if (!slugStillAvailable) {
-  const suggestedSlug = await findAlternativeSlug(shopSlug);
-  setState(prev => ({ 
-    ...prev, 
-    slugConflict: { 
-      original: shopSlug, 
-      suggested: suggestedSlug 
-    } 
-  }));
-  return null; // Stop hier, wacht op dialog
-}
-```
-
-#### 4. Data Integriteit: Valideer Opgeslagen Slug bij Resume
-
-Bij hervatten vanuit `onboarding_data`:
-1. Check of de opgeslagen shopName/shopSlug nog geldig zijn
-2. Indien de slug niet meer beschikbaar is: markeer als "conflict"
-3. Forceer terug naar stap 1 OF toon conflict dialog direct
-
-### Bestanden die worden aangepast
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/create-tenant/index.ts` | - `findAvailableSlug()` helper<br>- Bij duplicate key: return 409 met suggestie<br>- Verbeterde error response |
-| `src/components/onboarding/SlugConflictDialog.tsx` | **NIEUW** - Dialog voor slug conflict afhandeling |
-| `src/hooks/useOnboarding.ts` | - `slugConflict` state<br>- Pre-flight slug check in `createTenant`<br>- `findAlternativeSlug()` helper<br>- Slug validatie bij resume |
-| `src/components/onboarding/OnboardingWizard.tsx` | - Render SlugConflictDialog<br>- Handler voor accept/reject |
-| `src/components/onboarding/steps/WelcomeStep.tsx` | - Kleine UX verbetering: toon conflict state |
-
-### Verwacht Gedrag na Implementatie
-
-| Scenario | Gedrag |
-|----------|--------|
-| Nieuwe gebruiker, unieke slug | Normale flow, geen wijzigingen |
-| Nieuwe gebruiker, slug in gebruik | Stap 1 toont "In gebruik", kan niet doorgaan |
-| Hervattende gebruiker, slug nu in gebruik | Dialog: "vanxcel is nu bezet. Wil je vanxcel-2 gebruiken?" |
-| Hervattende gebruiker, accepteert voorstel | Slug wordt bijgewerkt, tenant wordt aangemaakt |
-| Hervattende gebruiker, wil zelf kiezen | Terug naar stap 1 om handmatig te wijzigen |
-| Backend slug conflict (race condition) | 409 response met suggestie → frontend toont dialog |
-
-### Flow Diagram bij Conflict
-
-```text
-                    ┌─────────────────┐
-                    │ createTenant()  │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │ Pre-flight check│
-                    │ Slug available? │
-                    └────────┬────────┘
-                             │
-            ┌────────────────┴────────────────┐
-            │ JA                              │ NEE
-            ▼                                 ▼
-    ┌───────────────┐                ┌───────────────────┐
-    │ Proceed to    │                │ Find alternative  │
-    │ backend call  │                │ slug              │
-    └───────┬───────┘                └─────────┬─────────┘
-            │                                  │
-            │                         ┌────────▼────────┐
-            │                         │ Show Dialog:    │
-            │                         │ "Use vanxcel-2?"│
-            │                         └────────┬────────┘
-            │                                  │
-            │               ┌──────────────────┴──────────────────┐
-            │               │ ACCEPT                              │ ZELF KIEZEN
-            │               ▼                                     ▼
-            │       ┌───────────────┐                    ┌─────────────────┐
-            │       │ Update slug   │                    │ goToStep(1)     │
-            │       │ in state      │                    │ Reset wizard    │
-            │       └───────┬───────┘                    └─────────────────┘
-            │               │
-            └───────────────┼───────────────┐
-                            ▼               │
-                    ┌───────────────┐       │
-                    │ Backend call  │◄──────┘
-                    │ create-tenant │
-                    └───────┬───────┘
-                            │
-                   ┌────────▼────────┐
-                   │ Succes!         │
-                   │ Naar stap 4     │
-                   └─────────────────┘
-```
-
-### Veiligheidsoverwegingen
-
-1. **Backend blijft authoritative**: De edge function doet altijd de finale check
-2. **Race conditions**: Als twee gebruikers tegelijk dezelfde slug proberen, krijgt de tweede een 409 met suggestie
-3. **Geen data verlies**: Bij conflict worden alle andere ingevulde gegevens behouden
-4. **Duidelijke communicatie**: Gebruiker weet precies wat er gebeurt en heeft controle
-
-### Samenvatting
-
-Deze herziening pakt drie kernproblemen aan:
-1. **Slug-validatie bij hervatten** → Pre-flight check + conflict dialog
-2. **Graceful conflict handling** → 409 response met alternatief voorstel
-3. **Gebruikerscontrole** → Accepteer voorstel of kies zelf
-
-Dit voorkomt de huidige "duplicate key" 500 errors en geeft de gebruiker een duidelijke weg vooruit.
+- **Onomkeerbaar**: Deze accounts en alle bijbehorende data worden permanent verwijderd
+- **Account vanxcel@outlook.com blijft behouden**: Dit account heeft tenant_admin rollen op demo-tenants en wordt niet verwijderd volgens jouw keuze
