@@ -34,6 +34,11 @@ export interface OnboardingData {
   stripeConnected: boolean;
 }
 
+interface SlugConflict {
+  original: string;
+  suggested: string;
+}
+
 interface OnboardingState {
   currentStep: number;
   totalSteps: number;
@@ -43,6 +48,7 @@ interface OnboardingState {
   createdTenantId: string | null;
   createdProductId: string | null;
   sessionExpired: boolean;
+  slugConflict: SlugConflict | null;
 }
 
 const TOTAL_STEPS = 7;
@@ -82,6 +88,7 @@ export function useOnboarding() {
     createdTenantId: null,
     createdProductId: null,
     sessionExpired: false,
+    slugConflict: null,
   });
   
   // Track if user had partial progress when loading
@@ -319,6 +326,23 @@ export function useOnboarding() {
     if (!shopName?.trim() || !shopSlug?.trim()) {
       console.error('[Onboarding] createTenant: shopName or shopSlug is empty!', { shopName, shopSlug });
       throw new Error('MISSING_SHOP_DATA');
+    }
+
+    // PRE-FLIGHT CHECK: Verify slug is still available before proceeding
+    console.log('[Onboarding] createTenant: pre-flight slug check...');
+    const slugStillAvailable = await checkSlugAvailable(shopSlug);
+    
+    if (!slugStillAvailable) {
+      console.log('[Onboarding] createTenant: slug no longer available, finding alternative...');
+      const suggestedSlug = await findAlternativeSlug(shopSlug);
+      setState(prev => ({
+        ...prev,
+        slugConflict: {
+          original: shopSlug,
+          suggested: suggestedSlug,
+        },
+      }));
+      throw new Error('SLUG_CONFLICT');
     }
 
     // CRITICAL: Verify session is valid BEFORE attempting database write
@@ -578,9 +602,36 @@ export function useOnboarding() {
     return !data || data.length === 0;
   }, []);
 
+  // Find an alternative slug when the original is taken
+  const findAlternativeSlug = useCallback(async (baseSlug: string): Promise<string> => {
+    // Try numbered variants: slug-2, slug-3, etc.
+    for (let i = 2; i <= 10; i++) {
+      const candidate = `${baseSlug}-${i}`;
+      const isAvailable = await checkSlugAvailable(candidate);
+      if (isAvailable) {
+        return candidate;
+      }
+    }
+    
+    // Fallback: slug + random suffix
+    const randomSuffix = Math.random().toString(36).substring(2, 6);
+    return `${baseSlug}-${randomSuffix}`;
+  }, [checkSlugAvailable]);
+
   // Function to clear partial progress flag (after user makes choice)
   const clearPartialProgress = useCallback(() => {
     setHasPartialProgress(false);
+  }, []);
+
+  // Clear slug conflict and optionally accept a new slug
+  const handleSlugConflictAccept = useCallback((newSlug: string) => {
+    updateData({ shopSlug: newSlug });
+    setState(prev => ({ ...prev, slugConflict: null }));
+  }, [updateData]);
+
+  // Clear slug conflict and go back to step 1
+  const handleSlugConflictGoToStep1 = useCallback(() => {
+    setState(prev => ({ ...prev, slugConflict: null, currentStep: 1 }));
   }, []);
 
   // Handle session expired - force sign out and redirect to login
@@ -619,6 +670,9 @@ export function useOnboarding() {
     createFirstProduct,
     generateSlug,
     checkSlugAvailable,
+    findAlternativeSlug,
+    handleSlugConflictAccept,
+    handleSlugConflictGoToStep1,
     refreshOnboarding: checkOnboardingStatus,
     handleSessionExpiredRelogin,
     clearSessionExpired,
