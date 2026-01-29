@@ -14,6 +14,7 @@ import { FirstProductStep } from './steps/FirstProductStep';
 import { PaymentsStep } from './steps/PaymentsStep';
 import { LaunchStep } from './steps/LaunchStep';
 import { ResumeOnboardingDialog } from './ResumeOnboardingDialog';
+import { SlugConflictDialog } from './SlugConflictDialog';
 import { SessionExpiredDialog } from '@/components/auth/SessionExpiredDialog';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +45,7 @@ export function OnboardingWizard() {
     createdTenantId,
     hasPartialProgress,
     sessionExpired,
+    slugConflict,
     clearPartialProgress,
     updateData,
     nextStep,
@@ -57,6 +59,8 @@ export function OnboardingWizard() {
     generateSlug,
     checkSlugAvailable,
     handleSessionExpiredRelogin,
+    handleSlugConflictAccept,
+    handleSlugConflictGoToStep1,
     isMissingCriticalData,
   } = useOnboarding();
 
@@ -104,6 +108,12 @@ export function OnboardingWizard() {
       nextStep();
     } catch (error: any) {
       console.error('Step transition error:', error);
+      
+      // Handle slug conflict - dialog will show, don't show error toast
+      if (error.message === 'SLUG_CONFLICT') {
+        console.log('[OnboardingWizard] Slug conflict detected, dialog will show');
+        return;
+      }
       
       // Handle missing shop data - force restart from step 1
       if (error.message === 'MISSING_SHOP_DATA') {
@@ -232,6 +242,15 @@ export function OnboardingWizard() {
     await restartOnboarding();
   };
 
+  // Handler for accepting slug conflict suggestion and retrying
+  const handleSlugAcceptAndRetry = async (newSlug: string) => {
+    handleSlugConflictAccept(newSlug);
+    // Wait a tick for state to update, then retry tenant creation
+    setTimeout(() => {
+      handleStepTransition(3);
+    }, 100);
+  };
+
   return (
     <>
       {/* Session expired recovery dialog */}
@@ -239,9 +258,17 @@ export function OnboardingWizard() {
         open={sessionExpired}
         onRelogin={handleSessionExpiredRelogin}
       />
+      {/* Slug conflict dialog */}
+      <SlugConflictDialog
+        open={!!slugConflict}
+        originalSlug={slugConflict?.original || ''}
+        suggestedSlug={slugConflict?.suggested || ''}
+        onAccept={handleSlugAcceptAndRetry}
+        onGoToStep1={handleSlugConflictGoToStep1}
+      />
       {/* Resume dialog for returning users with partial progress */}
       <ResumeOnboardingDialog
-        open={hasPartialProgress && !sessionExpired}
+        open={hasPartialProgress && !sessionExpired && !slugConflict}
         currentStep={currentStep}
         totalSteps={totalSteps}
         isMissingCriticalData={isMissingCriticalData()}

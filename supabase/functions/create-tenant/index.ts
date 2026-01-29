@@ -11,6 +11,37 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-TENANT] ${step}${detailsStr}`);
 };
 
+// Find an available slug variant if the base slug is taken
+async function findAvailableSlug(supabase: any, baseSlug: string): Promise<string> {
+  // Check if base slug is free
+  const { data: existing } = await supabase
+    .from("tenants")
+    .select("slug")
+    .eq("slug", baseSlug)
+    .limit(1);
+  
+  if (!existing || existing.length === 0) {
+    return baseSlug;
+  }
+  
+  // Try numbered variants: slug-2, slug-3, etc.
+  for (let i = 2; i <= 10; i++) {
+    const candidate = `${baseSlug}-${i}`;
+    const { data: check } = await supabase
+      .from("tenants")
+      .select("slug")
+      .eq("slug", candidate)
+      .limit(1);
+    if (!check || check.length === 0) {
+      return candidate;
+    }
+  }
+  
+  // Fallback: slug + random suffix
+  const randomSuffix = Math.random().toString(36).substring(2, 6);
+  return `${baseSlug}-${randomSuffix}`;
+}
+
 type TenantPayload = {
   name?: string;
   slug?: string;
@@ -129,6 +160,29 @@ serve(async (req) => {
       billing_company_name: body.billing_company_name ?? null,
     };
 
+    // Check if slug is already taken BEFORE inserting
+    const { data: slugCheck } = await supabase
+      .from("tenants")
+      .select("id")
+      .eq("slug", slug)
+      .limit(1);
+    
+    if (slugCheck && slugCheck.length > 0) {
+      // Slug is taken - find an alternative and return 409 Conflict
+      logStep("Slug already taken, finding alternative", { slug });
+      const suggestedSlug = await findAvailableSlug(supabase, slug);
+      
+      return new Response(JSON.stringify({ 
+        error: "slug_conflict",
+        message: `De URL '${slug}' is al in gebruik.`,
+        original_slug: slug,
+        suggested_slug: suggestedSlug,
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     logStep("Inserting tenant", { slug });
     const { data: tenant, error: insertError } = await supabase
       .from("tenants")
@@ -137,6 +191,22 @@ serve(async (req) => {
       .single();
 
     if (insertError) {
+      // Handle race condition: duplicate key error
+      if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+        logStep("Duplicate key error, finding alternative slug", { slug });
+        const suggestedSlug = await findAvailableSlug(supabase, slug);
+        
+        return new Response(JSON.stringify({ 
+          error: "slug_conflict",
+          message: `De URL '${slug}' is al in gebruik.`,
+          original_slug: slug,
+          suggested_slug: suggestedSlug,
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       logStep("Insert failed", { error: insertError.message });
       return new Response(JSON.stringify({ error: insertError.message }), {
         status: 500,
