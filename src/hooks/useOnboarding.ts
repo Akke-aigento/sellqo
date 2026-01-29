@@ -308,10 +308,18 @@ export function useOnboarding() {
           onboarding_step: TOTAL_STEPS,
         })
         .eq('id', user.id);
+      
+      // CRITICAL: Refresh tenants to load the newly created tenant
+      // Without this, the Dashboard shows "Geen winkel gevonden"
+      try {
+        await refreshTenants();
+      } catch (error) {
+        console.warn('[Onboarding] refreshTenants failed on complete:', error);
+      }
     }
     
     setState(prev => ({ ...prev, isOpen: false }));
-  }, [user]);
+  }, [user, refreshTenants]);
 
   // Restart onboarding from step 1
   const restartOnboarding = useCallback(async () => {
