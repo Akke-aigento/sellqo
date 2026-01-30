@@ -43,7 +43,7 @@ export function AdminHeader() {
       <div className="flex-1">
         {currentTenant && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {currentTenant.name}
             </span>
             <Badge variant="secondary" className="text-xs">
