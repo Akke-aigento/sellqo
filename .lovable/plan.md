@@ -1,223 +1,166 @@
 
-# Plan: Uniforme Platform Communicatie Flow via Support Tickets
 
-## Huidige Situatie
+# Plan: Reset Test Data & Shopify Request Integratie in Support Tickets
 
-### Problemen
-1. **404 op notificatie link** - `/admin/platform/shopify-requests` bestaat niet
-2. **Geen uniforme communicatie flow** - Shopify requests, feedback, en andere platform-level zaken hebben allemaal aparte flows
-3. **Geen mogelijkheid tot dialoog** - Bij een Shopify verzoek kan de platform admin niet direct communiceren met de merchant
+## Overzicht
 
-### Wat We Hebben
-- Een volwassen **Support Ticket systeem** met:
-  - Status workflow (open → in_progress → waiting → resolved → closed)
-  - Messaging systeem met sender types (merchant, support, system, ai)
-  - Categorieën: billing, technical, feature, bug, other
-  - Platform admin UI op `/admin/platform/support`
-  - Tenant koppeling via `tenant_id`
+We gaan drie dingen doen:
+1. **Reset test data** - Zodat je de nieuwe flow opnieuw kunt testen
+2. **Synchronisatie** - Ticket status updates synchroniseren met Shopify request status
+3. **Context-acties** - Specifieke Shopify-acties tonen in integration tickets
 
-## Oplossing: Support Tickets als Centrale Hub
+## 1. Reset Test Data
 
-De kern van het idee: **Elk platform-level verzoek dat communicatie vereist wordt automatisch een support ticket.**
+De volgende data wordt verwijderd via een database migratie:
+- Het bestaande Shopify connection request
+- Bijbehorende notificaties
+
+Dit zorgt ervoor dat je opnieuw een verzoek kunt indienen en de complete flow kunt testen.
+
+## 2. Status Synchronisatie
+
+Het probleem: twee aparte systemen met hun eigen statussen:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Platform Communicatie Flow                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   Shopify Koppelverzoek    Feedback Melding    Andere Verzoeken     │
-│          │                       │                    │             │
-│          ▼                       ▼                    ▼             │
-│   ┌──────────────────────────────────────────────────────────┐     │
-│   │              Support Ticket Systeem                      │     │
-│   │  ┌─────────────────────────────────────────────────────┐ │     │
-│   │  │ Categorieën:                                        │ │     │
-│   │  │ • billing    • technical   • feature               │ │     │
-│   │  │ • bug        • other                                │ │     │
-│   │  │ • integration (NIEUW) ← Shopify, Bol, Amazon, etc  │ │     │
-│   │  │ • feedback (NIEUW)                                  │ │     │
-│   │  └─────────────────────────────────────────────────────┘ │     │
-│   └──────────────────────────────────────────────────────────┘     │
-│                              │                                      │
-│                              ▼                                      │
-│   ┌──────────────────────────────────────────────────────────┐     │
-│   │              Platform Support Inbox                      │     │
-│   │  /admin/platform/support                                 │     │
-│   │                                                          │     │
-│   │  • Unified view van alle merchant communicatie          │     │
-│   │  • Filter op categorie (integration, feedback, etc)     │     │
-│   │  • Direct reageren en status bijwerken                  │     │
-│   │  • Koppeling naar gerelateerde resources in metadata    │     │
-│   └──────────────────────────────────────────────────────────┘     │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    Status Mapping                               │
+├───────────────────────┬─────────────────────────────────────────┤
+│  Ticket Status        │  Shopify Request Status                 │
+├───────────────────────┼─────────────────────────────────────────┤
+│  open                 │  pending                                │
+│  in_progress          │  in_review                              │
+│  waiting              │  (geen directe mapping)                 │
+│  resolved             │  approved / completed                   │
+│  closed               │  rejected / completed                   │
+└───────────────────────┴─────────────────────────────────────────┘
 ```
 
-## Voordelen
+### Oplossing: Database Trigger
 
-| Aspect | Huidige Situatie | Na Implementatie |
-|--------|------------------|------------------|
-| **Shopify verzoek** | Notificatie → 404 | Notificatie → Support ticket met metadata |
-| **Communicatie** | Aparte kanalen per type | Alles in één inbox |
-| **Tracking** | Geen status historie | Volledige ticket lifecycle |
-| **Merchant view** | Alleen status badges | Ticket gesprek + status updates |
-| **Context** | Verspreid over systemen | Alles in één plek met metadata links |
-
-## Technische Implementatie
-
-### 1. Database Wijzigingen
-
-**Nieuwe ticket categorieën:**
-```sql
-ALTER TYPE support_ticket_category ADD VALUE 'integration';
-ALTER TYPE support_ticket_category ADD VALUE 'feedback';
-```
-
-**Koppeling tabel (optioneel, voor referentie):**
-```sql
--- Voegt een kolom toe om het gerelateerde resource type/id op te slaan
-ALTER TABLE support_tickets ADD COLUMN related_resource_type TEXT;
-ALTER TABLE support_tickets ADD COLUMN related_resource_id UUID;
-```
-
-### 2. Trigger Aanpassing
-
-Wijzig `handle_shopify_request_notification` om automatisch een support ticket aan te maken:
+Wanneer een support ticket status verandert EN het gaat om een integration ticket met `related_resource_type = 'shopify_connection_request'`, dan updaten we automatisch de Shopify request status:
 
 ```sql
-CREATE OR REPLACE FUNCTION public.handle_shopify_request_notification()
-...
-AS $$
-DECLARE
-  v_ticket_id UUID;
-  v_internal_tenant_id UUID;
-  v_tenant_name TEXT;
-  v_tenant_email TEXT;
+CREATE OR REPLACE FUNCTION sync_ticket_to_shopify_request()
+RETURNS TRIGGER AS $$
 BEGIN
-  -- Get tenant info
-  SELECT name, owner_email INTO v_tenant_name, v_tenant_email 
-  FROM tenants WHERE id = NEW.tenant_id;
-  
-  -- Get internal tenant
-  SELECT id INTO v_internal_tenant_id 
-  FROM tenants WHERE is_internal_tenant = true LIMIT 1;
-
-  IF TG_OP = 'INSERT' THEN
-    -- Maak automatisch een support ticket aan
-    INSERT INTO support_tickets (
-      tenant_id,
-      requester_email,
-      requester_name,
-      subject,
-      category,
-      priority,
-      status,
-      metadata,
-      related_resource_type,
-      related_resource_id
-    ) VALUES (
-      NEW.tenant_id,
-      COALESCE(v_tenant_email, 'unknown@tenant.com'),
-      v_tenant_name,
-      'Shopify koppelverzoek: ' || COALESCE(NEW.store_name, 'Onbekende store'),
-      'integration',
-      'high',
-      'open',
-      jsonb_build_object(
-        'type', 'shopify_connection_request',
-        'request_id', NEW.id,
-        'store_name', NEW.store_name,
-        'store_url', NEW.store_url
-      ),
-      'shopify_connection_request',
-      NEW.id
-    ) RETURNING id INTO v_ticket_id;
-    
-    -- Voeg automatisch een systeem bericht toe
-    INSERT INTO support_messages (ticket_id, sender_type, message)
-    VALUES (
-      v_ticket_id,
-      'system',
-      'Nieuw Shopify koppelverzoek ingediend.
-
-Store naam: ' || COALESCE(NEW.store_name, '-') || '
-Store URL: ' || COALESCE(NEW.store_url, '-') || '
-Opmerkingen merchant: ' || COALESCE(NEW.notes, 'Geen')
-    );
-    
-    -- Notify internal tenant met link naar ticket
-    IF v_internal_tenant_id IS NOT NULL THEN
-      PERFORM public.send_notification(
-        v_internal_tenant_id,
-        'system',
-        'shopify_request_new',
-        'Nieuw Shopify koppelverzoek',
-        v_tenant_name || ' vraagt koppeling aan voor ' || NEW.store_name,
-        'high',
-        '/admin/platform/support?ticket=' || v_ticket_id,  -- ← Directe link naar ticket
-        jsonb_build_object(
-          'ticket_id', v_ticket_id,
-          'request_id', NEW.id,
-          'tenant_name', v_tenant_name
-        )
-      );
-    END IF;
-    
-    -- Notify merchant
-    PERFORM public.send_notification(
-      NEW.tenant_id,
-      'system',
-      'shopify_request_pending',
-      'Shopify koppelverzoek ingediend',
-      'Je verzoek is ingediend. We nemen contact op via je support inbox.',
-      'medium',
-      '/admin/support?ticket=' || v_ticket_id,
-      jsonb_build_object('ticket_id', v_ticket_id)
-    );
+  IF NEW.related_resource_type = 'shopify_connection_request' 
+     AND NEW.related_resource_id IS NOT NULL
+     AND OLD.status IS DISTINCT FROM NEW.status THEN
+     
+    -- Sync ticket status naar shopify request
+    UPDATE shopify_connection_requests
+    SET status = CASE NEW.status
+      WHEN 'open' THEN 'pending'
+      WHEN 'in_progress' THEN 'in_review'
+      WHEN 'resolved' THEN 'approved'
+      WHEN 'closed' THEN 'completed'
+      ELSE status -- waiting heeft geen mapping
+    END
+    WHERE id = NEW.related_resource_id;
   END IF;
   
   RETURN NEW;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 ```
 
-### 3. URL Ondersteuning in Support Pagina
+## 3. Context-Acties in Ticket Detail
 
-Voeg query parameter ondersteuning toe aan `PlatformSupport.tsx`:
+Voor integration tickets tonen we extra informatie en acties:
 
-```typescript
-// Lees ticket ID uit URL en open automatisch
-const [searchParams] = useSearchParams();
-const ticketIdFromUrl = searchParams.get('ticket');
-
-useEffect(() => {
-  if (ticketIdFromUrl && tickets.length > 0) {
-    const ticket = tickets.find(t => t.id === ticketIdFromUrl);
-    if (ticket) setSelectedTicket(ticket);
-  }
-}, [ticketIdFromUrl, tickets]);
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ Shopify koppelverzoek: test-store                               │
+│ Van: merchant@example.com (VanXcel)                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ 🔗 Integratie Details                                       │ │
+│ ├─────────────────────────────────────────────────────────────┤ │
+│ │ Type: Shopify Connection Request                            │ │
+│ │ Store: test-store.myshopify.com                             │ │
+│ │ Status aanvraag: In behandeling                             │ │
+│ │                                                             │ │
+│ │ [Installatie Link Toevoegen]  [Goedkeuren]  [Afwijzen]      │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ 📨 Berichten                                                │ │
+│ │ ...                                                         │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4. Merchant Support Inbox (optioneel, fase 2)
+## Technische Implementatie
 
-De merchant kan hun tickets zien op `/admin/support`:
-- Alleen hun eigen tickets (gefilterd op tenant_id)
-- Kunnen reageren op berichten
-- Zien status updates
+### Database Migratie
 
-## Bestanden die gewijzigd worden
+1. **Verwijder test data**
+2. **Voeg synchronisatie trigger toe**
+
+```sql
+-- Reset test data
+DELETE FROM notifications 
+WHERE type IN ('shopify_request_pending', 'shopify_request_new');
+
+DELETE FROM shopify_connection_requests 
+WHERE id = '85ffb421-9ea7-4f6c-8255-e6e22278b8b0';
+
+-- Sync trigger: ticket status → shopify request status
+CREATE OR REPLACE FUNCTION public.sync_ticket_to_shopify_request()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.related_resource_type = 'shopify_connection_request' 
+     AND NEW.related_resource_id IS NOT NULL
+     AND (TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status) THEN
+     
+    UPDATE shopify_connection_requests
+    SET status = CASE NEW.status
+      WHEN 'open' THEN 'pending'::text
+      WHEN 'in_progress' THEN 'in_review'::text
+      WHEN 'resolved' THEN 'approved'::text
+      WHEN 'closed' THEN 'completed'::text
+      ELSE status
+    END,
+    updated_at = now()
+    WHERE id = NEW.related_resource_id;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trigger_sync_ticket_shopify
+  AFTER UPDATE ON support_tickets
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_ticket_to_shopify_request();
+```
+
+### Frontend Wijzigingen
+
+**`src/pages/platform/PlatformSupport.tsx`**
+- Voeg `IntegrationContext` component toe aan TicketDetail
+- Toon metadata over de Shopify request
+- Voeg actieknoppen toe (Goedkeuren, Afwijzen, Install link)
+
+**`src/hooks/useSupportTickets.ts`**
+- Voeg `related_resource_type` en `related_resource_id` toe aan SupportTicket interface
+
+### Bestanden die gewijzigd worden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| Database migratie | Nieuwe categorieën, related_resource kolommen |
-| Database trigger | `handle_shopify_request_notification` maakt nu ticket aan |
-| `src/pages/platform/PlatformSupport.tsx` | URL parameter ondersteuning |
-| `src/hooks/useSupportTickets.ts` | Voeg `integration` en `feedback` toe aan types |
+| Database migratie | Reset data + sync trigger |
+| `src/pages/platform/PlatformSupport.tsx` | IntegrationContext component met acties |
+| `src/hooks/useSupportTickets.ts` | Nieuwe velden in interface |
+| `src/hooks/useShopifyRequests.ts` | Import in PlatformSupport voor actie handlers |
 
 ## Resultaat
 
-1. **Geen 404 meer** - Notificatie linkt naar bestaande support ticket
-2. **Uniforme communicatie** - Alle platform-level zaken in één inbox
-3. **Volledige dialoog** - Platform admin kan direct reageren, merchant ziet updates
-4. **Uitbreidbaar** - Zelfde pattern voor feedback, bol.com requests, etc.
-5. **Context behouden** - Metadata en related_resource voor snelle toegang tot originele data
+Na implementatie:
+1. **Test data is gereset** - Je kunt opnieuw een Shopify verzoek indienen
+2. **Automatische sync** - Ticket status updates syncen naar Shopify request
+3. **Platform admin heeft volledige controle** - Kan status wijzigen, berichten sturen, en specifieke acties uitvoeren
+4. **Merchant ziet updates** - Via hun support inbox en notificaties
+
