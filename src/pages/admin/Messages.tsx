@@ -3,6 +3,7 @@ import { MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { useInbox } from '@/hooks/useInbox';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
+import { useBulkInboxActions } from '@/hooks/useBulkInboxActions';
 import { InboxFilters, ConversationList, ConversationDetail, FolderList } from '@/components/admin/inbox';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,19 @@ export default function MessagesPage() {
   const { folders, archiveFolder, trashFolder } = useInboxFolders();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+
+  // Bulk selection hook
+  const {
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    bulkArchive,
+    bulkDelete,
+    bulkRestore,
+    bulkMoveToFolder,
+    isLoading: isBulkLoading,
+  } = useBulkInboxActions(conversations);
 
   // Count by channel
   const counts = useMemo(() => {
@@ -170,6 +184,16 @@ export default function MessagesPage() {
                   selectedId={selectedConversationId}
                   onSelect={setSelectedConversationId}
                   isLoading={isLoading}
+                  selectedIds={selectedIds}
+                  onToggleSelection={toggleSelection}
+                  onSelectAll={selectAll}
+                  onClearSelection={clearSelection}
+                  onBulkArchive={bulkArchive}
+                  onBulkDelete={bulkDelete}
+                  onBulkRestore={bulkRestore}
+                  onBulkMoveToFolder={bulkMoveToFolder}
+                  currentFolder={filters.folderId}
+                  isBulkLoading={isBulkLoading}
                 />
               </div>
             </div>

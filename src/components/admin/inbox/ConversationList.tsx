@@ -1,7 +1,8 @@
 import { MessageSquare } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DraggableConversationItem } from './DraggableConversationItem';
+import { SelectableConversationItem } from './SelectableConversationItem';
+import { BulkActionsToolbar } from './BulkActionsToolbar';
 import type { Conversation } from '@/hooks/useInbox';
 
 interface ConversationListProps {
@@ -9,6 +10,17 @@ interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   isLoading: boolean;
+  // Bulk selection props
+  selectedIds: Set<string>;
+  onToggleSelection: (id: string) => void;
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+  onBulkArchive: () => void;
+  onBulkDelete: () => void;
+  onBulkRestore: () => void;
+  onBulkMoveToFolder: (folderId: string | null) => void;
+  currentFolder: string | null;
+  isBulkLoading?: boolean;
 }
 
 export function ConversationList({
@@ -16,7 +28,19 @@ export function ConversationList({
   selectedId,
   onSelect,
   isLoading,
+  selectedIds,
+  onToggleSelection,
+  onSelectAll,
+  onClearSelection,
+  onBulkArchive,
+  onBulkDelete,
+  onBulkRestore,
+  onBulkMoveToFolder,
+  currentFolder,
+  isBulkLoading,
 }: ConversationListProps) {
+  const showCheckboxes = selectedIds.size > 0;
+
   if (isLoading) {
     return (
       <div className="p-4 space-y-4">
@@ -48,15 +72,38 @@ export function ConversationList({
   }
 
   return (
-    <ScrollArea className="h-full">
-      {conversations.map((conversation) => (
-        <DraggableConversationItem
-          key={conversation.id}
-          conversation={conversation}
-          isSelected={selectedId === conversation.id}
-          onClick={() => onSelect(conversation.id)}
-        />
-      ))}
-    </ScrollArea>
+    <div className="flex flex-col h-full">
+      {/* Bulk actions toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedIds.size}
+        currentFolder={currentFolder}
+        onArchive={onBulkArchive}
+        onDelete={onBulkDelete}
+        onRestore={onBulkRestore}
+        onMoveToFolder={onBulkMoveToFolder}
+        onClearSelection={onClearSelection}
+        onSelectAll={onSelectAll}
+        totalCount={conversations.length}
+        isLoading={isBulkLoading}
+      />
+
+      {/* Conversation list */}
+      <ScrollArea className="flex-1">
+        {conversations.map((conversation) => (
+          <SelectableConversationItem
+            key={conversation.id}
+            conversation={conversation}
+            isSelected={selectedId === conversation.id}
+            isChecked={selectedIds.has(conversation.id)}
+            showCheckboxes={showCheckboxes}
+            onClick={() => onSelect(conversation.id)}
+            onToggleCheck={(e) => {
+              e.stopPropagation();
+              onToggleSelection(conversation.id);
+            }}
+          />
+        ))}
+      </ScrollArea>
+    </div>
   );
 }
