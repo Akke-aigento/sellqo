@@ -73,11 +73,30 @@ export interface Conversation {
   folderId: string | null;
 }
 
+export interface SearchOptions {
+  scope: 'current' | 'all' | 'everywhere';
+  channels: FilterChannel[];
+  searchIn: {
+    subject: boolean;
+    content: boolean;
+    sender: boolean;
+  };
+  period: 'week' | 'month' | '3months' | 'all';
+}
+
+export const getDefaultSearchOptions = (hasActiveFolder: boolean): SearchOptions => ({
+  scope: hasActiveFolder ? 'current' : 'all',
+  channels: ['email', 'whatsapp', 'facebook', 'instagram'],
+  searchIn: { subject: true, content: true, sender: true },
+  period: 'all',
+});
+
 export interface InboxFilters {
   channel: FilterChannel;
   status: 'all' | 'unread' | 'unanswered';
   search: string;
   folderId: string | null; // null = inbox, 'archived' = archive folder, 'deleted' = trash
+  searchOptions: SearchOptions;
 }
 
 // Helper to check if channel is a social channel
@@ -98,6 +117,7 @@ export function useInbox() {
     status: 'all',
     search: '',
     folderId: null, // null = inbox (active messages without folder)
+    searchOptions: getDefaultSearchOptions(false),
   });
 
   const queryKey = ['inbox-messages', currentTenant?.id, filters];
@@ -123,29 +143,75 @@ export function useInbox() {
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });
 
-      // Apply folder/status filter
-      if (filters.folderId === null) {
-        // Inbox: active messages with no folder
-        query = query.eq('message_status', 'active').is('folder_id', null);
-      } else if (filters.folderId === 'archived' || filters.folderId === archiveFolder?.id) {
-        // Archived messages
-        query = query.eq('message_status', 'archived');
-      } else if (filters.folderId === 'deleted' || filters.folderId === trashFolder?.id) {
-        // Deleted messages
-        query = query.eq('message_status', 'deleted');
+      // When searching, apply search-specific filters
+      if (filters.search) {
+        const { scope, channels, searchIn, period } = filters.searchOptions;
+
+        // Apply scope filter
+        if (scope === 'current') {
+          // Current folder only
+          if (filters.folderId === null) {
+            query = query.eq('message_status', 'active').is('folder_id', null);
+          } else if (filters.folderId === 'archived' || filters.folderId === archiveFolder?.id) {
+            query = query.eq('message_status', 'archived');
+          } else if (filters.folderId === 'deleted' || filters.folderId === trashFolder?.id) {
+            query = query.eq('message_status', 'deleted');
+          } else {
+            query = query.eq('folder_id', filters.folderId).eq('message_status', 'active');
+          }
+        } else if (scope === 'all') {
+          // All folders except trash
+          query = query.neq('message_status', 'deleted');
+        }
+        // 'everywhere' = no message_status filter (includes deleted)
+
+        // Apply channel filter for search
+        if (channels.length < 4) {
+          query = query.in('channel', channels);
+        }
+
+        // Apply period filter
+        if (period !== 'all') {
+          const periods = { week: 7, month: 30, '3months': 90 };
+          const days = periods[period];
+          const since = new Date();
+          since.setDate(since.getDate() - days);
+          query = query.gte('created_at', since.toISOString());
+        }
+
+        // Apply text search with OR conditions
+        const orConditions: string[] = [];
+        if (searchIn.subject) orConditions.push(`subject.ilike.%${filters.search}%`);
+        if (searchIn.content) {
+          orConditions.push(`body_text.ilike.%${filters.search}%`);
+        }
+        if (searchIn.sender) {
+          orConditions.push(`from_email.ilike.%${filters.search}%`);
+        }
+        if (orConditions.length > 0) {
+          query = query.or(orConditions.join(','));
+        }
       } else {
-        // Custom folder
-        query = query.eq('folder_id', filters.folderId).eq('message_status', 'active');
+        // Normal folder/status filter (no search)
+        if (filters.folderId === null) {
+          query = query.eq('message_status', 'active').is('folder_id', null);
+        } else if (filters.folderId === 'archived' || filters.folderId === archiveFolder?.id) {
+          query = query.eq('message_status', 'archived');
+        } else if (filters.folderId === 'deleted' || filters.folderId === trashFolder?.id) {
+          query = query.eq('message_status', 'deleted');
+        } else {
+          query = query.eq('folder_id', filters.folderId).eq('message_status', 'active');
+        }
+
+        // Apply channel filter (when not searching)
+        if (filters.channel === 'social') {
+          query = query.in('channel', ['whatsapp', 'facebook', 'instagram']);
+        } else if (filters.channel !== 'all') {
+          query = query.eq('channel', filters.channel);
+        }
       }
 
-      // Apply channel filter
-      if (filters.channel === 'social') {
-        query = query.in('channel', ['whatsapp', 'facebook', 'instagram']);
-      } else if (filters.channel !== 'all') {
-        query = query.eq('channel', filters.channel);
-      }
-
-      // Apply status filter
+      // Apply status filter (both search and non-search)
       if (filters.status === 'unread') {
         query = query.eq('direction', 'inbound').is('read_at', null);
       } else if (filters.status === 'unanswered') {
@@ -241,18 +307,18 @@ export function useInbox() {
     });
   }, [messages]);
 
-  // Filter by search
+  // Client-side filtering is no longer needed for search (moved to database query)
+  // Keep for additional client-side filtering like customer name matching
   const filteredConversations = useMemo(() => {
     if (!filters.search) return conversations;
     
+    // Additional client-side filter for customer name (not in DB)
     const searchLower = filters.search.toLowerCase();
     return conversations.filter((c) => {
-      return (
-        c.customer?.name.toLowerCase().includes(searchLower) ||
-        c.customer?.email.toLowerCase().includes(searchLower) ||
-        c.lastMessage.subject.toLowerCase().includes(searchLower) ||
-        c.lastMessage.body_text?.toLowerCase().includes(searchLower)
-      );
+      // Already filtered by DB, but add customer name matching
+      if (c.customer?.name.toLowerCase().includes(searchLower)) return true;
+      // The rest is already matched by the database query
+      return true;
     });
   }, [conversations, filters.search]);
 

@@ -1,4 +1,5 @@
 export { InboxFilters } from './InboxFilters';
+export { AdvancedSearchFilters } from './AdvancedSearchFilters';
 export { ConversationList } from './ConversationList';
 export { ConversationItem } from './ConversationItem';
 export { DraggableConversationItem } from './DraggableConversationItem';
