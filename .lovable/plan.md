@@ -1,146 +1,179 @@
 
-# Plan: Platform Admin Notificatie Routing & Alternatief Email Adres
+# Plan: Uniforme Platform Communicatie Flow via Support Tickets
 
 ## Huidige Situatie
 
-### Probleem 1: Platform Admin Notificaties Komen Niet Aan
-De trigger zoekt platform admins met:
-```sql
-WHERE ur.role = 'platform_admin' AND ur.tenant_id IS NOT NULL
-```
-Maar platform admins hebben `tenant_id = NULL` (globale toegang), dus de loop vindt geen resultaten.
+### Problemen
+1. **404 op notificatie link** - `/admin/platform/shopify-requests` bestaat niet
+2. **Geen uniforme communicatie flow** - Shopify requests, feedback, en andere platform-level zaken hebben allemaal aparte flows
+3. **Geen mogelijkheid tot dialoog** - Bij een Shopify verzoek kan de platform admin niet direct communiceren met de merchant
 
-### Probleem 2: Geen Alternatief Notificatie Email
-Tenants kunnen momenteel alleen emails ontvangen op `owner_email`. Er is geen optie om notificaties naar een ander adres te sturen.
+### Wat We Hebben
+- Een volwassen **Support Ticket systeem** met:
+  - Status workflow (open → in_progress → waiting → resolved → closed)
+  - Messaging systeem met sender types (merchant, support, system, ai)
+  - Categorieën: billing, technical, feature, bug, other
+  - Platform admin UI op `/admin/platform/support`
+  - Tenant koppeling via `tenant_id`
 
----
+## Oplossing: Support Tickets als Centrale Hub
 
-## Oplossing
-
-### Stap 1: Voeg `notification_email` kolom toe aan tenants
-
-Nieuwe kolom die optioneel is en gebruikt wordt voor notificatie emails indien ingesteld:
-
-```text
-tenants tabel
-├── owner_email        (verplicht, login/account)
-├── billing_email      (optioneel, factuur emails)
-└── notification_email (nieuw, optioneel, systeem notificaties)
-```
-
-Prioriteit voor notificatie emails:
-1. `notification_email` (indien ingevuld)
-2. `owner_email` (fallback)
-
-### Stap 2: Fix Platform Admin Trigger Routing
-
-Wijzig de trigger om notificaties naar de **interne tenant (SellQo)** te sturen in plaats van te zoeken naar platform admin rollen:
-
-```sql
--- Oude (gebroken) logica:
-FOR v_platform_admin IN 
-  SELECT ur.tenant_id FROM user_roles ur 
-  WHERE ur.role = 'platform_admin' AND ur.tenant_id IS NOT NULL
-LOOP ...
-
--- Nieuwe logica:
-SELECT id INTO v_internal_tenant_id 
-FROM tenants 
-WHERE is_internal_tenant = true 
-LIMIT 1;
-
-IF v_internal_tenant_id IS NOT NULL THEN
-  PERFORM public.send_notification(
-    v_internal_tenant_id,  -- SellQo tenant
-    'system',
-    'shopify_request_new',
-    ...
-  );
-END IF;
-```
-
-Dit werkt omdat:
-- De interne tenant (SellQo: `d03c63fe-48c6-4ff7-a30b-7506ea3e71ab`) heeft `owner_email: info@sellqo.app`
-- De `create-notification` edge function haalt email uit de tenant en respecteert de notificatie instellingen
-- Platform admins kunnen hun email voorkeuren configureren via de SellQo tenant instellingen
-
-### Stap 3: Update Edge Function voor Alternatief Email
-
-Wijzig de `create-notification` edge function om de `notification_email` te gebruiken indien beschikbaar:
-
-```typescript
-// Huidige logica:
-const tenantEmail = tenant?.owner_email;
-
-// Nieuwe logica:
-const tenantEmail = tenant?.notification_email || tenant?.owner_email;
-```
-
-### Stap 4: UI Toggle in Notificatie Instellingen
-
-Voeg een sectie toe aan `NotificationSettings.tsx` voor het alternatieve email adres:
+De kern van het idee: **Elk platform-level verzoek dat communicatie vereist wordt automatisch een support ticket.**
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 📧 Email Instellingen                                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ○ Gebruik eigenaar email (info@sellqo.app)                  │
-│ ● Gebruik alternatief email adres                           │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ notifications@sellqo.app                                │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ Alle systeem notificaties worden naar dit adres gestuurd.   │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Platform Communicatie Flow                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Shopify Koppelverzoek    Feedback Melding    Andere Verzoeken     │
+│          │                       │                    │             │
+│          ▼                       ▼                    ▼             │
+│   ┌──────────────────────────────────────────────────────────┐     │
+│   │              Support Ticket Systeem                      │     │
+│   │  ┌─────────────────────────────────────────────────────┐ │     │
+│   │  │ Categorieën:                                        │ │     │
+│   │  │ • billing    • technical   • feature               │ │     │
+│   │  │ • bug        • other                                │ │     │
+│   │  │ • integration (NIEUW) ← Shopify, Bol, Amazon, etc  │ │     │
+│   │  │ • feedback (NIEUW)                                  │ │     │
+│   │  └─────────────────────────────────────────────────────┘ │     │
+│   └──────────────────────────────────────────────────────────┘     │
+│                              │                                      │
+│                              ▼                                      │
+│   ┌──────────────────────────────────────────────────────────┐     │
+│   │              Platform Support Inbox                      │     │
+│   │  /admin/platform/support                                 │     │
+│   │                                                          │     │
+│   │  • Unified view van alle merchant communicatie          │     │
+│   │  • Filter op categorie (integration, feedback, etc)     │     │
+│   │  • Direct reageren en status bijwerken                  │     │
+│   │  • Koppeling naar gerelateerde resources in metadata    │     │
+│   └──────────────────────────────────────────────────────────┘     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
----
+## Voordelen
+
+| Aspect | Huidige Situatie | Na Implementatie |
+|--------|------------------|------------------|
+| **Shopify verzoek** | Notificatie → 404 | Notificatie → Support ticket met metadata |
+| **Communicatie** | Aparte kanalen per type | Alles in één inbox |
+| **Tracking** | Geen status historie | Volledige ticket lifecycle |
+| **Merchant view** | Alleen status badges | Ticket gesprek + status updates |
+| **Context** | Verspreid over systemen | Alles in één plek met metadata links |
 
 ## Technische Implementatie
 
-### Database Migratie
+### 1. Database Wijzigingen
+
+**Nieuwe ticket categorieën:**
+```sql
+ALTER TYPE support_ticket_category ADD VALUE 'integration';
+ALTER TYPE support_ticket_category ADD VALUE 'feedback';
+```
+
+**Koppeling tabel (optioneel, voor referentie):**
+```sql
+-- Voegt een kolom toe om het gerelateerde resource type/id op te slaan
+ALTER TABLE support_tickets ADD COLUMN related_resource_type TEXT;
+ALTER TABLE support_tickets ADD COLUMN related_resource_id UUID;
+```
+
+### 2. Trigger Aanpassing
+
+Wijzig `handle_shopify_request_notification` om automatisch een support ticket aan te maken:
 
 ```sql
--- 1. Voeg notification_email kolom toe
-ALTER TABLE public.tenants 
-ADD COLUMN IF NOT EXISTS notification_email VARCHAR(255);
-
--- 2. Fix de platform admin notificatie trigger
 CREATE OR REPLACE FUNCTION public.handle_shopify_request_notification()
 ...
 AS $$
 DECLARE
-  v_tenant_name TEXT;
+  v_ticket_id UUID;
   v_internal_tenant_id UUID;
+  v_tenant_name TEXT;
+  v_tenant_email TEXT;
 BEGIN
-  SELECT name INTO v_tenant_name FROM tenants WHERE id = NEW.tenant_id;
-  v_tenant_name := COALESCE(v_tenant_name, 'Onbekende tenant');
+  -- Get tenant info
+  SELECT name, owner_email INTO v_tenant_name, v_tenant_email 
+  FROM tenants WHERE id = NEW.tenant_id;
+  
+  -- Get internal tenant
+  SELECT id INTO v_internal_tenant_id 
+  FROM tenants WHERE is_internal_tenant = true LIMIT 1;
 
   IF TG_OP = 'INSERT' THEN
-    -- Notify merchant
-    PERFORM public.send_notification(...);
+    -- Maak automatisch een support ticket aan
+    INSERT INTO support_tickets (
+      tenant_id,
+      requester_email,
+      requester_name,
+      subject,
+      category,
+      priority,
+      status,
+      metadata,
+      related_resource_type,
+      related_resource_id
+    ) VALUES (
+      NEW.tenant_id,
+      COALESCE(v_tenant_email, 'unknown@tenant.com'),
+      v_tenant_name,
+      'Shopify koppelverzoek: ' || COALESCE(NEW.store_name, 'Onbekende store'),
+      'integration',
+      'high',
+      'open',
+      jsonb_build_object(
+        'type', 'shopify_connection_request',
+        'request_id', NEW.id,
+        'store_name', NEW.store_name,
+        'store_url', NEW.store_url
+      ),
+      'shopify_connection_request',
+      NEW.id
+    ) RETURNING id INTO v_ticket_id;
     
-    -- Notify internal tenant (SellQo platform team)
-    SELECT id INTO v_internal_tenant_id 
-    FROM tenants WHERE is_internal_tenant = true LIMIT 1;
+    -- Voeg automatisch een systeem bericht toe
+    INSERT INTO support_messages (ticket_id, sender_type, message)
+    VALUES (
+      v_ticket_id,
+      'system',
+      'Nieuw Shopify koppelverzoek ingediend.
+
+Store naam: ' || COALESCE(NEW.store_name, '-') || '
+Store URL: ' || COALESCE(NEW.store_url, '-') || '
+Opmerkingen merchant: ' || COALESCE(NEW.notes, 'Geen')
+    );
     
+    -- Notify internal tenant met link naar ticket
     IF v_internal_tenant_id IS NOT NULL THEN
       PERFORM public.send_notification(
         v_internal_tenant_id,
         'system',
         'shopify_request_new',
         'Nieuw Shopify koppelverzoek',
-        'Tenant "' || v_tenant_name || '" vraagt koppeling aan voor ' || NEW.store_name,
+        v_tenant_name || ' vraagt koppeling aan voor ' || NEW.store_name,
         'high',
-        '/admin/platform/shopify-requests',
-        jsonb_build_object(...)
+        '/admin/platform/support?ticket=' || v_ticket_id,  -- ← Directe link naar ticket
+        jsonb_build_object(
+          'ticket_id', v_ticket_id,
+          'request_id', NEW.id,
+          'tenant_name', v_tenant_name
+        )
       );
     END IF;
-  
-  ELSIF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
-    -- Bestaande status change notificaties...
+    
+    -- Notify merchant
+    PERFORM public.send_notification(
+      NEW.tenant_id,
+      'system',
+      'shopify_request_pending',
+      'Shopify koppelverzoek ingediend',
+      'Je verzoek is ingediend. We nemen contact op via je support inbox.',
+      'medium',
+      '/admin/support?ticket=' || v_ticket_id,
+      jsonb_build_object('ticket_id', v_ticket_id)
+    );
   END IF;
   
   RETURN NEW;
@@ -148,20 +181,43 @@ END;
 $$;
 ```
 
-### Bestanden die gewijzigd worden
+### 3. URL Ondersteuning in Support Pagina
+
+Voeg query parameter ondersteuning toe aan `PlatformSupport.tsx`:
+
+```typescript
+// Lees ticket ID uit URL en open automatisch
+const [searchParams] = useSearchParams();
+const ticketIdFromUrl = searchParams.get('ticket');
+
+useEffect(() => {
+  if (ticketIdFromUrl && tickets.length > 0) {
+    const ticket = tickets.find(t => t.id === ticketIdFromUrl);
+    if (ticket) setSelectedTicket(ticket);
+  }
+}, [ticketIdFromUrl, tickets]);
+```
+
+### 4. Merchant Support Inbox (optioneel, fase 2)
+
+De merchant kan hun tickets zien op `/admin/support`:
+- Alleen hun eigen tickets (gefilterd op tenant_id)
+- Kunnen reageren op berichten
+- Zien status updates
+
+## Bestanden die gewijzigd worden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| Database migratie | Voeg `notification_email` kolom toe, fix trigger routing |
-| `supabase/functions/create-notification/index.ts` | Gebruik `notification_email \|\| owner_email` |
-| `src/hooks/useTenant.tsx` | Voeg `notification_email` toe aan Tenant interface |
-| `src/components/admin/settings/NotificationSettings.tsx` | Voeg email configuratie sectie toe |
-
----
+| Database migratie | Nieuwe categorieën, related_resource kolommen |
+| Database trigger | `handle_shopify_request_notification` maakt nu ticket aan |
+| `src/pages/platform/PlatformSupport.tsx` | URL parameter ondersteuning |
+| `src/hooks/useSupportTickets.ts` | Voeg `integration` en `feedback` toe aan types |
 
 ## Resultaat
 
-Na implementatie:
-1. **Platform admins ontvangen notificaties** - Shopify verzoeken en andere platform events komen in de SellQo tenant en worden per email verzonden
-2. **Alternatief email adres** - Elke tenant kan kiezen om notificaties naar een ander adres te sturen
-3. **Bestaande functionaliteit blijft werken** - Fallback naar `owner_email` indien geen alternatief is ingesteld
+1. **Geen 404 meer** - Notificatie linkt naar bestaande support ticket
+2. **Uniforme communicatie** - Alle platform-level zaken in één inbox
+3. **Volledige dialoog** - Platform admin kan direct reageren, merchant ziet updates
+4. **Uitbreidbaar** - Zelfde pattern voor feedback, bol.com requests, etc.
+5. **Context behouden** - Metadata en related_resource voor snelle toegang tot originele data
