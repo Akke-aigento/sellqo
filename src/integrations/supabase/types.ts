@@ -12729,19 +12729,33 @@ export type Database = {
         }
         Returns: string
       }
-      send_notification: {
-        Args: {
-          p_action_url?: string
-          p_category: string
-          p_message: string
-          p_metadata?: Json
-          p_priority?: string
-          p_tenant_id: string
-          p_title: string
-          p_type: string
-        }
-        Returns: string
-      }
+      send_notification:
+        | {
+            Args: {
+              p_action_url?: string
+              p_category: Database["public"]["Enums"]["notification_category"]
+              p_message: string
+              p_metadata?: Json
+              p_priority?: string
+              p_tenant_id: string
+              p_title: string
+              p_type: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_action_url?: string
+              p_category: string
+              p_message: string
+              p_metadata?: Json
+              p_priority?: string
+              p_tenant_id: string
+              p_title: string
+              p_type: string
+            }
+            Returns: string
+          }
       start_sync_activity: {
         Args: {
           p_connection_id: string
@@ -12867,6 +12881,7 @@ export type Database = {
         | "system"
         | "ai_coach"
         | "messages"
+        | "integrations"
       notification_priority: "low" | "medium" | "high" | "urgent"
       order_status:
         | "pending"
@@ -13129,6 +13144,7 @@ export const Constants = {
         "system",
         "ai_coach",
         "messages",
+        "integrations",
       ],
       notification_priority: ["low", "medium", "high", "urgent"],
       order_status: [
