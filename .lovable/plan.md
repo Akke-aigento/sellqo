@@ -1,272 +1,230 @@
 
-# Plan: Geavanceerde Zoekfunctie voor Inbox
+# Plan: Fix Inbox UI Issues
 
-## Overzicht
+## Geïdentificeerde Problemen
 
-Een uitgebreide zoekfunctionaliteit met globale zoekmodus, filter-opties en kanaal-specifieke zoekmogelijkheden.
+### 1. Filter Layout (te krap)
+De geavanceerde zoekfilters worden afgekapt doordat 3 dropdown selects naast elkaar staan in een te smalle ruimte.
 
----
+### 2. Preview Afkapping
+- Email adressen worden afgekapt ("aaron.mercken@hotmail.c...")
+- Preview tekst eindigt abrupt zonder ellipsis indicator
 
-## Huidige Situatie
-
-| Aspect | Huidig Gedrag |
-|--------|---------------|
-| **Zoekbereik** | Alleen huidige map/folder |
-| **Zoeklocatie** | Client-side op gefilterde resultaten |
-| **Zoekvelden** | Naam, email, onderwerp, body (laatste bericht) |
-| **Kanaalfilter** | Los van zoekfunctie |
-| **Diepte** | Alleen laatste bericht per gesprek |
+### 3. Bulk Selectie Ontoegankelijk
+De checkboxes voor bulk selectie zijn verborgen totdat er al iets geselecteerd is - maar er is geen manier om die eerste selectie te maken!
 
 ---
 
-## Nieuwe Functionaliteit
+## Oplossingen
 
-### 1. Zoekbereik Opties
+### Fix 1: Verbeterde Filter Layout
+
+**Probleem**: 3 dropdowns op 1 rij passen niet in de smalle sidebar.
+
+**Oplossing**: Verander naar een 2-rij layout:
+- Rij 1: Zoekbereik + Periode (2 kolommen)
+- Rij 2: Kanaal checkboxes horizontaal (altijd zichtbaar, geen dropdown)
+- Rij 3: "Zoek op" checkboxes
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│ 🔍 [Zoek in gesprekken...                        ]  │
-├─────────────────────────────────────────────────────┤
-│ Zoek in:  ○ Huidige map  ● Alle mappen  ○ Overal   │
-└─────────────────────────────────────────────────────┘
+Huidige layout (1 rij, 3 dropdowns):
+┌─────────────────────────────────────────┐
+│ [Overal (in...▼] [Alle ▼] [Alles ▼]    │  ← Te krap!
+└─────────────────────────────────────────┘
+
+Nieuwe layout (meer ruimte):
+┌─────────────────────────────────────────┐
+│ Zoek in: [Alle mappen        ▼]        │
+│ Periode: [Alles              ▼]        │
+├─────────────────────────────────────────┤
+│ ☑ Email ☑ WhatsApp ☑ Facebook ☑ Insta  │
+├─────────────────────────────────────────┤
+│ Zoek op: ☑ Onderwerp ☑ Inhoud ☑ Afzender│
+└─────────────────────────────────────────┘
 ```
 
-- **Huidige map**: Alleen in geselecteerde folder (standaard wanneer specifieke map actief)
-- **Alle mappen**: Inbox + Archief + Custom folders (standaard wanneer geen specifieke map)
-- **Overal**: Inclusief prullenbak
+### Fix 2: Preview Tekst Verbetering
 
-### 2. Kanaalfilters bij Zoeken
+**Probleem**: Email en preview worden afgekapt zonder duidelijke ellipsis.
 
-```text
-┌─────────────────────────────────────────────────────┐
-│ Kanalen:  ☑ Email  ☑ WhatsApp  ☑ Facebook  ☑ Insta │
-└─────────────────────────────────────────────────────┘
-```
+**Oplossing**: 
+- Gebruik `line-clamp-1` in combinatie met `break-all` voor emails
+- Voeg expliciete `...` indicator toe voor lange tekst
+- Zorg dat subject en preview op aparte regels staan met duidelijke truncatie
 
-- Multi-select checkboxes voor kanalen
-- Onafhankelijk van de bestaande kanaal-tabs
-- Alleen actief wanneer zoekterm is ingevuld
+### Fix 3: Bulk Selectie Toegankelijk Maken
 
-### 3. Zoekveld Specificatie
+**Probleem**: Checkboxes zijn verborgen, geen manier om selectie te starten.
 
-```text
-┌─────────────────────────────────────────────────────┐
-│ Zoek op:  ☑ Onderwerp  ☑ Inhoud  ☑ Afzender        │
-└─────────────────────────────────────────────────────┘
-```
-
-- **Onderwerp**: `subject` veld
-- **Inhoud**: `body_text` / `body_html`
-- **Afzender**: `from_email` + klant naam
-
-### 4. Tijdsperiode Filter
+**Oplossing**: Voeg een "Selecteren" knop toe in de filter header:
+- Knop boven de gesprekkenlijst: "☑ Selecteren" 
+- Bij klik: toon alle checkboxes (ook als nog niets geselecteerd)
+- Of: Toon checkboxes altijd bij hover over een item
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│ Periode:  [Afgelopen week ▼]                        │
-│           ○ Afgelopen week                          │
-│           ○ Afgelopen maand                         │
-│           ○ Afgelopen 3 maanden                     │
-│           ○ Alles                                   │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ 🔍 Zoek in gesprekken...               │
+├─────────────────────────────────────────┤
+│ [Alle] [Email] [Social ▼]              │
+│ [Alle] [Ongelezen] [Te beantw.]        │
+├─────────────────────────────────────────┤
+│ [☑ Selecteren]              Sorteer ▼  │  ← Nieuwe knop
+└─────────────────────────────────────────┘
 ```
 
 ---
 
 ## Technische Implementatie
 
-### Stap 1: Extended InboxFilters Type
+### Bestand 1: `AdvancedSearchFilters.tsx`
 
-Uitbreiden van het `InboxFilters` interface:
-
-```typescript
-// src/hooks/useInbox.ts
-export interface SearchOptions {
-  scope: 'current' | 'all' | 'everywhere'; // Huidige map, Alle, Overal (incl prullenbak)
-  channels: FilterChannel[]; // Multi-select kanalen
-  searchIn: {
-    subject: boolean;
-    content: boolean;
-    sender: boolean;
-  };
-  period: 'week' | 'month' | '3months' | 'all';
-}
-
-export interface InboxFilters {
-  channel: FilterChannel;
-  status: 'all' | 'unread' | 'unanswered';
-  search: string;
-  folderId: string | null;
-  searchOptions?: SearchOptions; // Nieuwe property
-}
-```
-
-### Stap 2: Database Query Aanpassing
-
-De zoekfunctie verplaatsen naar database-niveau voor betere performance:
+Wijzig de layout van 1 rij met 3 dropdowns naar een verticale stack:
 
 ```typescript
-// useInbox.ts - Query aanpassing
-if (filters.search && filters.searchOptions?.scope !== 'current') {
-  // Globale zoekmodus: negeer folderId filter
-  if (filters.searchOptions?.scope === 'everywhere') {
-    // Geen message_status filter (inclusief deleted)
-  } else {
-    // Exclude deleted
-    query = query.neq('message_status', 'deleted');
-  }
-}
+// Huidige structuur (1 rij):
+<div className="flex gap-1.5">
+  <Select>...</Select>  {/* Scope */}
+  <Select>...</Select>  {/* Kanalen */}
+  <Select>...</Select>  {/* Periode */}
+</div>
 
-// Kanaal filter bij zoeken
-if (filters.search && filters.searchOptions?.channels?.length) {
-  query = query.in('channel', filters.searchOptions.channels);
-}
-
-// Periode filter
-if (filters.search && filters.searchOptions?.period !== 'all') {
-  const periods = {
-    week: 7,
-    month: 30,
-    '3months': 90,
-  };
-  const days = periods[filters.searchOptions.period];
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-  query = query.gte('created_at', since.toISOString());
-}
-
-// Text search met OR conditie (Supabase)
-if (filters.search) {
-  const { subject, content, sender } = filters.searchOptions?.searchIn ?? 
-    { subject: true, content: true, sender: true };
+// Nieuwe structuur (verticaal):
+<div className="space-y-2">
+  {/* Rij 1: Scope en Periode */}
+  <div className="grid grid-cols-2 gap-2">
+    <div>
+      <Label className="text-xs">Zoek in</Label>
+      <Select>...</Select>
+    </div>
+    <div>
+      <Label className="text-xs">Periode</Label>
+      <Select>...</Select>
+    </div>
+  </div>
   
-  // Bouw OR query met ilike patterns
-  let orConditions = [];
-  if (subject) orConditions.push(`subject.ilike.%${filters.search}%`);
-  if (content) orConditions.push(`body_text.ilike.%${filters.search}%`);
-  if (sender) orConditions.push(`from_email.ilike.%${filters.search}%`);
+  {/* Rij 2: Kanalen als checkboxes */}
+  <div className="flex flex-wrap gap-3">
+    <Label>Kanalen:</Label>
+    <Checkbox /> Email
+    <Checkbox /> WhatsApp
+    ...
+  </div>
   
-  query = query.or(orConditions.join(','));
-}
+  {/* Rij 3: Zoek op */}
+  <div className="flex flex-wrap gap-3">
+    ...bestaande checkboxes
+  </div>
+</div>
 ```
 
-### Stap 3: UI Componenten
+### Bestand 2: `ConversationItem.tsx`
 
-**Nieuwe component: `AdvancedSearchFilters.tsx`**
+Verbeter de tekstafkapping:
 
-Een uitklapbaar paneel dat verschijnt zodra de gebruiker begint met zoeken:
+```typescript
+// Email: gebruik text-ellipsis met overflow
+<span className="font-medium truncate max-w-[180px]">
+  {customer?.name || 'Onbekend'}
+</span>
 
-```text
-Zoekterm getypt → Toon geavanceerde filters
-Zoekterm leeg → Verberg geavanceerde filters
+// Preview: gebruik line-clamp
+<p className="text-xs text-muted-foreground line-clamp-1">
+  {previewText || '(Geen inhoud)'}
+</p>
 ```
 
-Layout:
-```text
-┌────────────────────────────────────────────────────────┐
-│ 🔍 [Zoekterm hier...                              ] X  │
-├────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌──────────────┐ ┌─────────────────┐  │
-│ │ Zoek in: ▼   │ │ Kanalen: ▼   │ │ Periode: ▼     │  │
-│ │ Alle mappen  │ │ 4 geselecteerd│ │ Alles          │  │
-│ └──────────────┘ └──────────────┘ └─────────────────┘  │
-├────────────────────────────────────────────────────────┤
-│ Zoek op: ☑ Onderwerp  ☑ Inhoud  ☑ Afzender            │
-└────────────────────────────────────────────────────────┘
+### Bestand 3: `SelectableConversationItem.tsx` + `ConversationList.tsx`
+
+Maak checkboxes altijd zichtbaar bij hover:
+
+```typescript
+// In SelectableConversationItem.tsx
+// Verander de logica zodat checkbox zichtbaar is bij hover OF wanneer in selectiemodus
+
+<div
+  className={cn(
+    'flex items-center justify-center transition-all duration-200 border-b',
+    // Altijd tonen bij hover, of wanneer selectie actief
+    showCheckboxes || isChecked 
+      ? 'w-10 opacity-100' 
+      : 'w-0 group-hover:w-10 opacity-0 group-hover:opacity-100'
+  )}
+>
 ```
 
----
+### Bestand 4: `InboxFilters.tsx` of nieuwe component
 
-## Bestanden te Wijzigen/Maken
+Voeg een "Selecteren" toggle knop toe:
 
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| `src/hooks/useInbox.ts` | Wijzigen | Extended types + database query logica |
-| `src/components/admin/inbox/InboxFilters.tsx` | Wijzigen | Zoekbalk + trigger voor geavanceerde filters |
-| `src/components/admin/inbox/AdvancedSearchFilters.tsx` | **Nieuw** | Filter dropdowns en checkboxes |
-| `src/components/admin/inbox/index.ts` | Wijzigen | Export toevoegen |
+```typescript
+// Nieuwe prop: onToggleSelectionMode
+// Knop onder de status tabs
 
----
-
-## UX Flow
-
-```text
-1. Gebruiker typt zoekterm
-   ↓
-2. Geavanceerde filters worden zichtbaar (geanimeerd)
-   ↓
-3. Standaard: "Alle mappen" + alle kanalen + alle velden
-   ↓
-4. Gebruiker past filters aan (optioneel)
-   ↓
-5. Resultaten updaten real-time
-   ↓
-6. Bij klikken op resultaat → navigeer naar gesprek
-   ↓
-7. Zoekterm wissen → terug naar normale view
-```
-
----
-
-## Visueel Voorbeeld
-
-Gesloten staat (geen zoekterm):
-```text
-┌──────────────────────────────────┐
-│ 🔍 Zoek in gesprekken...         │
-├──────────────────────────────────┤
-│ [Alle] [Email] [Social ▼]        │
-├──────────────────────────────────┤
-│ [Alle] [Ongelezen] [Te beantw.]  │
-└──────────────────────────────────┘
-```
-
-Open staat (met zoekterm):
-```text
-┌──────────────────────────────────┐
-│ 🔍 retour                     ✕  │
-├──────────────────────────────────┤
-│ Zoek in    Kanalen     Periode   │
-│ [Alles ▼]  [4 ▼]       [Alles ▼] │
-├──────────────────────────────────┤
-│ ☑ Onderwerp ☑ Inhoud ☑ Afzender  │
-├──────────────────────────────────┤
-│ 📧 Retour aanvraag - jan@...     │
-│ 💬 Over mijn retour - lisa@...   │
-│ 📧 RE: Retourlabel - piet@...    │
-└──────────────────────────────────┘
+<div className="flex items-center justify-between pt-1 border-t mt-2">
+  <Button 
+    variant="ghost" 
+    size="sm"
+    onClick={onToggleSelectionMode}
+  >
+    <CheckSquare className="h-3.5 w-3.5 mr-1" />
+    Selecteren
+  </Button>
+</div>
 ```
 
 ---
 
-## Technische Details
+## Bestanden te Wijzigen
 
-### Database Performance
-
-Voor betere zoekperformance kan later een full-text search index worden toegevoegd:
-
-```sql
--- Optionele optimalisatie (kan later)
-CREATE INDEX idx_customer_messages_search 
-ON customer_messages 
-USING gin(to_tsvector('dutch', coalesce(subject, '') || ' ' || coalesce(body_text, '')));
-```
-
-### Default Zoekgedrag
-
-| Situatie | Standaard Scope |
-|----------|-----------------|
-| Geen map geselecteerd (inbox) | Alle mappen (excl. prullenbak) |
-| Specifieke map geselecteerd | Huidige map |
-| Gebruiker wijzigt scope handmatig | Onthouden tot zoekterm leeg |
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/admin/inbox/AdvancedSearchFilters.tsx` | Verticale layout voor filters |
+| `src/components/admin/inbox/ConversationItem.tsx` | Betere truncatie voor email/preview |
+| `src/components/admin/inbox/SelectableConversationItem.tsx` | Checkbox zichtbaar bij hover |
+| `src/components/admin/inbox/ConversationList.tsx` | Selectiemodus state handling |
+| `src/pages/admin/Messages.tsx` | Toggle selectiemodus functie |
 
 ---
 
-## Samenvatting Nieuwe Features
+## Visueel Resultaat
 
-1. **Globale zoekmodus** - Zoek over alle mappen tegelijk
-2. **Kanaal multi-select** - Filter op Email, WhatsApp, Facebook, Instagram
-3. **Zoekveld keuze** - Onderwerp, Inhoud, of Afzender
-4. **Tijdsperiode filter** - Week, maand, 3 maanden, of alles
-5. **Slimme defaults** - Automatisch "alle mappen" bij globale zoek
-6. **Clean UI** - Filters alleen zichtbaar wanneer nodig
+### Geavanceerde Zoekfilters (verbeterd)
+
+```text
+┌─────────────────────────────────────────┐
+│ 🔍 retour                            ✕  │
+├─────────────────────────────────────────┤
+│ Zoek in            Periode              │
+│ [Alle mappen ▼]    [Alles ▼]            │
+├─────────────────────────────────────────┤
+│ Kanalen:                                │
+│ ☑ Email  ☑ WhatsApp  ☑ Facebook  ☑ Insta│
+├─────────────────────────────────────────┤
+│ Zoek op:                                │
+│ ☑ Onderwerp  ☑ Inhoud  ☑ Afzender       │
+├─────────────────────────────────────────┤
+│                    [✕ Wis zoekopdracht] │
+└─────────────────────────────────────────┘
+```
+
+### Gesprekkenlijst met Bulk Selectie
+
+```text
+┌─────────────────────────────────────────┐
+│ [☑ Selecteren]                          │  ← Klik om selectiemodus te starten
+├─────────────────────────────────────────┤
+│ [☐][⋮⋮] V  VanXcel@outlook.com    2u   │  ← Checkbox zichtbaar bij hover
+│           Sellqo app                    │
+│           Hey vriend, ik hoorde...      │
+├─────────────────────────────────────────┤
+│ [☑][⋮⋮] A  aaron.mercken@hotm...  1d   │  ← Geselecteerd
+│           Sellqo app                    │
+│           (Geen inhoud)                 │
+└─────────────────────────────────────────┘
+
+Wanneer geselecteerd:
+┌─────────────────────────────────────────┐
+│ [✕] 2 geselecteerd  [Alles (5)]         │
+│        [Verplaatsen ▼] [Archiveren] [🗑] │
+└─────────────────────────────────────────┘
+```
