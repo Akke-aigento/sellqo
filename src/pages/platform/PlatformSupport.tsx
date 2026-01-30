@@ -17,7 +17,11 @@ import {
   CheckCircle, 
   AlertCircle,
   Send,
-  Link2
+  Link2,
+  ShoppingBag,
+  ExternalLink,
+  Check,
+  X
 } from "lucide-react";
 import { 
   useSupportTickets, 
@@ -26,6 +30,9 @@ import {
   TicketStatus, 
   TicketPriority 
 } from "@/hooks/useSupportTickets";
+import { useShopifyRequestsAdmin, ShopifyConnectionRequest } from "@/hooks/useShopifyRequests";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
 
@@ -352,6 +359,16 @@ function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (
         </div>
       </CardHeader>
       <CardContent className="flex flex-col h-[500px]">
+        {/* Integration Context for Shopify requests */}
+        {ticket.related_resource_type === 'shopify_connection_request' && ticket.related_resource_id && (
+          <IntegrationContext 
+            resourceType={ticket.related_resource_type} 
+            resourceId={ticket.related_resource_id}
+            ticketId={ticket.id}
+            onStatusChange={handleStatusChange}
+          />
+        )}
+
         {/* Messages */}
         <ScrollArea className="flex-1 pr-4">
           {isLoading ? (
@@ -402,5 +419,162 @@ function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (
         </div>
       </CardContent>
     </>
+  );
+}
+
+// IntegrationContext component for Shopify requests
+function IntegrationContext({ 
+  resourceType, 
+  resourceId, 
+  ticketId,
+  onStatusChange 
+}: { 
+  resourceType: string; 
+  resourceId: string;
+  ticketId: string;
+  onStatusChange: (status: TicketStatus) => Promise<void>;
+}) {
+  const { updateRequest } = useShopifyRequestsAdmin();
+  const [installLink, setInstallLink] = useState("");
+  const [showInstallInput, setShowInstallInput] = useState(false);
+
+  // Fetch the Shopify request details
+  const { data: shopifyRequest, isLoading, refetch } = useQuery({
+    queryKey: ['shopify-request', resourceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shopify_connection_requests')
+        .select('*')
+        .eq('id', resourceId)
+        .single();
+      
+      if (error) throw error;
+      return data as ShopifyConnectionRequest;
+    },
+    enabled: !!resourceId,
+  });
+
+  if (isLoading) {
+    return <div className="mb-4 p-4 border rounded-lg bg-muted/50">Laden...</div>;
+  }
+
+  if (!shopifyRequest) {
+    return null;
+  }
+
+  const statusLabels: Record<string, string> = {
+    pending: 'In afwachting',
+    in_review: 'In behandeling',
+    approved: 'Goedgekeurd',
+    completed: 'Voltooid',
+    rejected: 'Afgewezen',
+  };
+
+  const handleApprove = async () => {
+    await onStatusChange('resolved');
+    refetch();
+  };
+
+  const handleReject = async () => {
+    await onStatusChange('closed');
+    refetch();
+  };
+
+  const handleAddInstallLink = async () => {
+    if (!installLink.trim()) return;
+    await updateRequest.mutateAsync({
+      id: resourceId,
+      install_link: installLink,
+    });
+    setShowInstallInput(false);
+    setInstallLink("");
+    refetch();
+  };
+
+  return (
+    <div className="mb-4 p-4 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+      <div className="flex items-center gap-2 mb-3">
+        <ShoppingBag className="h-5 w-5 text-green-600" />
+        <span className="font-semibold text-green-800 dark:text-green-200">Integratie Details</span>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+        <div>
+          <span className="text-muted-foreground">Type:</span>
+          <p className="font-medium">Shopify Connection Request</p>
+        </div>
+        <div>
+          <span className="text-muted-foreground">Store:</span>
+          <p className="font-medium">{shopifyRequest.store_name}.myshopify.com</p>
+        </div>
+        <div>
+          <span className="text-muted-foreground">Status aanvraag:</span>
+          <Badge variant="outline" className="ml-2">{statusLabels[shopifyRequest.status] || shopifyRequest.status}</Badge>
+        </div>
+        {shopifyRequest.install_link && (
+          <div>
+            <span className="text-muted-foreground">Install Link:</span>
+            <a 
+              href={shopifyRequest.install_link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ml-2 text-primary hover:underline flex items-center gap-1"
+            >
+              Open <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-2">
+        {!shopifyRequest.install_link && !showInstallInput && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowInstallInput(true)}
+          >
+            <Link2 className="h-4 w-4 mr-1" />
+            Installatie Link
+          </Button>
+        )}
+
+        {showInstallInput && (
+          <div className="flex gap-2 w-full">
+            <Input
+              placeholder="https://..."
+              value={installLink}
+              onChange={(e) => setInstallLink(e.target.value)}
+              className="flex-1"
+            />
+            <Button size="sm" onClick={handleAddInstallLink}>Opslaan</Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowInstallInput(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {shopifyRequest.status !== 'approved' && shopifyRequest.status !== 'completed' && shopifyRequest.status !== 'rejected' && (
+          <>
+            <Button 
+              size="sm" 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleApprove}
+            >
+              <Check className="h-4 w-4 mr-1" />
+              Goedkeuren
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={handleReject}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Afwijzen
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

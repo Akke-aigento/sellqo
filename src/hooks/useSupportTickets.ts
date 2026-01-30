@@ -25,6 +25,8 @@ export interface SupportTicket {
   updated_at: string;
   tenant?: { name: string; slug: string } | null;
   message_count?: number;
+  related_resource_type?: string | null;
+  related_resource_id?: string | null;
 }
 
 export interface SupportMessage {
