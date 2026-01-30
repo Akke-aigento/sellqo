@@ -47,7 +47,9 @@ export function ConversationDetail({
     }
   }, [conversation.id]);
 
-  const { customer, messages, channel } = conversation;
+  const { customer, channel } = conversation;
+  const messages = conversation.messages || [];
+  
   const initials = customer?.name
     ? customer.name
         .split(' ')
@@ -75,16 +77,20 @@ export function ConversationDetail({
   
   // Find linked order from any message in conversation
   const linkedOrderId = useMemo(() => {
+    if (!messages || messages.length === 0) return null;
     return messages.find(m => m.order_id)?.order_id || null;
   }, [messages]);
 
-  // Group messages by date
-  const messagesByDate = messages.reduce((acc, msg) => {
-    const date = format(new Date(msg.created_at), 'yyyy-MM-dd');
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(msg);
-    return acc;
-  }, {} as Record<string, typeof messages>);
+  // Group messages by date - with safety check
+  const messagesByDate = useMemo(() => {
+    if (!messages || messages.length === 0) return {};
+    return messages.reduce((acc, msg) => {
+      const date = format(new Date(msg.created_at), 'yyyy-MM-dd');
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(msg);
+      return acc;
+    }, {} as Record<string, typeof messages>);
+  }, [messages]);
 
   // Sort dates and reverse messages within each day
   const sortedDates = Object.keys(messagesByDate).sort();
