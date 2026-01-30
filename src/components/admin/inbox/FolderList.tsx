@@ -67,15 +67,15 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: F
       <div
         key={folder.id}
         className={cn(
-          'group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors',
+          'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm',
           isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
         )}
         onClick={() => onFolderSelect(folder.id)}
       >
         <FolderIcon icon={folder.icon} />
-        <span className="flex-1 text-sm truncate">{folder.name}</span>
+        <span className="flex-1 truncate">{folder.name}</span>
         {count > 0 && (
-          <Badge variant="secondary" className="h-5 min-w-5 text-xs">
+          <Badge variant="secondary" className="h-5 min-w-5 text-xs shrink-0">
             {count}
           </Badge>
         )}
@@ -85,7 +85,7 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: F
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-3 w-3" />
@@ -107,24 +107,24 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: F
   const inboxCount = folderCounts['inbox'] || 0;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b">
-        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Mappen</h3>
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="p-2 border-b shrink-0">
+        <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Mappen</h3>
       </div>
       
-      <div className="flex-1 overflow-auto p-2 space-y-1">
+      <div className="flex-1 overflow-auto p-1.5 space-y-0.5">
         {/* Inbox (null folder = inbox) */}
         <div
           className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors',
+            'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm',
             selectedFolderId === null ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
           )}
           onClick={() => onFolderSelect(null)}
         >
-          <Inbox className="h-4 w-4" />
-          <span className="flex-1 text-sm">Inbox</span>
+          <Inbox className="h-4 w-4 shrink-0" />
+          <span className="flex-1 truncate">Inbox</span>
           {inboxCount > 0 && (
-            <Badge variant="secondary" className="h-5 min-w-5 text-xs">
+            <Badge variant="secondary" className="h-5 min-w-5 text-xs shrink-0">
               {inboxCount}
             </Badge>
           )}
@@ -146,11 +146,11 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: F
       </div>
 
       {/* Create new folder button */}
-      <div className="p-2 border-t">
+      <div className="p-1.5 border-t shrink-0">
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-start">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-8">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Nieuwe map
             </Button>
           </DialogTrigger>
