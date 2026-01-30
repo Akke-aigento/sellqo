@@ -171,39 +171,67 @@ const handler = async (req: Request): Promise<Response> => {
       subject: payload.subject,
     });
 
-    // Fetch full email content from Resend API
-    const retrievedEmail = await fetchEmailContent(payload.email_id, resendApiKey);
-    
-    console.log("Retrieved email content:", {
+    // Debug: Log what Resend sends in the webhook payload
+    console.log("Webhook payload inspection:", {
       email_id: payload.email_id,
-      has_html: !!retrievedEmail?.html,
-      has_text: !!retrievedEmail?.text,
-      html_length: retrievedEmail?.html?.length ?? 0,
-      text_length: retrievedEmail?.text?.length ?? 0,
+      has_html_in_payload: !!payload.html,
+      has_text_in_payload: !!payload.text,
+      html_preview: payload.html?.substring(0, 200),
+      text_preview: payload.text?.substring(0, 200),
     });
 
-    // Compute body_html - MUST be non-null
+    // Compute body_html - PRIORITIZE webhook payload first, then API fallback
+    // Resend's email retrieve API does NOT work for inbound emails
     let bodyHtml: string;
     let bodyText: string | null = null;
+    let contentSource: string;
 
-    if (retrievedEmail?.html) {
-      bodyHtml = retrievedEmail.html;
-      bodyText = retrievedEmail.text ?? null;
-    } else if (retrievedEmail?.text) {
-      bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${retrievedEmail.text}</pre>`;
-      bodyText = retrievedEmail.text;
-    } else if (payload.html) {
-      // Fallback to webhook data if available
+    // 1. PRIORITEIT: Check webhook payload first (Resend includes body in webhook)
+    if (payload.html) {
       bodyHtml = payload.html;
       bodyText = payload.text ?? null;
+      contentSource = "webhook_html";
+      console.log("Using HTML body from webhook payload");
     } else if (payload.text) {
       bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${payload.text}</pre>`;
       bodyText = payload.text;
+      contentSource = "webhook_text";
+      console.log("Using text body from webhook payload");
     } else {
-      // Final fallback - empty email
-      bodyHtml = '<p style="color: #666; font-style: italic;">(Geen inhoud)</p>';
-      bodyText = null;
+      // 2. FALLBACK: Try Resend API (rarely works for inbound, but try anyway)
+      console.log("No body in webhook, attempting Resend API fetch...");
+      const retrievedEmail = await fetchEmailContent(payload.email_id, resendApiKey);
+      
+      console.log("Resend API fetch result:", {
+        success: !!retrievedEmail,
+        has_html: !!retrievedEmail?.html,
+        has_text: !!retrievedEmail?.text,
+      });
+
+      if (retrievedEmail?.html) {
+        bodyHtml = retrievedEmail.html;
+        bodyText = retrievedEmail.text ?? null;
+        contentSource = "api_html";
+        console.log("Using HTML body from Resend API");
+      } else if (retrievedEmail?.text) {
+        bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${retrievedEmail.text}</pre>`;
+        bodyText = retrievedEmail.text;
+        contentSource = "api_text";
+        console.log("Using text body from Resend API");
+      } else {
+        // 3. FINAL FALLBACK: No content available
+        bodyHtml = '<p style="color: #666; font-style: italic;">(Geen inhoud - email body was niet beschikbaar)</p>';
+        bodyText = null;
+        contentSource = "none";
+        console.warn("No email body found in webhook or API - this should be investigated");
+      }
     }
+    
+    console.log("Email content resolved:", { 
+      contentSource, 
+      bodyHtml_length: bodyHtml.length,
+      bodyText_length: bodyText?.length ?? 0 
+    });
 
     // Find the tenant by parsing the TO address
     let tenantId: string | null = null;
@@ -282,8 +310,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Extract Message-ID from retrieved email or webhook data
-    const incomingMessageId = retrievedEmail?.message_id || payload.message_id || payload.headers?.['message-id'] || payload.headers?.['Message-ID'] || null;
+    // Extract Message-ID from webhook data (API is not used anymore as first option)
+    const incomingMessageId = payload.message_id || payload.headers?.['message-id'] || payload.headers?.['Message-ID'] || null;
     const incomingReferences = payload.headers?.['references'] || payload.headers?.['References'] || null;
 
     // Store the inbound message
