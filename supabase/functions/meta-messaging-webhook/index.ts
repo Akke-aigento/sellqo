@@ -108,10 +108,40 @@ serve(async (req) => {
               .eq(customerColumn, senderId)
               .maybeSingle();
 
+            // Create prospect if customer not found
+            let customerId = customer?.id || null;
+            if (!customerId) {
+              const insertData: Record<string, unknown> = {
+                tenant_id: connection.tenant_id,
+                customer_type: 'prospect',
+                notes: `Automatisch aangemaakt vanuit ${platform === 'instagram' ? 'Instagram' : 'Facebook Messenger'} inbox`,
+                total_orders: 0,
+                total_spent: 0,
+              };
+
+              // Platform-specific identifier
+              if (platform === 'instagram') {
+                insertData.instagram_id = senderId;
+              } else {
+                insertData.facebook_psid = senderId;
+              }
+
+              const { data: newProspect } = await supabase
+                .from('customers')
+                .insert(insertData)
+                .select('id')
+                .single();
+
+              if (newProspect) {
+                customerId = newProspect.id;
+                console.log(`Created ${platform} prospect: ${senderId}`);
+              }
+            }
+
             // Store inbound message
             const { error: insertError } = await supabase.from('customer_messages').insert({
               tenant_id: connection.tenant_id,
-              customer_id: customer?.id || null,
+              customer_id: customerId,
               direction: 'inbound',
               channel: platform,
               subject: `${platform === 'instagram' ? 'Instagram' : 'Facebook'} bericht`,
