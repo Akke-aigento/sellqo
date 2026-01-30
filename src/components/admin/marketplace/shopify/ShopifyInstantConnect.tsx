@@ -14,7 +14,8 @@ import {
   Store,
   Eye,
   EyeOff,
-  Zap,
+  Key,
+  AlertTriangle,
 } from 'lucide-react';
 import { ShopifySetupGuide } from './ShopifySetupGuide';
 import { supabase } from '@/integrations/supabase/client';
@@ -156,12 +157,25 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900">
-        <Zap className="w-4 h-4 text-green-600" />
-        <AlertTitle className="text-green-900 dark:text-green-100">Direct Verbinden</AlertTitle>
-        <AlertDescription className="text-green-800 dark:text-green-200">
-          Voor technisch onderlegde gebruikers. Maak zelf een Custom App aan in Shopify 
-          en plak je Admin API access token hieronder.
+      {/* Warning about new Shopify flow */}
+      <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+        <AlertTriangle className="w-4 h-4 text-amber-600" />
+        <AlertTitle className="text-amber-900 dark:text-amber-100">Alleen voor bestaande Custom Apps</AlertTitle>
+        <AlertDescription className="text-amber-800 dark:text-amber-200">
+          <p className="mb-2">
+            Nieuwe Custom Apps via het Shopify Dev Dashboard geven geen Admin API token meer.
+          </p>
+          <p className="text-sm">
+            Heb je nog geen token? Gebruik de <strong>OAuth</strong> tab - dat is makkelijker en werkt altijd.
+          </p>
+        </AlertDescription>
+      </Alert>
+
+      <Alert className="bg-slate-50 border-slate-200 dark:bg-slate-950/20 dark:border-slate-800">
+        <Key className="w-4 h-4 text-slate-600" />
+        <AlertTitle className="text-slate-900 dark:text-slate-100">Token Methode (Advanced)</AlertTitle>
+        <AlertDescription className="text-slate-700 dark:text-slate-300">
+          Voor bestaande Custom Apps met een <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-xs">shpat_</code> token.
         </AlertDescription>
       </Alert>
 

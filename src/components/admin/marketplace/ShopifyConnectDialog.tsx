@@ -8,10 +8,11 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Store, Clock, Zap, Upload } from 'lucide-react';
+import { Store, Clock, Key, Upload } from 'lucide-react';
 import { ShopifyRequestConnection } from './shopify/ShopifyRequestConnection';
 import { ShopifyInstantConnect } from './shopify/ShopifyInstantConnect';
 import { ShopifyManualImport } from './shopify/ShopifyManualImport';
+import { ShopifyOAuthConnect } from './ShopifyOAuthConnect';
 
 interface ShopifyConnectDialogProps {
   open: boolean;
@@ -19,14 +20,14 @@ interface ShopifyConnectDialogProps {
   onSuccess?: () => void;
 }
 
-type ConnectionMethod = 'request' | 'instant' | 'import';
+type ConnectionMethod = 'oauth' | 'token' | 'request' | 'import';
 
 export function ShopifyConnectDialog({
   open,
   onOpenChange,
   onSuccess,
 }: ShopifyConnectDialogProps) {
-  const [activeTab, setActiveTab] = useState<ConnectionMethod>('instant');
+  const [activeTab, setActiveTab] = useState<ConnectionMethod>('oauth');
 
   const handleSuccess = () => {
     onOpenChange(false);
@@ -51,15 +52,25 @@ export function ShopifyConnectDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ConnectionMethod)} className="mt-4">
-          <TabsList className="grid grid-cols-3 w-full h-auto p-1">
+          <TabsList className="grid grid-cols-4 w-full h-auto p-1">
             <TabsTrigger 
-              value="instant" 
+              value="oauth" 
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-green-50 dark:data-[state=active]:bg-green-950/30"
             >
-              <Zap className="w-5 h-5" />
-              <span className="text-xs font-medium">Direct</span>
+              <Store className="w-5 h-5" />
+              <span className="text-xs font-medium">OAuth</span>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-700">
-                Nu
+                Aanbevolen
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="token" 
+              className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-slate-50 dark:data-[state=active]:bg-slate-950/30"
+            >
+              <Key className="w-5 h-5" />
+              <span className="text-xs font-medium">Token</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-slate-100 text-slate-700">
+                Advanced
               </Badge>
             </TabsTrigger>
             <TabsTrigger 
@@ -85,12 +96,16 @@ export function ShopifyConnectDialog({
           </TabsList>
 
           <div className="mt-6">
-            <TabsContent value="request" className="m-0">
-              <ShopifyRequestConnection onSuccess={handleSuccess} />
+            <TabsContent value="oauth" className="m-0">
+              <ShopifyOAuthConnect onSuccess={handleSuccess} onCancel={() => onOpenChange(false)} />
             </TabsContent>
 
-            <TabsContent value="instant" className="m-0">
+            <TabsContent value="token" className="m-0">
               <ShopifyInstantConnect onSuccess={handleSuccess} />
+            </TabsContent>
+
+            <TabsContent value="request" className="m-0">
+              <ShopifyRequestConnection onSuccess={handleSuccess} />
             </TabsContent>
 
             <TabsContent value="import" className="m-0">
