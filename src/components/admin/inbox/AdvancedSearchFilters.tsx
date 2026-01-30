@@ -105,8 +105,8 @@ export function AdvancedSearchFilters({
           </div>
         </div>
 
-        {/* Row 2: Kanalen als horizontale checkboxes */}
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {/* Row 2: Kanalen als 2-koloms grid */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
           {channelConfig.map((ch) => (
             <div key={ch.id} className="flex items-center gap-1">
               <Checkbox
@@ -126,8 +126,8 @@ export function AdvancedSearchFilters({
           ))}
         </div>
 
-        {/* Row 3: Zoek op checkboxes (zonder label) */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {/* Row 3: Zoek op checkboxes als 2-koloms grid */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
           <div className="flex items-center gap-1">
             <Checkbox
               id="search-subject"
