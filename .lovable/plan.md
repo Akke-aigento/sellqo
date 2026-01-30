@@ -1,175 +1,198 @@
 
-# Plan: Fix Inbox Email Content & AI Suggestions
+# Plan: Fix E-mail Body Ophalen & Notificatie Geluid
 
-## Probleemanalyse
+## Probleem 1: E-mail body is leeg
 
-### Probleem 1: Email content is leeg
-Alle inbound emails in de database tonen:
-- `body_text: null`
-- `body_html: "(Geen inhoud)"`
-
-**Oorzaak:** De `handle-inbound-email` edge function probeert de email content op te halen via de Resend API (`GET https://api.resend.com/emails/{id}`), maar deze API call faalt of retourneert geen body. De fallback is de placeholder "(Geen inhoud)".
-
-**Root cause mogelijkheden:**
-1. Resend's email retrieve API ondersteunt mogelijk geen inbound emails (alleen verzonden emails)
-2. De `email_id` in de webhook is niet hetzelfde ID dat de retrieve API verwacht
-3. Resend stuurt de body gewoon niet mee in de webhook payload
-
-### Probleem 2: AI suggestions falen met RLS error
-Console toont: `new row violates row-level security policy for table "ai_assistant_config"`
-
-**Oorzaak:** De `ai_assistant_config` tabel heeft alleen:
-- SELECT policy voor tenant users
-- UPDATE policy voor tenant admins
-- ALL policy alleen voor service_role
-
-Er is **geen INSERT policy** voor tenant admins. De `useAIAssistant` hook probeert automatisch een config aan te maken als die niet bestaat, maar faalt door de ontbrekende INSERT permissie.
-
----
-
-## Oplossing
-
-### Fix 1: Database - INSERT policy toevoegen voor ai_assistant_config
-
-```sql
-CREATE POLICY "Tenant admins can insert config" ON ai_assistant_config
-  FOR INSERT
-  TO public
-  WITH CHECK (
-    tenant_id IN (
-      SELECT tenant_id FROM user_roles
-      WHERE user_id = auth.uid()
-      AND role IN ('tenant_admin', 'platform_admin')
-    )
-  );
+### Root Cause Analyse
+De Resend logs tonen:
+```
+{
+  "name": "restricted_api_key",
+  "message": "This API key is restricted to only send emails",
+  "statusCode": 401
+}
 ```
 
-**Alternatief (aanbevolen):** Maak een database trigger of function die automatisch een config aanmaakt wanneer een tenant wordt aangemaakt, zodat de frontend nooit hoeft te inserten.
+Dit is eigenlijk een misleidende foutmelding. Het echte probleem is:
 
-### Fix 2: Email Parsing - Webhook data direct gebruiken
+1. **Webhook bevat geen body** - Resend stuurt bewust geen email body in webhooks (zie hun documentatie: "Webhooks do not include the email body, headers, or attachments, only their metadata")
+2. **Verkeerde API endpoint** - De code probeert `GET /emails/{id}` wat alleen werkt voor **verzonden** emails
+3. **Juiste endpoint** - Voor inbound emails moet je `GET /emails/receiving/{id}` gebruiken
 
-Het probleem is dat Resend's email retrieve endpoint niet werkt voor inbound emails. We moeten:
+### Oplossing
+Aanpassen van de `fetchEmailContent` functie in de edge function om de correcte Resend **Receiving API** te gebruiken:
 
-1. **Onderzoeken:** Controleren wat Resend daadwerkelijk stuurt in de webhook payload
-2. **Aanpassen:** De edge function aanpassen om eerst te kijken naar `payload.text` en `payload.html` voordat de API wordt aangeroepen
+```typescript
+// FOUT (huidige code - voor verzonden emails)
+const response = await fetch(`https://api.resend.com/emails/${emailId}`, ...);
 
-**Huidige flow:**
+// CORRECT (voor ontvangen emails)
+const response = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, ...);
 ```
-Webhook → fetchEmailContent() → API call faalt → fallback "(Geen inhoud)"
-```
 
-**Nieuwe flow:**
-```
-Webhook → Check payload.text/html eerst → Indien leeg: probeer API → fallback
+De Receiving API retourneert:
+```json
+{
+  "id": "737944da-...",
+  "from": "sender@example.com",
+  "to": ["recipient@sellqo.app"],
+  "subject": "...",
+  "html": "<html>...",  // ✅ De body!
+  "text": "...",         // ✅ Plain text versie
+  "raw": {
+    "download_url": "..."  // Optioneel: voor raw email parsing
+  }
+}
 ```
 
 ---
 
-## Implementatie Details
+## Probleem 2: Wit scherm bij eerste keer openen
 
-### Database Migratie
+### Root Cause
+De `MessageBubble` component crashed waarschijnlijk wanneer `body_html` de placeholder tekst bevat of `body_text` null is. Het `getBodyContent()` functie strippt HTML tags, wat bij de fallback placeholder een lege string kan opleveren.
 
-```sql
--- 1. Add INSERT policy for ai_assistant_config
-CREATE POLICY "Tenant admins can insert config" 
-ON public.ai_assistant_config
-FOR INSERT 
-TO public
-WITH CHECK (
-  tenant_id IN (
-    SELECT user_roles.tenant_id
-    FROM user_roles
-    WHERE user_roles.user_id = auth.uid()
-    AND user_roles.role = ANY (ARRAY['tenant_admin'::app_role, 'platform_admin'::app_role])
-  )
-);
+### Oplossing
+1. Betere fallback handling in `MessageBubble.tsx`
+2. Toon een duidelijke "geen inhoud" melding als body leeg is
 
--- 2. Create function to auto-initialize config for new tenants
-CREATE OR REPLACE FUNCTION public.ensure_ai_assistant_config()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-  INSERT INTO ai_assistant_config (tenant_id)
-  VALUES (NEW.id)
-  ON CONFLICT (tenant_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
+---
 
--- 3. Add trigger to create config when tenant is created
-CREATE TRIGGER trigger_ensure_ai_assistant_config
-AFTER INSERT ON tenants
-FOR EACH ROW
-EXECUTE FUNCTION ensure_ai_assistant_config();
-```
+## Probleem 3: Geen notificatie geluid bij inkomend bericht
 
-### Edge Function Fix: handle-inbound-email
+### Huidige Situatie
+- Rode bolletje verschijnt (via `useUnreadMessagesCount` hook)
+- Toast notificatie wordt getoond (via `useInbox` realtime subscription)
+- Geen audio/geluid functionaliteit geïmplementeerd
 
-De prioriteit van content extractie aanpassen (regel 185-206):
+### Oplossing
+1. Maak een `useNotificationSound` hook
+2. Voeg browser notificatie permissie toe (optioneel)
+3. Speel geluid af bij nieuwe berichten (als gebruiker dat wil)
+4. Voeg instelling toe in tenant settings
+
+---
+
+## Technische Implementatie
+
+### 1. Edge Function Fix (handle-inbound-email/index.ts)
+
+Wijzig de `fetchEmailContent` functie:
 
 ```typescript
-// PRIORITEIT: Webhook payload eerst, dan API call
-let bodyHtml: string;
-let bodyText: string | null = null;
+async function fetchEmailContent(
+  emailId: string, 
+  apiKey: string
+): Promise<ResendRetrievedEmail | null> {
+  try {
+    // CRITICAL: Use /receiving/ endpoint for inbound emails!
+    const response = await fetch(
+      `https://api.resend.com/emails/receiving/${emailId}`, 
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      }
+    );
 
-// 1. Probeer eerst webhook payload (Resend kan body direct meesturen)
-if (payload.html) {
-  bodyHtml = payload.html;
-  bodyText = payload.text ?? null;
-  console.log("Using body from webhook payload");
-} else if (payload.text) {
-  bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${payload.text}</pre>`;
-  bodyText = payload.text;
-  console.log("Using text body from webhook payload");
-}
-// 2. Fallback: probeer API call
-else if (retrievedEmail?.html) {
-  bodyHtml = retrievedEmail.html;
-  bodyText = retrievedEmail.text ?? null;
-  console.log("Using body from Resend API");
-} else if (retrievedEmail?.text) {
-  bodyHtml = `<pre style="white-space: pre-wrap; font-family: inherit;">${retrievedEmail.text}</pre>`;
-  bodyText = retrievedEmail.text;
-  console.log("Using text body from Resend API");
-}
-// 3. Fallback: geen content
-else {
-  bodyHtml = '<p style="color: #666; font-style: italic;">(Geen inhoud)</p>';
-  bodyText = null;
-  console.warn("No email body found in webhook or API");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Resend Receiving API error (${response.status}):`, 
+        errorText.substring(0, 300));
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch inbound email:', error);
+    return null;
+  }
 }
 ```
 
-### Extra: Logging toevoegen voor debugging
+### 2. MessageBubble Fallback (MessageBubble.tsx)
 
-In de edge function meer logging toevoegen om te zien wat Resend exact stuurt:
+Verbeter de body content weergave:
 
 ```typescript
-console.log("Webhook payload inspection:", {
-  email_id: payload.email_id,
-  has_html_in_payload: !!payload.html,
-  has_text_in_payload: !!payload.text,
-  html_preview: payload.html?.substring(0, 100),
-  text_preview: payload.text?.substring(0, 100),
-});
+const getBodyContent = () => {
+  // Prefer plain text
+  if (message.body_text && message.body_text.trim()) {
+    return message.body_text;
+  }
+  
+  // Strip HTML but handle empty result
+  if (message.body_html) {
+    const stripped = message.body_html.replace(/<[^>]*>/g, '').trim();
+    if (stripped && !stripped.includes('Geen inhoud')) {
+      return stripped;
+    }
+  }
+  
+  // Fallback
+  return '(Geen inhoud beschikbaar)';
+};
+```
+
+### 3. Notificatie Geluid (nieuw bestand + hook update)
+
+Maak een geluidssysteem:
+
+```typescript
+// src/hooks/useNotificationSound.ts
+const NOTIFICATION_SOUND_URL = '/sounds/notification.mp3';
+
+export function useNotificationSound() {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [enabled, setEnabled] = useState(() => {
+    return localStorage.getItem('notification_sound') !== 'disabled';
+  });
+
+  const playSound = useCallback(() => {
+    if (!enabled) return;
+    
+    if (!audioRef.current) {
+      audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
+      audioRef.current.volume = 0.5;
+    }
+    
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(() => {
+      // Browser blocked autoplay - ignore
+    });
+  }, [enabled]);
+
+  return { playSound, enabled, setEnabled };
+}
+```
+
+Integreer in `useInbox.ts`:
+
+```typescript
+// In realtime subscription callback
+if ((payload.new as InboxMessage).direction === 'inbound') {
+  playSound();  // Speel geluid
+  toast({...});
+}
 ```
 
 ---
 
 ## Bestandswijzigingen
 
-| Bestand | Actie |
-|---------|-------|
-| `supabase/migrations/xxx_fix_ai_config_rls.sql` | Nieuw - RLS policy + trigger |
-| `supabase/functions/handle-inbound-email/index.ts` | Wijzigen - Email parsing prioriteit |
+| Bestand | Actie | Beschrijving |
+|---------|-------|--------------|
+| `supabase/functions/handle-inbound-email/index.ts` | Wijzigen | Fix API endpoint naar `/emails/receiving/` |
+| `src/components/admin/inbox/MessageBubble.tsx` | Wijzigen | Betere fallback voor lege body |
+| `src/hooks/useNotificationSound.ts` | Nieuw | Audio notificatie hook |
+| `src/hooks/useInbox.ts` | Wijzigen | Geluid afspelen bij nieuw bericht |
+| `public/sounds/notification.mp3` | Nieuw | Notificatie geluidje (kort, subtiel) |
 
 ---
 
 ## Verificatie
 
-1. **AI Suggestions:** Na migratie zou de AI suggestie box moeten werken zonder RLS errors
-2. **Email Content:** Nieuwe inbound emails moeten body_html met echte content hebben
-3. **Bestaande emails:** Kunnen niet automatisch worden hersteld - de originele content is verloren
+1. **Email body**: Stuur test email → body moet nu correct worden opgehaald
+2. **UI crash**: Open conversatie → geen wit scherm meer
+3. **Geluid**: Ontvang nieuw bericht → geluid hoorbaar (indien enabled)
