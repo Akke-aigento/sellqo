@@ -36,9 +36,10 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
-import type { MarketplaceType, MarketplaceSettings } from '@/types/marketplace';
+import type { MarketplaceType } from '@/types/marketplace';
 import { MARKETPLACE_INFO } from '@/types/marketplace';
 import { supabase } from '@/integrations/supabase/client';
+import { ShopifyConnectDialog } from './ShopifyConnectDialog';
 import { ShopifyOAuthConnect } from './ShopifyOAuthConnect';
 
 interface ConnectMarketplaceDialogProps {
@@ -402,20 +403,17 @@ export function ConnectMarketplaceDialog({
 
   const instructions = getInstructions();
 
-  // For Shopify, use the OAuth flow instead of manual credentials
+  // For Shopify, use the new multi-option dialog
   if (marketplaceType === 'shopify') {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-lg">
-          <ShopifyOAuthConnect 
-            onSuccess={() => {
-              handleClose();
-              onSuccess?.();
-            }}
-            onCancel={handleClose}
-          />
-        </DialogContent>
-      </Dialog>
+      <ShopifyConnectDialog
+        open={open}
+        onOpenChange={handleClose}
+        onSuccess={() => {
+          handleClose();
+          onSuccess?.();
+        }}
+      />
     );
   }
 
