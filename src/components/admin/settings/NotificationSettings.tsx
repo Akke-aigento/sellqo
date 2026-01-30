@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
   RefreshCw, Megaphone, UserPlus, Settings, ChevronDown, ChevronRight,
-  Bell, Mail, Loader2
+  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -11,12 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { NOTIFICATION_CONFIG, NotificationCategory } from '@/types/notification';
 import { cn } from '@/lib/utils';
 
 const categoryIcons: Record<string, React.ElementType> = {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
-  RefreshCw, Megaphone, UserPlus, Settings,
+  RefreshCw, Megaphone, UserPlus, Settings, MessageSquare,
 };
 
 function CategorySection({
@@ -164,6 +165,8 @@ export function NotificationSettings() {
     toggleCategoryInApp,
     toggleCategoryEmail,
   } = useNotificationSettings();
+  
+  const { enabled: soundEnabled, toggleEnabled: toggleSound } = useNotificationSound();
 
   if (isLoading) {
     return (
@@ -203,6 +206,24 @@ export function NotificationSettings() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Sound toggle */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-3">
+            {soundEnabled ? (
+              <Volume2 className="h-5 w-5 text-primary" />
+            ) : (
+              <VolumeX className="h-5 w-5 text-muted-foreground" />
+            )}
+            <div>
+              <Label className="text-sm font-medium">Geluidsmelding</Label>
+              <p className="text-xs text-muted-foreground">
+                Speel een geluid af bij nieuwe notificaties
+              </p>
+            </div>
+          </div>
+          <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
+        </div>
+
         {/* Legend */}
         <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg text-sm">
           <div className="flex items-center gap-2">

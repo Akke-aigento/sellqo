@@ -12866,6 +12866,7 @@ export type Database = {
         | "team"
         | "system"
         | "ai_coach"
+        | "messages"
       notification_priority: "low" | "medium" | "high" | "urgent"
       order_status:
         | "pending"
@@ -13127,6 +13128,7 @@ export const Constants = {
         "team",
         "system",
         "ai_coach",
+        "messages",
       ],
       notification_priority: ["low", "medium", "high", "urgent"],
       order_status: [
