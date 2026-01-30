@@ -1,4 +1,4 @@
-import { Mail, MessageSquare, Facebook, Instagram, X, FolderOpen, Calendar, Search } from 'lucide-react';
+import { Mail, MessageSquare, Facebook, Instagram, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -60,141 +60,106 @@ export function AdvancedSearchFilters({
 
   return (
     <Collapsible open={isOpen}>
-      <CollapsibleContent className="space-y-3 pt-2 animate-in slide-in-from-top-2 duration-200">
+      <CollapsibleContent className="space-y-2 pt-2 animate-in slide-in-from-top-2 duration-200">
         {/* Row 1: Zoekbereik + Periode (2 kolommen) */}
         <div className="grid grid-cols-2 gap-2">
           {/* Zoekbereik */}
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <FolderOpen className="h-3 w-3" />
-              Zoek in
-            </Label>
+          <div className="space-y-0.5">
+            <Label className="text-xs text-muted-foreground">Zoek in</Label>
             <Select
               value={searchOptions.scope}
               onValueChange={(value: SearchOptions['scope']) =>
                 onSearchOptionsChange({ ...searchOptions, scope: value })
               }
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-7 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="current" className="text-xs">
-                  Huidige map
-                </SelectItem>
-                <SelectItem value="all" className="text-xs">
-                  Alle mappen
-                </SelectItem>
-                <SelectItem value="everywhere" className="text-xs">
-                  Overal (incl. prullenbak)
-                </SelectItem>
+                <SelectItem value="current" className="text-xs">Huidige map</SelectItem>
+                <SelectItem value="all" className="text-xs">Alle mappen</SelectItem>
+                <SelectItem value="everywhere" className="text-xs">Overal</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Periode */}
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Periode
-            </Label>
+          <div className="space-y-0.5">
+            <Label className="text-xs text-muted-foreground">Periode</Label>
             <Select
               value={searchOptions.period}
               onValueChange={(value: SearchOptions['period']) =>
                 onSearchOptionsChange({ ...searchOptions, period: value })
               }
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-7 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week" className="text-xs">
-                  Afgelopen week
-                </SelectItem>
-                <SelectItem value="month" className="text-xs">
-                  Afgelopen maand
-                </SelectItem>
-                <SelectItem value="3months" className="text-xs">
-                  Afgelopen 3 maanden
-                </SelectItem>
-                <SelectItem value="all" className="text-xs">
-                  Alles
-                </SelectItem>
+                <SelectItem value="week" className="text-xs">Week</SelectItem>
+                <SelectItem value="month" className="text-xs">Maand</SelectItem>
+                <SelectItem value="3months" className="text-xs">3 maanden</SelectItem>
+                <SelectItem value="all" className="text-xs">Alles</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         {/* Row 2: Kanalen als horizontale checkboxes */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <MessageSquare className="h-3 w-3" />
-            Kanalen
-          </Label>
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-            {channelConfig.map((ch) => (
-              <div key={ch.id} className="flex items-center gap-1.5">
-                <Checkbox
-                  id={`channel-${ch.id}`}
-                  checked={searchOptions.channels.includes(ch.id)}
-                  onCheckedChange={() => toggleChannel(ch.id)}
-                  className="h-3.5 w-3.5"
-                />
-                <Label
-                  htmlFor={`channel-${ch.id}`}
-                  className={`text-xs flex items-center gap-1 cursor-pointer ${ch.color}`}
-                >
-                  {ch.icon}
-                  {ch.label}
-                </Label>
-              </div>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          {channelConfig.map((ch) => (
+            <div key={ch.id} className="flex items-center gap-1">
+              <Checkbox
+                id={`channel-${ch.id}`}
+                checked={searchOptions.channels.includes(ch.id)}
+                onCheckedChange={() => toggleChannel(ch.id)}
+                className="h-3.5 w-3.5"
+              />
+              <Label
+                htmlFor={`channel-${ch.id}`}
+                className={`text-xs flex items-center gap-0.5 cursor-pointer ${ch.color}`}
+              >
+                {ch.icon}
+                {ch.label}
+              </Label>
+            </div>
+          ))}
         </div>
 
-        {/* Row 2: Zoek op checkboxes */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Search className="h-3 w-3" />
-            Zoek op:
-          </span>
-          <div className="flex items-center gap-2">
+        {/* Row 3: Zoek op checkboxes */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span>Zoek op:</span>
+          <div className="flex items-center gap-1">
             <Checkbox
               id="search-subject"
               checked={searchOptions.searchIn.subject}
               onCheckedChange={() => toggleSearchIn('subject')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-subject" className="text-xs cursor-pointer">
-              Onderwerp
-            </Label>
+            <Label htmlFor="search-subject" className="text-xs cursor-pointer">Onderwerp</Label>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Checkbox
               id="search-content"
               checked={searchOptions.searchIn.content}
               onCheckedChange={() => toggleSearchIn('content')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-content" className="text-xs cursor-pointer">
-              Inhoud
-            </Label>
+            <Label htmlFor="search-content" className="text-xs cursor-pointer">Inhoud</Label>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Checkbox
               id="search-sender"
               checked={searchOptions.searchIn.sender}
               onCheckedChange={() => toggleSearchIn('sender')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-sender" className="text-xs cursor-pointer">
-              Afzender
-            </Label>
+            <Label htmlFor="search-sender" className="text-xs cursor-pointer">Afzender</Label>
           </div>
         </div>
 
         {/* Clear button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-1">
           <Button
             variant="ghost"
             size="sm"
@@ -202,7 +167,7 @@ export function AdvancedSearchFilters({
             onClick={onClearSearch}
           >
             <X className="h-3 w-3 mr-1" />
-            Wis zoekopdracht
+            Wissen
           </Button>
         </div>
       </CollapsibleContent>

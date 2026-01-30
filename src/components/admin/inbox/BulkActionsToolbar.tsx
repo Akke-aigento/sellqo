@@ -42,8 +42,8 @@ export function BulkActionsToolbar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 p-2 bg-primary/5 border-b">
-      {/* Selection info */}
+    <div className="p-2 bg-primary/5 border-b space-y-2">
+      {/* Row 1: Selection info */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -53,9 +53,10 @@ export function BulkActionsToolbar({
         >
           <X className="h-3.5 w-3.5" />
         </Button>
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium whitespace-nowrap">
           {selectedCount} geselecteerd
         </span>
+        <div className="flex-1" />
         {!allSelected && (
           <Button
             variant="ghost"
@@ -64,15 +65,13 @@ export function BulkActionsToolbar({
             onClick={onSelectAll}
           >
             <CheckSquare className="h-3.5 w-3.5 mr-1" />
-            Alles selecteren ({totalCount})
+            Alles ({totalCount})
           </Button>
         )}
       </div>
 
-      <div className="flex-1" />
-
-      {/* Bulk actions */}
-      <div className="flex items-center gap-1">
+      {/* Row 2: Bulk actions */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         {/* Restore button for archived/deleted items */}
         {(isArchiveView || isTrashView) && (
           <Button
@@ -140,7 +139,7 @@ export function BulkActionsToolbar({
           disabled={isLoading}
         >
           <Trash2 className="h-3.5 w-3.5 mr-1" />
-          {isTrashView ? 'Permanent verwijderen' : 'Verwijderen'}
+          {isTrashView ? 'Permanent' : 'Verwijderen'}
         </Button>
       </div>
     </div>
