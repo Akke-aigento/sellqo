@@ -9,9 +9,11 @@ const corsHeaders = {
 interface SuggestRequest {
   tenant_id: string;
   conversation_id: string;
+  message_id?: string;
   customer_message: string;
   customer_name?: string;
   channel: 'email' | 'whatsapp';
+  force_regenerate?: boolean;
   context?: {
     orderId?: string;
     orderNumber?: string;
@@ -50,10 +52,12 @@ serve(async (req) => {
 
     const { 
       tenant_id, 
-      conversation_id, 
+      conversation_id,
+      message_id,
       customer_message, 
       customer_name, 
       channel, 
+      force_regenerate,
       context 
     }: SuggestRequest = await req.json();
 
@@ -64,7 +68,31 @@ serve(async (req) => {
       );
     }
 
-    // Check AI credits
+    // Check for cached suggestion (if message_id provided and not forcing regeneration)
+    if (message_id && !force_regenerate) {
+      const { data: cached } = await supabase
+        .from('ai_reply_suggestions')
+        .select('suggestion_text, model_used, created_at')
+        .eq('tenant_id', tenant_id)
+        .eq('conversation_id', conversation_id)
+        .eq('message_id', message_id)
+        .maybeSingle();
+
+      if (cached) {
+        console.log('Returning cached suggestion for message:', message_id);
+        return new Response(
+          JSON.stringify({ 
+            suggestion: cached.suggestion_text,
+            cached: true,
+            cached_at: cached.created_at,
+            user_patterns_applied: false
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Check AI credits (only if we need to generate)
     const { data: hasCredits } = await supabase.rpc('use_ai_credits', {
       p_tenant_id: tenant_id,
       p_credits_needed: 1
@@ -228,6 +256,29 @@ Schrijf een passend antwoord.`;
       );
     }
 
+    // Cache the suggestion if message_id is provided
+    if (message_id) {
+      const { error: cacheError } = await supabase
+        .from('ai_reply_suggestions')
+        .upsert({
+          tenant_id,
+          conversation_id,
+          message_id,
+          suggestion_text: suggestion,
+          model_used: 'gemini-2.5-flash',
+          regenerated_at: force_regenerate ? new Date().toISOString() : null,
+        }, {
+          onConflict: 'tenant_id,conversation_id,message_id',
+        });
+
+      if (cacheError) {
+        console.error('Failed to cache suggestion:', cacheError);
+        // Don't fail the request, just log the error
+      } else {
+        console.log('Cached suggestion for message:', message_id);
+      }
+    }
+
     // Log usage
     await supabase.from('ai_usage_log').insert({
       tenant_id,
@@ -237,14 +288,17 @@ Schrijf een passend antwoord.`;
       metadata: {
         channel,
         conversation_id,
+        message_id,
         user_id: userId,
-        has_user_patterns: Object.keys(userPatterns).length > 0
+        has_user_patterns: Object.keys(userPatterns).length > 0,
+        was_regeneration: force_regenerate || false,
       }
     });
 
     return new Response(
       JSON.stringify({ 
         suggestion,
+        cached: false,
         user_patterns_applied: Object.keys(userPatterns).length > 0
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
