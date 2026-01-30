@@ -61,11 +61,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     return <Check className="h-3.5 w-3.5 text-muted-foreground" />;
   };
 
+  // Clean CID references that weren't replaced by storage URLs
+  const cleanCidReferences = (text: string): string => {
+    // Remove [cid:...] and cid:... patterns (inline image references)
+    return text.replace(/\[?cid:[^\]\s<>]+\]?/gi, '').trim();
+  };
+
   // Parse HTML content safely with proper fallback handling
   const getBodyContent = () => {
     // Prefer plain text if available and not empty
     if (message.body_text && message.body_text.trim()) {
-      return message.body_text.trim();
+      const cleaned = cleanCidReferences(message.body_text.trim());
+      return cleaned || '(Geen inhoud beschikbaar)';
     }
     
     // Strip HTML but handle empty/placeholder results
@@ -76,7 +83,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           !stripped.includes('Geen inhoud') && 
           !stripped.includes('niet beschikbaar') &&
           stripped.length > 0) {
-        return stripped;
+        // Clean any remaining CID references from the stripped HTML
+        const cleaned = cleanCidReferences(stripped);
+        return cleaned || '(Geen inhoud beschikbaar)';
       }
     }
     
