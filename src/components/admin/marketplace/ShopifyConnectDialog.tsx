@@ -26,7 +26,7 @@ export function ShopifyConnectDialog({
   onOpenChange,
   onSuccess,
 }: ShopifyConnectDialogProps) {
-  const [activeTab, setActiveTab] = useState<ConnectionMethod>('request');
+  const [activeTab, setActiveTab] = useState<ConnectionMethod>('instant');
 
   const handleSuccess = () => {
     onOpenChange(false);
@@ -53,16 +53,6 @@ export function ShopifyConnectDialog({
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ConnectionMethod)} className="mt-4">
           <TabsList className="grid grid-cols-3 w-full h-auto p-1">
             <TabsTrigger 
-              value="request" 
-              className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-950/30"
-            >
-              <Clock className="w-5 h-5" />
-              <span className="text-xs font-medium">Aanvraag</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700">
-                1-2 dagen
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger 
               value="instant" 
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-green-50 dark:data-[state=active]:bg-green-950/30"
             >
@@ -70,6 +60,16 @@ export function ShopifyConnectDialog({
               <span className="text-xs font-medium">Direct</span>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-700">
                 Nu
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="request" 
+              className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-950/30"
+            >
+              <Clock className="w-5 h-5" />
+              <span className="text-xs font-medium">Aanvraag</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700">
+                1-2 dagen
               </Badge>
             </TabsTrigger>
             <TabsTrigger 
