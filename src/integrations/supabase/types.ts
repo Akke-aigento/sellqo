@@ -11524,6 +11524,7 @@ export type Database = {
           lifetime_revenue: number | null
           logo_url: string | null
           name: string
+          notification_email: string | null
           oss_identification_number: string | null
           oss_registration_date: string | null
           owner_email: string
@@ -11617,6 +11618,7 @@ export type Database = {
           lifetime_revenue?: number | null
           logo_url?: string | null
           name: string
+          notification_email?: string | null
           oss_identification_number?: string | null
           oss_registration_date?: string | null
           owner_email: string
@@ -11710,6 +11712,7 @@ export type Database = {
           lifetime_revenue?: number | null
           logo_url?: string | null
           name?: string
+          notification_email?: string | null
           oss_identification_number?: string | null
           oss_registration_date?: string | null
           owner_email?: string

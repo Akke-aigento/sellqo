@@ -57,6 +57,8 @@ interface Tenant {
   enable_b2b_checkout?: boolean;
   simplified_vat_mode?: boolean;
   simplified_vat_acknowledged_at?: string | null;
+  // Notification settings
+  notification_email?: string | null;
   // Reminder settings
   reminders_enabled?: boolean;
   reminder_level1_days?: number;
