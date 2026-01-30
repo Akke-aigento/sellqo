@@ -126,9 +126,8 @@ export function AdvancedSearchFilters({
           ))}
         </div>
 
-        {/* Row 3: Zoek op checkboxes */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span>Zoek op:</span>
+        {/* Row 3: Zoek op checkboxes (zonder label) */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <div className="flex items-center gap-1">
             <Checkbox
               id="search-subject"
@@ -136,7 +135,7 @@ export function AdvancedSearchFilters({
               onCheckedChange={() => toggleSearchIn('subject')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-subject" className="text-xs cursor-pointer">Onderwerp</Label>
+            <Label htmlFor="search-subject" className="text-xs cursor-pointer text-muted-foreground">Onderwerp</Label>
           </div>
           <div className="flex items-center gap-1">
             <Checkbox
@@ -145,7 +144,7 @@ export function AdvancedSearchFilters({
               onCheckedChange={() => toggleSearchIn('content')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-content" className="text-xs cursor-pointer">Inhoud</Label>
+            <Label htmlFor="search-content" className="text-xs cursor-pointer text-muted-foreground">Inhoud</Label>
           </div>
           <div className="flex items-center gap-1">
             <Checkbox
@@ -154,7 +153,7 @@ export function AdvancedSearchFilters({
               onCheckedChange={() => toggleSearchIn('sender')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-sender" className="text-xs cursor-pointer">Afzender</Label>
+            <Label htmlFor="search-sender" className="text-xs cursor-pointer text-muted-foreground">Afzender</Label>
           </div>
         </div>
 
