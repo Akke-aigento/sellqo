@@ -140,31 +140,31 @@ export function NotificationCenter() {
         </div>
 
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+          <TabsList className="w-full grid grid-cols-4 rounded-none border-b bg-transparent p-1 h-auto gap-0.5">
             <TabsTrigger
               value="all"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+              className="text-xs px-2 py-1.5 rounded-sm data-[state=active]:bg-muted data-[state=active]:shadow-sm"
             >
               Alle ({notifications.length})
             </TabsTrigger>
             <TabsTrigger
               value="unread"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+              className="text-xs px-2 py-1.5 rounded-sm data-[state=active]:bg-muted data-[state=active]:shadow-sm"
             >
-              Ongelezen ({unreadCount})
+              Nieuw ({unreadCount})
             </TabsTrigger>
             <TabsTrigger
               value="urgent"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+              className="text-xs px-2 py-1.5 rounded-sm data-[state=active]:bg-muted data-[state=active]:shadow-sm"
             >
               Urgent ({urgentNotifications.length})
             </TabsTrigger>
             <TabsTrigger
               value="ai_coach"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 gap-1"
+              className="text-xs px-2 py-1.5 rounded-sm data-[state=active]:bg-muted data-[state=active]:shadow-sm gap-1"
             >
-              <Bot className="h-3.5 w-3.5" />
-              Coach ({aiCoachCount})
+              <Bot className="h-3 w-3" />
+              AI ({aiCoachCount})
             </TabsTrigger>
           </TabsList>
 

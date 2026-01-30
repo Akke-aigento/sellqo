@@ -9,7 +9,8 @@ export type NotificationCategory =
   | 'marketing'
   | 'team'
   | 'system'
-  | 'ai_coach';
+  | 'ai_coach'
+  | 'messages';
 
 // Quick Action types for inline notification buttons
 export type QuickActionType = 'navigate' | 'execute' | 'dismiss' | 'snooze' | 'open_visual_editor';
@@ -212,6 +213,18 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'integration_error', label: 'Integratie fout', description: 'Fout met marketplace of shipping integratie', defaultInApp: true, defaultEmail: true },
       { type: 'export_ready', label: 'Export gereed', description: 'Gegevensexport is gereed voor download', defaultInApp: true, defaultEmail: false },
       { type: 'backup_completed', label: 'Backup voltooid', description: 'Database backup is voltooid', defaultInApp: false, defaultEmail: false },
+    ]
+  },
+  {
+    category: 'messages',
+    label: 'Berichten',
+    icon: 'MessageSquare',
+    types: [
+      { type: 'email_inbound', label: 'Email ontvangen', description: 'Wanneer een inkomende email binnenkomt', defaultInApp: true, defaultEmail: false },
+      { type: 'whatsapp_inbound', label: 'WhatsApp ontvangen', description: 'Wanneer een WhatsApp bericht binnenkomt', defaultInApp: true, defaultEmail: false },
+      { type: 'facebook_inbound', label: 'Facebook bericht', description: 'Wanneer een Facebook bericht binnenkomt', defaultInApp: true, defaultEmail: false },
+      { type: 'instagram_inbound', label: 'Instagram DM', description: 'Wanneer een Instagram DM binnenkomt', defaultInApp: true, defaultEmail: false },
+      { type: 'bol_inbound', label: 'Bol.com vraag', description: 'Wanneer een vraag via Bol.com binnenkomt', defaultInApp: true, defaultEmail: false },
     ]
   },
 ];
