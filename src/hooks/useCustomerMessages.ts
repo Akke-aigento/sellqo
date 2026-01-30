@@ -17,7 +17,7 @@ export interface CustomerMessage {
   to_email: string;
   reply_to_email: string | null;
   resend_id: string | null;
-  status: 'draft' | 'sending' | 'sent' | 'delivered' | 'opened' | 'failed';
+  delivery_status: 'draft' | 'sending' | 'sent' | 'delivered' | 'opened' | 'failed';
   error_message: string | null;
   sent_at: string | null;
   delivered_at: string | null;

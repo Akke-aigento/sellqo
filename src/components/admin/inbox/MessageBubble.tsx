@@ -55,7 +55,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     }
     
     // Email status
-    if (message.status === 'delivered' || message.status === 'opened') {
+    if (message.delivery_status === 'delivered' || message.delivery_status === 'opened') {
       return <CheckCheck className="h-3.5 w-3.5 text-muted-foreground" />;
     }
     return <Check className="h-3.5 w-3.5 text-muted-foreground" />;

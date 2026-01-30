@@ -26,7 +26,7 @@ export interface InboxMessage {
   to_email: string;
   reply_to_email: string | null;
   channel: MessageChannel;
-  status: string;
+  delivery_status: string;
   message_status?: MessageStatus;
   folder_id?: string | null;
   deleted_at?: string | null;
@@ -126,16 +126,16 @@ export function useInbox() {
       // Apply folder/status filter
       if (filters.folderId === null) {
         // Inbox: active messages with no folder
-        query = query.eq('status', 'active').is('folder_id', null);
+        query = query.eq('message_status', 'active').is('folder_id', null);
       } else if (filters.folderId === 'archived' || filters.folderId === archiveFolder?.id) {
         // Archived messages
-        query = query.eq('status', 'archived');
+        query = query.eq('message_status', 'archived');
       } else if (filters.folderId === 'deleted' || filters.folderId === trashFolder?.id) {
         // Deleted messages
-        query = query.eq('status', 'deleted');
+        query = query.eq('message_status', 'deleted');
       } else {
         // Custom folder
-        query = query.eq('folder_id', filters.folderId).eq('status', 'active');
+        query = query.eq('folder_id', filters.folderId).eq('message_status', 'active');
       }
 
       // Apply channel filter
@@ -204,7 +204,7 @@ export function useInbox() {
       const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
 
       // Determine conversation status from last message
-      const messageStatus = (lastMessage.status as MessageStatus) || 'active';
+      const messageStatus = (lastMessage.message_status as MessageStatus) || 'active';
       const folderId = lastMessage.folder_id || null;
 
       convos.push({
@@ -324,7 +324,7 @@ export function useInbox() {
 
       const { error } = await supabase
         .from('customer_messages')
-        .update({ status: 'archived' })
+        .update({ message_status: 'archived' })
         .in('id', messageIds);
 
       if (error) throw error;
@@ -356,7 +356,7 @@ export function useInbox() {
       const { error } = await supabase
         .from('customer_messages')
         .update({ 
-          status: 'deleted',
+          message_status: 'deleted',
           deleted_at: new Date().toISOString(),
         })
         .in('id', messageIds);
@@ -390,7 +390,7 @@ export function useInbox() {
       const { error } = await supabase
         .from('customer_messages')
         .update({ 
-          status: 'active',
+          message_status: 'active',
           deleted_at: null,
           folder_id: null,
         })
