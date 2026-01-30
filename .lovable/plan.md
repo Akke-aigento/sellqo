@@ -1,150 +1,89 @@
 
-# Plan: Fix Alle Field Mapping Fouten in Shopify Trigger
+# Plan: Shopify Direct Connect Verbeteringen
 
-## Probleem Gevonden 🔍
+## Problemen Geïdentificeerd
 
-De database trigger `handle_shopify_request_notification` gebruikt velden die **niet bestaan** in de `shopify_connection_requests` tabel:
+### 1. Store URL Input heeft Verkeerde Waarde
+In de screenshot is te zien dat het veld "info@sellqo.ai" bevat - dit is jouw email adres dat waarschijnlijk door browser autofill is ingevuld. 
 
-| Trigger probeert te lezen | Bestaat in tabel? | Correcte bron |
-|---------------------------|-------------------|---------------|
-| `NEW.contact_name` | ❌ **NEE** | Gebruik `v_tenant_name` (via tenants lookup) |
-| `NEW.contact_email` | ❌ **NEE** | Gebruik `v_tenant_email` (via tenants lookup) |
-| `NEW.store_url` | ✅ Ja | Maar kan NULL zijn bij insert → fallback naar `store_name || '.myshopify.com'` |
-| `NEW.store_name` | ✅ Ja | OK |
-| `NEW.notes` | ✅ Ja | OK |
+**Oorzaak**: Het input veld heeft geen `autoComplete="off"` attribuut, waardoor de browser het automatisch invult.
 
-## Oplossing
+**Oplossing**: 
+- Voeg `autoComplete="off"` toe aan de input
+- Zorg dat de placeholder "mijn-winkel" duidelijk zichtbaar blijft
 
-**1. Database Migratie** - Volledige herschrijving van de trigger functie:
+### 2. Visuele Documentatie met Screenshots
+Gebruikers die niet technisch zijn hebben moeite om de tekst-instructies te volgen. Een visuele gids met screenshots zou veel helpen.
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ BEFORE (FOUT)                                                   │
-├─────────────────────────────────────────────────────────────────┤
-│ INSERT INTO support_tickets (...)                               │
-│ VALUES (                                                        │
-│   ...,                                                          │
-│   'contact_name', NEW.contact_name,  ← BESTAAT NIET!            │
-│   'contact_email', NEW.contact_email ← BESTAAT NIET!            │
-│ )                                                               │
-├─────────────────────────────────────────────────────────────────┤
-│ AFTER (CORRECT)                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│ -- Haal tenant info op (bestaat al)                             │
-│ v_store_url := COALESCE(NEW.store_url,                          │
-│                         NEW.store_name || '.myshopify.com');    │
-│                                                                 │
-│ INSERT INTO support_tickets (...)                               │
-│ VALUES (                                                        │
-│   ...,                                                          │
-│   'contact_name', v_tenant_name,      ← UIT TENANTS             │
-│   'contact_email', v_tenant_email     ← UIT TENANTS             │
-│ )                                                               │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Oplossing**:
+- Maak een "Bekijk Handleiding" knop met informatiebolletje (HelpCircle icoon)
+- Bij klikken opent een Dialog met stap-voor-stap screenshots
+- Alternatief: Gebruik een carousel met annotated screenshots
 
 ## Wijzigingen
 
-| Onderdeel | Wijziging |
-|-----------|-----------|
-| Trigger functie | Vervang alle `NEW.contact_*` referenties door tenant-derived variabelen |
-| `store_url` handling | Fallback naar `store_name || '.myshopify.com'` als NULL |
-| Support message | Gebruik `v_tenant_name` en `v_tenant_email` |
+| Bestand | Wijziging |
+|---------|-----------|
+| `ShopifyInstantConnect.tsx` | AutoComplete uitschakelen + Handleiding dialog toevoegen |
+| `ShopifySetupGuide.tsx` (nieuw) | Component voor visuele documentatie modal |
 
 ## Technische Details
 
-De complete functie wordt:
-
-```sql
-CREATE OR REPLACE FUNCTION public.handle_shopify_request_notification()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_tenant_name TEXT;
-  v_tenant_email TEXT;
-  v_store_url TEXT;
-  v_ticket_id UUID;
-  v_message_id UUID;
-BEGIN
-  IF TG_OP != 'INSERT' THEN
-    RETURN NEW;
-  END IF;
-
-  -- Build store URL from store_name if not provided
-  v_store_url := COALESCE(
-    NULLIF(NEW.store_url, ''), 
-    NEW.store_name || '.myshopify.com'
-  );
-
-  -- Get tenant info with fallback emails
-  SELECT 
-    COALESCE(name, 'Onbekende tenant'),
-    COALESCE(notification_email, billing_email, owner_email, 'no-email@sellqo.nl')
-  INTO v_tenant_name, v_tenant_email
-  FROM public.tenants
-  WHERE id = NEW.tenant_id;
-
-  -- Create support ticket (NO contact_name/contact_email from NEW)
-  INSERT INTO public.support_tickets (
-    tenant_id, subject, status, priority, category, metadata
-  ) VALUES (
-    NEW.tenant_id,
-    'Shopify Koppelverzoek: ' || v_store_url,
-    'open', 'medium', 'integration',
-    jsonb_build_object(
-      'type', 'shopify_connection_request',
-      'request_id', NEW.id,
-      'store_name', NEW.store_name,
-      'store_url', v_store_url,
-      'tenant_name', v_tenant_name,
-      'tenant_email', v_tenant_email,
-      'notes', NEW.notes
-    )
-  ) RETURNING id INTO v_ticket_id;
-
-  -- Create message using tenant info (NOT NEW.contact_*)
-  INSERT INTO public.support_messages (
-    ticket_id, sender_type, sender_name, content
-  ) VALUES (
-    v_ticket_id,
-    'customer',
-    v_tenant_name,
-    'Shopify koppelverzoek ingediend.' || E'\n\n' ||
-    '**Winkel URL:** ' || v_store_url || E'\n' ||
-    '**Contact:** ' || v_tenant_name || ' (' || v_tenant_email || ')' ||
-    CASE WHEN NEW.notes IS NOT NULL AND NEW.notes != '' 
-      THEN E'\n\n**Opmerkingen:**\n' || NEW.notes 
-      ELSE '' 
-    END
-  );
-
-  -- Send notification
-  PERFORM public.send_notification(
-    NEW.tenant_id, 'integrations', 'shopify_request_received',
-    'Shopify koppelverzoek ontvangen',
-    'We hebben je verzoek ontvangen om ' || v_store_url || 
-    ' te koppelen. We nemen binnen 1-2 werkdagen contact op.',
-    'low',
-    '/admin/support/tickets/' || v_ticket_id,
-    jsonb_build_object(
-      'request_id', NEW.id,
-      'ticket_id', v_ticket_id,
-      'store_url', v_store_url
-    )
-  );
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+### 1. Fix AutoComplete
+```tsx
+<Input
+  id="store-url"
+  type="text"
+  placeholder="mijn-winkel"
+  autoComplete="off"
+  value={storeUrl}
+  ...
+/>
 ```
 
-## Na Implementatie
+### 2. Informatiebolletje + Dialog
+Een knop naast "Stap 1" heading die een dialog opent met visuele instructies:
 
-1. **Publish** de app zodat de fix naar Live gaat
-2. Test opnieuw op sellqo.app
-3. Het koppelverzoek moet nu succesvol worden ingediend
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ [Badge: Stap 1] Maak een Custom App in Shopify  [?] Handleiding  │
+└──────────────────────────────────────────────────────────────────┘
+                                                    ↑
+                                           Info button met icoon
+```
 
-## Risico's Afgevangen
+De dialog bevat:
+- Meerdere stappen met placeholder afbeeldingen (of beschrijvende tekst)
+- Navigatie tussen stappen (carousel-stijl)
+- Screenshots kunnen later worden toegevoegd
 
-- Tenant zonder email → fallback naar `no-email@sellqo.nl`
-- `store_url` is NULL → automatisch gegenereerd uit `store_name`
-- Geen `contact_name`/`contact_email` velden meer nodig
+### 3. Visuele Gids Component Structuur
+```tsx
+// ShopifySetupGuide.tsx
+const steps = [
+  {
+    title: "Ga naar Develop Apps",
+    description: "Navigeer naar Settings → Apps → Develop apps",
+    // Later: imageUrl of screenshot
+  },
+  {
+    title: "Create an App",
+    description: "Klik op 'Create an app' en noem het 'SellQo Connector'",
+  },
+  // ... meer stappen
+];
+```
+
+## Screenshots Toevoegen (Toekomstig)
+De component is voorbereid voor echte screenshots. Momenteel gebruiken we:
+- Gestylede placeholder boxes met iconen
+- Beschrijvende tekst per stap
+
+Zodra je echte screenshots hebt, kunnen deze eenvoudig worden toegevoegd door:
+1. Screenshots uploaden naar `public/images/shopify-guide/`
+2. URLs toevoegen aan de `steps` array
+
+## Resultaat
+- Store URL veld blijft leeg (geen autofill)
+- Placeholder "mijn-winkel" is zichtbaar
+- Gebruikers kunnen visuele handleiding bekijken voor extra hulp
