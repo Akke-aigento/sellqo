@@ -85,8 +85,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     
     if (!messageContent) return;
 
-    // First try to load cached suggestion
-    loadCachedSuggestion(conversation.id, messageId).then((cached) => {
+    // First try to load cached suggestion (per message, not per conversation)
+    loadCachedSuggestion(messageId).then((cached) => {
       // If no cache and auto-generate is enabled, fetch new suggestion
       if (!cached && aiConfig?.reply_suggestions_auto_generate) {
         fetchSuggestion({
