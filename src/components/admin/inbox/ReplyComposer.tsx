@@ -176,7 +176,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         if (error) throw error;
       } else {
         // Get threading headers from the last inbound message
-        const lastInbound = conversation.messages.find(m => m.direction === 'inbound');
+        const conversationMessages = conversation.messages || [];
+        const lastInbound = conversationMessages.find(m => m.direction === 'inbound');
         const contextData = (lastInbound as any)?.context_data || {};
         const inReplyTo = contextData.message_id || null;
         const references = contextData.references 
@@ -202,17 +203,18 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       }
 
       // Mark the last inbound message as replied
-      const lastInbound = conversation.messages.find(
+      const msgs = conversation.messages || [];
+      const lastInboundToMark = msgs.find(
         m => m.direction === 'inbound' && !m.replied_at
       );
       
-      if (lastInbound) {
+      if (lastInboundToMark) {
         await supabase
           .from('customer_messages')
           .update({ 
             replied_at: new Date().toISOString(),
           })
-          .eq('id', lastInbound.id);
+          .eq('id', lastInboundToMark.id);
       }
 
       const channelLabels: Record<ReplyChannel, string> = {
