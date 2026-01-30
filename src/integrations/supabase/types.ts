@@ -5159,6 +5159,7 @@ export type Database = {
       }
       marketplace_connections: {
         Row: {
+          connection_type: string | null
           created_at: string | null
           credentials: Json
           id: string
@@ -5173,6 +5174,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          connection_type?: string | null
           created_at?: string | null
           credentials?: Json
           id?: string
@@ -5187,6 +5189,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          connection_type?: string | null
           created_at?: string | null
           credentials?: Json
           id?: string
@@ -9446,6 +9449,62 @@ export type Database = {
           },
           {
             foreignKeyName: "shipping_status_updates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopify_connection_requests: {
+        Row: {
+          admin_notes: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          install_link: string | null
+          notes: string | null
+          requested_at: string | null
+          reviewed_at: string | null
+          status: string
+          store_name: string
+          store_url: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          install_link?: string | null
+          notes?: string | null
+          requested_at?: string | null
+          reviewed_at?: string | null
+          status?: string
+          store_name: string
+          store_url?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          install_link?: string | null
+          notes?: string | null
+          requested_at?: string | null
+          reviewed_at?: string | null
+          status?: string
+          store_name?: string
+          store_url?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_connection_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
