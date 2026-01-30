@@ -1,4 +1,4 @@
-import { Sparkles, X, Check, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, X, Check, Pencil, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -8,7 +8,9 @@ interface AISuggestionBoxProps {
   onAccept: () => void;
   onEdit: () => void;
   onDismiss: () => void;
+  onRegenerate?: () => void;
   isLoading?: boolean;
+  isCached?: boolean;
   className?: string;
 }
 
@@ -17,7 +19,9 @@ export function AISuggestionBox({
   onAccept,
   onEdit,
   onDismiss,
+  onRegenerate,
   isLoading,
+  isCached,
   className,
 }: AISuggestionBoxProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -41,7 +45,12 @@ export function AISuggestionBox({
       {/* Compact header - always visible */}
       <div className="flex items-center gap-2 px-3 py-2">
         <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className="text-xs font-medium text-primary shrink-0">AI suggestie</span>
+        <span className="text-xs font-medium text-primary shrink-0">
+          AI suggestie
+          {isCached && (
+            <span className="ml-1 text-muted-foreground font-normal">(gecached)</span>
+          )}
+        </span>
         
         {/* Preview text (collapsed) */}
         {!isExpanded && (
@@ -94,15 +103,30 @@ export function AISuggestionBox({
           <p className="text-sm text-foreground whitespace-pre-wrap py-2">
             {suggestion}
           </p>
-          <div className="flex items-center gap-2 justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={onEdit} className="h-7 text-xs">
-              <Pencil className="h-3 w-3 mr-1" />
-              Bewerken
-            </Button>
-            <Button size="sm" onClick={onAccept} className="h-7 text-xs">
-              <Check className="h-3 w-3 mr-1" />
-              Gebruiken
-            </Button>
+          <div className="flex items-center gap-2 justify-between pt-2">
+            {/* Regenerate button */}
+            {onRegenerate && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onRegenerate} 
+                className="h-7 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Hergenereren (1 credit)
+              </Button>
+            )}
+            
+            <div className="flex items-center gap-2 ml-auto">
+              <Button variant="outline" size="sm" onClick={onEdit} className="h-7 text-xs">
+                <Pencil className="h-3 w-3 mr-1" />
+                Bewerken
+              </Button>
+              <Button size="sm" onClick={onAccept} className="h-7 text-xs">
+                <Check className="h-3 w-3 mr-1" />
+                Gebruiken
+              </Button>
+            </div>
           </div>
         </div>
       )}

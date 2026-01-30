@@ -45,7 +45,14 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
 
   // AI Suggestion integration
   const { config: aiConfig } = useAIAssistant();
-  const { suggestion, isLoading: isSuggestionLoading, fetchSuggestion, clearSuggestion } = useAISuggestion();
+  const { 
+    suggestion, 
+    isLoading: isSuggestionLoading, 
+    isCached,
+    fetchSuggestion, 
+    loadCachedSuggestion,
+    clearSuggestion 
+  } = useAISuggestion();
 
   const canSendWhatsApp = conversation.customer?.phone && currentTenant?.whatsapp_enabled;
   const canSendEmail = !!conversation.customer?.email;
@@ -64,29 +71,38 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     (['whatsapp', 'facebook', 'instagram'].includes(channel) && aiConfig.reply_suggestions_for_whatsapp)
   );
 
-  // Fetch AI suggestion when conversation changes (only if auto-generate is enabled)
+  // Get the last inbound message ID for caching
+  const lastInboundMessage = conversation.lastMessage?.direction === 'inbound' 
+    ? conversation.lastMessage 
+    : null;
+
+  // Load cached suggestion or auto-fetch when conversation changes
   useEffect(() => {
-    // Only auto-fetch if auto_generate is enabled (saves credits when disabled)
-    if (!aiConfig?.reply_suggestions_auto_generate) return;
+    if (!shouldShowAISuggestion || !lastInboundMessage) return;
     
-    const messageContent = conversation.lastMessage?.body_text || conversation.lastMessage?.body_html?.replace(/<[^>]*>/g, '');
-    if (shouldShowAISuggestion && messageContent && !suggestion) {
-      const lastMessage = conversation.lastMessage;
-      // Only fetch if the last message is from the customer
-      if (lastMessage?.direction === 'inbound') {
+    const messageId = lastInboundMessage.id;
+    const messageContent = lastInboundMessage.body_text || lastInboundMessage.body_html?.replace(/<[^>]*>/g, '');
+    
+    if (!messageContent) return;
+
+    // First try to load cached suggestion
+    loadCachedSuggestion(conversation.id, messageId).then((cached) => {
+      // If no cache and auto-generate is enabled, fetch new suggestion
+      if (!cached && aiConfig?.reply_suggestions_auto_generate) {
         fetchSuggestion({
           conversationId: conversation.id,
+          messageId,
           customerMessage: messageContent,
           customerName: conversation.customer?.name,
-          channel: channel === 'email' ? 'email' : 'whatsapp', // AI suggestions treat social as whatsapp
+          channel: channel === 'email' ? 'email' : 'whatsapp',
           context: {
-            orderId: lastMessage.order_id || undefined,
-            subject: lastMessage.subject || undefined,
+            orderId: lastInboundMessage.order_id || undefined,
+            subject: lastInboundMessage.subject || undefined,
           },
         });
       }
-    }
-  }, [conversation.id, shouldShowAISuggestion, aiConfig?.reply_suggestions_auto_generate]);
+    });
+  }, [conversation.id, lastInboundMessage?.id, shouldShowAISuggestion, aiConfig?.reply_suggestions_auto_generate]);
 
   // Auto-fill suggestion if auto_draft is enabled
   useEffect(() => {
@@ -111,20 +127,40 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   };
 
   const handleRequestSuggestion = () => {
-    const messageContent = conversation.lastMessage?.body_text || conversation.lastMessage?.body_html?.replace(/<[^>]*>/g, '');
-    if (!messageContent) return;
+    const messageContent = lastInboundMessage?.body_text || lastInboundMessage?.body_html?.replace(/<[^>]*>/g, '');
+    if (!messageContent || !lastInboundMessage) return;
     
     fetchSuggestion({
       conversationId: conversation.id,
+      messageId: lastInboundMessage.id,
       customerMessage: messageContent,
       customerName: conversation.customer?.name,
-      channel: channel === 'email' ? 'email' : 'whatsapp', // AI suggestions treat social as whatsapp
+      channel: channel === 'email' ? 'email' : 'whatsapp',
       context: {
-        orderId: conversation.lastMessage.order_id || undefined,
-        subject: conversation.lastMessage.subject || undefined,
+        orderId: lastInboundMessage.order_id || undefined,
+        subject: lastInboundMessage.subject || undefined,
       },
     });
   };
+
+  const handleRegenerateSuggestion = () => {
+    const messageContent = lastInboundMessage?.body_text || lastInboundMessage?.body_html?.replace(/<[^>]*>/g, '');
+    if (!messageContent || !lastInboundMessage) return;
+    
+    fetchSuggestion({
+      conversationId: conversation.id,
+      messageId: lastInboundMessage.id,
+      customerMessage: messageContent,
+      customerName: conversation.customer?.name,
+      channel: channel === 'email' ? 'email' : 'whatsapp',
+      forceRegenerate: true,
+      context: {
+        orderId: lastInboundMessage.order_id || undefined,
+        subject: lastInboundMessage.subject || undefined,
+      },
+    });
+  };
+
   const handleAttachmentClick = () => {
     fileInputRef.current?.click();
   };
@@ -289,7 +325,9 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           onAccept={handleAcceptSuggestion}
           onEdit={handleEditSuggestion}
           onDismiss={clearSuggestion}
+          onRegenerate={handleRegenerateSuggestion}
           isLoading={isSuggestionLoading}
+          isCached={isCached}
           className="mb-3"
         />
       )}

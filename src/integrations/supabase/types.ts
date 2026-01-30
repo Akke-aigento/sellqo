@@ -1288,6 +1288,54 @@ export type Database = {
           },
         ]
       }
+      ai_reply_suggestions: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message_id: string | null
+          model_used: string | null
+          regenerated_at: string | null
+          suggestion_text: string
+          tenant_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          model_used?: string | null
+          regenerated_at?: string | null
+          suggestion_text: string
+          tenant_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          model_used?: string | null
+          regenerated_at?: string | null
+          suggestion_text?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_reply_suggestions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "customer_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_reply_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_log: {
         Row: {
           created_at: string
