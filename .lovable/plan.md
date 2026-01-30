@@ -1,108 +1,157 @@
 
 
-# Plan: Voeg Delete Functionaliteit toe aan Support Tickets
+# Plan: Fix Ticket Updates & Add Tenant Notifications
 
-## Probleemanalyse
+## Gevonden Problemen
 
-De RLS delete policy is aanwezig in de database, maar de applicatie mist:
-1. Een `deleteTicket` mutatie in de `useSupportTickets` hook
-2. Een delete knop in de ticket detail UI
+### Probleem 1: Ticket status update werkt niet
+De `sync_ticket_to_shopify_request` trigger bestaat in de database, maar de shopify request status wordt niet correct gesynchroniseerd. Dit komt omdat:
+
+1. De trigger refereert naar `support_ticket_messages` in de INSERT (migratie regel 86-105), maar de tabel heet `support_messages`
+2. De mapping in de sync trigger is incompleet - `waiting` status wordt niet gemapped
+
+### Probleem 2: Tenant krijgt geen notificatie bij ticket updates
+Wanneer de platform admin de ticket status wijzigt (bijv. naar "In behandeling"), krijgt de tenant geen notificatie. De trigger `sync_ticket_to_shopify_request` update alleen de shopify_connection_requests status, maar stuurt geen notificatie naar de tenant.
+
+### Probleem 3: Status-veld inconsistentie
+In de screenshot zie ik:
+- Ticket status in dropdown = "Open" (groen outline)
+- Shopify request status = "Voltooid"
+- Ticket lijst toont "Gesloten"
+
+Dit wijst op een synchronisatie probleem.
+
+---
 
 ## Oplossing
 
-### Stap 1: Voeg deleteTicket toe aan useSupportTickets hook
+### Stap 1: Fix de sync trigger + voeg tenant notificaties toe
 
-Voeg een nieuwe mutatie toe aan `src/hooks/useSupportTickets.ts`:
+Maak een nieuwe database migratie die:
+
+1. **Fix de sync trigger** - Voeg `waiting` mapping toe
+2. **Voeg tenant notificatie toe** bij elke status wijziging
+
+```sql
+CREATE OR REPLACE FUNCTION public.sync_ticket_to_shopify_request()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_tenant_id UUID;
+  v_store_name TEXT;
+  v_status_label TEXT;
+BEGIN
+  -- Alleen bij shopify requests
+  IF NEW.related_resource_type = 'shopify_connection_request' 
+     AND NEW.related_resource_id IS NOT NULL
+     AND (TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status) THEN
+     
+    -- Haal tenant info op
+    SELECT tenant_id, store_name INTO v_tenant_id, v_store_name
+    FROM shopify_connection_requests
+    WHERE id = NEW.related_resource_id;
+    
+    -- Bepaal status label voor notificatie
+    v_status_label := CASE NEW.status
+      WHEN 'open' THEN 'Open'
+      WHEN 'in_progress' THEN 'In behandeling'
+      WHEN 'waiting' THEN 'Wachtend op antwoord'
+      WHEN 'resolved' THEN 'Opgelost'
+      WHEN 'closed' THEN 'Gesloten'
+      ELSE NEW.status
+    END;
+    
+    -- Update shopify request status
+    UPDATE shopify_connection_requests
+    SET status = CASE NEW.status
+      WHEN 'open' THEN 'pending'::text
+      WHEN 'in_progress' THEN 'in_review'::text
+      WHEN 'waiting' THEN 'in_review'::text  -- waiting ook naar in_review
+      WHEN 'resolved' THEN 'approved'::text
+      WHEN 'closed' THEN 'completed'::text
+      ELSE status
+    END,
+    updated_at = now()
+    WHERE id = NEW.related_resource_id;
+    
+    -- Stuur notificatie naar tenant
+    IF v_tenant_id IS NOT NULL THEN
+      PERFORM public.send_notification(
+        v_tenant_id,
+        'integrations',
+        'shopify_request_updated',
+        'Shopify verzoek bijgewerkt',
+        'De status van je verzoek voor ' || COALESCE(v_store_name, 'je store') || 
+          '.myshopify.com is gewijzigd naar: ' || v_status_label,
+        'medium',
+        '/admin/marketplace',
+        jsonb_build_object(
+          'request_id', NEW.related_resource_id,
+          'ticket_id', NEW.id,
+          'old_status', OLD.status,
+          'new_status', NEW.status,
+          'store_name', v_store_name
+        )
+      );
+    END IF;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+```
+
+### Stap 2: Fix de messages tabel referentie in eerste trigger
+
+Update `handle_shopify_request_notification` om de juiste tabel `support_messages` te gebruiken (in plaats van `support_ticket_messages`):
+
+```sql
+-- In de INSERT statement, wijzig:
+INSERT INTO support_messages (...)  -- was: support_ticket_messages
+```
+
+### Stap 3: Update selectedTicket na status change
+
+In `PlatformSupport.tsx`, moet de geselecteerde ticket ook lokaal worden bijgewerkt na een status wijziging zodat de UI direct de nieuwe status toont:
 
 ```typescript
-const deleteTicketMutation = useMutation({
-  mutationFn: async (ticketId: string) => {
-    const { error } = await supabase
-      .from('support_tickets')
-      .delete()
-      .eq('id', ticketId);
-    if (error) throw error;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
-    toast.success('Ticket verwijderd');
-  },
-  onError: (error: Error) => {
-    toast.error(`Fout bij verwijderen: ${error.message}`);
-  },
-});
-
-// Return ook:
-return {
-  // ... bestaande returns
-  deleteTicket: deleteTicketMutation.mutateAsync,
-  isDeleting: deleteTicketMutation.isPending,
+const handleStatusChange = async (status: TicketStatus) => {
+  await onUpdate({ id: ticket.id, status });
+  // De query invalidation in useSupportTickets zorgt voor refresh
 };
 ```
 
-### Stap 2: Voeg delete knop toe aan TicketDetail component
+Dit zou al moeten werken via `queryClient.invalidateQueries`, maar de `selectedTicket` state wordt niet automatisch bijgewerkt omdat het een lokale kopie is.
 
-In `src/pages/platform/PlatformSupport.tsx`:
-
-1. Voeg `Trash2` icon import toe
-2. Voeg `AlertDialog` import toe voor bevestiging
-3. Pas de `TicketDetail` component props aan om `onDelete` te accepteren
-4. Voeg een rode delete knop toe naast de status dropdown met bevestigingsdialoog
+**Fix**: Gebruik een effect om selectedTicket te synchroniseren met de query data:
 
 ```typescript
-// In TicketDetail header, naast de status dropdown:
-<AlertDialog>
-  <AlertDialogTrigger asChild>
-    <Button variant="destructive" size="icon">
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  </AlertDialogTrigger>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Ticket verwijderen?</AlertDialogTitle>
-      <AlertDialogDescription>
-        Dit verwijdert het ticket en alle bijbehorende berichten permanent.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Annuleren</AlertDialogCancel>
-      <AlertDialogAction onClick={() => onDelete(ticket.id)}>
-        Verwijderen
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+// In PlatformSupport component
+useEffect(() => {
+  if (selectedTicket && tickets.length > 0) {
+    const updated = tickets.find(t => t.id === selectedTicket.id);
+    if (updated && updated.status !== selectedTicket.status) {
+      setSelectedTicket(updated);
+    }
+  }
+}, [tickets, selectedTicket]);
 ```
 
-### Stap 3: Koppel delete in de parent component
-
-Wijzig de `PlatformSupport` component om `deleteTicket` door te geven en na verwijdering de selectie te resetten:
-
-```typescript
-const handleDeleteTicket = async (ticketId: string) => {
-  await deleteTicket(ticketId);
-  setSelectedTicket(null);
-};
-
-// In de JSX:
-<TicketDetail 
-  ticket={selectedTicket} 
-  onUpdate={updateTicket}
-  onDelete={handleDeleteTicket}
-/>
-```
+---
 
 ## Technische Details
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/hooks/useSupportTickets.ts` | Voeg `deleteTicketMutation` toe + export `deleteTicket` en `isDeleting` |
-| `src/pages/platform/PlatformSupport.tsx` | Voeg delete knop met bevestigingsdialoog toe aan `TicketDetail` |
+| Bestand/Resource | Wijziging |
+|-----------------|-----------|
+| **Database migratie** | Fix `sync_ticket_to_shopify_request` functie met tenant notificaties + waiting mapping |
+| **Database migratie** | Fix `handle_shopify_request_notification` om juiste messages tabel te gebruiken |
+| `src/pages/platform/PlatformSupport.tsx` | Sync `selectedTicket` state met query data na updates |
 
-## Resultaat
+---
 
-- Platform eigenaren kunnen tickets verwijderen via een rode prullenbak-knop
-- Er is een bevestigingsdialoog om per ongeluk verwijderen te voorkomen
-- Na verwijderen wordt de ticket lijst automatisch bijgewerkt
-- De geselecteerde ticket wordt gereset na verwijdering
+## Resultaat na implementatie
+
+1. ✅ **Ticket status updates werken correct** - Status sync naar shopify_connection_requests
+2. ✅ **Tenant ontvangt notificatie** - Bij elke status wijziging door platform admin
+3. ✅ **UI reflecteert direct de nieuwe status** - Geen refresh nodig
+4. ✅ **Alle statussen gemapped** - Inclusief `waiting` status
 
