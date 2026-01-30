@@ -45,8 +45,13 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
   const [testResult, setTestResult] = useState<{ success: boolean; shopName?: string; error?: string } | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [copiedScopes, setCopiedScopes] = useState(false);
+  const [copiedAppUrl, setCopiedAppUrl] = useState(false);
+  const [copiedRedirectUrl, setCopiedRedirectUrl] = useState(false);
 
   const { createConnection } = useMarketplaceConnections();
+
+  const APP_URL = 'https://sellqo.app';
+  const REDIRECT_URL = 'https://sellqo.app/api/shopify/callback';
 
   const normalizeStoreUrl = (url: string): string => {
     let normalized = url.toLowerCase().trim();
@@ -63,6 +68,20 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
     setCopiedScopes(true);
     toast.success('Scopes gekopieerd!');
     setTimeout(() => setCopiedScopes(false), 2000);
+  };
+
+  const handleCopyAppUrl = () => {
+    navigator.clipboard.writeText(APP_URL);
+    setCopiedAppUrl(true);
+    toast.success('App URL gekopieerd!');
+    setTimeout(() => setCopiedAppUrl(false), 2000);
+  };
+
+  const handleCopyRedirectUrl = () => {
+    navigator.clipboard.writeText(REDIRECT_URL);
+    setCopiedRedirectUrl(true);
+    toast.success('Redirect URL gekopieerd!');
+    setTimeout(() => setCopiedRedirectUrl(false), 2000);
   };
 
   const handleTestConnection = async () => {
@@ -206,6 +225,59 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
           <code className="text-xs text-muted-foreground break-all">
             {REQUIRED_SCOPES.join(', ')}
           </code>
+        </div>
+
+        {/* URLs box */}
+        <div className="bg-background border rounded-md p-3 mt-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-muted-foreground">Vereiste URLs (Configuration tab):</span>
+          </div>
+          
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium">App URL:</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={handleCopyAppUrl}
+                >
+                  {copiedAppUrl ? (
+                    <Check className="w-3 h-3 mr-1" />
+                  ) : (
+                    <Copy className="w-3 h-3 mr-1" />
+                  )}
+                  Kopieer
+                </Button>
+              </div>
+              <code className="text-xs text-muted-foreground block bg-muted/50 px-2 py-1 rounded">
+                {APP_URL}
+              </code>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium">Allowed redirection URL(s):</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={handleCopyRedirectUrl}
+                >
+                  {copiedRedirectUrl ? (
+                    <Check className="w-3 h-3 mr-1" />
+                  ) : (
+                    <Copy className="w-3 h-3 mr-1" />
+                  )}
+                  Kopieer
+                </Button>
+              </div>
+              <code className="text-xs text-muted-foreground block bg-muted/50 px-2 py-1 rounded">
+                {REDIRECT_URL}
+              </code>
+            </div>
+          </div>
         </div>
 
         <ol className="text-sm space-y-2 ml-4" start={5}>
