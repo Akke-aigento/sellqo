@@ -1,218 +1,213 @@
 
 
-# Plan: Automatische Prospect/Klant Aanmaak + Klantdetailpagina
+# Plan: Automatische Prospect Aanmaak voor Alle Kanalen
 
-## Huidige Problemen
+## Huidige Situatie
 
-1. **Route `/admin/customers/:id` bestaat niet** → 404 bij klikken op "Klantprofiel"
-2. **Inkomende berichten van onbekende afzenders worden niet aan klanten gekoppeld**
-3. **Waardevolle prospect-data gaat verloren**
+| Kanaal | Klant zoeken | Prospect aanmaken | Status |
+|--------|--------------|-------------------|--------|
+| Email | ✅ Op email | ✅ Ja | Werkt |
+| WhatsApp | ⚠️ Op whatsapp_number | ❌ Nee | customer_id = null |
+| Facebook | ⚠️ Op facebook_psid | ❌ Nee | customer_id = null |
+| Instagram | ⚠️ Op instagram_id | ❌ Nee | customer_id = null |
 
----
+## Gewenste Situatie
 
-## Logische Werkwijze
+Alle kanalen maken automatisch een prospect aan als de afzender onbekend is:
 
 ```text
-Inkomend bericht
-      │
-      ▼
-┌─────────────────────────────────┐
-│ Zoek klant op email             │
-└─────────────────────────────────┘
-      │
-      ├── Gevonden? → Koppel aan bestaande klant
-      │
-      └── Niet gevonden? 
+Inkomend bericht (elk kanaal)
+        │
+        ▼
+┌───────────────────────────────────────┐
+│ Zoek klant op kanaal-specifiek veld   │
+│ - Email: email adres                  │
+│ - WhatsApp: telefoonnummer            │
+│ - Facebook: PSID                      │
+│ - Instagram: IGSID                    │
+└───────────────────────────────────────┘
+        │
+        ├── Gevonden? → Koppel aan bestaande klant
+        │
+        └── Niet gevonden?
                 │
                 ▼
     ┌────────────────────────────────────┐
     │ MAAK PROSPECT AAN                  │
     │ • customer_type = 'prospect'       │
-    │ • email = afzender                 │
-    │ • Naam = parsed uit From header   │
-    │ • total_orders = 0                 │
-    │ • Bron = 'inbox'                   │
+    │ • Kanaal-ID opslaan               │
+    │ • Bron = kanaal (whatsapp/fb/ig)  │
     └────────────────────────────────────┘
-                │
-                ▼
-    Bericht gekoppeld aan prospect → Zichtbaar in profiel!
 ```
-
-### Waarom dit slim is:
-- **Alle communicatie gekoppeld** - Je ziet in klantprofiel alle berichten
-- **Prospect → Klant conversie tracking** - Als ze later bestellen, zie je de hele journey
-- **Verkoopkansen herkennen** - Prospects kunnen getagd/gefilterd worden
-- **CRM-waarde** - Geen losse eindjes, alles traceerbaar
 
 ---
 
-## Technische Implementatie
+## Technische Wijzigingen
 
-### Fase 1: Klantdetailpagina (lost 404 op)
+### 1. WhatsApp Webhook (`whatsapp-webhook/index.ts`)
 
-**Nieuw bestand: `src/pages/admin/CustomerDetail.tsx`**
+Na het zoeken op `whatsapp_number`, als geen klant gevonden:
 
-Bevat:
-- Klantgegevens (naam, email, telefoon, adressen)
-- Type badge (B2C / B2B / **Prospect**)
-- Bestellingen overzicht
-- **Gesprekken/berichten** van deze klant (inbox integratie!)
-- Totaal uitgegeven + statistieken
-- Notities en tags
-
-**Route toevoegen in `App.tsx`:**
 ```typescript
-<Route path="customers/:customerId" element={<CustomerDetailPage />} />
+// Regel ~105-110: Na customer lookup
+let customerId = customer?.id || null;
+
+if (!customerId) {
+  // Maak prospect aan met telefoonnummer
+  const { data: newProspect } = await supabase
+    .from('customers')
+    .insert({
+      tenant_id: connection.tenant_id,
+      whatsapp_number: fromPhone,
+      phone: fromPhone,  // Backup in phone veld
+      customer_type: 'prospect',
+      notes: 'Automatisch aangemaakt vanuit WhatsApp inbox',
+      total_orders: 0,
+      total_spent: 0,
+    })
+    .select('id')
+    .single();
+  
+  if (newProspect) {
+    customerId = newProspect.id;
+    console.log(`Created WhatsApp prospect: ${fromPhone}`);
+  }
+}
+
+// Gebruik customerId bij insert (nu altijd gevuld)
 ```
 
-### Fase 2: Automatische Prospect Aanmaak (Edge Function)
+### 2. Meta Messaging Webhook (`meta-messaging-webhook/index.ts`)
 
-**Wijzigen: `handle-inbound-email/index.ts`**
+Na het zoeken op `facebook_psid` of `instagram_id`:
 
 ```typescript
-// Na: "If no order match, try to find customer by email"
+// Regel ~103-109: Na customer lookup
+let customerId = customer?.id || null;
+
 if (!customerId) {
-  const emailMatch = payload.from.match(/<([^>]+)>/) || [null, payload.from];
-  const cleanEmail = emailMatch[1] || payload.from;
-  const parsedName = parseNameFromEmail(payload.from); // "Jan de Vries <jan@...>" → {first: "Jan", last: "de Vries"}
-
-  // Zoek bestaande klant
-  const { data: existing } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("email", cleanEmail.toLowerCase())
-    .maybeSingle();
-
-  if (existing) {
-    customerId = existing.id;
+  // Haal profiel info op van Meta API (optioneel)
+  // Voor nu: basis prospect aanmaken
+  const insertData: Record<string, any> = {
+    tenant_id: connection.tenant_id,
+    customer_type: 'prospect',
+    notes: `Automatisch aangemaakt vanuit ${platform === 'instagram' ? 'Instagram' : 'Facebook Messenger'} inbox`,
+    total_orders: 0,
+    total_spent: 0,
+  };
+  
+  // Platform-specifieke identifier opslaan
+  if (platform === 'instagram') {
+    insertData.instagram_id = senderId;
   } else {
-    // NIEUW: Maak prospect aan
-    const { data: newProspect } = await supabase
-      .from("customers")
-      .insert({
-        tenant_id: tenantId,
-        email: cleanEmail.toLowerCase(),
-        first_name: parsedName?.first || null,
-        last_name: parsedName?.last || null,
-        customer_type: 'prospect',  // Nieuw type!
-        notes: `Automatisch aangemaakt vanuit inbox - eerste contact via ${channel}`,
-        total_orders: 0,
-        total_spent: 0,
-      })
-      .select("id")
-      .single();
-
-    if (newProspect) {
-      customerId = newProspect.id;
-      console.log(`Created new prospect: ${cleanEmail}`);
-    }
+    insertData.facebook_psid = senderId;
+  }
+  
+  const { data: newProspect } = await supabase
+    .from('customers')
+    .insert(insertData)
+    .select('id')
+    .single();
+  
+  if (newProspect) {
+    customerId = newProspect.id;
+    console.log(`Created ${platform} prospect: ${senderId}`);
   }
 }
 ```
 
-### Fase 3: Database Aanpassing
+### 3. Database: Nieuwe kolommen op `customers` tabel
 
-**Nieuwe customer_type waarde:**
+De kolommen `instagram_id` en `facebook_psid` moeten bestaan voor matching. Laat me checken of deze al bestaan:
 
-De `customers.customer_type` kolom bestaat al (TEXT). We voegen gewoon 'prospect' toe als geldige waarde naast 'b2c' en 'b2b'.
+```sql
+-- Als ze nog niet bestaan, toevoegen:
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS facebook_psid TEXT;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS instagram_id TEXT;
 
-### Fase 4: UI Verbeteringen
-
-**CustomersPage.tsx:**
-- Filter op type (B2C / B2B / Prospect)
-- Prospect badge met speciale kleur
-- "Converteer naar klant" actie
-
-**ConversationDetail.tsx:**
-- "Klantprofiel" knop altijd tonen (ook voor prospects)
-- Optie "Maak klant aan" als nog geen profiel bestaat (fallback voor oude berichten)
-
----
-
-## Bestanden te Wijzigen/Aanmaken
-
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/admin/CustomerDetail.tsx` | **NIEUW** - Volledige klantdetailpagina |
-| `src/App.tsx` | Route toevoegen voor `/admin/customers/:customerId` |
-| `supabase/functions/handle-inbound-email/index.ts` | Automatische prospect aanmaak |
-| `src/pages/admin/Customers.tsx` | Filter op type, prospect badge |
-| `src/hooks/useCustomers.ts` | `useCustomer()` hook voor detail ophalen |
-| `src/components/admin/inbox/ConversationDetail.tsx` | "Maak klant aan" fallback knop |
-
----
-
-## Klantdetailpagina Layout
-
-```text
-┌────────────────────────────────────────────────────────────────┐
-│ ← Terug naar klanten                                           │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  [Avatar]  Jan de Vries                    [Prospect] [🏢 B2B]│
-│            jan@bedrijf.nl • +31 6 12345678                    │
-│            Klant sinds: 15 jan 2025                           │
-│                                                                │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐           │
-│  │ €0,00        │ │ 0            │ │ 3            │           │
-│  │ Totaal       │ │ Bestellingen │ │ Gesprekken   │           │
-│  └──────────────┘ └──────────────┘ └──────────────┘           │
-├────────────────────────────────────────────────────────────────┤
-│ [Bestellingen] [Gesprekken] [Gegevens] [Notities]              │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  📦 Geen bestellingen                                          │
-│                                                                │
-│  💬 Gesprekken                                                 │
-│  ┌────────────────────────────────────────────────────────────┐│
-│  │ 📧 Vraag over product X               vandaag 14:32       ││
-│  │ 📧 Re: Offerte aanvraag               gisteren            ││
-│  │ 📧 Interesse in bulk bestelling       18 jan              ││
-│  └────────────────────────────────────────────────────────────┘│
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+-- Indexes voor snelle lookups
+CREATE INDEX IF NOT EXISTS idx_customers_facebook_psid ON customers(tenant_id, facebook_psid) WHERE facebook_psid IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_customers_instagram_id ON customers(tenant_id, instagram_id) WHERE instagram_id IS NOT NULL;
 ```
 
 ---
 
-## Prospect → Klant Conversie Flow
+## Bestanden te Wijzigen
 
+| Bestand | Wijziging |
+|---------|-----------|
+| `supabase/functions/whatsapp-webhook/index.ts` | Prospect aanmaken bij onbekend telefoonnummer |
+| `supabase/functions/meta-messaging-webhook/index.ts` | Prospect aanmaken bij onbekend Facebook/Instagram ID |
+| Database migratie | Kolommen `facebook_psid` en `instagram_id` + indexes |
+
+---
+
+## Resultaat per Kanaal
+
+### WhatsApp Prospect
 ```text
-Prospect komt binnen via email
-        │
-        ▼
-Merchant antwoordt via inbox
-        │
-        ▼
-Prospect plaatst bestelling (webshop/handmatig)
-        │
-        ▼
-Order trigger updatet customer_type → 'b2c'/'b2b'
-        │
-        ▼
-✅ Volledig klantprofiel met hele journey zichtbaar!
+┌──────────────────────────────────┐
+│ 👤 +31 6 12345678                │
+│ [Prospect] [📱 WhatsApp]          │
+│                                  │
+│ 📞 +31 6 12345678                │
+│ Eerste contact: 30 jan 2026     │
+│ Bron: WhatsApp                   │
+│                                  │
+│ 💬 3 gesprekken                   │
+└──────────────────────────────────┘
+```
+
+### Facebook/Instagram Prospect
+```text
+┌──────────────────────────────────┐
+│ 👤 Facebook User 1234567890      │
+│ [Prospect] [📘 Facebook]          │
+│                                  │
+│ Facebook ID: 1234567890          │
+│ Eerste contact: 30 jan 2026     │
+│ Bron: Facebook Messenger         │
+│                                  │
+│ 💬 2 gesprekken                   │
+└──────────────────────────────────┘
 ```
 
 ---
 
-## Voordelen van deze Aanpak
+## Bonus: Meta Profiel Ophalen (optioneel, fase 2)
 
-1. **Geen 404 meer** - Klantprofiel werkt altijd
-2. **Volledige communicatiehistorie** - Alle berichten gekoppeld
-3. **Verkoopinzichten** - Zie welke prospects interesse tonen
-4. **Schoon CRM** - Geen losse berichten van "onbekende afzenders"
-5. **Conversie tracking** - Van prospect naar klant journey
-6. **Toekomstbestendig** - Basis voor lead scoring, automations, etc.
+Facebook/Instagram API kan profielinfo geven:
+
+```typescript
+// Optioneel: Haal naam/profielfoto op van Meta
+const profileResponse = await fetch(
+  `https://graph.facebook.com/${senderId}?fields=first_name,last_name,profile_pic&access_token=${accessToken}`
+);
+const profile = await profileResponse.json();
+// → first_name: "Jan", last_name: "de Vries", profile_pic: "https://..."
+```
+
+Dit kunnen we later toevoegen om prospects direct een naam te geven.
+
+---
+
+## Voordelen
+
+1. **Alle kanalen consistent** - Prospect aanmaak werkt overal hetzelfde
+2. **Geen losse berichten** - Elke conversatie gekoppeld aan klant/prospect
+3. **Cross-channel matching** - Als WhatsApp prospect later ook mailt, herkennen we ze
+4. **Complete customer journey** - Van eerste DM tot aankoop, alles zichtbaar
+5. **Betere CRM** - Prospects kunnen worden geconverteerd, getagd, gefilterd
 
 ---
 
 ## Samenvatting
 
-Dit plan lost drie problemen tegelijk op:
-1. **404 error** → Nieuwe klantdetailpagina met route
-2. **Prospects niet aangemaakt** → Automatisch in edge function
-3. **Data niet benut** → Volledige integratie inbox ↔ klantprofiel
+Dit plan breidt de automatische prospect-aanmaak uit naar **alle communicatiekanalen**:
 
-Wil je dit uitvoeren?
+- WhatsApp berichten van onbekende nummers → Prospect met telefoonnummer
+- Facebook Messenger berichten → Prospect met Facebook PSID
+- Instagram DMs → Prospect met Instagram ID
+
+Alle communicatie wordt dan altijd aan een klant- of prospectprofiel gekoppeld!
 
