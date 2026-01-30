@@ -15,6 +15,9 @@ interface AICredits {
 export function useAICredits() {
   const { currentTenant } = useTenant();
 
+  // Platform owner (is_internal_tenant) has unlimited credits
+  const isUnlimited = currentTenant?.is_internal_tenant === true;
+
   const { data: credits, isLoading, refetch } = useQuery({
     queryKey: ['ai-credits', currentTenant?.id],
     queryFn: async (): Promise<AICredits | null> => {
@@ -75,6 +78,8 @@ export function useAICredits() {
   });
 
   const hasCredits = (required: number) => {
+    // Platform owner always has credits
+    if (isUnlimited) return true;
     return (credits?.available || 0) >= required;
   };
 
@@ -90,12 +95,20 @@ export function useAICredits() {
     return costs[feature] || 1;
   };
 
+  // Return unlimited credits for platform owner
+  const effectiveCredits = isUnlimited && credits ? {
+    ...credits,
+    available: 999999,
+    credits_total: 999999,
+  } : credits;
+
   return {
-    credits,
+    credits: effectiveCredits,
     usageHistory,
     isLoading,
     refetch,
     hasCredits,
     getCreditCost,
+    isUnlimited,
   };
 }

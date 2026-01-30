@@ -1,7 +1,7 @@
 import { MessageSquare } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ConversationItem } from './ConversationItem';
+import { DraggableConversationItem } from './DraggableConversationItem';
 import type { Conversation } from '@/hooks/useInbox';
 
 interface ConversationListProps {
@@ -50,7 +50,7 @@ export function ConversationList({
   return (
     <ScrollArea className="h-full">
       {conversations.map((conversation) => (
-        <ConversationItem
+        <DraggableConversationItem
           key={conversation.id}
           conversation={conversation}
           isSelected={selectedId === conversation.id}
