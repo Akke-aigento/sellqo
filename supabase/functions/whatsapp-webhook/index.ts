@@ -109,10 +109,33 @@ serve(async (req) => {
           .eq('whatsapp_number', fromPhone)
           .maybeSingle();
 
+        // Create prospect if customer not found
+        let customerId = customer?.id || null;
+        if (!customerId) {
+          const { data: newProspect } = await supabase
+            .from('customers')
+            .insert({
+              tenant_id: connection.tenant_id,
+              whatsapp_number: fromPhone,
+              phone: fromPhone,
+              customer_type: 'prospect',
+              notes: 'Automatisch aangemaakt vanuit WhatsApp inbox',
+              total_orders: 0,
+              total_spent: 0,
+            })
+            .select('id')
+            .single();
+
+          if (newProspect) {
+            customerId = newProspect.id;
+            console.log(`Created WhatsApp prospect: ${fromPhone}`);
+          }
+        }
+
         // Store inbound message
         await supabase.from('customer_messages').insert({
           tenant_id: connection.tenant_id,
-          customer_id: customer?.id || null,
+          customer_id: customerId,
           direction: 'inbound',
           channel: 'whatsapp',
           subject: `WhatsApp bericht van ${fromPhone}`,
