@@ -38,6 +38,23 @@ export function useTrialStatus() {
       return;
     }
 
+    // Internal tenants (SellQo) are never on trial - they're the platform owners
+    if (currentTenant.is_internal_tenant) {
+      setTrialStatus({
+        isLoading: false,
+        isTrialing: false,
+        isTrialExpired: false,
+        isActive: true,
+        isPaid: true,
+        daysRemaining: 0,
+        trialEndDate: null,
+        status: 'active',
+        planId: 'enterprise',
+        planName: 'Platform Owner',
+      });
+      return;
+    }
+
     try {
       // Fetch subscription with plan details
       const { data: subscription, error } = await supabase
