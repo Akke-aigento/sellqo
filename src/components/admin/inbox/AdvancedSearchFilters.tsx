@@ -60,87 +60,96 @@ export function AdvancedSearchFilters({
 
   return (
     <Collapsible open={isOpen}>
-      <CollapsibleContent className="space-y-2 pt-2 animate-in slide-in-from-top-2 duration-200">
-        {/* Row 1: Dropdowns */}
-        <div className="flex gap-1.5">
+      <CollapsibleContent className="space-y-3 pt-2 animate-in slide-in-from-top-2 duration-200">
+        {/* Row 1: Zoekbereik + Periode (2 kolommen) */}
+        <div className="grid grid-cols-2 gap-2">
           {/* Zoekbereik */}
-          <Select
-            value={searchOptions.scope}
-            onValueChange={(value: SearchOptions['scope']) =>
-              onSearchOptionsChange({ ...searchOptions, scope: value })
-            }
-          >
-            <SelectTrigger className="h-7 text-xs flex-1">
-              <FolderOpen className="h-3 w-3 mr-1 shrink-0" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current" className="text-xs">
-                Huidige map
-              </SelectItem>
-              <SelectItem value="all" className="text-xs">
-                Alle mappen
-              </SelectItem>
-              <SelectItem value="everywhere" className="text-xs">
-                Overal (incl. prullenbak)
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Kanalen dropdown */}
-          <Select value="custom">
-            <SelectTrigger className="h-7 text-xs flex-1">
-              <MessageSquare className="h-3 w-3 mr-1 shrink-0" />
-              <span>{channelsLabel}</span>
-            </SelectTrigger>
-            <SelectContent>
-              <div className="p-2 space-y-1.5">
-                {channelConfig.map((ch) => (
-                  <div key={ch.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`channel-${ch.id}`}
-                      checked={searchOptions.channels.includes(ch.id)}
-                      onCheckedChange={() => toggleChannel(ch.id)}
-                    />
-                    <Label
-                      htmlFor={`channel-${ch.id}`}
-                      className={`text-xs flex items-center gap-1.5 cursor-pointer ${ch.color}`}
-                    >
-                      {ch.icon}
-                      {ch.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </SelectContent>
-          </Select>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <FolderOpen className="h-3 w-3" />
+              Zoek in
+            </Label>
+            <Select
+              value={searchOptions.scope}
+              onValueChange={(value: SearchOptions['scope']) =>
+                onSearchOptionsChange({ ...searchOptions, scope: value })
+              }
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current" className="text-xs">
+                  Huidige map
+                </SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  Alle mappen
+                </SelectItem>
+                <SelectItem value="everywhere" className="text-xs">
+                  Overal (incl. prullenbak)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Periode */}
-          <Select
-            value={searchOptions.period}
-            onValueChange={(value: SearchOptions['period']) =>
-              onSearchOptionsChange({ ...searchOptions, period: value })
-            }
-          >
-            <SelectTrigger className="h-7 text-xs flex-1">
-              <Calendar className="h-3 w-3 mr-1 shrink-0" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week" className="text-xs">
-                Afgelopen week
-              </SelectItem>
-              <SelectItem value="month" className="text-xs">
-                Afgelopen maand
-              </SelectItem>
-              <SelectItem value="3months" className="text-xs">
-                Afgelopen 3 maanden
-              </SelectItem>
-              <SelectItem value="all" className="text-xs">
-                Alles
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Periode
+            </Label>
+            <Select
+              value={searchOptions.period}
+              onValueChange={(value: SearchOptions['period']) =>
+                onSearchOptionsChange({ ...searchOptions, period: value })
+              }
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week" className="text-xs">
+                  Afgelopen week
+                </SelectItem>
+                <SelectItem value="month" className="text-xs">
+                  Afgelopen maand
+                </SelectItem>
+                <SelectItem value="3months" className="text-xs">
+                  Afgelopen 3 maanden
+                </SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  Alles
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 2: Kanalen als horizontale checkboxes */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <MessageSquare className="h-3 w-3" />
+            Kanalen
+          </Label>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+            {channelConfig.map((ch) => (
+              <div key={ch.id} className="flex items-center gap-1.5">
+                <Checkbox
+                  id={`channel-${ch.id}`}
+                  checked={searchOptions.channels.includes(ch.id)}
+                  onCheckedChange={() => toggleChannel(ch.id)}
+                  className="h-3.5 w-3.5"
+                />
+                <Label
+                  htmlFor={`channel-${ch.id}`}
+                  className={`text-xs flex items-center gap-1 cursor-pointer ${ch.color}`}
+                >
+                  {ch.icon}
+                  {ch.label}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Row 2: Zoek op checkboxes */}
