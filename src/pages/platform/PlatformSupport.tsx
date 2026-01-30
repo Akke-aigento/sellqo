@@ -90,6 +90,16 @@ export default function PlatformSupport() {
     }
   }, [ticketIdFromUrl, tickets, selectedTicket]);
 
+  // Sync selectedTicket with query data after updates
+  useEffect(() => {
+    if (selectedTicket && tickets.length > 0) {
+      const updated = tickets.find(t => t.id === selectedTicket.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedTicket)) {
+        setSelectedTicket(updated);
+      }
+    }
+  }, [tickets, selectedTicket]);
+
   const stats = getTicketStats();
 
   const filteredTickets = tickets.filter(t => {
