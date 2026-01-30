@@ -1,127 +1,61 @@
 
-# Plan: Fix Shopify Koppelverzoek Error - Ontbrekende Kolommen
+Doel
+- Het Shopify “koppelverzoek indienen” moet weer werken op Live (sellqo.app), zonder 400 Bad Request.
+- Berichten/tickets mogen niet dubbel aangemaakt worden bij status-updates.
 
-## Probleem
+Wat er nu misgaat (oorzaak)
+- De database-trigger `shopify_request_notification_trigger` roept de functie `public.handle_shopify_request_notification()` aan.
+- In die functie staat: `SELECT name, contact_email ... FROM tenants ...`
+- In jullie `tenants` tabel bestaat `contact_email` niet (wel o.a. `notification_email`, `billing_email`, `owner_email`).
+- Daardoor crasht de trigger bij het INSERT’en van een koppelverzoek → de API call krijgt 400 Bad Request.
 
-Bij het indienen van een Shopify koppelverzoek verschijnt de fout:
-> "Kon verzoek niet indienen: record "new" has no field "contact_email""
+Belangrijk: je test op Live
+- Dit betekent: zelfs als we de fix in de testomgeving toepassen, moet die daarna ook naar Live doorgezet worden (via Publish), anders blijf je dezelfde fout zien op sellqo.app.
 
-## Oorzaak
+Oplossing (high level)
+1) Pas `handle_shopify_request_notification()` aan:
+   - Gebruik een bestaand e-mail veld uit `tenants` i.p.v. `contact_email`.
+   - Aanbevolen fallback:
+     - `COALESCE(notification_email, billing_email, owner_email, 'no-email@sellqo.nl')`
+   - (Optioneel) sla de gekozen e-mail ook op in `support_tickets.metadata` voor traceability.
 
-De database trigger `handle_shopify_request_notification` refereert naar velden die niet bestaan in de `shopify_connection_requests` tabel:
+2) Voorkom dubbele tickets / onbedoelde ticket-creatie op UPDATE:
+   - De trigger staat nu op `AFTER INSERT OR UPDATE`.
+   - We wijzigen dit naar: alleen `AFTER INSERT`.
+   - Extra safety: in de functie zelf ook enkel logica uitvoeren bij `TG_OP = 'INSERT'` (defensief).
+   - Dit voorkomt dat bij statusupdates (of sync-processen) telkens opnieuw support tickets worden aangemaakt.
 
-| Veld in Trigger | Bestaat in Tabel? |
-|-----------------|-------------------|
-| `NEW.contact_email` | ❌ Nee |
-| `NEW.request_type` | ❌ Nee |
+Concrete implementatiestappen (backend)
+A. Database migratie (nieuw)
+- CREATE OR REPLACE FUNCTION `public.handle_shopify_request_notification()` met:
+  - `v_tenant_email := COALESCE(t.notification_email, t.billing_email, t.owner_email)`
+  - Ticket creation + eerste message + notificatie zoals nu, maar met `v_tenant_email`
+  - Guard: “alleen bij INSERT”
+- DROP TRIGGER `shopify_request_notification_trigger` op `shopify_connection_requests`
+- CREATE TRIGGER `shopify_request_notification_trigger`:
+  - `AFTER INSERT ON public.shopify_connection_requests`
+  - `FOR EACH ROW EXECUTE FUNCTION public.handle_shopify_request_notification()`
 
-De trigger werd gemaakt met de aanname dat deze velden zouden bestaan, maar de tabel heeft alleen:
-`id, tenant_id, store_name, store_url, status, notes, admin_notes, install_link, requested_at, reviewed_at, completed_at, created_at, updated_at`
+B. Verificatie in testomgeving (preview)
+- Probeer een Shopify aanvraag in te dienen.
+- Verwacht:
+  - Geen 400 error
+  - Request record wordt aangemaakt
+  - Support ticket + support message worden aangemaakt (voor platform opvolging)
+  - Merchant ziet “Verzoek in behandeling” bevestiging in UI
 
-## Oplossing
+C. Live fix (belangrijk omdat jij op Live test)
+- Publish zodat de database-migratie (schema/trigger/function) ook naar Live gaat.
+- Daarna opnieuw testen op sellqo.app.
 
-Update de trigger functie om de ontbrekende velden te vervangen door bestaande gegevens:
+Acceptatiecriteria
+- Op Live: “Dien Koppelverzoek In” geeft geen foutmelding meer.
+- In de UI verschijnt het “Verzoek in behandeling” scherm.
+- In de platform support-inbox verschijnt exact 1 ticket per aanvraag (geen duplicates bij statuswijzigingen).
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_shopify_request_notification()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_ticket_id UUID;
-  v_tenant_name TEXT;
-  v_tenant_email TEXT;
-  v_platform_tenant_id UUID;
-BEGIN
-  -- Get platform tenant (SellQo)
-  SELECT id INTO v_platform_tenant_id FROM tenants WHERE slug = 'sellqo' LIMIT 1;
-  
-  IF v_platform_tenant_id IS NULL THEN
-    RETURN NEW;
-  END IF;
-  
-  -- Get tenant name and contact email from tenants table
-  SELECT name, contact_email INTO v_tenant_name, v_tenant_email 
-  FROM tenants WHERE id = NEW.tenant_id;
-  
-  -- Create support ticket for the request
-  INSERT INTO support_tickets (
-    tenant_id,
-    requester_email,
-    requester_name,
-    subject,
-    status,
-    priority,
-    category,
-    related_resource_type,
-    related_resource_id,
-    metadata
-  ) VALUES (
-    v_platform_tenant_id,
-    COALESCE(v_tenant_email, 'no-email@sellqo.nl'),  -- Gebruik tenant email in plaats van NEW.contact_email
-    COALESCE(v_tenant_name, 'Onbekende tenant'),
-    'Shopify koppeling aanvraag: ' || NEW.store_name || '.myshopify.com',
-    'open',
-    'medium',
-    'integration',
-    'shopify_connection_request',
-    NEW.id,
-    jsonb_build_object(
-      'store_name', NEW.store_name,
-      'tenant_id', NEW.tenant_id,
-      'tenant_name', v_tenant_name,
-      'notes', NEW.notes  -- Gebruik notes in plaats van request_type
-    )
-  ) RETURNING id INTO v_ticket_id;
-  
-  -- Create initial system message
-  INSERT INTO support_messages (
-    ticket_id,
-    sender_type,
-    message,
-    is_internal_note
-  ) VALUES (
-    v_ticket_id,
-    'system',
-    'Nieuwe Shopify koppelingsaanvraag ontvangen van ' || COALESCE(v_tenant_name, 'onbekende tenant') || 
-    ' voor store: ' || NEW.store_name || '.myshopify.com' ||
-    CASE WHEN NEW.notes IS NOT NULL THEN E'\n\nOpmerkingen: ' || NEW.notes ELSE '' END,
-    false
-  );
-  
-  -- Send notification to platform admins
-  PERFORM public.send_notification(
-    v_platform_tenant_id,
-    'integrations',
-    'shopify_request_new',
-    'Nieuwe Shopify aanvraag',
-    'Nieuwe koppelingsaanvraag van ' || COALESCE(v_tenant_name, 'onbekende tenant') || ' voor ' || NEW.store_name || '.myshopify.com',
-    'high',
-    '/platform/support?ticket=' || v_ticket_id,
-    jsonb_build_object(
-      'request_id', NEW.id,
-      'ticket_id', v_ticket_id,
-      'store_name', NEW.store_name,
-      'tenant_name', v_tenant_name
-    )
-  );
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-```
+Risico’s / edge cases die we afvangen
+- Tenant heeft geen e-mail ingevuld: we vallen terug op `no-email@sellqo.nl` zodat de trigger niet faalt.
+- Status-updates veroorzaken geen nieuwe tickets meer (door trigger-only-insert + INSERT-guard).
 
-## Wijzigingen
-
-1. **`NEW.contact_email`** → Vervang door `v_tenant_email` (opgehaald uit de `tenants` tabel)
-2. **`NEW.request_type`** → Vervang door `NEW.notes` (de opmerkingen van de gebruiker)
-
-## Technische Details
-
-| Resource | Wijziging |
-|----------|-----------|
-| Database migratie | Update `handle_shopify_request_notification` functie |
-
-## Resultaat
-
-- ✅ Koppelverzoeken kunnen weer worden ingediend
-- ✅ Support ticket wordt aangemaakt met tenant email uit de tenants tabel
-- ✅ Opmerkingen van de gebruiker worden opgenomen in het ticket
+Optionele verbetering (na de fix)
+- Frontend error handling: als de backend toch ooit faalt, toon een duidelijkere melding (“Er ging iets mis op de server, probeer opnieuw”) en log de details in console voor debug. Dit is niet nodig om de huidige bug op te lossen, maar helpt bij toekomstige fouten.
