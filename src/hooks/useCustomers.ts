@@ -34,7 +34,7 @@ export function useCustomers(search?: string) {
 
   const createCustomer = useMutation({
     mutationFn: async (data: { 
-      customer_type?: 'b2c' | 'b2b';
+      customer_type?: 'b2c' | 'b2b' | 'prospect';
       first_name: string; 
       last_name: string; 
       email: string; 

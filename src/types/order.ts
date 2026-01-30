@@ -25,6 +25,16 @@ export interface Customer {
   company_name: string | null;
   customer_type: string | null;
   vat_number: string | null;
+  vat_verified: boolean | null;
+  vat_verified_at: string | null;
+  billing_street: string | null;
+  billing_city: string | null;
+  billing_postal_code: string | null;
+  billing_country: string | null;
+  shipping_street: string | null;
+  shipping_city: string | null;
+  shipping_postal_code: string | null;
+  shipping_country: string | null;
   default_shipping_address: JsonAddress;
   default_billing_address: JsonAddress;
   total_orders: number;
