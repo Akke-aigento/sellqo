@@ -41,32 +41,29 @@ export function SelectableConversationItem({
         isChecked && 'bg-primary/10'
       )}
     >
-      {/* Checkbox area - fixed width to prevent layout shift */}
-      <div
-        className="w-8 flex items-center justify-center shrink-0 border-b"
-        onClick={onToggleCheck}
-      >
-        <Checkbox
-          checked={isChecked}
-          className={cn(
-            'transition-opacity duration-150 data-[state=checked]:bg-primary',
-            showCheckboxes || isChecked 
-              ? 'opacity-100' 
-              : 'opacity-0 group-hover:opacity-100'
-          )}
-        />
-      </div>
+      {/* Combined checkbox + drag handle column */}
+      <div className="w-7 flex flex-col items-center justify-center gap-1 shrink-0 border-b">
+        {/* Checkbox */}
+        <div onClick={onToggleCheck}>
+          <Checkbox
+            checked={isChecked}
+            className={cn(
+              'transition-opacity duration-150 data-[state=checked]:bg-primary',
+              showCheckboxes || isChecked 
+                ? 'opacity-100' 
+                : 'opacity-0 group-hover:opacity-100'
+            )}
+          />
+        </div>
 
-      {/* Drag handle */}
-      <div
-        {...listeners}
-        {...attributes}
-        className={cn(
-          'flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-muted/50',
-          showCheckboxes ? 'w-5' : 'w-6'
-        )}
-      >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        {/* Drag handle */}
+        <div
+          {...listeners}
+          {...attributes}
+          className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
       </div>
 
       {/* Actual conversation item */}
