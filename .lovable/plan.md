@@ -1,96 +1,84 @@
 
-# Plan: AI Suggesties Cachen per Conversatie
+# Plan: CID Referenties Verwijderen/Vervangen in Email Body
 
 ## Probleem
 
-Momenteel wordt bij elke page refresh of navigatie naar een conversatie de AI suggestie opnieuw gegenereerd:
-1. React state (`useState`) is leeg na refresh
-2. `useEffect` triggert en roept `fetchSuggestion` aan → kost credits
-3. Dit gebeurt telkens, zelfs als de suggestie al eerder is gegenereerd
+Bij inkomende e-mails worden inline afbeeldingen (zoals logo's in footers) verstuurd met Content-ID referenties. Deze verschijnen als `[cid:cc36a120-7edc-4350-b12f-cfe62080a20f]` in de message body wanneer:
+1. De CID referentie niet wordt vervangen door een werkende afbeelding-URL
+2. Of wanneer de afbeelding niet kan worden weergegeven
+
+## Analyse
+
+De huidige situatie:
+- De `handle-inbound-email` edge function slaat de `content_id` op in attachment metadata
+- De attachment binaries worden correct opgeslagen in Supabase Storage
+- **Maar:** de `cid:...` referenties in de HTML body worden nooit vervangen
+- De frontend toont de body als plain text, waardoor de `[cid:...]` tekst zichtbaar blijft
+
+Voorbeeld uit database:
+```
+content_id: <cc36a120-7edc-4350-b12f-cfe62080a20f>
+content_disposition: inline
+storage_path: d03c63fe-48c6-4ff7-a30b-.../Outlook-dwvbnghs.png
+```
 
 ## Oplossing
 
-AI suggesties opslaan in de database, gekoppeld aan het laatste inbound bericht. Zo wordt:
-- Suggestie slechts 1x gegenereerd per klantbericht
-- Bij refresh wordt de gecachte suggestie geladen (gratis)
-- Regenereren is mogelijk (overschrijft de cache)
+### Aanpak: Backend CID-vervanging + Frontend cleanup
 
----
+**1. Edge Function: CID's vervangen door Storage URLs**
 
-## Technische Aanpak
+Na het uploaden van attachments naar storage, de body_html updaten:
+- Voor elke inline attachment met een `content_id`
+- Vervang `cid:...` referenties door de publieke storage URL
+- Dit zorgt dat afbeeldingen correct worden weergegeven
 
-### 1. Nieuwe Database Tabel: `ai_reply_suggestions`
+**2. Frontend: Fallback cleanup voor oude/kapotte referenties**
 
-| Kolom | Type | Beschrijving |
-|-------|------|--------------|
-| `id` | UUID | Primary key |
-| `tenant_id` | UUID | FK naar tenants |
-| `conversation_id` | UUID | Unieke ID van het gesprek |
-| `message_id` | UUID | FK naar customer_messages (het klantbericht) |
-| `suggestion_text` | TEXT | De gegenereerde suggestie |
-| `model_used` | TEXT | Welk AI model is gebruikt |
-| `created_at` | TIMESTAMPTZ | Wanneer gegenereerd |
-| `regenerated_at` | TIMESTAMPTZ | Laatste regeneratie (nullable) |
+In de `MessageBubble` component:
+- Verwijder alle `[cid:...]` patronen die nog in de tekst staan
+- Dit vangt edge cases op waar de backend vervanging niet werkte
+- Regex: `/\[?cid:[^\]\s]+\]?/gi` → verwijderen
 
-**Unique constraint:** `(tenant_id, conversation_id, message_id)` → max 1 suggestie per klantbericht
+### Technische Details
 
-### 2. Edge Function Aanpassen: `ai-suggest-reply`
-
-```text
-HUIDIGE FLOW:
-┌─────────────────────────────┐
-│ 1. Ontvang request          │
-│ 2. Check credits            │
-│ 3. Genereer met AI          │
-│ 4. Return suggestie         │
-└─────────────────────────────┘
-
-NIEUWE FLOW:
-┌──────────────────────────────────────────┐
-│ 1. Ontvang request                       │
-│ 2. Check of gecachte suggestie bestaat   │
-│    → JA + niet force_regenerate?         │
-│      Return cached (GEEN credits)        │
-│ 3. Check credits                         │
-│ 4. Genereer met AI                       │
-│ 5. Sla op in ai_reply_suggestions        │
-│ 6. Return suggestie                      │
-└──────────────────────────────────────────┘
+**Edge Function Update (`handle-inbound-email`):**
+```
+Na processAttachments():
+1. Query alle attachments met content_id voor dit bericht
+2. Voor elke attachment:
+   - Genereer public URL: supabase.storage.from('message-attachments').getPublicUrl(storage_path)
+   - Vervang in body_html: cid:content_id → public_url
+3. Update customer_messages met aangepaste body_html
 ```
 
-### 3. Frontend Hook Aanpassen: `useAISuggestion.ts`
-
-- Bij het laden van een conversatie: eerst gecachte suggestie ophalen
-- `fetchSuggestion` krijgt optionele `forceRegenerate` parameter
-- Regenereer-knop roept `fetchSuggestion({ forceRegenerate: true })` aan
-
-### 4. UI Aanpassing: Regenereer-knop
-
-In `AISuggestionBox.tsx` of `ReplyComposer.tsx`:
-- Voeg "Hergenereren" knop toe naast de AI-suggestie
-- Toont duidelijk dat dit credits kost
-
----
+**Frontend Cleanup (`MessageBubble.tsx`):**
+```
+In getBodyContent():
+1. Na het strippen van HTML tags
+2. Verwijder alle [cid:...] patronen met regex
+3. Return cleaned text
+```
 
 ## Bestanden te Wijzigen
 
-| Bestand | Actie |
-|---------|-------|
-| Database | Nieuwe tabel `ai_reply_suggestions` |
-| `supabase/functions/ai-suggest-reply/index.ts` | Cache check + opslaan |
-| `src/hooks/useAISuggestion.ts` | Cache laden, `forceRegenerate` param |
-| `src/components/admin/inbox/ReplyComposer.tsx` | Regenereer-knop toevoegen |
-| `src/components/admin/inbox/AISuggestionBox.tsx` | Regenereer-knop styling |
+| Bestand | Wijziging |
+|---------|-----------|
+| `supabase/functions/handle-inbound-email/index.ts` | CID-vervanging na attachment upload |
+| `src/components/admin/inbox/MessageBubble.tsx` | Fallback cleanup van resterende CID tekst |
 
----
+## Extra: Bestaande Berichten Repareren
+
+Een repair script om bestaande berichten te updaten:
+- Query alle berichten met `[cid:` in body_html
+- Per bericht: zoek bijbehorende attachments met content_id
+- Vervang CID's door storage URLs
+- Dit kan als eenmalige edge function of SQL query
 
 ## Resultaat
 
-| Scenario | Gedrag | Credits |
-|----------|--------|---------|
-| Eerste keer suggestie | Genereren + opslaan | 1 credit |
-| Page refresh | Gecachte suggestie laden | 0 credits |
-| Klik "Hergenereren" | Nieuwe genereren + overschrijven | 1 credit |
-| Nieuw klantbericht | Genereren + opslaan | 1 credit |
-
-Dit zorgt voor aanzienlijke creditbesparing voor zowel tenants als het platform.
+| Scenario | Resultaat |
+|----------|-----------|
+| Nieuwe emails met inline afbeeldingen | Afbeeldingen tonen correct in HTML |
+| Nieuwe emails waar afbeelding niet laadt | Geen `[cid:...]` tekst zichtbaar |
+| Bestaande emails met CID tekst | Cleanup via frontend + repair script |
