@@ -113,12 +113,12 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
           </div>
 
           {/* Subject or preview */}
-          <p className={cn('text-sm line-clamp-1', isUnread ? 'text-foreground' : 'text-muted-foreground')}>
+          <p className={cn('text-sm truncate', isUnread ? 'text-foreground' : 'text-muted-foreground')}>
             {lastMessage.subject || '(Geen onderwerp)'}
           </p>
 
           {/* Preview text */}
-          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
             {lastMessage.direction === 'outbound' && (
               <span className="inline-flex items-center gap-0.5 mr-1">
                 <Check className="h-3 w-3" />
