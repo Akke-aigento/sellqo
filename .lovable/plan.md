@@ -1,151 +1,96 @@
 
-# Plan: Platform Owner Onbeperkte AI Credits Fix
+# Plan: AI Suggesties Cachen per Conversatie
 
 ## Probleem
 
-De **402 (Payment Required)** error komt omdat:
-1. De frontend credit check in `useAICredits.ts` nu correct wordt omzeild voor platform owners
-2. Maar de **edge functions** roepen de database functie `use_ai_credits` aan
-3. Deze database functie controleert NIET of de tenant een `is_internal_tenant` is
-
-Dit treft **11+ AI edge functions** die allemaal dezelfde `use_ai_credits` RPC aanroepen.
+Momenteel wordt bij elke page refresh of navigatie naar een conversatie de AI suggestie opnieuw gegenereerd:
+1. React state (`useState`) is leeg na refresh
+2. `useEffect` triggert en roept `fetchSuggestion` aan → kost credits
+3. Dit gebeurt telkens, zelfs als de suggestie al eerder is gegenereerd
 
 ## Oplossing
 
-De meest efficiënte fix is het aanpassen van de **database functie** `use_ai_credits` om automatisch `TRUE` te retourneren voor internal tenants. Hierdoor:
-- Alle edge functions werken direct correct
-- Geen wijzigingen nodig in 11+ afzonderlijke edge function bestanden
-- Toekomstige AI features profiteren ook automatisch
+AI suggesties opslaan in de database, gekoppeld aan het laatste inbound bericht. Zo wordt:
+- Suggestie slechts 1x gegenereerd per klantbericht
+- Bij refresh wordt de gecachte suggestie geladen (gratis)
+- Regenereren is mogelijk (overschrijft de cache)
 
-## Database Wijziging
+---
 
-Beide versies van de `use_ai_credits` functie aanpassen:
+## Technische Aanpak
+
+### 1. Nieuwe Database Tabel: `ai_reply_suggestions`
+
+| Kolom | Type | Beschrijving |
+|-------|------|--------------|
+| `id` | UUID | Primary key |
+| `tenant_id` | UUID | FK naar tenants |
+| `conversation_id` | UUID | Unieke ID van het gesprek |
+| `message_id` | UUID | FK naar customer_messages (het klantbericht) |
+| `suggestion_text` | TEXT | De gegenereerde suggestie |
+| `model_used` | TEXT | Welk AI model is gebruikt |
+| `created_at` | TIMESTAMPTZ | Wanneer gegenereerd |
+| `regenerated_at` | TIMESTAMPTZ | Laatste regeneratie (nullable) |
+
+**Unique constraint:** `(tenant_id, conversation_id, message_id)` → max 1 suggestie per klantbericht
+
+### 2. Edge Function Aanpassen: `ai-suggest-reply`
 
 ```text
-VOOR:
-┌─────────────────────────────────────────┐
-│ 1. Check beschikbare credits            │
-│ 2. Return FALSE als onvoldoende         │
-│ 3. Anders: trek credits af + return TRUE│
-└─────────────────────────────────────────┘
+HUIDIGE FLOW:
+┌─────────────────────────────┐
+│ 1. Ontvang request          │
+│ 2. Check credits            │
+│ 3. Genereer met AI          │
+│ 4. Return suggestie         │
+└─────────────────────────────┘
 
-NA:
-┌─────────────────────────────────────────────┐
-│ 0. Check is_internal_tenant → JA = TRUE     │
-│ 1. Check beschikbare credits                │
-│ 2. Return FALSE als onvoldoende             │
-│ 3. Anders: trek credits af + return TRUE    │
-└─────────────────────────────────────────────┘
+NIEUWE FLOW:
+┌──────────────────────────────────────────┐
+│ 1. Ontvang request                       │
+│ 2. Check of gecachte suggestie bestaat   │
+│    → JA + niet force_regenerate?         │
+│      Return cached (GEEN credits)        │
+│ 3. Check credits                         │
+│ 4. Genereer met AI                       │
+│ 5. Sla op in ai_reply_suggestions        │
+│ 6. Return suggestie                      │
+└──────────────────────────────────────────┘
 ```
 
-### SQL Migratie
+### 3. Frontend Hook Aanpassen: `useAISuggestion.ts`
 
-```sql
--- Versie 1: use_ai_credits(p_tenant_id, p_credits_needed)
-CREATE OR REPLACE FUNCTION public.use_ai_credits(
-  p_tenant_id uuid, 
-  p_credits_needed integer DEFAULT 1
-) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
-AS $$
-DECLARE
-  v_is_internal BOOLEAN;
-  available_credits integer;
-BEGIN
-  -- Platform owner (is_internal_tenant) heeft onbeperkte credits
-  SELECT is_internal_tenant INTO v_is_internal
-  FROM tenants WHERE id = p_tenant_id;
-  
-  IF v_is_internal = TRUE THEN
-    -- Log usage maar geen credit aftrek
-    INSERT INTO ai_usage_log (tenant_id, feature, credits_used, metadata)
-    VALUES (p_tenant_id, 'internal_unlimited', 0, 
-      '{"note": "Platform owner - unlimited credits"}'::jsonb);
-    RETURN TRUE;
-  END IF;
-  
-  -- Normale credit check voor andere tenants
-  SELECT (credits_total + credits_purchased - credits_used)
-  INTO available_credits FROM tenant_ai_credits
-  WHERE tenant_id = p_tenant_id;
-  
-  IF available_credits IS NULL OR available_credits < p_credits_needed THEN
-    RETURN FALSE;
-  END IF;
-  
-  UPDATE tenant_ai_credits
-  SET credits_used = credits_used + p_credits_needed, updated_at = NOW()
-  WHERE tenant_id = p_tenant_id;
-  
-  RETURN TRUE;
-END;
-$$;
+- Bij het laden van een conversatie: eerst gecachte suggestie ophalen
+- `fetchSuggestion` krijgt optionele `forceRegenerate` parameter
+- Regenereer-knop roept `fetchSuggestion({ forceRegenerate: true })` aan
 
--- Versie 2: use_ai_credits(p_tenant_id, p_credits, p_feature, p_model, p_metadata)
-CREATE OR REPLACE FUNCTION public.use_ai_credits(
-  p_tenant_id uuid, 
-  p_credits integer, 
-  p_feature text, 
-  p_model text DEFAULT NULL, 
-  p_metadata jsonb DEFAULT '{}'
-) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
-AS $$
-DECLARE
-  v_is_internal BOOLEAN;
-  v_available INTEGER;
-BEGIN
-  -- Platform owner check
-  SELECT is_internal_tenant INTO v_is_internal
-  FROM tenants WHERE id = p_tenant_id;
-  
-  IF v_is_internal = TRUE THEN
-    -- Log voor analytics, geen credit aftrek
-    INSERT INTO ai_usage_log (tenant_id, feature, credits_used, model_used, metadata)
-    VALUES (p_tenant_id, p_feature, 0, p_model, 
-      p_metadata || '{"internal_unlimited": true}'::jsonb);
-    RETURN TRUE;
-  END IF;
-  
-  -- Normale flow
-  SELECT (credits_total + credits_purchased - credits_used)
-  INTO v_available FROM tenant_ai_credits
-  WHERE tenant_id = p_tenant_id;
-  
-  IF v_available IS NULL THEN
-    INSERT INTO tenant_ai_credits (tenant_id, credits_total, credits_used)
-    VALUES (p_tenant_id, 0, 0);
-    v_available := 0;
-  END IF;
-  
-  IF v_available < p_credits THEN
-    RETURN FALSE;
-  END IF;
-  
-  UPDATE tenant_ai_credits
-  SET credits_used = credits_used + p_credits, updated_at = now()
-  WHERE tenant_id = p_tenant_id;
-  
-  INSERT INTO ai_usage_log (tenant_id, feature, credits_used, model_used, metadata)
-  VALUES (p_tenant_id, p_feature, p_credits, p_model, p_metadata);
-  
-  RETURN TRUE;
-END;
-$$;
-```
+### 4. UI Aanpassing: Regenereer-knop
 
-## Impact
+In `AISuggestionBox.tsx` of `ReplyComposer.tsx`:
+- Voeg "Hergenereren" knop toe naast de AI-suggestie
+- Toont duidelijk dat dit credits kost
 
-| Bestand/Component | Actie |
-|-------------------|-------|
-| Database: `use_ai_credits` functies (2x) | Aanpassen met `is_internal_tenant` check |
-| Edge functions (11+ bestanden) | **Geen wijziging nodig** |
-| Frontend hooks | **Geen wijziging nodig** (al correct) |
+---
+
+## Bestanden te Wijzigen
+
+| Bestand | Actie |
+|---------|-------|
+| Database | Nieuwe tabel `ai_reply_suggestions` |
+| `supabase/functions/ai-suggest-reply/index.ts` | Cache check + opslaan |
+| `src/hooks/useAISuggestion.ts` | Cache laden, `forceRegenerate` param |
+| `src/components/admin/inbox/ReplyComposer.tsx` | Regenereer-knop toevoegen |
+| `src/components/admin/inbox/AISuggestionBox.tsx` | Regenereer-knop styling |
+
+---
 
 ## Resultaat
 
-Na deze wijziging:
-- Platform owner kan onbeperkt AI features gebruiken
-- Alle AI edge functions werken zonder 402 errors
-- AI gebruik wordt nog steeds gelogd voor analytics (met `credits_used: 0`)
-- Normale tenants behouden hun credit-systeem
+| Scenario | Gedrag | Credits |
+|----------|--------|---------|
+| Eerste keer suggestie | Genereren + opslaan | 1 credit |
+| Page refresh | Gecachte suggestie laden | 0 credits |
+| Klik "Hergenereren" | Nieuwe genereren + overschrijven | 1 credit |
+| Nieuw klantbericht | Genereren + opslaan | 1 credit |
+
+Dit zorgt voor aanzienlijke creditbesparing voor zowel tenants als het platform.
