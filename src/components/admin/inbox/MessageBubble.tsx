@@ -61,13 +61,27 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     return <Check className="h-3.5 w-3.5 text-muted-foreground" />;
   };
 
-  // Parse HTML content safely
+  // Parse HTML content safely with proper fallback handling
   const getBodyContent = () => {
-    if (message.body_text) return message.body_text;
-    if (message.body_html) {
-      return message.body_html.replace(/<[^>]*>/g, '');
+    // Prefer plain text if available and not empty
+    if (message.body_text && message.body_text.trim()) {
+      return message.body_text.trim();
     }
-    return '';
+    
+    // Strip HTML but handle empty/placeholder results
+    if (message.body_html) {
+      const stripped = message.body_html.replace(/<[^>]*>/g, '').trim();
+      // Check for actual content (not placeholder text)
+      if (stripped && 
+          !stripped.includes('Geen inhoud') && 
+          !stripped.includes('niet beschikbaar') &&
+          stripped.length > 0) {
+        return stripped;
+      }
+    }
+    
+    // Fallback for empty messages
+    return '(Geen inhoud beschikbaar)';
   };
 
   return (
