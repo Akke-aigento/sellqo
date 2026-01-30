@@ -1,84 +1,86 @@
 
-# Plan: CID Referenties Verwijderen/Vervangen in Email Body
+# Plan: Fix Drag-and-Drop naar Custom Mappen
 
-## Probleem
+## Probleem Geïdentificeerd
 
-Bij inkomende e-mails worden inline afbeeldingen (zoals logo's in footers) verstuurd met Content-ID referenties. Deze verschijnen als `[cid:cc36a120-7edc-4350-b12f-cfe62080a20f]` in de message body wanneer:
-1. De CID referentie niet wordt vervangen door een werkende afbeelding-URL
-2. Of wanneer de afbeelding niet kan worden weergegeven
+De drag-and-drop naar custom mappen werkt niet correct door een logica-fout in de `moveToFolder` functie en de query filters.
 
-## Analyse
+### Oorzaak
 
-De huidige situatie:
-- De `handle-inbound-email` edge function slaat de `content_id` op in attachment metadata
-- De attachment binaries worden correct opgeslagen in Supabase Storage
-- **Maar:** de `cid:...` referenties in de HTML body worden nooit vervangen
-- De frontend toont de body als plain text, waardoor de `[cid:...]` tekst zichtbaar blijft
+1. **De `moveToFolder` mutatie** (useInbox.ts, regel 425-430):
+   - Update ALLEEN `folder_id` op de berichten
+   - Zet `message_status` NIET naar `'active'`
 
-Voorbeeld uit database:
-```
-content_id: <cc36a120-7edc-4350-b12f-cfe62080a20f>
-content_disposition: inline
-storage_path: d03c63fe-48c6-4ff7-a30b-.../Outlook-dwvbnghs.png
-```
+2. **De query filter voor custom folders** (useInbox.ts, regel 137-138):
+   ```typescript
+   query = query.eq('folder_id', filters.folderId).eq('message_status', 'active');
+   ```
+   - Vereist dat `message_status = 'active'`
+
+3. **Consequentie**: Als een gesprek eerder is gearchiveerd (`message_status = 'archived'`), en daarna naar een custom folder wordt gesleept, wordt de `folder_id` wel correct gezet, maar de `message_status` blijft `'archived'`. Hierdoor wordt het gesprek niet getoond in de custom folder.
+
+### Database Bewijs
+
+Het bericht met subject "Sellqo app" in de database:
+- `folder_id = 78a28f80-...` (Retours folder) ✓
+- `message_status = 'archived'` ✗ (zou 'active' moeten zijn)
+
+---
 
 ## Oplossing
 
-### Aanpak: Backend CID-vervanging + Frontend cleanup
+De `moveToFolder` functie moet niet alleen de `folder_id` updaten, maar ook:
+1. `message_status` naar `'active'` zetten (zodat het zichtbaar is in custom folders)
+2. `deleted_at` naar `null` zetten (voor het geval het uit de prullenbak komt)
 
-**1. Edge Function: CID's vervangen door Storage URLs**
+### Code Wijziging
 
-Na het uploaden van attachments naar storage, de body_html updaten:
-- Voor elke inline attachment met een `content_id`
-- Vervang `cid:...` referenties door de publieke storage URL
-- Dit zorgt dat afbeeldingen correct worden weergegeven
+**Bestand:** `src/hooks/useInbox.ts`
 
-**2. Frontend: Fallback cleanup voor oude/kapotte referenties**
+```text
+HUIDIGE CODE (regel 425-430):
+const { error } = await supabase
+  .from('customer_messages')
+  .update({ folder_id: folderId })
+  .in('id', messageIds);
 
-In de `MessageBubble` component:
-- Verwijder alle `[cid:...]` patronen die nog in de tekst staan
-- Dit vangt edge cases op waar de backend vervanging niet werkte
-- Regex: `/\[?cid:[^\]\s]+\]?/gi` → verwijderen
-
-### Technische Details
-
-**Edge Function Update (`handle-inbound-email`):**
-```
-Na processAttachments():
-1. Query alle attachments met content_id voor dit bericht
-2. Voor elke attachment:
-   - Genereer public URL: supabase.storage.from('message-attachments').getPublicUrl(storage_path)
-   - Vervang in body_html: cid:content_id → public_url
-3. Update customer_messages met aangepaste body_html
+NIEUWE CODE:
+const { error } = await supabase
+  .from('customer_messages')
+  .update({ 
+    folder_id: folderId,
+    message_status: 'active',  // ← TOEVOEGEN
+    deleted_at: null,          // ← TOEVOEGEN
+  })
+  .in('id', messageIds);
 ```
 
-**Frontend Cleanup (`MessageBubble.tsx`):**
+---
+
+## Bestand te Wijzigen
+
+| Bestand | Actie |
+|---------|-------|
+| `src/hooks/useInbox.ts` | Fix `moveToFolder` mutatie om ook `message_status` te updaten |
+
+## Extra: Data Reparatie
+
+Het bestaande bericht in de "Retours" map moet ook gerepareerd worden. Dit kan met een eenvoudige SQL update:
+
+```sql
+UPDATE customer_messages 
+SET message_status = 'active', deleted_at = null 
+WHERE folder_id IS NOT NULL 
+  AND message_status != 'active';
 ```
-In getBodyContent():
-1. Na het strippen van HTML tags
-2. Verwijder alle [cid:...] patronen met regex
-3. Return cleaned text
-```
 
-## Bestanden te Wijzigen
+---
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/handle-inbound-email/index.ts` | CID-vervanging na attachment upload |
-| `src/components/admin/inbox/MessageBubble.tsx` | Fallback cleanup van resterende CID tekst |
+## Verwacht Resultaat
 
-## Extra: Bestaande Berichten Repareren
-
-Een repair script om bestaande berichten te updaten:
-- Query alle berichten met `[cid:` in body_html
-- Per bericht: zoek bijbehorende attachments met content_id
-- Vervang CID's door storage URLs
-- Dit kan als eenmalige edge function of SQL query
-
-## Resultaat
-
-| Scenario | Resultaat |
-|----------|-----------|
-| Nieuwe emails met inline afbeeldingen | Afbeeldingen tonen correct in HTML |
-| Nieuwe emails waar afbeelding niet laadt | Geen `[cid:...]` tekst zichtbaar |
-| Bestaande emails met CID tekst | Cleanup via frontend + repair script |
+| Actie | Resultaat |
+|-------|-----------|
+| Sleep van Inbox → Custom folder | Gesprek verplaatst correct |
+| Sleep van Archief → Custom folder | Gesprek verplaatst correct (status wordt 'active') |
+| Sleep van Prullenbak → Custom folder | Gesprek verplaatst correct (status wordt 'active') |
+| Bestaande gesprekken in Retours | Nu zichtbaar na data reparatie |
