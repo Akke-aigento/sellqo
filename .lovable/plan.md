@@ -1,61 +1,59 @@
 
-Doel
-- Het Shopify “koppelverzoek indienen” moet weer werken op Live (sellqo.app), zonder 400 Bad Request.
-- Berichten/tickets mogen niet dubbel aangemaakt worden bij status-updates.
+# Plan: Drie Fixes in Eén Keer
 
-Wat er nu misgaat (oorzaak)
-- De database-trigger `shopify_request_notification_trigger` roept de functie `public.handle_shopify_request_notification()` aan.
-- In die functie staat: `SELECT name, contact_email ... FROM tenants ...`
-- In jullie `tenants` tabel bestaat `contact_email` niet (wel o.a. `notification_email`, `billing_email`, `owner_email`).
-- Daardoor crasht de trigger bij het INSERT’en van een koppelverzoek → de API call krijgt 400 Bad Request.
+## 1. Database Fix - Priority Enum
+De trigger functie gebruikt `priority: 'normal'` maar de enum `support_ticket_priority` ondersteunt alleen:
+- `low`
+- `medium`
+- `high`
+- `urgent`
 
-Belangrijk: je test op Live
-- Dit betekent: zelfs als we de fix in de testomgeving toepassen, moet die daarna ook naar Live doorgezet worden (via Publish), anders blijf je dezelfde fout zien op sellqo.app.
+We wijzigen `'normal'` naar `'medium'` (meest logische standaardwaarde).
 
-Oplossing (high level)
-1) Pas `handle_shopify_request_notification()` aan:
-   - Gebruik een bestaand e-mail veld uit `tenants` i.p.v. `contact_email`.
-   - Aanbevolen fallback:
-     - `COALESCE(notification_email, billing_email, owner_email, 'no-email@sellqo.nl')`
-   - (Optioneel) sla de gekozen e-mail ook op in `support_tickets.metadata` voor traceability.
+## 2. Tabs Wisselen - Psychologie Approved
+De tabvolgorde wordt aangepast zodat gebruikers eerst de "Direct" optie zien:
 
-2) Voorkom dubbele tickets / onbedoelde ticket-creatie op UPDATE:
-   - De trigger staat nu op `AFTER INSERT OR UPDATE`.
-   - We wijzigen dit naar: alleen `AFTER INSERT`.
-   - Extra safety: in de functie zelf ook enkel logica uitvoeren bij `TG_OP = 'INSERT'` (defensief).
-   - Dit voorkomt dat bij statusupdates (of sync-processen) telkens opnieuw support tickets worden aangemaakt.
+| Huidige volgorde | Nieuwe volgorde |
+|------------------|-----------------|
+| 1. Aanvraag      | 1. Direct       |
+| 2. Direct        | 2. Aanvraag     |
+| 3. Import        | 3. Import       |
 
-Concrete implementatiestappen (backend)
-A. Database migratie (nieuw)
-- CREATE OR REPLACE FUNCTION `public.handle_shopify_request_notification()` met:
-  - `v_tenant_email := COALESCE(t.notification_email, t.billing_email, t.owner_email)`
-  - Ticket creation + eerste message + notificatie zoals nu, maar met `v_tenant_email`
-  - Guard: “alleen bij INSERT”
-- DROP TRIGGER `shopify_request_notification_trigger` op `shopify_connection_requests`
-- CREATE TRIGGER `shopify_request_notification_trigger`:
-  - `AFTER INSERT ON public.shopify_connection_requests`
-  - `FOR EACH ROW EXECUTE FUNCTION public.handle_shopify_request_notification()`
+Ook wordt de standaard tab gewijzigd van `'request'` naar `'instant'`.
 
-B. Verificatie in testomgeving (preview)
-- Probeer een Shopify aanvraag in te dienen.
-- Verwacht:
-  - Geen 400 error
-  - Request record wordt aangemaakt
-  - Support ticket + support message worden aangemaakt (voor platform opvolging)
-  - Merchant ziet “Verzoek in behandeling” bevestiging in UI
+## 3. Header - Bedrijfsnaam Bold
+De tenant naam in de admin header wordt vetgedrukt door `font-semibold` toe te voegen.
 
-C. Live fix (belangrijk omdat jij op Live test)
-- Publish zodat de database-migratie (schema/trigger/function) ook naar Live gaat.
-- Daarna opnieuw testen op sellqo.app.
+## Wijzigingen
 
-Acceptatiecriteria
-- Op Live: “Dien Koppelverzoek In” geeft geen foutmelding meer.
-- In de UI verschijnt het “Verzoek in behandeling” scherm.
-- In de platform support-inbox verschijnt exact 1 ticket per aanvraag (geen duplicates bij statuswijzigingen).
+| Bestand | Wijziging |
+|---------|-----------|
+| Database migratie | `priority: 'normal'` → `priority: 'medium'` |
+| `ShopifyConnectDialog.tsx` | Tabs herschikken + default tab naar `'instant'` |
+| `AdminHeader.tsx` | `font-semibold` toevoegen aan tenant naam |
 
-Risico’s / edge cases die we afvangen
-- Tenant heeft geen e-mail ingevuld: we vallen terug op `no-email@sellqo.nl` zodat de trigger niet faalt.
-- Status-updates veroorzaken geen nieuwe tickets meer (door trigger-only-insert + INSERT-guard).
+## Technische Details
 
-Optionele verbetering (na de fix)
-- Frontend error handling: als de backend toch ooit faalt, toon een duidelijkere melding (“Er ging iets mis op de server, probeer opnieuw”) en log de details in console voor debug. Dit is niet nodig om de huidige bug op te lossen, maar helpt bij toekomstige fouten.
+### Database SQL Fix
+```sql
+-- In handle_shopify_request_notification functie:
+priority: 'medium'  -- was: 'normal' (ongeldig)
+```
+
+### ShopifyConnectDialog.tsx
+```tsx
+// Default tab
+const [activeTab, setActiveTab] = useState<ConnectionMethod>('instant');
+
+// Tab volgorde: instant → request → import
+```
+
+### AdminHeader.tsx
+```tsx
+// Tenant naam bold maken
+<span className="text-sm font-semibold text-muted-foreground">
+```
+
+## Na Implementatie
+- Publish de app zodat de database fix ook naar Live gaat
+- Test het koppelverzoek opnieuw op sellqo.app
