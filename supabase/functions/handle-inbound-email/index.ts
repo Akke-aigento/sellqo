@@ -142,6 +142,78 @@ interface ResendAttachment {
   expires_at: string;
 }
 
+// Replace CID references in body_html with public storage URLs
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function replaceCidReferencesInBody(
+  messageId: string,
+  tenantId: string,
+  bodyHtml: string,
+  supabase: any
+): Promise<void> {
+  try {
+    // Query attachments with content_id for this message
+    const { data: attachments, error } = await supabase
+      .from('customer_message_attachments')
+      .select('storage_path, metadata')
+      .eq('message_id', messageId)
+      .eq('tenant_id', tenantId)
+      .not('storage_path', 'is', null);
+
+    if (error || !attachments || attachments.length === 0) {
+      console.log('No attachments with storage_path found for CID replacement');
+      return;
+    }
+
+    let updatedHtml = bodyHtml;
+    let replacementCount = 0;
+
+    for (const attachment of attachments) {
+      const contentId = attachment.metadata?.content_id;
+      if (!contentId || !attachment.storage_path) continue;
+
+      // Clean content_id (remove angle brackets if present)
+      const cleanContentId = contentId.replace(/^<|>$/g, '');
+      
+      // Get public URL for the attachment
+      const { data: urlData } = supabase.storage
+        .from('message-attachments')
+        .getPublicUrl(attachment.storage_path);
+
+      if (!urlData?.publicUrl) continue;
+
+      // Replace cid: references in HTML (handles src="cid:..." patterns)
+      const cidPatterns = [
+        new RegExp(`cid:${cleanContentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi'),
+        new RegExp(`cid:<${cleanContentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}>`, 'gi'),
+      ];
+
+      for (const pattern of cidPatterns) {
+        if (pattern.test(updatedHtml)) {
+          updatedHtml = updatedHtml.replace(pattern, urlData.publicUrl);
+          replacementCount++;
+          console.log(`Replaced CID reference: ${cleanContentId} → ${urlData.publicUrl}`);
+        }
+      }
+    }
+
+    // Update the message if we made replacements
+    if (replacementCount > 0) {
+      const { error: updateError } = await supabase
+        .from('customer_messages')
+        .update({ body_html: updatedHtml })
+        .eq('id', messageId);
+
+      if (updateError) {
+        console.error('Failed to update body_html with CID replacements:', updateError);
+      } else {
+        console.log(`Successfully replaced ${replacementCount} CID reference(s) in message body`);
+      }
+    }
+  } catch (err) {
+    console.error('Error replacing CID references:', err);
+  }
+}
+
 // Fetch and download attachments from Resend, upload to Supabase Storage
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function processAttachments(
@@ -507,6 +579,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
       
       console.log(`Attachment processing complete: ${attachmentResult.processed} uploaded, ${attachmentResult.errors} errors`);
+
+      // Step 3: Replace CID references in body_html with public storage URLs
+      await replaceCidReferencesInBody(message.id, tenantId, bodyHtml, supabase);
     }
 
     // Get customer name for notification
