@@ -16,6 +16,7 @@ import {
   EyeOff,
   Zap,
 } from 'lucide-react';
+import { ShopifySetupGuide } from './ShopifySetupGuide';
 import { supabase } from '@/integrations/supabase/client';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { toast } from 'sonner';
@@ -147,10 +148,13 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
 
       {/* Step 1: Instructions */}
       <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold flex items-center gap-2">
-          <Badge variant="outline">Stap 1</Badge>
-          Maak een Custom App in Shopify
-        </h4>
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold flex items-center gap-2">
+            <Badge variant="outline">Stap 1</Badge>
+            Maak een Custom App in Shopify
+          </h4>
+          <ShopifySetupGuide />
+        </div>
         <ol className="text-sm space-y-2 ml-4">
           <li className="flex items-start gap-2">
             <span className="text-primary font-medium">1.</span>
@@ -230,6 +234,7 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
               id="store-url"
               type="text"
               placeholder="mijn-winkel"
+              autoComplete="off"
               value={storeUrl}
               onChange={(e) => {
                 setStoreUrl(e.target.value);
@@ -250,6 +255,7 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
               id="access-token"
               type={showToken ? 'text' : 'password'}
               placeholder="shpat_xxxxx..."
+              autoComplete="off"
               value={accessToken}
               onChange={(e) => {
                 setAccessToken(e.target.value);
