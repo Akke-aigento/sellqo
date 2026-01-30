@@ -26,6 +26,11 @@ export interface CustomerMessage {
   context_data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  // Health score relevant fields
+  read_at: string | null;
+  replied_at: string | null;
+  message_status: 'active' | 'archived' | 'deleted' | null;
+  folder_id: string | null;
 }
 
 interface SendMessageInput {

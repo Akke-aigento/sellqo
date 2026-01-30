@@ -92,9 +92,13 @@ export function useShopHealth(): ShopHealthData {
       !p.images || p.images.length === 0
     ).length;
     
-    // Customer service analysis - check for unread/pending inbound messages
+    // Customer service analysis - only count active inbox messages that need attention
     const unreadMessages = messages?.filter(m => 
-      m.direction === 'inbound' && m.delivery_status !== 'opened'
+      m.direction === 'inbound' &&               // Inbound messages only
+      !m.read_at &&                               // Not yet opened/read
+      !m.replied_at &&                            // Not yet replied to
+      (!m.message_status || m.message_status === 'active') &&  // Active status only
+      !m.folder_id                                // Not moved to any folder
     ) || [];
     const oldestUnread = unreadMessages.length > 0
       ? Math.max(...unreadMessages.map(m => differenceInHours(now, new Date(m.created_at))))
