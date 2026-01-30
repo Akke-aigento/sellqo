@@ -424,7 +424,11 @@ export function useInbox() {
 
       const { error } = await supabase
         .from('customer_messages')
-        .update({ folder_id: folderId })
+        .update({ 
+          folder_id: folderId,
+          message_status: 'active',
+          deleted_at: null,
+        })
         .in('id', messageIds);
 
       if (error) throw error;
