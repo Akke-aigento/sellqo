@@ -23,7 +23,7 @@ interface MessageHistoryPanelProps {
   maxItems?: number;
 }
 
-const STATUS_CONFIG: Record<CustomerMessage['status'], { label: string; icon: React.ElementType; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+const STATUS_CONFIG: Record<CustomerMessage['delivery_status'], { label: string; icon: React.ElementType; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   draft: { label: 'Concept', icon: Clock, variant: 'secondary' },
   sending: { label: 'Verzenden...', icon: Clock, variant: 'secondary' },
   sent: { label: 'Verzonden', icon: Send, variant: 'default' },
@@ -113,7 +113,7 @@ export function MessageHistoryPanel({
 }
 
 function MessageItem({ message, compact }: { message: CustomerMessage; compact: boolean }) {
-  const statusConfig = STATUS_CONFIG[message.status];
+  const statusConfig = STATUS_CONFIG[message.delivery_status];
   const StatusIcon = statusConfig.icon;
   const DirectionIcon = message.direction === 'outbound' ? Send : Inbox;
 
@@ -155,7 +155,7 @@ function MessageItem({ message, compact }: { message: CustomerMessage; compact: 
         )}
 
         {/* Error message */}
-        {message.status === 'failed' && message.error_message && (
+        {message.delivery_status === 'failed' && message.error_message && (
           <p className="text-xs text-destructive mt-1">
             Fout: {message.error_message}
           </p>

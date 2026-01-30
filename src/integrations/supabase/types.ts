@@ -2626,11 +2626,13 @@ export type Database = {
           customer_id: string | null
           deleted_at: string | null
           delivered_at: string | null
+          delivery_status: string
           direction: string
           error_message: string | null
           folder_id: string | null
           from_email: string
           id: string
+          message_status: string | null
           meta_message_id: string | null
           meta_page_id: string | null
           meta_sender_id: string | null
@@ -2644,7 +2646,6 @@ export type Database = {
           reply_to_email: string | null
           resend_id: string | null
           sent_at: string | null
-          status: string
           subject: string
           tenant_id: string
           to_email: string
@@ -2662,11 +2663,13 @@ export type Database = {
           customer_id?: string | null
           deleted_at?: string | null
           delivered_at?: string | null
+          delivery_status?: string
           direction?: string
           error_message?: string | null
           folder_id?: string | null
           from_email: string
           id?: string
+          message_status?: string | null
           meta_message_id?: string | null
           meta_page_id?: string | null
           meta_sender_id?: string | null
@@ -2680,7 +2683,6 @@ export type Database = {
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
-          status?: string
           subject: string
           tenant_id: string
           to_email: string
@@ -2698,11 +2700,13 @@ export type Database = {
           customer_id?: string | null
           deleted_at?: string | null
           delivered_at?: string | null
+          delivery_status?: string
           direction?: string
           error_message?: string | null
           folder_id?: string | null
           from_email?: string
           id?: string
+          message_status?: string | null
           meta_message_id?: string | null
           meta_page_id?: string | null
           meta_sender_id?: string | null
@@ -2716,7 +2720,6 @@ export type Database = {
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
-          status?: string
           subject?: string
           tenant_id?: string
           to_email?: string

@@ -94,7 +94,7 @@ export function useShopHealth(): ShopHealthData {
     
     // Customer service analysis - check for unread/pending inbound messages
     const unreadMessages = messages?.filter(m => 
-      m.direction === 'inbound' && m.status !== 'opened'
+      m.direction === 'inbound' && m.delivery_status !== 'opened'
     ) || [];
     const oldestUnread = unreadMessages.length > 0
       ? Math.max(...unreadMessages.map(m => differenceInHours(now, new Date(m.created_at))))
