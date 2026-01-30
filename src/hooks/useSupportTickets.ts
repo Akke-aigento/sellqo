@@ -119,6 +119,23 @@ export function useSupportTickets() {
     },
   });
 
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      const { error } = await supabase
+        .from('support_tickets')
+        .delete()
+        .eq('id', ticketId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      toast.success('Ticket verwijderd');
+    },
+    onError: (error: Error) => {
+      toast.error(`Fout bij verwijderen: ${error.message}`);
+    },
+  });
+
   const getTicketStats = () => {
     const open = tickets.filter(t => t.status === 'open').length;
     const inProgress = tickets.filter(t => t.status === 'in_progress').length;
@@ -134,9 +151,11 @@ export function useSupportTickets() {
     isLoading,
     createTicket: createTicketMutation.mutateAsync,
     updateTicket: updateTicketMutation.mutateAsync,
+    deleteTicket: deleteTicketMutation.mutateAsync,
     getTicketStats,
     isCreating: createTicketMutation.isPending,
     isUpdating: updateTicketMutation.isPending,
+    isDeleting: deleteTicketMutation.isPending,
   };
 }
 
