@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, User, ExternalLink, Package } from 'lucide-react';
+import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -9,18 +9,27 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageBubble } from './MessageBubble';
 import { ReplyComposer } from './ReplyComposer';
-import type { Conversation } from '@/hooks/useInbox';
+import { ConversationActions } from './ConversationActions';
+import type { Conversation, MessageStatus } from '@/hooks/useInbox';
 
 interface ConversationDetailProps {
   conversation: Conversation;
   onMarkAsRead: () => void;
   onMessageSent: () => void;
+  onArchive?: () => void;
+  onDelete?: () => void;
+  onRestore?: () => void;
+  onMoveToFolder?: (folderId: string | null) => void;
 }
 
 export function ConversationDetail({
   conversation,
   onMarkAsRead,
   onMessageSent,
+  onArchive,
+  onDelete,
+  onRestore,
+  onMoveToFolder,
 }: ConversationDetailProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +57,21 @@ export function ConversationDetail({
         .slice(0, 2)
     : '?';
 
-  const ChannelIcon = channel === 'whatsapp' ? MessageSquare : Mail;
+  // Get channel icon
+  const getChannelIcon = () => {
+    switch (channel) {
+      case 'whatsapp':
+        return MessageSquare;
+      case 'facebook':
+        return Facebook;
+      case 'instagram':
+        return Instagram;
+      default:
+        return Mail;
+    }
+  };
+  
+  const ChannelIcon = getChannelIcon();
   
   // Find linked order from any message in conversation
   const linkedOrderId = useMemo(() => {
@@ -65,6 +88,11 @@ export function ConversationDetail({
 
   // Sort dates and reverse messages within each day
   const sortedDates = Object.keys(messagesByDate).sort();
+
+  // Determine conversation status
+  const conversationStatus: MessageStatus = conversation.messageStatus || 'active';
+  const isArchived = conversationStatus === 'archived';
+  const isDeleted = conversationStatus === 'deleted';
   
   return (
     <div className="flex flex-col h-full">
@@ -77,6 +105,12 @@ export function ConversationDetail({
           <div className="flex items-center gap-2">
             <h2 className="font-semibold truncate">{customer?.name || 'Onbekend'}</h2>
             <ChannelIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+            {isArchived && (
+              <span className="text-xs bg-muted px-2 py-0.5 rounded">Gearchiveerd</span>
+            )}
+            {isDeleted && (
+              <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">Prullenbak</span>
+            )}
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             {customer?.email && (
@@ -109,6 +143,14 @@ export function ConversationDetail({
               </Link>
             </Button>
           )}
+          {/* Conversation actions dropdown */}
+          <ConversationActions
+            conversationStatus={conversationStatus}
+            onArchive={onArchive || (() => {})}
+            onDelete={onDelete || (() => {})}
+            onRestore={onRestore || (() => {})}
+            onMoveToFolder={onMoveToFolder || (() => {})}
+          />
         </div>
       </div>
 
@@ -139,8 +181,25 @@ export function ConversationDetail({
         </div>
       </ScrollArea>
 
-      {/* Reply composer */}
-      <ReplyComposer conversation={conversation} onSent={onMessageSent} />
+      {/* Reply composer - only show for active conversations */}
+      {!isDeleted && (
+        <ReplyComposer conversation={conversation} onSent={onMessageSent} />
+      )}
+      
+      {/* Deleted conversation notice */}
+      {isDeleted && (
+        <div className="p-4 border-t bg-muted/50 text-center">
+          <p className="text-sm text-muted-foreground">
+            Dit gesprek bevindt zich in de prullenbak.{' '}
+            <button 
+              onClick={onRestore} 
+              className="text-primary underline hover:no-underline"
+            >
+              Terugzetten naar inbox
+            </button>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

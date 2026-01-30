@@ -424,8 +424,8 @@ const handler = async (req: Request): Promise<Response> => {
       message: notificationMessage,
       priority: "medium",
       action_url: "/admin/messages",
-      is_read: false,
-      metadata: {
+      // read_at is null by default (unread)
+      data: {
         message_id: message.id,
         from: payload.from,
         order_id: orderId,

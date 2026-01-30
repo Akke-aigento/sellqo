@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useInbox } from '@/hooks/useInbox';
-import { InboxFilters, ConversationList, ConversationDetail } from '@/components/admin/inbox';
+import { useInboxFolders } from '@/hooks/useInboxFolders';
+import { InboxFilters, ConversationList, ConversationDetail, FolderList } from '@/components/admin/inbox';
 import { Card } from '@/components/ui/card';
 
 export default function MessagesPage() {
@@ -15,7 +16,13 @@ export default function MessagesPage() {
     setFilters,
     markConversationAsRead,
     unreadTotal,
+    archiveConversation,
+    deleteConversation,
+    restoreConversation,
+    moveToFolder,
   } = useInbox();
+
+  const { folders, archiveFolder, trashFolder } = useInboxFolders();
 
   // Count by channel
   const counts = useMemo(() => {
@@ -26,6 +33,52 @@ export default function MessagesPage() {
     return { email, whatsapp, facebook, instagram };
   }, [conversations]);
 
+  // Count by folder
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    // Inbox count (active messages without folder)
+    counts['inbox'] = conversations.filter(c => c.messageStatus === 'active' && !c.folderId).length;
+    
+    // Archive count
+    if (archiveFolder) {
+      counts[archiveFolder.id] = conversations.filter(c => c.messageStatus === 'archived').length;
+    }
+    
+    // Trash count
+    if (trashFolder) {
+      counts[trashFolder.id] = conversations.filter(c => c.messageStatus === 'deleted').length;
+    }
+    
+    // Custom folder counts
+    folders.filter(f => !f.is_system).forEach(folder => {
+      counts[folder.id] = conversations.filter(c => c.folderId === folder.id).length;
+    });
+    
+    return counts;
+  }, [conversations, folders, archiveFolder, trashFolder]);
+
+  const handleFolderSelect = (folderId: string | null) => {
+    // Map system folder IDs to filter values
+    if (folderId === archiveFolder?.id) {
+      setFilters({ ...filters, folderId: 'archived' });
+    } else if (folderId === trashFolder?.id) {
+      setFilters({ ...filters, folderId: 'deleted' });
+    } else {
+      setFilters({ ...filters, folderId });
+    }
+    setSelectedConversationId(null);
+  };
+
+  // Get current folder display name
+  const getCurrentFolderName = () => {
+    if (filters.folderId === null) return 'Inbox';
+    if (filters.folderId === 'archived') return 'Gearchiveerd';
+    if (filters.folderId === 'deleted') return 'Prullenbak';
+    const folder = folders.find(f => f.id === filters.folderId);
+    return folder?.name || 'Inbox';
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)]">
       <div className="p-6 pb-0">
@@ -34,13 +87,26 @@ export default function MessagesPage() {
           Klantgesprekken
         </h1>
         <p className="text-muted-foreground mt-1">
-          Beheer alle communicatie met klanten via email en WhatsApp
+          Beheer alle communicatie met klanten via email en social media
         </p>
       </div>
 
       <div className="p-6 h-[calc(100%-5rem)]">
         <Card className="h-full flex overflow-hidden">
-          {/* Left sidebar - Conversation list */}
+          {/* Left sidebar - Folders */}
+          <div className="w-48 border-r flex flex-col shrink-0 bg-muted/30">
+            <FolderList
+              selectedFolderId={
+                filters.folderId === 'archived' ? archiveFolder?.id || null :
+                filters.folderId === 'deleted' ? trashFolder?.id || null :
+                filters.folderId
+              }
+              onFolderSelect={handleFolderSelect}
+              folderCounts={folderCounts}
+            />
+          </div>
+
+          {/* Middle - Conversation list */}
           <div className="w-80 border-r flex flex-col shrink-0">
             <InboxFilters
               filters={filters}
@@ -68,6 +134,10 @@ export default function MessagesPage() {
                 conversation={selectedConversation}
                 onMarkAsRead={() => markConversationAsRead(selectedConversation.id)}
                 onMessageSent={() => {}}
+                onArchive={() => archiveConversation(selectedConversation.id)}
+                onDelete={() => deleteConversation(selectedConversation.id)}
+                onRestore={() => restoreConversation(selectedConversation.id)}
+                onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
               />
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-6">

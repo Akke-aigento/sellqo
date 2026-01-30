@@ -1,14 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import { useAuth } from './useAuth';
 import { useNotificationSound } from './useNotificationSound';
+import { useInboxFolders } from './useInboxFolders';
 
 export type MessageChannel = 'email' | 'whatsapp' | 'sms' | 'facebook' | 'instagram';
 export type ConversationChannel = MessageChannel | 'mixed' | 'social';
 export type FilterChannel = 'all' | 'email' | 'whatsapp' | 'facebook' | 'instagram' | 'social';
+export type MessageStatus = 'active' | 'archived' | 'deleted';
 
 export interface InboxMessage {
   id: string;
@@ -25,6 +27,9 @@ export interface InboxMessage {
   reply_to_email: string | null;
   channel: MessageChannel;
   status: string;
+  message_status?: MessageStatus;
+  folder_id?: string | null;
+  deleted_at?: string | null;
   whatsapp_status: string | null;
   read_at: string | null;
   read_by: string | null;
@@ -64,12 +69,15 @@ export interface Conversation {
   channel: ConversationChannel;
   messages: InboxMessage[];
   replyToEmail?: string;
+  messageStatus: MessageStatus;
+  folderId: string | null;
 }
 
 export interface InboxFilters {
   channel: FilterChannel;
   status: 'all' | 'unread' | 'unanswered';
   search: string;
+  folderId: string | null; // null = inbox, 'archived' = archive folder, 'deleted' = trash
 }
 
 // Helper to check if channel is a social channel
@@ -82,12 +90,14 @@ export function useInbox() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { playSound, enabled: soundEnabled } = useNotificationSound();
+  const { playSound } = useNotificationSound();
+  const { archiveFolder, trashFolder } = useInboxFolders();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [filters, setFilters] = useState<InboxFilters>({
     channel: 'all',
     status: 'all',
     search: '',
+    folderId: null, // null = inbox (active messages without folder)
   });
 
   const queryKey = ['inbox-messages', currentTenant?.id, filters];
@@ -112,6 +122,21 @@ export function useInbox() {
         `)
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });
+
+      // Apply folder/status filter
+      if (filters.folderId === null) {
+        // Inbox: active messages with no folder
+        query = query.eq('status', 'active').is('folder_id', null);
+      } else if (filters.folderId === 'archived' || filters.folderId === archiveFolder?.id) {
+        // Archived messages
+        query = query.eq('status', 'archived');
+      } else if (filters.folderId === 'deleted' || filters.folderId === trashFolder?.id) {
+        // Deleted messages
+        query = query.eq('status', 'deleted');
+      } else {
+        // Custom folder
+        query = query.eq('folder_id', filters.folderId).eq('status', 'active');
+      }
 
       // Apply channel filter
       if (filters.channel === 'social') {
@@ -178,6 +203,10 @@ export function useInbox() {
       const lastInboundMessage = sortedMsgs.find(m => m.direction === 'inbound');
       const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
 
+      // Determine conversation status from last message
+      const messageStatus = (lastMessage.status as MessageStatus) || 'active';
+      const folderId = lastMessage.folder_id || null;
+
       convos.push({
         id: key,
         customer: customer
@@ -199,6 +228,8 @@ export function useInbox() {
         channel,
         messages: sortedMsgs,
         replyToEmail,
+        messageStatus,
+        folderId,
       });
     }
 
@@ -283,6 +314,137 @@ export function useInbox() {
     },
   });
 
+  // Archive conversation
+  const archiveConversation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+
+      const messageIds = conversation.messages.map((m) => m.id);
+
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ status: 'archived' })
+        .in('id', messageIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+      toast({
+        title: 'Gesprek gearchiveerd',
+        description: 'Het gesprek is verplaatst naar het archief.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Fout',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete (move to trash) conversation
+  const deleteConversation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+
+      const messageIds = conversation.messages.map((m) => m.id);
+
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ 
+          status: 'deleted',
+          deleted_at: new Date().toISOString(),
+        })
+        .in('id', messageIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+      toast({
+        title: 'Gesprek verwijderd',
+        description: 'Het gesprek is verplaatst naar de prullenbak.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Fout',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Restore conversation (from archive or trash)
+  const restoreConversation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+
+      const messageIds = conversation.messages.map((m) => m.id);
+
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ 
+          status: 'active',
+          deleted_at: null,
+          folder_id: null,
+        })
+        .in('id', messageIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+      toast({
+        title: 'Gesprek hersteld',
+        description: 'Het gesprek is teruggezet naar de inbox.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Fout',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Move conversation to folder
+  const moveToFolder = useMutation({
+    mutationFn: async ({ conversationId, folderId }: { conversationId: string; folderId: string | null }) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+
+      const messageIds = conversation.messages.map((m) => m.id);
+
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ folder_id: folderId })
+        .in('id', messageIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+      toast({
+        title: 'Gesprek verplaatst',
+        description: 'Het gesprek is verplaatst naar de geselecteerde map.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Fout',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Realtime subscription
   useEffect(() => {
     if (!currentTenant?.id) return;
@@ -300,16 +462,9 @@ export function useInbox() {
         (payload) => {
           queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
           
-          // Show toast AND play sound for inbound messages
+          // Play sound for inbound messages (toast is handled by global listener)
           if ((payload.new as InboxMessage).direction === 'inbound') {
-            // Play notification sound
             playSound();
-            
-            // Show toast notification
-            toast({
-              title: 'Nieuw bericht ontvangen',
-              description: (payload.new as InboxMessage).subject || 'Je hebt een nieuw klantbericht',
-            });
           }
         }
       )
@@ -330,7 +485,7 @@ export function useInbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentTenant?.id, queryClient, toast, playSound]);
+  }, [currentTenant?.id, queryClient, playSound]);
 
   return {
     conversations: filteredConversations,
@@ -344,5 +499,9 @@ export function useInbox() {
     setFilters,
     markAsRead: markAsRead.mutate,
     markConversationAsRead: markConversationAsRead.mutate,
+    archiveConversation: archiveConversation.mutate,
+    deleteConversation: deleteConversation.mutate,
+    restoreConversation: restoreConversation.mutate,
+    moveToFolder: moveToFolder.mutate,
   };
 }
