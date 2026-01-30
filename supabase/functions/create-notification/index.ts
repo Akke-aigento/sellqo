@@ -78,14 +78,15 @@ serve(async (req: Request): Promise<Response> => {
     const shouldSendEmail = settings?.email_enabled ?? (priority === 'urgent' || priority === 'high');
 
     if (shouldSendEmail && resendApiKey) {
-      // Get tenant info for email including branding
+      // Get tenant info for email including branding and notification_email
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('name, owner_email, logo_url, primary_color')
+        .select('name, owner_email, notification_email, logo_url, primary_color')
         .eq('id', notification.tenant_id)
         .single();
 
-      const tenantEmail = tenant?.owner_email;
+      // Use notification_email if set, otherwise fallback to owner_email
+      const tenantEmail = tenant?.notification_email || tenant?.owner_email;
       if (tenantEmail) {
         const resend = new Resend(resendApiKey);
 
