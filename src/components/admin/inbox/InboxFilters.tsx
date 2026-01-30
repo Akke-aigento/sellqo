@@ -44,62 +44,62 @@ export function InboxFilters({
   const isSocialFilter = ['social', 'whatsapp', 'facebook', 'instagram'].includes(filters.channel);
 
   return (
-    <div className="space-y-3 p-4 border-b">
+    <div className="space-y-2 p-3 border-b">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Zoek in gesprekken..."
-          className="pl-9"
+          className="pl-8 h-9 text-sm"
           value={filters.search}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
         />
       </div>
 
       {/* Channel tabs with Social dropdown */}
-      <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+      <div className="flex items-center gap-0.5 bg-muted rounded-md p-0.5">
         <button
           onClick={() => onFiltersChange({ ...filters, channel: 'all' })}
-          className={`flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
+          className={`flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium transition-all ${
             filters.channel === 'all'
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Alle
-          <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 text-xs">
+          <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[10px] px-1">
             {totalCount}
           </Badge>
         </button>
         <button
           onClick={() => onFiltersChange({ ...filters, channel: 'email' })}
-          className={`flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
+          className={`flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium transition-all ${
             filters.channel === 'email'
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Mail className="h-3.5 w-3.5 mr-1" />
+          <Mail className="h-3 w-3 mr-0.5" />
           Email
-          <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 text-xs">
+          <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[10px] px-1">
             {emailCount}
           </Badge>
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className={`flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
+              className={`flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium transition-all ${
                 isSocialFilter
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Users className="h-3.5 w-3.5 mr-1" />
+              <Users className="h-3 w-3 mr-0.5" />
               {getSocialLabel()}
-              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[10px] px-1">
                 {socialCount}
               </Badge>
-              <ChevronDown className="h-3 w-3 ml-1" />
+              <ChevronDown className="h-3 w-3 ml-0.5" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -142,20 +142,20 @@ export function InboxFilters({
           onFiltersChange({ ...filters, status: value as FiltersType['status'] })
         }
       >
-        <TabsList className="w-full">
-          <TabsTrigger value="all" className="flex-1">
+        <TabsList className="w-full h-8">
+          <TabsTrigger value="all" className="flex-1 text-xs px-2">
             Alle
           </TabsTrigger>
-          <TabsTrigger value="unread" className="flex-1">
+          <TabsTrigger value="unread" className="flex-1 text-xs px-2">
             Ongelezen
             {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-1.5 h-5 min-w-5 text-xs">
+              <Badge variant="destructive" className="ml-1 h-4 min-w-4 text-[10px] px-1">
                 {unreadCount}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="unanswered" className="flex-1">
-            Te beantwoorden
+          <TabsTrigger value="unanswered" className="flex-1 text-xs px-1">
+            Te beantw.
           </TabsTrigger>
         </TabsList>
       </Tabs>

@@ -94,7 +94,7 @@ export default function MessagesPage() {
       <div className="p-6 h-[calc(100%-5rem)]">
         <Card className="h-full flex overflow-hidden">
           {/* Left sidebar - Folders */}
-          <div className="w-48 border-r flex flex-col shrink-0 bg-muted/30">
+          <div className="w-44 min-w-44 border-r flex flex-col shrink-0 bg-muted/30">
             <FolderList
               selectedFolderId={
                 filters.folderId === 'archived' ? archiveFolder?.id || null :
@@ -107,7 +107,7 @@ export default function MessagesPage() {
           </div>
 
           {/* Middle - Conversation list */}
-          <div className="w-80 border-r flex flex-col shrink-0">
+          <div className="w-72 min-w-72 border-r flex flex-col shrink-0 overflow-hidden">
             <InboxFilters
               filters={filters}
               onFiltersChange={setFilters}
