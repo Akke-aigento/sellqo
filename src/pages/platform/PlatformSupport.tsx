@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ import {
   Clock, 
   CheckCircle, 
   AlertCircle,
-  Send
+  Send,
+  Link2
 } from "lucide-react";
 import { 
   useSupportTickets, 
@@ -44,6 +46,7 @@ const PRIORITY_CONFIG: Record<TicketPriority, { label: string; color: string }> 
 
 export default function PlatformSupport() {
   const { tickets, isLoading, createTicket, updateTicket, getTicketStats, isCreating } = useSupportTickets();
+  const [searchParams] = useSearchParams();
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -55,6 +58,18 @@ export default function PlatformSupport() {
     category: "other" as const,
     priority: "medium" as const,
   });
+
+  const ticketIdFromUrl = searchParams.get('ticket');
+
+  // Auto-select ticket from URL parameter
+  useEffect(() => {
+    if (ticketIdFromUrl && tickets.length > 0 && !selectedTicket) {
+      const ticket = tickets.find(t => t.id === ticketIdFromUrl);
+      if (ticket) {
+        setSelectedTicket(ticket);
+      }
+    }
+  }, [ticketIdFromUrl, tickets, selectedTicket]);
 
   const stats = getTicketStats();
 
@@ -136,6 +151,8 @@ export default function PlatformSupport() {
                       <SelectItem value="technical">Technisch</SelectItem>
                       <SelectItem value="feature">Feature</SelectItem>
                       <SelectItem value="bug">Bug</SelectItem>
+                      <SelectItem value="integration">Integratie</SelectItem>
+                      <SelectItem value="feedback">Feedback</SelectItem>
                       <SelectItem value="other">Overig</SelectItem>
                     </SelectContent>
                   </Select>

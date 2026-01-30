@@ -10378,6 +10378,8 @@ export type Database = {
           id: string
           metadata: Json | null
           priority: Database["public"]["Enums"]["support_ticket_priority"]
+          related_resource_id: string | null
+          related_resource_type: string | null
           requester_email: string
           requester_name: string | null
           resolved_at: string | null
@@ -10395,6 +10397,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          related_resource_id?: string | null
+          related_resource_type?: string | null
           requester_email: string
           requester_name?: string | null
           resolved_at?: string | null
@@ -10412,6 +10416,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          related_resource_id?: string | null
+          related_resource_type?: string | null
           requester_email?: string
           requester_name?: string | null
           resolved_at?: string | null
@@ -12924,6 +12930,8 @@ export type Database = {
         | "feature"
         | "bug"
         | "other"
+        | "integration"
+        | "feedback"
       support_ticket_priority: "low" | "medium" | "high" | "urgent"
       support_ticket_status:
         | "open"
@@ -13194,6 +13202,8 @@ export const Constants = {
         "feature",
         "bug",
         "other",
+        "integration",
+        "feedback",
       ],
       support_ticket_priority: ["low", "medium", "high", "urgent"],
       support_ticket_status: [
