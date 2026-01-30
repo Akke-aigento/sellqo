@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import { useAuth } from './useAuth';
+import { useNotificationSound } from './useNotificationSound';
 
 export type MessageChannel = 'email' | 'whatsapp' | 'sms' | 'facebook' | 'instagram';
 export type ConversationChannel = MessageChannel | 'mixed' | 'social';
@@ -81,6 +82,7 @@ export function useInbox() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { playSound, enabled: soundEnabled } = useNotificationSound();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [filters, setFilters] = useState<InboxFilters>({
     channel: 'all',
@@ -298,8 +300,12 @@ export function useInbox() {
         (payload) => {
           queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
           
-          // Show toast for inbound messages
+          // Show toast AND play sound for inbound messages
           if ((payload.new as InboxMessage).direction === 'inbound') {
+            // Play notification sound
+            playSound();
+            
+            // Show toast notification
             toast({
               title: 'Nieuw bericht ontvangen',
               description: (payload.new as InboxMessage).subject || 'Je hebt een nieuw klantbericht',
@@ -324,7 +330,7 @@ export function useInbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentTenant?.id, queryClient, toast]);
+  }, [currentTenant?.id, queryClient, toast, playSound]);
 
   return {
     conversations: filteredConversations,

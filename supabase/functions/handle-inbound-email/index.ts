@@ -97,27 +97,35 @@ function detectSourceChannel(
   return { channel: 'email' };
 }
 
-// Fetch full email content from Resend API
+// Fetch full email content from Resend RECEIVING API (for inbound emails)
+// CRITICAL: Use /emails/receiving/ endpoint, NOT /emails/ which is for sent emails only
 async function fetchEmailContent(emailId: string, apiKey: string): Promise<ResendRetrievedEmail | null> {
   try {
-    const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+    // Use the RECEIVING endpoint for inbound emails
+    const response = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Resend API error (${response.status}):`, errorText.substring(0, 200));
+      console.error(`Resend Receiving API error (${response.status}):`, errorText.substring(0, 300));
       return null;
     }
 
     const data = await response.json();
+    console.log("Resend Receiving API response:", {
+      id: data.id,
+      has_html: !!data.html,
+      has_text: !!data.text,
+      html_length: data.html?.length || 0,
+      text_length: data.text?.length || 0,
+    });
     return data as ResendRetrievedEmail;
   } catch (error) {
-    console.error('Failed to fetch email from Resend:', error);
+    console.error('Failed to fetch inbound email from Resend:', error);
     return null;
   }
 }
