@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 export type TicketStatus = 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type TicketCategory = 'billing' | 'technical' | 'feature' | 'bug' | 'other';
+export type TicketCategory = 'billing' | 'technical' | 'feature' | 'bug' | 'other' | 'integration' | 'feedback';
 export type SenderType = 'merchant' | 'support' | 'system' | 'ai';
 
 export interface SupportTicket {
