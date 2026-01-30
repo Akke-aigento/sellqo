@@ -1,213 +1,123 @@
 
+<context>
+Gebruiker merkt dat AI-inbox antwoordsuggesties “opnieuw” (anders) worden bij refresh, i.p.v. dezelfde suggestie te blijven tonen tot men zelf opnieuw vraagt.
 
-# Plan: Automatische Prospect Aanmaak voor Alle Kanalen
+Ik heb de huidige implementatie bekeken:
+- Frontend gebruikt `useAISuggestion` + `ReplyComposer` om een suggestie op te halen en eerst een cached suggestie te proberen laden.
+- Backend functie `ai-suggest-reply` probeert de suggestie te cachen in de tabel `ai_reply_suggestions` via `upsert`.
+</context>
 
-## Huidige Situatie
+<findings>
+1) Caching faalt voor gesprekken waarvan de “conversation id” géén UUID is
+- In de database-migratie voor `ai_reply_suggestions` staat:
+  - `conversation_id UUID NOT NULL`
+- In de inbox wordt een conversatie echter gegroepeerd met:
+  - `const key = msg.customer_id || msg.from_email || msg.to_email || 'unknown'`
+  - Daardoor kan `conversation.id` een e-mailadres zijn (bv. `"aaron.mercken@hotmail.com"`) wanneer `customer_id` (nog) null is.
+- In `ai-suggest-reply` logs zien we expliciet:
+  - `Failed to cache suggestion ... invalid input syntax for type uuid: "aaron.mercken@hotmail.com"`
+- Resultaat:
+  - De suggestion wordt wel gegenereerd, maar niet opgeslagen.
+  - Bij refresh is er dus geen cache → gebruiker krijgt (weer) een nieuwe suggestion.
 
-| Kanaal | Klant zoeken | Prospect aanmaken | Status |
-|--------|--------------|-------------------|--------|
-| Email | ✅ Op email | ✅ Ja | Werkt |
-| WhatsApp | ⚠️ Op whatsapp_number | ❌ Nee | customer_id = null |
-| Facebook | ⚠️ Op facebook_psid | ❌ Nee | customer_id = null |
-| Instagram | ⚠️ Op instagram_id | ❌ Nee | customer_id = null |
+2) De huidige cache lookup is strenger dan nodig
+- Zowel frontend als backend zoeken cache op basis van `(tenant_id, conversation_id, message_id)`.
+- In de praktijk is “één suggestie per inbound message” voldoende: `(tenant_id, message_id)` is de stabiele sleutel.
+</findings>
 
-## Gewenste Situatie
+<goal>
+- Een AI-suggestie moet stabiel blijven (zelfde tekst) bij refresh zolang het over dezelfde inbound message gaat.
+- Credits mogen niet opnieuw verbruikt worden wanneer een cached suggestion bestaat.
+- Dit moet ook werken voor oudere threads/legacy data waar `customer_id` soms nog null is.
+</goal>
 
-Alle kanalen maken automatisch een prospect aan als de afzender onbekend is:
+<solution_overview>
+We maken caching “per message”, en we zorgen dat het cache-record altijd kan opgeslagen worden:
+1) Database: maak `ai_reply_suggestions.conversation_id` een tekstveld (zodat email/phone keys niet crashen).
+2) Database: wijzig uniqueness en indexering naar `(tenant_id, message_id)` (message-based caching).
+3) Backend functie `ai-suggest-reply`: cache lookup + upsert op `(tenant_id, message_id)` i.p.v. conversation_id.
+4) Frontend hook `useAISuggestion` + `ReplyComposer`: cached suggestion laden op basis van `messageId` (conversationId wordt niet meer gebruikt voor caching).
+</solution_overview>
 
-```text
-Inkomend bericht (elk kanaal)
-        │
-        ▼
-┌───────────────────────────────────────┐
-│ Zoek klant op kanaal-specifiek veld   │
-│ - Email: email adres                  │
-│ - WhatsApp: telefoonnummer            │
-│ - Facebook: PSID                      │
-│ - Instagram: IGSID                    │
-└───────────────────────────────────────┘
-        │
-        ├── Gevonden? → Koppel aan bestaande klant
-        │
-        └── Niet gevonden?
-                │
-                ▼
-    ┌────────────────────────────────────┐
-    │ MAAK PROSPECT AAN                  │
-    │ • customer_type = 'prospect'       │
-    │ • Kanaal-ID opslaan               │
-    │ • Bron = kanaal (whatsapp/fb/ig)  │
-    └────────────────────────────────────┘
-```
+<implementation_steps>
+<step number="1" title="Database wijziging (migratie)">
+A) Wijzig kolomtype:
+- `ALTER TABLE public.ai_reply_suggestions ALTER COLUMN conversation_id TYPE text USING conversation_id::text;`
 
----
+B) Pas unique constraint aan:
+- Verwijder bestaande constraint: `unique_suggestion_per_message UNIQUE (tenant_id, conversation_id, message_id)`
+- Maak nieuwe constraint: `UNIQUE (tenant_id, message_id)`  
+  (Zo is er exact één suggestion per inbound message per tenant.)
 
-## Technische Wijzigingen
+C) Pas indexen aan (performance):
+- Vervang/maak index voor snelle lookup:
+  - `CREATE INDEX ... ON ai_reply_suggestions(tenant_id, message_id);`
+- (Optioneel) extra index op `conversation_id` als we later willen filteren in admin/debug.
 
-### 1. WhatsApp Webhook (`whatsapp-webhook/index.ts`)
+Opmerking: deze wijziging is backward-compatible voor bestaande (uuid) conversation_id waarden, omdat UUID → text wordt geconverteerd.
+</step>
 
-Na het zoeken op `whatsapp_number`, als geen klant gevonden:
+<step number="2" title="Backend functie aanpassen (ai-suggest-reply)">
+In `supabase/functions/ai-suggest-reply/index.ts`:
+A) Cache check aanpassen:
+- Vervang lookup van:
+  - `.eq('conversation_id', conversation_id).eq('message_id', message_id)`
+- Naar:
+  - `.eq('tenant_id', tenant_id).eq('message_id', message_id)`
 
-```typescript
-// Regel ~105-110: Na customer lookup
-let customerId = customer?.id || null;
+B) Cache upsert aanpassen:
+- Upsert blijft doen, maar `onConflict` wordt:
+  - `onConflict: 'tenant_id,message_id'`
+- `conversation_id` blijven opslaan als “context” (string) in de tabel (handig voor debugging/rapportering), maar niet meer nodig voor caching.
 
-if (!customerId) {
-  // Maak prospect aan met telefoonnummer
-  const { data: newProspect } = await supabase
-    .from('customers')
-    .insert({
-      tenant_id: connection.tenant_id,
-      whatsapp_number: fromPhone,
-      phone: fromPhone,  // Backup in phone veld
-      customer_type: 'prospect',
-      notes: 'Automatisch aangemaakt vanuit WhatsApp inbox',
-      total_orders: 0,
-      total_spent: 0,
-    })
-    .select('id')
-    .single();
-  
-  if (newProspect) {
-    customerId = newProspect.id;
-    console.log(`Created WhatsApp prospect: ${fromPhone}`);
-  }
-}
+C) Verwacht resultaat:
+- Geen “invalid uuid” caching errors meer.
+- Suggestie wordt consequent als cached teruggegeven bij refresh.
+</step>
 
-// Gebruik customerId bij insert (nu altijd gevuld)
-```
+<step number="3" title="Frontend caching aanpassen (useAISuggestion + ReplyComposer)">
+A) `src/hooks/useAISuggestion.ts`
+- `loadCachedSuggestion(conversationId, messageId)` ombouwen naar:
+  - `loadCachedSuggestion(messageId)`
+- Query enkel op:
+  - `tenant_id` + `message_id`
+- State updates (setSuggestion/setIsCached) blijven hetzelfde.
 
-### 2. Meta Messaging Webhook (`meta-messaging-webhook/index.ts`)
+B) `src/components/admin/inbox/ReplyComposer.tsx`
+- In de useEffect die cached suggestions laadt:
+  - roep `loadCachedSuggestion(lastInboundMessage.id)` aan
+  - i.p.v. `loadCachedSuggestion(conversation.id, messageId)`
+- Zo is caching volledig onafhankelijk van hoe conversaties gegroepeerd worden.
 
-Na het zoeken op `facebook_psid` of `instagram_id`:
+C) Klein dependency-detail:
+- De useEffect dependencies kunnen we opschonen zodat het gedrag voorspelbaar blijft (geen onverwachte re-triggers), maar functioneel is dit secundair.
+</step>
 
-```typescript
-// Regel ~103-109: Na customer lookup
-let customerId = customer?.id || null;
+<step number="4" title="Validatie / testen (end-to-end)">
+1) Open een conversatie met een inbound bericht.
+2) Klik “AI suggestie” (of auto-generate indien aan).
+3) Controleer dat de UI “(gecached)” toont bij herladen (refresh).
+4) Controleer dat credits niet opnieuw dalen bij refresh.
+5) Test ook een legacy thread waarbij eerder `customer_id` null was (bv. gesprek-ID = email string), want daar faalde caching vandaag.
+6) Optioneel: kijk in backend logs of “Failed to cache suggestion … invalid uuid …” niet meer voorkomt.
+</step>
+</implementation_steps>
 
-if (!customerId) {
-  // Haal profiel info op van Meta API (optioneel)
-  // Voor nu: basis prospect aanmaken
-  const insertData: Record<string, any> = {
-    tenant_id: connection.tenant_id,
-    customer_type: 'prospect',
-    notes: `Automatisch aangemaakt vanuit ${platform === 'instagram' ? 'Instagram' : 'Facebook Messenger'} inbox`,
-    total_orders: 0,
-    total_spent: 0,
-  };
-  
-  // Platform-specifieke identifier opslaan
-  if (platform === 'instagram') {
-    insertData.instagram_id = senderId;
-  } else {
-    insertData.facebook_psid = senderId;
-  }
-  
-  const { data: newProspect } = await supabase
-    .from('customers')
-    .insert(insertData)
-    .select('id')
-    .single();
-  
-  if (newProspect) {
-    customerId = newProspect.id;
-    console.log(`Created ${platform} prospect: ${senderId}`);
-  }
-}
-```
+<edge_cases>
+- Als message_id ontbreekt (zou zelden moeten gebeuren), wordt er nog steeds niet gecached (bestaand gedrag).
+- Als een gebruiker “Hergenereren” doet:
+  - de bestaande cache wordt overschreven (op dezelfde message_id) en credits worden gebruikt (verwacht gedrag).
+</edge_cases>
 
-### 3. Database: Nieuwe kolommen op `customers` tabel
+<what_this_fixes>
+- De suggestie blijft identiek bij refresh voor dezelfde inbound message.
+- Geen cache-fails meer door conversation_id = email/phone.
+- Minder “random” gevoel voor de gebruiker: suggestion is stabiel tot men actief hergenereert.
+</what_this_fixes>
 
-De kolommen `instagram_id` en `facebook_psid` moeten bestaan voor matching. Laat me checken of deze al bestaan:
-
-```sql
--- Als ze nog niet bestaan, toevoegen:
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS facebook_psid TEXT;
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS instagram_id TEXT;
-
--- Indexes voor snelle lookups
-CREATE INDEX IF NOT EXISTS idx_customers_facebook_psid ON customers(tenant_id, facebook_psid) WHERE facebook_psid IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_customers_instagram_id ON customers(tenant_id, instagram_id) WHERE instagram_id IS NOT NULL;
-```
-
----
-
-## Bestanden te Wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/whatsapp-webhook/index.ts` | Prospect aanmaken bij onbekend telefoonnummer |
-| `supabase/functions/meta-messaging-webhook/index.ts` | Prospect aanmaken bij onbekend Facebook/Instagram ID |
-| Database migratie | Kolommen `facebook_psid` en `instagram_id` + indexes |
-
----
-
-## Resultaat per Kanaal
-
-### WhatsApp Prospect
-```text
-┌──────────────────────────────────┐
-│ 👤 +31 6 12345678                │
-│ [Prospect] [📱 WhatsApp]          │
-│                                  │
-│ 📞 +31 6 12345678                │
-│ Eerste contact: 30 jan 2026     │
-│ Bron: WhatsApp                   │
-│                                  │
-│ 💬 3 gesprekken                   │
-└──────────────────────────────────┘
-```
-
-### Facebook/Instagram Prospect
-```text
-┌──────────────────────────────────┐
-│ 👤 Facebook User 1234567890      │
-│ [Prospect] [📘 Facebook]          │
-│                                  │
-│ Facebook ID: 1234567890          │
-│ Eerste contact: 30 jan 2026     │
-│ Bron: Facebook Messenger         │
-│                                  │
-│ 💬 2 gesprekken                   │
-└──────────────────────────────────┘
-```
-
----
-
-## Bonus: Meta Profiel Ophalen (optioneel, fase 2)
-
-Facebook/Instagram API kan profielinfo geven:
-
-```typescript
-// Optioneel: Haal naam/profielfoto op van Meta
-const profileResponse = await fetch(
-  `https://graph.facebook.com/${senderId}?fields=first_name,last_name,profile_pic&access_token=${accessToken}`
-);
-const profile = await profileResponse.json();
-// → first_name: "Jan", last_name: "de Vries", profile_pic: "https://..."
-```
-
-Dit kunnen we later toevoegen om prospects direct een naam te geven.
-
----
-
-## Voordelen
-
-1. **Alle kanalen consistent** - Prospect aanmaak werkt overal hetzelfde
-2. **Geen losse berichten** - Elke conversatie gekoppeld aan klant/prospect
-3. **Cross-channel matching** - Als WhatsApp prospect later ook mailt, herkennen we ze
-4. **Complete customer journey** - Van eerste DM tot aankoop, alles zichtbaar
-5. **Betere CRM** - Prospects kunnen worden geconverteerd, getagd, gefilterd
-
----
-
-## Samenvatting
-
-Dit plan breidt de automatische prospect-aanmaak uit naar **alle communicatiekanalen**:
-
-- WhatsApp berichten van onbekende nummers → Prospect met telefoonnummer
-- Facebook Messenger berichten → Prospect met Facebook PSID
-- Instagram DMs → Prospect met Instagram ID
-
-Alle communicatie wordt dan altijd aan een klant- of prospectprofiel gekoppeld!
-
+<files_touched>
+- Database migratie: `ai_reply_suggestions` schema (conversation_id type + constraint + index)
+- `supabase/functions/ai-suggest-reply/index.ts`
+- `src/hooks/useAISuggestion.ts`
+- `src/components/admin/inbox/ReplyComposer.tsx`
+</files_touched>
