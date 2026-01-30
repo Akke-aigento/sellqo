@@ -1,160 +1,151 @@
 
-# Plan: Inbox UX Verbeteringen + Platform Owner AI Credits
+# Plan: Platform Owner Onbeperkte AI Credits Fix
 
-## Samenvatting Wijzigingen
+## Probleem
 
-1. **Groter antwoordvak** - Textarea vergroten voor betere bewerking
-2. **Inklapbare mappenlijst** - Sidebar kan worden ingeklapt om meer ruimte te geven
-3. **Drag & drop gesprekken naar mappen** - Visueel verslepen van gesprekken
-4. **Platform owner onbeperkte AI credits** - `is_internal_tenant` = ongelimiteerd
+De **402 (Payment Required)** error komt omdat:
+1. De frontend credit check in `useAICredits.ts` nu correct wordt omzeild voor platform owners
+2. Maar de **edge functions** roepen de database functie `use_ai_credits` aan
+3. Deze database functie controleert NIET of de tenant een `is_internal_tenant` is
 
----
+Dit treft **11+ AI edge functions** die allemaal dezelfde `use_ai_credits` RPC aanroepen.
 
-## 1. Groter Antwoordvak
+## Oplossing
 
-### Wijzigingen in `ReplyComposer.tsx`
+De meest efficiënte fix is het aanpassen van de **database functie** `use_ai_credits` om automatisch `TRUE` te retourneren voor internal tenants. Hierdoor:
+- Alle edge functions werken direct correct
+- Geen wijzigingen nodig in 11+ afzonderlijke edge function bestanden
+- Toekomstige AI features profiteren ook automatisch
 
-De textarea wordt vergroot van `min-h-[80px]` naar `min-h-[120px]` en gebruikers kunnen de hoogte aanpassen:
+## Database Wijziging
 
-```text
-VOOR:  <Textarea className="min-h-[80px] resize-none pr-10" />
-NA:    <Textarea className="min-h-[120px] resize-y pr-10" />
-```
-
-De `resize-y` class maakt het mogelijk de hoogte aan te passen door te slepen.
-
----
-
-## 2. Inklapbare Mappenlijst
-
-### Nieuwe State + UI
-
-**Messages.tsx:**
-- Voeg `isSidebarCollapsed` state toe
-- Collapsed state: alleen iconen tonen (w-12 ipv w-44)
-- Toggle knop bovenaan de sidebar
+Beide versies van de `use_ai_credits` functie aanpassen:
 
 ```text
-┌──────────────────────────────────────────────────┐
-│ [<<] MAPPEN          │  Zoek...        │ Detail │
-│ ──────────────────   │                 │        │
-│ 📥 Inbox (5)         │  Gesprek 1      │        │
-│ 📁 Gearchiveerd (3)  │  Gesprek 2      │        │
-│ 🗑️ Prullenbak        │                 │        │
-└──────────────────────────────────────────────────┘
+VOOR:
+┌─────────────────────────────────────────┐
+│ 1. Check beschikbare credits            │
+│ 2. Return FALSE als onvoldoende         │
+│ 3. Anders: trek credits af + return TRUE│
+└─────────────────────────────────────────┘
 
-        ⬇️ Na inklappen ⬇️
-
-┌──────────────────────────────────────────────────┐
-│ [>>] │  Zoek...              │ Meer detail      │
-│ ──── │                       │ ruimte!          │
-│ 📥 5 │  Gesprek 1            │                  │
-│ 📁 3 │  Gesprek 2            │                  │
-│ 🗑️   │                       │                  │
-└──────────────────────────────────────────────────┘
+NA:
+┌─────────────────────────────────────────────┐
+│ 0. Check is_internal_tenant → JA = TRUE     │
+│ 1. Check beschikbare credits                │
+│ 2. Return FALSE als onvoldoende             │
+│ 3. Anders: trek credits af + return TRUE    │
+└─────────────────────────────────────────────┘
 ```
 
-**FolderList.tsx:**
-- Nieuwe `collapsed` prop accepteren
-- In collapsed mode: alleen icoon + badge tonen
-- Header met toggle knop
+### SQL Migratie
 
----
+```sql
+-- Versie 1: use_ai_credits(p_tenant_id, p_credits_needed)
+CREATE OR REPLACE FUNCTION public.use_ai_credits(
+  p_tenant_id uuid, 
+  p_credits_needed integer DEFAULT 1
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $$
+DECLARE
+  v_is_internal BOOLEAN;
+  available_credits integer;
+BEGIN
+  -- Platform owner (is_internal_tenant) heeft onbeperkte credits
+  SELECT is_internal_tenant INTO v_is_internal
+  FROM tenants WHERE id = p_tenant_id;
+  
+  IF v_is_internal = TRUE THEN
+    -- Log usage maar geen credit aftrek
+    INSERT INTO ai_usage_log (tenant_id, feature, credits_used, metadata)
+    VALUES (p_tenant_id, 'internal_unlimited', 0, 
+      '{"note": "Platform owner - unlimited credits"}'::jsonb);
+    RETURN TRUE;
+  END IF;
+  
+  -- Normale credit check voor andere tenants
+  SELECT (credits_total + credits_purchased - credits_used)
+  INTO available_credits FROM tenant_ai_credits
+  WHERE tenant_id = p_tenant_id;
+  
+  IF available_credits IS NULL OR available_credits < p_credits_needed THEN
+    RETURN FALSE;
+  END IF;
+  
+  UPDATE tenant_ai_credits
+  SET credits_used = credits_used + p_credits_needed, updated_at = NOW()
+  WHERE tenant_id = p_tenant_id;
+  
+  RETURN TRUE;
+END;
+$$;
 
-## 3. Drag & Drop Gesprekken naar Mappen
-
-### Implementatie met `@dnd-kit` (al geïnstalleerd)
-
-**Bestanden te wijzigen:**
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `Messages.tsx` | Wrap met `DndContext`, `DragOverlay` voor visuele feedback |
-| `ConversationList.tsx` | Maak items `Draggable` via `useDraggable` |
-| `ConversationItem.tsx` | Voeg drag handle toe |
-| `FolderList.tsx` | Maak mappen `Droppable` via `useDroppable` |
-
-### Flow
-1. Gebruiker pakt gesprek vast (drag handle of hele item)
-2. Sleept naar een map in de sidebar
-3. Map highlight wanneer er overheen gesleept wordt
-4. Bij loslaten → `moveToFolder` mutation wordt aangeroepen
-
-### Visuele Feedback
-- Dragging item: opacity 50%, schaal 1.02
-- Drop target (actieve map): border-primary, bg-primary/10
-- Cursor: grabbing tijdens sleep
-
----
-
-## 4. Platform Owner Onbeperkte AI Credits
-
-### Huidige Situatie
-
-`useAISuggestion.ts` en andere AI hooks checken credits via `useAICredits()`:
-
-```typescript
-if (!hasCredits(1)) {
-  toast({ title: 'Onvoldoende AI credits', ... });
-  return;
-}
+-- Versie 2: use_ai_credits(p_tenant_id, p_credits, p_feature, p_model, p_metadata)
+CREATE OR REPLACE FUNCTION public.use_ai_credits(
+  p_tenant_id uuid, 
+  p_credits integer, 
+  p_feature text, 
+  p_model text DEFAULT NULL, 
+  p_metadata jsonb DEFAULT '{}'
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $$
+DECLARE
+  v_is_internal BOOLEAN;
+  v_available INTEGER;
+BEGIN
+  -- Platform owner check
+  SELECT is_internal_tenant INTO v_is_internal
+  FROM tenants WHERE id = p_tenant_id;
+  
+  IF v_is_internal = TRUE THEN
+    -- Log voor analytics, geen credit aftrek
+    INSERT INTO ai_usage_log (tenant_id, feature, credits_used, model_used, metadata)
+    VALUES (p_tenant_id, p_feature, 0, p_model, 
+      p_metadata || '{"internal_unlimited": true}'::jsonb);
+    RETURN TRUE;
+  END IF;
+  
+  -- Normale flow
+  SELECT (credits_total + credits_purchased - credits_used)
+  INTO v_available FROM tenant_ai_credits
+  WHERE tenant_id = p_tenant_id;
+  
+  IF v_available IS NULL THEN
+    INSERT INTO tenant_ai_credits (tenant_id, credits_total, credits_used)
+    VALUES (p_tenant_id, 0, 0);
+    v_available := 0;
+  END IF;
+  
+  IF v_available < p_credits THEN
+    RETURN FALSE;
+  END IF;
+  
+  UPDATE tenant_ai_credits
+  SET credits_used = credits_used + p_credits, updated_at = now()
+  WHERE tenant_id = p_tenant_id;
+  
+  INSERT INTO ai_usage_log (tenant_id, feature, credits_used, model_used, metadata)
+  VALUES (p_tenant_id, p_feature, p_credits, p_model, p_metadata);
+  
+  RETURN TRUE;
+END;
+$$;
 ```
 
-### Oplossing
+## Impact
 
-**useAICredits.ts aanpassen:**
+| Bestand/Component | Actie |
+|-------------------|-------|
+| Database: `use_ai_credits` functies (2x) | Aanpassen met `is_internal_tenant` check |
+| Edge functions (11+ bestanden) | **Geen wijziging nodig** |
+| Frontend hooks | **Geen wijziging nodig** (al correct) |
 
-```typescript
-export function useAICredits() {
-  const { currentTenant } = useTenant();
+## Resultaat
 
-  // Platform owner heeft ONBEPERKTE credits
-  const isUnlimited = currentTenant?.is_internal_tenant === true;
-
-  // ... existing query code ...
-
-  const hasCredits = (required: number) => {
-    // Platform owner altijd true
-    if (isUnlimited) return true;
-    return (credits?.available || 0) >= required;
-  };
-
-  return {
-    credits: isUnlimited ? {
-      ...credits,
-      available: Infinity,  // of een hoog getal voor UI
-      credits_total: 999999,
-    } : credits,
-    isUnlimited,
-    hasCredits,
-    // ...
-  };
-}
-```
-
-Dit zorgt ervoor dat:
-- `hasCredits()` altijd `true` retourneert voor platform owner
-- De UI toont "Onbeperkt" in plaats van een getal
-- Alle AI features werken zonder credit check
-
----
-
-## Technische Details
-
-### Bestanden te Wijzigen
-
-| Bestand | Actie | Beschrijving |
-|---------|-------|--------------|
-| `src/components/admin/inbox/ReplyComposer.tsx` | Wijzigen | Grotere textarea + resize-y |
-| `src/pages/admin/Messages.tsx` | Wijzigen | DndContext wrapper, collapsed state |
-| `src/components/admin/inbox/FolderList.tsx` | Wijzigen | Collapsed mode, droppable zones |
-| `src/components/admin/inbox/ConversationList.tsx` | Wijzigen | Draggable items |
-| `src/components/admin/inbox/ConversationItem.tsx` | Wijzigen | Drag handle styling |
-| `src/hooks/useAICredits.ts` | Wijzigen | is_internal_tenant bypass |
-
-### Afhankelijkheden
-- `@dnd-kit/core` - al geïnstalleerd ✅
-- `@dnd-kit/utilities` - al geïnstalleerd ✅
-
-### Geen Database Wijzigingen Nodig
-Alle functionaliteit maakt gebruik van bestaande `moveToFolder` mutation en tenant flags.
+Na deze wijziging:
+- Platform owner kan onbeperkt AI features gebruiken
+- Alle AI edge functions werken zonder 402 errors
+- AI gebruik wordt nog steeds gelogd voor analytics (met `credits_used: 0`)
+- Normale tenants behouden hun credit-systeem
