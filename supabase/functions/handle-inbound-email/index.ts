@@ -483,20 +483,61 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // If no order match, try to find customer by email
+    // If no order match, try to find customer by email OR create a prospect
     if (!customerId) {
       const emailMatch = payload.from.match(/<([^>]+)>/) || [null, payload.from];
-      const cleanEmail = emailMatch[1] || payload.from;
+      const cleanEmail = (emailMatch[1] || payload.from).toLowerCase().trim();
+      
+      // Parse name from "Firstname Lastname <email>" format
+      const nameMatch = payload.from.match(/^([^<]+)</);
+      let firstName: string | null = null;
+      let lastName: string | null = null;
+      
+      if (nameMatch) {
+        const fullName = nameMatch[1].trim().replace(/"/g, '');
+        const nameParts = fullName.split(/\s+/);
+        if (nameParts.length >= 2) {
+          firstName = nameParts[0];
+          lastName = nameParts.slice(1).join(' ');
+        } else if (nameParts.length === 1) {
+          firstName = nameParts[0];
+        }
+      }
 
-      const { data: customer } = await supabase
+      // Try to find existing customer
+      const { data: existingCustomer } = await supabase
         .from("customers")
         .select("id, first_name, last_name")
         .eq("tenant_id", tenantId)
-        .eq("email", cleanEmail.toLowerCase())
+        .eq("email", cleanEmail)
         .maybeSingle();
 
-      if (customer) {
-        customerId = customer.id;
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        console.log(`Found existing customer: ${cleanEmail}`);
+      } else {
+        // Create new prospect
+        const { data: newProspect, error: prospectError } = await supabase
+          .from("customers")
+          .insert({
+            tenant_id: tenantId,
+            email: cleanEmail,
+            first_name: firstName,
+            last_name: lastName,
+            customer_type: 'prospect',
+            notes: `Automatisch aangemaakt vanuit inbox - eerste contact via ${channel}`,
+            total_orders: 0,
+            total_spent: 0,
+          })
+          .select("id")
+          .single();
+
+        if (prospectError) {
+          console.error("Failed to create prospect:", prospectError);
+        } else if (newProspect) {
+          customerId = newProspect.id;
+          console.log(`Created new prospect: ${cleanEmail} (${firstName || 'unknown'} ${lastName || ''})`);
+        }
       }
     }
 

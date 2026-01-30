@@ -23,6 +23,7 @@ import QuoteDetailPage from "./pages/admin/QuoteDetail";
 import InvoicesPage from "./pages/admin/Invoices";
 import CreditNotesPage from "./pages/admin/CreditNotes";
 import CustomersPage from "./pages/admin/Customers";
+import CustomerDetailPage from "./pages/admin/CustomerDetail";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
 import SubscriptionsPage from "./pages/admin/Subscriptions";
@@ -168,6 +169,7 @@ const App = () => (
               <Route path="promotions/gift-cards" element={<GiftCardsPage />} />
               <Route path="promotions/stacking" element={<StackingRulesPage />} />
               <Route path="customers" element={<CustomersPage />} />
+              <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="payments" element={<PaymentsPage />} />

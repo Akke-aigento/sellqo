@@ -1,7 +1,7 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram } from 'lucide-react';
+import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageBubble } from './MessageBubble';
 import { ReplyComposer } from './ReplyComposer';
 import { ConversationActions } from './ConversationActions';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useToast } from '@/hooks/use-toast';
 import type { Conversation, MessageStatus } from '@/hooks/useInbox';
 
 interface ConversationDetailProps {
@@ -32,6 +34,9 @@ export function ConversationDetail({
   onMoveToFolder,
 }: ConversationDetailProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { createCustomer } = useCustomers();
+  const { toast } = useToast();
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   // Mark as read when viewing
   useEffect(() => {
@@ -99,6 +104,44 @@ export function ConversationDetail({
   const conversationStatus: MessageStatus = conversation.messageStatus || 'active';
   const isArchived = conversationStatus === 'archived';
   const isDeleted = conversationStatus === 'deleted';
+
+  // Handle creating a customer from conversation
+  const handleCreateCustomer = async () => {
+    if (!customer?.email) return;
+    
+    setIsCreatingCustomer(true);
+    try {
+      // Parse name from display name if available
+      const nameParts = (customer.name || '').split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      await createCustomer.mutateAsync({
+        email: customer.email,
+        first_name: firstName,
+        last_name: lastName,
+        phone: customer.phone || undefined,
+        customer_type: 'prospect',
+      });
+      
+      toast({
+        title: 'Klant aangemaakt',
+        description: `${customer.name || customer.email} is toegevoegd als prospect.`,
+      });
+      
+      // Refresh the conversation to get the new customer ID
+      onMessageSent();
+    } catch (error) {
+      console.error('Failed to create customer:', error);
+      toast({
+        title: 'Fout',
+        description: 'Kon klant niet aanmaken.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  };
   
   return (
     <div className="flex flex-col h-full">
@@ -140,13 +183,23 @@ export function ConversationDetail({
               </Link>
             </Button>
           )}
-          {customer?.id && (
+          {customer?.id ? (
             <Button variant="outline" size="sm" asChild>
               <Link to={`/admin/customers/${customer.id}`}>
                 <User className="h-4 w-4 mr-1" />
                 Klantprofiel
                 <ExternalLink className="h-3 w-3 ml-1" />
               </Link>
+            </Button>
+          ) : customer?.email && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCreateCustomer}
+              disabled={isCreatingCustomer}
+            >
+              <UserPlus className="h-4 w-4 mr-1" />
+              {isCreatingCustomer ? 'Aanmaken...' : 'Maak klant aan'}
             </Button>
           )}
           {/* Conversation actions dropdown */}
