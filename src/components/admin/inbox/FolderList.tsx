@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Inbox, Archive, Trash2, Folder, Plus, MoreHorizontal, Pencil, Trash } from 'lucide-react';
+import { Inbox, Archive, Trash2, Folder, Plus, MoreHorizontal, Trash } from 'lucide-react';
+import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,12 +21,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useInboxFolders, type InboxFolder } from '@/hooks/useInboxFolders';
 
 interface FolderListProps {
   selectedFolderId: string | null;
   onFolderSelect: (folderId: string | null) => void;
   folderCounts: Record<string, number>;
+  collapsed?: boolean;
 }
 
 const iconMap: Record<string, typeof Inbox> = {
@@ -37,11 +40,102 @@ const iconMap: Record<string, typeof Inbox> = {
 
 function FolderIcon({ icon }: { icon: string }) {
   const Icon = iconMap[icon] || Folder;
-  return <Icon className="h-4 w-4" />;
+  return <Icon className="h-4 w-4 shrink-0" />;
 }
 
-export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: FolderListProps) {
-  const { folders, inboxFolder, archiveFolder, trashFolder, customFolders, createFolder, deleteFolder } = useInboxFolders();
+interface DroppableFolderProps {
+  folderId: string;
+  isActive: boolean;
+  onClick: () => void;
+  icon: string;
+  name: string;
+  count: number;
+  collapsed: boolean;
+  isSystem?: boolean;
+  onDelete?: () => void;
+}
+
+function DroppableFolder({ 
+  folderId, 
+  isActive, 
+  onClick, 
+  icon, 
+  name, 
+  count, 
+  collapsed,
+  isSystem = true,
+  onDelete 
+}: DroppableFolderProps) {
+  const { isOver, setNodeRef } = useDroppable({ id: folderId });
+
+  const content = (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm',
+        isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted',
+        isOver && 'bg-primary/20 border-2 border-primary border-dashed',
+        collapsed && 'justify-center px-1'
+      )}
+      onClick={onClick}
+    >
+      <FolderIcon icon={icon} />
+      {!collapsed && (
+        <>
+          <span className="flex-1 truncate">{name}</span>
+          {count > 0 && (
+            <Badge variant="secondary" className="h-5 min-w-5 text-xs shrink-0">
+              {count}
+            </Badge>
+          )}
+          {!isSystem && onDelete && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                  <Trash className="h-4 w-4 mr-2" />
+                  Verwijderen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </>
+      )}
+      {collapsed && count > 0 && (
+        <Badge variant="secondary" className="h-4 min-w-4 text-[10px] absolute -top-1 -right-1 px-1">
+          {count}
+        </Badge>
+      )}
+    </div>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="relative">{content}</div>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          {name} {count > 0 && `(${count})`}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
+}
+
+export function FolderList({ selectedFolderId, onFolderSelect, folderCounts, collapsed = false }: FolderListProps) {
+  const { folders, archiveFolder, trashFolder, customFolders, createFolder, deleteFolder } = useInboxFolders();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
@@ -60,81 +154,47 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: F
     }
   };
 
-  const renderFolder = (folder: InboxFolder, isActive: boolean) => {
-    const count = folderCounts[folder.id] || 0;
-    
-    return (
-      <div
-        key={folder.id}
-        className={cn(
-          'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm',
-          isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
-        )}
-        onClick={() => onFolderSelect(folder.id)}
-      >
-        <FolderIcon icon={folder.icon} />
-        <span className="flex-1 truncate">{folder.name}</span>
-        {count > 0 && (
-          <Badge variant="secondary" className="h-5 min-w-5 text-xs shrink-0">
-            {count}
-          </Badge>
-        )}
-        {!folder.is_system && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }}>
-                <Trash className="h-4 w-4 mr-2" />
-                Verwijderen
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-    );
-  };
-
-  // Calculate inbox count (null folder_id = inbox)
   const inboxCount = folderCounts['inbox'] || 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="p-2 border-b shrink-0">
-        <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Mappen</h3>
-      </div>
-      
       <div className="flex-1 overflow-auto p-1.5 space-y-0.5">
-        {/* Inbox (null folder = inbox) */}
-        <div
-          className={cn(
-            'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm',
-            selectedFolderId === null ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
-          )}
+        {/* Inbox */}
+        <DroppableFolder
+          folderId="inbox"
+          isActive={selectedFolderId === null}
           onClick={() => onFolderSelect(null)}
-        >
-          <Inbox className="h-4 w-4 shrink-0" />
-          <span className="flex-1 truncate">Inbox</span>
-          {inboxCount > 0 && (
-            <Badge variant="secondary" className="h-5 min-w-5 text-xs shrink-0">
-              {inboxCount}
-            </Badge>
-          )}
-        </div>
+          icon="inbox"
+          name="Inbox"
+          count={inboxCount}
+          collapsed={collapsed}
+        />
 
         {/* Archive folder */}
-        {archiveFolder && renderFolder(archiveFolder, selectedFolderId === archiveFolder.id)}
+        {archiveFolder && (
+          <DroppableFolder
+            folderId={archiveFolder.id}
+            isActive={selectedFolderId === archiveFolder.id}
+            onClick={() => onFolderSelect(archiveFolder.id)}
+            icon={archiveFolder.icon}
+            name={archiveFolder.name}
+            count={folderCounts[archiveFolder.id] || 0}
+            collapsed={collapsed}
+          />
+        )}
 
         {/* Trash folder */}
-        {trashFolder && renderFolder(trashFolder, selectedFolderId === trashFolder.id)}
+        {trashFolder && (
+          <DroppableFolder
+            folderId={trashFolder.id}
+            isActive={selectedFolderId === trashFolder.id}
+            onClick={() => onFolderSelect(trashFolder.id)}
+            icon={trashFolder.icon}
+            name={trashFolder.name}
+            count={folderCounts[trashFolder.id] || 0}
+            collapsed={collapsed}
+          />
+        )}
 
         {/* Divider if there are custom folders */}
         {customFolders.length > 0 && (
@@ -142,47 +202,109 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts }: F
         )}
 
         {/* Custom folders */}
-        {customFolders.map((folder) => renderFolder(folder, selectedFolderId === folder.id))}
+        {customFolders.map((folder) => (
+          <DroppableFolder
+            key={folder.id}
+            folderId={folder.id}
+            isActive={selectedFolderId === folder.id}
+            onClick={() => onFolderSelect(folder.id)}
+            icon={folder.icon}
+            name={folder.name}
+            count={folderCounts[folder.id] || 0}
+            collapsed={collapsed}
+            isSystem={false}
+            onDelete={() => handleDeleteFolder(folder.id)}
+          />
+        ))}
       </div>
 
       {/* Create new folder button */}
-      <div className="p-1.5 border-t shrink-0">
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-8">
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Nieuwe map
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nieuwe map aanmaken</DialogTitle>
-              <DialogDescription>
-                Maak een aangepaste map om je gesprekken te organiseren.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="folder-name">Mapnaam</Label>
-                <Input
-                  id="folder-name"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Bijv. VIP Klanten, Retour, Support"
-                />
+      {!collapsed && (
+        <div className="p-1.5 border-t shrink-0">
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-8">
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Nieuwe map
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Nieuwe map aanmaken</DialogTitle>
+                <DialogDescription>
+                  Maak een aangepaste map om je gesprekken te organiseren.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="folder-name">Mapnaam</Label>
+                  <Input
+                    id="folder-name"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Bijv. VIP Klanten, Retour, Support"
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                Annuleren
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Annuleren
+                </Button>
+                <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending}>
+                  {createFolder.isPending ? 'Aanmaken...' : 'Map aanmaken'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+
+      {collapsed && (
+        <div className="p-1.5 border-t shrink-0 flex justify-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending}>
-                {createFolder.isPending ? 'Aanmaken...' : 'Map aanmaken'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">Nieuwe map</TooltipContent>
+          </Tooltip>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Nieuwe map aanmaken</DialogTitle>
+                <DialogDescription>
+                  Maak een aangepaste map om je gesprekken te organiseren.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="folder-name-collapsed">Mapnaam</Label>
+                  <Input
+                    id="folder-name-collapsed"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Bijv. VIP Klanten, Retour, Support"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Annuleren
+                </Button>
+                <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending}>
+                  {createFolder.isPending ? 'Aanmaken...' : 'Map aanmaken'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   );
 }

@@ -327,7 +327,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             placeholder="Typ je antwoord..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="min-h-[80px] resize-none pr-10"
+            className="min-h-[120px] resize-y pr-10"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 handleSend();

@@ -1,7 +1,9 @@
 export { InboxFilters } from './InboxFilters';
 export { ConversationList } from './ConversationList';
 export { ConversationItem } from './ConversationItem';
+export { DraggableConversationItem } from './DraggableConversationItem';
 export { ConversationDetail } from './ConversationDetail';
+export { ConversationDragOverlay } from './ConversationDragOverlay';
 export { MessageBubble } from './MessageBubble';
 export { ReplyComposer } from './ReplyComposer';
 export { FolderList } from './FolderList';

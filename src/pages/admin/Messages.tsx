@@ -1,9 +1,13 @@
-import { useMemo } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { DndContext, DragOverlay, closestCenter, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { useInbox } from '@/hooks/useInbox';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
 import { InboxFilters, ConversationList, ConversationDetail, FolderList } from '@/components/admin/inbox';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
+import type { Conversation } from '@/hooks/useInbox';
 
 export default function MessagesPage() {
   const {
@@ -23,6 +27,8 @@ export default function MessagesPage() {
   } = useInbox();
 
   const { folders, archiveFolder, trashFolder } = useInboxFolders();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
 
   // Count by channel
   const counts = useMemo(() => {
@@ -70,13 +76,31 @@ export default function MessagesPage() {
     setSelectedConversationId(null);
   };
 
-  // Get current folder display name
-  const getCurrentFolderName = () => {
-    if (filters.folderId === null) return 'Inbox';
-    if (filters.folderId === 'archived') return 'Gearchiveerd';
-    if (filters.folderId === 'deleted') return 'Prullenbak';
-    const folder = folders.find(f => f.id === filters.folderId);
-    return folder?.name || 'Inbox';
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const conversation = conversations.find(c => c.id === event.active.id);
+    setActiveConversation(conversation || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveConversation(null);
+
+    if (!over) return;
+
+    const conversationId = active.id as string;
+    const targetFolderId = over.id as string;
+
+    // Handle system folders
+    if (targetFolderId === 'inbox') {
+      moveToFolder({ conversationId, folderId: null });
+    } else if (targetFolderId === archiveFolder?.id) {
+      archiveConversation(conversationId);
+    } else if (targetFolderId === trashFolder?.id) {
+      deleteConversation(conversationId);
+    } else {
+      moveToFolder({ conversationId, folderId: targetFolderId });
+    }
   };
 
   return (
@@ -93,39 +117,70 @@ export default function MessagesPage() {
 
       <div className="p-6 h-[calc(100%-5rem)]">
         <Card className="h-full flex overflow-hidden">
-          {/* Left sidebar - Folders */}
-          <div className="w-44 min-w-44 border-r flex flex-col shrink-0 bg-muted/30">
-            <FolderList
-              selectedFolderId={
-                filters.folderId === 'archived' ? archiveFolder?.id || null :
-                filters.folderId === 'deleted' ? trashFolder?.id || null :
-                filters.folderId
-              }
-              onFolderSelect={handleFolderSelect}
-              folderCounts={folderCounts}
-            />
-          </div>
-
-          {/* Middle - Conversation list */}
-          <div className="w-72 min-w-72 border-r flex flex-col shrink-0 overflow-hidden">
-            <InboxFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              emailCount={counts.email}
-              whatsappCount={counts.whatsapp}
-              facebookCount={counts.facebook}
-              instagramCount={counts.instagram}
-              unreadCount={unreadTotal}
-            />
-            <div className="flex-1 overflow-hidden">
-              <ConversationList
-                conversations={conversations}
-                selectedId={selectedConversationId}
-                onSelect={setSelectedConversationId}
-                isLoading={isLoading}
+          <DndContext
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            {/* Left sidebar - Folders */}
+            <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
+              <div className="p-1.5 border-b flex items-center justify-between shrink-0">
+                {!isSidebarCollapsed && (
+                  <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                >
+                  {isSidebarCollapsed ? (
+                    <PanelLeft className="h-3.5 w-3.5" />
+                  ) : (
+                    <PanelLeftClose className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+              <FolderList
+                selectedFolderId={
+                  filters.folderId === 'archived' ? archiveFolder?.id || null :
+                  filters.folderId === 'deleted' ? trashFolder?.id || null :
+                  filters.folderId
+                }
+                onFolderSelect={handleFolderSelect}
+                folderCounts={folderCounts}
+                collapsed={isSidebarCollapsed}
               />
             </div>
-          </div>
+
+            {/* Middle - Conversation list */}
+            <div className="w-72 min-w-72 border-r flex flex-col shrink-0 overflow-hidden">
+              <InboxFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                emailCount={counts.email}
+                whatsappCount={counts.whatsapp}
+                facebookCount={counts.facebook}
+                instagramCount={counts.instagram}
+                unreadCount={unreadTotal}
+              />
+              <div className="flex-1 overflow-hidden">
+                <ConversationList
+                  conversations={conversations}
+                  selectedId={selectedConversationId}
+                  onSelect={setSelectedConversationId}
+                  isLoading={isLoading}
+                />
+              </div>
+            </div>
+
+            {/* Drag overlay */}
+            <DragOverlay>
+              {activeConversation && (
+                <ConversationDragOverlay conversation={activeConversation} />
+              )}
+            </DragOverlay>
+          </DndContext>
 
           {/* Right panel - Conversation detail */}
           <div className="flex-1 min-w-0">
