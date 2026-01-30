@@ -46,7 +46,7 @@ export function ShopifyRequestConnection({ onSuccess }: ShopifyRequestConnection
         notes: notes.trim() || undefined,
       });
       setSubmitted(true);
-      onSuccess?.();
+      // Dialog blijft open om bevestigingsscherm te tonen
     } catch {
       // Error handled by mutation
     }

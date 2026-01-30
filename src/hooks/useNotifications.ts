@@ -63,13 +63,7 @@ export function useNotifications() {
           const newNotification = payload.new as Notification;
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
-
-          // Show toast for new notifications
-          toast({
-            title: newNotification.title,
-            description: newNotification.message,
-            variant: newNotification.priority === 'urgent' ? 'destructive' : 'default',
-          });
+          // Toast wordt afgehandeld door useGlobalNotificationListener
         }
       )
       .on(
