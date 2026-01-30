@@ -15,6 +15,7 @@ import {
   Settings,
   AppWindow,
   Shield,
+  Link2,
   Key,
   CheckCircle,
 } from 'lucide-react';
@@ -62,6 +63,21 @@ const GUIDE_STEPS = [
   },
   {
     step: 4,
+    title: 'Configureer App URLs',
+    description: 'Stel de vereiste URLs in voor de OAuth connectie',
+    icon: Link2,
+    details: [
+      'Ga naar de "Configuration" tab',
+      'Scroll naar "App URL" sectie',
+      'Vul bij "App URL" in:',
+      '• https://sellqo.app',
+      'Vul bij "Allowed redirection URL(s)" in:',
+      '• https://sellqo.app/api/shopify/callback',
+      'Klik op "Save"',
+    ],
+  },
+  {
+    step: 5,
     title: 'Installeer de App',
     description: 'Installeer de app om de access token te genereren',
     icon: CheckCircle,
@@ -72,7 +88,7 @@ const GUIDE_STEPS = [
     ],
   },
   {
-    step: 5,
+    step: 6,
     title: 'Kopieer de Access Token',
     description: 'Kopieer de Admin API access token (wordt slechts 1x getoond!)',
     icon: Key,
