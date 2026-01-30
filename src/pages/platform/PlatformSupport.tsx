@@ -21,8 +21,20 @@ import {
   ShoppingBag,
   ExternalLink,
   Check,
-  X
+  X,
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   useSupportTickets, 
   useSupportMessages, 
@@ -52,7 +64,7 @@ const PRIORITY_CONFIG: Record<TicketPriority, { label: string; color: string }> 
 };
 
 export default function PlatformSupport() {
-  const { tickets, isLoading, createTicket, updateTicket, getTicketStats, isCreating } = useSupportTickets();
+  const { tickets, isLoading, createTicket, updateTicket, deleteTicket, getTicketStats, isCreating } = useSupportTickets();
   const [searchParams] = useSearchParams();
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -301,6 +313,10 @@ export default function PlatformSupport() {
             <TicketDetail 
               ticket={selectedTicket} 
               onUpdate={updateTicket}
+              onDelete={async (ticketId) => {
+                await deleteTicket(ticketId);
+                setSelectedTicket(null);
+              }}
             />
           ) : (
             <CardContent className="flex items-center justify-center h-[600px]">
@@ -313,7 +329,11 @@ export default function PlatformSupport() {
   );
 }
 
-function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (data: any) => Promise<any> }) {
+function TicketDetail({ ticket, onUpdate, onDelete }: { 
+  ticket: SupportTicket; 
+  onUpdate: (data: any) => Promise<any>;
+  onDelete: (ticketId: string) => Promise<void>;
+}) {
   const { messages, isLoading, addMessage, isAdding } = useSupportMessages(ticket.id);
   const [newMessage, setNewMessage] = useState("");
 
@@ -355,6 +375,27 @@ function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (
                 <SelectItem value="closed">Gesloten</SelectItem>
               </SelectContent>
             </Select>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ticket verwijderen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Dit verwijdert het ticket en alle bijbehorende berichten permanent. Deze actie kan niet ongedaan worden gemaakt.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(ticket.id)}>
+                    Verwijderen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </CardHeader>
