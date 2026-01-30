@@ -64,8 +64,11 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     (['whatsapp', 'facebook', 'instagram'].includes(channel) && aiConfig.reply_suggestions_for_whatsapp)
   );
 
-  // Fetch AI suggestion when conversation changes (only if enabled)
+  // Fetch AI suggestion when conversation changes (only if auto-generate is enabled)
   useEffect(() => {
+    // Only auto-fetch if auto_generate is enabled (saves credits when disabled)
+    if (!aiConfig?.reply_suggestions_auto_generate) return;
+    
     const messageContent = conversation.lastMessage?.body_text || conversation.lastMessage?.body_html?.replace(/<[^>]*>/g, '');
     if (shouldShowAISuggestion && messageContent && !suggestion) {
       const lastMessage = conversation.lastMessage;
@@ -83,7 +86,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         });
       }
     }
-  }, [conversation.id, shouldShowAISuggestion]);
+  }, [conversation.id, shouldShowAISuggestion, aiConfig?.reply_suggestions_auto_generate]);
 
   // Auto-fill suggestion if auto_draft is enabled
   useEffect(() => {

@@ -26,6 +26,7 @@ export function AIAssistantSettings() {
     chatbot_welcome_message: string;
     chatbot_position: 'bottom-right' | 'bottom-left';
     reply_suggestions_enabled: boolean;
+    reply_suggestions_auto_generate: boolean;
     reply_suggestions_auto_draft: boolean;
     reply_suggestions_tone: 'professional' | 'friendly' | 'formal';
     reply_suggestions_for_email: boolean;
@@ -43,6 +44,7 @@ export function AIAssistantSettings() {
     chatbot_welcome_message: 'Hallo! Hoe kan ik je helpen?',
     chatbot_position: 'bottom-right',
     reply_suggestions_enabled: false,
+    reply_suggestions_auto_generate: false,
     reply_suggestions_auto_draft: false,
     reply_suggestions_tone: 'professional',
     reply_suggestions_for_email: true,
@@ -65,6 +67,7 @@ export function AIAssistantSettings() {
         chatbot_welcome_message: config.chatbot_welcome_message,
         chatbot_position: config.chatbot_position,
         reply_suggestions_enabled: config.reply_suggestions_enabled,
+        reply_suggestions_auto_generate: config.reply_suggestions_auto_generate ?? false,
         reply_suggestions_auto_draft: config.reply_suggestions_auto_draft,
         reply_suggestions_tone: config.reply_suggestions_tone,
         reply_suggestions_for_email: config.reply_suggestions_for_email,
@@ -209,6 +212,22 @@ export function AIAssistantSettings() {
           {formState.reply_suggestions_enabled && (
             <>
               <Separator />
+              
+              {/* Auto-generate toggle - important for credit control */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="auto-generate">Automatisch genereren</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Uit = klik op AI knop om suggestie te krijgen (bespaart credits)
+                  </p>
+                </div>
+                <Switch
+                  id="auto-generate"
+                  checked={formState.reply_suggestions_auto_generate}
+                  onCheckedChange={(checked) => setFormState((s) => ({ ...s, reply_suggestions_auto_generate: checked }))}
+                />
+              </div>
+
               <div className="space-y-3">
                 <Label>Toon als</Label>
                 <RadioGroup
@@ -277,6 +296,9 @@ export function AIAssistantSettings() {
 
               <p className="text-xs text-muted-foreground">
                 💳 Verbruikt 1 AI credit per suggestie
+                {!formState.reply_suggestions_auto_generate && (
+                  <span className="text-green-600 ml-1">• Credits alleen bij handmatig verzoek</span>
+                )}
               </p>
             </>
           )}
