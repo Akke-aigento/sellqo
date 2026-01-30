@@ -1,89 +1,88 @@
 
-# Plan: Shopify Direct Connect Verbeteringen
+# Plan: App URL en Redirect URL Toevoegen aan Shopify Setup
 
-## Problemen Geïdentificeerd
+## Probleem
+De huidige instructies voor het maken van een Custom App missen de verplichte URL configuratie:
+- **App URL**: `https://sellqo.app`
+- **Redirect URL**: `https://sellqo.app/api/shopify/callback`
 
-### 1. Store URL Input heeft Verkeerde Waarde
-In de screenshot is te zien dat het veld "info@sellqo.ai" bevat - dit is jouw email adres dat waarschijnlijk door browser autofill is ingevuld. 
-
-**Oorzaak**: Het input veld heeft geen `autoComplete="off"` attribuut, waardoor de browser het automatisch invult.
-
-**Oplossing**: 
-- Voeg `autoComplete="off"` toe aan de input
-- Zorg dat de placeholder "mijn-winkel" duidelijk zichtbaar blijft
-
-### 2. Visuele Documentatie met Screenshots
-Gebruikers die niet technisch zijn hebben moeite om de tekst-instructies te volgen. Een visuele gids met screenshots zou veel helpen.
-
-**Oplossing**:
-- Maak een "Bekijk Handleiding" knop met informatiebolletje (HelpCircle icoon)
-- Bij klikken opent een Dialog met stap-voor-stap screenshots
-- Alternatief: Gebruik een carousel met annotated screenshots
+Zonder deze URLs werkt de OAuth flow niet correct.
 
 ## Wijzigingen
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `ShopifyInstantConnect.tsx` | AutoComplete uitschakelen + Handleiding dialog toevoegen |
-| `ShopifySetupGuide.tsx` (nieuw) | Component voor visuele documentatie modal |
+### 1. ShopifySetupGuide.tsx
+Voeg een nieuwe stap toe (wordt stap 4, huidige stap 4 en 5 schuiven naar 5 en 6):
+
+| Stap | Titel | Inhoud |
+|------|-------|--------|
+| **4 (NIEUW)** | Configureer App URLs | App URL en Redirect URL instellen met kopieerbare waarden |
+
+### 2. ShopifyInstantConnect.tsx
+Voeg een extra instructiepunt toe na stap 4 (scopes) met de vereiste URLs in een kopieerbaar formaat.
+
+## Nieuwe Instructie Stappen
+
+```text
+Huidige volgorde:
+1. Ga naar Develop Apps
+2. Maak een nieuwe App  
+3. Configureer API Scopes
+4. Installeer de App
+5. Kopieer de Access Token
+
+Nieuwe volgorde:
+1. Ga naar Develop Apps
+2. Maak een nieuwe App
+3. Configureer API Scopes
+4. Configureer App URLs ← NIEUW
+5. Installeer de App (was 4)
+6. Kopieer de Access Token (was 5)
+```
 
 ## Technische Details
 
-### 1. Fix AutoComplete
+### Nieuwe stap in GUIDE_STEPS array:
 ```tsx
-<Input
-  id="store-url"
-  type="text"
-  placeholder="mijn-winkel"
-  autoComplete="off"
-  value={storeUrl}
-  ...
-/>
+{
+  step: 4,
+  title: 'Configureer App URLs',
+  description: 'Stel de vereiste URLs in voor de OAuth connectie',
+  icon: Link2,
+  details: [
+    'Scroll naar "App URL" sectie',
+    'Vul bij "App URL" in:',
+    '• https://sellqo.app',
+    'Vul bij "Allowed redirection URL(s)" in:',
+    '• https://sellqo.app/api/shopify/callback',
+    'Klik op "Save"',
+  ],
+}
 ```
 
-### 2. Informatiebolletje + Dialog
-Een knop naast "Stap 1" heading die een dialog opent met visuele instructies:
+### URLs box in ShopifyInstantConnect.tsx:
+Na de scopes box komt een nieuwe box met de kopieerbare URLs:
 
 ```text
-┌──────────────────────────────────────────────────────────────────┐
-│ [Badge: Stap 1] Maak een Custom App in Shopify  [?] Handleiding  │
-└──────────────────────────────────────────────────────────────────┘
-                                                    ↑
-                                           Info button met icoon
+┌─────────────────────────────────────────────────────────────┐
+│ Vereiste URLs:                                              │
+│                                                             │
+│ App URL:                                    [Kopieer]       │
+│ https://sellqo.app                                          │
+│                                                             │
+│ Redirect URL:                               [Kopieer]       │
+│ https://sellqo.app/api/shopify/callback                     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-De dialog bevat:
-- Meerdere stappen met placeholder afbeeldingen (of beschrijvende tekst)
-- Navigatie tussen stappen (carousel-stijl)
-- Screenshots kunnen later worden toegevoegd
+## Bestanden
 
-### 3. Visuele Gids Component Structuur
-```tsx
-// ShopifySetupGuide.tsx
-const steps = [
-  {
-    title: "Ga naar Develop Apps",
-    description: "Navigeer naar Settings → Apps → Develop apps",
-    // Later: imageUrl of screenshot
-  },
-  {
-    title: "Create an App",
-    description: "Klik op 'Create an app' en noem het 'SellQo Connector'",
-  },
-  // ... meer stappen
-];
-```
-
-## Screenshots Toevoegen (Toekomstig)
-De component is voorbereid voor echte screenshots. Momenteel gebruiken we:
-- Gestylede placeholder boxes met iconen
-- Beschrijvende tekst per stap
-
-Zodra je echte screenshots hebt, kunnen deze eenvoudig worden toegevoegd door:
-1. Screenshots uploaden naar `public/images/shopify-guide/`
-2. URLs toevoegen aan de `steps` array
+| Bestand | Actie |
+|---------|-------|
+| `src/components/admin/marketplace/shopify/ShopifySetupGuide.tsx` | Nieuwe stap 4 toevoegen, stappen hernummeren |
+| `src/components/admin/marketplace/shopify/ShopifyInstantConnect.tsx` | URLs box toevoegen met kopieer functionaliteit |
 
 ## Resultaat
-- Store URL veld blijft leeg (geen autofill)
-- Placeholder "mijn-winkel" is zichtbaar
-- Gebruikers kunnen visuele handleiding bekijken voor extra hulp
+- Gebruikers zien duidelijk welke URLs ze moeten invullen
+- Kopieer knoppen voor elke URL
+- Stappen zijn correct genummerd
+- Handleiding dialog bevat ook de URL configuratie stap
