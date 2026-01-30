@@ -596,6 +596,7 @@ export type Database = {
           knowledge_include_products: boolean | null
           knowledge_include_shipping: boolean | null
           reply_suggestions_auto_draft: boolean | null
+          reply_suggestions_auto_generate: boolean | null
           reply_suggestions_enabled: boolean | null
           reply_suggestions_for_email: boolean | null
           reply_suggestions_for_whatsapp: boolean | null
@@ -627,6 +628,7 @@ export type Database = {
           knowledge_include_products?: boolean | null
           knowledge_include_shipping?: boolean | null
           reply_suggestions_auto_draft?: boolean | null
+          reply_suggestions_auto_generate?: boolean | null
           reply_suggestions_enabled?: boolean | null
           reply_suggestions_for_email?: boolean | null
           reply_suggestions_for_whatsapp?: boolean | null
@@ -658,6 +660,7 @@ export type Database = {
           knowledge_include_products?: boolean | null
           knowledge_include_shipping?: boolean | null
           reply_suggestions_auto_draft?: boolean | null
+          reply_suggestions_auto_generate?: boolean | null
           reply_suggestions_enabled?: boolean | null
           reply_suggestions_for_email?: boolean | null
           reply_suggestions_for_whatsapp?: boolean | null

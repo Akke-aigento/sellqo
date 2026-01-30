@@ -23,6 +23,7 @@ export interface AIAssistantConfig {
   
   // Reply Suggestions Settings
   reply_suggestions_enabled: boolean;
+  reply_suggestions_auto_generate: boolean; // If false, user must click AI button to generate (saves credits)
   reply_suggestions_auto_draft: boolean;
   reply_suggestions_tone: 'professional' | 'friendly' | 'formal';
   reply_suggestions_language: string;
