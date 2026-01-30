@@ -41,11 +41,13 @@ export function SelectableConversationItem({
         isChecked && 'bg-primary/10'
       )}
     >
-      {/* Checkbox area */}
+      {/* Checkbox area - visible on hover or when in selection mode */}
       <div
         className={cn(
           'flex items-center justify-center transition-all duration-200 border-b',
-          showCheckboxes ? 'w-10 opacity-100' : 'w-0 opacity-0 overflow-hidden'
+          showCheckboxes || isChecked 
+            ? 'w-10 opacity-100' 
+            : 'w-0 group-hover:w-10 opacity-0 group-hover:opacity-100 overflow-hidden'
         )}
         onClick={onToggleCheck}
       >
