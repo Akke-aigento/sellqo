@@ -130,6 +130,116 @@ async function fetchEmailContent(emailId: string, apiKey: string): Promise<Resen
   }
 }
 
+// Resend Attachment API response
+interface ResendAttachment {
+  id: string;
+  filename: string;
+  size: number;
+  content_type: string;
+  content_disposition: string;
+  content_id?: string;
+  download_url: string;
+  expires_at: string;
+}
+
+// Fetch and download attachments from Resend, upload to Supabase Storage
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processAttachments(
+  emailId: string,
+  messageId: string,
+  tenantId: string,
+  apiKey: string,
+  supabase: any // Untyped to avoid type errors in edge function
+): Promise<{ processed: number; errors: number }> {
+  let processed = 0;
+  let errors = 0;
+
+  try {
+    // 1. List attachments from Resend API
+    const listResponse = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!listResponse.ok) {
+      console.error('Failed to list attachments:', await listResponse.text());
+      return { processed: 0, errors: 1 };
+    }
+
+    const listData = await listResponse.json();
+    const attachments: ResendAttachment[] = listData.data || [];
+
+    console.log(`Found ${attachments.length} attachments to process for email ${emailId}`);
+
+    for (const attachment of attachments) {
+      try {
+        // 2. Download attachment binary from Resend CDN
+        const downloadResponse = await fetch(attachment.download_url);
+        if (!downloadResponse.ok) {
+          console.error(`Failed to download attachment ${attachment.filename}:`, downloadResponse.status);
+          errors++;
+          continue;
+        }
+
+        const binaryData = await downloadResponse.arrayBuffer();
+        const fileBuffer = new Uint8Array(binaryData);
+
+        console.log(`Downloaded ${attachment.filename}: ${fileBuffer.length} bytes`);
+
+        // 3. Upload to Supabase Storage
+        const storagePath = `${tenantId}/${messageId}/${attachment.id}_${attachment.filename}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('message-attachments')
+          .upload(storagePath, fileBuffer, {
+            contentType: attachment.content_type,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error(`Storage upload failed for ${attachment.filename}:`, uploadError);
+          errors++;
+          continue;
+        }
+
+        // 4. Update existing attachment record with storage path and size
+        const { error: dbError } = await supabase
+          .from('customer_message_attachments')
+          .update({
+            size_bytes: attachment.size || fileBuffer.length,
+            storage_path: storagePath,
+            metadata: {
+              resend_attachment_id: attachment.id,
+              content_disposition: attachment.content_disposition,
+              content_id: attachment.content_id || null,
+            },
+          })
+          .eq('message_id', messageId)
+          .eq('filename', attachment.filename);
+
+        if (dbError) {
+          console.error(`DB update failed for ${attachment.filename}:`, dbError);
+          errors++;
+          continue;
+        }
+
+        console.log(`Successfully processed attachment: ${attachment.filename} (${fileBuffer.length} bytes)`);
+        processed++;
+      } catch (attachError) {
+        console.error(`Error processing attachment ${attachment.filename}:`, attachError);
+        errors++;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to process attachments:', error);
+    return { processed: 0, errors: 1 };
+  }
+
+  return { processed, errors };
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -359,10 +469,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to store message: ${insertError.message}`);
     }
 
-    // Store attachment metadata (Resend provides id, not content)
+    // Process attachments: first store metadata, then fetch binary and upload to storage
     if (payload.attachments && payload.attachments.length > 0) {
-      console.log(`Processing ${payload.attachments.length} attachment metadata entries`);
+      console.log(`Processing ${payload.attachments.length} attachment(s) for email ${payload.email_id}`);
       
+      // Step 1: Store initial attachment metadata (placeholder records)
       for (const attachment of payload.attachments) {
         try {
           await supabase.from('customer_message_attachments').insert({
@@ -380,11 +491,22 @@ const handler = async (req: Request): Promise<Response> => {
             }
           });
           
-          console.log(`Stored attachment reference: ${attachment.filename}`);
+          console.log(`Stored attachment placeholder: ${attachment.filename}`);
         } catch (attachError) {
-          console.error(`Error storing attachment ${attachment.filename}:`, attachError);
+          console.error(`Error storing attachment placeholder ${attachment.filename}:`, attachError);
         }
       }
+
+      // Step 2: Fetch binary data from Resend and upload to Supabase Storage
+      const attachmentResult = await processAttachments(
+        payload.email_id,
+        message.id,
+        tenantId,
+        resendApiKey,
+        supabase
+      );
+      
+      console.log(`Attachment processing complete: ${attachmentResult.processed} uploaded, ${attachmentResult.errors} errors`);
     }
 
     // Get customer name for notification
