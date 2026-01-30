@@ -69,12 +69,12 @@ serve(async (req) => {
     }
 
     // Check for cached suggestion (if message_id provided and not forcing regeneration)
+    // Cache is keyed by (tenant_id, message_id) - conversation_id is stored for context only
     if (message_id && !force_regenerate) {
       const { data: cached } = await supabase
         .from('ai_reply_suggestions')
         .select('suggestion_text, model_used, created_at')
         .eq('tenant_id', tenant_id)
-        .eq('conversation_id', conversation_id)
         .eq('message_id', message_id)
         .maybeSingle();
 
@@ -257,18 +257,19 @@ Schrijf een passend antwoord.`;
     }
 
     // Cache the suggestion if message_id is provided
+    // Unique constraint is now on (tenant_id, message_id) - conversation_id stored for context
     if (message_id) {
       const { error: cacheError } = await supabase
         .from('ai_reply_suggestions')
         .upsert({
           tenant_id,
-          conversation_id,
+          conversation_id: conversation_id || 'unknown',
           message_id,
           suggestion_text: suggestion,
           model_used: 'gemini-2.5-flash',
           regenerated_at: force_regenerate ? new Date().toISOString() : null,
         }, {
-          onConflict: 'tenant_id,conversation_id,message_id',
+          onConflict: 'tenant_id,message_id',
         });
 
       if (cacheError) {

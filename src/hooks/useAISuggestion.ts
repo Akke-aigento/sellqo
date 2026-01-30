@@ -87,17 +87,15 @@ export function useAISuggestion() {
   }, [currentTenant?.id, hasCredits, refetchCredits, toast]);
 
   const loadCachedSuggestion = useCallback(async (
-    conversationId: string, 
     messageId: string
   ): Promise<CachedSuggestion | null> => {
-    if (!currentTenant?.id) return null;
+    if (!currentTenant?.id || !messageId) return null;
 
     try {
       const { data, error } = await supabase
         .from('ai_reply_suggestions')
         .select('suggestion_text, created_at')
         .eq('tenant_id', currentTenant.id)
-        .eq('conversation_id', conversationId)
         .eq('message_id', messageId)
         .maybeSingle();
 
