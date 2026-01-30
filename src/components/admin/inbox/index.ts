@@ -4,3 +4,6 @@ export { ConversationItem } from './ConversationItem';
 export { ConversationDetail } from './ConversationDetail';
 export { MessageBubble } from './MessageBubble';
 export { ReplyComposer } from './ReplyComposer';
+export { FolderList } from './FolderList';
+export { ConversationActions } from './ConversationActions';
+export { AISuggestionBox } from './AISuggestionBox';

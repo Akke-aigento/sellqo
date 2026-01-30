@@ -2571,8 +2571,9 @@ export type Database = {
           filename: string
           id: string
           message_id: string
+          metadata: Json | null
           size_bytes: number | null
-          storage_path: string
+          storage_path: string | null
           tenant_id: string
         }
         Insert: {
@@ -2581,8 +2582,9 @@ export type Database = {
           filename: string
           id?: string
           message_id: string
+          metadata?: Json | null
           size_bytes?: number | null
-          storage_path: string
+          storage_path?: string | null
           tenant_id: string
         }
         Update: {
@@ -2591,8 +2593,9 @@ export type Database = {
           filename?: string
           id?: string
           message_id?: string
+          metadata?: Json | null
           size_bytes?: number | null
-          storage_path?: string
+          storage_path?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -2621,9 +2624,11 @@ export type Database = {
           context_type: string | null
           created_at: string
           customer_id: string | null
+          deleted_at: string | null
           delivered_at: string | null
           direction: string
           error_message: string | null
+          folder_id: string | null
           from_email: string
           id: string
           meta_message_id: string | null
@@ -2655,9 +2660,11 @@ export type Database = {
           context_type?: string | null
           created_at?: string
           customer_id?: string | null
+          deleted_at?: string | null
           delivered_at?: string | null
           direction?: string
           error_message?: string | null
+          folder_id?: string | null
           from_email: string
           id?: string
           meta_message_id?: string | null
@@ -2689,9 +2696,11 @@ export type Database = {
           context_type?: string | null
           created_at?: string
           customer_id?: string | null
+          deleted_at?: string | null
           delivered_at?: string | null
           direction?: string
           error_message?: string | null
+          folder_id?: string | null
           from_email?: string
           id?: string
           meta_message_id?: string | null
@@ -2756,6 +2765,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_customer_messages_folder"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "inbox_folders"
             referencedColumns: ["id"]
           },
         ]
@@ -4444,6 +4460,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "import_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbox_folders: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          sort_order: number | null
+          tenant_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          sort_order?: number | null
+          tenant_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          sort_order?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_folders_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
