@@ -1,62 +1,127 @@
 
-# Plan: Fix Klantservice Health Score - Berichten in Prullenbak/Map Uitsluiten
+# Plan: Fix Shopify Koppelverzoek Error - Ontbrekende Kolommen
 
 ## Probleem
 
-De Shop Health Score toont "Onbeantwoord (48+ uur): 5" maar deze telling klopt niet. Berichten die:
-- Naar de prullenbak zijn verplaatst
-- Naar een andere map zijn verplaatst
-- Gearchiveerd zijn
-- Beantwoord zijn
-
-Worden nog steeds meegeteld als "onbeantwoord", terwijl ze eigenlijk niet meer relevant zijn voor de klantservice score.
+Bij het indienen van een Shopify koppelverzoek verschijnt de fout:
+> "Kon verzoek niet indienen: record "new" has no field "contact_email""
 
 ## Oorzaak
 
-In `src/hooks/useShopHealth.ts` (regel 95-101) wordt gefilterd op:
-```typescript
-const unreadMessages = messages?.filter(m => 
-  m.direction === 'inbound' && m.delivery_status !== 'opened'
-) || [];
-```
+De database trigger `handle_shopify_request_notification` refereert naar velden die niet bestaan in de `shopify_connection_requests` tabel:
 
-Dit mist de volgende cruciale filters:
-- `message_status` (active/archived/deleted)
-- `folder_id` (berichten in mappen)
-- `replied_at` (reeds beantwoorde berichten)
+| Veld in Trigger | Bestaat in Tabel? |
+|-----------------|-------------------|
+| `NEW.contact_email` | ❌ Nee |
+| `NEW.request_type` | ❌ Nee |
+
+De trigger werd gemaakt met de aanname dat deze velden zouden bestaan, maar de tabel heeft alleen:
+`id, tenant_id, store_name, store_url, status, notes, admin_notes, install_link, requested_at, reviewed_at, completed_at, created_at, updated_at`
 
 ## Oplossing
 
-Pas de filter in `useShopHealth.ts` aan zodat alleen actieve, onbeantwoorde berichten in de inbox worden meegeteld:
+Update de trigger functie om de ontbrekende velden te vervangen door bestaande gegevens:
 
-```typescript
-// Customer service analysis - only count active inbox messages that need attention
-const unreadMessages = messages?.filter(m => 
-  m.direction === 'inbound' &&               // Inbound messages only
-  !m.read_at &&                               // Not yet opened/read
-  !m.replied_at &&                            // Not yet replied to
-  (!m.message_status || m.message_status === 'active') &&  // Active status only
-  !m.folder_id                                // Not moved to any folder
-) || [];
+```sql
+CREATE OR REPLACE FUNCTION public.handle_shopify_request_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_ticket_id UUID;
+  v_tenant_name TEXT;
+  v_tenant_email TEXT;
+  v_platform_tenant_id UUID;
+BEGIN
+  -- Get platform tenant (SellQo)
+  SELECT id INTO v_platform_tenant_id FROM tenants WHERE slug = 'sellqo' LIMIT 1;
+  
+  IF v_platform_tenant_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  
+  -- Get tenant name and contact email from tenants table
+  SELECT name, contact_email INTO v_tenant_name, v_tenant_email 
+  FROM tenants WHERE id = NEW.tenant_id;
+  
+  -- Create support ticket for the request
+  INSERT INTO support_tickets (
+    tenant_id,
+    requester_email,
+    requester_name,
+    subject,
+    status,
+    priority,
+    category,
+    related_resource_type,
+    related_resource_id,
+    metadata
+  ) VALUES (
+    v_platform_tenant_id,
+    COALESCE(v_tenant_email, 'no-email@sellqo.nl'),  -- Gebruik tenant email in plaats van NEW.contact_email
+    COALESCE(v_tenant_name, 'Onbekende tenant'),
+    'Shopify koppeling aanvraag: ' || NEW.store_name || '.myshopify.com',
+    'open',
+    'medium',
+    'integration',
+    'shopify_connection_request',
+    NEW.id,
+    jsonb_build_object(
+      'store_name', NEW.store_name,
+      'tenant_id', NEW.tenant_id,
+      'tenant_name', v_tenant_name,
+      'notes', NEW.notes  -- Gebruik notes in plaats van request_type
+    )
+  ) RETURNING id INTO v_ticket_id;
+  
+  -- Create initial system message
+  INSERT INTO support_messages (
+    ticket_id,
+    sender_type,
+    message,
+    is_internal_note
+  ) VALUES (
+    v_ticket_id,
+    'system',
+    'Nieuwe Shopify koppelingsaanvraag ontvangen van ' || COALESCE(v_tenant_name, 'onbekende tenant') || 
+    ' voor store: ' || NEW.store_name || '.myshopify.com' ||
+    CASE WHEN NEW.notes IS NOT NULL THEN E'\n\nOpmerkingen: ' || NEW.notes ELSE '' END,
+    false
+  );
+  
+  -- Send notification to platform admins
+  PERFORM public.send_notification(
+    v_platform_tenant_id,
+    'integrations',
+    'shopify_request_new',
+    'Nieuwe Shopify aanvraag',
+    'Nieuwe koppelingsaanvraag van ' || COALESCE(v_tenant_name, 'onbekende tenant') || ' voor ' || NEW.store_name || '.myshopify.com',
+    'high',
+    '/platform/support?ticket=' || v_ticket_id,
+    jsonb_build_object(
+      'request_id', NEW.id,
+      'ticket_id', v_ticket_id,
+      'store_name', NEW.store_name,
+      'tenant_name', v_tenant_name
+    )
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 ```
 
-Dit zorgt ervoor dat:
-1. ✅ Berichten in de prullenbak (`message_status = 'deleted'`) worden **uitgesloten**
-2. ✅ Gearchiveerde berichten (`message_status = 'archived'`) worden **uitgesloten**
-3. ✅ Berichten in een map (`folder_id !== null`) worden **uitgesloten** 
-4. ✅ Beantwoorde berichten (`replied_at !== null`) worden **uitgesloten**
-5. ✅ Gelezen berichten (`read_at !== null`) worden **uitgesloten**
+## Wijzigingen
+
+1. **`NEW.contact_email`** → Vervang door `v_tenant_email` (opgehaald uit de `tenants` tabel)
+2. **`NEW.request_type`** → Vervang door `NEW.notes` (de opmerkingen van de gebruiker)
 
 ## Technische Details
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/hooks/useShopHealth.ts` | Update filter voor `unreadMessages` op regel 95-101 |
+| Resource | Wijziging |
+|----------|-----------|
+| Database migratie | Update `handle_shopify_request_notification` functie |
 
 ## Resultaat
 
-- Verplaatsen naar prullenbak = bericht telt niet meer mee als onbeantwoord
-- Verplaatsen naar map = bericht telt niet meer mee als onbeantwoord  
-- Archiveren = bericht telt niet meer mee als onbeantwoord
-- Beantwoorden = bericht telt niet meer mee als onbeantwoord
-- De health score reflecteert nu alleen berichten die daadwerkelijk aandacht nodig hebben
+- ✅ Koppelverzoeken kunnen weer worden ingediend
+- ✅ Support ticket wordt aangemaakt met tenant email uit de tenants tabel
+- ✅ Opmerkingen van de gebruiker worden opgenomen in het ticket
