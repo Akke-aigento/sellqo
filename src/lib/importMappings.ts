@@ -506,7 +506,9 @@ export const TRANSFORMERS: Record<string, (value: string, key?: string) => unkno
   
   imageArray: (v) => {
     if (!v) return [];
-    return v.split(',').map(url => url.trim()).filter(Boolean);
+    // Split on comma, filter empty strings and remove duplicates
+    const urls = v.split(',').map(url => url.trim()).filter(Boolean);
+    return [...new Set(urls)];
   },
   
   gramsToKg: (v) => {
@@ -673,4 +675,81 @@ export function validateRecord(
   }
   
   return { valid: errors.length === 0, errors };
+}
+
+// ============================================================================
+// SHOPIFY PRODUCT ROW CONSOLIDATION
+// Shopify exports multiple rows per product (for images/variants)
+// This consolidates them into single product records
+// ============================================================================
+export function consolidateShopifyProductRows(
+  rows: Record<string, string>[]
+): Record<string, string>[] {
+  // Detect if this is a Shopify product export
+  const hasHandle = rows.some(r => 'Handle' in r);
+  const hasTitle = rows.some(r => 'Title' in r);
+  if (!hasHandle || !hasTitle) return rows;
+  
+  const productMap = new Map<string, Record<string, string>>();
+  const imagesMap = new Map<string, string[]>();
+  const variantsMap = new Map<string, Record<string, string>[]>();
+  
+  for (const row of rows) {
+    const handle = row['Handle']?.trim();
+    if (!handle) continue;
+    
+    if (!productMap.has(handle)) {
+      // First row with this Handle = main product
+      productMap.set(handle, { ...row });
+      imagesMap.set(handle, []);
+      variantsMap.set(handle, []);
+    }
+    
+    // Collect all images
+    const imageSrc = row['Image Src']?.trim();
+    if (imageSrc) {
+      const images = imagesMap.get(handle)!;
+      if (!images.includes(imageSrc)) {
+        images.push(imageSrc);
+      }
+    }
+    
+    // Collect variant data (rows with Option1 Value but no Title)
+    const hasVariantData = row['Option1 Value'] && !row['Title']?.trim();
+    if (hasVariantData) {
+      variantsMap.get(handle)?.push({
+        sku: row['Variant SKU'] || '',
+        price: row['Variant Price'] || '',
+        stock: row['Variant Inventory Qty'] || '',
+        option1: row['Option1 Value'] || '',
+        option2: row['Option2 Value'] || '',
+        option3: row['Option3 Value'] || '',
+        barcode: row['Variant Barcode'] || '',
+      });
+    }
+  }
+  
+  // Build consolidated rows
+  const consolidated: Record<string, string>[] = [];
+  
+  for (const [handle, mainRow] of productMap) {
+    const images = imagesMap.get(handle) || [];
+    const variants = variantsMap.get(handle) || [];
+    
+    // Add all images as comma-separated string
+    if (images.length > 0) {
+      mainRow['Image Src'] = images.join(',');
+    }
+    
+    // Add variant count for reference
+    if (variants.length > 0) {
+      mainRow['_variant_count'] = String(variants.length);
+      mainRow['_variants_json'] = JSON.stringify(variants);
+    }
+    
+    consolidated.push(mainRow);
+  }
+  
+  console.log(`Consolidated ${rows.length} rows into ${consolidated.length} products`);
+  return consolidated;
 }
