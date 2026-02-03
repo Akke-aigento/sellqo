@@ -166,7 +166,7 @@ export function useImportCategoryMappings(importJobId: string | undefined) {
   };
 }
 
-// Parse CSV file
+// Parse CSV file with robust multi-line support
 export async function parseCSV(file: File): Promise<{
   headers: string[];
   rows: Record<string, string>[];
@@ -176,27 +176,83 @@ export async function parseCSV(file: File): Promise<{
     
     reader.onload = (e) => {
       try {
-        const text = e.target?.result as string;
-        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        let text = e.target?.result as string;
         
-        if (lines.length < 2) {
+        // Remove BOM if present
+        if (text.charCodeAt(0) === 0xFEFF) {
+          text = text.slice(1);
+        }
+        
+        // Parse using state machine - handles multi-line quoted values
+        const allRows: string[][] = [];
+        let currentRow: string[] = [];
+        let currentCell = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          const nextChar = text[i + 1];
+          
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              // Escaped quote ("") - add single quote and skip next
+              currentCell += '"';
+              i++;
+            } else {
+              // Toggle quote mode
+              inQuotes = !inQuotes;
+            }
+          } else if ((char === ',' || char === ';') && !inQuotes) {
+            // End of cell (delimiter outside quotes)
+            currentRow.push(currentCell.trim());
+            currentCell = '';
+          } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
+            // End of row (newline outside quotes)
+            if (char === '\r') i++; // Skip \n in \r\n
+            currentRow.push(currentCell.trim());
+            if (currentRow.length > 0 && currentRow.some(c => c)) {
+              allRows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+          } else if (char === '\r' && !inQuotes) {
+            // Mac-style line ending (just \r)
+            currentRow.push(currentCell.trim());
+            if (currentRow.length > 0 && currentRow.some(c => c)) {
+              allRows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+          } else {
+            // Regular character - add to current cell
+            currentCell += char;
+          }
+        }
+        
+        // Push final cell/row if exists
+        if (currentCell || currentRow.length > 0) {
+          currentRow.push(currentCell.trim());
+          if (currentRow.some(c => c)) {
+            allRows.push(currentRow);
+          }
+        }
+        
+        if (allRows.length < 2) {
           reject(new Error('File must have at least a header row and one data row'));
           return;
         }
         
-        // Parse header
-        const headers = parseCSVLine(lines[0]);
+        // First row is headers
+        const headers = allRows[0];
         
-        // Parse data rows
+        // Convert remaining rows to objects
         const rows: Record<string, string>[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i]);
+        for (let i = 1; i < allRows.length; i++) {
+          const values = allRows[i];
           const row: Record<string, string> = {};
-          
-          headers.forEach((header, index) => {
-            row[header] = values[index] || '';
+          headers.forEach((header, idx) => {
+            row[header] = values[idx] || '';
           });
-          
           rows.push(row);
         }
         
@@ -209,33 +265,4 @@ export async function parseCSV(file: File): Promise<{
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);
   });
-}
-
-// Parse a single CSV line handling quoted values
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-    
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if ((char === ',' || char === ';') && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  result.push(current.trim());
-  return result;
 }
