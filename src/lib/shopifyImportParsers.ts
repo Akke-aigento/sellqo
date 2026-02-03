@@ -101,11 +101,13 @@ export interface ParsedLineItem {
 }
 
 export interface ParsedCustomer {
+  id: string | null;
   email: string;
   first_name: string;
   last_name: string;
   company: string | null;
   phone: string | null;
+  address_phone: string | null;
   address1: string | null;
   address2: string | null;
   city: string | null;
@@ -115,12 +117,10 @@ export interface ParsedCustomer {
   country: string | null;
   country_code: string | null;
   accepts_marketing: boolean;
+  accepts_sms_marketing: boolean;
   total_spent: number;
   orders_count: number;
   tags: string[];
-  created_at: string;
-  // Nieuwe velden voor complete import
-  id: string | null;
   note: string | null;
   tax_exempt: boolean;
   verified_email: boolean;
@@ -128,6 +128,7 @@ export interface ParsedCustomer {
   email_marketing_level: string | null;
   sms_marketing_status: string | null;
   sms_marketing_level: string | null;
+  created_at: string;
 }
 
 export interface ParsedDiscount {
@@ -230,7 +231,8 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
         published,
         seo_title: row['SEO Title'] || row['seo_title'] || null,
         seo_description: row['SEO Description'] || row['seo_description'] || null,
-        google_product_category: row['Google Shopping / Google Product Category'] || row['Google: Category'] || null,
+        // Product Category (Shopify's nieuwe categorisatie) - jouw export gebruikt 'Product Category'
+        google_product_category: row['Product Category'] || row['Google Shopping / Google Product Category'] || row['Google: Category'] || null,
         image_alt_texts: [],
         created_at: row['Created At'] || row['created_at'] || new Date().toISOString(),
         requires_shipping: (row['Variant Requires Shipping'] || 'true').toLowerCase() === 'true',
@@ -306,8 +308,8 @@ export function parseShopifyOrders(csvString: string): ParsedOrder[] {
         shipping_province: row['Shipping Province'] || row['shipping_province'] || null,
         shipping_country: row['Shipping Country'] || row['shipping_country'] || 'NL',
         line_items: [],
-        // Nieuwe velden
-        shopify_order_id: row['ID'] || row['id'] || null,
+        // Nieuwe velden - Let op: 'Id' met kleine 'd' in jouw export!
+        shopify_order_id: row['Id'] || row['ID'] || row['id'] || null,
         paid_at: row['Paid at'] || row['paid_at'] || null,
         cancelled_at: row['Cancelled at'] || row['cancelled_at'] || null,
         fulfilled_at: row['Fulfilled at'] || row['fulfilled_at'] || null,
@@ -355,33 +357,52 @@ export function parseShopifyCustomers(csvString: string): ParsedCustomer[] {
   const rows = parseCSV(csvString);
   
   return rows.map(row => ({
+    // Shopify Customer ID - Let op: 'Customer ID' in jouw export!
+    id: row['Customer ID'] || row['ID'] || row['id'] || null,
+    
+    // Basis info
     email: row['Email'] || row['email'] || '',
     first_name: row['First Name'] || row['first_name'] || '',
     last_name: row['Last Name'] || row['last_name'] || '',
-    company: row['Company'] || row['company'] || null,
+    
+    // Bedrijf - Let op: "Default Address" prefix in jouw export!
+    company: row['Default Address Company'] || row['Company'] || row['company'] || null,
+    
+    // Telefoon - zowel direct als adres telefoon
     phone: row['Phone'] || row['phone'] || null,
-    address1: row['Address1'] || row['address1'] || null,
-    address2: row['Address2'] || row['address2'] || null,
-    city: row['City'] || row['city'] || null,
-    province: row['Province'] || row['province'] || null,
-    province_code: row['Province Code'] || row['province_code'] || null,
-    zip: row['Zip'] || row['zip'] || null,
-    country: row['Country'] || row['country'] || null,
-    country_code: row['Country Code'] || row['country_code'] || null,
-    accepts_marketing: (row['Accepts Marketing'] || row['accepts_marketing'] || '').toLowerCase() === 'yes',
-    total_spent: parseFloat(row['Total Spent'] || row['total_spent'] || '0') || 0,
-    orders_count: parseInt(row['Orders Count'] || row['orders_count'] || '0') || 0,
+    address_phone: row['Default Address Phone'] || null,
+    
+    // Adres - Let op: "Default Address" prefix in jouw export!
+    address1: row['Default Address Address1'] || row['Address1'] || row['address1'] || null,
+    address2: row['Default Address Address2'] || row['Address2'] || row['address2'] || null,
+    city: row['Default Address City'] || row['City'] || row['city'] || null,
+    province: row['Default Address Province'] || row['Province'] || row['province'] || null,
+    province_code: row['Default Address Province Code'] || row['Province Code'] || null,
+    zip: row['Default Address Zip'] || row['Zip'] || row['zip'] || null,
+    country: row['Default Address Country'] || row['Country'] || row['country'] || null,
+    country_code: row['Default Address Country Code'] || row['Country Code'] || null,
+    
+    // Marketing - Let op exacte kolomnamen in jouw export!
+    accepts_marketing: (row['Accepts Email Marketing'] || row['Accepts Marketing'] || '').toLowerCase() === 'yes',
+    accepts_sms_marketing: (row['Accepts SMS Marketing'] || '').toLowerCase() === 'yes',
+    
+    // Stats - Let op: "Total Orders" niet "Orders Count" in jouw export!
+    total_spent: parseFloat((row['Total Spent'] || '0').replace(/[^0-9.-]/g, '')) || 0,
+    orders_count: parseInt(row['Total Orders'] || row['Orders Count'] || '0') || 0,
+    
+    // Extra velden
     tags: (row['Tags'] || row['tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
-    created_at: row['Created At'] || row['created_at'] || new Date().toISOString(),
-    // Nieuwe velden
-    id: row['ID'] || row['id'] || null,
     note: row['Note'] || row['note'] || null,
-    tax_exempt: (row['Tax Exempt'] || row['tax_exempt'] || 'no').toLowerCase() === 'yes',
-    verified_email: (row['Verified Email'] || row['verified_email'] || 'no').toLowerCase() === 'yes',
-    email_marketing_status: row['Email Marketing: Status'] || row['email_marketing_status'] || null,
-    email_marketing_level: row['Email Marketing: Level'] || row['email_marketing_level'] || null,
-    sms_marketing_status: row['SMS Marketing: Status'] || row['sms_marketing_status'] || null,
-    sms_marketing_level: row['SMS Marketing: Level'] || row['sms_marketing_level'] || null,
+    tax_exempt: (row['Tax Exempt'] || 'no').toLowerCase() === 'yes',
+    verified_email: (row['Verified Email'] || 'no').toLowerCase() === 'yes',
+    
+    // Marketing status velden
+    email_marketing_status: row['Email Marketing: Status'] || null,
+    email_marketing_level: row['Email Marketing: Level'] || null,
+    sms_marketing_status: row['SMS Marketing: Status'] || null,
+    sms_marketing_level: row['SMS Marketing: Level'] || null,
+    
+    created_at: row['Created At'] || row['created_at'] || new Date().toISOString(),
   })).filter(c => c.email);
 }
 
