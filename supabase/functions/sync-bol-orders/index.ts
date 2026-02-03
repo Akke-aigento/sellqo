@@ -16,36 +16,58 @@ interface BolCredentials {
   tokenExpiry?: string
 }
 
+// Updated interface to match actual Bol.com API v10 response structure
+interface BolOrderItem {
+  orderItemId: string
+  ean?: string
+  quantity: number
+  unitPrice: number // Bol.com uses unitPrice, not offerPrice
+  offerPrice?: number // Fallback for older responses
+  commission?: number
+  product?: {
+    ean: string
+    title: string
+  }
+  fulfilment?: {
+    method: 'FBR' | 'FBB'
+    distributionParty?: string
+  }
+  cancellationRequest?: boolean
+}
+
 interface BolOrder {
   orderId: string
   orderPlacedDateTime: string
-  statusModification?: string
-  orderItems: Array<{
-    quantity: number
-    offerPrice: number
-    orderItemId: string
-    ean: string
-    title: string
-  }>
+  pickupPoint?: boolean
+  orderItems: BolOrderItem[]
   shipmentDetails?: {
-    customerDetails?: {
-      fullName: string
-      email?: string
-      deliveryPhoneNumber?: string
-    }
-    street?: string
+    firstName?: string
+    surname?: string
+    email?: string
+    deliveryPhoneNumber?: string
+    streetName?: string
     houseNumber?: string
+    houseNumberExtension?: string
     zipCode?: string
     city?: string
     countryCode?: string
   }
   billingDetails?: {
-    street?: string
+    firstName?: string
+    surname?: string
+    streetName?: string
     houseNumber?: string
+    houseNumberExtension?: string
     zipCode?: string
     city?: string
     countryCode?: string
   }
+}
+
+// Order summary from list endpoint (minimal data)
+interface BolOrderSummary {
+  orderId: string
+  orderPlacedDateTime?: string
 }
 
 async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
@@ -82,19 +104,103 @@ async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
   return tokenData.access_token
 }
 
-function mapBolStatus(bolStatus: string | undefined): string {
-  const statusMap: Record<string, string> = {
-    'OPEN': 'processing',
-    'SHIPPED': 'shipped',
-    'CANCELLED': 'cancelled',
-    'RETURNED': 'refunded'
-  }
-  return statusMap[bolStatus || 'OPEN'] || 'processing'
+function mapBolOrderStatus(orderItems: BolOrderItem[]): string {
+  // Check if any items are cancelled
+  const allCancelled = orderItems.every(item => item.cancellationRequest)
+  if (allCancelled) return 'cancelled'
+  
+  // Check fulfilment status
+  // Note: We infer status from the API endpoint we're fetching from
+  // OPEN = processing, SHIPPED = shipped
+  return 'processing'
 }
 
-function mapBolPaymentStatus(bolStatus: string | undefined): string {
+function mapBolPaymentStatus(): string {
   // Bol.com orders are typically already paid
   return 'paid'
+}
+
+// Helper to add rate limiting delay
+async function rateLimitDelay(ms: number = 200): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// Fetch full order details from Bol.com
+async function fetchOrderDetails(
+  orderId: string, 
+  accessToken: string
+): Promise<BolOrder | null> {
+  try {
+    const response = await fetch(`${BOL_API_BASE}/orders/${orderId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.retailer.v10+json'
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Failed to fetch order details for ${orderId}:`, errorText)
+      return null
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error(`Error fetching order ${orderId}:`, error)
+    return null
+  }
+}
+
+// Fetch orders with pagination support
+async function fetchOrdersWithPagination(
+  accessToken: string,
+  fulfillmentMethod: string,
+  status: string,
+  startDate?: Date
+): Promise<BolOrderSummary[]> {
+  const allOrders: BolOrderSummary[] = []
+  let page = 1
+  let hasMore = true
+
+  while (hasMore) {
+    let url = `${BOL_API_BASE}/orders?fulfilment-method=${fulfillmentMethod}&status=${status}&page=${page}`
+    
+    if (startDate) {
+      url += `&created-after=${startDate.toISOString()}`
+    }
+
+    console.log(`Fetching page ${page}: ${url}`)
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.retailer.v10+json'
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Bol API error for ${fulfillmentMethod} ${status} page ${page}:`, errorText)
+      break
+    }
+
+    const data = await response.json()
+    const orders: BolOrderSummary[] = data.orders || []
+    
+    console.log(`Page ${page}: Found ${orders.length} orders`)
+    allOrders.push(...orders)
+
+    // Bol.com returns max 50 orders per page
+    hasMore = orders.length === 50
+    page++
+
+    // Rate limiting between pages
+    if (hasMore) {
+      await rateLimitDelay(300)
+    }
+  }
+
+  return allOrders
 }
 
 Deno.serve(async (req) => {
@@ -156,101 +262,112 @@ Deno.serve(async (req) => {
         const historicalPeriodDays = (settings.historicalPeriodDays as number) || 90
         const historicalImportCompleted = stats.historicalImportCompleted as boolean
 
-        let bolOrders: BolOrder[] = []
+        let orderSummaries: BolOrderSummary[] = []
+        const fulfillmentMethods = ['FBR', 'FBB'] // FBB = LVB (Logistiek via Bol)
 
         if (isFirstSync && importHistorical && !historicalImportCompleted) {
-          // First sync with historical import enabled
+          // First sync with historical import enabled - use ALL status
           console.log(`Performing historical import for the last ${historicalPeriodDays} days`)
           
           const startDate = new Date(Date.now() - historicalPeriodDays * 24 * 60 * 60 * 1000)
-          const statuses = ['OPEN', 'SHIPPED', 'CANCELLED', 'RETURNED']
-          const fulfillmentMethods = ['FBR', 'FBB'] // FBB = LVB (Logistiek via Bol)
           
+          // IMPORTANT: Bol.com API v10 only accepts: OPEN, SHIPPED, ALL
+          // Use ALL for historical import to get all orders including completed ones
           for (const fulfillmentMethod of fulfillmentMethods) {
-            for (const status of statuses) {
-              const url = `${BOL_API_BASE}/orders?fulfilment-method=${fulfillmentMethod}&status=${status}&created-after=${startDate.toISOString()}`
-              console.log(`Fetching ${fulfillmentMethod} ${status} orders from: ${url}`)
-              
-              const ordersResponse = await fetch(url, {
-                headers: {
-                  'Authorization': `Bearer ${accessToken}`,
-                  'Accept': 'application/vnd.retailer.v10+json'
-                }
-              })
-
-              if (!ordersResponse.ok) {
-                const errorText = await ordersResponse.text()
-                console.error(`Bol API error for ${fulfillmentMethod} ${status}:`, errorText)
-                continue // Continue with other statuses/methods
-              }
-
-              const ordersData = await ordersResponse.json()
-              const statusOrders: BolOrder[] = ordersData.orders || []
-              console.log(`Found ${statusOrders.length} ${fulfillmentMethod} ${status} orders`)
-              bolOrders = [...bolOrders, ...statusOrders]
-            }
+            console.log(`Fetching ALL ${fulfillmentMethod} orders since ${startDate.toISOString()}`)
+            
+            const orders = await fetchOrdersWithPagination(
+              accessToken,
+              fulfillmentMethod,
+              'ALL', // Use ALL for complete historical import
+              startDate
+            )
+            
+            console.log(`Found ${orders.length} ${fulfillmentMethod} orders`)
+            orderSummaries.push(...orders)
+            
+            // Rate limiting between fulfillment methods
+            await rateLimitDelay(500)
           }
           
-          console.log(`Total historical orders found: ${bolOrders.length}`)
+          console.log(`Total historical order summaries found: ${orderSummaries.length}`)
         } else {
           // Regular sync - fetch OPEN orders for both FBR and FBB (LVB)
-          const fulfillmentMethods = ['FBR', 'FBB']
-          
           for (const fulfillmentMethod of fulfillmentMethods) {
-            const ordersResponse = await fetch(`${BOL_API_BASE}/orders?fulfilment-method=${fulfillmentMethod}&status=OPEN`, {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Accept': 'application/vnd.retailer.v10+json'
-              }
-            })
-
-            if (!ordersResponse.ok) {
-              const errorText = await ordersResponse.text()
-              console.error(`Bol API error for ${fulfillmentMethod}:`, errorText)
-              continue // Continue with other fulfillment method
-            }
-
-            const ordersData = await ordersResponse.json()
-            const methodOrders: BolOrder[] = ordersData.orders || []
-            console.log(`Found ${methodOrders.length} open ${fulfillmentMethod} orders for connection ${connection.id}`)
-            bolOrders = [...bolOrders, ...methodOrders]
+            const orders = await fetchOrdersWithPagination(
+              accessToken,
+              fulfillmentMethod,
+              'OPEN'
+            )
+            
+            console.log(`Found ${orders.length} open ${fulfillmentMethod} orders`)
+            orderSummaries.push(...orders)
+            
+            await rateLimitDelay(300)
           }
           
-          console.log(`Total open orders found: ${bolOrders.length}`)
+          console.log(`Total open order summaries found: ${orderSummaries.length}`)
         }
 
-        // Process each order
-        for (const bolOrder of bolOrders) {
+        // Deduplicate orders by orderId (in case same order appears in multiple queries)
+        const uniqueOrderIds = [...new Set(orderSummaries.map(o => o.orderId))]
+        console.log(`Unique orders to process: ${uniqueOrderIds.length}`)
+
+        // Now fetch full details for each order
+        let processedCount = 0
+        for (const orderId of uniqueOrderIds) {
           try {
             // Check if order already exists
             const { data: existingOrder } = await supabase
               .from('orders')
               .select('id')
-              .eq('marketplace_order_id', bolOrder.orderId)
+              .eq('marketplace_order_id', orderId)
               .eq('tenant_id', connection.tenant_id)
               .single()
 
             if (existingOrder) {
-              console.log(`Order ${bolOrder.orderId} already exists, skipping`)
+              console.log(`Order ${orderId} already exists, skipping`)
               continue
             }
 
-            // Calculate total amount
-            const subtotal = bolOrder.orderItems.reduce((sum, item) => {
-              return sum + (item.quantity * item.offerPrice)
-            }, 0)
+            // Fetch full order details from Bol.com
+            console.log(`Fetching details for order ${orderId}...`)
+            const bolOrder = await fetchOrderDetails(orderId, accessToken)
+            
+            if (!bolOrder) {
+              console.error(`Could not fetch details for order ${orderId}`)
+              totalErrors++
+              await rateLimitDelay(200)
+              continue
+            }
 
-            // Map Bol.com status to SellQo status
-            const status = mapBolStatus(bolOrder.statusModification)
-            const paymentStatus = mapBolPaymentStatus(bolOrder.statusModification)
+            // Calculate total amount from order items
+            // Bol.com API v10 uses unitPrice, fallback to offerPrice for compatibility
+            const subtotal = (bolOrder.orderItems || []).reduce((sum, item) => {
+              const price = item.unitPrice ?? item.offerPrice ?? 0
+              return sum + (item.quantity * price)
+            }, 0) || 0 // Ensure never null
 
-            // Prepare shipping address
-            const shippingAddress = bolOrder.shipmentDetails ? {
-              street: `${bolOrder.shipmentDetails.street || ''} ${bolOrder.shipmentDetails.houseNumber || ''}`.trim(),
-              city: bolOrder.shipmentDetails.city,
-              postal_code: bolOrder.shipmentDetails.zipCode,
-              country: bolOrder.shipmentDetails.countryCode
+            // Ensure we have a valid subtotal (fallback to 0 if calculation fails)
+            const safeSubtotal = typeof subtotal === 'number' && !isNaN(subtotal) ? subtotal : 0
+
+            // Map status based on order items
+            const status = mapBolOrderStatus(bolOrder.orderItems || [])
+            const paymentStatus = mapBolPaymentStatus()
+
+            // Prepare shipping address - use correct Bol.com field names
+            const shipment = bolOrder.shipmentDetails
+            const shippingAddress = shipment ? {
+              street: `${shipment.streetName || ''} ${shipment.houseNumber || ''} ${shipment.houseNumberExtension || ''}`.trim(),
+              city: shipment.city,
+              postal_code: shipment.zipCode,
+              country: shipment.countryCode
             } : null
+
+            // Build customer name from shipment details
+            const customerName = shipment 
+              ? `${shipment.firstName || ''} ${shipment.surname || ''}`.trim() || 'Onbekend'
+              : 'Onbekend'
 
             // Generate order number
             const { data: orderNumber } = await supabase.rpc('generate_order_number', {
@@ -266,11 +383,11 @@ Deno.serve(async (req) => {
                 marketplace_source: 'bol_com',
                 marketplace_order_id: bolOrder.orderId,
                 marketplace_connection_id: connection.id,
-                customer_name: bolOrder.shipmentDetails?.customerDetails?.fullName || 'Onbekend',
-                customer_email: bolOrder.shipmentDetails?.customerDetails?.email || `bol-${bolOrder.orderId}@noreply.bol.com`,
-                customer_phone: bolOrder.shipmentDetails?.customerDetails?.deliveryPhoneNumber,
-                subtotal: subtotal,
-                total: subtotal,
+                customer_name: customerName,
+                customer_email: shipment?.email || `bol-${bolOrder.orderId}@noreply.bol.com`,
+                customer_phone: shipment?.deliveryPhoneNumber,
+                subtotal: safeSubtotal,
+                total: safeSubtotal,
                 status: status,
                 payment_status: paymentStatus,
                 fulfillment_status: 'unfulfilled',
@@ -284,25 +401,28 @@ Deno.serve(async (req) => {
             if (insertError) {
               console.error(`Failed to insert order ${bolOrder.orderId}:`, insertError)
               totalErrors++
+              await rateLimitDelay(200)
               continue
             }
 
             // Insert order items
-            const orderItems = bolOrder.orderItems.map((item, index) => ({
+            const orderItems = (bolOrder.orderItems || []).map((item) => ({
               order_id: newOrder.id,
-              product_name: item.title,
-              product_sku: item.ean,
+              product_name: item.product?.title || `EAN: ${item.ean || item.product?.ean || 'Unknown'}`,
+              product_sku: item.ean || item.product?.ean,
               quantity: item.quantity,
-              unit_price: item.offerPrice,
-              total_price: item.quantity * item.offerPrice
+              unit_price: item.unitPrice ?? item.offerPrice ?? 0,
+              total_price: item.quantity * (item.unitPrice ?? item.offerPrice ?? 0)
             }))
 
-            const { error: itemsError } = await supabase
-              .from('order_items')
-              .insert(orderItems)
+            if (orderItems.length > 0) {
+              const { error: itemsError } = await supabase
+                .from('order_items')
+                .insert(orderItems)
 
-            if (itemsError) {
-              console.error(`Failed to insert order items for ${bolOrder.orderId}:`, itemsError)
+              if (itemsError) {
+                console.error(`Failed to insert order items for ${bolOrder.orderId}:`, itemsError)
+              }
             }
 
             // Send marketplace order notification
@@ -313,7 +433,7 @@ Deno.serve(async (req) => {
                   category: 'orders',
                   type: 'marketplace_order_new',
                   title: `Bol.com bestelling: ${orderNumber}`,
-                  message: `Nieuwe Bol.com bestelling van €${subtotal.toFixed(2)} ontvangen`,
+                  message: `Nieuwe Bol.com bestelling van €${safeSubtotal.toFixed(2)} ontvangen`,
                   priority: 'medium',
                   action_url: `/admin/orders/${newOrder.id}`,
                   data: {
@@ -321,7 +441,7 @@ Deno.serve(async (req) => {
                     order_number: orderNumber,
                     marketplace_order_id: bolOrder.orderId,
                     marketplace: 'bol_com',
-                    total: subtotal
+                    total: safeSubtotal
                   }
                 }
               })
@@ -330,8 +450,9 @@ Deno.serve(async (req) => {
               // Non-blocking - continue with sync
             }
 
-            console.log(`Successfully imported order ${bolOrder.orderId}`)
+            console.log(`Successfully imported order ${bolOrder.orderId} (${customerName}, €${safeSubtotal.toFixed(2)})`)
             totalImported++
+            processedCount++
 
             // Auto-accept order if enabled
             const autoAcceptOrder = settings.autoAcceptOrder as boolean
@@ -359,11 +480,17 @@ Deno.serve(async (req) => {
               }
             }
 
+            // Rate limiting between orders
+            await rateLimitDelay(200)
+
           } catch (orderError) {
-            console.error(`Error processing order ${bolOrder.orderId}:`, orderError)
+            console.error(`Error processing order ${orderId}:`, orderError)
             totalErrors++
+            await rateLimitDelay(200)
           }
         }
+
+        console.log(`Processed ${processedCount} new orders for connection ${connection.id}`)
 
         // Update connection stats
         const currentStats = (connection.stats as Record<string, unknown>) || {}
