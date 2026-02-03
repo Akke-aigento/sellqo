@@ -1,186 +1,72 @@
 
+Context & observatie (op basis van je screenshot)
+- In “Validatie resultaten” zie je exact 5 klanten, 5 producten (1 ok + 4 errors) en 5 bestellingen (4 ok + 1 error). Dat patroon wijst er sterk op dat de import-flow nog steeds met de “preview sample” werkt (5 rijen), niet met alle rijen.
+- In de code zie ik wel degelijk dat we `allData` opslaan in `FileUpload.tsx` en dat `PreviewValidation.tsx` probeert `file.allData || file.sampleData` te gebruiken.
+- De echte boosdoener is waarschijnlijk “stale previewData”: de wizard bouwt `previewData` maar één keer per datatype op en herberekent het niet wanneer je een bestand opnieuw uploadt of mappings verandert. Daardoor blijft `previewData` hangen op de oude set (die historisch 5 rijen was), en de import gebruikt precies diezelfde `previewData`.
 
-# Fix: Incomplete CSV Import - Alle Records Importeren
+Waarom dit gebeurt (technisch, maar concreet)
+- `PreviewValidation.tsx` heeft deze guard:
+  - “alleen verwerken als `!previewData.has(dataType)`”.
+- `ImportWizard.tsx` wist `previewData` nooit wanneer:
+  - je een nieuw bestand uploadt voor hetzelfde datatype, of
+  - je mapping aanpast.
+- Gevolg:
+  - `previewData` blijft bestaan (met bv. 5 records), dus `PreviewValidation` herberekent niet.
+  - `handleStartImport()` importeert op basis van `previewData` → dus ook maar 5.
 
-## Probleem Gevonden
+Doel
+- Zorgen dat bij file upload of mapping change de preview/validatie opnieuw opgebouwd wordt vanuit `allData` (alle rijen), zodat de import daadwerkelijk alles verwerkt.
 
-De import wizard slaat **alleen de eerste 5 rijen** op als "sample data" en importeert vervolgens alleen die sample. Hierdoor worden van 100+ klanten slechts een paar geïmporteerd.
+Plan (stappen)
+1) Recompute-trigger toevoegen in ImportWizard (meest robuust, kleinste wijziging)
+   - In `src/components/admin/import/ImportWizard.tsx`:
+     - In `handleFileUpload(dataType, file)`:
+       - Na het opslaan van `uploadedFiles`: verwijder `previewData` entry voor dat datatype.
+       - Optioneel: verwijder ook `mappings` voor dat datatype als je wil forceren dat mapping opnieuw gekozen wordt bij nieuw bestand (hangt af van gewenste UX). Meestal: mapping behouden is ok, maar preview móet opnieuw.
+     - In `handleMappingChange(dataType, mapping)`:
+       - Na het opslaan van `mappings`: verwijder `previewData` entry voor dat datatype.
+   - Resultaat: `PreviewValidation` ziet “geen previewData voor dat datatype” en bouwt opnieuw op, dit keer met `allData`.
 
-### Bewijs
+2) PreviewValidation defensiever maken (extra zekerheid)
+   - In `src/components/admin/import/PreviewValidation.tsx`:
+     - Vervang “alleen als previewData nog niet bestaat” door een check die herberekent wanneer file/mapping verandert.
+     - Praktische aanpak zonder zware hashing:
+       - Bewaar per datatype een “signature” in een `useRef` (bijv. `${file.file.name}:${file.rowCount}:${mapping.length}`).
+       - Herbereken alleen als die signature verandert.
+     - Waarom dit nuttig is:
+       - Zelfs als ergens vergeten wordt `previewData` te clearen, herstelt dit het gedrag automatisch.
+       - Voorkomt onnodig herberekenen bij elke render.
 
-**FileUpload.tsx (regel 50):**
-```typescript
-sampleData: rows.slice(0, 5),  // ← ALLEEN 5 RIJEN!
-```
+3) UX/Debug verbeteringen (om meteen te kunnen verifiëren dat het niet meer “op 5” blijft)
+   - In `PreviewValidation`:
+     - Toon in de samenvatting ook “records verwerkt” (bv. `records.length`) naast `file.rowCount`.
+     - Als `records.length` verdacht laag is (bv. 5 terwijl rowCount 100 is), toon een waarschuwing “Preview is niet up-to-date, herlaad of upload opnieuw” (zou na fix niet meer moeten gebeuren, maar helpt bij support).
 
-**PreviewValidation.tsx (regel 69):**
-```typescript
-const records = file.sampleData.map(...)  // ← GEBRUIKT ALLEEN DIE 5
-```
+4) Testplan (end-to-end)
+   - Scenario A: Nieuwe import (Shopify)
+     1. Ga naar /admin/import
+     2. Upload Customers CSV met 100 rijen
+     3. Ga naar Preview: validatie moet niet meer plafonneren op 5; je ziet bv. “Toont eerste 100 van 100 records…” en in samenvatting tellen de totalen door.
+     4. Start import: progress “Batch 1 van X” verschijnt; eindresultaat success_count ~100 (afhankelijk van validatie).
+   - Scenario B: Upload bestand opnieuw (zelfde datatype)
+     1. Upload eerst een klein bestand
+     2. Upload daarna een groot bestand voor hetzelfde datatype
+     3. Preview moet nu direct herberekenen (niet blijven hangen op de vorige 5).
+   - Scenario C: Mapping aanpassen
+     1. In mapping step wijzig een veld (bv. price)
+     2. Preview moet herberekenen (records count verandert, valid count verandert).
 
-De volledige data (`rows`) wordt nergens bewaard tussen upload en import.
+Risico’s / edge cases
+- Performance: preview berekenen over duizenden rijen kan traag zijn. We beperken UI-weergave al tot 100, maar validatie/transform gebeurt nog voor alles. Met de “signature” aanpak herberekenen we alleen wanneer nodig.
+- Selecties: herberekenen reset “selected” flags. Dat is ok bij file/mapping change (want de inhoud is veranderd), maar we vermijden herberekenen bij simpele tab switches.
 
----
+Deliverables (bestanden die aangepast worden)
+- `src/components/admin/import/ImportWizard.tsx`
+  - Clear `previewData` per datatype bij file upload en mapping change.
+- `src/components/admin/import/PreviewValidation.tsx`
+  - Herberekenen op basis van signature i.p.v. enkel “als previewData ontbreekt”.
+  - (Optioneel) Extra “records verwerkt” debug/UX info.
 
-## Oplossing
-
-### Aanpak: Volledige Data Opslaan + Batched Import
-
-1. **Bewaar alle rijen** na parsing (niet alleen sample)
-2. **Preview toont sample** (voor performance), maar import gebruikt alles
-3. **Batch processing** voor grote bestanden (>500 records)
-4. **Progress indicator** tijdens import
-
----
-
-## Technische Wijzigingen
-
-### 1. Update `UploadedFile` Type
-
-**Bestand:** `src/types/import.ts`
-
-```typescript
-export interface UploadedFile {
-  file: File;
-  dataType: ImportDataType;
-  rowCount: number;
-  headers: string[];
-  sampleData: Record<string, string>[];  // Preview (5 rijen)
-  allData: Record<string, string>[];     // ALLE rijen - NIEUW
-}
-```
-
-### 2. Update FileUpload Component
-
-**Bestand:** `src/components/admin/import/FileUpload.tsx`
-
-Bewaar alle rijen na parsing:
-
-```typescript
-onFileUpload(dataType, {
-  file,
-  dataType,
-  rowCount: rows.length,
-  headers,
-  sampleData: rows.slice(0, 5),   // Voor preview
-  allData: rows,                  // ALLE data voor import
-});
-```
-
-### 3. Update PreviewValidation Component
-
-**Bestand:** `src/components/admin/import/PreviewValidation.tsx`
-
-- Preview toont nog steeds sample (voor snelheid)
-- Gebruik `allData` voor de werkelijke import data
-
-```typescript
-// Transform ALL records, but only show preview of first few
-const allRecords = file.allData.map((row, index) => {
-  const transformed = transformRecord(row, fieldMapping);
-  const validation = validateRecord(transformed, dataType);
-  return {
-    index,
-    data: transformed,
-    errors: validation.errors.map(e => e.error),
-    warnings: [],
-    selected: validation.valid,
-  };
-});
-
-onPreviewChange(dataType, allRecords);
-
-// UI shows only first N records for performance
-const displayRecords = records.slice(0, 100);
-```
-
-### 4. Update ImportWizard met Batching
-
-**Bestand:** `src/components/admin/import/ImportWizard.tsx`
-
-Implementeer batch processing met progress:
-
-```typescript
-const BATCH_SIZE = 100;
-
-// Split records into batches
-const batches = [];
-for (let i = 0; i < records.length; i += BATCH_SIZE) {
-  batches.push(records.slice(i, i + BATCH_SIZE));
-}
-
-let totalSuccess = 0;
-let totalFailed = 0;
-
-// Process each batch
-for (let i = 0; i < batches.length; i++) {
-  setProgress({ current: i + 1, total: batches.length });
-  
-  const { data, error } = await supabase.functions.invoke('run-csv-import', {
-    body: { records: batches[i], ... }
-  });
-  
-  if (data) {
-    totalSuccess += data.success_count;
-    totalFailed += data.failed_count;
-  }
-  
-  // Small delay to prevent timeouts
-  await new Promise(r => setTimeout(r, 50));
-}
-```
-
-### 5. Add Progress UI
-
-**Bestand:** `src/components/admin/import/ImportWizard.tsx`
-
-Voeg progress indicator toe:
-
-```tsx
-const [progress, setProgress] = useState<{
-  current: number;
-  total: number;
-  dataType: string;
-} | null>(null);
-
-// In render:
-{progress && (
-  <div className="space-y-2">
-    <Progress value={(progress.current / progress.total) * 100} />
-    <p className="text-sm text-muted-foreground text-center">
-      {progress.dataType}: Batch {progress.current} van {progress.total}
-    </p>
-  </div>
-)}
-```
-
----
-
-## Bestanden die Worden Gewijzigd
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/types/import.ts` | Voeg `allData` property toe aan `UploadedFile` |
-| `src/components/admin/import/FileUpload.tsx` | Bewaar alle rijen in `allData` |
-| `src/components/admin/import/PreviewValidation.tsx` | Gebruik `allData` voor transform, beperk preview display |
-| `src/components/admin/import/ImportWizard.tsx` | Batch processing met progress indicator |
-
----
-
-## Verwachte Resultaten
-
-| Vóór Fix | Na Fix |
-|----------|--------|
-| 100 klanten → 5 geïmporteerd | 100 klanten → 100 geïmporteerd |
-| 44 producten → 1 geïmporteerd | 44 producten → 44 geïmporteerd |
-| ~100 orders → 4 geïmporteerd | ~100 orders → alle geïmporteerd |
-
----
-
-## Performance Overwegingen
-
-- **Preview UI**: Beperkt tot 100 rijen weergave (voor snelheid)
-- **Batches**: 100 records per API call (voorkomt timeouts)
-- **Progress feedback**: Gebruiker ziet voortgang bij grote imports
-- **Memory**: Alle data in memory is OK voor <10K records
-
+Na deze fix verwacht resultaat
+- De validatie-resultaten zullen niet langer “max 5” zijn.
+- De import zal batches verwerken over alle geselecteerde records en de aantallen (customers/products/orders) kloppen met je CSV’s (minus echte validatiefouten).
