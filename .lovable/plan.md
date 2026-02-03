@@ -1,141 +1,170 @@
 
-# Plan: Historische Orders Importeren via Shipments API
 
-## Probleemanalyse
+# Plan: Bol.com CSV Import voor Volledige Orderhistorie
 
-De huidige `sync-bol-orders` functie gebruikt de **Orders API** (`/retailer/orders`). Uit de officiële Bol.com documentatie blijkt echter:
+## Probleem
 
-| API Endpoint | Data beschikbaarheid |
-|--------------|---------------------|
-| `/orders` (status=ALL) | Verzonden orders slechts **48 uur** na verzending |
-| `/shipments` | Shipments van de laatste **3 maanden** |
-| `/shipments/{id}` | Details tot **2 jaar** terug |
+De Bol.com API beperkt toegang tot historische data:
+- **Orders API**: Verzonden orders slechts 48 uur beschikbaar
+- **Shipments API**: Maximaal 3 maanden historie
 
-Dit verklaart waarom slechts 1 order (waarschijnlijk een recente/open order) werd gevonden, terwijl je ~100 historische orders verwacht.
+Echter, Bol.com Seller Central biedt een **export functie** in "Verkoopanalyse" met data tot **2 jaar** terug. Door deze CSV te kunnen uploaden, kunnen gebruikers hun volledige orderhistorie importeren.
 
 ## Oplossing
 
-We moeten een **Shipments-based import** implementeren naast de bestaande Orders sync:
+Bouw een gespecialiseerde Bol.com CSV import flow die:
+1. De standaard Bol.com export CSV kan verwerken
+2. Orders mapt naar het SellQo database schema
+3. Duplicaten herkent en overslaat
 
-### Stap 1: Nieuwe Edge Function voor Shipment Import
+## Implementatie
 
-Maak `supabase/functions/import-bol-shipments/index.ts` aan:
-- Fetch alle shipments via `GET /retailer/shipments` (max 3 maanden)
-- Per shipment: haal details op via `GET /shipments/{shipmentId}` (bevat order info)
-- Importeer als order in SellQo database
+### 1. Bol.com Order Mapping Toevoegen
 
-### Stap 2: API Implementatie
+**Bestand:** `src/lib/importMappings.ts`
 
-**Shipments endpoint parameters:**
-```
-GET /retailer/shipments
-  ?fulfilment-method=FBR|FBB
-  &page=1
-```
+Voeg mapping toe voor Bol.com verkoop export kolommen:
+- `Bestelnummer` → `marketplace_order_id`
+- `Besteldatum` → `created_at`
+- `Verzonden op` → `shipped_at`
+- `Prijs (incl. BTW)` → `total`
+- `EAN` → voor product matching
+- Klantgegevens → `shipping_address`
 
-**Per shipment detail ophalen:**
-```
-GET /retailer/shipments/{shipmentId}
-```
+### 2. Dedicated CSV Import Component
 
-De shipment response bevat:
-- `orderId` - link naar de originele order
-- `shipmentItems[]` - producten met EAN, prijs, quantity
-- `customerDetails` - klantgegevens
-- `shipmentDate` - verzenddatum
+**Bestand:** `src/components/admin/marketplace/BolCsvImport.tsx` (nieuw)
 
-### Stap 3: Order Creatie Logica
+Een compacte CSV upload component specifiek voor Bol.com die:
+- Bestand upload via drag & drop of file picker
+- Voorbeeldweergave van eerste 5 rijen
+- Mapping preview toont
+- Import start met voortgangsindicator
 
-Voor elke shipment:
-1. Check of order al bestaat via `marketplace_order_id`
-2. Zo niet: creëer order met status `shipped`
-3. Voeg order items toe op basis van `shipmentItems`
+### 3. Edge Function voor Verwerking
 
-### Stap 4: UI Integratie
+**Bestand:** `supabase/functions/import-bol-csv/index.ts` (nieuw)
 
-Update `MarketplaceDetail.tsx`:
-- Voeg "Import Historisch via Shipments" knop toe
-- Roept de nieuwe edge function aan
-- Toont resultaat met aantal geïmporteerde orders
+Backend processing die:
+- CSV data ontvangt van frontend
+- Per rij een order creëert (of overslaat als `marketplace_order_id` al bestaat)
+- Klant zoekt/creëert op basis van e-mail
+- Order items aanmaakt
+- Resultaten teruggeeft (imported / skipped / failed)
 
-### Stap 5: Beperkingen communiceren
+### 4. UI Integratie
 
-De Shipments API is beperkt tot **3 maanden**. Voor oudere orders:
-- Optioneel: Implementeer export vanuit Bol.com verkooprekening (handmatige CSV import)
-- Documenteer deze beperking in de UI
+**Bestand:** `src/pages/admin/MarketplaceDetail.tsx`
 
-## Bestanden te maken/wijzigen
+Voeg "CSV Import" knop/modal toe naast de bestaande "Import Historisch" knop, specifiek voor Bol.com connecties.
+
+## Verwachte Bol.com Export Kolommen
+
+Op basis van de Bol.com Verkoopanalyse export:
+
+| Kolom | Mapping |
+|-------|---------|
+| Bestelnummer | `marketplace_order_id` |
+| Besteldatum | `created_at` |
+| EAN | Product lookup / `order_items` |
+| Titel | `product_name` |
+| Aantal | `quantity` |
+| Prijs | `unit_price` |
+| Commissie | `raw_marketplace_data` |
+| Verzendkosten | `shipping_cost` |
+
+## Gebruikerservaring
+
+1. Ga naar Bol.com Seller Central → Verkoopanalyse
+2. Selecteer periode (tot 2 jaar)
+3. Exporteer als CSV
+4. Upload in SellQo via de nieuwe knop
+5. Preview en bevestig import
+6. Resultaat: Alle historische orders beschikbaar in SellQo
+
+## Bestanden te Maken/Wijzigen
 
 | Bestand | Actie |
 |---------|-------|
-| `supabase/functions/import-bol-shipments/index.ts` | **Nieuw** - Shipments import functie |
-| `supabase/config.toml` | Registreer nieuwe function |
-| `src/pages/admin/MarketplaceDetail.tsx` | Voeg "Import via Shipments" knop toe |
+| `src/lib/importMappings.ts` | Bol.com mapping toevoegen + detectie |
+| `src/components/admin/marketplace/BolCsvImport.tsx` | **Nieuw** - Upload component |
+| `supabase/functions/import-bol-csv/index.ts` | **Nieuw** - Verwerkingsfunctie |
+| `src/pages/admin/MarketplaceDetail.tsx` | CSV import knop toevoegen |
+| `src/types/import.ts` | `bol_com` als ImportPlatform toevoegen |
 
 ## Technische Details
 
-### Shipments API Response Structuur
-```json
-{
-  "shipments": [
-    {
-      "shipmentId": "12345",
-      "orderId": "67890",
-      "shipmentDate": "2025-12-15",
-      "shipmentItems": [
-        {
-          "orderItemId": "111",
-          "ean": "8712626055143",
-          "title": "Product Title",
-          "quantity": 1,
-          "unitPrice": 19.99
-        }
-      ],
-      "customerDetails": {
-        "firstName": "Hans",
-        "surname": "de Groot",
-        "streetName": "Hoofdstraat",
-        "houseNumber": "1",
-        "zipCode": "1234AB",
-        "city": "Amsterdam"
-      }
-    }
-  ]
-}
-```
-
-### Import Logica
+### CSV Parsing Flow
 ```text
-┌─────────────────────────────────────┐
-│   GET /shipments?page=1             │
-│   (max 50 per pagina, 3 maanden)    │
-└──────────────┬──────────────────────┘
+┌─────────────────────────────┐
+│  Frontend: FileUpload       │
+│  - Drag & drop CSV          │
+│  - Parse headers            │
+│  - Toon preview (5 rijen)   │
+└──────────────┬──────────────┘
                │
                ▼
-┌─────────────────────────────────────┐
-│   Voor elke shipment:               │
-│   - Check of orderId al bestaat     │
-│   - Zo niet: GET /shipments/{id}    │
-│   - Creëer order met status=shipped │
-└──────────────┬──────────────────────┘
+┌─────────────────────────────┐
+│  Edge Function              │
+│  - Ontvang CSV data         │
+│  - Loop door rijen          │
+│  - Check duplicaten         │
+│  - Creëer orders + items    │
+└──────────────┬──────────────┘
                │
                ▼
-┌─────────────────────────────────────┐
-│   Resultaat:                        │
-│   - X orders geïmporteerd           │
-│   - Y al bestaand (overgeslagen)    │
-└─────────────────────────────────────┘
+┌─────────────────────────────┐
+│  Resultaat                  │
+│  - X geïmporteerd           │
+│  - Y overgeslagen           │
+│  - Z fouten                 │
+└─────────────────────────────┘
 ```
 
-## Verwachte Resultaat
+### Order Creatie Logica
+```typescript
+// Per CSV rij:
+// 1. Check of order al bestaat
+const existing = await supabase
+  .from('orders')
+  .select('id')
+  .eq('marketplace_order_id', row['Bestelnummer'])
+  .eq('tenant_id', tenantId)
+  .single();
 
-Na implementatie:
-- Klik op "Import Historisch via Shipments" 
-- Alle verzonden orders van de laatste 3 maanden worden geïmporteerd
-- Orders ouder dan 3 maanden zijn helaas niet beschikbaar via de API
+if (existing) {
+  skippedCount++;
+  continue;
+}
 
-## Belangrijke Kanttekening
+// 2. Creëer order met status 'shipped' (historisch)
+const order = await supabase
+  .from('orders')
+  .insert({
+    marketplace_source: 'bol_com',
+    marketplace_order_id: row['Bestelnummer'],
+    status: 'shipped',
+    payment_status: 'paid',
+    // ... mapping
+  });
 
-De Bol.com API beperkt historische data tot 3 maanden voor shipments en 48 uur voor verzonden orders. Voor de volledige 2 jaar aan historische orders zou je:
-1. Regelmatig moeten syncen (minimaal elke paar dagen) om orders te vangen voordat ze uit de API verdwijnen
-2. Handmatig een CSV export uit Bol.com Seller Central moeten uploaden (toekomstige feature)
+// 3. Voeg order items toe
+await supabase
+  .from('order_items')
+  .insert({
+    order_id: order.id,
+    product_name: row['Titel'],
+    quantity: parseInt(row['Aantal']),
+    unit_price: parseFloat(row['Prijs']),
+    // ...
+  });
+```
+
+## Voordeel voor Gebruikers
+
+Met deze feature kunnen SellQo gebruikers:
+- **Volledige 2 jaar historie** importeren uit Bol.com
+- **Eenmalige actie** - daarna pakt automatische sync het over
+- **Rapportages** - complete verkoopcijfers voor analyse
+- **Klantprofielen** - alle historische klanten in één systeem
+
