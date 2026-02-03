@@ -1,257 +1,179 @@
 
-# Plan: Fix Shopify CSV Parser - Exacte Kolomnaam Mapping
+Doel
+- De veldmapping in `/admin/import` moet exact overeenkomen met de Shopify CSV’s die je bezorgd hebt:
+  - Customers: 45 core velden + Klaviyo metafields (optioneel, maar niet “verlies”).
+  - Products: 64 velden incl. metafields.
+  - Orders: 78 velden (momenteel 0 auto-mapping, zoals je screenshot toont).
 
-## Probleem
+Wat er nu misloopt (op basis van de code)
+1) Er bestaat geen Shopify orders default mapping
+- `src/lib/importMappings.ts` heeft `SHOPIFY_CUSTOMER_MAPPING`, `SHOPIFY_PRODUCT_MAPPING`, maar geen `SHOPIFY_ORDER_MAPPING`.
+- `getDefaultMapping()` retourneert voor Shopify geen mapping voor `orders`, dus alles blijft “skip”.
 
-De huidige parser zoekt naar **verkeerde kolomnamen**. Jouw Shopify export gebruikt andere namen dan verwacht:
+2) De mapping-UI toont geen order target fields
+- `src/components/admin/import/FieldMappingStep.tsx` ondersteunt enkel `customers` en `products` in `getTargetFields()`.
+- Voor `orders` krijgt de dropdown dus geen “SellQo veld” keuzes en blijft alles “skip”.
 
-## Te Fixen Kolomnamen per Type
+3) Shopify customers/products mapping is onvolledig t.o.v. jouw export
+- In `SHOPIFY_CUSTOMER_MAPPING` ontbreken o.a. `Accepts Email Marketing`, `Accepts SMS Marketing`, `Default Address Address2`, `Total Spent`, `Total Orders`, enz.
+- In `SHOPIFY_PRODUCT_MAPPING` wordt `Vendor` expliciet geskipt en `Product Category` gaat naar `category_id` (met een transformer die niet bestaat), terwijl je CSV “Product Category” bevat en je vooral data wilt bewaren.
 
-### 1. CUSTOMERS Parser Fixes
+4) Metafields (zoals Klaviyo) lijken “niet gemapt” omdat er geen plek is om ze te bewaren
+- In je screenshot zie je vooral metafields die “skip” staan.
+- Zelfs als we ze willen mappen, is er in de huidige wizard geen standaard “metadata”-veld in de database voor customers/products om die te bewaren.
 
-```text
-HUIDIGE CODE                    JOUW CSV EXPORT
-───────────────────────────────────────────────────────────
-row['ID']                    →  row['Customer ID']
-row['Company']               →  row['Default Address Company']
-row['Address1']              →  row['Default Address Address1']
-row['Address2']              →  row['Default Address Address2']
-row['City']                  →  row['Default Address City']
-row['Province Code']         →  row['Default Address Province Code']
-row['Country Code']          →  row['Default Address Country Code']
-row['Zip']                   →  row['Default Address Zip']
-row['Accepts Marketing']     →  row['Accepts Email Marketing']
-row['Orders Count']          →  row['Total Orders']
--                            →  row['Default Address Phone'] (NIEUW)
--                            →  row['Accepts SMS Marketing'] (NIEUW)
-```
+Oplossingsrichting (dieper dan “een paar keys toevoegen”)
+We gaan het op 2 niveaus oplossen:
+A) Volledige Shopify mapping definitions toevoegen (Customers + Products + Orders) zodat core velden automatisch gemapt worden.
+B) Metafields en “extra” velden niet weggooien: toevoegen van een JSONB “raw_import_data” opslagveld voor customers/products, en orders extra velden naar bestaande `raw_marketplace_data` sturen. Zo blijven alle velden bewaard zonder dat we 100 extra kolommen moeten aanmaken.
 
-### 2. PRODUCTS Parser Fixes
+Concreet implementatieplan
 
-```text
-HUIDIGE CODE                    JOUW CSV EXPORT
-───────────────────────────────────────────────────────────
-row['Google: Category']      →  row['Product Category']
--                            →  Metafields voor kleur, materiaal, etc.
-```
+Stap 1 — Database uitbreiden voor volledige data-retentie (kleine, veilige migratie)
+Waarom: Klaviyo metafields en andere extra velden moeten ergens naartoe.
+- Voeg toe:
+  - `customers.raw_import_data jsonb default '{}'`
+  - `products.raw_import_data jsonb default '{}'`
+- Voeg ook toe (belangrijk voor je “Accepts SMS Marketing” core veld):
+  - `customers.sms_subscribed boolean default false`
+  - (optioneel) `customers.sms_subscribed_at timestamptz` (kan later, niet strikt nodig voor mapping)
 
-### 3. ORDERS Parser Fixes
+Resultaat: alle metafields kunnen automatisch “gemapt” worden naar `raw_import_data` i.p.v. “skip”.
 
-```text
-HUIDIGE CODE                    JOUW CSV EXPORT  
-───────────────────────────────────────────────────────────
-row['ID']                    →  row['Id'] (kleine letter 'd')
-row['Lineitem vendor']       →  row['Vendor'] (per rij)
--                            →  row['Source'] (bijv. shopify_draft_order)
--                            →  row['Employee']
--                            →  row['Location']
--                            →  row['Lineitem discount']
--                            →  row['Tax 1 Name'], row['Tax 1 Value'], etc.
-```
+Stap 2 — Target field lijsten uitbreiden zodat dropdowns de juiste “SellQo velden” tonen
+Bestand: `src/types/import.ts`
+- Breid `CUSTOMER_TARGET_FIELDS` uit met bestaande DB velden die nu ontbreken, o.a.:
+  - `province`, `province_code`, `tax_exempt`, `verified_email`
+  - `email_subscribed`, `sms_subscribed`
+  - `email_marketing_status`, `email_marketing_level`, `sms_marketing_status`, `sms_marketing_level`
+  - `total_spent`, `total_orders`
+  - `shopify_customer_id`, `original_created_at`, `import_source`
+  - `raw_import_data`
+- Breid `PRODUCT_TARGET_FIELDS` uit met:
+  - `vendor`, `google_product_category`, `shopify_handle`, `shopify_product_id`, `image_alt_texts`, `published_scope`, `original_created_at`, `import_source`
+  - `raw_import_data`
+- Voeg nieuw toe:
+  - `export const ORDER_TARGET_FIELDS = [...]`
+    - o.a. `order_number`, `payment_status`, `status`, `paid_at`, `shipped_at`, `cancelled_at`, `currency`, `subtotal`, `shipping_cost`, `tax_amount`, `total`, `discount_code`, `discount_amount`
+    - `billing_address`, `shipping_address`
+    - `marketplace_source`, `marketplace_order_id`, `external_reference`, `payment_method`, `order_tags`, `risk_level`
+    - `raw_marketplace_data` (bestaat al in orders tabel)
+    - `original_created_at`, `import_source`
 
-## Implementatie
+Stap 3 — Shopify mappings volledig en exact volgens jouw CSV headers
+Bestand: `src/lib/importMappings.ts`
 
-### Stap 1: Update `parseShopifyCustomers()` functie
+3.1 Customers mapping (core 45 velden)
+- Voeg alle core kolommen toe die jij oplijst:
+  - `Customer ID` -> `shopify_customer_id` (en/of `external_id` als fallback)
+  - `Accepts Email Marketing` -> `email_subscribed` (transform: yes/no)
+  - `Accepts SMS Marketing` -> `sms_subscribed` (transform: yes/no)
+  - `Default Address Address2` -> (niet naar aparte kolom; we bewaren in `raw_import_data.default_address.address2` + eventueel later concatenation)
+  - `Total Spent` -> `total_spent` (decimal)
+  - `Total Orders` -> `total_orders` (number)
+  - `Default Address Province Code` -> `province_code` (niet `billing_state`, want dat bestaat niet)
+  - `Default Address Phone` -> `phone` als fallback of naar raw_import_data (maar core wil je meestal in phone)
 
-**Bestand:** `src/lib/shopifyImportParsers.ts`
+3.2 Customers metafields (Klaviyo e.d.)
+- Alle metafields uit jouw lijst mappen naar `raw_import_data` met keys (bv. `raw_import_data.klaviyo.last_active`, `raw_import_data.klaviyo.locale`, …).
+- Belangrijk: dit gebeurt zó dat de UI niet “skip” toont maar “raw_import_data”.
 
-```typescript
-export function parseShopifyCustomers(csvString: string): ParsedCustomer[] {
-  const rows = parseCSV(csvString);
-  
-  return rows.map(row => ({
-    // Shopify Customer ID
-    id: row['Customer ID'] || row['ID'] || row['id'] || null,
-    
-    // Basis info
-    email: row['Email'] || row['email'] || '',
-    first_name: row['First Name'] || row['first_name'] || '',
-    last_name: row['Last Name'] || row['last_name'] || '',
-    
-    // Bedrijf - Let op "Default Address" prefix!
-    company: row['Default Address Company'] || row['Company'] || row['company'] || null,
-    
-    // Telefoon - zowel direct als adres telefoon
-    phone: row['Phone'] || row['phone'] || null,
-    address_phone: row['Default Address Phone'] || null,
-    
-    // Adres - Let op "Default Address" prefix!
-    address1: row['Default Address Address1'] || row['Address1'] || row['address1'] || null,
-    address2: row['Default Address Address2'] || row['Address2'] || row['address2'] || null,
-    city: row['Default Address City'] || row['City'] || row['city'] || null,
-    province: row['Default Address Province'] || row['Province'] || row['province'] || null,
-    province_code: row['Default Address Province Code'] || row['Province Code'] || null,
-    zip: row['Default Address Zip'] || row['Zip'] || row['zip'] || null,
-    country: row['Default Address Country'] || row['Country'] || row['country'] || null,
-    country_code: row['Default Address Country Code'] || row['Country Code'] || null,
-    
-    // Marketing - Let op exacte kolomnamen!
-    accepts_marketing: (row['Accepts Email Marketing'] || row['Accepts Marketing'] || '').toLowerCase() === 'yes',
-    accepts_sms_marketing: (row['Accepts SMS Marketing'] || '').toLowerCase() === 'yes',
-    
-    // Stats - Let op: "Total Orders" niet "Orders Count"!
-    total_spent: parseFloat((row['Total Spent'] || '0').replace(/[^0-9.-]/g, '')) || 0,
-    orders_count: parseInt(row['Total Orders'] || row['Orders Count'] || '0') || 0,
-    
-    // Extra velden
-    tags: (row['Tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
-    note: row['Note'] || row['note'] || null,
-    tax_exempt: (row['Tax Exempt'] || 'no').toLowerCase() === 'yes',
-    
-    // Metafields (optioneel - voor Klaviyo data)
-    language_preference: row['language_preference (customer.metafields.customer.language_preference)'] || null,
-    birth_date: row['Birth date (customer.metafields.facts.birth_date)'] || null,
-    
-    created_at: row['Created At'] || row['created_at'] || new Date().toISOString(),
-  })).filter(c => c.email);
-}
-```
+3.3 Products mapping (core + metafields)
+- Fixes t.o.v. huidige code:
+  - `Vendor` mag niet “skip” zijn -> map naar `vendor`
+  - `Product Category` map naar `google_product_category` (of naar `raw_import_data.product_category` als je dat liever apart houdt; default: `google_product_category` omdat de kolom bestaat)
+  - `Type` map naar `original_category_value` (kolom bestaat in products)
+  - `Handle` -> `slug` (blijft nodig want slug is verplicht), en daarnaast ook naar `shopify_handle` via een kleine post-processing regel (zie Stap 4)
+  - `Published` -> `is_active` (boolean transformer)
+  - `Image Alt Text` -> `image_alt_texts` (array transformer; per rij verzamelen)
+- Alle product metafields (battery, color, material, …) -> `raw_import_data` (zodat niets verloren gaat).
 
-### Stap 2: Update `parseShopifyProducts()` functie
+3.4 Orders mapping (78 velden)
+- Voeg `SHOPIFY_ORDER_MAPPING` toe die minstens alle “core” ordersvelden premapt:
+  - `Name` -> `order_number` (required)
+  - `Email` -> `customer_email`
+  - `Financial Status` -> `payment_status` (shopifyPaymentStatus transformer)
+  - `Fulfillment Status` -> `status` (shopifyFulfillmentStatus transformer)
+  - `Paid at` -> `paid_at` (datetime)
+  - `Fulfilled at` -> `shipped_at` (datetime)
+  - `Currency` -> `currency`
+  - `Subtotal`, `Shipping`, `Taxes`, `Total`, `Discount Amount` -> decimals
+  - `Discount Code` -> `discount_code`
+  - `Cancelled at` -> `cancelled_at`
+  - `Tags` -> `order_tags` (tagArray)
+  - `Risk Level` -> `risk_level`
+  - `Source` -> `marketplace_source` (of `raw_marketplace_data.source` als je marketplace_source strikt wil beperken; default: marketplace_source)
+  - `Payment Method` -> `payment_method`
+  - `Payment Reference` / `Payment References` -> `external_reference` en rest in `raw_marketplace_data`
+- Adressen:
+  - `Billing Name/Street/Address1/Address2/...` -> `billing_address` (als JSON object)
+  - `Shipping Name/Street/Address1/Address2/...` -> `shipping_address` (als JSON object)
+- Line item velden:
+  - Voor de wizard-mapping + preview: mappen naar `raw_marketplace_data.lineitem.*` zodat ze niet “skip” blijven.
+  - (Later, bij echte import-executie) kunnen we deze gebruiken om `order_items` correct te maken door te groeperen op `Name`/`Id`.
 
-```typescript
-// Product Category apart parsen (Shopify's nieuwe Google categorisatie)
-google_product_category: row['Product Category'] || row['Google Shopping / Google Product Category'] || null,
+Stap 4 — Wizard mapping engine upgraden: JSON merge + “per-field naar JSON” zonder dot-targets in dropdown
+Probleem: we willen meerdere CSV kolommen in één JSON veld (bv. billing_address), én metafields in raw_import_data, zonder dat we 200 dropdown opties moeten toevoegen.
+Bestand: `src/lib/importMappings.ts`
+- We breiden `transformRecord()` uit zodat het:
+  1) Transformers kan gebruiken met argument (bv. `jsonString:street`, `jsonDecimal:tax1_value`).
+  2) Indien `result[target]` al een object is, de nieuwe objectwaarde merged i.p.v. overschrijven.
+- Nieuwe transformers (naast bestaande):
+  - `yesNo` (Shopify uses yes/no)
+  - `datetime` (naar ISO string)
+  - `shopifyPaymentStatus`
+  - `shopifyFulfillmentStatus`
+  - `jsonString:<key>` -> `{ [key]: stringValue }`
+  - `jsonNumber:<key>` -> `{ [key]: numberValue }`
+  - `jsonDecimal:<key>` -> `{ [key]: decimalValue }`
+  - `jsonBoolean:<key>` -> `{ [key]: booleanValue }`
 
-// Metafields voor product specificaties opslaan als JSON
-product_metafields: {
-  battery_features: row['Battery features (product.metafields.shopify.battery-features)'] || null,
-  battery_size: row['Battery size (product.metafields.shopify.battery-size)'] || null,
-  color: row['Color (product.metafields.shopify.color-pattern)'] || null,
-  connection_type: row['Connection type (product.metafields.shopify.connection-type)'] || null,
-  item_condition: row['Item condition (product.metafields.shopify.item-condition)'] || null,
-  material: row['Material (product.metafields.shopify.material)'] || null,
-  power_source: row['Power source (product.metafields.shopify.power-source)'] || null,
-  // ... andere metafields
-},
-```
+Voorbeeld:
+- `Billing City` target = `billing_address`, transform = `jsonString:city`
+- `Billing Zip` target = `billing_address`, transform = `jsonString:postal_code`
+=> transformRecord merge’t deze tot één `billing_address` object.
 
-### Stap 3: Update `parseShopifyOrders()` functie
+Stap 5 — UI fixes: orders tab + target fields + betere “auto mapping”
+Bestand: `src/components/admin/import/FieldMappingStep.tsx`
+- Voeg `orders` case toe in `getTargetFields()` (met `ORDER_TARGET_FIELDS`).
+- Gebruik geen `defaultMapping[header]` meer, maar een helper `findMatchingMapping(header, mapping)` die minimaal:
+  - trimt, case-insensitive match doet
+  - optioneel: baseHeader match (`Header (metafields...)` -> exacte key als aanwezig)
+Dit voorkomt dat kleine variaties alsnog “skip” worden.
 
-```typescript
-// Shopify Order ID - let op kleine 'd'!
-shopify_order_id: row['Id'] || row['ID'] || row['id'] || null,
+Stap 6 — Preview verbeteringen zodat je meteen ziet dat orders “leven”
+Bestand: `src/components/admin/import/PreviewValidation.tsx`
+- Voeg `orders` toe in `getDisplayColumns()` (bv. `order_number`, `customer_email`, `total`, `payment_status`, `status`)
+- Breid `validateRecord()` in `importMappings.ts` uit met minimale order-validatie:
+  - order_number verplicht
+  - customer_email verplicht
+  - total verplicht (of subtotal+total afhankelijk)
+(Preview is nu ook realistischer.)
 
-// Vendor per line item
-vendor: row['Vendor'] || null,
+Testplan (wat jij meteen kan checken met jouw CSV’s)
+1) Ga naar `/admin/import`
+2) Selecteer Shopify + vink Customers/Products/Orders aan
+3) Upload jouw 3 CSV’s
+4) Stap “Veld Mapping”:
+   - Customers: alle core velden moeten automatisch gemapt zijn
+   - Metafields: moeten standaard naar `raw_import_data` gemapt zijn (niet “skip”)
+   - Products: Vendor, Product Category, SEO velden, Variant velden moeten grotendeels gemapt zijn; metafields naar `raw_import_data`
+   - Orders: niet langer “alles skip”; je ziet meteen mappings voor Name/Email/Financial Status/Total/Addresses/etc.
+5) Stap “Preview”:
+   - Orders preview toont order_number + totals + status/payout mapping
 
-// Extra order velden
-source: row['Source'] || null,
-employee: row['Employee'] || null,
-location: row['Location'] || null,
+Belangrijke scope-note
+- Deze wizard (`/admin/import`) simuleert momenteel de echte import (ImportWizard heeft nog een TODO voor “actual import”). Dit plan lost het mapping-probleem en data-retentie in de wizard op.
+- Als je wil dat “Start import” ook effectief orders + order_items gaat aanmaken (incl. groeperen van line-items per order), dan is dat een volgende stap: een backend import-runner die de wizard output uitvoert.
 
-// BTW details per regel
-tax_details: {
-  tax1_name: row['Tax 1 Name'] || null,
-  tax1_value: parseFloat(row['Tax 1 Value'] || '0') || 0,
-  tax2_name: row['Tax 2 Name'] || null,
-  tax2_value: parseFloat(row['Tax 2 Value'] || '0') || 0,
-},
+Bestanden die we zullen aanpassen
+- Database migration: add `raw_import_data` + `sms_subscribed` (customers) / `raw_import_data` (products)
+- `src/types/import.ts` (target fields + ORDER_TARGET_FIELDS)
+- `src/lib/importMappings.ts` (SHOPIFY_ORDER_MAPPING + uitbreidingen customer/product + transformers + merge logic + fuzzy matching)
+- `src/components/admin/import/FieldMappingStep.tsx` (orders support + fuzzy default mapping)
+- `src/components/admin/import/PreviewValidation.tsx` (orders preview columns)
 
-// Line item discount
-lineitem_discount: parseFloat(row['Lineitem discount'] || '0') || 0,
-```
-
-### Stap 4: Update ParsedCustomer Interface
-
-```typescript
-export interface ParsedCustomer {
-  id: string | null;
-  email: string;
-  first_name: string;
-  last_name: string;
-  company: string | null;
-  phone: string | null;
-  address_phone: string | null;  // NIEUW
-  address1: string | null;
-  address2: string | null;
-  city: string | null;
-  province: string | null;
-  province_code: string | null;
-  zip: string | null;
-  country: string | null;
-  country_code: string | null;
-  accepts_marketing: boolean;
-  accepts_sms_marketing: boolean;  // NIEUW
-  total_spent: number;
-  orders_count: number;
-  tags: string[];
-  note: string | null;
-  tax_exempt: boolean;
-  language_preference: string | null;  // NIEUW: Metafield
-  birth_date: string | null;  // NIEUW: Metafield
-  created_at: string;
-}
-```
-
-### Stap 5: Update ShopifyManualImport.tsx
-
-Pas de import handler aan om de nieuwe velden te gebruiken:
-
-```typescript
-const customerData = {
-  tenant_id: currentTenant.id,
-  email: customer.email,
-  first_name: customer.first_name,
-  last_name: customer.last_name,
-  company_name: customer.company,
-  
-  // Telefoon - combineer beide bronnen
-  phone: customer.phone || customer.address_phone,
-  
-  // Adressen
-  billing_street: [customer.address1, customer.address2].filter(Boolean).join(', '),
-  billing_city: customer.city,
-  billing_postal_code: customer.zip,
-  billing_country: customer.country_code || customer.country || 'NL',
-  province: customer.province,
-  province_code: customer.province_code,
-  
-  // Marketing
-  email_subscribed: customer.accepts_marketing,
-  sms_subscribed: customer.accepts_sms_marketing,
-  
-  // Stats
-  total_spent: customer.total_spent,
-  total_orders: customer.orders_count,
-  
-  // Extra
-  notes: customer.note,
-  tags: customer.tags,
-  tax_exempt: customer.tax_exempt,
-  
-  // Shopify tracking
-  shopify_customer_id: customer.id,
-  external_id: customer.id,
-  import_source: 'shopify_csv',
-};
-```
-
-## Bestanden te Wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/lib/shopifyImportParsers.ts` | Fix alle kolomnaam mappings voor customers, products, orders |
-| `src/components/admin/marketplace/shopify/ShopifyManualImport.tsx` | Update import handlers voor nieuwe velden |
-
-## Resultaat
-
-Na deze wijzigingen worden ALLE velden uit jouw Shopify CSV exports correct geparsed:
-
-**Customers:**
-- ✅ Customer ID correct opgehaald
-- ✅ Default Address velden correct gemapped
-- ✅ Accepts Email Marketing / SMS Marketing correct
-- ✅ Total Orders (niet Orders Count)
-- ✅ Klaviyo metafields optioneel beschikbaar
-
-**Products:**
-- ✅ Product Category voor Google Shopping
-- ✅ Alle metafields (battery, color, etc.)
-- ✅ Status, Published, SEO velden
-
-**Orders:**
-- ✅ Shopify Order `Id` (kleine d)
-- ✅ Vendor per line item
-- ✅ Source, Employee, Location
-- ✅ BTW details per regel
+Risico’s / randgevallen
+- Shopify “Orders export” is line-item per rij: mapping is ok, maar echte import moet groeperen (later stap).
+- Sommige velden bestaan dubbel (bv. “Payment Reference” en “Payment References”): we mappen één naar `external_reference`, de rest bewaren we in `raw_marketplace_data`.
+- Product Handle moet ook slug vullen: we vullen slug, en zetten daarnaast shopify_handle via afgeleide logica (of bewaren in raw_import_data als extra zekerheid).
