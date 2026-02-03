@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
@@ -24,6 +25,7 @@ import {
   Unlink,
   AlertCircle,
   ShoppingBag,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,40 +75,18 @@ import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWid
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-
-// Mock data for demonstration
-const mockActivities = [
-  { id: '1', type: 'order', message: 'Nieuwe order #12345 geïmporteerd', timestamp: '5 minuten geleden' },
-  { id: '2', type: 'inventory', message: 'Voorraad voor 12 producten bijgewerkt', timestamp: '15 minuten geleden' },
-  { id: '3', type: 'order', message: 'Nieuwe order #12344 geïmporteerd', timestamp: '22 minuten geleden' },
-  { id: '4', type: 'error', message: 'Voorraad sync mislukt voor SKU-001', timestamp: '1 uur geleden' },
-];
-
-const mockOrders = [
-  { id: '1', marketplace_order_id: 'BOL-12345678', customer_name: 'Jan de Vries', items_count: 2, total_amount: '49.99', status: 'shipped', created_at: new Date().toISOString() },
-  { id: '2', marketplace_order_id: 'BOL-12345679', customer_name: 'Piet Janssen', items_count: 1, total_amount: '29.99', status: 'pending', created_at: new Date().toISOString() },
-  { id: '3', marketplace_order_id: 'BOL-12345680', customer_name: 'Marie Bakker', items_count: 3, total_amount: '89.99', status: 'shipped', created_at: new Date().toISOString() },
-];
-
-const mockProducts = [
-  { id: '1', name: 'Product A', image: '/placeholder.svg', bol_ean: '8712345678901', quantity: 25, bol_quantity: 25, sync_enabled: true, last_sync: new Date().toISOString() },
-  { id: '2', name: 'Product B', image: '/placeholder.svg', bol_ean: '8712345678902', quantity: 3, bol_quantity: 3, sync_enabled: true, last_sync: new Date().toISOString() },
-  { id: '3', name: 'Product C', image: '/placeholder.svg', bol_ean: '8712345678903', quantity: 50, bol_quantity: 50, sync_enabled: false, last_sync: null },
-];
-
-const mockLogs = [
-  { id: '1', created_at: new Date().toISOString(), sync_type: 'Order Import', details: '5 orders geïmporteerd', status: 'success', duration: 234 },
-  { id: '2', created_at: new Date().toISOString(), sync_type: 'Inventory Sync', details: '12 producten bijgewerkt', status: 'success', duration: 567 },
-  { id: '3', created_at: new Date().toISOString(), sync_type: 'Order Import', details: 'API timeout', status: 'failed', duration: 30000 },
-];
+import { useTenant } from '@/hooks/useTenant';
 
 export default function MarketplaceDetailPage() {
   const { connectionId } = useParams<{ connectionId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { currentTenant } = useTenant();
   const { connection, isLoading } = useMarketplaceConnection(connectionId);
   const { updateConnection, deleteConnection } = useMarketplaceConnections();
 
   const [syncing, setSyncing] = useState(false);
+  const [importingHistorical, setImportingHistorical] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   
   // Settings state
@@ -119,15 +99,103 @@ export default function MarketplaceDetailPage() {
 
   const info = connection ? MARKETPLACE_INFO[connection.marketplace_type] : null;
 
+  // Query real orders from database
+  const { data: realOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['marketplace-orders', connectionId, currentTenant?.id],
+    queryFn: async () => {
+      if (!connectionId || !currentTenant?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number, marketplace_order_id, customer_name, total, status, created_at')
+        .eq('marketplace_connection_id', connectionId)
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('Error fetching orders:', error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!connectionId && !!currentTenant?.id,
+  });
+
+  // Query sync activity logs
+  const { data: syncActivities = [] } = useQuery({
+    queryKey: ['sync-activities', connectionId],
+    queryFn: async () => {
+      if (!connectionId) return [];
+      
+      const { data, error } = await supabase
+        .from('sync_activity_log')
+        .select('*')
+        .eq('connection_id', connectionId)
+        .order('started_at', { ascending: false })
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching sync activities:', error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!connectionId,
+  });
+
+  // Query products with marketplace mappings
+  const { data: linkedProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['marketplace-products', currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, images, bol_ean, stock, sync_inventory, last_inventory_sync, marketplace_mappings')
+        .eq('tenant_id', currentTenant.id)
+        .eq('sync_inventory', true)
+        .not('bol_ean', 'is', null)
+        .order('name')
+        .limit(50);
+      
+      if (error) {
+        console.error('Error fetching products:', error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!currentTenant?.id,
+  });
+
+  // Get the sync function name based on marketplace type
+  const getSyncFunctions = (type: string) => {
+    switch (type) {
+      case 'shopify':
+        return { orders: 'sync-shopify-orders', inventory: 'sync-shopify-inventory' };
+      case 'woocommerce':
+        return { orders: 'sync-woocommerce-orders', inventory: 'sync-woocommerce-inventory' };
+      case 'amazon':
+        return { orders: 'sync-amazon-orders', inventory: 'sync-amazon-inventory' };
+      case 'odoo':
+        return { orders: 'sync-odoo-orders', inventory: 'sync-odoo-inventory' };
+      case 'ebay':
+        return { orders: 'sync-ebay-orders', inventory: 'sync-ebay-inventory' };
+      default:
+        return { orders: 'sync-bol-orders', inventory: 'sync-bol-inventory' };
+    }
+  };
+
   const handleSyncNow = async () => {
     if (!connection) return;
     
     setSyncing(true);
+    const syncFns = getSyncFunctions(connection.marketplace_type);
     
     try {
       // Sync orders
       toast.info('Orders synchroniseren...');
-      const orderResult = await supabase.functions.invoke('sync-bol-orders', {
+      const orderResult = await supabase.functions.invoke(syncFns.orders, {
         body: { connectionId: connection.id }
       });
       
@@ -135,12 +203,13 @@ export default function MarketplaceDetailPage() {
         console.error('Order sync error:', orderResult.error);
         toast.error('Order sync mislukt: ' + orderResult.error.message);
       } else {
-        toast.success(`${orderResult.data?.ordersImported || 0} orders geïmporteerd`);
+        const imported = orderResult.data?.ordersImported ?? orderResult.data?.orders_imported ?? 0;
+        toast.success(`${imported} orders geïmporteerd`);
       }
       
       // Sync inventory
       toast.info('Voorraad synchroniseren...');
-      const inventoryResult = await supabase.functions.invoke('sync-bol-inventory', {
+      const inventoryResult = await supabase.functions.invoke(syncFns.inventory, {
         body: { connectionId: connection.id }
       });
       
@@ -148,8 +217,16 @@ export default function MarketplaceDetailPage() {
         console.error('Inventory sync error:', inventoryResult.error);
         toast.error('Voorraad sync mislukt: ' + inventoryResult.error.message);
       } else {
-        toast.success(`${inventoryResult.data?.productsSynced || 0} producten gesynchroniseerd`);
+        const synced = inventoryResult.data?.productsSynced ?? inventoryResult.data?.products_synced ?? 0;
+        toast.success(`${synced} producten gesynchroniseerd`);
       }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['marketplace-orders', connectionId] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-connection', connectionId] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-connections'] });
+      queryClient.invalidateQueries({ queryKey: ['sync-activities', connectionId] });
+      queryClient.invalidateQueries({ queryKey: ['sync-history', connectionId] });
       
       toast.success('Synchronisatie voltooid!');
     } catch (error) {
@@ -157,6 +234,50 @@ export default function MarketplaceDetailPage() {
       toast.error('Synchronisatie mislukt: ' + message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleHistoricalImport = async () => {
+    if (!connection) return;
+    
+    setImportingHistorical(true);
+    const syncFns = getSyncFunctions(connection.marketplace_type);
+    
+    try {
+      toast.info('Historische orders importeren... Dit kan even duren.');
+      
+      const result = await supabase.functions.invoke(syncFns.orders, {
+        body: { 
+          connectionId: connection.id,
+          forceHistoricalImport: true,
+          historicalPeriodDays: 730 // 2 years
+        }
+      });
+      
+      if (result.error) {
+        console.error('Historical import error:', result.error);
+        toast.error('Import mislukt: ' + result.error.message);
+      } else {
+        const imported = result.data?.ordersImported ?? result.data?.orders_imported ?? 0;
+        if (imported > 0) {
+          toast.success(`${imported} historische orders geïmporteerd!`);
+        } else {
+          toast.info('Geen nieuwe historische orders gevonden');
+        }
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['marketplace-orders', connectionId] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-connection', connectionId] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-connections'] });
+      queryClient.invalidateQueries({ queryKey: ['sync-activities', connectionId] });
+      queryClient.invalidateQueries({ queryKey: ['sync-history', connectionId] });
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Onbekende fout';
+      toast.error('Import mislukt: ' + message);
+    } finally {
+      setImportingHistorical(false);
     }
   };
 
@@ -186,6 +307,35 @@ export default function MarketplaceDetailPage() {
     navigate('/admin/connect');
   };
 
+  // Format activity for display
+  const formatActivity = (activity: any) => {
+    const type = activity.data_type === 'orders' ? 'order' : 
+                 activity.data_type === 'inventory' ? 'inventory' : 'sync';
+    const isError = activity.status === 'failed';
+    
+    let message = '';
+    if (activity.data_type === 'orders') {
+      message = activity.status === 'success' 
+        ? `${activity.records_created || 0} orders geïmporteerd`
+        : `Order sync mislukt`;
+    } else if (activity.data_type === 'inventory') {
+      message = activity.status === 'success'
+        ? `${activity.records_processed || 0} producten gesynchroniseerd`
+        : `Voorraad sync mislukt`;
+    } else {
+      message = activity.status === 'success' ? 'Sync voltooid' : 'Sync mislukt';
+    }
+    
+    return {
+      id: activity.id,
+      type: isError ? 'error' : type,
+      message,
+      timestamp: activity.started_at 
+        ? formatDistanceToNow(new Date(activity.started_at), { addSuffix: true, locale: nl })
+        : 'Onbekend'
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -208,6 +358,8 @@ export default function MarketplaceDetailPage() {
   const lastSyncFormatted = connection.last_sync_at
     ? formatDistanceToNow(new Date(connection.last_sync_at), { addSuffix: true, locale: nl })
     : 'Nog niet';
+
+  const formattedActivities = syncActivities.map(formatActivity);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -238,7 +390,24 @@ export default function MarketplaceDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSyncNow} disabled={syncing}>
+          <Button 
+            variant="outline" 
+            onClick={handleHistoricalImport} 
+            disabled={syncing || importingHistorical}
+          >
+            {importingHistorical ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Importeren...
+              </>
+            ) : (
+              <>
+                <History className="w-4 h-4 mr-2" />
+                Import Historisch
+              </>
+            )}
+          </Button>
+          <Button variant="outline" onClick={handleSyncNow} disabled={syncing || importingHistorical}>
             {syncing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -258,7 +427,7 @@ export default function MarketplaceDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="orders">Orders ({realOrders.length})</TabsTrigger>
           <TabsTrigger value="inventory">Voorraad</TabsTrigger>
           <TabsTrigger value="sync-rules">Sync Regels</TabsTrigger>
           <TabsTrigger value="settings">Instellingen</TabsTrigger>
@@ -274,10 +443,10 @@ export default function MarketplaceDetailPage() {
                 <CardDescription>Totaal Orders</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{connection.stats?.totalOrders || 0}</div>
+                <div className="text-3xl font-bold">{connection.stats?.totalOrders || realOrders.length || 0}</div>
                 <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3 h-3" />
-                  +12% deze maand
+                  Via {info.name}
                 </p>
               </CardContent>
             </Card>
@@ -295,7 +464,7 @@ export default function MarketplaceDetailPage() {
                 <CardDescription>Producten Gesynchroniseerd</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{connection.stats?.productsLinked || 0}</div>
+                <div className="text-3xl font-bold">{connection.stats?.productsLinked || linkedProducts.length || 0}</div>
                 <p className="text-sm text-muted-foreground mt-1">Gekoppeld</p>
               </CardContent>
             </Card>
@@ -316,26 +485,35 @@ export default function MarketplaceDetailPage() {
               <CardTitle>Recente Activiteit</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {mockActivities.map(activity => (
-                  <div key={activity.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                      activity.type === 'order' && 'bg-blue-100',
-                      activity.type === 'inventory' && 'bg-green-100',
-                      activity.type === 'error' && 'bg-red-100'
-                    )}>
-                      {activity.type === 'order' && <ShoppingCart className="w-4 h-4 text-blue-600" />}
-                      {activity.type === 'inventory' && <Package className="w-4 h-4 text-green-600" />}
-                      {activity.type === 'error' && <AlertCircle className="w-4 h-4 text-red-600" />}
+              {formattedActivities.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nog geen sync activiteit</p>
+                  <Button variant="link" onClick={handleSyncNow} disabled={syncing}>
+                    Start je eerste sync
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {formattedActivities.map(activity => (
+                    <div key={activity.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                        activity.type === 'order' && 'bg-blue-100',
+                        activity.type === 'inventory' && 'bg-green-100',
+                        activity.type === 'error' && 'bg-red-100'
+                      )}>
+                        {activity.type === 'order' && <ShoppingCart className="w-4 h-4 text-blue-600" />}
+                        {activity.type === 'inventory' && <Package className="w-4 h-4 text-green-600" />}
+                        {activity.type === 'error' && <AlertCircle className="w-4 h-4 text-red-600" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{activity.message}</p>
+                        <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -346,6 +524,10 @@ export default function MarketplaceDetailPage() {
                 <CardTitle>Snelle Acties</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3">
+                <Button variant="outline" className="justify-start" onClick={handleHistoricalImport} disabled={importingHistorical}>
+                  <History className="w-4 h-4 mr-2" />
+                  Import Historische Orders
+                </Button>
                 <Button variant="outline" className="justify-start">
                   <Download className="w-4 h-4 mr-2" />
                   Export Orders
@@ -353,10 +535,6 @@ export default function MarketplaceDetailPage() {
                 <Button variant="outline" className="justify-start">
                   <Upload className="w-4 h-4 mr-2" />
                   Bulk Voorraad Update
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Sync Rapport
                 </Button>
               </CardContent>
             </Card>
@@ -375,10 +553,16 @@ export default function MarketplaceDetailPage() {
                   <CardTitle>{info.name} Orders</CardTitle>
                   <CardDescription>Alle bestellingen gesynchroniseerd van {info.name}</CardDescription>
                 </div>
-                <Button variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Exporteer
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleHistoricalImport} disabled={importingHistorical}>
+                    <History className="w-4 h-4 mr-2" />
+                    Import Historisch
+                  </Button>
+                  <Button variant="outline">
+                    <Download className="w-4 h-4 mr-2" />
+                    Exporteer
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -397,42 +581,70 @@ export default function MarketplaceDetailPage() {
                 <Input placeholder="Zoek order..." className="flex-1" />
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Klant</TableHead>
-                    <TableHead>Producten</TableHead>
-                    <TableHead>Bedrag</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Datum</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockOrders.map(order => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-sm">
-                        {order.marketplace_order_id}
-                      </TableCell>
-                      <TableCell>{order.customer_name}</TableCell>
-                      <TableCell>{order.items_count} items</TableCell>
-                      <TableCell>€{order.total_amount}</TableCell>
-                      <TableCell>
-                        <Badge variant={order.status === 'shipped' ? 'default' : 'secondary'}>
-                          {order.status === 'shipped' ? 'Verzonden' : 'Open'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+              {ordersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : realOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingCart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold mb-2">Geen orders gevonden</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Er zijn nog geen orders gesynchroniseerd van {info.name}
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" onClick={handleHistoricalImport} disabled={importingHistorical}>
+                      <History className="w-4 h-4 mr-2" />
+                      Import Historisch
+                    </Button>
+                    <Button onClick={handleSyncNow} disabled={syncing}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sync Nu
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Klant</TableHead>
+                      <TableHead>Bedrag</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Datum</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {realOrders.map(order => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-mono text-sm">
+                          {order.marketplace_order_id || order.order_number}
+                        </TableCell>
+                        <TableCell>{order.customer_name || '-'}</TableCell>
+                        <TableCell>€{Number(order.total || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={order.status === 'shipped' ? 'default' : 'secondary'}>
+                            {order.status === 'shipped' ? 'Verzonden' : 
+                             order.status === 'processing' ? 'In behandeling' : 
+                             order.status === 'cancelled' ? 'Geannuleerd' : 'Open'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => navigate(`/admin/orders/${order.id}`)}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -453,7 +665,7 @@ export default function MarketplaceDetailPage() {
                     <Upload className="w-4 h-4 mr-2" />
                     Bulk Update
                   </Button>
-                  <Button onClick={handleSyncNow}>
+                  <Button onClick={handleSyncNow} disabled={syncing}>
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Sync Alles
                   </Button>
@@ -476,83 +688,98 @@ export default function MarketplaceDetailPage() {
                 <Input placeholder="Zoek product..." className="flex-1" />
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>SKU / EAN</TableHead>
-                    <TableHead>SellQo Voorraad</TableHead>
-                    <TableHead>{info.name} Voorraad</TableHead>
-                    <TableHead>Sync Status</TableHead>
-                    <TableHead>Laatste Sync</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockProducts.map(product => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-10 h-10 rounded object-cover"
-                          />
-                          <span className="font-medium">{product.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{product.bol_ean}</TableCell>
-                      <TableCell>
-                        <span className={product.quantity < 5 ? 'text-destructive font-semibold' : ''}>
-                          {product.quantity}
-                        </span>
-                      </TableCell>
-                      <TableCell>{product.bol_quantity}</TableCell>
-                      <TableCell>
-                        {product.sync_enabled ? (
-                          <Badge variant="default" className="flex items-center gap-1 w-fit">
-                            <CheckCircle className="w-3 h-3" />
-                            Actief
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Gepauzeerd</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {product.last_sync
-                          ? formatDistanceToNow(new Date(product.last_sync), { addSuffix: true, locale: nl })
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <RefreshCw className="w-4 h-4 mr-2" />
-                              Sync Nu
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              {product.sync_enabled ? 'Pauseer Sync' : 'Activeer Sync'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Bekijk op {info.name}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              Ontkoppel Product
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {productsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : linkedProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold mb-2">Geen producten gekoppeld</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Koppel producten aan {info.name} door een EAN toe te voegen en sync in te schakelen
+                  </p>
+                  <Button variant="outline" onClick={() => navigate('/admin/products')}>
+                    Naar Producten
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>SKU / EAN</TableHead>
+                      <TableHead>SellQo Voorraad</TableHead>
+                      <TableHead>Sync Status</TableHead>
+                      <TableHead>Laatste Sync</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {linkedProducts.map(product => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={product.images?.[0] || '/placeholder.svg'}
+                              alt={product.name}
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                            <span className="font-medium">{product.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{product.bol_ean}</TableCell>
+                        <TableCell>
+                          <span className={(product.stock || 0) < 5 ? 'text-destructive font-semibold' : ''}>
+                            {product.stock || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {product.sync_inventory ? (
+                            <Badge variant="default" className="flex items-center gap-1 w-fit">
+                              <CheckCircle className="w-3 h-3" />
+                              Actief
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Gepauzeerd</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {product.last_inventory_sync
+                            ? formatDistanceToNow(new Date(product.last_inventory_sync), { addSuffix: true, locale: nl })
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Sync Nu
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                {product.sync_inventory ? 'Pauseer Sync' : 'Activeer Sync'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Bekijk op {info.name}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive">
+                                Ontkoppel Product
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -818,69 +1045,79 @@ export default function MarketplaceDetailPage() {
                 <Input type="date" className="w-[180px]" />
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Duur</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockLogs.map(log => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm">
-                        {format(new Date(log.created_at), 'd MMM yyyy HH:mm', { locale: nl })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{log.sync_type}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">{log.details}</TableCell>
-                      <TableCell>
-                        {log.status === 'success' && (
-                          <Badge variant="default">Success</Badge>
-                        )}
-                        {log.status === 'failed' && (
-                          <Badge variant="destructive">Failed</Badge>
-                        )}
-                        {log.status === 'pending' && (
-                          <Badge variant="secondary">Pending</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">{log.duration}ms</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+              {syncActivities.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold mb-2">Geen sync logs</h3>
+                  <p className="text-muted-foreground">
+                    Logs verschijnen hier zodra je een sync uitvoert
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Details</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Records</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {syncActivities.map(log => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-sm">
+                          {log.started_at && format(new Date(log.started_at), 'd MMM yyyy HH:mm', { locale: nl })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{log.data_type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {log.records_processed > 0 ? `${log.records_processed} verwerkt` : '-'}
+                          {log.records_failed > 0 && `, ${log.records_failed} mislukt`}
+                        </TableCell>
+                        <TableCell>
+                          {log.status === 'success' && (
+                            <Badge variant="default">Success</Badge>
+                          )}
+                          {log.status === 'failed' && (
+                            <Badge variant="destructive">Failed</Badge>
+                          )}
+                          {log.status === 'running' && (
+                            <Badge variant="secondary">Running</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{log.records_processed || 0}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Disconnect Confirmation */}
+      {/* Disconnect Dialog */}
       <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Marketplace verbreken?</AlertDialogTitle>
+            <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dit verwijdert de connectie met {info.name}. Je orders en producten blijven bewaard in SellQo, maar nieuwe orders worden niet meer geïmporteerd en voorraad wordt niet meer gesynchroniseerd.
+              Deze actie verbreekt de verbinding met {info.name}. Nieuwe orders worden niet meer geïmporteerd en voorraadsynchronisatie stopt. Bestaande data blijft bewaard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleer</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDisconnect}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Verbreek Integratie
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnect} className="bg-destructive text-destructive-foreground">
+              Ja, verbreek verbinding
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
