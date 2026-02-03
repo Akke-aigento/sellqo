@@ -1,250 +1,163 @@
 
 
-# Plan: Bol.com Advertising API Credentials Toevoegen
+# Plan: Bol.com Order Sync Fixen - Volledige Order Details Ophalen
 
-## Huidige Situatie
+## Geïdentificeerde Problemen
 
-De Bol.com koppeling vraagt nu alleen om:
-- **Client ID** (Retailer API)
-- **Client Secret** (Retailer API)
+### Probleem 1: Ongeldige API Statussen
+De Bol.com Retailer API v10 accepteert alleen deze status filters:
+- `OPEN`
+- `SHIPPED`  
+- `ALL`
 
-Maar op de Bol.com API credentials pagina staan twee secties:
-1. **Client credentials voor de Retailer API** → orders, producten, voorraad
-2. **Client credentials voor de Advertising API** → advertenties, sponsored products
+De code vraagt om `CANCELLED` en `RETURNED` → resulteert in 400 errors.
 
-## Wat Dit Oplevert
-
-Met beide API's gekoppeld heb je:
-
-| API | Functionaliteit |
-|-----|-----------------|
-| Retailer API | Orders importeren, voorraad sync, product listing, VVB labels |
-| Advertising API | Sponsored Products campagnes, advertentie budget, performance data |
-
-## Wijzigingen
-
-### 1. MarketplaceCredentials Type Uitbreiden
-
-**Bestand**: `src/types/marketplace.ts`
-
-Nieuwe velden toevoegen voor Advertising API:
-
-```typescript
-export interface MarketplaceCredentials {
-  // Bestaande velden...
-  clientId?: string;
-  clientSecret?: string;
-  
-  // NIEUW: Bol.com Advertising API (optioneel)
-  advertisingClientId?: string;
-  advertisingClientSecret?: string;
+### Probleem 2: Ontbrekende Order Details
+De `/orders` endpoint (lijst) geeft alleen basis-info per order:
+```json
+{
+  "orders": [
+    { "orderId": "C00005N41C" }  // Geen orderItems, geen prijzen!
+  ]
 }
 ```
 
-### 2. ConnectMarketplaceDialog.tsx - State Toevoegen
-
-Nieuwe state variabelen voor Advertising credentials:
-
-```typescript
-// Bol.com Advertising API (optioneel)
-const [advertisingClientId, setAdvertisingClientId] = useState('');
-const [advertisingClientSecret, setAdvertisingClientSecret] = useState('');
-const [showAdvertisingSection, setShowAdvertisingSection] = useState(false);
+Voor volledige details (incl. `orderItems`, prijzen, klantgegevens) moet je per order de detail-endpoint aanroepen:
+```
+GET /orders/{orderId}
 ```
 
-### 3. ConnectMarketplaceDialog.tsx - Instructies Uitbreiden
+### Probleem 3: Subtotal Berekening Faalt
+Omdat `orderItems` leeg is bij de lijst-response, wordt `subtotal = 0` berekend, maar NULL wordt doorgegeven waardoor de NOT NULL constraint faalt.
 
-Huidige stappen uitbreiden met Advertising API optie:
+## Oplossing
 
+### Wijziging in sync-bol-orders/index.ts
+
+**Stap 1**: Status filters aanpassen
 ```typescript
-case 'bol_com':
-  return {
-    title: 'Bol.com Verkopersportaal',
-    url: 'https://partner.bol.com/sdd/preferences/services/api',
-    steps: [
-      'Log in op je Bol.com verkopersaccount',
-      'Je komt direct op de API credentials pagina',
-      'Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken"',
-      'Geef de credentials een naam (bijv. "SellQo Retailer")',
-      'Kopieer de Client ID en Client Secret',
-      '(Optioneel) Maak ook credentials aan voor de "Advertising API"',
-      'Plak alle credentials hieronder en klik op "Verbind"',
-    ],
-  };
+// Oud (fout):
+const statuses = ['OPEN', 'SHIPPED', 'CANCELLED', 'RETURNED']
+
+// Nieuw (correct):
+const statuses = ['OPEN', 'SHIPPED', 'ALL']  // ALL voor historisch
+// Of beter: alleen 'ALL' voor historical import
 ```
 
-### 4. ConnectMarketplaceDialog.tsx - UI voor Advertising Credentials
-
-In de credentials step, speciale sectie voor Bol.com met twee API's:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Retailer API (verplicht)                                   │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │ Client ID *          [                              ] │  │
-│  │ Client Secret *      [••••••••••••] 👁                │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐ │
-│  │ ☐ Ook Advertising API koppelen (voor Bol.com Ads)    │  │
-│  │                                                        │  │
-│  │   Client ID          [                              ] │  │
-│  │   Client Secret      [••••••••••••] 👁                │  │
-│  │                                                        │  │
-│  │   ℹ️ Hiermee kun je advertenties beheren vanuit SellQo │  │
-│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘ │
-│                                                              │
-│  [Test Verbinding]                                          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 5. Credentials Opslaan
-
-Bij `handleConnect` beide API credentials meesturen:
-
+**Stap 2**: Per order de details ophalen
 ```typescript
-const credentials = {
-  clientId,
-  clientSecret,
-  // Alleen meesturen als ingevuld
-  ...(advertisingClientId && advertisingClientSecret && {
-    advertisingClientId,
-    advertisingClientSecret,
-  }),
-};
-```
-
-### 6. Ads Manager - Automatische Detectie
-
-In `useAdPlatforms.ts` de advertising credentials detecteren:
-
-```typescript
-// Check if Bol.com has advertising credentials
-const hasBolAdvertisingCredentials = () => {
-  const bolConnection = marketplaceConnections.find(c => 
-    c.marketplace_type === 'bol_com' && c.is_active
-  );
-  return !!(bolConnection?.credentials?.advertisingClientId);
-};
-```
-
-### 7. PlatformConnections.tsx - Status Aanpassen
-
-Bol.com Ads status baseren op advertising credentials:
-
-```typescript
-const getPlatformStatus = (platform: AdPlatform): PlatformStatus => {
-  if (platform === 'bol_ads') {
-    const bolConnection = getBolRetailerConnection();
-    if (!bolConnection) return 'requires_connection';
-    // Check of Advertising API credentials aanwezig zijn
-    if (!bolConnection.credentials?.advertisingClientId) {
-      return 'requires_advertising_credentials';
+// Na het ophalen van de order-lijst:
+for (const orderSummary of ordersData.orders || []) {
+  // Haal volledige order details op
+  const detailResponse = await fetch(
+    `${BOL_API_BASE}/orders/${orderSummary.orderId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.retailer.v10+json'
+      }
     }
-    return 'ready';
+  )
+  
+  if (detailResponse.ok) {
+    const fullOrder = await detailResponse.json()
+    bolOrders.push(fullOrder)  // Nu met orderItems en prijzen
   }
-  return 'coming_soon';
-};
+}
+```
+
+**Stap 3**: Robuuste subtotal berekening
+```typescript
+// Bereken subtotal met fallback naar 0
+const subtotal = (bolOrder.orderItems || []).reduce((sum, item) => {
+  const price = item.unitPrice || item.offerPrice || 0
+  return sum + (item.quantity * price)
+}, 0) || 0  // Fallback naar 0 als alles faalt
+```
+
+**Stap 4**: Rate limiting toevoegen
+Bol.com heeft rate limits, dus pauzes tussen API calls:
+```typescript
+// Kleine delay tussen order detail calls om rate limits te voorkomen
+await new Promise(resolve => setTimeout(resolve, 200))
+```
+
+## Gewijzigde BolOrder Interface
+
+De API response structuur is anders dan verwacht:
+
+```typescript
+interface BolOrder {
+  orderId: string
+  orderPlacedDateTime: string
+  pickupPoint?: boolean
+  orderItems: Array<{
+    orderItemId: string
+    quantity: number
+    unitPrice: number      // Niet offerPrice!
+    totalPrice?: number
+    product: {
+      ean: string
+      title: string
+    }
+    fulfilment?: {
+      method: 'FBR' | 'FBB'
+    }
+  }>
+  shipmentDetails?: {
+    firstName?: string
+    surname?: string
+    email?: string
+    // etc.
+  }
+}
+```
+
+## Historische Import Strategie
+
+Voor de initiële historische import met `ALL` status:
+
+```typescript
+// Gebruik 'ALL' voor complete historische import
+const url = `${BOL_API_BASE}/orders?fulfilment-method=${method}&status=ALL&created-after=${startDate.toISOString()}`
+```
+
+Dit haalt alle orders op (OPEN, SHIPPED, en reeds afgeronde) in één call.
+
+## Paginatie Ondersteuning
+
+Bol.com API pagineert resultaten (max 50 per page). Toevoegen:
+
+```typescript
+let page = 1
+let hasMore = true
+
+while (hasMore) {
+  const url = `${BOL_API_BASE}/orders?fulfilment-method=${method}&status=ALL&page=${page}`
+  const response = await fetch(url, { headers })
+  const data = await response.json()
+  
+  orders.push(...(data.orders || []))
+  hasMore = data.orders?.length === 50  // Bol.com default page size
+  page++
+  
+  // Rate limit
+  await new Promise(r => setTimeout(r, 500))
+}
 ```
 
 ## Bestanden te Wijzigen
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/types/marketplace.ts` | Nieuwe velden voor advertising credentials |
-| `src/components/admin/marketplace/ConnectMarketplaceDialog.tsx` | State, UI sectie, instructies, opslaan |
-| `src/hooks/useAdPlatforms.ts` | Detectie van advertising credentials |
-| `src/components/admin/ads/PlatformConnections.tsx` | Status logic aanpassen |
+| `supabase/functions/sync-bol-orders/index.ts` | Fix statuses, fetch order details, paginatie, rate limiting |
 
-## Flow Overzicht
+## Verwacht Resultaat
 
-```text
-Gebruiker gaat naar SellQo Connect → Bol.com koppelen
-
-STAP 1: Instructies
-- Uitleg over beide API's (Retailer + Advertising)
-- Directe link naar Bol.com credentials pagina
-
-STAP 2: Credentials invoeren
-- Retailer API (verplicht): Client ID + Secret
-- Advertising API (optioneel): Client ID + Secret
-- Test verbinding knop test beide
-
-STAP 3: Instellingen
-- Order sync settings
-- Voorraad settings
-- etc.
-
-STAP 4: Klaar!
-- Retailer functies direct beschikbaar
-- Als Advertising ingevuld → Ads Manager ook klaar
-```
-
-## Voordelen
-
-1. **Één keer instellen** - Beide API's in dezelfde flow
-2. **Optioneel** - Advertising is niet verplicht
-3. **Duidelijke UI** - Scheiding tussen Retailer en Advertising
-4. **Automatische integratie** - Ads Manager detecteert automatisch
-
-## Technische Details
-
-### Nieuwe Type Definities (marketplace.ts)
-
-```typescript
-export interface MarketplaceCredentials {
-  // Bestaande velden...
-  clientId?: string;
-  clientSecret?: string;
-  
-  // Bol.com Advertising API (optioneel)
-  advertisingClientId?: string;
-  advertisingClientSecret?: string;
-}
-```
-
-### Credentials Opbouw (ConnectMarketplaceDialog.tsx)
-
-```typescript
-// In handleFinalConnect
-const credentials: MarketplaceCredentials = {
-  clientId,
-  clientSecret,
-};
-
-// Voeg advertising toe als ingevuld
-if (advertisingClientId && advertisingClientSecret) {
-  credentials.advertisingClientId = advertisingClientId;
-  credentials.advertisingClientSecret = advertisingClientSecret;
-}
-```
-
-### Status Check (useAdPlatforms.ts)
-
-```typescript
-export type PlatformStatus = 
-  | 'ready' 
-  | 'requires_connection' 
-  | 'requires_advertising_credentials'  // NIEUW
-  | 'coming_soon';
-
-const getPlatformStatus = (platform: AdPlatform): PlatformStatus => {
-  if (platform === 'bol_ads') {
-    const bolConnection = marketplaceConnections.find(c => 
-      c.marketplace_type === 'bol_com' && c.is_active
-    );
-    
-    if (!bolConnection) return 'requires_connection';
-    
-    // Check voor advertising credentials
-    const creds = bolConnection.credentials as MarketplaceCredentials;
-    if (!creds.advertisingClientId) {
-      return 'requires_advertising_credentials';
-    }
-    
-    return 'ready';
-  }
-  return 'coming_soon';
-};
-```
+Na deze fix:
+1. Geen API errors meer voor ongeldige statussen
+2. Alle historische orders worden opgehaald met volledige details
+3. Order items met prijzen worden correct geïmporteerd
+4. Subtotal wordt correct berekend (geen NULL errors)
+5. Rate limiting voorkomt API throttling
 
