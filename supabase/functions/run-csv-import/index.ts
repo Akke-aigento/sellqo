@@ -476,6 +476,7 @@ function buildOrderData(tenantId: string, record: Record<string, unknown>, custo
     marketplace_order_id: record.marketplace_order_id || null,
     raw_marketplace_data: record.raw_marketplace_data || null,
     import_source: record.import_source || "csv",
+    original_created_at: record.original_created_at || null,
   };
 }
 

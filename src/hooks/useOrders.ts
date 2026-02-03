@@ -21,8 +21,7 @@ export function useOrders(filters?: OrderFilters) {
           order_items (*),
           customer:customers (*)
         `)
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: false });
+        .eq('tenant_id', currentTenant.id);
 
       if (filters?.status) {
         query = query.eq('status', filters.status);
@@ -43,7 +42,15 @@ export function useOrders(filters?: OrderFilters) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Order[];
+      
+      // Sort by original_created_at (with fallback to created_at) - newest first
+      const sortedData = (data as Order[]).sort((a, b) => {
+        const dateA = a.original_created_at || a.created_at;
+        const dateB = b.original_created_at || b.created_at;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+
+      return sortedData;
     },
     enabled: !!currentTenant?.id,
   });
