@@ -344,9 +344,14 @@ Deno.serve(async (req) => {
 
     const result = {
       success: true,
+      // snake_case (existing)
       connections_processed: connections?.length || 0,
       products_synced: totalSynced,
-      errors: totalErrors
+      errors: totalErrors,
+      // camelCase (for UI compatibility)
+      connectionsProcessed: connections?.length || 0,
+      productsSynced: totalSynced,
+      errorsCount: totalErrors
     }
 
     console.log('Inventory sync completed:', result)

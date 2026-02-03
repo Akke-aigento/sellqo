@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
 
     // Parse optional request body for specific connection
     const body = await req.json().catch(() => ({}))
-    const { connectionId } = body
+    const { connectionId, forceHistoricalImport, historicalPeriodDays: requestedHistoricalDays } = body
 
     // Build query for active Bol.com connections
     let query = supabase
@@ -265,11 +265,19 @@ Deno.serve(async (req) => {
         let orderSummaries: BolOrderSummary[] = []
         const fulfillmentMethods = ['FBR', 'FBB'] // FBB = LVB (Logistiek via Bol)
 
-        if (isFirstSync && importHistorical && !historicalImportCompleted) {
-          // First sync with historical import enabled - use ALL status
-          console.log(`Performing historical import for the last ${historicalPeriodDays} days`)
+        // Determine if we should perform a historical import
+        // - forceHistoricalImport: explicit request to import all historical orders
+        // - First sync with importHistorical enabled and not yet completed
+        const shouldPerformHistoricalImport = 
+          forceHistoricalImport || 
+          (isFirstSync && importHistorical && !historicalImportCompleted)
+
+        if (shouldPerformHistoricalImport) {
+          // Use requested days from body, or fallback to connection settings
+          const effectiveHistoricalDays = requestedHistoricalDays || historicalPeriodDays
+          console.log(`Performing historical import for the last ${effectiveHistoricalDays} days (forced: ${!!forceHistoricalImport})`)
           
-          const startDate = new Date(Date.now() - historicalPeriodDays * 24 * 60 * 60 * 1000)
+          const startDate = new Date(Date.now() - effectiveHistoricalDays * 24 * 60 * 60 * 1000)
           
           // IMPORTANT: Bol.com API v10 only accepts: OPEN, SHIPPED, ALL
           // Use ALL for historical import to get all orders including completed ones
@@ -502,10 +510,10 @@ Deno.serve(async (req) => {
             last_error: null,
             stats: {
               ...currentStats,
-              totalOrders: ((currentStats.totalOrders as number) || 0) + totalImported,
+              totalOrders: ((currentStats.totalOrders as number) || 0) + processedCount,
               lastSync: new Date().toISOString(),
-              // Mark historical import as completed if this was a first sync with historical import
-              ...(isFirstSync && importHistorical ? {
+              // Mark historical import as completed if we performed one
+              ...(shouldPerformHistoricalImport ? {
                 historicalImportCompleted: true,
                 historicalImportDate: new Date().toISOString()
               } : {})
@@ -532,9 +540,14 @@ Deno.serve(async (req) => {
 
     const result = {
       success: true,
+      // snake_case (existing)
       connections_processed: connections?.length || 0,
       orders_imported: totalImported,
-      errors: totalErrors
+      errors: totalErrors,
+      // camelCase (for UI compatibility)
+      connectionsProcessed: connections?.length || 0,
+      ordersImported: totalImported,
+      errorsCount: totalErrors
     }
 
     console.log('Sync completed:', result)

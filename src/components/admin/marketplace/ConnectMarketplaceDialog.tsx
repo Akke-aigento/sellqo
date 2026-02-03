@@ -272,8 +272,14 @@ export function ConnectMarketplaceDialog({
             body: { connectionId: newConnection.id }
           });
           setSyncSteps(prev => ({ ...prev, orders: true }));
-          setOrdersImported(orderSyncResult.data?.ordersImported || 0);
+          // Support both camelCase and snake_case response fields
+          const importedCount = orderSyncResult.data?.ordersImported ?? orderSyncResult.data?.orders_imported ?? 0;
+          setOrdersImported(importedCount);
           setSyncProgress(50);
+          
+          if (orderSyncResult.error) {
+            console.error('Order sync error:', orderSyncResult.error);
+          }
         } catch (err) {
           console.error('Order sync failed:', err);
           setSyncSteps(prev => ({ ...prev, orders: true }));
@@ -292,8 +298,14 @@ export function ConnectMarketplaceDialog({
             body: { connectionId: newConnection.id }
           });
           setSyncSteps(prev => ({ ...prev, inventory: true }));
-          setProductsMatched(inventorySyncResult.data?.productsSynced || 0);
+          // Support both camelCase and snake_case response fields
+          const syncedCount = inventorySyncResult.data?.productsSynced ?? inventorySyncResult.data?.products_synced ?? 0;
+          setProductsMatched(syncedCount);
           setSyncProgress(100);
+          
+          if (inventorySyncResult.error) {
+            console.error('Inventory sync error:', inventorySyncResult.error);
+          }
         } catch (err) {
           console.error('Inventory sync failed:', err);
           setSyncSteps(prev => ({ ...prev, inventory: true }));
