@@ -127,7 +127,11 @@ export function PreviewValidation({
       case 'customers':
         return ['first_name', 'last_name', 'email', 'billing_country'];
       case 'products':
-        return ['name', 'sku', 'price'];
+        return ['name', 'sku', 'price', 'vendor'];
+      case 'orders':
+        return ['order_number', 'customer_email', 'total', 'payment_status', 'status'];
+      case 'categories':
+        return ['name', 'slug', 'description'];
       default:
         return [];
     }

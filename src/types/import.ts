@@ -125,7 +125,7 @@ export interface ImportWizardState {
   options: ImportOptions;
 }
 
-// Target fields for each data type
+// Target fields for each data type - Extended for Shopify
 export const CUSTOMER_TARGET_FIELDS = [
   'first_name',
   'last_name', 
@@ -145,6 +145,23 @@ export const CUSTOMER_TARGET_FIELDS = [
   'tags',
   'customer_type',
   'external_id',
+  // Extended fields for Shopify
+  'province',
+  'province_code',
+  'tax_exempt',
+  'verified_email',
+  'email_subscribed',
+  'sms_subscribed',
+  'email_marketing_status',
+  'email_marketing_level',
+  'sms_marketing_status',
+  'sms_marketing_level',
+  'total_spent',
+  'total_orders',
+  'shopify_customer_id',
+  'original_created_at',
+  'import_source',
+  'raw_import_data',
 ] as const;
 
 export const PRODUCT_TARGET_FIELDS = [
@@ -168,6 +185,19 @@ export const PRODUCT_TARGET_FIELDS = [
   'meta_description',
   'is_active',
   'external_id',
+  // Extended fields for Shopify
+  'vendor',
+  'google_product_category',
+  'shopify_handle',
+  'shopify_product_id',
+  'original_category_value',
+  'requires_shipping',
+  'taxable',
+  'gift_card',
+  'variant_weight_unit',
+  'original_created_at',
+  'import_source',
+  'raw_import_data',
 ] as const;
 
 export const CATEGORY_TARGET_FIELDS = [
@@ -189,6 +219,46 @@ export const CATEGORY_TARGET_FIELDS = [
   'external_id',
 ] as const;
 
+// NEW: Order target fields for Shopify orders import
+export const ORDER_TARGET_FIELDS = [
+  'order_number',
+  'customer_email',
+  'customer_name',
+  'customer_phone',
+  'status',
+  'payment_status',
+  'paid_at',
+  'shipped_at',
+  'delivered_at',
+  'cancelled_at',
+  'currency',
+  'subtotal',
+  'shipping_cost',
+  'tax_amount',
+  'discount_code',
+  'discount_amount',
+  'total',
+  'shipping_method',
+  'billing_address',
+  'shipping_address',
+  'notes',
+  'internal_notes',
+  'order_tags',
+  'risk_level',
+  'marketplace_source',
+  'marketplace_order_id',
+  'external_reference',
+  'payment_method',
+  'refunded_amount',
+  'outstanding_balance',
+  'employee',
+  'location',
+  'original_created_at',
+  'import_source',
+  'raw_marketplace_data',
+] as const;
+
 export type CustomerTargetField = typeof CUSTOMER_TARGET_FIELDS[number];
 export type ProductTargetField = typeof PRODUCT_TARGET_FIELDS[number];
 export type CategoryTargetField = typeof CATEGORY_TARGET_FIELDS[number];
+export type OrderTargetField = typeof ORDER_TARGET_FIELDS[number];

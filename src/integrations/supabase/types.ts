@@ -2909,6 +2909,7 @@ export type Database = {
           phone: string | null
           province: string | null
           province_code: string | null
+          raw_import_data: Json | null
           shipping_address_verified: boolean | null
           shipping_city: string | null
           shipping_country: string | null
@@ -2918,6 +2919,7 @@ export type Database = {
           shopify_last_synced_at: string | null
           sms_marketing_level: string | null
           sms_marketing_status: string | null
+          sms_subscribed: boolean | null
           tags: string[] | null
           tax_exempt: boolean | null
           tax_exempt_reason: string | null
@@ -2967,6 +2969,7 @@ export type Database = {
           phone?: string | null
           province?: string | null
           province_code?: string | null
+          raw_import_data?: Json | null
           shipping_address_verified?: boolean | null
           shipping_city?: string | null
           shipping_country?: string | null
@@ -2976,6 +2979,7 @@ export type Database = {
           shopify_last_synced_at?: string | null
           sms_marketing_level?: string | null
           sms_marketing_status?: string | null
+          sms_subscribed?: boolean | null
           tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
@@ -3025,6 +3029,7 @@ export type Database = {
           phone?: string | null
           province?: string | null
           province_code?: string | null
+          raw_import_data?: Json | null
           shipping_address_verified?: boolean | null
           shipping_city?: string | null
           shipping_country?: string | null
@@ -3034,6 +3039,7 @@ export type Database = {
           shopify_last_synced_at?: string | null
           sms_marketing_level?: string | null
           sms_marketing_status?: string | null
+          sms_subscribed?: boolean | null
           tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
@@ -7866,6 +7872,7 @@ export type Database = {
           price: number
           product_type: Database["public"]["Enums"]["product_type"] | null
           published_scope: string | null
+          raw_import_data: Json | null
           requires_shipping: boolean | null
           shopify_bullets: string[] | null
           shopify_handle: string | null
@@ -7991,6 +7998,7 @@ export type Database = {
           price: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           published_scope?: string | null
+          raw_import_data?: Json | null
           requires_shipping?: boolean | null
           shopify_bullets?: string[] | null
           shopify_handle?: string | null
@@ -8116,6 +8124,7 @@ export type Database = {
           price?: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           published_scope?: string | null
+          raw_import_data?: Json | null
           requires_shipping?: boolean | null
           shopify_bullets?: string[] | null
           shopify_handle?: string | null

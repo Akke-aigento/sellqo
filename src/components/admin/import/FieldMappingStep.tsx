@@ -13,10 +13,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wand2, Check, AlertTriangle, Minus } from 'lucide-react';
-import { getDefaultMapping } from '@/lib/importMappings';
+import { getDefaultMapping, findMatchingMapping } from '@/lib/importMappings';
 import { 
   CUSTOMER_TARGET_FIELDS, 
-  PRODUCT_TARGET_FIELDS 
+  PRODUCT_TARGET_FIELDS,
+  ORDER_TARGET_FIELDS,
+  CATEGORY_TARGET_FIELDS,
 } from '@/types/import';
 import type { 
   ImportPlatform, 
@@ -44,7 +46,7 @@ export function FieldMappingStep({
   const [activeTab, setActiveTab] = useState(dataTypes[0]);
   const [isAutoMapping, setIsAutoMapping] = useState(false);
 
-  // Initialize mappings from default platform mappings
+  // Initialize mappings from default platform mappings with flexible matching
   useEffect(() => {
     dataTypes.forEach(dataType => {
       if (!mappings.has(dataType)) {
@@ -52,7 +54,8 @@ export function FieldMappingStep({
         if (file) {
           const defaultMapping = getDefaultMapping(platform, dataType);
           const newMappings: MappingOption[] = file.headers.map(header => {
-            const config = defaultMapping[header];
+            // Use flexible matching to find the config
+            const config = findMatchingMapping(header, defaultMapping);
             return {
               sourceField: header,
               targetField: config?.target || null,
@@ -72,6 +75,10 @@ export function FieldMappingStep({
         return CUSTOMER_TARGET_FIELDS;
       case 'products':
         return PRODUCT_TARGET_FIELDS;
+      case 'orders':
+        return ORDER_TARGET_FIELDS;
+      case 'categories':
+        return CATEGORY_TARGET_FIELDS;
       default:
         return [];
     }
