@@ -201,31 +201,62 @@ export function ShopifyManualImport() {
             setProgress(Math.round(((i + 1) / customers.length) * 100));
             
             try {
-              const { error } = await supabase.from('customers').insert([{
+              // Check of klant al bestaat op basis van email
+              const { data: existing } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('tenant_id', currentTenant.id)
+                .eq('email', customer.email)
+                .maybeSingle();
+              
+              const customerData = {
                 tenant_id: currentTenant.id,
                 email: customer.email,
                 first_name: customer.first_name,
                 last_name: customer.last_name,
                 company_name: customer.company,
                 phone: customer.phone,
-                address_line1: customer.address1,
-                address_line2: customer.address2,
-                city: customer.city,
-                state: customer.province,
-                postal_code: customer.zip,
-                country: customer.country || 'NL',
-                accepts_marketing: customer.accepts_marketing,
+                // Billing adres velden
+                billing_street: customer.address1,
+                billing_city: customer.city,
+                billing_postal_code: customer.zip,
+                billing_country: customer.country || 'NL',
+                // Shipping adres (kopie van billing)
+                shipping_street: customer.address1,
+                shipping_city: customer.city,
+                shipping_postal_code: customer.zip,
+                shipping_country: customer.country || 'NL',
+                // Marketing voorkeuren
+                email_subscribed: customer.accepts_marketing,
                 total_spent: customer.total_spent,
                 total_orders: customer.orders_count,
-                tags: customer.tags,
-                source: 'shopify_import',
-              }]);
+                // Externe ID voor Shopify tracking
+                external_id: customer.email,
+              };
               
-              if (error) throw error;
+              if (existing?.id) {
+                // Update bestaande klant
+                const { error } = await supabase
+                  .from('customers')
+                  .update(customerData)
+                  .eq('id', existing.id);
+                
+                if (error) throw error;
+              } else {
+                // Insert nieuwe klant
+                const { error } = await supabase
+                  .from('customers')
+                  .insert([customerData]);
+                
+                if (error) throw error;
+              }
               success++;
-            } catch (error) {
+            } catch (error: unknown) {
               failed++;
-              errors.push(`Klant "${customer.email}": ${error instanceof Error ? error.message : 'Onbekende fout'}`);
+              const errorMessage = error instanceof Error 
+                ? error.message 
+                : (error as { message?: string })?.message || 'Database fout';
+              errors.push(`Klant "${customer.email}": ${errorMessage}`);
             }
           }
           break;
