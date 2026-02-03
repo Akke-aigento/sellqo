@@ -1,179 +1,318 @@
 
-Doel
-- De veldmapping in `/admin/import` moet exact overeenkomen met de Shopify CSV’s die je bezorgd hebt:
-  - Customers: 45 core velden + Klaviyo metafields (optioneel, maar niet “verlies”).
-  - Products: 64 velden incl. metafields.
-  - Orders: 78 velden (momenteel 0 auto-mapping, zoals je screenshot toont).
 
-Wat er nu misloopt (op basis van de code)
-1) Er bestaat geen Shopify orders default mapping
-- `src/lib/importMappings.ts` heeft `SHOPIFY_CUSTOMER_MAPPING`, `SHOPIFY_PRODUCT_MAPPING`, maar geen `SHOPIFY_ORDER_MAPPING`.
-- `getDefaultMapping()` retourneert voor Shopify geen mapping voor `orders`, dus alles blijft “skip”.
+# Volledige Analyse: Import Wizard Doet NIETS
 
-2) De mapping-UI toont geen order target fields
-- `src/components/admin/import/FieldMappingStep.tsx` ondersteunt enkel `customers` en `products` in `getTargetFields()`.
-- Voor `orders` krijgt de dropdown dus geen “SellQo veld” keuzes en blijft alles “skip”.
+## Kernprobleem
 
-3) Shopify customers/products mapping is onvolledig t.o.v. jouw export
-- In `SHOPIFY_CUSTOMER_MAPPING` ontbreken o.a. `Accepts Email Marketing`, `Accepts SMS Marketing`, `Default Address Address2`, `Total Spent`, `Total Orders`, enz.
-- In `SHOPIFY_PRODUCT_MAPPING` wordt `Vendor` expliciet geskipt en `Product Category` gaat naar `category_id` (met een transformer die niet bestaat), terwijl je CSV “Product Category” bevat en je vooral data wilt bewaren.
+Het JSON bestand dat je uploadt (`import-log-mock-id.json`) bewijst precies wat er mis is:
 
-4) Metafields (zoals Klaviyo) lijken “niet gemapt” omdat er geen plek is om ze te bewaren
-- In je screenshot zie je vooral metafields die “skip” staan.
-- Zelfs als we ze willen mappen, is er in de huidige wizard geen standaard “metadata”-veld in de database voor customers/products om die te bewaren.
+```json
+{
+  "job_id": "mock-id",    // <-- Let op: "mock-id" is HARDCODED
+  "status": "completed",
+  "statistics": { "total": 51, "success": 48, ... }
+}
+```
 
-Oplossingsrichting (dieper dan “een paar keys toevoegen”)
-We gaan het op 2 niveaus oplossen:
-A) Volledige Shopify mapping definitions toevoegen (Customers + Products + Orders) zodat core velden automatisch gemapt worden.
-B) Metafields en “extra” velden niet weggooien: toevoegen van een JSONB “raw_import_data” opslagveld voor customers/products, en orders extra velden naar bestaande `raw_marketplace_data` sturen. Zo blijven alle velden bewaard zonder dat we 100 extra kolommen moeten aanmaken.
+Dit is **FAKE data**. De wizard **simuleert** een import maar **schrijft nooit naar de database**.
 
-Concreet implementatieplan
+## Bewijs uit de Code
 
-Stap 1 — Database uitbreiden voor volledige data-retentie (kleine, veilige migratie)
-Waarom: Klaviyo metafields en andere extra velden moeten ergens naartoe.
-- Voeg toe:
-  - `customers.raw_import_data jsonb default '{}'`
-  - `products.raw_import_data jsonb default '{}'`
-- Voeg ook toe (belangrijk voor je “Accepts SMS Marketing” core veld):
-  - `customers.sms_subscribed boolean default false`
-  - (optioneel) `customers.sms_subscribed_at timestamptz` (kan later, niet strikt nodig voor mapping)
+In `src/components/admin/import/ImportWizard.tsx` regels 84-120:
 
-Resultaat: alle metafields kunnen automatisch “gemapt” worden naar `raw_import_data` i.p.v. “skip”.
+```typescript
+const handleStartImport = async () => {
+  setIsProcessing(true);
+  try {
+    // TODO: Implement actual import via edge function
+    // For now, simulate success
+    await new Promise(resolve => setTimeout(resolve, 2000));  // <-- NOPE: 2 sec wachten, NIETS doen
+    
+    setImportResult({
+      id: 'mock-id',                    // <-- HARDCODED fake ID
+      tenant_id: 'mock-tenant',         // <-- FAKE tenant
+      status: 'completed',              // <-- Altijd "completed"
+      total_rows: 51,                   // <-- HARDCODED nummers
+      success_count: 48,
+      errors: [{ row: 3, error: 'Invalid email format' }],  // <-- FAKE error
+    });
+    
+    setStep(5);  // Ga naar "result" scherm
+  } finally {
+    setIsProcessing(false);
+  }
+};
+```
 
-Stap 2 — Target field lijsten uitbreiden zodat dropdowns de juiste “SellQo velden” tonen
-Bestand: `src/types/import.ts`
-- Breid `CUSTOMER_TARGET_FIELDS` uit met bestaande DB velden die nu ontbreken, o.a.:
-  - `province`, `province_code`, `tax_exempt`, `verified_email`
-  - `email_subscribed`, `sms_subscribed`
-  - `email_marketing_status`, `email_marketing_level`, `sms_marketing_status`, `sms_marketing_level`
-  - `total_spent`, `total_orders`
-  - `shopify_customer_id`, `original_created_at`, `import_source`
-  - `raw_import_data`
-- Breid `PRODUCT_TARGET_FIELDS` uit met:
-  - `vendor`, `google_product_category`, `shopify_handle`, `shopify_product_id`, `image_alt_texts`, `published_scope`, `original_created_at`, `import_source`
-  - `raw_import_data`
-- Voeg nieuw toe:
-  - `export const ORDER_TARGET_FIELDS = [...]`
-    - o.a. `order_number`, `payment_status`, `status`, `paid_at`, `shipped_at`, `cancelled_at`, `currency`, `subtotal`, `shipping_cost`, `tax_amount`, `total`, `discount_code`, `discount_amount`
-    - `billing_address`, `shipping_address`
-    - `marketplace_source`, `marketplace_order_id`, `external_reference`, `payment_method`, `order_tags`, `risk_level`
-    - `raw_marketplace_data` (bestaat al in orders tabel)
-    - `original_created_at`, `import_source`
+Dit is letterlijk wat er staat: **"TODO: Implement actual import"**
 
-Stap 3 — Shopify mappings volledig en exact volgens jouw CSV headers
-Bestand: `src/lib/importMappings.ts`
+## Wat WEL Werkt
 
-3.1 Customers mapping (core 45 velden)
-- Voeg alle core kolommen toe die jij oplijst:
-  - `Customer ID` -> `shopify_customer_id` (en/of `external_id` als fallback)
-  - `Accepts Email Marketing` -> `email_subscribed` (transform: yes/no)
-  - `Accepts SMS Marketing` -> `sms_subscribed` (transform: yes/no)
-  - `Default Address Address2` -> (niet naar aparte kolom; we bewaren in `raw_import_data.default_address.address2` + eventueel later concatenation)
-  - `Total Spent` -> `total_spent` (decimal)
-  - `Total Orders` -> `total_orders` (number)
-  - `Default Address Province Code` -> `province_code` (niet `billing_state`, want dat bestaat niet)
-  - `Default Address Phone` -> `phone` als fallback of naar raw_import_data (maar core wil je meestal in phone)
+| Component | Status | Wat het doet |
+|-----------|--------|--------------|
+| CSV parsing | ✅ Werkt | Leest headers + rijen correct |
+| Field mapping | ✅ Werkt | 200+ Shopify velden automatisch gemapt |
+| Preview/Validatie | ✅ Werkt | Transformeert + valideert data correct |
+| **Start Import** | ❌ Simuleert alleen | Wacht 2 sec, toont fake resultaat |
+| Database writes | ❌ Bestaat niet | Geen INSERT statements naar customers/products/orders |
 
-3.2 Customers metafields (Klaviyo e.d.)
-- Alle metafields uit jouw lijst mappen naar `raw_import_data` met keys (bv. `raw_import_data.klaviyo.last_active`, `raw_import_data.klaviyo.locale`, …).
-- Belangrijk: dit gebeurt zó dat de UI niet “skip” toont maar “raw_import_data”.
+## Wat er Ontbreekt
 
-3.3 Products mapping (core + metafields)
-- Fixes t.o.v. huidige code:
-  - `Vendor` mag niet “skip” zijn -> map naar `vendor`
-  - `Product Category` map naar `google_product_category` (of naar `raw_import_data.product_category` als je dat liever apart houdt; default: `google_product_category` omdat de kolom bestaat)
-  - `Type` map naar `original_category_value` (kolom bestaat in products)
-  - `Handle` -> `slug` (blijft nodig want slug is verplicht), en daarnaast ook naar `shopify_handle` via een kleine post-processing regel (zie Stap 4)
-  - `Published` -> `is_active` (boolean transformer)
-  - `Image Alt Text` -> `image_alt_texts` (array transformer; per rij verzamelen)
-- Alle product metafields (battery, color, material, …) -> `raw_import_data` (zodat niets verloren gaat).
+Er is **geen backend import-runner**. De complete import-executie ontbreekt:
 
-3.4 Orders mapping (78 velden)
-- Voeg `SHOPIFY_ORDER_MAPPING` toe die minstens alle “core” ordersvelden premapt:
-  - `Name` -> `order_number` (required)
-  - `Email` -> `customer_email`
-  - `Financial Status` -> `payment_status` (shopifyPaymentStatus transformer)
-  - `Fulfillment Status` -> `status` (shopifyFulfillmentStatus transformer)
-  - `Paid at` -> `paid_at` (datetime)
-  - `Fulfilled at` -> `shipped_at` (datetime)
-  - `Currency` -> `currency`
-  - `Subtotal`, `Shipping`, `Taxes`, `Total`, `Discount Amount` -> decimals
-  - `Discount Code` -> `discount_code`
-  - `Cancelled at` -> `cancelled_at`
-  - `Tags` -> `order_tags` (tagArray)
-  - `Risk Level` -> `risk_level`
-  - `Source` -> `marketplace_source` (of `raw_marketplace_data.source` als je marketplace_source strikt wil beperken; default: marketplace_source)
-  - `Payment Method` -> `payment_method`
-  - `Payment Reference` / `Payment References` -> `external_reference` en rest in `raw_marketplace_data`
-- Adressen:
-  - `Billing Name/Street/Address1/Address2/...` -> `billing_address` (als JSON object)
-  - `Shipping Name/Street/Address1/Address2/...` -> `shipping_address` (als JSON object)
-- Line item velden:
-  - Voor de wizard-mapping + preview: mappen naar `raw_marketplace_data.lineitem.*` zodat ze niet “skip” blijven.
-  - (Later, bij echte import-executie) kunnen we deze gebruiken om `order_items` correct te maken door te groeperen op `Name`/`Id`.
+1. **Geen Edge Function** voor `run-csv-import` of vergelijkbaar
+2. **Geen database inserts** vanuit de wizard
+3. **Geen upsert logica** (update vs insert)
+4. **Geen order line-item groepering** (Shopify CSV = 1 regel per item)
 
-Stap 4 — Wizard mapping engine upgraden: JSON merge + “per-field naar JSON” zonder dot-targets in dropdown
-Probleem: we willen meerdere CSV kolommen in één JSON veld (bv. billing_address), én metafields in raw_import_data, zonder dat we 200 dropdown opties moeten toevoegen.
-Bestand: `src/lib/importMappings.ts`
-- We breiden `transformRecord()` uit zodat het:
-  1) Transformers kan gebruiken met argument (bv. `jsonString:street`, `jsonDecimal:tax1_value`).
-  2) Indien `result[target]` al een object is, de nieuwe objectwaarde merged i.p.v. overschrijven.
-- Nieuwe transformers (naast bestaande):
-  - `yesNo` (Shopify uses yes/no)
-  - `datetime` (naar ISO string)
-  - `shopifyPaymentStatus`
-  - `shopifyFulfillmentStatus`
-  - `jsonString:<key>` -> `{ [key]: stringValue }`
-  - `jsonNumber:<key>` -> `{ [key]: numberValue }`
-  - `jsonDecimal:<key>` -> `{ [key]: decimalValue }`
-  - `jsonBoolean:<key>` -> `{ [key]: booleanValue }`
+## Database Check Bevestigt Dit
 
-Voorbeeld:
-- `Billing City` target = `billing_address`, transform = `jsonString:city`
-- `Billing Zip` target = `billing_address`, transform = `jsonString:postal_code`
-=> transformRecord merge’t deze tot één `billing_address` object.
+```sql
+-- Actuele data in database:
+customers: 0 records
+products: 1 record   (waarschijnlijk handmatig of via ander proces)
+orders: 1 record     (idem)
+import_jobs: 0 records  <-- Geen enkele import ooit geregistreerd
+```
 
-Stap 5 — UI fixes: orders tab + target fields + betere “auto mapping”
-Bestand: `src/components/admin/import/FieldMappingStep.tsx`
-- Voeg `orders` case toe in `getTargetFields()` (met `ORDER_TARGET_FIELDS`).
-- Gebruik geen `defaultMapping[header]` meer, maar een helper `findMatchingMapping(header, mapping)` die minimaal:
-  - trimt, case-insensitive match doet
-  - optioneel: baseHeader match (`Header (metafields...)` -> exacte key als aanwezig)
-Dit voorkomt dat kleine variaties alsnog “skip” worden.
+---
 
-Stap 6 — Preview verbeteringen zodat je meteen ziet dat orders “leven”
-Bestand: `src/components/admin/import/PreviewValidation.tsx`
-- Voeg `orders` toe in `getDisplayColumns()` (bv. `order_number`, `customer_email`, `total`, `payment_status`, `status`)
-- Breid `validateRecord()` in `importMappings.ts` uit met minimale order-validatie:
-  - order_number verplicht
-  - customer_email verplicht
-  - total verplicht (of subtotal+total afhankelijk)
-(Preview is nu ook realistischer.)
+# Implementatie Plan
 
-Testplan (wat jij meteen kan checken met jouw CSV’s)
-1) Ga naar `/admin/import`
-2) Selecteer Shopify + vink Customers/Products/Orders aan
-3) Upload jouw 3 CSV’s
-4) Stap “Veld Mapping”:
-   - Customers: alle core velden moeten automatisch gemapt zijn
-   - Metafields: moeten standaard naar `raw_import_data` gemapt zijn (niet “skip”)
-   - Products: Vendor, Product Category, SEO velden, Variant velden moeten grotendeels gemapt zijn; metafields naar `raw_import_data`
-   - Orders: niet langer “alles skip”; je ziet meteen mappings voor Name/Email/Financial Status/Total/Addresses/etc.
-5) Stap “Preview”:
-   - Orders preview toont order_number + totals + status/payout mapping
+## Stap 1: Edge Function `run-csv-import` aanmaken
 
-Belangrijke scope-note
-- Deze wizard (`/admin/import`) simuleert momenteel de echte import (ImportWizard heeft nog een TODO voor “actual import”). Dit plan lost het mapping-probleem en data-retentie in de wizard op.
-- Als je wil dat “Start import” ook effectief orders + order_items gaat aanmaken (incl. groeperen van line-items per order), dan is dat een volgende stap: een backend import-runner die de wizard output uitvoert.
+Nieuwe edge function in `supabase/functions/run-csv-import/index.ts`:
 
-Bestanden die we zullen aanpassen
-- Database migration: add `raw_import_data` + `sms_subscribed` (customers) / `raw_import_data` (products)
-- `src/types/import.ts` (target fields + ORDER_TARGET_FIELDS)
-- `src/lib/importMappings.ts` (SHOPIFY_ORDER_MAPPING + uitbreidingen customer/product + transformers + merge logic + fuzzy matching)
-- `src/components/admin/import/FieldMappingStep.tsx` (orders support + fuzzy default mapping)
-- `src/components/admin/import/PreviewValidation.tsx` (orders preview columns)
+```typescript
+// Ontvangt:
+// - tenant_id
+// - platform (shopify/woocommerce/csv)
+// - data_type (customers/products/orders)
+// - records[] (getransformeerde data uit wizard)
+// - options (updateExisting, matchField, etc.)
 
-Risico’s / randgevallen
-- Shopify “Orders export” is line-item per rij: mapping is ok, maar echte import moet groeperen (later stap).
-- Sommige velden bestaan dubbel (bv. “Payment Reference” en “Payment References”): we mappen één naar `external_reference`, de rest bewaren we in `raw_marketplace_data`.
-- Product Handle moet ook slug vullen: we vullen slug, en zetten daarnaast shopify_handle via afgeleide logica (of bewaren in raw_import_data als extra zekerheid).
+// Doet:
+// 1. Creëert import_job record
+// 2. Loopt door records
+// 3. Per record: upsert naar customers/products/orders
+// 4. Voor orders: groepeert line-items
+// 5. Houdt success/fail/skip counts bij
+// 6. Update import_job met resultaat
+```
+
+### Orders Line-Item Groepering
+
+Shopify Orders CSV = 1 rij per line-item. Order #1001 met 3 producten = 3 CSV rijen.
+
+De edge function moet:
+```typescript
+// Groepeer CSV rows per order_number (Name veld)
+const orderGroups = new Map<string, Record<string, unknown>[]>();
+for (const row of records) {
+  const orderNum = row.order_number as string;
+  if (!orderGroups.has(orderNum)) orderGroups.set(orderNum, []);
+  orderGroups.get(orderNum)!.push(row);
+}
+
+// Per groep: maak 1 order + N order_items
+for (const [orderNum, rows] of orderGroups) {
+  const firstRow = rows[0];
+  
+  // Insert order (header data uit eerste rij)
+  const { data: order } = await supabase.from('orders').upsert({
+    tenant_id,
+    order_number: orderNum,
+    customer_email: firstRow.customer_email,
+    total: firstRow.total,
+    billing_address: firstRow.billing_address,
+    shipping_address: firstRow.shipping_address,
+    // ... rest van order velden
+  }, { onConflict: 'tenant_id,order_number' });
+  
+  // Insert order_items (één per rij)
+  for (const row of rows) {
+    const lineItem = row.raw_marketplace_data as Record<string, unknown>;
+    await supabase.from('order_items').insert({
+      order_id: order.id,
+      product_name: lineItem.lineitem_name,
+      sku: lineItem.lineitem_sku,
+      quantity: lineItem.lineitem_quantity,
+      unit_price: lineItem.lineitem_price,
+      // ...
+    });
+  }
+}
+```
+
+## Stap 2: ImportWizard aanpassen om Edge Function aan te roepen
+
+Vervang de `handleStartImport` functie:
+
+```typescript
+const handleStartImport = async () => {
+  if (!currentTenant?.id) {
+    toast({ title: 'Fout', description: 'Geen tenant geselecteerd', variant: 'destructive' });
+    return;
+  }
+
+  setIsProcessing(true);
+  
+  try {
+    // Per data type: verzamel getransformeerde data
+    for (const dataType of selectedDataTypes) {
+      const records = previewData.get(dataType)?.filter(r => r.selected).map(r => r.data) || [];
+      const mapping = mappings.get(dataType) || [];
+      
+      // Roep edge function aan
+      const { data, error } = await supabase.functions.invoke('run-csv-import', {
+        body: {
+          tenant_id: currentTenant.id,
+          platform: platform,
+          data_type: dataType,
+          records: records,
+          options: {
+            updateExisting: options.updateExisting,
+            matchField: getMatchField(dataType),  // email / sku / order_number
+          },
+        },
+      });
+      
+      if (error) throw error;
+      
+      // Bewaar resultaat per type
+      setImportResult(prev => ({ ...prev, [dataType]: data }));
+    }
+    
+    setStep(5);
+    toast({ title: 'Import voltooid!', description: 'Data is succesvol geïmporteerd.' });
+    
+  } catch (error) {
+    toast({
+      title: 'Import mislukt',
+      description: error.message,
+      variant: 'destructive',
+    });
+  } finally {
+    setIsProcessing(false);
+  }
+};
+```
+
+## Stap 3: Match-sleutels Implementeren (jouw keuze: standaard sleutels)
+
+| Data Type | Match Veld | Fallback |
+|-----------|------------|----------|
+| Customers | `email` | - |
+| Products | `sku` | `slug` |
+| Orders | `order_number` (Shopify "Name") | `marketplace_order_id` (Shopify "Id") |
+
+## Stap 4: Upsert Logica per Type
+
+### Customers
+```sql
+INSERT INTO customers (tenant_id, email, first_name, ...)
+VALUES ($1, $2, $3, ...)
+ON CONFLICT (tenant_id, email) 
+DO UPDATE SET 
+  first_name = EXCLUDED.first_name,
+  last_name = EXCLUDED.last_name,
+  -- etc, alle niet-null velden
+```
+
+### Products
+```sql
+INSERT INTO products (tenant_id, sku, name, price, ...)
+VALUES ($1, $2, $3, $4, ...)
+ON CONFLICT (tenant_id, sku)
+DO UPDATE SET
+  name = EXCLUDED.name,
+  price = EXCLUDED.price,
+  -- etc
+```
+
+### Orders (complexer: eerst check, dan insert of update)
+```typescript
+// Check of order al bestaat
+const { data: existing } = await supabase
+  .from('orders')
+  .select('id')
+  .eq('tenant_id', tenantId)
+  .eq('order_number', orderNumber)
+  .single();
+
+if (existing && options.updateExisting) {
+  // Update existing order
+  await supabase.from('orders').update({ ... }).eq('id', existing.id);
+  // Delete old items, insert new items
+  await supabase.from('order_items').delete().eq('order_id', existing.id);
+  // Insert items...
+} else if (!existing) {
+  // Insert new order + items
+}
+```
+
+## Stap 5: Order-Items met Product Koppeling (jouw keuze: via SKU, fallback null)
+
+```typescript
+// Probeer product_id te vinden via SKU
+let productId = null;
+if (lineItem.lineitem_sku) {
+  const { data: product } = await supabase
+    .from('products')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('sku', lineItem.lineitem_sku)
+    .single();
+  
+  if (product) productId = product.id;
+}
+
+// Insert order_item met of zonder product_id
+await supabase.from('order_items').insert({
+  order_id: orderId,
+  product_id: productId,  // null als niet gevonden
+  product_name: lineItem.lineitem_name,  // Altijd bewaren
+  sku: lineItem.lineitem_sku,            // Altijd bewaren
+  quantity: lineItem.lineitem_quantity,
+  unit_price: lineItem.lineitem_price,
+});
+```
+
+---
+
+## Technische Samenvatting
+
+### Nieuwe bestanden
+
+| Bestand | Doel |
+|---------|------|
+| `supabase/functions/run-csv-import/index.ts` | Kernlogica: upserts + order groepering + statistieken |
+
+### Gewijzigde bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/admin/import/ImportWizard.tsx` | Vervang mock door edge function call |
+| `src/types/import.ts` | Voeg `matchField` toe aan `ImportOptions` |
+| `supabase/config.toml` | Registreer `run-csv-import` function |
+
+### Database aanpassingen nodig
+
+| Tabel | Wijziging |
+|-------|-----------|
+| `customers` | Voeg UNIQUE constraint toe op `(tenant_id, email)` |
+| `products` | Voeg UNIQUE constraint toe op `(tenant_id, sku)` |
+| `orders` | Voeg UNIQUE constraint toe op `(tenant_id, order_number)` |
+
+---
+
+## Resultaat na Implementatie
+
+- ✅ "Start import" knop roept edge function aan
+- ✅ Edge function schrijft data naar `customers`, `products`, `orders`, `order_items`
+- ✅ Dubbele records worden geüpdatet (niet gedupliceerd)
+- ✅ Orders worden correct gegroepeerd (1 order + N items uit meerdere CSV rijen)
+- ✅ Order-items worden gekoppeld aan bestaande producten via SKU
+- ✅ `import_jobs` tabel houdt historie bij van alle imports
+- ✅ Echte statistieken (success/fail/skip counts) worden geretourneerd
+
