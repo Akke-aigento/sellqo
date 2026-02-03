@@ -118,6 +118,9 @@ export interface Order {
   customer_vat_verified?: boolean | null;
   customer_company_name?: string | null;
   customer_type?: string | null;
+  // Import tracking
+  import_source?: string | null;
+  original_created_at?: string | null;
   // Joined data
   order_items?: OrderItem[];
   customer?: Customer;
