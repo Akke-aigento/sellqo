@@ -96,6 +96,17 @@ export function useMarketplaceConnections() {
 
   const deleteConnection = useMutation({
     mutationFn: async (id: string) => {
+      // First nullify marketplace_connection_id on orders to avoid FK constraint
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .update({ marketplace_connection_id: null })
+        .eq('marketplace_connection_id', id);
+
+      if (ordersError) {
+        console.warn('Could not unlink orders:', ordersError);
+      }
+
+      // Then delete the connection
       const { error } = await supabase
         .from('marketplace_connections')
         .delete()
