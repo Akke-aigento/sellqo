@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download } from 'lucide-react';
+import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
@@ -22,11 +23,26 @@ export default function OrdersPage() {
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
-  const { orders, isLoading, updateOrderStatus } = useOrders(filters);
+  const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
   
   // Batch selection state
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [batchPrintOpen, setBatchPrintOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+
+  const handleDeleteOrder = (order: Order) => {
+    setOrderToDelete(order);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (orderToDelete) {
+      deleteOrder.mutate(orderToDelete.id);
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -175,6 +191,7 @@ export default function OrdersPage() {
                     onSelect={(checked) => handleSelectOrder(order.id, checked)}
                     onView={() => navigate(`/admin/orders/${order.id}`)}
                     onStatusChange={handleStatusChange}
+                    onDelete={handleDeleteOrder}
                     formatCurrency={formatCurrency}
                   />
                 ))}
@@ -191,6 +208,28 @@ export default function OrdersPage() {
         orderIds={selectedOrderIds}
         onComplete={() => setSelectedOrderIds([])}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bestelling verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je bestelling {orderToDelete?.order_number} wilt verwijderen? 
+              Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteOrder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -201,10 +240,11 @@ interface OrderRowProps {
   onSelect: (checked: boolean) => void;
   onView: () => void;
   onStatusChange: (orderId: string, status: OrderStatus) => void;
+  onDelete: (order: Order) => void;
   formatCurrency: (amount: number) => string;
 }
 
-function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, formatCurrency }: OrderRowProps) {
+function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
   return (
     <TableRow className="cursor-pointer hover:bg-muted/50">
       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -282,6 +322,14 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, formatC
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => onDelete(order)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Verwijderen
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
