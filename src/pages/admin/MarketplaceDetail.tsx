@@ -241,28 +241,51 @@ export default function MarketplaceDetailPage() {
     if (!connection) return;
     
     setImportingHistorical(true);
-    const syncFns = getSyncFunctions(connection.marketplace_type);
     
     try {
-      toast.info('Historische orders importeren... Dit kan even duren.');
-      
-      const result = await supabase.functions.invoke(syncFns.orders, {
-        body: { 
-          connectionId: connection.id,
-          forceHistoricalImport: true,
-          historicalPeriodDays: 730 // 2 years
-        }
-      });
-      
-      if (result.error) {
-        console.error('Historical import error:', result.error);
-        toast.error('Import mislukt: ' + result.error.message);
-      } else {
-        const imported = result.data?.ordersImported ?? result.data?.orders_imported ?? 0;
-        if (imported > 0) {
-          toast.success(`${imported} historische orders geïmporteerd!`);
+      // For Bol.com, use shipments-based import for historical orders
+      if (connection.marketplace_type === 'bol_com') {
+        toast.info('Historische orders importeren via verzendingen... Dit kan even duren.');
+        
+        const result = await supabase.functions.invoke('import-bol-shipments', {
+          body: { connectionId: connection.id }
+        });
+        
+        if (result.error) {
+          console.error('Shipments import error:', result.error);
+          toast.error('Import mislukt: ' + result.error.message);
         } else {
-          toast.info('Geen nieuwe historische orders gevonden');
+          const imported = result.data?.ordersImported ?? 0;
+          const skipped = result.data?.ordersSkipped ?? 0;
+          if (imported > 0) {
+            toast.success(`${imported} historische orders geïmporteerd! (${skipped} al aanwezig)`);
+          } else {
+            toast.info(`Geen nieuwe historische orders gevonden (${skipped} al aanwezig)`);
+          }
+        }
+      } else {
+        // For other marketplaces, use the regular sync with historical flag
+        const syncFns = getSyncFunctions(connection.marketplace_type);
+        toast.info('Historische orders importeren... Dit kan even duren.');
+        
+        const result = await supabase.functions.invoke(syncFns.orders, {
+          body: { 
+            connectionId: connection.id,
+            forceHistoricalImport: true,
+            historicalPeriodDays: 730
+          }
+        });
+        
+        if (result.error) {
+          console.error('Historical import error:', result.error);
+          toast.error('Import mislukt: ' + result.error.message);
+        } else {
+          const imported = result.data?.ordersImported ?? result.data?.orders_imported ?? 0;
+          if (imported > 0) {
+            toast.success(`${imported} historische orders geïmporteerd!`);
+          } else {
+            toast.info('Geen nieuwe historische orders gevonden');
+          }
         }
       }
       
