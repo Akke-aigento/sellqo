@@ -1,0 +1,542 @@
+// CSV Import Edge Function v3 - Fixed customer_type constraint
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabaseClient = SupabaseClient<any, any, any>;
+
+interface ImportRequest {
+  tenant_id: string;
+  platform: string;
+  data_type: "customers" | "products" | "orders";
+  records: Record<string, unknown>[];
+  options: {
+    updateExisting: boolean;
+    skipErrors?: boolean;
+  };
+}
+
+interface ImportResult {
+  job_id: string;
+  status: "completed" | "failed";
+  total_rows: number;
+  success_count: number;
+  skipped_count: number;
+  failed_count: number;
+  errors: Array<{ row: number; error: string; severity: "error" | "warning" }>;
+  duration_ms: number;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const startTime = Date.now();
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const body: ImportRequest = await req.json();
+    const { tenant_id, platform, data_type, records, options } = body;
+
+    if (!tenant_id || !data_type || !records?.length) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: tenant_id, data_type, records" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create import job record
+    const { data: job, error: jobError } = await supabase
+      .from("import_jobs")
+      .insert({
+        tenant_id,
+        source_platform: platform,
+        data_type,
+        status: "processing",
+        total_rows: records.length,
+        options: options,
+      })
+      .select()
+      .single();
+
+    if (jobError) {
+      console.error("Failed to create import job:", jobError);
+      throw new Error(`Failed to create import job: ${jobError.message}`);
+    }
+
+    const result: ImportResult = {
+      job_id: job.id,
+      status: "completed",
+      total_rows: records.length,
+      success_count: 0,
+      skipped_count: 0,
+      failed_count: 0,
+      errors: [],
+      duration_ms: 0,
+    };
+
+    try {
+      if (data_type === "customers") {
+        await importCustomers(supabase, tenant_id, records, options, result);
+      } else if (data_type === "products") {
+        await importProducts(supabase, tenant_id, records, options, result);
+      } else if (data_type === "orders") {
+        await importOrders(supabase, tenant_id, records, options, result);
+      }
+    } catch (importError) {
+      console.error(`Import error for ${data_type}:`, importError);
+      result.status = "failed";
+      result.errors.push({
+        row: 0,
+        error: importError instanceof Error ? importError.message : String(importError),
+        severity: "error",
+      });
+    }
+
+    result.duration_ms = Date.now() - startTime;
+
+    // Update import job with results
+    await supabase
+      .from("import_jobs")
+      .update({
+        status: result.status,
+        success_count: result.success_count,
+        skipped_count: result.skipped_count,
+        failed_count: result.failed_count,
+        errors: result.errors,
+        completed_at: new Date().toISOString(),
+        duration_ms: result.duration_ms,
+      })
+      .eq("id", job.id);
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Import error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+// ============= CUSTOMERS IMPORT =============
+async function importCustomers(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  records: Record<string, unknown>[],
+  options: ImportRequest["options"],
+  result: ImportResult
+) {
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    try {
+      const email = record.email as string;
+      if (!email) {
+        result.errors.push({ row: i + 1, error: "Missing email", severity: "error" });
+        result.failed_count++;
+        continue;
+      }
+
+      // Check for existing customer
+      const { data: existing } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("email", email)
+        .maybeSingle();
+
+      const customerData = buildCustomerData(tenantId, record);
+
+      if (existing && options.updateExisting) {
+        // Update existing
+        const { error } = await supabase
+          .from("customers")
+          .update(customerData)
+          .eq("id", existing.id);
+        
+        if (error) throw error;
+        result.success_count++;
+      } else if (existing) {
+        // Skip existing
+        result.skipped_count++;
+      } else {
+        // Insert new
+        const { error } = await supabase.from("customers").insert(customerData);
+        if (error) throw error;
+        result.success_count++;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : (typeof err === 'object' && err !== null && 'message' in err) 
+          ? String((err as { message: unknown }).message) 
+          : JSON.stringify(err);
+      console.error(`Customer row ${i + 1} error:`, errorMessage);
+      result.errors.push({
+        row: i + 1,
+        error: errorMessage,
+        severity: "error",
+      });
+      result.failed_count++;
+      if (!options.skipErrors) throw err;
+    }
+  }
+}
+
+function buildCustomerData(tenantId: string, record: Record<string, unknown>) {
+  // Build billing address JSON
+  const billingAddress: Record<string, unknown> = {};
+  if (record.billing_street) billingAddress.street = record.billing_street;
+  if (record.billing_city) billingAddress.city = record.billing_city;
+  if (record.billing_postal_code) billingAddress.postal_code = record.billing_postal_code;
+  if (record.billing_country) billingAddress.country = record.billing_country;
+  if (record.province) billingAddress.province = record.province;
+  if (record.province_code) billingAddress.province_code = record.province_code;
+
+  // Build shipping address JSON
+  const shippingAddress: Record<string, unknown> = {};
+  if (record.shipping_street) shippingAddress.street = record.shipping_street;
+  if (record.shipping_city) shippingAddress.city = record.shipping_city;
+  if (record.shipping_postal_code) shippingAddress.postal_code = record.shipping_postal_code;
+  if (record.shipping_country) shippingAddress.country = record.shipping_country;
+
+  return {
+    tenant_id: tenantId,
+    email: record.email as string,
+    first_name: record.first_name || null,
+    last_name: record.last_name || null,
+    phone: record.phone || null,
+    company_name: record.company_name || null,
+    billing_street: record.billing_street || null,
+    billing_city: record.billing_city || null,
+    billing_postal_code: record.billing_postal_code || null,
+    billing_country: record.billing_country || null,
+    shipping_street: record.shipping_street || null,
+    shipping_city: record.shipping_city || null,
+    shipping_postal_code: record.shipping_postal_code || null,
+    shipping_country: record.shipping_country || null,
+    province: record.province || null,
+    province_code: record.province_code || null,
+    default_billing_address: Object.keys(billingAddress).length > 0 ? billingAddress : null,
+    default_shipping_address: Object.keys(shippingAddress).length > 0 ? shippingAddress : null,
+    vat_number: record.vat_number || null,
+    notes: record.notes || null,
+    tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
+    customer_type: record.customer_type === "b2b" || record.customer_type === "business" ? "b2b" : "b2c",
+    email_subscribed: record.email_subscribed ?? true,
+    sms_subscribed: record.sms_subscribed ?? false,
+    total_spent: parseFloat(String(record.total_spent || 0)) || 0,
+    total_orders: parseInt(String(record.total_orders || 0)) || 0,
+    raw_import_data: record.raw_import_data || null,
+    shopify_customer_id: record.shopify_customer_id || null,
+    import_source: record.import_source || "csv",
+  };
+}
+
+// ============= PRODUCTS IMPORT =============
+async function importProducts(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  records: Record<string, unknown>[],
+  options: ImportRequest["options"],
+  result: ImportResult
+) {
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    try {
+      const name = record.name as string;
+      const sku = record.sku as string;
+      
+      if (!name) {
+        result.errors.push({ row: i + 1, error: "Missing product name", severity: "error" });
+        result.failed_count++;
+        continue;
+      }
+
+      // Check for existing product (by SKU if available, otherwise skip duplicate check)
+      let existing = null;
+      if (sku) {
+        const { data } = await supabase
+          .from("products")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("sku", sku)
+          .maybeSingle();
+        existing = data;
+      }
+
+      const productData = buildProductData(tenantId, record);
+
+      if (existing && options.updateExisting) {
+        const { error } = await supabase
+          .from("products")
+          .update(productData)
+          .eq("id", existing.id);
+        
+        if (error) throw error;
+        result.success_count++;
+      } else if (existing) {
+        result.skipped_count++;
+      } else {
+        const { error } = await supabase.from("products").insert(productData);
+        if (error) throw error;
+        result.success_count++;
+      }
+    } catch (err) {
+      console.error(`Product row ${i + 1} error:`, err);
+      result.errors.push({
+        row: i + 1,
+        error: err instanceof Error ? err.message : String(err),
+        severity: "error",
+      });
+      result.failed_count++;
+      if (!options.skipErrors) throw err;
+    }
+  }
+}
+
+function buildProductData(tenantId: string, record: Record<string, unknown>) {
+  // Generate slug from name if not provided
+  const name = record.name as string;
+  const slug = (record.slug as string) || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  return {
+    tenant_id: tenantId,
+    name,
+    slug,
+    description: record.description || null,
+    short_description: record.short_description || null,
+    price: parseFloat(String(record.price || 0)) || 0,
+    compare_at_price: record.compare_at_price ? parseFloat(String(record.compare_at_price)) : null,
+    cost_price: record.cost_price ? parseFloat(String(record.cost_price)) : null,
+    sku: record.sku || null,
+    barcode: record.barcode || null,
+    stock: parseInt(String(record.stock || 0)) || 0,
+    track_inventory: record.track_inventory ?? true,
+    weight: record.weight ? parseFloat(String(record.weight)) : null,
+    tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
+    images: Array.isArray(record.images) ? record.images : [],
+    featured_image: record.featured_image || null,
+    meta_title: record.meta_title || null,
+    meta_description: record.meta_description || null,
+    is_active: record.is_active ?? true,
+    vendor: record.vendor || null,
+    raw_import_data: record.raw_import_data || null,
+  };
+}
+
+// ============= ORDERS IMPORT =============
+async function importOrders(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  records: Record<string, unknown>[],
+  options: ImportRequest["options"],
+  result: ImportResult
+) {
+  // Group records by order_number (Shopify CSV = 1 row per line item)
+  const orderGroups = new Map<string, Record<string, unknown>[]>();
+  
+  for (const record of records) {
+    const orderNum = (record.order_number as string) || "";
+    if (!orderNum) continue;
+    
+    if (!orderGroups.has(orderNum)) {
+      orderGroups.set(orderNum, []);
+    }
+    orderGroups.get(orderNum)!.push(record);
+  }
+
+  let orderIndex = 0;
+  for (const [orderNumber, rows] of orderGroups) {
+    orderIndex++;
+    try {
+      const firstRow = rows[0];
+
+      // Check for existing order
+      const { data: existing } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("order_number", orderNumber)
+        .maybeSingle();
+
+      // Find or create customer by email
+      let customerId: string | null = null;
+      const customerEmail = firstRow.customer_email as string;
+      if (customerEmail) {
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("email", customerEmail)
+          .maybeSingle();
+        
+        if (customer) {
+          customerId = customer.id;
+        } else {
+          // Create minimal customer record
+          const { data: newCustomer } = await supabase
+            .from("customers")
+            .insert({
+              tenant_id: tenantId,
+              email: customerEmail,
+              first_name: firstRow.customer_name ? String(firstRow.customer_name).split(" ")[0] : null,
+              last_name: firstRow.customer_name ? String(firstRow.customer_name).split(" ").slice(1).join(" ") : null,
+              phone: firstRow.customer_phone || null,
+            })
+            .select("id")
+            .single();
+          
+          if (newCustomer) customerId = newCustomer.id;
+        }
+      }
+
+      const orderData = buildOrderData(tenantId, firstRow, customerId);
+
+      let orderId: string;
+
+      if (existing && options.updateExisting) {
+        // Update existing order
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update(orderData)
+          .eq("id", existing.id);
+        
+        if (updateError) throw updateError;
+        orderId = existing.id;
+
+        // Delete existing order items
+        await supabase.from("order_items").delete().eq("order_id", orderId);
+      } else if (existing) {
+        result.skipped_count++;
+        continue;
+      } else {
+        // Insert new order
+        const { data: newOrder, error: insertError } = await supabase
+          .from("orders")
+          .insert(orderData)
+          .select("id")
+          .single();
+        
+        if (insertError) throw insertError;
+        orderId = newOrder.id;
+      }
+
+      // Insert order items from all rows in this group
+      for (const row of rows) {
+        await insertOrderItem(supabase, tenantId, orderId, row);
+      }
+
+      result.success_count++;
+    } catch (err) {
+      console.error(`Order ${orderNumber} error:`, err);
+      result.errors.push({
+        row: orderIndex,
+        error: err instanceof Error ? err.message : String(err),
+        severity: "error",
+      });
+      result.failed_count++;
+      if (!options.skipErrors) throw err;
+    }
+  }
+}
+
+function buildOrderData(tenantId: string, record: Record<string, unknown>, customerId: string | null) {
+  return {
+    tenant_id: tenantId,
+    customer_id: customerId,
+    order_number: record.order_number as string,
+    customer_email: record.customer_email || null,
+    customer_name: record.customer_name || null,
+    customer_phone: record.customer_phone || null,
+    status: mapOrderStatus(record.status as string),
+    payment_status: mapPaymentStatus(record.payment_status as string),
+    subtotal: parseFloat(String(record.subtotal || 0)) || 0,
+    shipping_cost: parseFloat(String(record.shipping_cost || 0)) || 0,
+    tax_amount: parseFloat(String(record.tax_amount || 0)) || 0,
+    discount_amount: parseFloat(String(record.discount_amount || 0)) || 0,
+    total: parseFloat(String(record.total || 0)) || 0,
+    currency: (record.currency as string) || "EUR",
+    billing_address: record.billing_address || null,
+    shipping_address: record.shipping_address || null,
+    notes: record.notes || null,
+    internal_notes: record.internal_notes || null,
+    external_reference: record.external_reference || null,
+    marketplace_source: record.marketplace_source || "shopify",
+    marketplace_order_id: record.marketplace_order_id || null,
+    raw_marketplace_data: record.raw_marketplace_data || null,
+    import_source: record.import_source || "csv",
+  };
+}
+
+async function insertOrderItem(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  orderId: string,
+  row: Record<string, unknown>
+) {
+  // Extract line item data from raw_marketplace_data or direct fields
+  const rawData = (row.raw_marketplace_data || {}) as Record<string, unknown>;
+  
+  const productName = (rawData.lineitem_name as string) || (row.product_name as string) || "Unknown Product";
+  const sku = (rawData.lineitem_sku as string) || (row.sku as string) || null;
+  const quantity = parseInt(String(rawData.lineitem_quantity || row.quantity || 1)) || 1;
+  const unitPrice = parseFloat(String(rawData.lineitem_price || row.unit_price || 0)) || 0;
+
+  // Try to find product by SKU
+  let productId: string | null = null;
+  if (sku) {
+    const { data: product } = await supabase
+      .from("products")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("sku", sku)
+      .maybeSingle();
+    
+    if (product) productId = product.id;
+  }
+
+  await supabase.from("order_items").insert({
+    order_id: orderId,
+    product_id: productId,
+    product_name: productName,
+    product_sku: sku,
+    quantity,
+    unit_price: unitPrice,
+    total_price: unitPrice * quantity,
+    vendor: rawData.lineitem_vendor || null,
+    variant_title: rawData.lineitem_variant || null,
+    marketplace_order_item_id: rawData.lineitem_id || null,
+  });
+}
+
+function mapOrderStatus(status: string | undefined): string {
+  if (!status) return "pending";
+  const s = status.toLowerCase();
+  if (s.includes("fulfil") || s.includes("shipped")) return "shipped";
+  if (s.includes("deliver")) return "delivered";
+  if (s.includes("cancel")) return "cancelled";
+  if (s.includes("refund")) return "refunded";
+  // Valid enum values: pending, confirmed, processing, shipped, delivered, cancelled, refunded
+  return "pending";
+}
+
+function mapPaymentStatus(status: string | undefined): string {
+  if (!status) return "pending";
+  const s = status.toLowerCase();
+  if (s.includes("paid")) return "paid";
+  if (s.includes("refund")) return "refunded";
+  if (s.includes("partial")) return "partially_paid";
+  if (s.includes("void") || s.includes("cancel")) return "cancelled";
+  return "pending";
+}
