@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Upload, Loader2 } from 'lucide-react';
 import { PlatformSelect } from './PlatformSelect';
 import { FileUpload } from './FileUpload';
@@ -37,6 +38,13 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   const [previewData, setPreviewData] = useState<Map<ImportDataType, PreviewRecord[]>>(new Map());
   const [importResult, setImportResult] = useState<ImportJob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [importProgress, setImportProgress] = useState<{
+    dataType: string;
+    current: number;
+    total: number;
+    successCount: number;
+    failedCount: number;
+  } | null>(null);
   
   const [options, setOptions] = useState<ImportOptions>({
     skipErrors: true,
@@ -98,60 +106,107 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     if (!platform) return;
 
     setIsProcessing(true);
+    setImportProgress(null);
+    
+    const BATCH_SIZE = 100;
     
     try {
-      // Process each data type sequentially
       let lastResult: ImportJob | null = null;
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      let totalSkipped = 0;
+      const allErrors: Array<{ row: number; field?: string; value?: string; error: string; severity: 'warning' | 'error' }> = [];
       
       for (const dataType of selectedDataTypes) {
         const preview = previewData.get(dataType);
         if (!preview || preview.length === 0) continue;
         
-        // Get selected and transformed records
+        // Get selected and transformed records (ALL of them, not just sample)
         const records = preview
           .filter(r => r.selected)
           .map(r => r.data);
         
         if (records.length === 0) continue;
 
-        // Call edge function
-        const { data, error } = await supabase.functions.invoke('run-csv-import', {
-          body: {
-            tenant_id: currentTenant.id,
-            platform: platform,
-            data_type: dataType,
-            records: records,
-            options: {
-              updateExisting: options.updateExisting,
-              skipErrors: options.skipErrors,
-            },
-          },
-        });
-        
-        if (error) {
-          throw new Error(error.message || 'Import failed');
+        // Split into batches
+        const batches: typeof records[] = [];
+        for (let i = 0; i < records.length; i += BATCH_SIZE) {
+          batches.push(records.slice(i, i + BATCH_SIZE));
         }
-        
-        // Build ImportJob result from response
+
+        console.log(`Processing ${dataType}: ${records.length} records in ${batches.length} batches`);
+
+        // Process each batch
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+          const batch = batches[batchIndex];
+          
+          setImportProgress({
+            dataType: t(`import.${dataType}`),
+            current: batchIndex + 1,
+            total: batches.length,
+            successCount: totalSuccess,
+            failedCount: totalFailed,
+          });
+
+          const { data, error } = await supabase.functions.invoke('run-csv-import', {
+            body: {
+              tenant_id: currentTenant.id,
+              platform: platform,
+              data_type: dataType,
+              records: batch,
+              options: {
+                updateExisting: options.updateExisting,
+                skipErrors: options.skipErrors,
+              },
+            },
+          });
+          
+          if (error) {
+            console.error(`Batch ${batchIndex + 1} error:`, error);
+            totalFailed += batch.length;
+            allErrors.push({
+              row: batchIndex * BATCH_SIZE,
+              error: error.message || 'Batch failed',
+              severity: 'error'
+            });
+            continue;
+          }
+          
+          if (data) {
+            totalSuccess += data.success_count || 0;
+            totalFailed += data.failed_count || 0;
+            totalSkipped += data.skipped_count || 0;
+            if (data.errors) {
+              allErrors.push(...data.errors);
+            }
+          }
+
+          // Small delay between batches to prevent overwhelming the server
+          if (batchIndex < batches.length - 1) {
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+
+        // Build final result for this data type
         lastResult = {
-          id: data.job_id,
+          id: crypto.randomUUID(),
           tenant_id: currentTenant.id,
           source_platform: platform,
           data_type: dataType,
           file_name: uploadedFiles.get(dataType)?.file.name || null,
-          status: data.status,
-          total_rows: data.total_rows,
-          success_count: data.success_count,
-          skipped_count: data.skipped_count,
-          failed_count: data.failed_count,
+          status: totalFailed > 0 && totalSuccess === 0 ? 'failed' : 'completed',
+          total_rows: records.length,
+          success_count: totalSuccess,
+          skipped_count: totalSkipped,
+          failed_count: totalFailed,
           categories_created: 0,
           categories_matched: 0,
           mapping: null,
           options: options,
-          errors: data.errors || [],
+          errors: allErrors,
           started_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
-          duration_ms: data.duration_ms,
+          duration_ms: 0,
           created_at: new Date().toISOString(),
           created_by: null,
         };
@@ -162,7 +217,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
         setStep(5);
         toast({
           title: t('import.complete'),
-          description: `${lastResult.success_count} records geïmporteerd`,
+          description: `${totalSuccess} records geïmporteerd${totalFailed > 0 ? `, ${totalFailed} mislukt` : ''}`,
         });
       }
     } catch (error) {
@@ -174,6 +229,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
       });
     } finally {
       setIsProcessing(false);
+      setImportProgress(null);
     }
   };
 
@@ -278,42 +334,55 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
         {renderStep()}
         
         {step < 5 && (
-          <div className="flex justify-between mt-6 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={step === 1}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('common.back')}
-            </Button>
-            
-            {step === 4 ? (
-              <Button
-                onClick={handleStartImport}
-                disabled={!canProceed() || isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('import.importing')}
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    {t('import.start')}
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button
-                onClick={handleNext}
-                disabled={!canProceed()}
-              >
-                {t('common.next')}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+          <div className="space-y-4 mt-6 pt-4 border-t">
+            {/* Progress indicator during import */}
+            {importProgress && (
+              <div className="space-y-2">
+                <Progress value={(importProgress.current / importProgress.total) * 100} className="h-2" />
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>{importProgress.dataType}: Batch {importProgress.current} van {importProgress.total}</span>
+                  <span>{importProgress.successCount} geïmporteerd{importProgress.failedCount > 0 && `, ${importProgress.failedCount} mislukt`}</span>
+                </div>
+              </div>
             )}
+            
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={step === 1 || isProcessing}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                {t('common.back')}
+              </Button>
+              
+              {step === 4 ? (
+                <Button
+                  onClick={handleStartImport}
+                  disabled={!canProceed() || isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('import.importing')}
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {t('import.start')}
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleNext}
+                  disabled={!canProceed()}
+                >
+                  {t('common.next')}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

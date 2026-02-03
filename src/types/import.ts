@@ -93,7 +93,8 @@ export interface UploadedFile {
   dataType: ImportDataType;
   rowCount: number;
   headers: string[];
-  sampleData: Record<string, string>[];
+  sampleData: Record<string, string>[];  // Preview (first 5 rows)
+  allData: Record<string, string>[];     // ALL rows for actual import
 }
 
 // Validation result
