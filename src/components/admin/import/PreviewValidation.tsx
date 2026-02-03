@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,12 @@ interface PreviewValidationProps {
   onOptionsChange: (options: ImportOptions) => void;
 }
 
+// Create a signature to detect when file/mapping actually changes
+function createSignature(file: UploadedFile | undefined, mapping: MappingOption[] | undefined): string {
+  if (!file || !mapping) return '';
+  return `${file.file.name}:${file.rowCount}:${mapping.length}:${mapping.map(m => `${m.sourceField}->${m.targetField}`).join(',')}`;
+}
+
 export function PreviewValidation({
   dataTypes,
   uploadedFiles,
@@ -47,41 +53,53 @@ export function PreviewValidation({
 }: PreviewValidationProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(dataTypes[0]);
+  
+  // Track signatures to detect real changes
+  const signaturesRef = useRef<Map<ImportDataType, string>>(new Map());
 
-  // Process and validate ALL records (use allData, not sampleData)
+  // Process and validate ALL records - recompute when signature changes
   useEffect(() => {
     dataTypes.forEach(dataType => {
-      if (!previewData.has(dataType)) {
-        const file = uploadedFiles.get(dataType);
-        const mapping = mappings.get(dataType);
+      const file = uploadedFiles.get(dataType);
+      const mapping = mappings.get(dataType);
+      const currentSignature = createSignature(file, mapping);
+      const previousSignature = signaturesRef.current.get(dataType) || '';
+      
+      // Only recompute if signature changed OR no previewData exists
+      const needsRecompute = !previewData.has(dataType) || currentSignature !== previousSignature;
+      
+      if (needsRecompute && file && mapping && currentSignature) {
+        console.log(`Recomputing preview for ${dataType}: ${file.allData?.length || file.sampleData.length} records`);
         
-        if (file && mapping) {
-          // Build field mapping object
-          const fieldMapping: Record<string, { target: string | null; transform?: string }> = {};
-          mapping.forEach(m => {
-            fieldMapping[m.sourceField] = { 
-              target: m.targetField, 
-              transform: m.transform 
-            };
-          });
+        // Update signature
+        signaturesRef.current.set(dataType, currentSignature);
+        
+        // Build field mapping object
+        const fieldMapping: Record<string, { target: string | null; transform?: string }> = {};
+        mapping.forEach(m => {
+          fieldMapping[m.sourceField] = { 
+            target: m.targetField, 
+            transform: m.transform 
+          };
+        });
 
-          // Transform and validate ALL records (not just sample)
-          const dataToProcess = file.allData || file.sampleData;
-          const records: PreviewRecord[] = dataToProcess.map((row, index) => {
-            const transformed = transformRecord(row, fieldMapping);
-            const validation = validateRecord(transformed, dataType);
-            
-            return {
-              index,
-              data: transformed,
-              errors: validation.errors.map(e => e.error),
-              warnings: [],
-              selected: validation.valid,
-            };
-          });
+        // Transform and validate ALL records (not just sample)
+        const dataToProcess = file.allData || file.sampleData;
+        const records: PreviewRecord[] = dataToProcess.map((row, index) => {
+          const transformed = transformRecord(row, fieldMapping);
+          const validation = validateRecord(transformed, dataType);
+          
+          return {
+            index,
+            data: transformed,
+            errors: validation.errors.map(e => e.error),
+            warnings: [],
+            selected: validation.valid,
+          };
+        });
 
-          onPreviewChange(dataType, records);
-        }
+        console.log(`Preview computed: ${records.length} total, ${records.filter(r => r.selected).length} valid`);
+        onPreviewChange(dataType, records);
       }
     });
   }, [dataTypes, uploadedFiles, mappings, previewData, onPreviewChange]);

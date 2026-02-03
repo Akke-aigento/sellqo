@@ -83,10 +83,22 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
 
   const handleFileUpload = (dataType: ImportDataType, file: UploadedFile) => {
     setUploadedFiles(prev => new Map(prev).set(dataType, file));
+    // Clear stale previewData to force recomputation with new file's allData
+    setPreviewData(prev => {
+      const next = new Map(prev);
+      next.delete(dataType);
+      return next;
+    });
   };
 
   const handleMappingChange = (dataType: ImportDataType, mapping: MappingOption[]) => {
     setMappings(prev => new Map(prev).set(dataType, mapping));
+    // Clear stale previewData to force recomputation with updated mapping
+    setPreviewData(prev => {
+      const next = new Map(prev);
+      next.delete(dataType);
+      return next;
+    });
   };
 
   const handlePreviewChange = (dataType: ImportDataType, records: PreviewRecord[]) => {
