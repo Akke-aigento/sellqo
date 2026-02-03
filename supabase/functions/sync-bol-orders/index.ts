@@ -416,6 +416,7 @@ Deno.serve(async (req) => {
             // Insert order items
             const orderItems = (bolOrder.orderItems || []).map((item) => ({
               order_id: newOrder.id,
+              marketplace_order_item_id: item.orderItemId,
               product_name: item.product?.title || `EAN: ${item.ean || item.product?.ean || 'Unknown'}`,
               product_sku: item.ean || item.product?.ean,
               quantity: item.quantity,
