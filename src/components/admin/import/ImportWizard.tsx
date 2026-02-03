@@ -8,6 +8,9 @@ import { FileUpload } from './FileUpload';
 import { FieldMappingStep } from './FieldMappingStep';
 import { PreviewValidation } from './PreviewValidation';
 import { ImportResult } from './ImportResult';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from '@/hooks/useTenant';
+import { useToast } from '@/hooks/use-toast';
 import type { 
   ImportPlatform, 
   ImportDataType, 
@@ -24,7 +27,8 @@ interface ImportWizardProps {
 
 export function ImportWizard({ onComplete }: ImportWizardProps) {
   const { t } = useTranslation();
-  
+  const { currentTenant } = useTenant();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [platform, setPlatform] = useState<ImportPlatform | null>(null);
   const [selectedDataTypes, setSelectedDataTypes] = useState<ImportDataType[]>(['customers', 'products']);
@@ -82,38 +86,92 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   };
 
   const handleStartImport = async () => {
-    setIsProcessing(true);
-    try {
-      // TODO: Implement actual import via edge function
-      // For now, simulate success
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setImportResult({
-        id: 'mock-id',
-        tenant_id: 'mock-tenant',
-        source_platform: platform!,
-        data_type: selectedDataTypes[0],
-        file_name: uploadedFiles.get(selectedDataTypes[0])?.file.name || null,
-        status: 'completed',
-        total_rows: 51,
-        success_count: 48,
-        skipped_count: 2,
-        failed_count: 1,
-        categories_created: 0,
-        categories_matched: 0,
-        mapping: null,
-        options: null,
-        errors: [
-          { row: 3, error: 'Invalid email format', severity: 'error' },
-        ],
-        started_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
-        duration_ms: 3200,
-        created_at: new Date().toISOString(),
-        created_by: null,
+    if (!currentTenant?.id) {
+      toast({
+        title: t('common.error'),
+        description: 'Geen tenant geselecteerd',
+        variant: 'destructive',
       });
+      return;
+    }
+
+    if (!platform) return;
+
+    setIsProcessing(true);
+    
+    try {
+      // Process each data type sequentially
+      let lastResult: ImportJob | null = null;
       
-      setStep(5);
+      for (const dataType of selectedDataTypes) {
+        const preview = previewData.get(dataType);
+        if (!preview || preview.length === 0) continue;
+        
+        // Get selected and transformed records
+        const records = preview
+          .filter(r => r.selected)
+          .map(r => r.data);
+        
+        if (records.length === 0) continue;
+
+        // Call edge function
+        const { data, error } = await supabase.functions.invoke('run-csv-import', {
+          body: {
+            tenant_id: currentTenant.id,
+            platform: platform,
+            data_type: dataType,
+            records: records,
+            options: {
+              updateExisting: options.updateExisting,
+              skipErrors: options.skipErrors,
+            },
+          },
+        });
+        
+        if (error) {
+          throw new Error(error.message || 'Import failed');
+        }
+        
+        // Build ImportJob result from response
+        lastResult = {
+          id: data.job_id,
+          tenant_id: currentTenant.id,
+          source_platform: platform,
+          data_type: dataType,
+          file_name: uploadedFiles.get(dataType)?.file.name || null,
+          status: data.status,
+          total_rows: data.total_rows,
+          success_count: data.success_count,
+          skipped_count: data.skipped_count,
+          failed_count: data.failed_count,
+          categories_created: 0,
+          categories_matched: 0,
+          mapping: null,
+          options: options,
+          errors: data.errors || [],
+          started_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          duration_ms: data.duration_ms,
+          created_at: new Date().toISOString(),
+          created_by: null,
+        };
+      }
+      
+      if (lastResult) {
+        setImportResult(lastResult);
+        setStep(5);
+        toast({
+          title: t('import.complete'),
+          description: `${lastResult.success_count} records geïmporteerd`,
+        });
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : 'Import mislukt',
+        variant: 'destructive',
+      });
     } finally {
       setIsProcessing(false);
     }
