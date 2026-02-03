@@ -2888,6 +2888,8 @@ export type Database = {
           default_shipping_address: Json | null
           email: string
           email_engagement_score: number | null
+          email_marketing_level: string | null
+          email_marketing_status: string | null
           email_subscribed: boolean | null
           email_subscribed_at: string | null
           external_id: string | null
@@ -2895,14 +2897,18 @@ export type Database = {
           first_name: string | null
           id: string
           import_job_id: string | null
+          import_source: string | null
           imported_at: string | null
           instagram_id: string | null
           last_email_opened_at: string | null
           last_email_sent_at: string | null
           last_name: string | null
           notes: string | null
+          original_created_at: string | null
           peppol_id: string | null
           phone: string | null
+          province: string | null
+          province_code: string | null
           shipping_address_verified: boolean | null
           shipping_city: string | null
           shipping_country: string | null
@@ -2910,6 +2916,9 @@ export type Database = {
           shipping_street: string | null
           shopify_customer_id: string | null
           shopify_last_synced_at: string | null
+          sms_marketing_level: string | null
+          sms_marketing_status: string | null
+          tags: string[] | null
           tax_exempt: boolean | null
           tax_exempt_reason: string | null
           tenant_id: string
@@ -2919,6 +2928,7 @@ export type Database = {
           vat_number: string | null
           vat_verified: boolean | null
           vat_verified_at: string | null
+          verified_email: boolean | null
           whatsapp_number: string | null
           whatsapp_opted_in: boolean | null
           whatsapp_opted_in_at: string | null
@@ -2936,6 +2946,8 @@ export type Database = {
           default_shipping_address?: Json | null
           email: string
           email_engagement_score?: number | null
+          email_marketing_level?: string | null
+          email_marketing_status?: string | null
           email_subscribed?: boolean | null
           email_subscribed_at?: string | null
           external_id?: string | null
@@ -2943,14 +2955,18 @@ export type Database = {
           first_name?: string | null
           id?: string
           import_job_id?: string | null
+          import_source?: string | null
           imported_at?: string | null
           instagram_id?: string | null
           last_email_opened_at?: string | null
           last_email_sent_at?: string | null
           last_name?: string | null
           notes?: string | null
+          original_created_at?: string | null
           peppol_id?: string | null
           phone?: string | null
+          province?: string | null
+          province_code?: string | null
           shipping_address_verified?: boolean | null
           shipping_city?: string | null
           shipping_country?: string | null
@@ -2958,6 +2974,9 @@ export type Database = {
           shipping_street?: string | null
           shopify_customer_id?: string | null
           shopify_last_synced_at?: string | null
+          sms_marketing_level?: string | null
+          sms_marketing_status?: string | null
+          tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
           tenant_id: string
@@ -2967,6 +2986,7 @@ export type Database = {
           vat_number?: string | null
           vat_verified?: boolean | null
           vat_verified_at?: string | null
+          verified_email?: boolean | null
           whatsapp_number?: string | null
           whatsapp_opted_in?: boolean | null
           whatsapp_opted_in_at?: string | null
@@ -2984,6 +3004,8 @@ export type Database = {
           default_shipping_address?: Json | null
           email?: string
           email_engagement_score?: number | null
+          email_marketing_level?: string | null
+          email_marketing_status?: string | null
           email_subscribed?: boolean | null
           email_subscribed_at?: string | null
           external_id?: string | null
@@ -2991,14 +3013,18 @@ export type Database = {
           first_name?: string | null
           id?: string
           import_job_id?: string | null
+          import_source?: string | null
           imported_at?: string | null
           instagram_id?: string | null
           last_email_opened_at?: string | null
           last_email_sent_at?: string | null
           last_name?: string | null
           notes?: string | null
+          original_created_at?: string | null
           peppol_id?: string | null
           phone?: string | null
+          province?: string | null
+          province_code?: string | null
           shipping_address_verified?: boolean | null
           shipping_city?: string | null
           shipping_country?: string | null
@@ -3006,6 +3032,9 @@ export type Database = {
           shipping_street?: string | null
           shopify_customer_id?: string | null
           shopify_last_synced_at?: string | null
+          sms_marketing_level?: string | null
+          sms_marketing_status?: string | null
+          tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
           tenant_id?: string
@@ -3015,6 +3044,7 @@ export type Database = {
           vat_number?: string | null
           vat_verified?: boolean | null
           vat_verified_at?: string | null
+          verified_email?: boolean | null
           whatsapp_number?: string | null
           whatsapp_opted_in?: boolean | null
           whatsapp_opted_in_at?: string | null
@@ -5933,6 +5963,8 @@ export type Database = {
           quantity: number
           total_price: number
           unit_price: number
+          variant_title: string | null
+          vendor: string | null
         }
         Insert: {
           created_at?: string | null
@@ -5947,6 +5979,8 @@ export type Database = {
           quantity?: number
           total_price: number
           unit_price: number
+          variant_title?: string | null
+          vendor?: string | null
         }
         Update: {
           created_at?: string | null
@@ -5961,6 +5995,8 @@ export type Database = {
           quantity?: number
           total_price?: number
           unit_price?: number
+          variant_title?: string | null
+          vendor?: string | null
         }
         Relationships: [
           {
@@ -6000,6 +6036,7 @@ export type Database = {
           cancelled_at: string | null
           carrier: string | null
           created_at: string | null
+          currency: string | null
           customer_company_name: string | null
           customer_email: string
           customer_id: string | null
@@ -6018,6 +6055,7 @@ export type Database = {
           gift_card_amount: number | null
           gift_card_ids: string[] | null
           id: string
+          import_source: string | null
           internal_notes: string | null
           last_tracking_check: string | null
           marketplace_connection_id: string | null
@@ -6026,9 +6064,13 @@ export type Database = {
           notes: string | null
           ogm_reference: string | null
           order_number: string
+          order_tags: string[] | null
+          original_created_at: string | null
+          paid_at: string | null
           payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data: Json | null
+          risk_level: string | null
           service_point_data: Json | null
           service_point_id: string | null
           shipped_at: string | null
@@ -6059,6 +6101,7 @@ export type Database = {
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string | null
+          currency?: string | null
           customer_company_name?: string | null
           customer_email: string
           customer_id?: string | null
@@ -6077,6 +6120,7 @@ export type Database = {
           gift_card_amount?: number | null
           gift_card_ids?: string[] | null
           id?: string
+          import_source?: string | null
           internal_notes?: string | null
           last_tracking_check?: string | null
           marketplace_connection_id?: string | null
@@ -6085,9 +6129,13 @@ export type Database = {
           notes?: string | null
           ogm_reference?: string | null
           order_number: string
+          order_tags?: string[] | null
+          original_created_at?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
+          risk_level?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
           shipped_at?: string | null
@@ -6118,6 +6166,7 @@ export type Database = {
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string | null
+          currency?: string | null
           customer_company_name?: string | null
           customer_email?: string
           customer_id?: string | null
@@ -6136,6 +6185,7 @@ export type Database = {
           gift_card_amount?: number | null
           gift_card_ids?: string[] | null
           id?: string
+          import_source?: string | null
           internal_notes?: string | null
           last_tracking_check?: string | null
           marketplace_connection_id?: string | null
@@ -6144,9 +6194,13 @@ export type Database = {
           notes?: string | null
           ogm_reference?: string | null
           order_number?: string
+          order_tags?: string[] | null
+          original_created_at?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
+          risk_level?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
           shipped_at?: string | null
@@ -7776,10 +7830,13 @@ export type Database = {
           gift_card_expiry_months: number | null
           gift_card_max_amount: number | null
           gift_card_min_amount: number | null
+          google_product_category: string | null
           hide_from_storefront: boolean | null
           id: string
+          image_alt_texts: string[] | null
           images: string[] | null
           import_job_id: string | null
+          import_source: string | null
           imported_at: string | null
           is_active: boolean | null
           is_featured: boolean | null
@@ -7805,10 +7862,13 @@ export type Database = {
           odoo_product_id: string | null
           odoo_variant_id: string | null
           original_category_value: string | null
+          original_created_at: string | null
           price: number
           product_type: Database["public"]["Enums"]["product_type"] | null
+          published_scope: string | null
           requires_shipping: boolean | null
           shopify_bullets: string[] | null
+          shopify_handle: string | null
           shopify_last_synced_at: string | null
           shopify_listing_error: string | null
           shopify_listing_status: string | null
@@ -7829,6 +7889,7 @@ export type Database = {
           track_inventory: boolean | null
           updated_at: string | null
           vat_rate_id: string | null
+          vendor: string | null
           weight: number | null
           woocommerce_bullets: string[] | null
           woocommerce_last_synced_at: string | null
@@ -7894,10 +7955,13 @@ export type Database = {
           gift_card_expiry_months?: number | null
           gift_card_max_amount?: number | null
           gift_card_min_amount?: number | null
+          google_product_category?: string | null
           hide_from_storefront?: boolean | null
           id?: string
+          image_alt_texts?: string[] | null
           images?: string[] | null
           import_job_id?: string | null
+          import_source?: string | null
           imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
@@ -7923,10 +7987,13 @@ export type Database = {
           odoo_product_id?: string | null
           odoo_variant_id?: string | null
           original_category_value?: string | null
+          original_created_at?: string | null
           price: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
+          published_scope?: string | null
           requires_shipping?: boolean | null
           shopify_bullets?: string[] | null
+          shopify_handle?: string | null
           shopify_last_synced_at?: string | null
           shopify_listing_error?: string | null
           shopify_listing_status?: string | null
@@ -7947,6 +8014,7 @@ export type Database = {
           track_inventory?: boolean | null
           updated_at?: string | null
           vat_rate_id?: string | null
+          vendor?: string | null
           weight?: number | null
           woocommerce_bullets?: string[] | null
           woocommerce_last_synced_at?: string | null
@@ -8012,10 +8080,13 @@ export type Database = {
           gift_card_expiry_months?: number | null
           gift_card_max_amount?: number | null
           gift_card_min_amount?: number | null
+          google_product_category?: string | null
           hide_from_storefront?: boolean | null
           id?: string
+          image_alt_texts?: string[] | null
           images?: string[] | null
           import_job_id?: string | null
+          import_source?: string | null
           imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
@@ -8041,10 +8112,13 @@ export type Database = {
           odoo_product_id?: string | null
           odoo_variant_id?: string | null
           original_category_value?: string | null
+          original_created_at?: string | null
           price?: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
+          published_scope?: string | null
           requires_shipping?: boolean | null
           shopify_bullets?: string[] | null
+          shopify_handle?: string | null
           shopify_last_synced_at?: string | null
           shopify_listing_error?: string | null
           shopify_listing_status?: string | null
@@ -8065,6 +8139,7 @@ export type Database = {
           track_inventory?: boolean | null
           updated_at?: string | null
           vat_rate_id?: string | null
+          vendor?: string | null
           weight?: number | null
           woocommerce_bullets?: string[] | null
           woocommerce_last_synced_at?: string | null
