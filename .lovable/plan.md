@@ -1,189 +1,186 @@
 
-# Fix voor Kapotte Product Import
 
-## Probleem Geïdentificeerd
+# Fix: Incomplete CSV Import - Alle Records Importeren
 
-Het CSV-bestand bevat product beschrijvingen of titels die **meerdere regels** beslaan (newlines binnen quoted velden). De huidige CSV parser kan dit niet aan.
+## Probleem Gevonden
 
-### Voorbeeld van probleem-data:
-```csv
-Handle,Title,Body (HTML),Variant Price,...
-"vanxcel-powerstrip","VanXcel Powerstrip 2x EU plug, 2x USB C
-and 2 powerful USB-C port. This powerstrip ensures safety
-and flexibility wherever you need it.","<p>Description...</p>",29.99,...
-```
+De import wizard slaat **alleen de eerste 5 rijen** op als "sample data" en importeert vervolgens alleen die sample. Hierdoor worden van 100+ klanten slechts een paar geïmporteerd.
 
-De parser splitst dit als 3 aparte rijen in plaats van 1 rij met een multi-line titel.
+### Bewijs
 
-## Huidige Code (Kapot)
-
-In `src/hooks/useImport.ts`:
-
+**FileUpload.tsx (regel 50):**
 ```typescript
-const lines = text.split(/\r?\n/).filter(line => line.trim());  // PROBLEEM!
+sampleData: rows.slice(0, 5),  // ← ALLEEN 5 RIJEN!
 ```
 
-Dit splitst op ELKE newline, ook binnen quoted velden.
+**PreviewValidation.tsx (regel 69):**
+```typescript
+const records = file.sampleData.map(...)  // ← GEBRUIKT ALLEEN DIE 5
+```
+
+De volledige data (`rows`) wordt nergens bewaard tussen upload en import.
+
+---
 
 ## Oplossing
 
-Vervang de huidige `parseCSV` functie met een **state machine** die correct omgaat met:
-1. Quoted velden met newlines
-2. Escaped quotes (`""`)
-3. Zowel `,` als `;` als delimiter
-4. UTF-8/BOM karakters
+### Aanpak: Volledige Data Opslaan + Batched Import
 
-### Nieuwe parsing logica:
+1. **Bewaar alle rijen** na parsing (niet alleen sample)
+2. **Preview toont sample** (voor performance), maar import gebruikt alles
+3. **Batch processing** voor grote bestanden (>500 records)
+4. **Progress indicator** tijdens import
 
-```text
-                               ┌─────────────────┐
-                               │   START STATE   │
-                               │   inQuotes=false│
-                               └────────┬────────┘
-                                        │
-           ┌────────────────────────────┼────────────────────────────┐
-           │                            │                            │
-           ▼                            ▼                            ▼
-    ┌──────────────┐           ┌──────────────┐           ┌──────────────┐
-    │ char = '"'   │           │ char = ','   │           │ char = '\n'  │
-    │ Toggle state │           │ or char = ';'│           │              │
-    └──────────────┘           └──────────────┘           └──────────────┘
-           │                            │                            │
-           │                    If !inQuotes:                If !inQuotes:
-           │                    → Push cell                  → Push cell
-           │                    → Push row                   → Push row
-           │                                                 → Start new row
-           │                    If inQuotes:                 
-           │                    → Add to cell                If inQuotes:
-           │                                                 → Add to cell
-           └────────────────────────────────────────────────────────────┘
-```
+---
 
-## Te Wijzigen Bestanden
+## Technische Wijzigingen
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/hooks/useImport.ts` | Vervang `parseCSV` en `parseCSVLine` met robust multi-line aware parser |
+### 1. Update `UploadedFile` Type
 
-## Nieuwe Code
-
-De `parseCSV` functie wordt vervangen door een character-by-character parser die de hele file in één keer verwerkt:
+**Bestand:** `src/types/import.ts`
 
 ```typescript
-export async function parseCSV(file: File): Promise<{
+export interface UploadedFile {
+  file: File;
+  dataType: ImportDataType;
+  rowCount: number;
   headers: string[];
-  rows: Record<string, string>[];
-}> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        let text = e.target?.result as string;
-        
-        // Remove BOM if present
-        if (text.charCodeAt(0) === 0xFEFF) {
-          text = text.slice(1);
-        }
-        
-        // Parse using state machine
-        const allRows: string[][] = [];
-        let currentRow: string[] = [];
-        let currentCell = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < text.length; i++) {
-          const char = text[i];
-          const nextChar = text[i + 1];
-          
-          if (char === '"') {
-            if (inQuotes && nextChar === '"') {
-              // Escaped quote
-              currentCell += '"';
-              i++;
-            } else {
-              // Toggle quote mode
-              inQuotes = !inQuotes;
-            }
-          } else if ((char === ',' || char === ';') && !inQuotes) {
-            // End of cell
-            currentRow.push(currentCell.trim());
-            currentCell = '';
-          } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
-            // End of row
-            if (char === '\r') i++; // Skip \n in \r\n
-            currentRow.push(currentCell.trim());
-            if (currentRow.length > 0 && currentRow.some(c => c)) {
-              allRows.push(currentRow);
-            }
-            currentRow = [];
-            currentCell = '';
-          } else if (char === '\r' && !inQuotes) {
-            // Mac-style line ending
-            currentRow.push(currentCell.trim());
-            if (currentRow.length > 0 && currentRow.some(c => c)) {
-              allRows.push(currentRow);
-            }
-            currentRow = [];
-            currentCell = '';
-          } else {
-            currentCell += char;
-          }
-        }
-        
-        // Push final cell/row
-        if (currentCell || currentRow.length > 0) {
-          currentRow.push(currentCell.trim());
-          if (currentRow.some(c => c)) {
-            allRows.push(currentRow);
-          }
-        }
-        
-        if (allRows.length < 2) {
-          reject(new Error('File must have at least a header row and one data row'));
-          return;
-        }
-        
-        // First row is headers
-        const headers = allRows[0];
-        
-        // Convert remaining rows to objects
-        const rows: Record<string, string>[] = [];
-        for (let i = 1; i < allRows.length; i++) {
-          const values = allRows[i];
-          const row: Record<string, string> = {};
-          headers.forEach((header, idx) => {
-            row[header] = values[idx] || '';
-          });
-          rows.push(row);
-        }
-        
-        resolve({ headers, rows });
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsText(file);
-  });
+  sampleData: Record<string, string>[];  // Preview (5 rijen)
+  allData: Record<string, string>[];     // ALLE rijen - NIEUW
 }
 ```
 
-## Wat Dit Oplost
+### 2. Update FileUpload Component
 
-| Issue | Oplossing |
-|-------|-----------|
-| Multi-line product titels | Newlines binnen quotes worden behouden als onderdeel van de cel |
-| Lege rijen in preview | Alleen rijen met echte data worden toegevoegd |
-| Missing Price/SKU | Kolommen blijven correct uitgelijnd |
-| BOM karakters | Worden gestript aan het begin |
-| Mac/Windows/Linux regeleindes | Alle formaten worden ondersteund |
+**Bestand:** `src/components/admin/import/FileUpload.tsx`
 
-## Na Implementatie
+Bewaar alle rijen na parsing:
 
-1. Upload je Shopify Products CSV opnieuw
-2. In stap 3 (Field Mapping) worden alle velden correct getoond
-3. In stap 4 (Preview) zie je de volledige productnamen in 1 rij
-4. Geen "Price is required" of "Product name is required" fouten meer
+```typescript
+onFileUpload(dataType, {
+  file,
+  dataType,
+  rowCount: rows.length,
+  headers,
+  sampleData: rows.slice(0, 5),   // Voor preview
+  allData: rows,                  // ALLE data voor import
+});
+```
+
+### 3. Update PreviewValidation Component
+
+**Bestand:** `src/components/admin/import/PreviewValidation.tsx`
+
+- Preview toont nog steeds sample (voor snelheid)
+- Gebruik `allData` voor de werkelijke import data
+
+```typescript
+// Transform ALL records, but only show preview of first few
+const allRecords = file.allData.map((row, index) => {
+  const transformed = transformRecord(row, fieldMapping);
+  const validation = validateRecord(transformed, dataType);
+  return {
+    index,
+    data: transformed,
+    errors: validation.errors.map(e => e.error),
+    warnings: [],
+    selected: validation.valid,
+  };
+});
+
+onPreviewChange(dataType, allRecords);
+
+// UI shows only first N records for performance
+const displayRecords = records.slice(0, 100);
+```
+
+### 4. Update ImportWizard met Batching
+
+**Bestand:** `src/components/admin/import/ImportWizard.tsx`
+
+Implementeer batch processing met progress:
+
+```typescript
+const BATCH_SIZE = 100;
+
+// Split records into batches
+const batches = [];
+for (let i = 0; i < records.length; i += BATCH_SIZE) {
+  batches.push(records.slice(i, i + BATCH_SIZE));
+}
+
+let totalSuccess = 0;
+let totalFailed = 0;
+
+// Process each batch
+for (let i = 0; i < batches.length; i++) {
+  setProgress({ current: i + 1, total: batches.length });
+  
+  const { data, error } = await supabase.functions.invoke('run-csv-import', {
+    body: { records: batches[i], ... }
+  });
+  
+  if (data) {
+    totalSuccess += data.success_count;
+    totalFailed += data.failed_count;
+  }
+  
+  // Small delay to prevent timeouts
+  await new Promise(r => setTimeout(r, 50));
+}
+```
+
+### 5. Add Progress UI
+
+**Bestand:** `src/components/admin/import/ImportWizard.tsx`
+
+Voeg progress indicator toe:
+
+```tsx
+const [progress, setProgress] = useState<{
+  current: number;
+  total: number;
+  dataType: string;
+} | null>(null);
+
+// In render:
+{progress && (
+  <div className="space-y-2">
+    <Progress value={(progress.current / progress.total) * 100} />
+    <p className="text-sm text-muted-foreground text-center">
+      {progress.dataType}: Batch {progress.current} van {progress.total}
+    </p>
+  </div>
+)}
+```
+
+---
+
+## Bestanden die Worden Gewijzigd
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/types/import.ts` | Voeg `allData` property toe aan `UploadedFile` |
+| `src/components/admin/import/FileUpload.tsx` | Bewaar alle rijen in `allData` |
+| `src/components/admin/import/PreviewValidation.tsx` | Gebruik `allData` voor transform, beperk preview display |
+| `src/components/admin/import/ImportWizard.tsx` | Batch processing met progress indicator |
+
+---
+
+## Verwachte Resultaten
+
+| Vóór Fix | Na Fix |
+|----------|--------|
+| 100 klanten → 5 geïmporteerd | 100 klanten → 100 geïmporteerd |
+| 44 producten → 1 geïmporteerd | 44 producten → 44 geïmporteerd |
+| ~100 orders → 4 geïmporteerd | ~100 orders → alle geïmporteerd |
+
+---
+
+## Performance Overwegingen
+
+- **Preview UI**: Beperkt tot 100 rijen weergave (voor snelheid)
+- **Batches**: 100 records per API call (voorkomt timeouts)
+- **Progress feedback**: Gebruiker ziet voortgang bij grote imports
+- **Memory**: Alle data in memory is OK voor <10K records
 
