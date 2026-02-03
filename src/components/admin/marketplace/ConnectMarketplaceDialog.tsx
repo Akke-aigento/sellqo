@@ -112,6 +112,12 @@ export function ConnectMarketplaceDialog({
   const [ebayRefreshToken, setEbayRefreshToken] = useState('');
   const [ebayMarketplace, setEbayMarketplace] = useState('EBAY_NL');
 
+  // Bol.com Advertising API (optional)
+  const [showAdvertisingSection, setShowAdvertisingSection] = useState(false);
+  const [advertisingClientId, setAdvertisingClientId] = useState('');
+  const [advertisingClientSecret, setAdvertisingClientSecret] = useState('');
+  const [showAdvertisingSecret, setShowAdvertisingSecret] = useState(false);
+
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
@@ -126,6 +132,15 @@ export function ConnectMarketplaceDialog({
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
         : marketplaceType === 'ebay'
         ? { ebayAppId, ebayCertId, ebayRefreshToken, ebayMarketplaceId: ebayMarketplace }
+        : marketplaceType === 'bol_com'
+        ? { 
+            clientId, 
+            clientSecret,
+            ...(advertisingClientId && advertisingClientSecret && {
+              advertisingClientId,
+              advertisingClientSecret,
+            }),
+          }
         : { clientId, clientSecret };
 
       const { data, error } = await supabase.functions.invoke('test-marketplace-connection', {
@@ -165,6 +180,16 @@ export function ConnectMarketplaceDialog({
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
         : marketplaceType === 'ebay'
         ? { ebayAppId, ebayCertId, ebayRefreshToken, ebayMarketplaceId: ebayMarketplace }
+        : marketplaceType === 'bol_com'
+        ? { 
+            clientId, 
+            clientSecret,
+            // Include advertising credentials if provided
+            ...(advertisingClientId && advertisingClientSecret && {
+              advertisingClientId,
+              advertisingClientSecret,
+            }),
+          }
         : { clientId, clientSecret };
 
       const newConnection = await createConnection.mutateAsync({
@@ -310,6 +335,11 @@ export function ConnectMarketplaceDialog({
       setEbayCertId('');
       setEbayRefreshToken('');
       setEbayMarketplace('EBAY_NL');
+      // Reset advertising API state
+      setShowAdvertisingSection(false);
+      setAdvertisingClientId('');
+      setAdvertisingClientSecret('');
+      setShowAdvertisingSecret(false);
       setTestResult(null);
       setSyncProgress(0);
       setSyncSteps({ orders: false, products: false, inventory: false });
@@ -331,9 +361,10 @@ export function ConnectMarketplaceDialog({
             'Log in op je Bol.com verkopersaccount',
             'Je komt direct op de API credentials pagina',
             'Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken"',
-            'Geef de credentials een naam (bijv. "SellQo")',
+            'Geef de credentials een naam (bijv. "SellQo Retailer")',
             'Kopieer de Client ID en Client Secret',
-            'Plak deze hieronder en klik op "Verbind"',
+            '(Optioneel) Maak ook credentials aan voor de "Advertising API"',
+            'Plak alle credentials hieronder en klik op "Verbind"',
           ],
         };
       case 'amazon':
@@ -710,9 +741,106 @@ export function ConnectMarketplaceDialog({
                   </Select>
                 </div>
               </>
+            ) : marketplaceType === 'bol_com' ? (
+              <>
+                {/* Bol.com Retailer API credentials (required) */}
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Retailer API</Badge>
+                    <span className="text-xs text-muted-foreground">Verplicht</span>
+                  </div>
+                  <div>
+                    <Label>Client ID *</Label>
+                    <Input
+                      type="text"
+                      required
+                      placeholder="Bijv: 1234567890abcdef"
+                      className="mt-1 font-mono text-sm"
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Client Secret *</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type={showSecret ? 'text' : 'password'}
+                        required
+                        placeholder="••••••••••••••••"
+                        className="pr-10 font-mono text-sm"
+                        value={clientSecret}
+                        onChange={(e) => setClientSecret(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecret(!showSecret)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bol.com Advertising API credentials (optional) */}
+                <div className={`border rounded-lg transition-all ${showAdvertisingSection ? 'border-primary bg-primary/5 p-4' : 'border-dashed p-3'}`}>
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer"
+                    onClick={() => setShowAdvertisingSection(!showAdvertisingSection)}
+                  >
+                    <Switch 
+                      checked={showAdvertisingSection} 
+                      onCheckedChange={setShowAdvertisingSection}
+                    />
+                    <div>
+                      <span className="font-medium">Ook Advertising API koppelen</span>
+                      <p className="text-xs text-muted-foreground">Voor Bol.com Sponsored Products campagnes</p>
+                    </div>
+                  </div>
+                  
+                  {showAdvertisingSection && (
+                    <div className="space-y-4 mt-4 pt-4 border-t">
+                      <div>
+                        <Label>Advertising Client ID</Label>
+                        <Input
+                          type="text"
+                          placeholder="Bijv: 1234567890abcdef"
+                          className="mt-1 font-mono text-sm"
+                          value={advertisingClientId}
+                          onChange={(e) => setAdvertisingClientId(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Aanmaken bij "Client credentials voor de Advertising API"
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label>Advertising Client Secret</Label>
+                        <div className="relative mt-1">
+                          <Input
+                            type={showAdvertisingSecret ? 'text' : 'password'}
+                            placeholder="••••••••••••••••"
+                            className="pr-10 font-mono text-sm"
+                            value={advertisingClientSecret}
+                            onChange={(e) => setAdvertisingClientSecret(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAdvertisingSecret(!showAdvertisingSecret)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showAdvertisingSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             ) : (
               <>
-                {/* Bol.com / Amazon credentials */}
+                {/* Amazon credentials */}
                 <div>
                   <Label>Client ID *</Label>
                   <Input
