@@ -275,3 +275,6 @@ verify_jwt = false
 
 [functions.import-bol-shipments]
 verify_jwt = false
+
+[functions.import-bol-csv]
+verify_jwt = false
