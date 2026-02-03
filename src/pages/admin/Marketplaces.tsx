@@ -53,7 +53,7 @@ export default function MarketplacesPage() {
   const handleSettings = (type: MarketplaceType) => {
     const connection = getConnectionByType(type);
     if (connection) {
-      navigate(`/admin/settings/marketplaces/${connection.id}`);
+      navigate(`/admin/connect/${connection.id}`);
     }
   };
 
