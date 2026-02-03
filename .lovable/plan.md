@@ -1,167 +1,92 @@
 
-# Fix: Shopify Product CSV Row Consolidatie (44 producten i.p.v. 152 rijen)
 
-## Probleem Analyse
+# Fix: Bol VVB Settings Worden Niet Opgeslagen
 
-Je CSV bestand heeft **2882 regels** voor slechts **44 unieke producten**. Shopify exporteert:
+## Probleem Geïdentificeerd
 
-```text
-Rij 1:  Handle: "powerstrip-2x"  | Title: "VanXcel Powerstrip" | Image: img1.png
-Rij 2:  Handle: "powerstrip-2x"  | Title: (LEEG)               | Image: img2.png  
-Rij 3:  Handle: "powerstrip-2x"  | Title: (LEEG)               | Image: img3.png
-...
-Rij 10: Handle: "fuse-150a"      | Title: "VanXcel Fuse 150A"  | Image: img1.png
-Rij 11: Handle: "fuse-150a"      | Title: (LEEG)               | Image: img2.png
-```
+De VVB instellingen (`vvbEnabled`, `vvbMaxAmount`, etc.) die je aanpast worden **niet opgeslagen** in de database.
 
-De huidige parser behandelt ELKE rij als apart product:
-- 44 rijen MET Title → valide producten
-- 108 rijen ZONDER Title → "Product name is required" errors
+### Oorzaak
 
-**Totaal: 44 + 108 = 152 records (precies wat je ziet!)**
-
----
-
-## Oplossing: Consolideer Rijen op Handle
-
-### Strategie
-
-Na het parsen van de CSV, groepeer alle rijen met dezelfde `Handle`:
-- Eerste rij met Title = hoofdproduct
-- Volgende rijen = extra afbeeldingen + variant data
-
-Resultaat: 2882 rijen → 44 geconsolideerde producten
-
-### Wat wordt samengevoegd?
-
-| Veld | Gedrag |
-|------|--------|
-| Title, Description, Price, SKU | Van eerste rij (hoofd-product) |
-| Image Src | **ALLE** images verzameld in array |
-| Variant data | Opgeslagen in `raw_import_data` voor later gebruik |
-| Overige velden | Eerste rij wint, rest genegeerd |
-
----
-
-## Technische Implementatie
-
-### Bestand 1: `src/lib/importMappings.ts`
-
-Nieuwe functie toevoegen: `consolidateShopifyProductRows()`
+De `updateConnection` mutatie in `useMarketplaceConnections.ts` stuurt **altijd alle velden mee**, ook als ze `undefined` zijn:
 
 ```typescript
-export function consolidateShopifyProductRows(
-  rows: Record<string, string>[]
-): Record<string, string>[] {
-  // Detecteer of dit een Shopify product export is
-  const hasHandle = rows.some(r => 'Handle' in r);
-  const hasTitle = rows.some(r => 'Title' in r);
-  if (!hasHandle || !hasTitle) return rows;
-  
-  const productMap = new Map<string, Record<string, string>>();
-  const imagesMap = new Map<string, string[]>();
-  const variantsMap = new Map<string, Record<string, string>[]>();
-  
-  for (const row of rows) {
-    const handle = row['Handle']?.trim();
-    if (!handle) continue;
-    
-    if (!productMap.has(handle)) {
-      // Eerste rij met deze Handle = hoofdproduct
-      productMap.set(handle, { ...row });
-      imagesMap.set(handle, []);
-      variantsMap.set(handle, []);
-    }
-    
-    // Verzamel alle images
-    const imageSrc = row['Image Src']?.trim();
-    if (imageSrc) {
-      const images = imagesMap.get(handle)!;
-      if (!images.includes(imageSrc)) {
-        images.push(imageSrc);
-      }
-    }
-    
-    // Verzamel variant data (rijen met Option1 Value maar zonder Title)
-    const hasVariantData = row['Option1 Value'] && !row['Title']?.trim();
-    if (hasVariantData) {
-      variantsMap.get(handle)?.push({
-        sku: row['Variant SKU'] || '',
-        price: row['Variant Price'] || '',
-        stock: row['Variant Inventory Qty'] || '',
-        option1: row['Option1 Value'] || '',
-        option2: row['Option2 Value'] || '',
-        option3: row['Option3 Value'] || '',
-        barcode: row['Variant Barcode'] || '',
-      });
-    }
-  }
-  
-  // Bouw geconsolideerde rijen
-  const consolidated: Record<string, string>[] = [];
-  
-  for (const [handle, mainRow] of productMap) {
-    const images = imagesMap.get(handle) || [];
-    const variants = variantsMap.get(handle) || [];
-    
-    // Voeg alle images toe als comma-separated string
-    if (images.length > 0) {
-      mainRow['Image Src'] = images.join(',');
-    }
-    
-    // Voeg variant count toe voor referentie
-    if (variants.length > 0) {
-      mainRow['_variant_count'] = String(variants.length);
-      mainRow['_variants_json'] = JSON.stringify(variants);
-    }
-    
-    consolidated.push(mainRow);
-  }
-  
-  console.log(`Consolidated ${rows.length} rows into ${consolidated.length} products`);
-  return consolidated;
+.update({
+  marketplace_name: params.updates.marketplace_name,  // undefined → overschrijft!
+  credentials: params.updates.credentials,            // undefined → overschrijft!
+  settings: params.updates.settings,                  // wordt wel gestuurd
+  is_active: params.updates.is_active,                // undefined → overschrijft!
+})
+```
+
+Wanneer je alleen `settings` update, worden `marketplace_name`, `credentials` en `is_active` als `undefined` meegestuurd, wat de bestaande waarden kan overschrijven of tot onverwacht gedrag leidt.
+
+### Database Bewijs
+
+De huidige settings in de database:
+```json
+{
+  "autoImport": true,
+  "syncInterval": 15,
+  // GEEN vvbEnabled, vvbMaxAmount, etc.!
 }
 ```
 
-### Bestand 2: `src/components/admin/import/FileUpload.tsx`
+---
 
-Integreer consolidatie voor product imports:
+## Oplossing
+
+### Stap 1: Alleen gedefinieerde velden updaten
+
+Wijzig `updateConnection` om alleen velden mee te sturen die daadwerkelijk zijn opgegeven:
+
+**Bestand:** `src/hooks/useMarketplaceConnections.ts`
 
 ```typescript
-import { consolidateShopifyProductRows } from '@/lib/importMappings';
+const updateConnection = useMutation({
+  mutationFn: async (params: {
+    id: string;
+    updates: Partial<Pick<MarketplaceConnection, 'marketplace_name' | 'credentials' | 'settings' | 'is_active'>>;
+  }) => {
+    // Build update object with only defined fields
+    const updateData: Record<string, unknown> = {};
+    
+    if (params.updates.marketplace_name !== undefined) {
+      updateData.marketplace_name = params.updates.marketplace_name;
+    }
+    if (params.updates.credentials !== undefined) {
+      updateData.credentials = params.updates.credentials;
+    }
+    if (params.updates.settings !== undefined) {
+      updateData.settings = params.updates.settings;
+    }
+    if (params.updates.is_active !== undefined) {
+      updateData.is_active = params.updates.is_active;
+    }
 
-// In handleFile():
-const { headers, rows } = await parseCSV(file);
+    const { data, error } = await supabase
+      .from('marketplace_connections')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single();
 
-// Consolideer Shopify product rijen vóór verdere verwerking
-let processedRows = rows;
-if (dataType === 'products' && headers.includes('Handle') && headers.includes('Title')) {
-  processedRows = consolidateShopifyProductRows(rows);
-  console.log(`Product consolidation: ${rows.length} → ${processedRows.length}`);
-}
-
-onFileUpload(dataType, {
-  file,
-  dataType,
-  rowCount: processedRows.length,  // Update row count!
-  headers,
-  sampleData: processedRows.slice(0, 5),
-  allData: processedRows,          // Geconsolideerde data
+    if (error) throw error;
+    return data as unknown as MarketplaceConnection;
+  },
+  // ... rest blijft hetzelfde
 });
 ```
 
-### Bestand 3: `src/lib/importMappings.ts` - Image Array Transform
+### Stap 2: Query cache correct invalideren
 
-Update de `imageArray` transformer om comma-separated strings correct te handlen:
+Voeg ook invalidatie toe voor de specifieke connection query:
 
 ```typescript
-imageArray: (v) => {
-  if (!v) return [];
-  // Split op komma, filter lege strings en duplicaten
-  const urls = v.split(',')
-    .map(url => url.trim())
-    .filter(Boolean);
-  return [...new Set(urls)]; // Remove duplicates
+onSuccess: (data) => {
+  queryClient.invalidateQueries({ queryKey: ['marketplace-connections'] });
+  queryClient.invalidateQueries({ queryKey: ['marketplace-connection', data.id] });
+  toast.success('Instellingen opgeslagen!');
 },
 ```
 
@@ -171,37 +96,15 @@ imageArray: (v) => {
 
 | Vóór Fix | Na Fix |
 |----------|--------|
-| 152 records (44 valid, 108 errors) | **44 records (44 valid)** |
-| "Product name is required" x108 | Geen errors |
-| Afbeeldingen verloren | Alle images in `images[]` array |
-| Geen variant info | Variants in `raw_import_data` |
+| VVB settings verdwijnen na opslaan | VVB settings blijven behouden |
+| `undefined` velden overschrijven data | Alleen gewijzigde velden worden geüpdatet |
+| Cache niet correct geïnvalideerd | Beide queries worden geïnvalideerd |
 
 ---
 
-## Bonus: Console Logging
-
-Na de fix zie je in de console:
-```
-Consolidated 2882 rows into 44 products
-Product consolidation: 2882 → 44
-Preview computed: 44 total, 44 valid
-```
-
----
-
-## Bestanden die Worden Gewijzigd
+## Bestanden te Wijzigen
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/lib/importMappings.ts` | Nieuwe `consolidateShopifyProductRows()` functie |
-| `src/components/admin/import/FileUpload.tsx` | Roep consolidatie aan voor product imports |
+| `src/hooks/useMarketplaceConnections.ts` | Filter `undefined` velden uit update, verbeter cache invalidatie |
 
----
-
-## Edge Cases Afgehandeld
-
-1. **Alleen image-rijen** (geen variant data): Correct afgehandeld, images worden verzameld
-2. **Producten met varianten**: Variant data opgeslagen in `_variants_json`
-3. **Non-Shopify CSV's**: Geen consolidatie als `Handle`/`Title` kolommen ontbreken
-4. **Duplicate images**: Automatisch gefilterd met `Set()`
-5. **Lege Handle**: Rij wordt overgeslagen (geen product identificatie)
