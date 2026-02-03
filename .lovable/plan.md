@@ -1,156 +1,119 @@
 
 
-# Plan: Shopify Connect UI Verbeteren - OAuth als Standaard
+# Plan: Bol.com Koppeling Instructies 1-op-1 Gelijk Maken aan Echte Bol.com Interface
 
-## Analyse van het Probleem
+## Huidige Situatie
 
-Shopify heeft het Custom App proces veranderd:
-- Gebruikers worden vanuit de winkel admin doorgestuurd naar het **Dev Dashboard** (dev.shopify.com)
-- Het Dev Dashboard geeft **Client ID + Client Secret**, geen `shpat_` Admin API token
-- De huidige "Direct Verbinden" flow vraagt om een `shpat_` token die niet meer beschikbaar is voor nieuwe apps
+De SellQo instructies kloppen niet met wat gebruikers daadwerkelijk zien op Bol.com:
 
-## Bestaande Infrastructuur
+| SellQo zegt | Bol.com toont |
+|-------------|---------------|
+| "Bol.com Partner Plaza" | Gewoon "bol." in header |
+| `partnerplatform.bol.com` | `partner.bol.com/sdd/preferences/services/api` |
+| "Ga naar Instellingen → API → Nieuwe API key aanmaken" | Directe pagina met "Client credentials voor de Retailer API" + "+ Aanmaken" knop |
 
-De OAuth infrastructuur bestaat al volledig:
-- `ShopifyOAuthConnect.tsx` - UI component
-- `shopify-oauth-init` edge function - start OAuth flow
-- `shopify-oauth-callback` edge function - verwerkt callback en slaat credentials op
-- `ShopifyCallback.tsx` - callback pagina
-- Secrets: `SHOPIFY_CLIENT_ID` en `SHOPIFY_CLIENT_SECRET` zijn geconfigureerd
+## Wat Je Ziet op Bol.com (uit screenshots)
 
-## Oplossing
-
-### 1. ShopifyConnectDialog.tsx - Nieuwe Tab Structuur
-
-Huidige tabs: **Direct | Aanvraag | Import**
-
-Nieuwe tabs: **OAuth | Token | Aanvraag | Import**
-
-| Tab | Badge | Beschrijving |
-|-----|-------|--------------|
-| OAuth | "Aanbevolen" | Eenvoudige koppeling via Shopify login (standaard geselecteerd) |
-| Token | "Advanced" | Voor bestaande Custom Apps met shpat_ token |
-| Aanvraag | "1-2 dagen" | Handmatige koppeling via support |
-| Import | "Eenmalig" | CSV import |
-
-### 2. ShopifyOAuthConnect.tsx - Styling Verbeteren
-
-Huidige component werkt al, maar kan visueel beter:
-- Toevoegen van stappen-indicator
-- Duidelijkere feedback na redirect
-- Consistente styling met andere tabs
-
-### 3. ShopifyInstantConnect.tsx - Hernoemd naar Token Flow
-
-- Verduidelijken dat dit voor **bestaande** Custom Apps is
-- Warning toevoegen dat nieuwe apps via Dev Dashboard geen shpat_ token geven
-- Verwijzing naar OAuth tab als alternatief
-
-## Wijzigingen per Bestand
-
-### src/components/admin/marketplace/ShopifyConnectDialog.tsx
-
-**Wijziging**: Tab structuur aanpassen
+De pagina `partner.bol.com/sdd/preferences/services/api` toont:
 
 ```text
-Huidige tabs:
-[Zap] Direct    [Clock] Aanvraag    [Upload] Import
-      "Nu"           "1-2 dagen"         "Eenmalig"
-
-Nieuwe tabs:
-[Store] OAuth     [Key] Token       [Clock] Aanvraag    [Upload] Import
-   "Aanbevolen"      "Advanced"        "1-2 dagen"         "Eenmalig"
+┌──────────────────────────────────────────────────────────────────┐
+│ bol.    Artikelen  Bestellingen  Klantvragen  Financiën  etc.   │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Client credentials voor de Retailer API                         │
+│  Met de client credentials kun je je authenticeren bij de        │
+│  bol Retailer API. Als je wilt koppelen aan meerdere derde       │
+│  partijen, dan dien je hier voor iedere derde partij aparte      │
+│  client credentials aan te maken.                                │
+│                                                                   │
+│  ┌──────────────┐                                                │
+│  │ + Aanmaken   │                                                │
+│  └──────────────┘                                                │
+│                                                                   │
+│  Client credentials voor de Advertising API                      │
+│  [...]                                                           │
+│                                                                   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-- Default tab wijzigen van 'instant' naar 'oauth'
-- Nieuwe TabsContent voor OAuth met ShopifyOAuthConnect
-- Hernoemen 'instant' tab naar 'token' in de UI
+## Wijzigingen
 
-### src/components/admin/marketplace/shopify/ShopifyInstantConnect.tsx
+### 1. ConnectMarketplaceDialog.tsx - Bol.com Instructies Updaten
 
-**Wijziging**: Waarschuwing toevoegen over nieuwe Shopify flow
+**Locatie**: Regels 326-336
 
-- Alert toevoegen dat nieuwe Custom Apps via Dev Dashboard geen shpat_ token meer geven
-- Uitleggen dat deze methode alleen werkt voor **bestaande** apps
-- Link naar OAuth tab als aanbevolen alternatief
+**Huidige code**:
+```typescript
+case 'bol_com':
+  return {
+    title: 'Bol.com Partner Plaza',
+    url: 'https://partnerplatform.bol.com',
+    steps: [
+      'Log in op Bol.com Partner Plaza',
+      'Ga naar Instellingen → API → Nieuwe API key aanmaken',
+      'Kopieer je Client ID en Client Secret',
+      'Plak deze hieronder en klik op "Verbind"',
+    ],
+  };
+```
 
-### src/components/admin/marketplace/ShopifyOAuthConnect.tsx
+**Nieuwe code**:
+```typescript
+case 'bol_com':
+  return {
+    title: 'Bol.com Verkopersportaal',
+    url: 'https://partner.bol.com/sdd/preferences/services/api',
+    steps: [
+      'Log in op je Bol.com verkopersaccount',
+      'Je komt direct op de API credentials pagina',
+      'Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken"',
+      'Geef de credentials een naam (bijv. "SellQo")',
+      'Kopieer de Client ID en Client Secret',
+      'Plak deze hieronder en klik op "Verbind"',
+    ],
+  };
+```
 
-**Wijziging**: Kleine UI verbeteringen
+**Belangrijke wijzigingen**:
+- URL van `partnerplatform.bol.com` → `partner.bol.com/sdd/preferences/services/api` (directe link naar juiste pagina)
+- "Partner Plaza" → "Verkopersportaal" (hoe Bol.com het noemt)
+- "Ga naar Instellingen → API" → Niet meer nodig, directe link brengt je erheen
+- "+ Aanmaken" knop expliciet benoemen (wat je echt ziet)
+- Stap toegevoegd voor naam geven aan credentials
 
-- Consistente styling met ShopifyInstantConnect (badges, stappen)
-- Duidelijkere call-to-action
+## Overzicht Vergelijking
 
-## Flow Vergelijking
-
+### Oude Flow (verwarrend):
 ```text
-OAuth Flow (nieuw standaard):
-1. Gebruiker vult shop URL in
-2. Klik "Verbind met Shopify"
-3. Redirect naar Shopify login
-4. Gebruiker geeft toestemming
-5. Redirect terug naar SellQo
-6. Token wordt automatisch opgeslagen
-[DONE - geen handmatige stappen]
+1. Log in op Bol.com Partner Plaza ← Wat is Partner Plaza?
+2. Ga naar Instellingen → API ← Waar is dat?
+3. Nieuwe API key aanmaken ← Er staat "+ Aanmaken"
+4. Kopieer je Client ID en Client Secret
+```
 
-Token Flow (bestaande apps):
-1. Gebruiker gaat naar Dev Dashboard
-2. Maakt app aan
-3. Krijgt Client ID + Secret (NIET shpat_!)
-4. Moet OAuth flow handmatig doen...
-[BROKEN - shpat_ niet meer beschikbaar]
+### Nieuwe Flow (1-op-1 met Bol.com):
+```text
+1. Log in op je Bol.com verkopersaccount ← Duidelijk
+2. Je komt direct op de API credentials pagina ← Door directe URL
+3. Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken" ← Exact wat je ziet
+4. Geef de credentials een naam (bijv. "SellQo") ← Volgende stap
+5. Kopieer de Client ID en Client Secret
+6. Plak deze hieronder en klik op "Verbind"
 ```
 
 ## Technische Details
 
-### Tab Configuratie (ShopifyConnectDialog.tsx)
+### Bestand te wijzigen:
+- `src/components/admin/marketplace/ConnectMarketplaceDialog.tsx`
 
-```tsx
-const [activeTab, setActiveTab] = useState<ConnectionMethod>('oauth');
-
-type ConnectionMethod = 'oauth' | 'token' | 'request' | 'import';
-```
-
-### Nieuwe OAuth Tab
-
-```tsx
-<TabsTrigger 
-  value="oauth" 
-  className="flex flex-col items-center gap-1 py-3"
->
-  <Store className="w-5 h-5" />
-  <span className="text-xs font-medium">OAuth</span>
-  <Badge variant="secondary" className="bg-green-100 text-green-700">
-    Aanbevolen
-  </Badge>
-</TabsTrigger>
-```
-
-### Waarschuwing in Token Tab
-
-```tsx
-<Alert className="bg-amber-50 border-amber-200">
-  <AlertTriangle className="w-4 h-4 text-amber-600" />
-  <AlertTitle>Alleen voor bestaande Custom Apps</AlertTitle>
-  <AlertDescription>
-    Nieuwe Custom Apps via het Dev Dashboard geven geen Admin API token.
-    Gebruik de <strong>OAuth</strong> tab voor nieuwe koppelingen.
-  </AlertDescription>
-</Alert>
-```
-
-## Bestanden te Wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/admin/marketplace/ShopifyConnectDialog.tsx` | Nieuwe OAuth tab toevoegen, default wijzigen |
-| `src/components/admin/marketplace/shopify/ShopifyInstantConnect.tsx` | Waarschuwing + hernoeming |
-| `src/components/admin/marketplace/ShopifyOAuthConnect.tsx` | Styling verbeteringen |
+### Exacte wijziging:
+Regels 326-336 aanpassen met de nieuwe instructies die exact overeenkomen met de Bol.com interface.
 
 ## Resultaat
 
-- OAuth is de standaard en aanbevolen methode
-- Token flow blijft beschikbaar voor bestaande apps
-- Duidelijke communicatie over wat wel/niet werkt
-- Geen verwarring meer over waar de shpat_ token te vinden is
+- Gebruiker klikt op link → komt DIRECT op de juiste pagina
+- Instructies beschrijven EXACT wat ze zien
+- Geen verwarring over "Instellingen" menu's
+- Dezelfde terminologie als Bol.com ("+ Aanmaken", "Client credentials voor de Retailer API")
 
