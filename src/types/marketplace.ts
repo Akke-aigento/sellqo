@@ -38,6 +38,9 @@ export interface MarketplaceCredentials {
   ebayCertId?: string;       // Cert ID (Client Secret)
   ebayRefreshToken?: string; // OAuth refresh token
   ebayMarketplaceId?: string; // bijv. EBAY_NL, EBAY_BE, EBAY_DE
+  // Bol.com Advertising API (optioneel)
+  advertisingClientId?: string;
+  advertisingClientSecret?: string;
 }
 
 import type { SyncRules } from './syncRules';

@@ -19,6 +19,7 @@ export function PlatformConnections() {
     isConnected,
     hasBolRetailerConnection,
     getBolRetailerConnection,
+    hasBolAdvertisingCredentials,
     getPlatformStatus,
   } = useAdPlatforms();
   const { campaigns } = useAdCampaigns();
@@ -32,6 +33,14 @@ export function PlatformConnections() {
       toast({
         title: 'Retailer koppeling vereist',
         description: 'Koppel eerst je Bol.com account in SellQo Connect.',
+      });
+      return;
+    }
+    
+    if (status === 'requires_advertising_credentials') {
+      toast({
+        title: 'Advertising API vereist',
+        description: 'Voeg de Bol.com Advertising API credentials toe in SellQo Connect.',
       });
       return;
     }
@@ -97,6 +106,7 @@ export function PlatformConnections() {
     const status = getPlatformStatus(platform);
     const isComingSoon = status === 'coming_soon';
     const requiresConnection = status === 'requires_connection';
+    const requiresAdvertisingCredentials = status === 'requires_advertising_credentials';
 
     return (
       <Card key={platform} className={connection ? 'border-primary/50' : ''}>
@@ -124,7 +134,7 @@ export function PlatformConnections() {
                   Binnenkort
                 </Badge>
               )}
-              {requiresConnection && !connection && (
+              {(requiresConnection || requiresAdvertisingCredentials) && !connection && (
                 <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
                   <AlertTriangle className="h-3 w-3" />
                   Actie vereist
@@ -167,7 +177,7 @@ export function PlatformConnections() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {/* Show alert for Bol.com requiring retailer connection */}
               {requiresConnection && platform === 'bol_ads' && (
                 <Alert className="border-amber-200 bg-amber-50">
@@ -177,9 +187,19 @@ export function PlatformConnections() {
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Show alert for Bol.com requiring advertising credentials */}
+              {requiresAdvertisingCredentials && platform === 'bol_ads' && (
+                <Alert className="border-amber-200 bg-amber-50">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    Voeg de Bol.com Advertising API credentials toe aan je bestaande koppeling.
+                  </AlertDescription>
+                </Alert>
+              )}
               
               {/* Description based on status */}
-              {!requiresConnection && (
+              {!requiresConnection && !requiresAdvertisingCredentials && (
                 <p className="text-sm text-muted-foreground">
                   {platform === 'bol_ads' 
                     ? 'Gebruik je bestaande Bol.com Retailer API koppeling voor advertenties.'
@@ -192,11 +212,11 @@ export function PlatformConnections() {
               )}
               
               {/* Buttons based on status */}
-              {requiresConnection ? (
+              {(requiresConnection || requiresAdvertisingCredentials) ? (
                 <Button asChild className="w-full">
                   <Link to="/admin/connect?tab=marketplace">
                     <Link2 className="h-4 w-4 mr-2" />
-                    Ga naar SellQo Connect
+                    {requiresAdvertisingCredentials ? 'Advertising API toevoegen' : 'Ga naar SellQo Connect'}
                   </Link>
                 </Button>
               ) : isComingSoon ? (

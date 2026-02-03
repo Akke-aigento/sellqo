@@ -3,9 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import type { AdPlatformConnection, AdPlatform } from '@/types/ads';
 import type { Json } from '@/integrations/supabase/types';
+import type { MarketplaceCredentials } from '@/types/marketplace';
 import { toast } from '@/hooks/use-toast';
 
-export type PlatformStatus = 'ready' | 'requires_connection' | 'coming_soon';
+export type PlatformStatus = 'ready' | 'requires_connection' | 'requires_advertising_credentials' | 'coming_soon';
 
 export function useAdPlatforms() {
   const { currentTenant } = useTenant();
@@ -35,7 +36,7 @@ export function useAdPlatforms() {
       if (!currentTenant?.id) return [];
       const { data, error } = await supabase
         .from('marketplace_connections')
-        .select('id, marketplace_type, is_active')
+        .select('id, marketplace_type, is_active, credentials')
         .eq('tenant_id', currentTenant.id)
         .eq('is_active', true);
       if (error) throw error;
@@ -58,10 +59,22 @@ export function useAdPlatforms() {
     );
   };
 
+  // Check if Bol.com has advertising credentials
+  const hasBolAdvertisingCredentials = () => {
+    const bolConnection = marketplaceConnections.find(c => 
+      c.marketplace_type === 'bol_com' && c.is_active
+    );
+    if (!bolConnection) return false;
+    const creds = bolConnection.credentials as MarketplaceCredentials;
+    return !!(creds?.advertisingClientId && creds?.advertisingClientSecret);
+  };
+
   // Get platform availability status
   const getPlatformStatus = (platform: AdPlatform): PlatformStatus => {
     if (platform === 'bol_ads') {
-      return hasBolRetailerConnection() ? 'ready' : 'requires_connection';
+      if (!hasBolRetailerConnection()) return 'requires_connection';
+      if (!hasBolAdvertisingCredentials()) return 'requires_advertising_credentials';
+      return 'ready';
     }
     // Meta, Google, Amazon are coming soon
     return 'coming_soon';
@@ -149,6 +162,7 @@ export function useAdPlatforms() {
     marketplaceConnections,
     hasBolRetailerConnection,
     getBolRetailerConnection,
+    hasBolAdvertisingCredentials,
     getPlatformStatus,
   };
 }
