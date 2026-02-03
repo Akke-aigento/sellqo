@@ -1,72 +1,207 @@
 
-Context & observatie (op basis van je screenshot)
-- In “Validatie resultaten” zie je exact 5 klanten, 5 producten (1 ok + 4 errors) en 5 bestellingen (4 ok + 1 error). Dat patroon wijst er sterk op dat de import-flow nog steeds met de “preview sample” werkt (5 rijen), niet met alle rijen.
-- In de code zie ik wel degelijk dat we `allData` opslaan in `FileUpload.tsx` en dat `PreviewValidation.tsx` probeert `file.allData || file.sampleData` te gebruiken.
-- De echte boosdoener is waarschijnlijk “stale previewData”: de wizard bouwt `previewData` maar één keer per datatype op en herberekent het niet wanneer je een bestand opnieuw uploadt of mappings verandert. Daardoor blijft `previewData` hangen op de oude set (die historisch 5 rijen was), en de import gebruikt precies diezelfde `previewData`.
+# Fix: Shopify Product CSV Row Consolidatie (44 producten i.p.v. 152 rijen)
 
-Waarom dit gebeurt (technisch, maar concreet)
-- `PreviewValidation.tsx` heeft deze guard:
-  - “alleen verwerken als `!previewData.has(dataType)`”.
-- `ImportWizard.tsx` wist `previewData` nooit wanneer:
-  - je een nieuw bestand uploadt voor hetzelfde datatype, of
-  - je mapping aanpast.
-- Gevolg:
-  - `previewData` blijft bestaan (met bv. 5 records), dus `PreviewValidation` herberekent niet.
-  - `handleStartImport()` importeert op basis van `previewData` → dus ook maar 5.
+## Probleem Analyse
 
-Doel
-- Zorgen dat bij file upload of mapping change de preview/validatie opnieuw opgebouwd wordt vanuit `allData` (alle rijen), zodat de import daadwerkelijk alles verwerkt.
+Je CSV bestand heeft **2882 regels** voor slechts **44 unieke producten**. Shopify exporteert:
 
-Plan (stappen)
-1) Recompute-trigger toevoegen in ImportWizard (meest robuust, kleinste wijziging)
-   - In `src/components/admin/import/ImportWizard.tsx`:
-     - In `handleFileUpload(dataType, file)`:
-       - Na het opslaan van `uploadedFiles`: verwijder `previewData` entry voor dat datatype.
-       - Optioneel: verwijder ook `mappings` voor dat datatype als je wil forceren dat mapping opnieuw gekozen wordt bij nieuw bestand (hangt af van gewenste UX). Meestal: mapping behouden is ok, maar preview móet opnieuw.
-     - In `handleMappingChange(dataType, mapping)`:
-       - Na het opslaan van `mappings`: verwijder `previewData` entry voor dat datatype.
-   - Resultaat: `PreviewValidation` ziet “geen previewData voor dat datatype” en bouwt opnieuw op, dit keer met `allData`.
+```text
+Rij 1:  Handle: "powerstrip-2x"  | Title: "VanXcel Powerstrip" | Image: img1.png
+Rij 2:  Handle: "powerstrip-2x"  | Title: (LEEG)               | Image: img2.png  
+Rij 3:  Handle: "powerstrip-2x"  | Title: (LEEG)               | Image: img3.png
+...
+Rij 10: Handle: "fuse-150a"      | Title: "VanXcel Fuse 150A"  | Image: img1.png
+Rij 11: Handle: "fuse-150a"      | Title: (LEEG)               | Image: img2.png
+```
 
-2) PreviewValidation defensiever maken (extra zekerheid)
-   - In `src/components/admin/import/PreviewValidation.tsx`:
-     - Vervang “alleen als previewData nog niet bestaat” door een check die herberekent wanneer file/mapping verandert.
-     - Praktische aanpak zonder zware hashing:
-       - Bewaar per datatype een “signature” in een `useRef` (bijv. `${file.file.name}:${file.rowCount}:${mapping.length}`).
-       - Herbereken alleen als die signature verandert.
-     - Waarom dit nuttig is:
-       - Zelfs als ergens vergeten wordt `previewData` te clearen, herstelt dit het gedrag automatisch.
-       - Voorkomt onnodig herberekenen bij elke render.
+De huidige parser behandelt ELKE rij als apart product:
+- 44 rijen MET Title → valide producten
+- 108 rijen ZONDER Title → "Product name is required" errors
 
-3) UX/Debug verbeteringen (om meteen te kunnen verifiëren dat het niet meer “op 5” blijft)
-   - In `PreviewValidation`:
-     - Toon in de samenvatting ook “records verwerkt” (bv. `records.length`) naast `file.rowCount`.
-     - Als `records.length` verdacht laag is (bv. 5 terwijl rowCount 100 is), toon een waarschuwing “Preview is niet up-to-date, herlaad of upload opnieuw” (zou na fix niet meer moeten gebeuren, maar helpt bij support).
+**Totaal: 44 + 108 = 152 records (precies wat je ziet!)**
 
-4) Testplan (end-to-end)
-   - Scenario A: Nieuwe import (Shopify)
-     1. Ga naar /admin/import
-     2. Upload Customers CSV met 100 rijen
-     3. Ga naar Preview: validatie moet niet meer plafonneren op 5; je ziet bv. “Toont eerste 100 van 100 records…” en in samenvatting tellen de totalen door.
-     4. Start import: progress “Batch 1 van X” verschijnt; eindresultaat success_count ~100 (afhankelijk van validatie).
-   - Scenario B: Upload bestand opnieuw (zelfde datatype)
-     1. Upload eerst een klein bestand
-     2. Upload daarna een groot bestand voor hetzelfde datatype
-     3. Preview moet nu direct herberekenen (niet blijven hangen op de vorige 5).
-   - Scenario C: Mapping aanpassen
-     1. In mapping step wijzig een veld (bv. price)
-     2. Preview moet herberekenen (records count verandert, valid count verandert).
+---
 
-Risico’s / edge cases
-- Performance: preview berekenen over duizenden rijen kan traag zijn. We beperken UI-weergave al tot 100, maar validatie/transform gebeurt nog voor alles. Met de “signature” aanpak herberekenen we alleen wanneer nodig.
-- Selecties: herberekenen reset “selected” flags. Dat is ok bij file/mapping change (want de inhoud is veranderd), maar we vermijden herberekenen bij simpele tab switches.
+## Oplossing: Consolideer Rijen op Handle
 
-Deliverables (bestanden die aangepast worden)
-- `src/components/admin/import/ImportWizard.tsx`
-  - Clear `previewData` per datatype bij file upload en mapping change.
-- `src/components/admin/import/PreviewValidation.tsx`
-  - Herberekenen op basis van signature i.p.v. enkel “als previewData ontbreekt”.
-  - (Optioneel) Extra “records verwerkt” debug/UX info.
+### Strategie
 
-Na deze fix verwacht resultaat
-- De validatie-resultaten zullen niet langer “max 5” zijn.
-- De import zal batches verwerken over alle geselecteerde records en de aantallen (customers/products/orders) kloppen met je CSV’s (minus echte validatiefouten).
+Na het parsen van de CSV, groepeer alle rijen met dezelfde `Handle`:
+- Eerste rij met Title = hoofdproduct
+- Volgende rijen = extra afbeeldingen + variant data
+
+Resultaat: 2882 rijen → 44 geconsolideerde producten
+
+### Wat wordt samengevoegd?
+
+| Veld | Gedrag |
+|------|--------|
+| Title, Description, Price, SKU | Van eerste rij (hoofd-product) |
+| Image Src | **ALLE** images verzameld in array |
+| Variant data | Opgeslagen in `raw_import_data` voor later gebruik |
+| Overige velden | Eerste rij wint, rest genegeerd |
+
+---
+
+## Technische Implementatie
+
+### Bestand 1: `src/lib/importMappings.ts`
+
+Nieuwe functie toevoegen: `consolidateShopifyProductRows()`
+
+```typescript
+export function consolidateShopifyProductRows(
+  rows: Record<string, string>[]
+): Record<string, string>[] {
+  // Detecteer of dit een Shopify product export is
+  const hasHandle = rows.some(r => 'Handle' in r);
+  const hasTitle = rows.some(r => 'Title' in r);
+  if (!hasHandle || !hasTitle) return rows;
+  
+  const productMap = new Map<string, Record<string, string>>();
+  const imagesMap = new Map<string, string[]>();
+  const variantsMap = new Map<string, Record<string, string>[]>();
+  
+  for (const row of rows) {
+    const handle = row['Handle']?.trim();
+    if (!handle) continue;
+    
+    if (!productMap.has(handle)) {
+      // Eerste rij met deze Handle = hoofdproduct
+      productMap.set(handle, { ...row });
+      imagesMap.set(handle, []);
+      variantsMap.set(handle, []);
+    }
+    
+    // Verzamel alle images
+    const imageSrc = row['Image Src']?.trim();
+    if (imageSrc) {
+      const images = imagesMap.get(handle)!;
+      if (!images.includes(imageSrc)) {
+        images.push(imageSrc);
+      }
+    }
+    
+    // Verzamel variant data (rijen met Option1 Value maar zonder Title)
+    const hasVariantData = row['Option1 Value'] && !row['Title']?.trim();
+    if (hasVariantData) {
+      variantsMap.get(handle)?.push({
+        sku: row['Variant SKU'] || '',
+        price: row['Variant Price'] || '',
+        stock: row['Variant Inventory Qty'] || '',
+        option1: row['Option1 Value'] || '',
+        option2: row['Option2 Value'] || '',
+        option3: row['Option3 Value'] || '',
+        barcode: row['Variant Barcode'] || '',
+      });
+    }
+  }
+  
+  // Bouw geconsolideerde rijen
+  const consolidated: Record<string, string>[] = [];
+  
+  for (const [handle, mainRow] of productMap) {
+    const images = imagesMap.get(handle) || [];
+    const variants = variantsMap.get(handle) || [];
+    
+    // Voeg alle images toe als comma-separated string
+    if (images.length > 0) {
+      mainRow['Image Src'] = images.join(',');
+    }
+    
+    // Voeg variant count toe voor referentie
+    if (variants.length > 0) {
+      mainRow['_variant_count'] = String(variants.length);
+      mainRow['_variants_json'] = JSON.stringify(variants);
+    }
+    
+    consolidated.push(mainRow);
+  }
+  
+  console.log(`Consolidated ${rows.length} rows into ${consolidated.length} products`);
+  return consolidated;
+}
+```
+
+### Bestand 2: `src/components/admin/import/FileUpload.tsx`
+
+Integreer consolidatie voor product imports:
+
+```typescript
+import { consolidateShopifyProductRows } from '@/lib/importMappings';
+
+// In handleFile():
+const { headers, rows } = await parseCSV(file);
+
+// Consolideer Shopify product rijen vóór verdere verwerking
+let processedRows = rows;
+if (dataType === 'products' && headers.includes('Handle') && headers.includes('Title')) {
+  processedRows = consolidateShopifyProductRows(rows);
+  console.log(`Product consolidation: ${rows.length} → ${processedRows.length}`);
+}
+
+onFileUpload(dataType, {
+  file,
+  dataType,
+  rowCount: processedRows.length,  // Update row count!
+  headers,
+  sampleData: processedRows.slice(0, 5),
+  allData: processedRows,          // Geconsolideerde data
+});
+```
+
+### Bestand 3: `src/lib/importMappings.ts` - Image Array Transform
+
+Update de `imageArray` transformer om comma-separated strings correct te handlen:
+
+```typescript
+imageArray: (v) => {
+  if (!v) return [];
+  // Split op komma, filter lege strings en duplicaten
+  const urls = v.split(',')
+    .map(url => url.trim())
+    .filter(Boolean);
+  return [...new Set(urls)]; // Remove duplicates
+},
+```
+
+---
+
+## Verwacht Resultaat
+
+| Vóór Fix | Na Fix |
+|----------|--------|
+| 152 records (44 valid, 108 errors) | **44 records (44 valid)** |
+| "Product name is required" x108 | Geen errors |
+| Afbeeldingen verloren | Alle images in `images[]` array |
+| Geen variant info | Variants in `raw_import_data` |
+
+---
+
+## Bonus: Console Logging
+
+Na de fix zie je in de console:
+```
+Consolidated 2882 rows into 44 products
+Product consolidation: 2882 → 44
+Preview computed: 44 total, 44 valid
+```
+
+---
+
+## Bestanden die Worden Gewijzigd
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/lib/importMappings.ts` | Nieuwe `consolidateShopifyProductRows()` functie |
+| `src/components/admin/import/FileUpload.tsx` | Roep consolidatie aan voor product imports |
+
+---
+
+## Edge Cases Afgehandeld
+
+1. **Alleen image-rijen** (geen variant data): Correct afgehandeld, images worden verzameld
+2. **Producten met varianten**: Variant data opgeslagen in `_variants_json`
+3. **Non-Shopify CSV's**: Geen consolidatie als `Handle`/`Title` kolommen ontbreken
+4. **Duplicate images**: Automatisch gefilterd met `Set()`
+5. **Lege Handle**: Rij wordt overgeslagen (geen product identificatie)
