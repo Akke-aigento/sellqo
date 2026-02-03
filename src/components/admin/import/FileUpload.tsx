@@ -47,7 +47,8 @@ export function FileUpload({
         dataType,
         rowCount: rows.length,
         headers,
-        sampleData: rows.slice(0, 5),
+        sampleData: rows.slice(0, 5),  // Preview only
+        allData: rows,                  // ALL data for import
       });
     } catch (error) {
       setErrors(prev => new Map(prev).set(

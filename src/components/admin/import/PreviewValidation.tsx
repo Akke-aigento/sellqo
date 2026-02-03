@@ -48,7 +48,7 @@ export function PreviewValidation({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(dataTypes[0]);
 
-  // Process and validate all records
+  // Process and validate ALL records (use allData, not sampleData)
   useEffect(() => {
     dataTypes.forEach(dataType => {
       if (!previewData.has(dataType)) {
@@ -65,8 +65,9 @@ export function PreviewValidation({
             };
           });
 
-          // Transform and validate all records
-          const records: PreviewRecord[] = file.sampleData.map((row, index) => {
+          // Transform and validate ALL records (not just sample)
+          const dataToProcess = file.allData || file.sampleData;
+          const records: PreviewRecord[] = dataToProcess.map((row, index) => {
             const transformed = transformRecord(row, fieldMapping);
             const validation = validateRecord(transformed, dataType);
             
@@ -215,10 +216,18 @@ export function PreviewValidation({
         {dataTypes.map(dataType => {
           const records = previewData.get(dataType) || [];
           const columns = getDisplayColumns(dataType);
+          // Limit display to 100 rows for performance
+          const displayRecords = records.slice(0, 100);
+          const hasMore = records.length > 100;
 
           return (
             <TabsContent key={dataType} value={dataType}>
               <Card>
+                {hasMore && (
+                  <div className="px-4 py-2 bg-muted/50 border-b text-sm text-muted-foreground">
+                    Toont eerste 100 van {records.length} records. Alle records worden geïmporteerd.
+                  </div>
+                )}
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -232,7 +241,7 @@ export function PreviewValidation({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {records.map((record) => (
+                    {displayRecords.map((record) => (
                       <TableRow 
                         key={record.index}
                         className={record.errors.length > 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}
