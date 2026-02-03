@@ -183,7 +183,7 @@ export default function MarketplaceDetailPage() {
     if (!connection) return;
     
     await deleteConnection.mutateAsync(connection.id);
-    navigate('/admin/settings/marketplaces');
+    navigate('/admin/connect');
   };
 
   if (isLoading) {
@@ -198,7 +198,7 @@ export default function MarketplaceDetailPage() {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Connectie niet gevonden</p>
-        <Button variant="link" onClick={() => navigate('/admin/settings/marketplaces')}>
+        <Button variant="link" onClick={() => navigate('/admin/connect')}>
           Terug naar overzicht
         </Button>
       </div>
@@ -214,7 +214,7 @@ export default function MarketplaceDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/admin/settings/marketplaces')}>
+          <Button variant="ghost" onClick={() => navigate('/admin/connect')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Terug
           </Button>
