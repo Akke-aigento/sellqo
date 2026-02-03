@@ -325,12 +325,14 @@ export function ConnectMarketplaceDialog({
     switch (marketplaceType) {
       case 'bol_com':
         return {
-          title: 'Bol.com Partner Plaza',
-          url: 'https://partnerplatform.bol.com',
+          title: 'Bol.com Verkopersportaal',
+          url: 'https://partner.bol.com/sdd/preferences/services/api',
           steps: [
-            'Log in op Bol.com Partner Plaza',
-            'Ga naar Instellingen → API → Nieuwe API key aanmaken',
-            'Kopieer je Client ID en Client Secret',
+            'Log in op je Bol.com verkopersaccount',
+            'Je komt direct op de API credentials pagina',
+            'Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken"',
+            'Geef de credentials een naam (bijv. "SellQo")',
+            'Kopieer de Client ID en Client Secret',
             'Plak deze hieronder en klik op "Verbind"',
           ],
         };
