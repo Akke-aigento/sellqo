@@ -1,93 +1,101 @@
 
 
-# Fix: Bol VVB Settings Worden Niet Opgeslagen
+# Fix: Orders Sorteren op Originele Besteldatum
 
-## Probleem Geïdentificeerd
+## Probleem Analyse
 
-De VVB instellingen (`vvbEnabled`, `vvbMaxAmount`, etc.) die je aanpast worden **niet opgeslagen** in de database.
+De geïmporteerde orders worden gesorteerd op **importdatum** (`created_at`) in plaats van de **originele besteldatum**. Dit komt door twee problemen:
 
-### Oorzaak
-
-De `updateConnection` mutatie in `useMarketplaceConnections.ts` stuurt **altijd alle velden mee**, ook als ze `undefined` zijn:
+### Probleem 1: `original_created_at` wordt niet opgeslagen
+De CSV import edge function ontvangt wel de originele datum uit de mapping, maar slaat deze **niet op** in de database:
 
 ```typescript
-.update({
-  marketplace_name: params.updates.marketplace_name,  // undefined → overschrijft!
-  credentials: params.updates.credentials,            // undefined → overschrijft!
-  settings: params.updates.settings,                  // wordt wel gestuurd
-  is_active: params.updates.is_active,                // undefined → overschrijft!
-})
+// buildOrderData() in run-csv-import/index.ts
+return {
+  tenant_id: tenantId,
+  // ... andere velden ...
+  import_source: record.import_source || "csv",
+  // MIST: original_created_at ← wordt niet meegenomen!
+};
 ```
 
-Wanneer je alleen `settings` update, worden `marketplace_name`, `credentials` en `is_active` als `undefined` meegestuurd, wat de bestaande waarden kan overschrijven of tot onverwacht gedrag leidt.
-
-### Database Bewijs
-
-De huidige settings in de database:
-```json
-{
-  "autoImport": true,
-  "syncInterval": 15,
-  // GEEN vvbEnabled, vvbMaxAmount, etc.!
-}
+### Probleem 2: Query sorteert op verkeerde kolom
+```typescript
+// useOrders.ts lijn 25
+.order('created_at', { ascending: false })  // ← importdatum, niet besteldatum
 ```
 
 ---
 
 ## Oplossing
 
-### Stap 1: Alleen gedefinieerde velden updaten
+### Stap 1: Edge Function - Originele Datum Opslaan
 
-Wijzig `updateConnection` om alleen velden mee te sturen die daadwerkelijk zijn opgegeven:
+**Bestand:** `supabase/functions/run-csv-import/index.ts`
 
-**Bestand:** `src/hooks/useMarketplaceConnections.ts`
+Voeg `original_created_at` toe aan `buildOrderData()`:
 
 ```typescript
-const updateConnection = useMutation({
-  mutationFn: async (params: {
-    id: string;
-    updates: Partial<Pick<MarketplaceConnection, 'marketplace_name' | 'credentials' | 'settings' | 'is_active'>>;
-  }) => {
-    // Build update object with only defined fields
-    const updateData: Record<string, unknown> = {};
-    
-    if (params.updates.marketplace_name !== undefined) {
-      updateData.marketplace_name = params.updates.marketplace_name;
-    }
-    if (params.updates.credentials !== undefined) {
-      updateData.credentials = params.updates.credentials;
-    }
-    if (params.updates.settings !== undefined) {
-      updateData.settings = params.updates.settings;
-    }
-    if (params.updates.is_active !== undefined) {
-      updateData.is_active = params.updates.is_active;
-    }
-
-    const { data, error } = await supabase
-      .from('marketplace_connections')
-      .update(updateData)
-      .eq('id', params.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as unknown as MarketplaceConnection;
-  },
-  // ... rest blijft hetzelfde
-});
+function buildOrderData(tenantId: string, record: Record<string, unknown>, customerId: string | null) {
+  return {
+    // ... bestaande velden ...
+    import_source: record.import_source || "csv",
+    // TOEVOEGEN:
+    original_created_at: record.original_created_at || null,
+  };
+}
 ```
 
-### Stap 2: Query cache correct invalideren
+### Stap 2: Query - Sorteer op Juiste Datum
 
-Voeg ook invalidatie toe voor de specifieke connection query:
+**Bestand:** `src/hooks/useOrders.ts`
+
+Wijzig de sortering om `original_created_at` te gebruiken (met fallback naar `created_at`):
 
 ```typescript
-onSuccess: (data) => {
-  queryClient.invalidateQueries({ queryKey: ['marketplace-connections'] });
-  queryClient.invalidateQueries({ queryKey: ['marketplace-connection', data.id] });
-  toast.success('Instellingen opgeslagen!');
-},
+// De SQL/Supabase aanpak: sorteer op COALESCE(original_created_at, created_at)
+// Supabase JS ondersteunt geen COALESCE in order(), dus we doen dit met RPC of client-side
+
+// Optie 1: Client-side sorteren (eenvoudigst)
+const { data, error } = await query;
+if (error) throw error;
+
+// Sorteer op originele datum (met fallback naar created_at)
+const sortedData = (data as Order[]).sort((a, b) => {
+  const dateA = a.original_created_at || a.created_at;
+  const dateB = b.original_created_at || b.created_at;
+  return new Date(dateB).getTime() - new Date(dateA).getTime();
+});
+
+return sortedData;
+```
+
+### Stap 3: Type Definities Bijwerken
+
+**Bestand:** `src/types/order.ts`
+
+Voeg `original_created_at` toe aan de Order interface:
+
+```typescript
+export interface Order {
+  // ... bestaande velden ...
+  import_source?: string | null;
+  original_created_at?: string | null;  // ← TOEVOEGEN
+}
+```
+
+---
+
+## Database Fix voor Bestaande Data
+
+Na het implementeren van de code fix, kun je de bestaande orders fixen met een SQL query in Cloud View > Run SQL:
+
+```sql
+-- Update orders waar original_created_at NULL is maar er wel een raw_marketplace_data is
+UPDATE orders
+SET original_created_at = (raw_marketplace_data->>'created_at')::timestamptz
+WHERE original_created_at IS NULL 
+  AND raw_marketplace_data->>'created_at' IS NOT NULL;
 ```
 
 ---
@@ -96,15 +104,17 @@ onSuccess: (data) => {
 
 | Vóór Fix | Na Fix |
 |----------|--------|
-| VVB settings verdwijnen na opslaan | VVB settings blijven behouden |
-| `undefined` velden overschrijven data | Alleen gewijzigde velden worden geüpdatet |
-| Cache niet correct geïnvalideerd | Beide queries worden geïnvalideerd |
+| Orders gesorteerd op importdatum | Orders gesorteerd op originele besteldatum |
+| Nieuwste import bovenaan | Nieuwste bestelling bovenaan |
+| `original_created_at` altijd NULL | Originele datum bewaard bij import |
 
 ---
 
-## Bestanden te Wijzigen
+## Te Wijzigen Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/hooks/useMarketplaceConnections.ts` | Filter `undefined` velden uit update, verbeter cache invalidatie |
+| `supabase/functions/run-csv-import/index.ts` | Voeg `original_created_at` toe aan `buildOrderData()` |
+| `src/hooks/useOrders.ts` | Sorteer op `original_created_at` met fallback |
+| `src/types/order.ts` | Voeg `original_created_at` toe aan Order interface |
 
