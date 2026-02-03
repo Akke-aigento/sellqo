@@ -1,170 +1,133 @@
 
 
-# Plan: Bol.com CSV Import voor Volledige Orderhistorie
+# Plan: Fix Shopify Klanten CSV Import
 
-## Probleem
+## Probleemanalyse
 
-De Bol.com API beperkt toegang tot historische data:
-- **Orders API**: Verzonden orders slechts 48 uur beschikbaar
-- **Shipments API**: Maximaal 3 maanden historie
+De klanten CSV import mislukt met **"Onbekende fout"** voor alle 99 klanten. Het probleem is dat de code in `ShopifyManualImport.tsx` kolommen probeert te gebruiken die **niet bestaan** in de `customers` database tabel.
 
-Echter, Bol.com Seller Central biedt een **export functie** in "Verkoopanalyse" met data tot **2 jaar** terug. Door deze CSV te kunnen uploaden, kunnen gebruikers hun volledige orderhistorie importeren.
+### Huidige Code vs Database Schema
+
+| Code probeert | Database heeft | Status |
+|---------------|----------------|--------|
+| `address_line1` | `billing_street` / `shipping_street` | ❌ Fout |
+| `address_line2` | geen equivalent | ❌ Fout |
+| `city` | `billing_city` / `shipping_city` | ❌ Fout |
+| `state` | geen (valt onder street) | ❌ Fout |
+| `postal_code` | `billing_postal_code` / `shipping_postal_code` | ❌ Fout |
+| `country` | `billing_country` / `shipping_country` | ❌ Fout |
+| `accepts_marketing` | `email_subscribed` | ❌ Fout |
+| `tags` | geen | ❌ Fout |
+| `source` | geen | ❌ Fout |
+| `email` | `email` | ✅ OK |
+| `first_name` | `first_name` | ✅ OK |
+| `last_name` | `last_name` | ✅ OK |
+| `company_name` | `company_name` | ✅ OK |
+| `phone` | `phone` | ✅ OK |
+| `total_spent` | `total_spent` | ✅ OK |
+| `total_orders` | `total_orders` | ✅ OK |
 
 ## Oplossing
 
-Bouw een gespecialiseerde Bol.com CSV import flow die:
-1. De standaard Bol.com export CSV kan verwerken
-2. Orders mapt naar het SellQo database schema
-3. Duplicaten herkent en overslaat
+Pas de insert-mapping aan zodat deze overeenkomt met het daadwerkelijke database schema.
 
-## Implementatie
+### Stap 1: Fix Kolommen Mapping
 
-### 1. Bol.com Order Mapping Toevoegen
+Update `src/components/admin/marketplace/shopify/ShopifyManualImport.tsx` regel 204-222:
 
-**Bestand:** `src/lib/importMappings.ts`
-
-Voeg mapping toe voor Bol.com verkoop export kolommen:
-- `Bestelnummer` → `marketplace_order_id`
-- `Besteldatum` → `created_at`
-- `Verzonden op` → `shipped_at`
-- `Prijs (incl. BTW)` → `total`
-- `EAN` → voor product matching
-- Klantgegevens → `shipping_address`
-
-### 2. Dedicated CSV Import Component
-
-**Bestand:** `src/components/admin/marketplace/BolCsvImport.tsx` (nieuw)
-
-Een compacte CSV upload component specifiek voor Bol.com die:
-- Bestand upload via drag & drop of file picker
-- Voorbeeldweergave van eerste 5 rijen
-- Mapping preview toont
-- Import start met voortgangsindicator
-
-### 3. Edge Function voor Verwerking
-
-**Bestand:** `supabase/functions/import-bol-csv/index.ts` (nieuw)
-
-Backend processing die:
-- CSV data ontvangt van frontend
-- Per rij een order creëert (of overslaat als `marketplace_order_id` al bestaat)
-- Klant zoekt/creëert op basis van e-mail
-- Order items aanmaakt
-- Resultaten teruggeeft (imported / skipped / failed)
-
-### 4. UI Integratie
-
-**Bestand:** `src/pages/admin/MarketplaceDetail.tsx`
-
-Voeg "CSV Import" knop/modal toe naast de bestaande "Import Historisch" knop, specifiek voor Bol.com connecties.
-
-## Verwachte Bol.com Export Kolommen
-
-Op basis van de Bol.com Verkoopanalyse export:
-
-| Kolom | Mapping |
-|-------|---------|
-| Bestelnummer | `marketplace_order_id` |
-| Besteldatum | `created_at` |
-| EAN | Product lookup / `order_items` |
-| Titel | `product_name` |
-| Aantal | `quantity` |
-| Prijs | `unit_price` |
-| Commissie | `raw_marketplace_data` |
-| Verzendkosten | `shipping_cost` |
-
-## Gebruikerservaring
-
-1. Ga naar Bol.com Seller Central → Verkoopanalyse
-2. Selecteer periode (tot 2 jaar)
-3. Exporteer als CSV
-4. Upload in SellQo via de nieuwe knop
-5. Preview en bevestig import
-6. Resultaat: Alle historische orders beschikbaar in SellQo
-
-## Bestanden te Maken/Wijzigen
-
-| Bestand | Actie |
-|---------|-------|
-| `src/lib/importMappings.ts` | Bol.com mapping toevoegen + detectie |
-| `src/components/admin/marketplace/BolCsvImport.tsx` | **Nieuw** - Upload component |
-| `supabase/functions/import-bol-csv/index.ts` | **Nieuw** - Verwerkingsfunctie |
-| `src/pages/admin/MarketplaceDetail.tsx` | CSV import knop toevoegen |
-| `src/types/import.ts` | `bol_com` als ImportPlatform toevoegen |
-
-## Technische Details
-
-### CSV Parsing Flow
-```text
-┌─────────────────────────────┐
-│  Frontend: FileUpload       │
-│  - Drag & drop CSV          │
-│  - Parse headers            │
-│  - Toon preview (5 rijen)   │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Edge Function              │
-│  - Ontvang CSV data         │
-│  - Loop door rijen          │
-│  - Check duplicaten         │
-│  - Creëer orders + items    │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Resultaat                  │
-│  - X geïmporteerd           │
-│  - Y overgeslagen           │
-│  - Z fouten                 │
-└─────────────────────────────┘
+**Van:**
+```typescript
+const { error } = await supabase.from('customers').insert([{
+  tenant_id: currentTenant.id,
+  email: customer.email,
+  first_name: customer.first_name,
+  last_name: customer.last_name,
+  company_name: customer.company,
+  phone: customer.phone,
+  address_line1: customer.address1,      // ❌ Bestaat niet
+  address_line2: customer.address2,      // ❌ Bestaat niet
+  city: customer.city,                   // ❌ Bestaat niet
+  state: customer.province,              // ❌ Bestaat niet
+  postal_code: customer.zip,             // ❌ Bestaat niet
+  country: customer.country || 'NL',     // ❌ Bestaat niet
+  accepts_marketing: customer.accepts_marketing,  // ❌ Bestaat niet
+  total_spent: customer.total_spent,
+  total_orders: customer.orders_count,
+  tags: customer.tags,                   // ❌ Bestaat niet
+  source: 'shopify_import',              // ❌ Bestaat niet
+}]);
 ```
 
-### Order Creatie Logica
+**Naar:**
 ```typescript
-// Per CSV rij:
-// 1. Check of order al bestaat
-const existing = await supabase
-  .from('orders')
+const { error } = await supabase.from('customers').insert([{
+  tenant_id: currentTenant.id,
+  email: customer.email,
+  first_name: customer.first_name,
+  last_name: customer.last_name,
+  company_name: customer.company,
+  phone: customer.phone,
+  // Gebruik billing adres velden
+  billing_street: customer.address1,
+  billing_city: customer.city,
+  billing_postal_code: customer.zip,
+  billing_country: customer.country || 'NL',
+  // Kopieer naar shipping indien nodig
+  shipping_street: customer.address1,
+  shipping_city: customer.city,
+  shipping_postal_code: customer.zip,
+  shipping_country: customer.country || 'NL',
+  // Marketing voorkeuren
+  email_subscribed: customer.accepts_marketing,
+  total_spent: customer.total_spent,
+  total_orders: customer.orders_count,
+  // Externe ID voor Shopify tracking
+  external_id: customer.email, // Kan later vervangen door Shopify ID indien beschikbaar
+}]);
+```
+
+### Stap 2: Voeg Duplicate Handling Toe
+
+Voeg check toe om duplicaten te voorkomen op basis van email:
+
+```typescript
+// Check of klant al bestaat
+const { data: existing } = await supabase
+  .from('customers')
   .select('id')
-  .eq('marketplace_order_id', row['Bestelnummer'])
-  .eq('tenant_id', tenantId)
+  .eq('tenant_id', currentTenant.id)
+  .eq('email', customer.email)
   .single();
 
 if (existing) {
-  skippedCount++;
-  continue;
+  // Update bestaande klant
+  const { error } = await supabase
+    .from('customers')
+    .update({ /* updated fields */ })
+    .eq('id', existing.id);
+} else {
+  // Insert nieuwe klant
+  const { error } = await supabase
+    .from('customers')
+    .insert([{ /* new customer */ }]);
 }
-
-// 2. Creëer order met status 'shipped' (historisch)
-const order = await supabase
-  .from('orders')
-  .insert({
-    marketplace_source: 'bol_com',
-    marketplace_order_id: row['Bestelnummer'],
-    status: 'shipped',
-    payment_status: 'paid',
-    // ... mapping
-  });
-
-// 3. Voeg order items toe
-await supabase
-  .from('order_items')
-  .insert({
-    order_id: order.id,
-    product_name: row['Titel'],
-    quantity: parseInt(row['Aantal']),
-    unit_price: parseFloat(row['Prijs']),
-    // ...
-  });
 ```
 
-## Voordeel voor Gebruikers
+### Stap 3: Verbeter Foutmeldingen
 
-Met deze feature kunnen SellQo gebruikers:
-- **Volledige 2 jaar historie** importeren uit Bol.com
-- **Eenmalige actie** - daarna pakt automatische sync het over
-- **Rapportages** - complete verkoopcijfers voor analyse
-- **Klantprofielen** - alle historische klanten in één systeem
+In plaats van "Onbekende fout", toon de werkelijke database foutmelding.
+
+## Bestand te Wijzigen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/admin/marketplace/shopify/ShopifyManualImport.tsx` | Fix kolom mapping, voeg duplicate handling toe |
+
+## Verwacht Resultaat
+
+Na deze wijziging:
+- Klanten CSV import werkt correct
+- Adresgegevens worden opgeslagen in billing/shipping velden
+- Duplicaten worden gedetecteerd en bijgewerkt in plaats van geweigerd
+- Foutmeldingen zijn specifiek en helpend
 
