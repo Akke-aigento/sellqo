@@ -42,6 +42,17 @@ export interface Customer {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Nieuwe velden voor Shopify import
+  province: string | null;
+  province_code: string | null;
+  tags: string[] | null;
+  verified_email: boolean | null;
+  email_marketing_status: string | null;
+  email_marketing_level: string | null;
+  sms_marketing_status: string | null;
+  sms_marketing_level: string | null;
+  original_created_at: string | null;
+  import_source: string | null;
 }
 
 export interface OrderItem {

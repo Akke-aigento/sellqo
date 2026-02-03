@@ -162,12 +162,20 @@ export function ShopifyManualImport() {
             setProgress(Math.round(((i + 1) / products.length) * 100));
             
             try {
-              // Generate slug from title
-              const slug = product.title.toLowerCase()
+              // Check of product al bestaat op basis van handle of sku
+              const { data: existing } = await supabase
+                .from('products')
+                .select('id')
+                .eq('tenant_id', currentTenant.id)
+                .or(`shopify_handle.eq.${product.handle || ''},sku.eq.${product.sku || ''}`)
+                .maybeSingle();
+              
+              // Generate slug from title or use handle
+              const slug = product.handle || product.title.toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-|-$/g, '') + '-' + Date.now();
               
-              const { error } = await supabase.from('products').insert([{
+              const productData = {
                 tenant_id: currentTenant.id,
                 name: product.title,
                 slug,
@@ -181,11 +189,31 @@ export function ShopifyManualImport() {
                 weight: product.weight,
                 tags: product.tags,
                 images: product.images,
-                is_active: true,
+                is_active: product.status === 'active' && product.published,
                 track_inventory: true,
-              }]);
+                // Nieuwe velden
+                shopify_handle: product.handle,
+                shopify_product_id: product.shopify_id,
+                vendor: product.vendor,
+                meta_title: product.seo_title,
+                meta_description: product.seo_description,
+                google_product_category: product.google_product_category,
+                image_alt_texts: product.image_alt_texts,
+                original_category_value: product.product_type,
+                original_created_at: product.created_at,
+                import_source: 'shopify_csv',
+              };
               
-              if (error) throw error;
+              if (existing?.id) {
+                const { error } = await supabase
+                  .from('products')
+                  .update(productData)
+                  .eq('id', existing.id);
+                if (error) throw error;
+              } else {
+                const { error } = await supabase.from('products').insert([productData]);
+                if (error) throw error;
+              }
               success++;
             } catch (error) {
               failed++;
@@ -201,13 +229,16 @@ export function ShopifyManualImport() {
             setProgress(Math.round(((i + 1) / customers.length) * 100));
             
             try {
-              // Check of klant al bestaat op basis van email
+              // Check of klant al bestaat op basis van email of shopify ID
               const { data: existing } = await supabase
                 .from('customers')
                 .select('id')
                 .eq('tenant_id', currentTenant.id)
-                .eq('email', customer.email)
+                .or(`email.eq.${customer.email},shopify_customer_id.eq.${customer.id || ''}`)
                 .maybeSingle();
+              
+              // Combineer address1 en address2
+              const streetAddress = [customer.address1, customer.address2].filter(Boolean).join(', ');
               
               const customerData = {
                 tenant_id: currentTenant.id,
@@ -217,21 +248,38 @@ export function ShopifyManualImport() {
                 company_name: customer.company,
                 phone: customer.phone,
                 // Billing adres velden
-                billing_street: customer.address1,
+                billing_street: streetAddress,
                 billing_city: customer.city,
                 billing_postal_code: customer.zip,
                 billing_country: customer.country || 'NL',
                 // Shipping adres (kopie van billing)
-                shipping_street: customer.address1,
+                shipping_street: streetAddress,
                 shipping_city: customer.city,
                 shipping_postal_code: customer.zip,
                 shipping_country: customer.country || 'NL',
+                // Shopify tracking
+                shopify_customer_id: customer.id,
+                external_id: customer.id,
+                shopify_last_synced_at: new Date().toISOString(),
+                // Nieuwe velden
+                province: customer.province,
+                province_code: customer.province_code,
+                notes: customer.note,
+                tags: customer.tags,
+                tax_exempt: customer.tax_exempt,
+                verified_email: customer.verified_email,
                 // Marketing voorkeuren
                 email_subscribed: customer.accepts_marketing,
+                email_marketing_status: customer.email_marketing_status,
+                email_marketing_level: customer.email_marketing_level,
+                sms_marketing_status: customer.sms_marketing_status,
+                sms_marketing_level: customer.sms_marketing_level,
+                // Stats
                 total_spent: customer.total_spent,
                 total_orders: customer.orders_count,
-                // Externe ID voor Shopify tracking
-                external_id: customer.email,
+                // Timestamps
+                original_created_at: customer.created_at,
+                import_source: 'shopify_csv',
               };
               
               if (existing?.id) {
@@ -293,8 +341,119 @@ export function ShopifyManualImport() {
         }
         
         case 'orders': {
-          // Orders are more complex - we'll just show a notice for now
-          toast.info('Order import vereist koppeling met bestaande klanten en producten. Gebruik de Instant Connect optie voor automatische order sync.');
+          // Helper functie om Shopify status te mappen naar SellQo status
+          const mapOrderStatus = (financial: string, fulfillment: string | null) => {
+            if (fulfillment === 'fulfilled') return 'delivered';
+            if (fulfillment === 'partial') return 'shipped';
+            if (financial === 'refunded') return 'cancelled';
+            if (financial === 'paid') return 'processing';
+            return 'pending';
+          };
+          
+          const mapPaymentStatus = (financial: string) => {
+            if (financial === 'paid' || financial === 'partially_paid') return 'paid';
+            if (financial === 'refunded' || financial === 'partially_refunded') return 'refunded';
+            if (financial === 'voided') return 'failed';
+            return 'pending';
+          };
+          
+          for (let i = 0; i < orders.length; i++) {
+            const order = orders[i];
+            setProgress(Math.round(((i + 1) / orders.length) * 100));
+            
+            try {
+              // Check of order al bestaat
+              const { data: existing } = await supabase
+                .from('orders')
+                .select('id')
+                .eq('tenant_id', currentTenant.id)
+                .eq('marketplace_order_id', order.order_number)
+                .maybeSingle();
+              
+              if (existing?.id) {
+                // Skip bestaande orders
+                success++;
+                continue;
+              }
+              
+              // Genereer intern ordernummer
+              const { data: orderNumber } = await supabase
+                .rpc('generate_order_number', { _tenant_id: currentTenant.id });
+              
+              const status = mapOrderStatus(order.financial_status, order.fulfillment_status);
+              const paymentStatus = mapPaymentStatus(order.financial_status);
+              
+              // Creëer order
+              const { data: newOrder, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                  tenant_id: currentTenant.id,
+                  order_number: orderNumber,
+                  marketplace_source: 'shopify',
+                  marketplace_order_id: order.order_number,
+                  status,
+                  payment_status: paymentStatus,
+                  customer_email: order.email,
+                  customer_name: order.shipping_name,
+                  customer_phone: order.phone,
+                  subtotal: order.subtotal,
+                  tax_amount: order.taxes,
+                  shipping_cost: order.shipping,
+                  discount_amount: order.discount_amount,
+                  total: order.total,
+                  currency: order.currency,
+                  shipping_address: {
+                    name: order.shipping_name,
+                    street: order.shipping_address,
+                    city: order.shipping_city,
+                    postal_code: order.shipping_zip,
+                    province: order.shipping_province,
+                    country: order.shipping_country,
+                  },
+                  billing_address: {
+                    name: order.billing_name,
+                    street: order.billing_street,
+                    city: order.billing_city,
+                    postal_code: order.billing_zip,
+                    province: order.billing_province,
+                    country: order.billing_country,
+                    phone: order.billing_phone,
+                  },
+                  notes: order.note,
+                  order_tags: order.tags,
+                  risk_level: order.risk_level,
+                  paid_at: order.paid_at,
+                  shipped_at: order.fulfilled_at,
+                  cancelled_at: order.cancelled_at,
+                  external_reference: order.payment_reference,
+                  original_created_at: order.created_at,
+                  import_source: 'shopify_csv',
+                })
+                .select()
+                .single();
+              
+              if (orderError) throw orderError;
+              
+              // Voeg order items toe
+              for (const item of order.line_items) {
+                await supabase.from('order_items').insert({
+                  order_id: newOrder.id,
+                  product_name: item.title,
+                  product_sku: item.sku,
+                  quantity: item.quantity,
+                  unit_price: item.price,
+                  total_price: item.price * item.quantity,
+                  vendor: item.vendor,
+                  variant_title: item.variant_title,
+                });
+              }
+              
+              success++;
+            } catch (error) {
+              failed++;
+              errors.push(`Order "${order.order_number}": ${error instanceof Error ? error.message : 'Onbekende fout'}`);
+            }
+          }
           break;
         }
       }
@@ -440,7 +599,8 @@ export function ShopifyManualImport() {
                       <TableHead>Titel</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Prijs</TableHead>
-                      <TableHead>Voorraad</TableHead>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Status</TableHead>
                     </>
                   )}
                   {activeTab === 'customers' && (
@@ -448,15 +608,17 @@ export function ShopifyManualImport() {
                       <TableHead>Email</TableHead>
                       <TableHead>Naam</TableHead>
                       <TableHead>Stad</TableHead>
-                      <TableHead>Orders</TableHead>
+                      <TableHead>Tags</TableHead>
+                      <TableHead>Marketing</TableHead>
                     </>
                   )}
                   {activeTab === 'orders' && (
                     <>
                       <TableHead>Order #</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>Klant</TableHead>
                       <TableHead>Totaal</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Items</TableHead>
                     </>
                   )}
                   {activeTab === 'discounts' && (
@@ -477,7 +639,12 @@ export function ShopifyManualImport() {
                         <TableCell className="font-medium">{(item as ParsedProduct).title}</TableCell>
                         <TableCell>{(item as ParsedProduct).sku || '-'}</TableCell>
                         <TableCell>€{(item as ParsedProduct).price.toFixed(2)}</TableCell>
-                        <TableCell>{(item as ParsedProduct).stock}</TableCell>
+                        <TableCell>{(item as ParsedProduct).vendor || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={(item as ParsedProduct).status === 'active' ? 'default' : 'secondary'}>
+                            {(item as ParsedProduct).status}
+                          </Badge>
+                        </TableCell>
                       </>
                     )}
                     {activeTab === 'customers' && (
@@ -485,17 +652,29 @@ export function ShopifyManualImport() {
                         <TableCell className="font-medium">{(item as ParsedCustomer).email}</TableCell>
                         <TableCell>{(item as ParsedCustomer).first_name} {(item as ParsedCustomer).last_name}</TableCell>
                         <TableCell>{(item as ParsedCustomer).city || '-'}</TableCell>
-                        <TableCell>{(item as ParsedCustomer).orders_count}</TableCell>
+                        <TableCell>
+                          {(item as ParsedCustomer).tags.length > 0 
+                            ? (item as ParsedCustomer).tags.slice(0, 2).join(', ')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={(item as ParsedCustomer).accepts_marketing ? 'default' : 'secondary'}>
+                            {(item as ParsedCustomer).accepts_marketing ? 'Ja' : 'Nee'}
+                          </Badge>
+                        </TableCell>
                       </>
                     )}
                     {activeTab === 'orders' && (
                       <>
                         <TableCell className="font-medium">{(item as ParsedOrder).order_number}</TableCell>
-                        <TableCell>{(item as ParsedOrder).email}</TableCell>
+                        <TableCell>{(item as ParsedOrder).shipping_name || (item as ParsedOrder).email}</TableCell>
                         <TableCell>€{(item as ParsedOrder).total.toFixed(2)}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{(item as ParsedOrder).financial_status}</Badge>
+                          <Badge variant={(item as ParsedOrder).financial_status === 'paid' ? 'default' : 'secondary'}>
+                            {(item as ParsedOrder).financial_status}
+                          </Badge>
                         </TableCell>
+                        <TableCell>{(item as ParsedOrder).line_items.length}</TableCell>
                       </>
                     )}
                     {activeTab === 'discounts' && (
@@ -545,7 +724,7 @@ export function ShopifyManualImport() {
       )}
 
       {/* Import button */}
-      {previewData.length > 0 && activeTab !== 'orders' && (
+      {previewData.length > 0 && (
         <Button 
           onClick={handleImport} 
           disabled={importing || previewData.length === 0}
@@ -559,7 +738,12 @@ export function ShopifyManualImport() {
           ) : (
             <>
               <Upload className="w-4 h-4 mr-2" />
-              Importeer {previewData.length} {activeTab === 'products' ? 'producten' : activeTab === 'customers' ? 'klanten' : 'kortingen'}
+              Importeer {previewData.length} {
+                activeTab === 'products' ? 'producten' : 
+                activeTab === 'customers' ? 'klanten' : 
+                activeTab === 'orders' ? 'orders' :
+                'kortingen'
+              }
             </>
           )}
         </Button>

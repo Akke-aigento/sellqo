@@ -16,6 +16,18 @@ export interface ParsedProduct {
   tags: string[];
   images: string[];
   variants: ParsedVariant[];
+  // Nieuwe velden voor complete import
+  handle: string | null;
+  shopify_id: string | null;
+  status: string;
+  published: boolean;
+  seo_title: string | null;
+  seo_description: string | null;
+  google_product_category: string | null;
+  image_alt_texts: string[];
+  created_at: string;
+  requires_shipping: boolean;
+  taxable: boolean;
 }
 
 export interface ParsedVariant {
@@ -51,8 +63,26 @@ export interface ParsedOrder {
   shipping_address: string;
   shipping_city: string;
   shipping_zip: string;
+  shipping_province: string | null;
   shipping_country: string;
   line_items: ParsedLineItem[];
+  // Nieuwe velden voor complete import
+  shopify_order_id: string | null;
+  paid_at: string | null;
+  cancelled_at: string | null;
+  fulfilled_at: string | null;
+  billing_name: string | null;
+  billing_street: string | null;
+  billing_city: string | null;
+  billing_zip: string | null;
+  billing_province: string | null;
+  billing_country: string | null;
+  billing_phone: string | null;
+  phone: string | null;
+  note: string | null;
+  tags: string[];
+  risk_level: string | null;
+  payment_reference: string | null;
 }
 
 export interface ParsedLineItem {
@@ -60,6 +90,14 @@ export interface ParsedLineItem {
   sku: string;
   quantity: number;
   price: number;
+  // Nieuwe velden
+  variant_id: string | null;
+  variant_title: string | null;
+  vendor: string | null;
+  fulfillment_status: string | null;
+  requires_shipping: boolean;
+  taxable: boolean;
+  gift_card: boolean;
 }
 
 export interface ParsedCustomer {
@@ -72,13 +110,24 @@ export interface ParsedCustomer {
   address2: string | null;
   city: string | null;
   province: string | null;
+  province_code: string | null;
   zip: string | null;
   country: string | null;
+  country_code: string | null;
   accepts_marketing: boolean;
   total_spent: number;
   orders_count: number;
   tags: string[];
   created_at: string;
+  // Nieuwe velden voor complete import
+  id: string | null;
+  note: string | null;
+  tax_exempt: boolean;
+  verified_email: boolean;
+  email_marketing_status: string | null;
+  email_marketing_level: string | null;
+  sms_marketing_status: string | null;
+  sms_marketing_level: string | null;
 }
 
 export interface ParsedDiscount {
@@ -155,6 +204,9 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
     let product = productsMap.get(handle);
     
     if (!product) {
+      const status = row['Status'] || row['status'] || 'active';
+      const published = (row['Published'] || row['published'] || 'true').toLowerCase() === 'true';
+      
       product = {
         title: row['Title'] || row['title'] || '',
         description: row['Body (HTML)'] || row['body_html'] || '',
@@ -171,6 +223,18 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
         tags: (row['Tags'] || row['tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
         images: [],
         variants: [],
+        // Nieuwe velden
+        handle: handle,
+        shopify_id: row['ID'] || row['id'] || null,
+        status,
+        published,
+        seo_title: row['SEO Title'] || row['seo_title'] || null,
+        seo_description: row['SEO Description'] || row['seo_description'] || null,
+        google_product_category: row['Google Shopping / Google Product Category'] || row['Google: Category'] || null,
+        image_alt_texts: [],
+        created_at: row['Created At'] || row['created_at'] || new Date().toISOString(),
+        requires_shipping: (row['Variant Requires Shipping'] || 'true').toLowerCase() === 'true',
+        taxable: (row['Variant Taxable'] || 'true').toLowerCase() === 'true',
       };
       productsMap.set(handle, product);
     }
@@ -179,6 +243,11 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
     const imageSrc = row['Image Src'] || row['image_src'];
     if (imageSrc && !product.images.includes(imageSrc)) {
       product.images.push(imageSrc);
+      // Add alt text if available
+      const altText = row['Image Alt Text'] || row['image_alt_text'];
+      if (altText) {
+        product.image_alt_texts.push(altText);
+      }
     }
     
     // Add variant if it has variant-specific data
@@ -234,8 +303,26 @@ export function parseShopifyOrders(csvString: string): ParsedOrder[] {
         shipping_address: row['Shipping Street'] || row['Shipping Address1'] || '',
         shipping_city: row['Shipping City'] || row['shipping_city'] || '',
         shipping_zip: row['Shipping Zip'] || row['shipping_zip'] || '',
+        shipping_province: row['Shipping Province'] || row['shipping_province'] || null,
         shipping_country: row['Shipping Country'] || row['shipping_country'] || 'NL',
         line_items: [],
+        // Nieuwe velden
+        shopify_order_id: row['ID'] || row['id'] || null,
+        paid_at: row['Paid at'] || row['paid_at'] || null,
+        cancelled_at: row['Cancelled at'] || row['cancelled_at'] || null,
+        fulfilled_at: row['Fulfilled at'] || row['fulfilled_at'] || null,
+        billing_name: row['Billing Name'] || row['billing_name'] || null,
+        billing_street: row['Billing Street'] || row['Billing Address1'] || null,
+        billing_city: row['Billing City'] || row['billing_city'] || null,
+        billing_zip: row['Billing Zip'] || row['billing_zip'] || null,
+        billing_province: row['Billing Province'] || row['billing_province'] || null,
+        billing_country: row['Billing Country'] || row['billing_country'] || null,
+        billing_phone: row['Billing Phone'] || row['billing_phone'] || null,
+        phone: row['Phone'] || row['phone'] || null,
+        note: row['Notes'] || row['Note'] || row['notes'] || null,
+        tags: (row['Tags'] || row['tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
+        risk_level: row['Risk Level'] || row['risk_level'] || null,
+        payment_reference: row['Payment Reference'] || row['payment_reference'] || null,
       };
       ordersMap.set(orderNumber, order);
     }
@@ -248,6 +335,14 @@ export function parseShopifyOrders(csvString: string): ParsedOrder[] {
         sku: row['Lineitem sku'] || row['lineitem_sku'] || '',
         quantity: parseInt(row['Lineitem quantity'] || row['lineitem_quantity'] || '1') || 1,
         price: parseFloat(row['Lineitem price'] || row['lineitem_price'] || '0') || 0,
+        // Nieuwe velden
+        variant_id: row['Lineitem variant id'] || null,
+        variant_title: row['Lineitem variant title'] || null,
+        vendor: row['Lineitem vendor'] || row['Vendor'] || null,
+        fulfillment_status: row['Lineitem fulfillment status'] || null,
+        requires_shipping: (row['Lineitem requires shipping'] || 'true').toLowerCase() === 'true',
+        taxable: (row['Lineitem taxable'] || 'true').toLowerCase() === 'true',
+        gift_card: (row['Lineitem gift card'] || row['Gift Card'] || 'false').toLowerCase() === 'true',
       });
     }
   }
@@ -269,13 +364,24 @@ export function parseShopifyCustomers(csvString: string): ParsedCustomer[] {
     address2: row['Address2'] || row['address2'] || null,
     city: row['City'] || row['city'] || null,
     province: row['Province'] || row['province'] || null,
+    province_code: row['Province Code'] || row['province_code'] || null,
     zip: row['Zip'] || row['zip'] || null,
     country: row['Country'] || row['country'] || null,
+    country_code: row['Country Code'] || row['country_code'] || null,
     accepts_marketing: (row['Accepts Marketing'] || row['accepts_marketing'] || '').toLowerCase() === 'yes',
     total_spent: parseFloat(row['Total Spent'] || row['total_spent'] || '0') || 0,
     orders_count: parseInt(row['Orders Count'] || row['orders_count'] || '0') || 0,
     tags: (row['Tags'] || row['tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
     created_at: row['Created At'] || row['created_at'] || new Date().toISOString(),
+    // Nieuwe velden
+    id: row['ID'] || row['id'] || null,
+    note: row['Note'] || row['note'] || null,
+    tax_exempt: (row['Tax Exempt'] || row['tax_exempt'] || 'no').toLowerCase() === 'yes',
+    verified_email: (row['Verified Email'] || row['verified_email'] || 'no').toLowerCase() === 'yes',
+    email_marketing_status: row['Email Marketing: Status'] || row['email_marketing_status'] || null,
+    email_marketing_level: row['Email Marketing: Level'] || row['email_marketing_level'] || null,
+    sms_marketing_status: row['SMS Marketing: Status'] || row['sms_marketing_status'] || null,
+    sms_marketing_level: row['SMS Marketing: Level'] || row['sms_marketing_level'] || null,
   })).filter(c => c.email);
 }
 
