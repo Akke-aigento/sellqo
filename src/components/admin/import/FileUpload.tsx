@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseCSV } from '@/hooks/useImport';
-import { detectPlatform } from '@/lib/importMappings';
+import { detectPlatform, consolidateShopifyProductRows } from '@/lib/importMappings';
 import type { ImportPlatform, ImportDataType, UploadedFile } from '@/types/import';
 
 interface FileUploadProps {
@@ -42,13 +42,20 @@ export function FileUpload({
       const detectedPlatform = detectPlatform(headers);
       console.log('Detected platform:', detectedPlatform);
 
+      // Consolidate Shopify product rows (multiple rows per product for images/variants)
+      let processedRows = rows;
+      if (dataType === 'products' && headers.includes('Handle') && headers.includes('Title')) {
+        processedRows = consolidateShopifyProductRows(rows);
+        console.log(`Product consolidation: ${rows.length} → ${processedRows.length}`);
+      }
+
       onFileUpload(dataType, {
         file,
         dataType,
-        rowCount: rows.length,
+        rowCount: processedRows.length,
         headers,
-        sampleData: rows.slice(0, 5),  // Preview only
-        allData: rows,                  // ALL data for import
+        sampleData: processedRows.slice(0, 5),
+        allData: processedRows,
       });
     } catch (error) {
       setErrors(prev => new Map(prev).set(
