@@ -1,64 +1,61 @@
 
 
-# Plan: Bol.com Koppeling Instructies 1-op-1 Gelijk Maken aan Echte Bol.com Interface
+# Plan: Bol.com Advertising API Credentials Toevoegen
 
 ## Huidige Situatie
 
-De SellQo instructies kloppen niet met wat gebruikers daadwerkelijk zien op Bol.com:
+De Bol.com koppeling vraagt nu alleen om:
+- **Client ID** (Retailer API)
+- **Client Secret** (Retailer API)
 
-| SellQo zegt | Bol.com toont |
-|-------------|---------------|
-| "Bol.com Partner Plaza" | Gewoon "bol." in header |
-| `partnerplatform.bol.com` | `partner.bol.com/sdd/preferences/services/api` |
-| "Ga naar Instellingen → API → Nieuwe API key aanmaken" | Directe pagina met "Client credentials voor de Retailer API" + "+ Aanmaken" knop |
+Maar op de Bol.com API credentials pagina staan twee secties:
+1. **Client credentials voor de Retailer API** → orders, producten, voorraad
+2. **Client credentials voor de Advertising API** → advertenties, sponsored products
 
-## Wat Je Ziet op Bol.com (uit screenshots)
+## Wat Dit Oplevert
 
-De pagina `partner.bol.com/sdd/preferences/services/api` toont:
+Met beide API's gekoppeld heb je:
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│ bol.    Artikelen  Bestellingen  Klantvragen  Financiën  etc.   │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  Client credentials voor de Retailer API                         │
-│  Met de client credentials kun je je authenticeren bij de        │
-│  bol Retailer API. Als je wilt koppelen aan meerdere derde       │
-│  partijen, dan dien je hier voor iedere derde partij aparte      │
-│  client credentials aan te maken.                                │
-│                                                                   │
-│  ┌──────────────┐                                                │
-│  │ + Aanmaken   │                                                │
-│  └──────────────┘                                                │
-│                                                                   │
-│  Client credentials voor de Advertising API                      │
-│  [...]                                                           │
-│                                                                   │
-└──────────────────────────────────────────────────────────────────┘
-```
+| API | Functionaliteit |
+|-----|-----------------|
+| Retailer API | Orders importeren, voorraad sync, product listing, VVB labels |
+| Advertising API | Sponsored Products campagnes, advertentie budget, performance data |
 
 ## Wijzigingen
 
-### 1. ConnectMarketplaceDialog.tsx - Bol.com Instructies Updaten
+### 1. MarketplaceCredentials Type Uitbreiden
 
-**Locatie**: Regels 326-336
+**Bestand**: `src/types/marketplace.ts`
 
-**Huidige code**:
+Nieuwe velden toevoegen voor Advertising API:
+
 ```typescript
-case 'bol_com':
-  return {
-    title: 'Bol.com Partner Plaza',
-    url: 'https://partnerplatform.bol.com',
-    steps: [
-      'Log in op Bol.com Partner Plaza',
-      'Ga naar Instellingen → API → Nieuwe API key aanmaken',
-      'Kopieer je Client ID en Client Secret',
-      'Plak deze hieronder en klik op "Verbind"',
-    ],
-  };
+export interface MarketplaceCredentials {
+  // Bestaande velden...
+  clientId?: string;
+  clientSecret?: string;
+  
+  // NIEUW: Bol.com Advertising API (optioneel)
+  advertisingClientId?: string;
+  advertisingClientSecret?: string;
+}
 ```
 
-**Nieuwe code**:
+### 2. ConnectMarketplaceDialog.tsx - State Toevoegen
+
+Nieuwe state variabelen voor Advertising credentials:
+
+```typescript
+// Bol.com Advertising API (optioneel)
+const [advertisingClientId, setAdvertisingClientId] = useState('');
+const [advertisingClientSecret, setAdvertisingClientSecret] = useState('');
+const [showAdvertisingSection, setShowAdvertisingSection] = useState(false);
+```
+
+### 3. ConnectMarketplaceDialog.tsx - Instructies Uitbreiden
+
+Huidige stappen uitbreiden met Advertising API optie:
+
 ```typescript
 case 'bol_com':
   return {
@@ -68,52 +65,186 @@ case 'bol_com':
       'Log in op je Bol.com verkopersaccount',
       'Je komt direct op de API credentials pagina',
       'Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken"',
-      'Geef de credentials een naam (bijv. "SellQo")',
+      'Geef de credentials een naam (bijv. "SellQo Retailer")',
       'Kopieer de Client ID en Client Secret',
-      'Plak deze hieronder en klik op "Verbind"',
+      '(Optioneel) Maak ook credentials aan voor de "Advertising API"',
+      'Plak alle credentials hieronder en klik op "Verbind"',
     ],
   };
 ```
 
-**Belangrijke wijzigingen**:
-- URL van `partnerplatform.bol.com` → `partner.bol.com/sdd/preferences/services/api` (directe link naar juiste pagina)
-- "Partner Plaza" → "Verkopersportaal" (hoe Bol.com het noemt)
-- "Ga naar Instellingen → API" → Niet meer nodig, directe link brengt je erheen
-- "+ Aanmaken" knop expliciet benoemen (wat je echt ziet)
-- Stap toegevoegd voor naam geven aan credentials
+### 4. ConnectMarketplaceDialog.tsx - UI voor Advertising Credentials
 
-## Overzicht Vergelijking
+In de credentials step, speciale sectie voor Bol.com met twee API's:
 
-### Oude Flow (verwarrend):
 ```text
-1. Log in op Bol.com Partner Plaza ← Wat is Partner Plaza?
-2. Ga naar Instellingen → API ← Waar is dat?
-3. Nieuwe API key aanmaken ← Er staat "+ Aanmaken"
-4. Kopieer je Client ID en Client Secret
+┌─────────────────────────────────────────────────────────────┐
+│  Retailer API (verplicht)                                   │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Client ID *          [                              ] │  │
+│  │ Client Secret *      [••••••••••••] 👁                │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐ │
+│  │ ☐ Ook Advertising API koppelen (voor Bol.com Ads)    │  │
+│  │                                                        │  │
+│  │   Client ID          [                              ] │  │
+│  │   Client Secret      [••••••••••••] 👁                │  │
+│  │                                                        │  │
+│  │   ℹ️ Hiermee kun je advertenties beheren vanuit SellQo │  │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘ │
+│                                                              │
+│  [Test Verbinding]                                          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Nieuwe Flow (1-op-1 met Bol.com):
-```text
-1. Log in op je Bol.com verkopersaccount ← Duidelijk
-2. Je komt direct op de API credentials pagina ← Door directe URL
-3. Bij "Client credentials voor de Retailer API", klik op "+ Aanmaken" ← Exact wat je ziet
-4. Geef de credentials een naam (bijv. "SellQo") ← Volgende stap
-5. Kopieer de Client ID en Client Secret
-6. Plak deze hieronder en klik op "Verbind"
+### 5. Credentials Opslaan
+
+Bij `handleConnect` beide API credentials meesturen:
+
+```typescript
+const credentials = {
+  clientId,
+  clientSecret,
+  // Alleen meesturen als ingevuld
+  ...(advertisingClientId && advertisingClientSecret && {
+    advertisingClientId,
+    advertisingClientSecret,
+  }),
+};
 ```
+
+### 6. Ads Manager - Automatische Detectie
+
+In `useAdPlatforms.ts` de advertising credentials detecteren:
+
+```typescript
+// Check if Bol.com has advertising credentials
+const hasBolAdvertisingCredentials = () => {
+  const bolConnection = marketplaceConnections.find(c => 
+    c.marketplace_type === 'bol_com' && c.is_active
+  );
+  return !!(bolConnection?.credentials?.advertisingClientId);
+};
+```
+
+### 7. PlatformConnections.tsx - Status Aanpassen
+
+Bol.com Ads status baseren op advertising credentials:
+
+```typescript
+const getPlatformStatus = (platform: AdPlatform): PlatformStatus => {
+  if (platform === 'bol_ads') {
+    const bolConnection = getBolRetailerConnection();
+    if (!bolConnection) return 'requires_connection';
+    // Check of Advertising API credentials aanwezig zijn
+    if (!bolConnection.credentials?.advertisingClientId) {
+      return 'requires_advertising_credentials';
+    }
+    return 'ready';
+  }
+  return 'coming_soon';
+};
+```
+
+## Bestanden te Wijzigen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/types/marketplace.ts` | Nieuwe velden voor advertising credentials |
+| `src/components/admin/marketplace/ConnectMarketplaceDialog.tsx` | State, UI sectie, instructies, opslaan |
+| `src/hooks/useAdPlatforms.ts` | Detectie van advertising credentials |
+| `src/components/admin/ads/PlatformConnections.tsx` | Status logic aanpassen |
+
+## Flow Overzicht
+
+```text
+Gebruiker gaat naar SellQo Connect → Bol.com koppelen
+
+STAP 1: Instructies
+- Uitleg over beide API's (Retailer + Advertising)
+- Directe link naar Bol.com credentials pagina
+
+STAP 2: Credentials invoeren
+- Retailer API (verplicht): Client ID + Secret
+- Advertising API (optioneel): Client ID + Secret
+- Test verbinding knop test beide
+
+STAP 3: Instellingen
+- Order sync settings
+- Voorraad settings
+- etc.
+
+STAP 4: Klaar!
+- Retailer functies direct beschikbaar
+- Als Advertising ingevuld → Ads Manager ook klaar
+```
+
+## Voordelen
+
+1. **Één keer instellen** - Beide API's in dezelfde flow
+2. **Optioneel** - Advertising is niet verplicht
+3. **Duidelijke UI** - Scheiding tussen Retailer en Advertising
+4. **Automatische integratie** - Ads Manager detecteert automatisch
 
 ## Technische Details
 
-### Bestand te wijzigen:
-- `src/components/admin/marketplace/ConnectMarketplaceDialog.tsx`
+### Nieuwe Type Definities (marketplace.ts)
 
-### Exacte wijziging:
-Regels 326-336 aanpassen met de nieuwe instructies die exact overeenkomen met de Bol.com interface.
+```typescript
+export interface MarketplaceCredentials {
+  // Bestaande velden...
+  clientId?: string;
+  clientSecret?: string;
+  
+  // Bol.com Advertising API (optioneel)
+  advertisingClientId?: string;
+  advertisingClientSecret?: string;
+}
+```
 
-## Resultaat
+### Credentials Opbouw (ConnectMarketplaceDialog.tsx)
 
-- Gebruiker klikt op link → komt DIRECT op de juiste pagina
-- Instructies beschrijven EXACT wat ze zien
-- Geen verwarring over "Instellingen" menu's
-- Dezelfde terminologie als Bol.com ("+ Aanmaken", "Client credentials voor de Retailer API")
+```typescript
+// In handleFinalConnect
+const credentials: MarketplaceCredentials = {
+  clientId,
+  clientSecret,
+};
+
+// Voeg advertising toe als ingevuld
+if (advertisingClientId && advertisingClientSecret) {
+  credentials.advertisingClientId = advertisingClientId;
+  credentials.advertisingClientSecret = advertisingClientSecret;
+}
+```
+
+### Status Check (useAdPlatforms.ts)
+
+```typescript
+export type PlatformStatus = 
+  | 'ready' 
+  | 'requires_connection' 
+  | 'requires_advertising_credentials'  // NIEUW
+  | 'coming_soon';
+
+const getPlatformStatus = (platform: AdPlatform): PlatformStatus => {
+  if (platform === 'bol_ads') {
+    const bolConnection = marketplaceConnections.find(c => 
+      c.marketplace_type === 'bol_com' && c.is_active
+    );
+    
+    if (!bolConnection) return 'requires_connection';
+    
+    // Check voor advertising credentials
+    const creds = bolConnection.credentials as MarketplaceCredentials;
+    if (!creds.advertisingClientId) {
+      return 'requires_advertising_credentials';
+    }
+    
+    return 'ready';
+  }
+  return 'coming_soon';
+};
+```
 
