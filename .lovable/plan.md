@@ -1,104 +1,141 @@
 
+# Plan: Historische Orders Importeren via Shipments API
 
-# Plan: Order Verwijderen en Koppeling Verbreekbaar Maken
+## Probleemanalyse
 
-## Probleem Geïdentificeerd
+De huidige `sync-bol-orders` functie gebruikt de **Orders API** (`/retailer/orders`). Uit de officiële Bol.com documentatie blijkt echter:
 
-De console toont een **foreign key constraint error**:
+| API Endpoint | Data beschikbaarheid |
+|--------------|---------------------|
+| `/orders` (status=ALL) | Verzonden orders slechts **48 uur** na verzending |
+| `/shipments` | Shipments van de laatste **3 maanden** |
+| `/shipments/{id}` | Details tot **2 jaar** terug |
+
+Dit verklaart waarom slechts 1 order (waarschijnlijk een recente/open order) werd gevonden, terwijl je ~100 historische orders verwacht.
+
+## Oplossing
+
+We moeten een **Shipments-based import** implementeren naast de bestaande Orders sync:
+
+### Stap 1: Nieuwe Edge Function voor Shipment Import
+
+Maak `supabase/functions/import-bol-shipments/index.ts` aan:
+- Fetch alle shipments via `GET /retailer/shipments` (max 3 maanden)
+- Per shipment: haal details op via `GET /shipments/{shipmentId}` (bevat order info)
+- Importeer als order in SellQo database
+
+### Stap 2: API Implementatie
+
+**Shipments endpoint parameters:**
 ```
-"Key is still referenced from table 'orders'"
-"violates foreign key constraint 'orders_marketplace_connection_id_fkey'"
-```
-
-**Situatie:**
-- Er is 1 order geïmporteerd: `#0001` (Pieter Kooistra, €31.95)
-- Deze order verwijst naar marketplace_connection `f43bccde-0235-4bc2-b11e-eb9e3806296b`
-- Postgres blokkeert het verwijderen van de connection zolang er orders naar verwijzen
-
-## Oplossing in 2 Delen
-
-### Deel 1: Directe Database Opruiming (Nu)
-
-Ik verwijder de geïmporteerde order direct uit de database:
-
-```sql
--- Eerst order_items verwijderen (heeft FK naar orders)
-DELETE FROM order_items WHERE order_id = 'd82b657d-ca54-4186-98d2-f84754765901';
-
--- Dan de order zelf
-DELETE FROM orders WHERE id = 'd82b657d-ca54-4186-98d2-f84754765901';
-```
-
-### Deel 2: Code Aanpassing (Toekomst-proof)
-
-De `handleDisconnect` functie moet eerst gerelateerde orders opschonen voordat de connection wordt verwijderd:
-
-**Bestand:** `src/hooks/useMarketplaceConnections.ts`
-
-Huidige code:
-```typescript
-const deleteConnection = useMutation({
-  mutationFn: async (id: string) => {
-    const { error } = await supabase
-      .from('marketplace_connections')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-  },
-  ...
-});
+GET /retailer/shipments
+  ?fulfilment-method=FBR|FBB
+  &page=1
 ```
 
-Nieuwe code - 2 opties:
+**Per shipment detail ophalen:**
+```
+GET /retailer/shipments/{shipmentId}
+```
 
-**Optie A: Nullify (behoud orders, verwijder link)**
-```typescript
-mutationFn: async (id: string) => {
-  // Eerst marketplace_connection_id op NULL zetten bij orders
-  await supabase
-    .from('orders')
-    .update({ marketplace_connection_id: null })
-    .eq('marketplace_connection_id', id);
-  
-  // Dan connection verwijderen
-  const { error } = await supabase
-    .from('marketplace_connections')
-    .delete()
-    .eq('id', id);
-  if (error) throw error;
+De shipment response bevat:
+- `orderId` - link naar de originele order
+- `shipmentItems[]` - producten met EAN, prijs, quantity
+- `customerDetails` - klantgegevens
+- `shipmentDate` - verzenddatum
+
+### Stap 3: Order Creatie Logica
+
+Voor elke shipment:
+1. Check of order al bestaat via `marketplace_order_id`
+2. Zo niet: creëer order met status `shipped`
+3. Voeg order items toe op basis van `shipmentItems`
+
+### Stap 4: UI Integratie
+
+Update `MarketplaceDetail.tsx`:
+- Voeg "Import Historisch via Shipments" knop toe
+- Roept de nieuwe edge function aan
+- Toont resultaat met aantal geïmporteerde orders
+
+### Stap 5: Beperkingen communiceren
+
+De Shipments API is beperkt tot **3 maanden**. Voor oudere orders:
+- Optioneel: Implementeer export vanuit Bol.com verkooprekening (handmatige CSV import)
+- Documenteer deze beperking in de UI
+
+## Bestanden te maken/wijzigen
+
+| Bestand | Actie |
+|---------|-------|
+| `supabase/functions/import-bol-shipments/index.ts` | **Nieuw** - Shipments import functie |
+| `supabase/config.toml` | Registreer nieuwe function |
+| `src/pages/admin/MarketplaceDetail.tsx` | Voeg "Import via Shipments" knop toe |
+
+## Technische Details
+
+### Shipments API Response Structuur
+```json
+{
+  "shipments": [
+    {
+      "shipmentId": "12345",
+      "orderId": "67890",
+      "shipmentDate": "2025-12-15",
+      "shipmentItems": [
+        {
+          "orderItemId": "111",
+          "ean": "8712626055143",
+          "title": "Product Title",
+          "quantity": 1,
+          "unitPrice": 19.99
+        }
+      ],
+      "customerDetails": {
+        "firstName": "Hans",
+        "surname": "de Groot",
+        "streetName": "Hoofdstraat",
+        "houseNumber": "1",
+        "zipCode": "1234AB",
+        "city": "Amsterdam"
+      }
+    }
+  ]
 }
 ```
 
-**Optie B: Cascade Delete (verwijder alles)** - Via database migratie:
-```sql
-ALTER TABLE orders 
-DROP CONSTRAINT orders_marketplace_connection_id_fkey;
-
-ALTER TABLE orders 
-ADD CONSTRAINT orders_marketplace_connection_id_fkey 
-FOREIGN KEY (marketplace_connection_id) 
-REFERENCES marketplace_connections(id) 
-ON DELETE SET NULL;
+### Import Logica
+```text
+┌─────────────────────────────────────┐
+│   GET /shipments?page=1             │
+│   (max 50 per pagina, 3 maanden)    │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│   Voor elke shipment:               │
+│   - Check of orderId al bestaat     │
+│   - Zo niet: GET /shipments/{id}    │
+│   - Creëer order met status=shipped │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│   Resultaat:                        │
+│   - X orders geïmporteerd           │
+│   - Y al bestaand (overgeslagen)    │
+└─────────────────────────────────────┘
 ```
 
-## Aanbevolen Aanpak
+## Verwachte Resultaat
 
-| Stap | Actie |
-|------|-------|
-| 1 | **Nu:** Database migratie om order te verwijderen |
-| 2 | **Code:** Update `deleteConnection` om eerst orders te nullifyen |
-| 3 | **Database:** FK constraint aanpassen naar `ON DELETE SET NULL` |
+Na implementatie:
+- Klik op "Import Historisch via Shipments" 
+- Alle verzonden orders van de laatste 3 maanden worden geïmporteerd
+- Orders ouder dan 3 maanden zijn helaas niet beschikbaar via de API
 
-Dit zorgt ervoor dat:
-- De huidige order wordt verwijderd
-- De koppeling verbroken kan worden
-- In de toekomst automatisch orders hun link verliezen (maar bewaard blijven) bij disconnect
+## Belangrijke Kanttekening
 
-## Bestanden te Wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| Database | DELETE order + order_items |
-| `src/hooks/useMarketplaceConnections.ts` | Nullify orders vóór delete connection |
-| Database migratie | FK constraint → ON DELETE SET NULL |
-
+De Bol.com API beperkt historische data tot 3 maanden voor shipments en 48 uur voor verzonden orders. Voor de volledige 2 jaar aan historische orders zou je:
+1. Regelmatig moeten syncen (minimaal elke paar dagen) om orders te vangen voordat ze uit de API verdwijnen
+2. Handmatig een CSV export uit Bol.com Seller Central moeten uploaden (toekomstige feature)
