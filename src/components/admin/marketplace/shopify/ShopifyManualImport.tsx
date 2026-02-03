@@ -240,23 +240,26 @@ export function ShopifyManualImport() {
               // Combineer address1 en address2
               const streetAddress = [customer.address1, customer.address2].filter(Boolean).join(', ');
               
+              // Telefoon: combineer beide bronnen (phone en address_phone)
+              const phoneNumber = customer.phone || customer.address_phone;
+              
               const customerData = {
                 tenant_id: currentTenant.id,
                 email: customer.email,
                 first_name: customer.first_name,
                 last_name: customer.last_name,
                 company_name: customer.company,
-                phone: customer.phone,
+                phone: phoneNumber,
                 // Billing adres velden
                 billing_street: streetAddress,
                 billing_city: customer.city,
                 billing_postal_code: customer.zip,
-                billing_country: customer.country || 'NL',
+                billing_country: customer.country_code || customer.country || 'NL',
                 // Shipping adres (kopie van billing)
                 shipping_street: streetAddress,
                 shipping_city: customer.city,
                 shipping_postal_code: customer.zip,
-                shipping_country: customer.country || 'NL',
+                shipping_country: customer.country_code || customer.country || 'NL',
                 // Shopify tracking
                 shopify_customer_id: customer.id,
                 external_id: customer.id,
@@ -268,8 +271,10 @@ export function ShopifyManualImport() {
                 tags: customer.tags,
                 tax_exempt: customer.tax_exempt,
                 verified_email: customer.verified_email,
-                // Marketing voorkeuren
+                // Marketing voorkeuren - Accepts Email Marketing -> email_subscribed
                 email_subscribed: customer.accepts_marketing,
+                // SMS Marketing
+                sms_subscribed: customer.accepts_sms_marketing,
                 email_marketing_status: customer.email_marketing_status,
                 email_marketing_level: customer.email_marketing_level,
                 sms_marketing_status: customer.sms_marketing_status,
