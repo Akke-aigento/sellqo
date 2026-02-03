@@ -70,14 +70,25 @@ export function useMarketplaceConnections() {
       id: string;
       updates: Partial<Pick<MarketplaceConnection, 'marketplace_name' | 'credentials' | 'settings' | 'is_active'>>;
     }) => {
+      // Build update object with only defined fields to prevent overwriting existing data
+      const updateData: Record<string, unknown> = {};
+      
+      if (params.updates.marketplace_name !== undefined) {
+        updateData.marketplace_name = params.updates.marketplace_name;
+      }
+      if (params.updates.credentials !== undefined) {
+        updateData.credentials = params.updates.credentials as unknown as Json;
+      }
+      if (params.updates.settings !== undefined) {
+        updateData.settings = params.updates.settings as unknown as Json;
+      }
+      if (params.updates.is_active !== undefined) {
+        updateData.is_active = params.updates.is_active;
+      }
+
       const { data, error } = await supabase
         .from('marketplace_connections')
-        .update({
-          marketplace_name: params.updates.marketplace_name,
-          credentials: params.updates.credentials as unknown as Json,
-          settings: params.updates.settings as unknown as Json,
-          is_active: params.updates.is_active,
-        })
+        .update(updateData)
         .eq('id', params.id)
         .select()
         .single();
@@ -85,8 +96,9 @@ export function useMarketplaceConnections() {
       if (error) throw error;
       return data as unknown as MarketplaceConnection;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['marketplace-connections'] });
+      queryClient.invalidateQueries({ queryKey: ['marketplace-connection', data.id] });
       toast.success('Instellingen opgeslagen!');
     },
     onError: (error) => {
