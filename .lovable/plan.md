@@ -1,143 +1,96 @@
 
-# Fix: Automatische Bol.com Synchronisatie Implementeren
+# Plan: BTW-inclusief Factuurberekening Corrigeren
 
-## Probleem Geanalyseerd
+## Probleem Geïdentificeerd
 
-De automatische synchronisatie werkt niet omdat:
+Jouw tenant heeft `default_vat_handling: inclusive` ingesteld, wat betekent dat alle productprijzen al **inclusief BTW** zijn. De factuur-generator houdt hier geen rekening mee en telt 21% BTW er bovenop, waardoor alle facturen te hoog uitvallen.
 
-1. **Geen Sync Scheduler Edge Function** - Er is geen cron job of scheduler die periodiek de `sync-bol-orders` en `sync-bol-inventory` edge functions aanroept
-2. **Settings worden opgeslagen maar niet gebruikt** - De `syncInterval` (15 minuten) en `autoImport` (true) staan correct in de database, maar er is geen code die hierop reageert
-3. **Laatste sync: 3 februari** - Bijna een week geleden, alleen handmatig aangeroepen
+**Voorbeeld van het probleem:**
+| Order | Ordertotaal | Factuur (nu) | Correct zou zijn |
+|-------|-------------|--------------|------------------|
+| #1058 | €15,95 (incl) | €19,30 | €15,95 |
+| #1062 | €27,95 (incl) | €33,82 | €27,95 |
+| #1060 | €537,30 (incl) | €650,13 | €537,30 |
 
-### Database Bewijs
-```
-last_sync_at: 2026-02-03 19:24:38
-settings.autoImport: true
-settings.syncInterval: 15
-```
+---
 
 ## Oplossing
 
-### Stap 1: Marketplace Sync Scheduler Edge Function
+### Stap 1: Edge Function Aanpassen
 
-**Nieuw bestand:** `supabase/functions/marketplace-sync-scheduler/index.ts`
+De `generate-invoice` functie wordt aangepast om te controleren of prijzen inclusief of exclusief BTW zijn.
 
-Een nieuwe edge function die:
-- Alle actieve marketplace connecties ophaalt
-- Per connectie checkt of `autoImport` is ingeschakeld
-- Kijkt of de `last_sync_at` langer geleden is dan `syncInterval` minuten
-- De juiste sync functie aanroept (`sync-bol-orders`, `sync-shopify-orders`, etc.)
-- Na de sync de voorraad synchroniseert als `autoSyncInventory` aan staat
-
-```text
-+-------------------+     +------------------------+     +------------------+
-|  Cron Trigger     | --> | marketplace-sync-      | --> | sync-bol-orders  |
-|  (elke 5 min)     |     | scheduler              |     | sync-bol-inventory
-+-------------------+     +------------------------+     +------------------+
-                                   |
-                                   v
-                          +------------------------+
-                          | marketplace_connections|
-                          | - last_sync_at         |
-                          | - settings.syncInterval|
-                          | - settings.autoImport  |
-                          +------------------------+
+**Huidige logica:**
+```
+subtotal = €27.95
+tax = subtotal × 21% = €5.87
+total = €33.82 (FOUT)
 ```
 
-### Stap 2: Config.toml Updaten
-
-De edge function moet JWT-verificatie uitschakelen zodat deze door een externe cron service kan worden aangeroepen:
-
-```toml
-[functions.marketplace-sync-scheduler]
-verify_jwt = false
+**Nieuwe logica voor inclusieve prijzen:**
+```
+totaal_incl = €27.95
+subtotal_excl = €27.95 / 1.21 = €23.10
+tax = €4.85
+total = €27.95 (CORRECT)
 ```
 
-### Stap 3: Externe Cron Service
+De factuur toont dan netjes:
+- Subtotaal (excl BTW): €23,10
+- BTW 21%: €4,85
+- **Totaal: €27,95** ✓
 
-Voor productie is een externe service nodig die de scheduler elke 5 minuten aanroept:
-- **Optie A:** Supabase heeft geen native cron, dus een service zoals `cron-job.org`, `Vercel Cron`, of `GitHub Actions` kan dit doen
-- **Optie B:** Client-side polling (minder betrouwbaar maar werkt als fallback)
+### Stap 2: Alle Bestaande Facturen Verwijderen en Opnieuw Genereren
 
-### Stap 4: Client-Side Fallback (Optioneel)
+Er zijn ~52 foutieve facturen die verwijderd en opnieuw gegenereerd moeten worden:
+1. Verwijder alle bestaande facturen + gekoppelde invoice_lines
+2. Verwijder de archief-records
+3. Roep de generate-invoice functie opnieuw aan voor elke order
 
-Een React hook die de sync periodiek triggert wanneer de gebruiker de marketplace pagina bekijkt:
-
-**Bestand:** `src/hooks/useAutoSync.ts`
-
-```typescript
-// Trigger sync elke X minuten wanneer de gebruiker actief is
-useEffect(() => {
-  const interval = setInterval(() => {
-    if (connection?.settings?.autoImport) {
-      triggerSync(connection.id);
-    }
-  }, connection.settings.syncInterval * 60 * 1000);
-  
-  return () => clearInterval(interval);
-}, [connection]);
-```
+---
 
 ## Technische Details
 
-### Edge Function Logic
+### Wijzigingen in `generate-invoice/index.ts`
 
+1. **Tenant vat_handling ophalen** - al beschikbaar via `tenant.default_vat_handling`
+
+2. **BTW herberekening toevoegen:**
 ```typescript
-// marketplace-sync-scheduler/index.ts
-Deno.serve(async (req) => {
-  // 1. Haal alle actieve connecties op
-  const { data: connections } = await supabase
-    .from('marketplace_connections')
-    .select('*')
-    .eq('is_active', true);
-  
-  // 2. Voor elke connectie
-  for (const conn of connections) {
-    const settings = conn.settings;
-    const lastSync = new Date(conn.last_sync_at || 0);
-    const syncInterval = settings.syncInterval || 15; // minuten
-    const now = new Date();
-    
-    // 3. Check of sync nodig is
-    const minutesSinceLastSync = (now - lastSync) / 60000;
-    
-    if (settings.autoImport && minutesSinceLastSync >= syncInterval) {
-      // 4. Trigger de juiste sync functie
-      await fetch(`${projectUrl}/functions/v1/${syncFunction}`, {
-        method: 'POST',
-        body: JSON.stringify({ connectionId: conn.id })
-      });
-    }
-  }
-});
+const vatHandling = tenant.default_vat_handling || 'exclusive';
+const taxPercent = tenant.tax_percentage || 21;
+
+let subtotalExcl: number;
+let calculatedTax: number;
+let finalTotal: number;
+
+if (vatHandling === 'inclusive') {
+  // Prijzen zijn incl BTW - terugrekenen
+  finalTotal = subtotal + shippingCost;
+  subtotalExcl = finalTotal / (1 + taxPercent / 100);
+  calculatedTax = finalTotal - subtotalExcl;
+} else {
+  // Prijzen zijn excl BTW - normale berekening
+  subtotalExcl = subtotal + shippingCost;
+  calculatedTax = subtotalExcl * (taxPercent / 100);
+  finalTotal = subtotalExcl + calculatedTax;
+}
 ```
 
-## Te Wijzigen/Creëren Bestanden
+3. **Unit prices op factuurregels ook corrigeren** - per regel de netto prijs berekenen
 
-| Bestand | Actie |
-|---------|-------|
-| `supabase/functions/marketplace-sync-scheduler/index.ts` | **NIEUW** - Scheduler logic |
-| `supabase/config.toml` | Update - Toevoegen `verify_jwt = false` |
-| `src/hooks/useAutoSync.ts` | **NIEUW** - Client-side fallback (optioneel) |
-| `src/pages/admin/MarketplaceDetail.tsx` | Update - Integreren van `useAutoSync` hook |
+### Hergeneren van Facturen
 
-## Verwacht Resultaat
+Na de code-fix:
+1. Bestaande facturen verwijderen via SQL
+2. Opnieuw genereren via de cron-job of handmatig triggeren
 
-| Vóór Fix | Na Fix |
-|----------|--------|
-| Sync alleen bij handmatige actie | Automatische sync elke X minuten |
-| Laatste sync 6 dagen geleden | Sync draait elke 15 minuten |
-| `autoImport` setting doet niets | Setting wordt actief gebruikt |
+---
 
-## Cron Setup (Post-Implementatie)
+## Wat Je Krijgt
 
-Na het deployen van de scheduler, moet je een externe cron instellen. Aanbevolen: `cron-job.org` (gratis voor basis gebruik):
-
-```
-URL: https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/marketplace-sync-scheduler
-Interval: Elke 5 minuten
-Method: POST
-Headers: Authorization: Bearer [ANON_KEY]
-```
-
-Dit zorgt ervoor dat de scheduler elke 5 minuten controleert welke connecties een sync nodig hebben, gebaseerd op hun individuele `syncInterval` settings.
+Na implementatie:
+- Facturen tonen correcte subtotaal (excl BTW)
+- BTW-bedrag wordt correct berekend (teruggerekend uit totaal)
+- Eindtotaal komt overeen met het ordertotaal
+- PDF en UBL/XML facturen zijn fiscaal correct
