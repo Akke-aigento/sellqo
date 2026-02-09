@@ -1147,20 +1147,75 @@ serve(async (req) => {
 
     const customerCountry = order.shipping_address?.country || customer?.billing_country || tenant.country || 'NL';
 
-    const subtotal = Number(order.subtotal) || 0;
+    const orderSubtotal = Number(order.subtotal) || 0;
     const shippingCost = Number(order.shipping_cost) || 0;
     
+    // Check if prices are inclusive or exclusive of VAT
+    const vatHandling = tenant.default_vat_handling || 'exclusive';
+    const taxPercent = tenant.tax_percentage || 21;
+    
+    logStep("VAT handling mode", { vatHandling, taxPercent, orderSubtotal, shippingCost });
+    
+    // Calculate VAT based on customer location (for reverse charge, OSS, etc.)
     const vatCalculation = calculateVat({
-      subtotal: subtotal + shippingCost,
+      subtotal: orderSubtotal + shippingCost,
       tenant,
       customer,
       customerCountry,
     });
+    
+    // Now recalculate amounts based on vat_handling
+    let subtotalExcl: number;
+    let calculatedTaxAmount: number;
+    let finalTotal: number;
+    
+    if (vatHandling === 'inclusive') {
+      // Prices are INCLUSIVE of VAT - back-calculate to get net amounts
+      // The order total already includes VAT, so we need to extract it
+      finalTotal = orderSubtotal + shippingCost;
+      
+      // If VAT rate is 0 (reverse charge, export, etc.), no tax extraction needed
+      if (vatCalculation.vatRate === 0) {
+        subtotalExcl = finalTotal;
+        calculatedTaxAmount = 0;
+      } else {
+        // Back-calculate: netAmount = grossAmount / (1 + vatRate/100)
+        subtotalExcl = finalTotal / (1 + vatCalculation.vatRate / 100);
+        calculatedTaxAmount = finalTotal - subtotalExcl;
+      }
+      
+      logStep("Inclusive VAT calculation", { 
+        finalTotal, 
+        subtotalExcl: subtotalExcl.toFixed(2), 
+        calculatedTaxAmount: calculatedTaxAmount.toFixed(2),
+        vatRate: vatCalculation.vatRate
+      });
+    } else {
+      // Prices are EXCLUSIVE of VAT - add tax on top (original behavior)
+      subtotalExcl = orderSubtotal + shippingCost;
+      calculatedTaxAmount = vatCalculation.vatAmount;
+      finalTotal = subtotalExcl + calculatedTaxAmount;
+      
+      logStep("Exclusive VAT calculation", { 
+        subtotalExcl, 
+        calculatedTaxAmount, 
+        finalTotal 
+      });
+    }
 
-    // Calculate tax breakdown for multi-rate support
-    const taxBreakdown = calculateTaxBreakdown(orderItems || [], vatCalculation);
+    // Calculate tax breakdown for multi-rate support - adjust for inclusive pricing
+    const adjustedOrderItems = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? (orderItems || []).map(item => ({
+          ...item,
+          // Recalculate unit_price to be net of VAT
+          unit_price: Number(item.unit_price) / (1 + vatCalculation.vatRate / 100),
+          total_price: Number(item.total_price) / (1 + vatCalculation.vatRate / 100),
+        }))
+      : orderItems || [];
+    
+    const taxBreakdown = calculateTaxBreakdown(adjustedOrderItems, vatCalculation);
 
-    logStep("VAT calculated", vatCalculation);
+    logStep("VAT calculated", { ...vatCalculation, vatHandling });
 
     const isB2B = customer?.customer_type === 'b2b';
     
@@ -1176,13 +1231,16 @@ serve(async (req) => {
       tenant,
       customer,
       order,
-      orderItems: orderItems || [],
+      orderItems: adjustedOrderItems,
       invoiceLines: [], // Will be populated from invoice_lines table in future
-      subtotal,
-      taxAmount: vatCalculation.vatAmount,
-      total: subtotal + vatCalculation.vatAmount + shippingCost,
+      subtotal: subtotalExcl - shippingCost, // Product subtotal (net)
+      taxAmount: calculatedTaxAmount,
+      total: finalTotal,
       shippingCost,
-      vatCalculation,
+      vatCalculation: {
+        ...vatCalculation,
+        vatAmount: calculatedTaxAmount, // Use recalculated amount
+      },
       taxBreakdown,
       ogmReference,
       isB2B,
@@ -1254,7 +1312,7 @@ serve(async (req) => {
     // Determine Peppol status
     const peppolStatus = peppolRequired ? 'pending' : null;
 
-    // Create invoice record
+    // Create invoice record - use recalculated values
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
       .insert({
@@ -1263,9 +1321,9 @@ serve(async (req) => {
         customer_id: order.customer_id,
         invoice_number: invoiceNumber,
         status: 'draft',
-        subtotal: order.subtotal,
-        tax_amount: vatCalculation.vatAmount,
-        total: subtotal + vatCalculation.vatAmount + shippingCost,
+        subtotal: subtotalExcl, // Net subtotal (without VAT)
+        tax_amount: calculatedTaxAmount,
+        total: finalTotal,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
         ogm_reference: ogmReference,
@@ -1280,33 +1338,50 @@ serve(async (req) => {
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
 
-    // Create invoice lines for tracking
+    // Create invoice lines for tracking - use net prices for inclusive VAT
     if (orderItems && orderItems.length > 0) {
-      const invoiceLines = orderItems.map((item, index) => ({
-        invoice_id: invoice.id,
-        description: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        line_total: item.total_price,
-        vat_rate: vatCalculation.vatRate,
-        vat_category: vatCalculation.taxCategoryCode,
-        vat_amount: item.total_price * (vatCalculation.vatRate / 100),
-        line_type: 'product',
-        product_id: item.product_id,
-        sort_order: index,
-      }));
+      const vatDivisor = vatHandling === 'inclusive' && vatCalculation.vatRate > 0 
+        ? (1 + vatCalculation.vatRate / 100) 
+        : 1;
+      
+      const invoiceLines = orderItems.map((item, index) => {
+        const originalUnitPrice = Number(item.unit_price);
+        const originalLineTotal = Number(item.total_price);
+        
+        // For inclusive VAT, convert to net prices
+        const netUnitPrice = originalUnitPrice / vatDivisor;
+        const netLineTotal = originalLineTotal / vatDivisor;
+        const lineVatAmount = originalLineTotal - netLineTotal;
+        
+        return {
+          invoice_id: invoice.id,
+          description: item.product_name,
+          quantity: item.quantity,
+          unit_price: netUnitPrice,
+          line_total: netLineTotal,
+          vat_rate: vatCalculation.vatRate,
+          vat_category: vatCalculation.taxCategoryCode,
+          vat_amount: lineVatAmount,
+          line_type: 'product',
+          product_id: item.product_id,
+          sort_order: index,
+        };
+      });
 
-      // Add shipping line if applicable
+      // Add shipping line if applicable - also convert for inclusive VAT
       if (shippingCost > 0) {
+        const netShippingCost = shippingCost / vatDivisor;
+        const shippingVatAmount = shippingCost - netShippingCost;
+        
         invoiceLines.push({
           invoice_id: invoice.id,
           description: 'Verzendkosten',
           quantity: 1,
-          unit_price: shippingCost,
-          line_total: shippingCost,
+          unit_price: netShippingCost,
+          line_total: netShippingCost,
           vat_rate: vatCalculation.vatRate,
           vat_category: vatCalculation.taxCategoryCode,
-          vat_amount: shippingCost * (vatCalculation.vatRate / 100),
+          vat_amount: shippingVatAmount,
           line_type: 'shipping',
           product_id: null,
           sort_order: orderItems.length,
@@ -1317,7 +1392,7 @@ serve(async (req) => {
         .from("invoice_lines")
         .insert(invoiceLines);
       
-      logStep("Invoice lines created", { count: invoiceLines.length });
+      logStep("Invoice lines created", { count: invoiceLines.length, vatHandling });
     }
 
     // Archive the invoice for 7-year retention (Belgian legal requirement)
