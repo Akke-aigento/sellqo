@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
@@ -82,26 +83,38 @@ export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {invoice.invoice_pdf_url && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <a
-                            href={invoice.invoice_pdf_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" asChild>
+                              <a
+                                href={invoice.invoice_pdf_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Download PDF</TooltipContent>
+                        </Tooltip>
                       )}
                       {invoice.hosted_invoice_url && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <a
-                            href={invoice.hosted_invoice_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" asChild>
+                              <a
+                                href={invoice.hosted_invoice_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
                   </TableCell>
