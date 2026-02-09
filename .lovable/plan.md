@@ -1,89 +1,63 @@
 
-# Plan: Factuur Actieknop Tooltips op Basis van Status
+# Plan: Email Afzenderdomein Standaardiseren naar sellqo.app
 
-## Probleem
+## Samenvatting
 
-In de factuuroverzichten (`Billing.tsx`, `TenantInvoicesTab.tsx`, `PlatformBilling.tsx`) is er een ExternalLink knop die naar de Stripe hosted invoice pagina linkt. Deze knop:
-1. Heeft geen tooltip - gebruikers weten niet wat de knop doet
-2. De Stripe pagina zelf kan "Betaal factuur" tonen, ook voor reeds betaalde facturen
-3. Dit is verwarrend voor gebruikers
+Alle email edge functions gebruiken momenteel Resend's test domeinen (`onboarding@resend.dev`, `notifications@resend.dev`, `noreply@resend.dev`), wat zorgt voor:
+1. 403 errors bij verzending naar externe ontvangers
+2. Inconsistente afzender adressen
+3. Geen duidelijke branding
 
-## Oplossing
+**Oplossing**: Standaardiseren naar `sellqo.app` domein (reeds geverifieerd bij Resend) met optionele ondersteuning voor eigen tenant domeinen.
 
-Tooltips toevoegen aan de ExternalLink knoppen met contextgevoelige tekst:
+## Email Types & Afzenderlogica
 
-| Factuurstatus | Tooltip tekst |
-|---------------|---------------|
-| `paid` | "Bekijk factuur" |
-| `open`, `draft`, etc. | "Betaal factuur" |
+| Type Email | Afzenderadres | Logica |
+|------------|---------------|--------|
+| **Platform emails** (team invites, trial warnings) | `noreply@sellqo.app` | Altijd Sellqo platform |
+| **Systeemnotificaties** (orders, betalingen) | `noreply@sellqo.app` | Platform afzender |
+| **Klantcommunicatie** (facturen, offertes, campaigns) | Tenant email OF `noreply@sellqo.app` | Tenant keuze |
 
 ## Technische Wijzigingen
 
-### 1. `src/pages/admin/Billing.tsx`
+### 10 Edge Functions aan te passen:
 
-Regels 359-365 aanpassen:
+| Edge Function | Huidige `from` | Nieuwe `from` |
+|---------------|----------------|---------------|
+| `send-invoice-email` | `onboarding@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `send-quote-email` | `onboarding@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `send-customer-message` | `onboarding@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `send-test-email` | `noreply@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `send-gift-card-email` | `onboarding@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `send-team-invitation` | `onboarding@resend.dev` | `Sellqo <noreply@sellqo.app>` |
+| `send-campaign-batch` | `noreply@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `send-trial-expiry-warning` | `notifications@resend.dev` | `Sellqo <noreply@sellqo.app>` |
+| `create-notification` | `notifications@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
+| `automation-scheduler` | `noreply@resend.dev` | `${tenant.name} <noreply@sellqo.app>` |
 
-```typescript
-// Huidige code
-{invoice.hosted_invoice_url && (
-  <Button size="icon" variant="ghost" asChild>
-    <a href={invoice.hosted_invoice_url} target="_blank">
-      <ExternalLink className="h-4 w-4" />
-    </a>
-  </Button>
-)}
-
-// Nieuwe code met Tooltip
-{invoice.hosted_invoice_url && (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Button size="icon" variant="ghost" asChild>
-        <a href={invoice.hosted_invoice_url} target="_blank">
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent>
-      {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
-    </TooltipContent>
-  </Tooltip>
-)}
-```
-
-**Import toevoegen:** `Tooltip, TooltipContent, TooltipTrigger` van `@/components/ui/tooltip`
-
-### 2. `src/components/platform/TenantInvoicesTab.tsx`
-
-Regels 95-105 aanpassen met dezelfde logica:
+### Code Patroon
 
 ```typescript
-{invoice.hosted_invoice_url && (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Button variant="ghost" size="icon" asChild>
-        <a href={invoice.hosted_invoice_url} target="_blank">
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent>
-      {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
-    </TooltipContent>
-  </Tooltip>
-)}
+// Platform emails (team invites, trial warnings, etc.)
+from: "Sellqo <noreply@sellqo.app>"
+
+// Tenant-specifieke emails (facturen, offertes, etc.)
+from: `${tenant.name} <noreply@sellqo.app>`
 ```
 
-### 3. `src/pages/platform/PlatformBilling.tsx`
+## Toekomstige Uitbreiding: Eigen Domein
 
-Regels 373-380 aanpassen met dezelfde tooltip logica.
+Voor tenants die hun eigen domein willen gebruiken:
 
-### 4. (Optioneel) Download knop ook voorzien van tooltip
+1. **UI Toevoeging**: Veld in tenant instellingen voor "Eigen email domein"
+2. **Validatie**: Tenant moet eigen Resend account koppelen
+3. **Logica**: Als tenant eigen domein + API key heeft → gebruik die, anders → sellqo.app
 
-Voor consistentie kan de Download knop ook een tooltip krijgen: "Download PDF"
+Dit valt buiten de huidige scope maar is eenvoudig toe te voegen.
 
-## Resultaat Na Implementatie
+## Resultaat
 
-- Gebruikers zien duidelijke feedback over wat elke knop doet
-- Bij betaalde facturen: "Bekijk factuur" (geen verwarring over "betalen")
-- Bij openstaande facturen: "Betaal factuur"
-- Betere gebruikerservaring met consistente tooltips
+- Alle emails komen van `@sellqo.app` (geverifieerd domein)
+- Geen 403 errors meer bij externe ontvangers
+- Consistente branding
+- Betere deliverability
