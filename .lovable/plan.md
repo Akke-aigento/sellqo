@@ -1,55 +1,89 @@
 
-# ✅ Plan Voltooid: BTW-inclusief Factuurberekening Gecorrigeerd
+# Plan: Factuur Actieknop Tooltips op Basis van Status
 
-## Wat Was Het Probleem
+## Probleem
 
-De tenant had `default_vat_handling: inclusive` ingesteld, maar de factuur-generator telde BTW er nog bovenop.
+In de factuuroverzichten (`Billing.tsx`, `TenantInvoicesTab.tsx`, `PlatformBilling.tsx`) is er een ExternalLink knop die naar de Stripe hosted invoice pagina linkt. Deze knop:
+1. Heeft geen tooltip - gebruikers weten niet wat de knop doet
+2. De Stripe pagina zelf kan "Betaal factuur" tonen, ook voor reeds betaalde facturen
+3. Dit is verwarrend voor gebruikers
 
-**Voorbeeld VOOR de fix:**
-| Order | Ordertotaal | Factuur | Verschil |
-|-------|-------------|---------|----------|
-| #1022 | €27,95 | €33,82 | +21% te veel |
+## Oplossing
 
-## De Oplossing (Geïmplementeerd)
+Tooltips toevoegen aan de ExternalLink knoppen met contextgevoelige tekst:
 
-### Edge Function `generate-invoice` Aangepast
+| Factuurstatus | Tooltip tekst |
+|---------------|---------------|
+| `paid` | "Bekijk factuur" |
+| `open`, `draft`, etc. | "Betaal factuur" |
 
-De functie controleert nu `tenant.default_vat_handling`:
+## Technische Wijzigingen
+
+### 1. `src/pages/admin/Billing.tsx`
+
+Regels 359-365 aanpassen:
 
 ```typescript
-if (vatHandling === 'inclusive') {
-  // Prijzen zijn incl BTW - terugrekenen
-  finalTotal = orderSubtotal + shippingCost;
-  subtotalExcl = finalTotal / (1 + vatRate / 100);
-  calculatedTaxAmount = finalTotal - subtotalExcl;
-} else {
-  // Prijzen zijn excl BTW - BTW erbij optellen
-  subtotalExcl = orderSubtotal + shippingCost;
-  calculatedTaxAmount = subtotalExcl * (vatRate / 100);
-  finalTotal = subtotalExcl + calculatedTaxAmount;
-}
+// Huidige code
+{invoice.hosted_invoice_url && (
+  <Button size="icon" variant="ghost" asChild>
+    <a href={invoice.hosted_invoice_url} target="_blank">
+      <ExternalLink className="h-4 w-4" />
+    </a>
+  </Button>
+)}
+
+// Nieuwe code met Tooltip
+{invoice.hosted_invoice_url && (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button size="icon" variant="ghost" asChild>
+        <a href={invoice.hosted_invoice_url} target="_blank">
+          <ExternalLink className="h-4 w-4" />
+        </a>
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+    </TooltipContent>
+  </Tooltip>
+)}
 ```
 
-### Resultaat NA de fix:
-| Order | Ordertotaal | Factuur | Status |
-|-------|-------------|---------|--------|
-| #1022 | €27,95 | €27,95 | ✅ Correct |
-| #1089 | €445,00 | €445,00 | ✅ Correct |
-| #1024 | €50,31 | €50,31 | ✅ Correct |
+**Import toevoegen:** `Tooltip, TooltipContent, TooltipTrigger` van `@/components/ui/tooltip`
 
-De facturen tonen nu:
-- Subtotaal (excl BTW): correct teruggerekend
-- BTW 21%: correct berekend  
-- Totaal: gelijk aan ordertotaal ✓
+### 2. `src/components/platform/TenantInvoicesTab.tsx`
 
-## Acties Uitgevoerd
+Regels 95-105 aanpassen met dezelfde logica:
 
-1. ✅ `generate-invoice` edge function aangepast
-2. ✅ Alle 52 foutieve facturen verwijderd
-3. ✅ Nieuwe facturen worden automatisch correct gegenereerd
-4. ✅ Cron job blijft draaien voor de rest
+```typescript
+{invoice.hosted_invoice_url && (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="ghost" size="icon" asChild>
+        <a href={invoice.hosted_invoice_url} target="_blank">
+          <ExternalLink className="h-4 w-4" />
+        </a>
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+    </TooltipContent>
+  </Tooltip>
+)}
+```
 
-## Notities
+### 3. `src/pages/platform/PlatformBilling.tsx`
 
-- De `auto-invoice-cron` job draait elke 5 minuten en pakt alle betaalde orders
-- Nieuwe orders krijgen automatisch correct berekende facturen
+Regels 373-380 aanpassen met dezelfde tooltip logica.
+
+### 4. (Optioneel) Download knop ook voorzien van tooltip
+
+Voor consistentie kan de Download knop ook een tooltip krijgen: "Download PDF"
+
+## Resultaat Na Implementatie
+
+- Gebruikers zien duidelijke feedback over wat elke knop doet
+- Bij betaalde facturen: "Bekijk factuur" (geen verwarring over "betalen")
+- Bij openstaande facturen: "Betaal factuur"
+- Betere gebruikerservaring met consistente tooltips
