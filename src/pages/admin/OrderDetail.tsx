@@ -25,7 +25,9 @@ import { BolActionsCard } from '@/components/admin/BolActionsCard';
 import { MarkAsPaidButton, PaymentMethodType } from '@/components/admin/MarkAsPaidButton';
 import type { OrderStatus, PaymentStatus } from '@/types/order';
 import type { ServicePointData } from '@/types/servicePoint';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
+import { toast } from 'sonner';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -464,6 +466,48 @@ export default function OrderDetailPage() {
                   Geen factuur beschikbaar voor deze bestelling
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Packing Slip */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Pakbon
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={async () => {
+                  if (!order || !currentTenant) return;
+                  try {
+                    const pdfBytes = await generatePackingSlipPdf(order, {
+                      name: currentTenant.name,
+                      address: currentTenant.address,
+                      city: currentTenant.city,
+                      postal_code: currentTenant.postal_code,
+                      country: currentTenant.country,
+                      phone: currentTenant.phone,
+                    });
+                    const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Pakbon-${order.order_number}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch (err) {
+                    toast.error('Fout bij genereren pakbon');
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download pakbon
+              </Button>
             </CardContent>
           </Card>
 
