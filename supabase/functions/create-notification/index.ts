@@ -155,7 +155,7 @@ serve(async (req: Request): Promise<Response> => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: `${tenant.name || 'Sellqo'} <notifications@resend.dev>`,
+            from: `${tenant.name || 'Sellqo'} <noreply@sellqo.app>`,
             to: recipients,
             subject: emailSubject,
             html: htmlContent,

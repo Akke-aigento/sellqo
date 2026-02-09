@@ -429,7 +429,7 @@ serve(async (req) => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: `${tenant.name} <onboarding@resend.dev>`,
+      from: `${tenant.name} <noreply@sellqo.app>`,
       to: [quote.customer.email],
       subject: `Offerte ${quote.quote_number} van ${tenant.name}`,
       html: emailHtml,

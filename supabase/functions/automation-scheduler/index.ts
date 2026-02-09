@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
 
             const resend = new Resend(resendApiKey);
             await resend.emails.send({
-              from: tenant?.email ? `${tenant.name} <${tenant.email}>` : "noreply@resend.dev",
+              from: `${tenant?.name || 'Sellqo'} <noreply@sellqo.app>`,
               to: [recipient.email],
               subject,
               html: htmlContent,

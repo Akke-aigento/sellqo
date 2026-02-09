@@ -165,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
         subject,
         body_html,
         body_text: body_text || body_html.replace(/<[^>]*>/g, ''),
-        from_email: `${fromName} <onboarding@resend.dev>`,
+        from_email: `${fromName} <noreply@sellqo.app>`,
         to_email: customer_email,
         reply_to_email: replyToEmail,
         status: 'sending',
@@ -190,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: `${fromName} <onboarding@resend.dev>`,
+      from: `${fromName} <noreply@sellqo.app>`,
       to: [customer_email],
       reply_to: replyToEmail,
       subject,

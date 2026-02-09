@@ -223,7 +223,7 @@ serve(async (req) => {
     logStep("Sending email", { to: customer.email, cc: ccEmails, bcc: bccEmails });
 
     const emailResponse = await resend.emails.send({
-      from: `${tenant.name} <onboarding@resend.dev>`,
+      from: `${tenant.name} <noreply@sellqo.app>`,
       to: toEmails,
       cc: ccEmails,
       bcc: bccEmails,
