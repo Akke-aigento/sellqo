@@ -1,120 +1,143 @@
 
+# Fix: Automatische Bol.com Synchronisatie Implementeren
 
-# Fix: Orders Sorteren op Originele Besteldatum
+## Probleem Geanalyseerd
 
-## Probleem Analyse
+De automatische synchronisatie werkt niet omdat:
 
-De geïmporteerde orders worden gesorteerd op **importdatum** (`created_at`) in plaats van de **originele besteldatum**. Dit komt door twee problemen:
+1. **Geen Sync Scheduler Edge Function** - Er is geen cron job of scheduler die periodiek de `sync-bol-orders` en `sync-bol-inventory` edge functions aanroept
+2. **Settings worden opgeslagen maar niet gebruikt** - De `syncInterval` (15 minuten) en `autoImport` (true) staan correct in de database, maar er is geen code die hierop reageert
+3. **Laatste sync: 3 februari** - Bijna een week geleden, alleen handmatig aangeroepen
 
-### Probleem 1: `original_created_at` wordt niet opgeslagen
-De CSV import edge function ontvangt wel de originele datum uit de mapping, maar slaat deze **niet op** in de database:
-
-```typescript
-// buildOrderData() in run-csv-import/index.ts
-return {
-  tenant_id: tenantId,
-  // ... andere velden ...
-  import_source: record.import_source || "csv",
-  // MIST: original_created_at ← wordt niet meegenomen!
-};
+### Database Bewijs
 ```
-
-### Probleem 2: Query sorteert op verkeerde kolom
-```typescript
-// useOrders.ts lijn 25
-.order('created_at', { ascending: false })  // ← importdatum, niet besteldatum
+last_sync_at: 2026-02-03 19:24:38
+settings.autoImport: true
+settings.syncInterval: 15
 ```
-
----
 
 ## Oplossing
 
-### Stap 1: Edge Function - Originele Datum Opslaan
+### Stap 1: Marketplace Sync Scheduler Edge Function
 
-**Bestand:** `supabase/functions/run-csv-import/index.ts`
+**Nieuw bestand:** `supabase/functions/marketplace-sync-scheduler/index.ts`
 
-Voeg `original_created_at` toe aan `buildOrderData()`:
+Een nieuwe edge function die:
+- Alle actieve marketplace connecties ophaalt
+- Per connectie checkt of `autoImport` is ingeschakeld
+- Kijkt of de `last_sync_at` langer geleden is dan `syncInterval` minuten
+- De juiste sync functie aanroept (`sync-bol-orders`, `sync-shopify-orders`, etc.)
+- Na de sync de voorraad synchroniseert als `autoSyncInventory` aan staat
 
-```typescript
-function buildOrderData(tenantId: string, record: Record<string, unknown>, customerId: string | null) {
-  return {
-    // ... bestaande velden ...
-    import_source: record.import_source || "csv",
-    // TOEVOEGEN:
-    original_created_at: record.original_created_at || null,
-  };
-}
+```text
++-------------------+     +------------------------+     +------------------+
+|  Cron Trigger     | --> | marketplace-sync-      | --> | sync-bol-orders  |
+|  (elke 5 min)     |     | scheduler              |     | sync-bol-inventory
++-------------------+     +------------------------+     +------------------+
+                                   |
+                                   v
+                          +------------------------+
+                          | marketplace_connections|
+                          | - last_sync_at         |
+                          | - settings.syncInterval|
+                          | - settings.autoImport  |
+                          +------------------------+
 ```
 
-### Stap 2: Query - Sorteer op Juiste Datum
+### Stap 2: Config.toml Updaten
 
-**Bestand:** `src/hooks/useOrders.ts`
+De edge function moet JWT-verificatie uitschakelen zodat deze door een externe cron service kan worden aangeroepen:
 
-Wijzig de sortering om `original_created_at` te gebruiken (met fallback naar `created_at`):
+```toml
+[functions.marketplace-sync-scheduler]
+verify_jwt = false
+```
+
+### Stap 3: Externe Cron Service
+
+Voor productie is een externe service nodig die de scheduler elke 5 minuten aanroept:
+- **Optie A:** Supabase heeft geen native cron, dus een service zoals `cron-job.org`, `Vercel Cron`, of `GitHub Actions` kan dit doen
+- **Optie B:** Client-side polling (minder betrouwbaar maar werkt als fallback)
+
+### Stap 4: Client-Side Fallback (Optioneel)
+
+Een React hook die de sync periodiek triggert wanneer de gebruiker de marketplace pagina bekijkt:
+
+**Bestand:** `src/hooks/useAutoSync.ts`
 
 ```typescript
-// De SQL/Supabase aanpak: sorteer op COALESCE(original_created_at, created_at)
-// Supabase JS ondersteunt geen COALESCE in order(), dus we doen dit met RPC of client-side
+// Trigger sync elke X minuten wanneer de gebruiker actief is
+useEffect(() => {
+  const interval = setInterval(() => {
+    if (connection?.settings?.autoImport) {
+      triggerSync(connection.id);
+    }
+  }, connection.settings.syncInterval * 60 * 1000);
+  
+  return () => clearInterval(interval);
+}, [connection]);
+```
 
-// Optie 1: Client-side sorteren (eenvoudigst)
-const { data, error } = await query;
-if (error) throw error;
+## Technische Details
 
-// Sorteer op originele datum (met fallback naar created_at)
-const sortedData = (data as Order[]).sort((a, b) => {
-  const dateA = a.original_created_at || a.created_at;
-  const dateB = b.original_created_at || b.created_at;
-  return new Date(dateB).getTime() - new Date(dateA).getTime();
+### Edge Function Logic
+
+```typescript
+// marketplace-sync-scheduler/index.ts
+Deno.serve(async (req) => {
+  // 1. Haal alle actieve connecties op
+  const { data: connections } = await supabase
+    .from('marketplace_connections')
+    .select('*')
+    .eq('is_active', true);
+  
+  // 2. Voor elke connectie
+  for (const conn of connections) {
+    const settings = conn.settings;
+    const lastSync = new Date(conn.last_sync_at || 0);
+    const syncInterval = settings.syncInterval || 15; // minuten
+    const now = new Date();
+    
+    // 3. Check of sync nodig is
+    const minutesSinceLastSync = (now - lastSync) / 60000;
+    
+    if (settings.autoImport && minutesSinceLastSync >= syncInterval) {
+      // 4. Trigger de juiste sync functie
+      await fetch(`${projectUrl}/functions/v1/${syncFunction}`, {
+        method: 'POST',
+        body: JSON.stringify({ connectionId: conn.id })
+      });
+    }
+  }
 });
-
-return sortedData;
 ```
 
-### Stap 3: Type Definities Bijwerken
+## Te Wijzigen/Creëren Bestanden
 
-**Bestand:** `src/types/order.ts`
-
-Voeg `original_created_at` toe aan de Order interface:
-
-```typescript
-export interface Order {
-  // ... bestaande velden ...
-  import_source?: string | null;
-  original_created_at?: string | null;  // ← TOEVOEGEN
-}
-```
-
----
-
-## Database Fix voor Bestaande Data
-
-Na het implementeren van de code fix, kun je de bestaande orders fixen met een SQL query in Cloud View > Run SQL:
-
-```sql
--- Update orders waar original_created_at NULL is maar er wel een raw_marketplace_data is
-UPDATE orders
-SET original_created_at = (raw_marketplace_data->>'created_at')::timestamptz
-WHERE original_created_at IS NULL 
-  AND raw_marketplace_data->>'created_at' IS NOT NULL;
-```
-
----
+| Bestand | Actie |
+|---------|-------|
+| `supabase/functions/marketplace-sync-scheduler/index.ts` | **NIEUW** - Scheduler logic |
+| `supabase/config.toml` | Update - Toevoegen `verify_jwt = false` |
+| `src/hooks/useAutoSync.ts` | **NIEUW** - Client-side fallback (optioneel) |
+| `src/pages/admin/MarketplaceDetail.tsx` | Update - Integreren van `useAutoSync` hook |
 
 ## Verwacht Resultaat
 
 | Vóór Fix | Na Fix |
 |----------|--------|
-| Orders gesorteerd op importdatum | Orders gesorteerd op originele besteldatum |
-| Nieuwste import bovenaan | Nieuwste bestelling bovenaan |
-| `original_created_at` altijd NULL | Originele datum bewaard bij import |
+| Sync alleen bij handmatige actie | Automatische sync elke X minuten |
+| Laatste sync 6 dagen geleden | Sync draait elke 15 minuten |
+| `autoImport` setting doet niets | Setting wordt actief gebruikt |
 
----
+## Cron Setup (Post-Implementatie)
 
-## Te Wijzigen Bestanden
+Na het deployen van de scheduler, moet je een externe cron instellen. Aanbevolen: `cron-job.org` (gratis voor basis gebruik):
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/run-csv-import/index.ts` | Voeg `original_created_at` toe aan `buildOrderData()` |
-| `src/hooks/useOrders.ts` | Sorteer op `original_created_at` met fallback |
-| `src/types/order.ts` | Voeg `original_created_at` toe aan Order interface |
+```
+URL: https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/marketplace-sync-scheduler
+Interval: Elke 5 minuten
+Method: POST
+Headers: Authorization: Bearer [ANON_KEY]
+```
 
+Dit zorgt ervoor dat de scheduler elke 5 minuten controleert welke connecties een sync nodig hebben, gebaseerd op hun individuele `syncInterval` settings.
