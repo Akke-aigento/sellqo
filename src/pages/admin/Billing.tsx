@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export default function BillingPage() {
@@ -350,18 +351,30 @@ export default function BillingPage() {
                     <TableCell>
                       <div className="flex gap-2">
                         {invoice.invoice_pdf_url && (
-                          <Button size="icon" variant="ghost" asChild>
-                            <a href={invoice.invoice_pdf_url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" asChild>
+                                <a href={invoice.invoice_pdf_url} target="_blank" rel="noopener noreferrer">
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Download PDF</TooltipContent>
+                          </Tooltip>
                         )}
                         {invoice.hosted_invoice_url && (
-                          <Button size="icon" variant="ghost" asChild>
-                            <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" asChild>
+                                <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>

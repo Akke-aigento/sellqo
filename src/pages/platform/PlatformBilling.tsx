@@ -15,6 +15,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   TrendingUp, 
   Users, 
@@ -371,13 +372,20 @@ export default function PlatformBilling() {
                     </TableCell>
                     <TableCell>
                       {invoice.hosted_invoice_url && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => window.open(invoice.hosted_invoice_url!, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => window.open(invoice.hosted_invoice_url!, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </TableCell>
                   </TableRow>
