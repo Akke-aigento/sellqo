@@ -169,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: `${fromName} <onboarding@resend.dev>`,
+      from: `${fromName} <noreply@sellqo.app>`,
       to: [recipientEmail],
       reply_to: tenant.owner_email || undefined,
       subject: `🎁 Je hebt een cadeaukaart ontvangen van ${fromName}!`,

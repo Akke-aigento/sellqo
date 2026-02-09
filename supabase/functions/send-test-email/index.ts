@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     // Send the test email
     const emailResponse = await resend.emails.send({
-      from: tenant.email ? `${tenant.name} <${tenant.email}>` : "noreply@resend.dev",
+      from: `${tenant.name} <noreply@sellqo.app>`,
       to: [toEmail],
       subject: `[TEST] ${processedSubject}`,
       html: processedHtml,
