@@ -73,6 +73,7 @@ import { BolVVBSettings } from '@/components/admin/marketplace/BolVVBSettings';
 import { AmazonBuyShippingSettings } from '@/components/admin/marketplace/AmazonBuyShippingSettings';
 import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWidget';
 import { BolCsvImport } from '@/components/admin/marketplace/BolCsvImport';
+import { useAutoSync } from '@/hooks/useAutoSync';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,6 +86,12 @@ export default function MarketplaceDetailPage() {
   const { currentTenant } = useTenant();
   const { connection, isLoading } = useMarketplaceConnection(connectionId);
   const { updateConnection, deleteConnection } = useMarketplaceConnections();
+
+  // Enable auto-sync when viewing this page
+  useAutoSync({
+    connection,
+    enabled: !!connection?.is_active,
+  });
 
   const [syncing, setSyncing] = useState(false);
   const [importingHistorical, setImportingHistorical] = useState(false);

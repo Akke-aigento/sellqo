@@ -281,3 +281,6 @@ verify_jwt = false
 
 [functions.run-csv-import]
 verify_jwt = false
+
+[functions.marketplace-sync-scheduler]
+verify_jwt = false
