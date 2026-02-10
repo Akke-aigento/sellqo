@@ -264,15 +264,14 @@ export default function OrderDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Customer & Actions */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
+        {/* Right Column - Consolidated */}
+        <div className="space-y-4">
+          {/* Card 1: Acties & Status */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Acties</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Acties & Status</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Mark as Paid button - only show when payment is pending */}
+            <CardContent className="space-y-3">
               {order.payment_status === 'pending' && (
                 <MarkAsPaidButton
                   orderId={order.id}
@@ -281,203 +280,144 @@ export default function OrderDetailPage() {
                   onConfirm={handleMarkAsPaid}
                 />
               )}
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Orderstatus</label>
-                <Select
-                  value={order.status}
-                  onValueChange={(value) => updateOrderStatus.mutate({ orderId: order.id, status: value as OrderStatus })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">In afwachting</SelectItem>
-                    <SelectItem value="processing">In behandeling</SelectItem>
-                    <SelectItem value="shipped">Verzonden</SelectItem>
-                    <SelectItem value="delivered">Afgeleverd</SelectItem>
-                    <SelectItem value="cancelled">Geannuleerd</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Betaalstatus</label>
-                <Select
-                  value={order.payment_status}
-                  onValueChange={(value) => updatePaymentStatus.mutate({ orderId: order.id, paymentStatus: value as PaymentStatus })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Onbetaald</SelectItem>
-                    <SelectItem value="paid">Betaald</SelectItem>
-                    <SelectItem value="refunded">Terugbetaald</SelectItem>
-                    <SelectItem value="failed">Mislukt</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Orderstatus</label>
+                  <Select
+                    value={order.status}
+                    onValueChange={(value) => updateOrderStatus.mutate({ orderId: order.id, status: value as OrderStatus })}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">In afwachting</SelectItem>
+                      <SelectItem value="processing">In behandeling</SelectItem>
+                      <SelectItem value="shipped">Verzonden</SelectItem>
+                      <SelectItem value="delivered">Afgeleverd</SelectItem>
+                      <SelectItem value="cancelled">Geannuleerd</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Betaalstatus</label>
+                  <Select
+                    value={order.payment_status}
+                    onValueChange={(value) => updatePaymentStatus.mutate({ orderId: order.id, paymentStatus: value as PaymentStatus })}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Onbetaald</SelectItem>
+                      <SelectItem value="paid">Betaald</SelectItem>
+                      <SelectItem value="refunded">Terugbetaald</SelectItem>
+                      <SelectItem value="failed">Mislukt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Customer Info */}
+          {/* Card 2: Klant & Adressen */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Klant
+                Klant & Adressen
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <div className="font-medium">{order.customer_name || 'Onbekend'}</div>
-                <div className="text-muted-foreground">{order.customer_email}</div>
-                {order.customer_phone && (
-                  <div className="text-muted-foreground">{order.customer_phone}</div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => setShowMessageDialog(true)}
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Email
-                </Button>
-                {order.customer_id && (
+            <CardContent className="space-y-4">
+              {/* Klantinfo */}
+              <div className="flex items-start justify-between">
+                <div className="text-sm">
+                  <div className="font-medium">{order.customer_name || 'Onbekend'}</div>
+                  <div className="text-muted-foreground">{order.customer_email}</div>
+                  {order.customer_phone && (
+                    <div className="text-muted-foreground">{order.customer_phone}</div>
+                  )}
+                </div>
+                <div className="flex gap-1">
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => navigate(`/admin/customers/${order.customer_id}`)}
+                    size="sm"
+                    onClick={() => setShowMessageDialog(true)}
                   >
-                    Profiel
+                    <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                    Email
                   </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Message History */}
-          {order.id && (
-            <MessageHistoryPanel 
-              entityType="order" 
-              entityId={order.id} 
-              compact 
-              maxItems={3} 
-            />
-          )}
-
-          {/* Tracking Info */}
-          <TrackingInfoCard order={order} />
-
-          {/* Bol.com Actions - Only shown for Bol.com orders */}
-          <BolActionsCard order={order} />
-
-          {/* Service Point Info - Show if delivery_type is service_point */}
-          {order.delivery_type === 'service_point' && order.service_point_data && (
-            <ServicePointCard 
-              servicePoint={order.service_point_data as unknown as ServicePointData} 
-            />
-          )}
-
-          {/* Shipping Address */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {order.delivery_type === 'service_point' ? 'Klantadres' : 'Verzendadres'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <p className="text-muted-foreground">{formatAddress(order.shipping_address)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Billing Address */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Factuuradres
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <p className="text-muted-foreground">{formatAddress(order.billing_address)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Invoice Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Factuur
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {invoice ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{invoice.invoice_number}</span>
-                    <InvoiceStatusBadge status={invoice.status} />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {invoice.pdf_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(invoice.pdf_url!, '_blank')}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        PDF
-                      </Button>
-                    )}
-                    {invoice.ubl_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(invoice.ubl_url!, '_blank')}
-                      >
-                        <FileCode className="h-4 w-4 mr-2" />
-                        UBL
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
+                  {order.customer_id && (
+                    <Button 
+                      variant="outline" 
                       size="sm"
-                      onClick={() => resendInvoice.mutate(invoice.id)}
-                      disabled={resendInvoice.isPending}
+                      onClick={() => navigate(`/admin/customers/${order.customer_id}`)}
                     >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Versturen
+                      Profiel
                     </Button>
-                  </div>
-                  {invoice.sent_at && (
-                    <p className="text-xs text-muted-foreground">
-                      Verstuurd op {format(new Date(invoice.sent_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
-                    </p>
                   )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Adressen in 2 kolommen */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="flex items-center gap-1 mb-1">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium text-xs">{order.delivery_type === 'service_point' ? 'Klantadres' : 'Verzendadres'}</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs leading-relaxed">{formatAddress(order.shipping_address)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1 mb-1">
+                    <CreditCard className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium text-xs">Factuuradres</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs leading-relaxed">{formatAddress(order.billing_address)}</p>
+                </div>
+              </div>
+
+              {/* Service Point */}
+              {order.delivery_type === 'service_point' && order.service_point_data && (
+                <>
+                  <Separator />
+                  <ServicePointCard 
+                    servicePoint={order.service_point_data as unknown as ServicePointData} 
+                  />
                 </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Geen factuur beschikbaar voor deze bestelling
-                </p>
+              )}
+
+              {/* Berichtenhistorie */}
+              {order.id && (
+                <>
+                  <Separator />
+                  <MessageHistoryPanel 
+                    entityType="order" 
+                    entityId={order.id} 
+                    compact 
+                    maxItems={3}
+                  />
+                </>
               )}
             </CardContent>
           </Card>
 
-          {/* Packing Slip */}
+          {/* Card 3: Verzending & Tracking */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Pakbon
+                <Truck className="h-4 w-4" />
+                Verzending & Tracking
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <TrackingInfoCard order={order} />
+
+              <Separator />
+
+              {/* Pakbon */}
               <Button
                 variant="outline"
                 size="sm"
@@ -508,35 +448,84 @@ export default function OrderDetailPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Download pakbon
               </Button>
+
+              {/* Bol.com acties */}
+              <BolActionsCard order={order} />
             </CardContent>
           </Card>
 
-          {/* Internal Notes */}
+          {/* Card 4: Documenten & Notities */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Interne notities
+                Documenten & Notities
               </CardTitle>
-              <CardDescription>Alleen zichtbaar voor medewerkers</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                placeholder="Voeg een interne notitie toe..."
-                value={internalNotes || order.internal_notes || ''}
-                onChange={(e) => setInternalNotes(e.target.value)}
-                rows={3}
-              />
-              <Button 
-                size="sm" 
-                className="w-full"
-                onClick={() => {
-                  updateOrderNotes.mutate({ orderId: order.id, internalNotes });
-                }}
-                disabled={updateOrderNotes.isPending}
-              >
-                Opslaan
-              </Button>
+            <CardContent className="space-y-4">
+              {/* Factuur */}
+              {invoice ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{invoice.invoice_number}</span>
+                    <InvoiceStatusBadge status={invoice.status} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {invoice.pdf_url && (
+                      <Button variant="outline" size="sm" onClick={() => window.open(invoice.pdf_url!, '_blank')}>
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    )}
+                    {invoice.ubl_url && (
+                      <Button variant="outline" size="sm" onClick={() => window.open(invoice.ubl_url!, '_blank')}>
+                        <FileCode className="h-4 w-4 mr-2" />
+                        UBL
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resendInvoice.mutate(invoice.id)}
+                      disabled={resendInvoice.isPending}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Versturen
+                    </Button>
+                  </div>
+                  {invoice.sent_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Verstuurd op {format(new Date(invoice.sent_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Geen factuur beschikbaar
+                </p>
+              )}
+
+              <Separator />
+
+              {/* Interne notities */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Interne notities</label>
+                <Textarea
+                  placeholder="Voeg een interne notitie toe..."
+                  value={internalNotes || order.internal_notes || ''}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                  rows={3}
+                  className="text-sm"
+                />
+                <Button 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => updateOrderNotes.mutate({ orderId: order.id, internalNotes })}
+                  disabled={updateOrderNotes.isPending}
+                >
+                  Opslaan
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
