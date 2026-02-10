@@ -12,9 +12,10 @@ import type { Order, Address } from '@/types/order';
 
 interface TrackingInfoCardProps {
   order: Order;
+  embedded?: boolean;
 }
 
-export function TrackingInfoCard({ order }: TrackingInfoCardProps) {
+export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardProps) {
   const { updateTracking, clearTracking, isUpdating, isClearing } = useOrderShipping();
   
   const [carrier, setCarrier] = useState(order.carrier || '');
@@ -67,6 +68,44 @@ export function TrackingInfoCard({ order }: TrackingInfoCardProps) {
 
   // Display mode - show existing tracking info
   if (!isEditing && hasTrackingInfo) {
+    const displayContent = (
+      <div className="space-y-4">
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Carrier</span>
+            <span className="font-medium">{carrierInfo?.name || order.carrier}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Tracknummer</span>
+            <span className="font-mono text-xs">{order.tracking_number}</span>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          {order.tracking_url && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => window.open(order.tracking_url!, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Track & Trace
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+          >
+            Bewerken
+          </Button>
+        </div>
+      </div>
+    );
+
+    if (embedded) return displayContent;
+
     return (
       <Card>
         <CardHeader>
@@ -75,44 +114,127 @@ export function TrackingInfoCard({ order }: TrackingInfoCardProps) {
             Verzending
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Carrier</span>
-              <span className="font-medium">{carrierInfo?.name || order.carrier}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tracknummer</span>
-              <span className="font-mono text-xs">{order.tracking_number}</span>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            {order.tracking_url && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => window.open(order.tracking_url!, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Track & Trace
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-            >
-              Bewerken
-            </Button>
-          </div>
-        </CardContent>
+        <CardContent>{displayContent}</CardContent>
       </Card>
     );
   }
 
   // Edit mode
+  const editContent = (
+    <div className="space-y-4">
+      {!embedded && (
+        <p className="text-sm text-muted-foreground">
+          {hasTrackingInfo ? 'Bewerk tracking informatie' : 'Voeg tracking informatie toe'}
+        </p>
+      )}
+      <div className="space-y-2">
+        <Label htmlFor="carrier">Carrier</Label>
+        <Select value={carrier} onValueChange={setCarrier}>
+          <SelectTrigger id="carrier">
+            <SelectValue placeholder="Selecteer carrier" />
+          </SelectTrigger>
+          <SelectContent>
+            {CARRIER_PATTERNS.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="trackingNumber">Tracknummer</Label>
+        <Input
+          id="trackingNumber"
+          value={trackingNumber}
+          onChange={(e) => setTrackingNumber(e.target.value)}
+          placeholder="Bijv. 3STEST1234567890"
+          className="font-mono text-sm"
+        />
+      </div>
+
+      {carrier === 'other' && (
+        <div className="space-y-2">
+          <Label htmlFor="trackingUrl">Tracking URL</Label>
+          <Input
+            id="trackingUrl"
+            value={trackingUrl}
+            onChange={(e) => setTrackingUrl(e.target.value)}
+            placeholder="https://..."
+            type="url"
+          />
+        </div>
+      )}
+
+      {carrier && carrier !== 'other' && trackingNumber && trackingUrl && (
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+          <span className="font-medium">URL:</span>{' '}
+          <a 
+            href={trackingUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline break-all"
+          >
+            {trackingUrl.substring(0, 50)}...
+          </a>
+        </div>
+      )}
+
+      <div className="flex items-center space-x-2 pt-2">
+        <Checkbox
+          id="notifyCustomer"
+          checked={notifyCustomer}
+          onCheckedChange={(checked) => setNotifyCustomer(checked as boolean)}
+        />
+        <Label htmlFor="notifyCustomer" className="text-sm font-normal cursor-pointer">
+          Klant per email informeren
+        </Label>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <Button
+          onClick={handleSave}
+          disabled={!trackingNumber.trim() || !carrier || isUpdating}
+          className="flex-1"
+        >
+          {isUpdating ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4 mr-2" />
+          )}
+          {notifyCustomer ? 'Opslaan & Versturen' : 'Opslaan'}
+        </Button>
+        
+        {hasTrackingInfo && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsEditing(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleClear}
+              disabled={isClearing}
+            >
+              {isClearing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Wissen'
+              )}
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (embedded) return editContent;
+
   return (
     <Card>
       <CardHeader>
@@ -124,111 +246,7 @@ export function TrackingInfoCard({ order }: TrackingInfoCardProps) {
           {hasTrackingInfo ? 'Bewerk tracking informatie' : 'Voeg tracking informatie toe'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="carrier">Carrier</Label>
-          <Select value={carrier} onValueChange={setCarrier}>
-            <SelectTrigger id="carrier">
-              <SelectValue placeholder="Selecteer carrier" />
-            </SelectTrigger>
-            <SelectContent>
-              {CARRIER_PATTERNS.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="trackingNumber">Tracknummer</Label>
-          <Input
-            id="trackingNumber"
-            value={trackingNumber}
-            onChange={(e) => setTrackingNumber(e.target.value)}
-            placeholder="Bijv. 3STEST1234567890"
-            className="font-mono text-sm"
-          />
-        </div>
-
-        {carrier === 'other' && (
-          <div className="space-y-2">
-            <Label htmlFor="trackingUrl">Tracking URL</Label>
-            <Input
-              id="trackingUrl"
-              value={trackingUrl}
-              onChange={(e) => setTrackingUrl(e.target.value)}
-              placeholder="https://..."
-              type="url"
-            />
-          </div>
-        )}
-
-        {carrier && carrier !== 'other' && trackingNumber && trackingUrl && (
-          <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
-            <span className="font-medium">URL:</span>{' '}
-            <a 
-              href={trackingUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:underline break-all"
-            >
-              {trackingUrl.substring(0, 50)}...
-            </a>
-          </div>
-        )}
-
-        <div className="flex items-center space-x-2 pt-2">
-          <Checkbox
-            id="notifyCustomer"
-            checked={notifyCustomer}
-            onCheckedChange={(checked) => setNotifyCustomer(checked as boolean)}
-          />
-          <Label htmlFor="notifyCustomer" className="text-sm font-normal cursor-pointer">
-            Klant per email informeren
-          </Label>
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <Button
-            onClick={handleSave}
-            disabled={!trackingNumber.trim() || !carrier || isUpdating}
-            className="flex-1"
-          >
-            {isUpdating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4 mr-2" />
-            )}
-            {notifyCustomer ? 'Opslaan & Versturen' : 'Opslaan'}
-          </Button>
-          
-          {hasTrackingInfo && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditing(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleClear}
-                disabled={isClearing}
-              >
-                {isClearing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Wissen'
-                )}
-              </Button>
-            </>
-          )}
-        </div>
-      </CardContent>
+      <CardContent>{editContent}</CardContent>
     </Card>
   );
 }
