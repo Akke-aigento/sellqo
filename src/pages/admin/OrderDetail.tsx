@@ -384,7 +384,8 @@ export default function OrderDetailPage() {
                 <>
                   <Separator />
                   <ServicePointCard 
-                    servicePoint={order.service_point_data as unknown as ServicePointData} 
+                    servicePoint={order.service_point_data as unknown as ServicePointData}
+                    embedded
                   />
                 </>
               )}
@@ -396,7 +397,8 @@ export default function OrderDetailPage() {
                   <MessageHistoryPanel 
                     entityType="order" 
                     entityId={order.id} 
-                    compact 
+                    compact
+                    embedded
                     maxItems={3}
                   />
                 </>
@@ -413,7 +415,7 @@ export default function OrderDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <TrackingInfoCard order={order} />
+              <TrackingInfoCard order={order} embedded />
 
               <Separator />
 
@@ -450,7 +452,7 @@ export default function OrderDetailPage() {
               </Button>
 
               {/* Bol.com acties */}
-              <BolActionsCard order={order} />
+              <BolActionsCard order={order} embedded />
             </CardContent>
           </Card>
 

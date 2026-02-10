@@ -7,6 +7,7 @@ import { ServicePointData } from "@/types/servicePoint";
 interface ServicePointCardProps {
   servicePoint: ServicePointData;
   showMapLink?: boolean;
+  embedded?: boolean;
 }
 
 const carrierColors: Record<string, string> = {
@@ -30,7 +31,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   post_office: <MapPin className="h-4 w-4" />,
 };
 
-export function ServicePointCard({ servicePoint, showMapLink = true }: ServicePointCardProps) {
+export function ServicePointCard({ servicePoint, showMapLink = true, embedded = false }: ServicePointCardProps) {
   const { name, carrier, type, address, opening_hours, latitude, longitude, distance } = servicePoint;
 
   const formatAddress = () => {
@@ -76,25 +77,23 @@ export function ServicePointCard({ servicePoint, showMapLink = true }: ServicePo
 
   const openingHoursData = formatOpeningHours();
 
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            {typeIcons[type]}
-            <CardTitle className="text-base font-medium">{name}</CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={carrierColors[carrier.toLowerCase()] || ""}>
-              {carrier.toUpperCase()}
-            </Badge>
-            <Badge variant="secondary">
-              {typeLabels[type] || type}
-            </Badge>
-          </div>
+  const content = (
+    <>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {typeIcons[type]}
+          <span className="text-base font-medium">{name}</span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={carrierColors[carrier.toLowerCase()] || ""}>
+            {carrier.toUpperCase()}
+          </Badge>
+          <Badge variant="secondary">
+            {typeLabels[type] || type}
+          </Badge>
+        </div>
+      </div>
+      <div className="space-y-4">
         <div className="flex items-start gap-2 text-sm">
           <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
           <div>
@@ -137,7 +136,19 @@ export function ServicePointCard({ servicePoint, showMapLink = true }: ServicePo
             </a>
           </Button>
         )}
-      </CardContent>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div>{content}</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        {content}
+      </CardHeader>
     </Card>
   );
 }

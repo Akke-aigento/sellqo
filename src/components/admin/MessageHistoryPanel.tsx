@@ -21,6 +21,7 @@ interface MessageHistoryPanelProps {
   entityId: string;
   compact?: boolean;
   maxItems?: number;
+  embedded?: boolean;
 }
 
 const STATUS_CONFIG: Record<CustomerMessage['delivery_status'], { label: string; icon: React.ElementType; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -37,64 +38,75 @@ export function MessageHistoryPanel({
   entityId,
   compact = false,
   maxItems,
+  embedded = false,
 }: MessageHistoryPanelProps) {
   const { data: messages = [], isLoading } = useMessageHistory(entityType, entityId);
 
   const displayMessages = maxItems ? messages.slice(0, maxItems) : messages;
 
+  const Wrapper = embedded ? 'div' : Card;
+  const WrapperHeader = embedded ? 'div' : CardHeader;
+  const WrapperContent = embedded ? 'div' : CardContent;
+
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className={compact ? 'pb-2' : undefined}>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-4 w-4" />
-            Berichtgeschiedenis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Wrapper>
+        {!embedded && (
+          <WrapperHeader className={compact ? 'pb-2' : undefined}>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-4 w-4" />
+              Berichtgeschiedenis
+            </CardTitle>
+          </WrapperHeader>
+        )}
+        <WrapperContent>
           <div className="space-y-3">
             {[1, 2].map((i) => (
               <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </WrapperContent>
+      </Wrapper>
     );
   }
 
   if (messages.length === 0) {
     return (
-      <Card>
-        <CardHeader className={compact ? 'pb-2' : undefined}>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-4 w-4" />
-            Berichtgeschiedenis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Wrapper>
+        {!embedded && (
+          <WrapperHeader className={compact ? 'pb-2' : undefined}>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-4 w-4" />
+              Berichtgeschiedenis
+            </CardTitle>
+          </WrapperHeader>
+        )}
+        <WrapperContent>
           <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
             <Mail className="h-8 w-8 mb-2 opacity-50" />
             <p className="text-sm">Nog geen berichten verstuurd</p>
           </div>
-        </CardContent>
-      </Card>
+        </WrapperContent>
+      </Wrapper>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className={compact ? 'pb-2' : undefined}>
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Berichtgeschiedenis
-          </span>
-          <Badge variant="secondary" className="font-normal">
-            {messages.length} bericht{messages.length !== 1 ? 'en' : ''}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
+    <Wrapper>
+      {!embedded && (
+        <WrapperHeader className={compact ? 'pb-2' : undefined}>
+          <CardTitle className="flex items-center justify-between text-base">
+            <span className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Berichtgeschiedenis
+            </span>
+            <Badge variant="secondary" className="font-normal">
+              {messages.length} bericht{messages.length !== 1 ? 'en' : ''}
+            </Badge>
+          </CardTitle>
+        </WrapperHeader>
+      )}
+      <WrapperContent className={embedded ? '' : 'pt-0'}>
         <ScrollArea className={compact ? 'h-[200px]' : 'h-[300px]'}>
           <div className="space-y-3 pr-4">
             {displayMessages.map((message) => (
@@ -107,8 +119,8 @@ export function MessageHistoryPanel({
             )}
           </div>
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </WrapperContent>
+    </Wrapper>
   );
 }
 

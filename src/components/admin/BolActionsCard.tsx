@@ -13,6 +13,7 @@ import type { Order } from '@/types/order';
 
 interface BolActionsCardProps {
   order: Order;
+  embedded?: boolean;
 }
 
 interface ShippingLabel {
@@ -25,7 +26,7 @@ interface ShippingLabel {
   created_at: string;
 }
 
-export function BolActionsCard({ order }: BolActionsCardProps) {
+export function BolActionsCard({ order, embedded = false }: BolActionsCardProps) {
   const queryClient = useQueryClient();
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
@@ -144,145 +145,127 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
   const syncStatus = order.sync_status || order.fulfillment_status;
   const isShipped = syncStatus === 'shipped' || order.status === 'shipped';
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Package className="h-4 w-4" />
-          Bol.com Acties
-        </CardTitle>
-        <CardDescription>
-          Marketplace ID: <span className="font-mono text-xs">{order.marketplace_order_id}</span>
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Sync Status */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Bol.com Status</span>
-          {isShipped ? (
-            <Badge variant="default" className="bg-green-600">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Bevestigd
-            </Badge>
-          ) : (
-            <Badge variant="secondary">
-              In afwachting
-            </Badge>
+  const bolContent = (
+    <div className="space-y-4">
+      {/* Sync Status */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Bol.com Status</span>
+        {isShipped ? (
+          <Badge variant="default" className="bg-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Bevestigd
+          </Badge>
+        ) : (
+          <Badge variant="secondary">
+            In afwachting
+          </Badge>
+        )}
+      </div>
+
+      {/* VVB Label Section */}
+      {hasVvbLabel && latestLabel && (
+        <div className="border rounded-lg p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">VVB Label</span>
+            <Badge variant="outline">{latestLabel.carrier}</Badge>
+          </div>
+          {latestLabel.tracking_number && (
+            <div className="text-xs text-muted-foreground">
+              Track: <span className="font-mono">{latestLabel.tracking_number}</span>
+            </div>
+          )}
+          {latestLabel.label_url && (
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="flex-1"
+                onClick={async () => {
+                  if (isPrinterConnected) {
+                    await printLabel(latestLabel.label_url!);
+                  } else {
+                    printViaBrowser(latestLabel.label_url!);
+                  }
+                }}
+                disabled={isPrinting}
+              >
+                {isPrinting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Printer className="h-4 w-4 mr-2" />
+                )}
+                {isPrinterConnected ? 'Print' : 'Print Label'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(latestLabel.label_url!, '_blank')}
+                title="Open in nieuw tabblad"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
+      )}
 
-        {/* VVB Label Section */}
-        {hasVvbLabel && latestLabel && (
-          <div className="border rounded-lg p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">VVB Label</span>
-              <Badge variant="outline">{latestLabel.carrier}</Badge>
-            </div>
-            {latestLabel.tracking_number && (
-              <div className="text-xs text-muted-foreground">
-                Track: <span className="font-mono">{latestLabel.tracking_number}</span>
-              </div>
+      {/* Actions */}
+      <div className="space-y-2">
+        {!isShipped && !hasVvbLabel && (
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full"
+            onClick={handleCreateVvbLabel}
+            disabled={isCreatingLabel}
+          >
+            {isCreatingLabel ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Truck className="h-4 w-4 mr-2" />
             )}
-            {latestLabel.label_url && (
-              <div className="flex gap-2">
-                {/* Direct Print Button - show if printer connected or as primary action */}
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="flex-1"
-                  onClick={async () => {
-                    if (isPrinterConnected) {
-                      await printLabel(latestLabel.label_url!);
-                    } else {
-                      printViaBrowser(latestLabel.label_url!);
-                    }
-                  }}
-                  disabled={isPrinting}
-                >
-                  {isPrinting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Printer className="h-4 w-4 mr-2" />
-                  )}
-                  {isPrinterConnected ? 'Print' : 'Print Label'}
-                </Button>
-                
-                {/* Download/Open Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(latestLabel.label_url!, '_blank')}
-                  title="Open in nieuw tabblad"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
+            VVB Label Aanmaken
+          </Button>
         )}
 
-        {/* Actions */}
-        <div className="space-y-2">
-          {/* Create VVB Label - only if not already shipped and no VVB label */}
-          {!isShipped && !hasVvbLabel && (
-            <Button
-              variant="default"
-              size="sm"
-              className="w-full"
-              onClick={handleCreateVvbLabel}
-              disabled={isCreatingLabel}
-            >
-              {isCreatingLabel ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Truck className="h-4 w-4 mr-2" />
-              )}
-              VVB Label Aanmaken
-            </Button>
-          )}
+        {!isShipped && order.tracking_number && order.carrier && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleConfirmToBol}
+            disabled={isConfirming}
+          >
+            {isConfirming ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            Bevestig naar Bol.com
+          </Button>
+        )}
 
-          {/* Manual Confirm to Bol.com - only if has tracking but not confirmed */}
-          {!isShipped && order.tracking_number && order.carrier && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={handleConfirmToBol}
-              disabled={isConfirming}
-            >
-              {isConfirming ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Bevestig naar Bol.com
-            </Button>
-          )}
+        {!hasVvbLabel && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={() => setShowFetchDialog(true)}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Bestaand label ophalen
+          </Button>
+        )}
 
-          {/* Fetch external label option - only if no label yet */}
-          {!hasVvbLabel && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-muted-foreground"
-              onClick={() => setShowFetchDialog(true)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Bestaand label ophalen
-            </Button>
-          )}
-
-          {/* Info message if no tracking yet */}
-          {!isShipped && !order.tracking_number && !hasVvbLabel && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                Voeg eerst trackinginformatie toe of maak een VVB label aan.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-      </CardContent>
+        {!isShipped && !order.tracking_number && !hasVvbLabel && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Voeg eerst trackinginformatie toe of maak een VVB label aan.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
 
       {/* Fetch External Label Dialog */}
       <FetchExternalLabelDialog
@@ -295,6 +278,23 @@ export function BolActionsCard({ order }: BolActionsCardProps) {
           queryClient.invalidateQueries({ queryKey: ['order', order.id] });
         }}
       />
+    </div>
+  );
+
+  if (embedded) return bolContent;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          Bol.com Acties
+        </CardTitle>
+        <CardDescription>
+          Marketplace ID: <span className="font-mono text-xs">{order.marketplace_order_id}</span>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>{bolContent}</CardContent>
     </Card>
   );
 }
