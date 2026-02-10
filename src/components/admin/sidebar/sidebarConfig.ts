@@ -64,9 +64,9 @@ export interface NavGroup {
 // Items that warehouse users are allowed to see
 export const WAREHOUSE_ALLOWED_ITEMS = [
   'dashboard',
-  'fulfillment',
   'orders',
   'orders-all',
+  'orders-fulfillment',
   'products',
   'integrations-shipping',
 ];
@@ -75,7 +75,6 @@ export const WAREHOUSE_ALLOWED_ITEMS = [
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
   { id: 'inbox', title: 'Gesprekken', url: '/admin/messages', icon: MessageSquare, badge: true },
-  { id: 'fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', icon: PackageCheck },
   {
     id: 'orders',
     title: 'Bestellingen',
@@ -83,10 +82,9 @@ const dailyItems: NavItem[] = [
     icon: ShoppingCart,
     children: [
       { id: 'orders-all', title: 'Alle bestellingen', url: '/admin/orders' },
-      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse'] },
+      { id: 'orders-fulfillment', title: 'Fulfillment', url: '/admin/fulfillment' },
       { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse'] },
-      { id: 'orders-creditnotes', title: "Creditnota's", url: '/admin/orders/creditnotes', excludeRoles: ['warehouse'] },
-      { id: 'orders-subscriptions', title: 'Abonnementen', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse'] },
+      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse'] },
     ],
   },
   { id: 'products', title: 'Producten', url: '/admin/products', icon: Package },
