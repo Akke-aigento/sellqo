@@ -1,25 +1,46 @@
 
-# Preview-blok voor ingeklapte beschrijving
 
-## Wat verandert er
-Wanneer de "Volledige beschrijving" collapsible dichtgeklapt is, wordt er een preview getoond van de bestaande inhoud: maximaal 8 regels tekst, met een fade-out effect onderaan. Zo zie je meteen of er al content is zonder de editor te hoeven openen.
+# Fix: TipTap toolbar-acties werken niet
 
-## Aanpak
-- Onder de `CollapsibleTrigger` (maar buiten de `CollapsibleContent`) een preview-blok toevoegen
-- Dit blok is alleen zichtbaar als de collapsible **dicht** is en er content aanwezig is
-- De HTML-content wordt als platte tekst gerenderd in een `<div>` met `max-h-[12rem] overflow-hidden` (ca. 8 regels) en een gradient fade-out onderaan
-- Gebruik een `useState` voor open/closed state zodat we conditioneel de preview kunnen tonen
+## Probleem
+De console toont: **"Duplicate extension names found: ['link', 'underline']"**. In TipTap v3 zijn `Link` en `Underline` al onderdeel van `StarterKit`. Door ze nogmaals apart toe te voegen ontstaan duplicaten, waardoor de editor niet correct werkt -- headings, lijsten, bold, etc. doen allemaal niets.
 
-## Technische details
+## Oplossing
+In `src/components/admin/products/ProductDescriptionEditor.tsx`:
+
+1. **Verwijder de losse `Underline` import en extensie** -- StarterKit bevat dit al
+2. **Verwijder de losse `Link` import en extensie** -- StarterKit bevat dit al
+3. **Configureer Link en Underline via StarterKit** in plaats van apart, zodat er geen duplicaten zijn
+
+### Concrete wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/ProductForm.tsx` | State toevoegen voor open/dicht, preview-blok renderen wanneer dicht + content aanwezig |
+| `src/components/admin/products/ProductDescriptionEditor.tsx` | Verwijder dubbele `Link` en `Underline` extensies, configureer ze via StarterKit |
 
-### Concrete wijzigingen
-1. Voeg `const [descOpen, setDescOpen] = useState(false)` toe
-2. Gebruik `<Collapsible open={descOpen} onOpenChange={setDescOpen}>`
-3. Buiten `CollapsibleContent`, als `!descOpen && field.value` heeft content, toon een preview-div:
-   - Render de HTML in een `prose prose-sm` container met `max-h-[12rem] overflow-hidden`
-   - Voeg een gradient overlay toe onderaan (`bg-gradient-to-t from-background to-transparent`)
-   - Klikken op de preview opent de editor
+### Code-aanpak
+
+```tsx
+// VOOR (broken):
+extensions: [
+  StarterKit.configure({ heading: { levels: [2, 3, 4] } }),
+  Underline,                    // DUPLICAAT
+  Link.configure({ ... }),      // DUPLICAAT
+  Image.configure({ ... }),
+  Placeholder.configure({ ... }),
+],
+
+// NA (fixed):
+extensions: [
+  StarterKit.configure({
+    heading: { levels: [2, 3, 4] },
+    link: { openOnClick: false, HTMLAttributes: { class: 'text-primary underline' } },
+    underline: true,
+  }),
+  Image.configure({ ... }),
+  Placeholder.configure({ ... }),
+],
+```
+
+Dit lost alle toolbar-problemen op: headings, lijsten, bold, italic, underline, links -- alles werkt weer correct.
+
