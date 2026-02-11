@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
-import { BatchPrintDialog } from '@/components/admin/BatchPrintDialog';
+import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
@@ -27,7 +27,6 @@ export default function OrdersPage() {
   
   // Batch selection state
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-  const [batchPrintOpen, setBatchPrintOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
 
@@ -106,31 +105,12 @@ export default function OrdersPage() {
       <OrderFilters filters={filters} onFiltersChange={setFilters} />
 
       {/* Bulk Actions Bar */}
-      {selectedOrderIds.length > 0 && (
-        <div className="flex items-center gap-4 p-3 bg-muted rounded-lg border">
-          <span className="text-sm font-medium">
-            {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
-          </span>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setBatchPrintOpen(true)}
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print Labels
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedOrderIds([])}
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Deselecteer
-            </Button>
-          </div>
-        </div>
-      )}
+      <OrderBulkActions
+        selectedOrderIds={selectedOrderIds}
+        orders={orders}
+        onClearSelection={() => setSelectedOrderIds([])}
+        onComplete={() => setSelectedOrderIds([])}
+      />
 
       {/* Orders Table */}
       <Card>
@@ -200,14 +180,6 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Batch Print Dialog */}
-      <BatchPrintDialog
-        open={batchPrintOpen}
-        onOpenChange={setBatchPrintOpen}
-        orderIds={selectedOrderIds}
-        onComplete={() => setSelectedOrderIds([])}
-      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
