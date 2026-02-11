@@ -30,6 +30,7 @@ import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
+import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
@@ -67,7 +68,7 @@ import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/transla
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
   slug: z.string().min(1, 'Slug is verplicht').regex(/^[a-z0-9-]+$/, 'Slug mag alleen kleine letters, cijfers en streepjes bevatten'),
-  description: z.string().max(5000, 'Beschrijving mag maximaal 5000 tekens zijn').optional().default(''),
+  description: z.string().max(20000, 'Beschrijving is te lang').optional().default(''),
   short_description: z.string().max(500, 'Korte beschrijving mag maximaal 500 tekens zijn').optional().default(''),
   price: z.coerce.number().min(0, 'Prijs moet 0 of hoger zijn'),
   compare_at_price: z.coerce.number().min(0).nullable().optional(),
@@ -900,10 +901,9 @@ export default function ProductForm() {
                         <FormItem>
                           <FormLabel>Volledige beschrijving</FormLabel>
                           <FormControl>
-                            <Textarea 
-                              {...field} 
-                              placeholder="Uitgebreide productbeschrijving"
-                              rows={6}
+                            <ProductDescriptionEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
                             />
                           </FormControl>
                           <FormMessage />
