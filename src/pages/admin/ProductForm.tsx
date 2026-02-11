@@ -353,10 +353,14 @@ export default function ProductForm() {
   };
 
   const onSubmit = async (data: FormValues) => {
+    const submitData = {
+      ...data,
+      category_id: data.category_id || null,
+    };
     if (isEditing && id) {
-      await updateProduct.mutateAsync({ id, data });
+      await updateProduct.mutateAsync({ id, data: submitData });
     } else {
-      await createProduct.mutateAsync(data as any);
+      await createProduct.mutateAsync(submitData as any);
     }
     navigate('/admin/products');
   };
