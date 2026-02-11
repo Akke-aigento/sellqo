@@ -136,6 +136,7 @@ export default function ProductForm() {
   const [licenseInput, setLicenseInput] = useState('');
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [denominationInput, setDenominationInput] = useState('');
+  const [descOpen, setDescOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -576,11 +577,23 @@ export default function ProductForm() {
                       )} />
                       <FormField control={form.control} name="description" render={({ field }) => (
                         <FormItem>
-                          <Collapsible defaultOpen={false}>
+                          <Collapsible open={descOpen} onOpenChange={setDescOpen}>
                             <CollapsibleTrigger className="flex items-center gap-2 w-full group cursor-pointer">
                               <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
                               <FormLabel className="cursor-pointer">Volledige beschrijving</FormLabel>
                             </CollapsibleTrigger>
+                            {!descOpen && field.value && field.value !== '<p></p>' && (
+                              <div
+                                onClick={() => setDescOpen(true)}
+                                className="relative mt-2 cursor-pointer rounded-md border border-input p-3"
+                              >
+                                <div
+                                  className="prose prose-sm max-w-none max-h-[12rem] overflow-hidden text-muted-foreground"
+                                  dangerouslySetInnerHTML={{ __html: field.value }}
+                                />
+                                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none rounded-b-md" />
+                              </div>
+                            )}
                             <CollapsibleContent>
                               <div className="pt-2">
                                 <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} /></FormControl>
