@@ -266,24 +266,25 @@ export default function Fulfillment() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <PackageCheck className="h-8 w-8" />
+          <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2">
+            <PackageCheck className="h-6 w-6 sm:h-8 sm:w-8" />
             Fulfillment Queue
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Beheer verzendingen en tracking
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            CSV Import
+            <span className="hidden sm:inline">CSV Import</span>
+            <span className="sm:hidden">Import</span>
           </Button>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Vernieuwen
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Vernieuwen</span>
           </Button>
         </div>
       </div>
@@ -304,7 +305,7 @@ export default function Fulfillment() {
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
               <SelectContent>
@@ -337,7 +338,7 @@ export default function Fulfillment() {
             {orders?.length || 0} orders gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -350,6 +351,7 @@ export default function Fulfillment() {
               <p>Geen orders gevonden</p>
             </div>
           ) : (
+            <div className="min-w-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -361,9 +363,9 @@ export default function Fulfillment() {
                   </TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead>Items</TableHead>
+                  <TableHead className="hidden sm:table-cell">Items</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Tracking</TableHead>
+                  <TableHead className="hidden md:table-cell">Tracking</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
                 </TableRow>
               </TableHeader>
@@ -392,13 +394,13 @@ export default function Fulfillment() {
                         {parseAddress(order.shipping_address)}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge variant="secondary">{order.item_count} items</Badge>
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(order.fulfillment_status)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {order.tracking_number ? (
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-mono">{order.tracking_number}</span>
@@ -451,6 +453,7 @@ export default function Fulfillment() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

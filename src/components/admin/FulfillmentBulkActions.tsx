@@ -207,8 +207,8 @@ export function FulfillmentBulkActions({
 
   return (
     <>
-      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg border">
-        <span className="text-sm font-medium">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border">
+        <span className="text-sm font-medium whitespace-nowrap">
           {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
         </span>
 
