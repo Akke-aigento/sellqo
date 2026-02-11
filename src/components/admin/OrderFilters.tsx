@@ -19,7 +19,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
       {/* Search */}
-      <div className="relative flex-1 max-w-sm">
+      <div className="relative flex-1 min-w-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Zoek op ordernummer, email..."
@@ -37,7 +37,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           marketplace_source: value === 'all' ? undefined : value as MarketplaceSource 
         })}
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-full sm:w-[160px]">
           <SelectValue placeholder="Bron" />
         </SelectTrigger>
         <SelectContent>
@@ -56,7 +56,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           status: value === 'all' ? undefined : value as OrderStatus 
         })}
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-full sm:w-[160px]">
           <SelectValue placeholder="Orderstatus" />
         </SelectTrigger>
         <SelectContent>
@@ -77,7 +77,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           payment_status: value === 'all' ? undefined : value as PaymentStatus 
         })}
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-full sm:w-[160px]">
           <SelectValue placeholder="Betaalstatus" />
         </SelectTrigger>
         <SelectContent>

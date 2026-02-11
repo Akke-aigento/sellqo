@@ -94,10 +94,10 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Bestellingen</h1>
-          <p className="text-muted-foreground">Beheer alle bestellingen van je winkel</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Bestellingen</h1>
+          <p className="text-sm text-muted-foreground">Beheer alle bestellingen van je winkel</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export default function OrdersPage() {
             {orders.length} bestelling{orders.length !== 1 ? 'en' : ''} gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -141,6 +141,7 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
+            <div className="min-w-[700px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -154,11 +155,11 @@ export default function OrdersPage() {
                   </TableHead>
                   <TableHead>Bestelling</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead>Bron</TableHead>
+                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Betaling</TableHead>
+                  <TableHead className="hidden md:table-cell">Betaling</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead>Datum</TableHead>
+                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -177,6 +178,7 @@ export default function OrdersPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -236,19 +238,19 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <div className="font-medium">{order.customer_name || '-'}</div>
         <div className="text-sm text-muted-foreground">{order.customer_email}</div>
       </TableCell>
-      <TableCell onClick={onView}>
+      <TableCell className="hidden lg:table-cell" onClick={onView}>
         <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
       <TableCell onClick={onView}>
         <OrderStatusBadge status={order.status} />
       </TableCell>
-      <TableCell onClick={onView}>
+      <TableCell className="hidden md:table-cell" onClick={onView}>
         <PaymentStatusBadge status={order.payment_status} />
       </TableCell>
       <TableCell className="text-right font-medium" onClick={onView}>
         {formatCurrency(Number(order.total))}
       </TableCell>
-      <TableCell className="text-muted-foreground" onClick={onView}>
+      <TableCell className="hidden sm:table-cell text-muted-foreground" onClick={onView}>
         {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>
