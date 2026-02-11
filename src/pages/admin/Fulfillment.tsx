@@ -50,6 +50,7 @@ import { nl } from 'date-fns/locale';
 import { CARRIER_PATTERNS, generateTrackingUrl } from '@/lib/carrierPatterns';
 import { useNavigate } from 'react-router-dom';
 import { TrackingImportDialog } from '@/components/admin/fulfillment/TrackingImportDialog';
+import { FulfillmentBulkActions } from '@/components/admin/FulfillmentBulkActions';
 
 type FulfillmentStatus = 'unfulfilled' | 'partial' | 'shipped' | 'delivered';
 
@@ -318,25 +319,12 @@ export default function Fulfillment() {
       </Card>
 
       {/* Batch Actions */}
-      {selectedOrders.size > 0 && (
-        <Card className="bg-muted/50">
-          <CardContent className="py-3">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">
-                {selectedOrders.size} order(s) geselecteerd
-              </span>
-              <Button size="sm" variant="outline" disabled>
-                <Printer className="h-4 w-4 mr-2" />
-                Pakbonnen printen
-              </Button>
-              <Button size="sm" variant="outline" disabled>
-                <Truck className="h-4 w-4 mr-2" />
-                Batch labels
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <FulfillmentBulkActions
+        selectedOrderIds={Array.from(selectedOrders)}
+        orders={orders || []}
+        onClearSelection={() => setSelectedOrders(new Set())}
+        onComplete={() => setSelectedOrders(new Set())}
+      />
 
       {/* Orders Table */}
       <Card>
