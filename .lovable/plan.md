@@ -1,58 +1,43 @@
 
+# Rich Text Editor voor Productbeschrijving
 
-# Fix: Layout Overflow Chain - Alle Admin Pagina's
-
-## Kernprobleem
-
-De vorige fix voegde `min-w-0 overflow-hidden` toe aan SidebarInset en main, maar er zijn twee resterende problemen:
-
-### 1. Ontbrekende constraint op de wrapper div
-De buitenste `div.min-h-screen.flex.w-full` in AdminLayout mist `min-w-0` en `overflow-hidden`. Hierdoor kan de hele flex container breder worden dan het scherm, ongeacht de constraints op de kinderen.
-
-```text
-div.min-h-screen.flex.w-full    <-- GEEN min-w-0, GEEN overflow control
-  ├── AdminSidebar
-  └── SidebarInset (min-w-0 overflow-hidden)  <-- constraint werkt niet 
-        └── main (min-w-0 overflow-hidden)      als parent niet meedoet
-```
-
-### 2. overflow-hidden op main blokkeert verticaal scrollen
-De inner `main` heeft `flex-1` waardoor het een vaste hoogte krijgt (resterende ruimte na header). Met `overflow-hidden` wordt content die langer is dan het scherm simpelweg afgekapt -- gebruikers kunnen niet naar beneden scrollen.
+## Probleem
+De "Volledige beschrijving" in het productformulier is nu een simpele `<Textarea>`. Bij beschrijvingen tot 5000 tekens is dat onwerkbaar -- geen opmaak, geen structuur, geen visuele controle.
 
 ## Oplossing
+Vervang de `<Textarea>` door een volwaardige TipTap rich text editor met een uitgebreide toolbar. Het project heeft al een `RichTextEditor` component (`src/components/admin/storefront/RichTextEditor.tsx`) en TipTap is volledig geinstalleerd (inclusief `@tiptap/extension-underline` via starter-kit).
 
-Twee wijzigingen in `AdminLayout.tsx`:
+### Nieuwe component: `ProductDescriptionEditor`
+Een nieuwe, uitgebreidere variant specifiek voor productbeschrijvingen, met extra features bovenop de bestaande editor:
 
-1. **Wrapper div**: Voeg `min-w-0 overflow-hidden` toe zodat de hele layout correct constrained wordt
-2. **Inner main**: Wijzig `overflow-hidden` naar `overflow-y-auto overflow-x-hidden` zodat:
-   - Verticaal scrollen WEL werkt (pagina-inhoud kan langer zijn dan het scherm)
-   - Horizontaal overflow NIET de layout breekt (tabellen scrollen binnen hun eigen CardContent container)
+**Toolbar functies:**
+- **Tekststijl**: Vet, Cursief, Onderstrepen, Doorhalen, Code
+- **Koppen**: H2, H3, H4
+- **Lijsten**: Opsommingslijst, Genummerde lijst
+- **Blokken**: Citaat, Horizontale lijn
+- **Links**: URL invoegen/bewerken
+- **Afbeeldingen**: URL-based afbeelding invoegen
+- **Undo/Redo**: Ongedaan maken en opnieuw
+- **Tekenteller**: Live teller die HTML-tags negeert (telt alleen platte tekst), waarschuwt bij >4500 tekens en blokkeert bij 5000
 
-### Resultaat
+### Wijzigingen
 
-```text
-div.min-h-screen.flex.w-full.min-w-0.overflow-hidden   <-- constrained
-  ├── AdminSidebar
-  └── SidebarInset (min-w-0 overflow-hidden)            <-- constrained
-        └── main (min-w-0 overflow-y-auto overflow-x-hidden)  <-- scrollbaar
-              └── Pagina met overflow-x-auto tabellen          <-- horizontaal scrollbaar
-```
+| Bestand | Actie | Details |
+|---------|-------|---------|
+| `src/components/admin/products/ProductDescriptionEditor.tsx` | **Nieuw** | Rich text editor met toolbar, tekenteller, en 5000-teken limiet |
+| `src/pages/admin/ProductForm.tsx` | **Wijzig** | Vervang `<Textarea>` door `<ProductDescriptionEditor>` voor het description veld |
+| `src/pages/admin/ProductForm.tsx` | **Wijzig** | Pas zod-validatie aan: verwijder `.max(5000)` op schema-niveau (validatie zit nu in de editor zelf op platte-tekst basis) |
 
-## Technische Details
+### Technische details
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/admin/AdminLayout.tsx` | 2 regels aanpassen: wrapper div + main element |
+**Opslag**: De description wordt opgeslagen als HTML-string in de bestaande `text` kolom in de database. Dit vereist geen database-wijziging.
 
-### Code wijziging
+**Zod-schema aanpassing**: De huidige `.max(5000)` validatie telt HTML-tags mee, wat oneerlijk is. De editor zelf zal de platte-tekst lengte bijhouden en visueel feedback geven. De zod-validatie wordt verruimd (bijv. `.max(20000)`) om ruimte te laten voor HTML-opmaak.
 
-Regel 18 (wrapper div):
-- Van: `className="min-h-screen flex w-full"`
-- Naar: `className="min-h-screen flex w-full min-w-0 overflow-hidden"`
+**Dependencies**: Geen nieuwe packages nodig. Alles is al beschikbaar via `@tiptap/starter-kit` en `@tiptap/react`.
 
-Regel 24 (inner main):
-- Van: `className="flex-1 p-4 lg:p-6 min-w-0 overflow-hidden"`
-- Naar: `className="flex-1 p-4 lg:p-6 min-w-0 overflow-y-auto overflow-x-hidden"`
-
-Dit fixt de hele overflow chain in 1 keer voor alle 26+ admin pagina's.
-
+**Karakter-teller logica**:
+- Telt `editor.getText().length` (platte tekst, geen HTML)
+- Groen bij < 4500 tekens
+- Oranje waarschuwing bij 4500-4999 tekens
+- Rood bij 5000 tekens
