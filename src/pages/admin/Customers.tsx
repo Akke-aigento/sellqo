@@ -57,7 +57,7 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Klanten</h1>
           <p className="text-muted-foreground">Beheer je klantenbestand</p>
@@ -70,7 +70,7 @@ export default function CustomersPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Zoek op naam of email..."
@@ -104,7 +104,7 @@ export default function CustomersPage() {
             {typeFilter !== 'all' && ` (gefilterd op ${typeFilter})`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -122,15 +122,16 @@ export default function CustomersPage() {
               </p>
             </div>
           ) : (
+            <div className="min-w-[650px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Klant</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Contact</TableHead>
+                  <TableHead className="hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="hidden lg:table-cell">Contact</TableHead>
                   <TableHead className="text-center">Bestellingen</TableHead>
                   <TableHead className="text-right">Uitgegeven</TableHead>
-                  <TableHead>Sinds</TableHead>
+                  <TableHead className="hidden md:table-cell">Sinds</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -145,6 +146,7 @@ export default function CustomersPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -196,10 +198,10 @@ function CustomerRow({ customer, onDelete, formatCurrency }: CustomerRowProps) {
           </div>
         </div>
       </TableCell>
-      <TableCell onClick={(e) => e.stopPropagation()}>
+      <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
         {getTypeBadge()}
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden lg:table-cell">
         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Mail className="h-3 w-3" />
@@ -222,7 +224,7 @@ function CustomerRow({ customer, onDelete, formatCurrency }: CustomerRowProps) {
       <TableCell className="text-right font-medium">
         {formatCurrency(Number(customer.total_spent))}
       </TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell className="hidden md:table-cell text-muted-foreground">
         {format(new Date(customer.created_at), 'd MMM yyyy', { locale: nl })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>

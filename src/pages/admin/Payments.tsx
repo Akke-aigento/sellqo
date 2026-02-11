@@ -221,7 +221,7 @@ export default function PaymentsPage() {
               <CardTitle>Recente Transacties</CardTitle>
               <CardDescription>Al je Stripe transacties van de afgelopen periode</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
               {transactionsError ? (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -240,14 +240,15 @@ export default function PaymentsPage() {
                   <p>Nog geen transacties</p>
                 </div>
               ) : (
+                <div className="min-w-[600px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Datum</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Omschrijving</TableHead>
+                      <TableHead className="hidden md:table-cell">Omschrijving</TableHead>
                       <TableHead className="text-right">Bedrag</TableHead>
-                      <TableHead className="text-right">Fee</TableHead>
+                      <TableHead className="hidden sm:table-cell text-right">Fee</TableHead>
                       <TableHead className="text-right">Netto</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -256,13 +257,13 @@ export default function PaymentsPage() {
                       <TableRow key={tx.id}>
                         <TableCell className="font-medium">{formatDate(tx.created)}</TableCell>
                         <TableCell>{getTransactionTypeBadge(tx.type)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
+                        <TableCell className="hidden md:table-cell max-w-[200px] truncate">
                           {tx.description || '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(tx.amount, tx.currency)}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
+                        <TableCell className="hidden sm:table-cell text-right text-muted-foreground">
                           {tx.fee > 0 ? `-${formatCurrency(tx.fee, tx.currency)}` : '-'}
                         </TableCell>
                         <TableCell className="text-right font-medium">
@@ -272,6 +273,7 @@ export default function PaymentsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -295,7 +297,7 @@ export default function PaymentsPage() {
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
               {payoutsError ? (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />

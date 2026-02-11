@@ -217,22 +217,23 @@ export function PendingPlatformPaymentsPage() {
             Betalingen die wachten op bevestiging na bankoverschrijving
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {pendingPayments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Banknote className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p>Geen openstaande betalingen</p>
             </div>
           ) : (
+            <div className="min-w-[700px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Tenant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bedrag</TableHead>
-                  <TableHead>OGM Referentie</TableHead>
-                  <TableHead>Aangemaakt</TableHead>
-                  <TableHead>Verloopt</TableHead>
+                  <TableHead className="hidden md:table-cell">OGM Referentie</TableHead>
+                  <TableHead className="hidden sm:table-cell">Aangemaakt</TableHead>
+                  <TableHead className="hidden sm:table-cell">Verloopt</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
                 </TableRow>
               </TableHeader>
@@ -254,7 +255,7 @@ export function PendingPlatformPaymentsPage() {
                     <TableCell className="font-medium">
                       {formatCurrency(payment.amount)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-1">
                         <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                           {payment.ogm_reference}
@@ -269,10 +270,10 @@ export function PendingPlatformPaymentsPage() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(payment.created_at), { addSuffix: true, locale: nl })}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {format(new Date(payment.expires_at), 'd MMM', { locale: nl })}
                     </TableCell>
                     <TableCell className="text-right">
@@ -288,7 +289,8 @@ export function PendingPlatformPaymentsPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -300,16 +302,17 @@ export function PendingPlatformPaymentsPage() {
             <CardTitle>Geschiedenis</CardTitle>
             <CardDescription>Eerder verwerkte betalingen</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto px-0 sm:px-6">
+            <div className="min-w-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Tenant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bedrag</TableHead>
-                  <TableHead>OGM</TableHead>
+                  <TableHead className="hidden md:table-cell">OGM</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Verwerkt</TableHead>
+                  <TableHead className="hidden sm:table-cell">Verwerkt</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -323,11 +326,11 @@ export function PendingPlatformPaymentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <code className="text-xs">{payment.ogm_reference}</code>
                     </TableCell>
                     <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {payment.confirmed_at 
                         ? format(new Date(payment.confirmed_at), 'd MMM yyyy', { locale: nl })
                         : '-'}
@@ -336,6 +339,7 @@ export function PendingPlatformPaymentsPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

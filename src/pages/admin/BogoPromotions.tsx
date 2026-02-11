@@ -129,7 +129,7 @@ export default function BogoPromotionsPage() {
             BOGO Acties ({filteredPromotions.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <p className="text-muted-foreground">Laden...</p>
           ) : filteredPromotions.length === 0 ? (
@@ -137,6 +137,7 @@ export default function BogoPromotionsPage() {
               Geen BOGO acties gevonden
             </p>
           ) : (
+            <div className="min-w-[650px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -145,7 +146,7 @@ export default function BogoPromotionsPage() {
                   <TableHead>Koop</TableHead>
                   <TableHead>Krijg</TableHead>
                   <TableHead>Korting</TableHead>
-                  <TableHead>Geldig tot</TableHead>
+                  <TableHead className="hidden md:table-cell">Geldig tot</TableHead>
                   <TableHead>Actief</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
@@ -168,7 +169,7 @@ export default function BogoPromotionsPage() {
                         ? 'Gratis'
                         : `€${promotion.discount_value.toFixed(2)}`}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {promotion.valid_until
                         ? format(new Date(promotion.valid_until), 'd MMM yyyy', { locale: nl })
                         : '—'}
@@ -205,6 +206,7 @@ export default function BogoPromotionsPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

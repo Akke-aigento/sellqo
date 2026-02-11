@@ -268,8 +268,9 @@ export default function GiftCardDetail() {
             Transactiegeschiedenis
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {giftCard.transactions && giftCard.transactions.length > 0 ? (
+            <div className="min-w-[550px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -306,6 +307,7 @@ export default function GiftCardDetail() {
                   ))}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <p className="text-center py-8 text-muted-foreground">
               Nog geen transacties

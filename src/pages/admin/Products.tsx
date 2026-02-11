@@ -331,9 +331,9 @@ export default function ProductsPage() {
             className="pl-9"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProductStatus)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -343,7 +343,7 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
           <Select value={visibilityFilter} onValueChange={(v) => setVisibilityFilter(v as VisibilityStatus)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="Zichtbaarheid" />
             </SelectTrigger>
             <SelectContent>
@@ -354,7 +354,7 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
           <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as StockStatus)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Voorraad" />
             </SelectTrigger>
             <SelectContent>
@@ -365,7 +365,7 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="Categorie" />
             </SelectTrigger>
             <SelectContent>
@@ -380,11 +380,11 @@ export default function ProductsPage() {
 
       {/* Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-4 rounded-lg border bg-muted/50 p-3">
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-muted/50 p-3">
           <span className="text-sm font-medium">
             {selectedIds.size} geselecteerd
           </span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
               <Settings2 className="mr-2 h-4 w-4" />
               Bewerken
@@ -411,7 +411,8 @@ export default function ProductsPage() {
           <ProductGridView products={filteredProducts} />
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
+          <div className="min-w-[700px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -423,11 +424,11 @@ export default function ProductsPage() {
                 </TableHead>
                 <TableHead className="w-16">Afbeelding</TableHead>
                 <TableHead>Product</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Categorie</TableHead>
+                <TableHead className="hidden md:table-cell">SKU</TableHead>
+                <TableHead className="hidden lg:table-cell">Categorie</TableHead>
                 <TableHead className="text-right">Prijs</TableHead>
                 <TableHead>Voorraad</TableHead>
-                <TableHead>Zichtbaarheid</TableHead>
+                <TableHead className="hidden sm:table-cell">Zichtbaarheid</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -504,10 +505,10 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
                       {product.sku || '-'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       {product.category ? (
                         <Badge variant="outline">{product.category.name}</Badge>
                       ) : (
@@ -523,7 +524,7 @@ export default function ProductsPage() {
                       )}
                     </TableCell>
                     <TableCell>{getStockBadge(product)}</TableCell>
-                    <TableCell>{getVisibilityBadge(product)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{getVisibilityBadge(product)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -554,6 +555,7 @@ export default function ProductsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
 

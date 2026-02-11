@@ -109,9 +109,9 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('subscriptions.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('subscriptions.title')}</h1>
           <p className="text-muted-foreground">
             {t('subscriptions.description')}
           </p>
@@ -148,7 +148,8 @@ export default function SubscriptionsPage() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
+          <div className="min-w-[700px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -241,6 +242,7 @@ export default function SubscriptionsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -223,6 +223,7 @@ export default function CampaignDetailPage() {
                   <p>Nog geen link clicks geregistreerd</p>
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -250,6 +251,7 @@ export default function CampaignDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -261,7 +263,7 @@ export default function CampaignDetailPage() {
               <CardTitle className="text-base">Ontvangers</CardTitle>
               <CardDescription>Alle ontvangers en hun status</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
               {sendsLoading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => (
@@ -274,26 +276,27 @@ export default function CampaignDetailPage() {
                   <p>Nog geen ontvangers</p>
                 </div>
               ) : (
+                <div className="min-w-[650px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
-                      <TableHead>Naam</TableHead>
+                      <TableHead className="hidden sm:table-cell">Naam</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Geopend</TableHead>
-                      <TableHead>Geklikt</TableHead>
-                      <TableHead>Verzonden</TableHead>
+                      <TableHead className="hidden md:table-cell">Geopend</TableHead>
+                      <TableHead className="hidden md:table-cell">Geklikt</TableHead>
+                      <TableHead className="hidden sm:table-cell">Verzonden</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sends.map((send) => (
                       <TableRow key={send.id}>
                         <TableCell className="font-mono text-sm">{send.email}</TableCell>
-                        <TableCell>{send.customer_name || '-'}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{send.customer_name || '-'}</TableCell>
                         <TableCell>
                           <RecipientStatusBadge status={send.status} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {send.opened_at ? (
                             <span className="text-green-600 flex items-center gap-1">
                               <CheckCircle2 className="h-3 w-3" />
@@ -303,7 +306,7 @@ export default function CampaignDetailPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {send.clicked_at ? (
                             <span className="text-orange-600 flex items-center gap-1">
                               <MousePointerClick className="h-3 w-3" />
@@ -313,13 +316,14 @@ export default function CampaignDetailPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                           {send.sent_at ? format(new Date(send.sent_at), 'dd/MM HH:mm') : '-'}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -331,7 +335,7 @@ export default function CampaignDetailPage() {
               <CardTitle className="text-base">Alle Link Clicks</CardTitle>
               <CardDescription>Gedetailleerd overzicht van alle clicks</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
               {analyticsLoading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => (

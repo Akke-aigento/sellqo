@@ -110,9 +110,9 @@ export default function ShippingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Verzending</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Verzending</h1>
           <p className="text-muted-foreground">
             Beheer verzendmethodes en tarieven
           </p>
@@ -180,7 +180,7 @@ export default function ShippingPage() {
         <CardHeader>
           <CardTitle>Verzendmethodes</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
@@ -202,14 +202,15 @@ export default function ShippingPage() {
               </Button>
             </div>
           ) : (
+            <div className="min-w-[650px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Naam</TableHead>
                   <TableHead>Prijs</TableHead>
-                  <TableHead>Gratis boven</TableHead>
-                  <TableHead>Levertijd</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Gratis boven</TableHead>
+                  <TableHead className="hidden md:table-cell">Levertijd</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
                   <TableHead>Actief</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -233,18 +234,18 @@ export default function ShippingPage() {
                       )}
                     </TableCell>
                     <TableCell>{formatPrice(method.price)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {method.free_above
                         ? formatPrice(method.free_above)
                         : "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {formatDeliveryTime(
                         method.estimated_days_min,
                         method.estimated_days_max
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge
                         variant={method.is_active ? "default" : "secondary"}
                       >
@@ -283,6 +284,7 @@ export default function ShippingPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
