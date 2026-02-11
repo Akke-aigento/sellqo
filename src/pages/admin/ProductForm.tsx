@@ -61,6 +61,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
@@ -574,8 +576,17 @@ export default function ProductForm() {
                       )} />
                       <FormField control={form.control} name="description" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Volledige beschrijving</FormLabel>
-                          <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} /></FormControl>
+                          <Collapsible defaultOpen={false}>
+                            <CollapsibleTrigger className="flex items-center gap-2 w-full group cursor-pointer">
+                              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                              <FormLabel className="cursor-pointer">Volledige beschrijving</FormLabel>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="pt-2">
+                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} /></FormControl>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
                           <FormMessage />
                         </FormItem>
                       )} />
