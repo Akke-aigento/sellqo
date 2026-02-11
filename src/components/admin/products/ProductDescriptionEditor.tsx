@@ -1,7 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState } from 'react';
@@ -45,11 +43,8 @@ export function ProductDescriptionEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3, 4] },
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { class: 'text-primary underline' },
+        link: { openOnClick: false, HTMLAttributes: { class: 'text-primary underline' } },
+        underline: {},
       }),
       Image.configure({
         HTMLAttributes: { class: 'max-w-full rounded-lg' },
