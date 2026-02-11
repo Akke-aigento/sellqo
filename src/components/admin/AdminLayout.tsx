@@ -15,13 +15,13 @@ function AdminLayoutContent() {
 
   return (
     <>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full min-w-0 overflow-hidden">
         <AdminSidebar />
         <SidebarInset className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <AdminHeader />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
-          <main className="flex-1 p-4 lg:p-6 min-w-0 overflow-hidden">
+          <main className="flex-1 p-4 lg:p-6 min-w-0 overflow-y-auto overflow-x-hidden">
             <Outlet />
           </main>
         </SidebarInset>
