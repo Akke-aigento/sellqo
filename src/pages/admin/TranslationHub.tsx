@@ -404,7 +404,7 @@ export default function TranslationHub() {
                 Bekijk en beheer vertalingen per item
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
               <Table>
                 <TableHeader>
                   <TableRow>

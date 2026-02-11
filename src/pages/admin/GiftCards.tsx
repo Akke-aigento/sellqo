@@ -84,10 +84,10 @@ export default function GiftCards() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <CreditCard className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <CreditCard className="h-6 w-6 sm:h-8 sm:w-8" />
             Cadeaukaarten
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -173,7 +173,7 @@ export default function GiftCards() {
           <CardTitle>Overzicht</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -220,15 +220,17 @@ export default function GiftCards() {
               )}
             </div>
           ) : (
+            <div className="overflow-x-auto -mx-6">
+            <div className="min-w-[650px] px-6">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>
-                  <TableHead>Ontvanger</TableHead>
-                  <TableHead className="text-right">Oorspronkelijk</TableHead>
+                  <TableHead className="hidden sm:table-cell">Ontvanger</TableHead>
+                  <TableHead className="hidden md:table-cell text-right">Oorspronkelijk</TableHead>
                   <TableHead className="text-right">Saldo</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Aangemaakt</TableHead>
+                  <TableHead className="hidden md:table-cell">Aangemaakt</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -240,12 +242,12 @@ export default function GiftCards() {
                         {maskCode(card.code)}
                       </code>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {card.recipient_name || card.recipient_email || (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="hidden md:table-cell text-right">
                       €{Number(card.initial_balance).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
@@ -259,7 +261,7 @@ export default function GiftCards() {
                         {giftCardStatusInfo[card.status].label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
                       {format(new Date(card.created_at), 'd MMM yyyy', {
                         locale: nl,
                       })}
@@ -309,6 +311,8 @@ export default function GiftCards() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </div>
           )}
         </CardContent>
       </Card>

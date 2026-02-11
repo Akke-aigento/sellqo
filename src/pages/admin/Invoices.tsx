@@ -87,7 +87,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Facturen</h1>
           <p className="text-muted-foreground">
@@ -162,7 +162,7 @@ export default function InvoicesPage() {
             {invoices.length} facturen gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -180,17 +180,18 @@ export default function InvoicesPage() {
               </p>
             </div>
           ) : (
+            <div className="min-w-[750px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Factuurnummer</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Bron</TableHead>
-                  <TableHead>Datum</TableHead>
+                  <TableHead className="hidden md:table-cell">Order</TableHead>
+                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
+                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
                   <TableHead className="text-right">Bedrag</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Peppol</TableHead>
+                  <TableHead className="hidden md:table-cell">Peppol</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
                 </TableRow>
               </TableHeader>
@@ -211,7 +212,7 @@ export default function InvoicesPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {invoice.orders ? (
                           <Button
                             variant="link"
@@ -225,12 +226,12 @@ export default function InvoicesPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <OrderMarketplaceBadge 
+                      <TableCell className="hidden lg:table-cell">
+                        <OrderMarketplaceBadge
                           source={invoice.orders?.marketplace_source || (invoice.order_id ? null : 'manual')} 
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -239,7 +240,7 @@ export default function InvoicesPage() {
                       <TableCell>
                         <InvoiceStatusBadge status={invoice.status} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {getPeppolStatusBadge(invoiceAny)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -311,6 +312,7 @@ export default function InvoicesPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

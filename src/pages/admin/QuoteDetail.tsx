@@ -154,7 +154,8 @@ export default function QuoteDetailPage() {
             <CardHeader>
               <CardTitle>Items</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
+              <div className="min-w-[550px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -189,6 +190,7 @@ export default function QuoteDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               <div className="border-t mt-4 pt-4">
                 <div className="flex justify-end">

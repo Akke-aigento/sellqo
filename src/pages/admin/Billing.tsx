@@ -315,7 +315,7 @@ export default function BillingPage() {
           <CardTitle>{t('billing.invoices')}</CardTitle>
           <CardDescription>Bekijk en download je facturen</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {invoicesLoading ? (
             <Skeleton className="h-48" />
           ) : invoices.length === 0 ? (

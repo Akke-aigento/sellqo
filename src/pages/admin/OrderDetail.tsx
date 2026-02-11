@@ -133,7 +133,8 @@ export default function OrderDetailPage() {
                 Orderregels
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
+              <div className="min-w-[500px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -174,6 +175,7 @@ export default function OrderDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               <Separator className="my-4" />
 

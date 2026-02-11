@@ -135,7 +135,7 @@ export default function StackingRulesPage() {
             Stapelregels ({rules.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <p className="text-muted-foreground">Laden...</p>
           ) : rules.length === 0 ? (
@@ -150,14 +150,15 @@ export default function StackingRulesPage() {
               </Button>
             </div>
           ) : (
+            <div className="min-w-[650px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Naam</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Kortingstypes</TableHead>
-                  <TableHead>Max. Stapelen</TableHead>
-                  <TableHead>Max. Korting</TableHead>
+                  <TableHead className="hidden md:table-cell">Kortingstypes</TableHead>
+                  <TableHead className="hidden sm:table-cell">Max. Stapelen</TableHead>
+                  <TableHead className="hidden sm:table-cell">Max. Korting</TableHead>
                   <TableHead>Actief</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
@@ -178,7 +179,7 @@ export default function StackingRulesPage() {
                         {getRuleTypeLabel(rule.rule_type)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {rule.discount_types?.slice(0, 3).map((type) => (
                           <Badge key={type} variant="outline" className="text-xs">
@@ -192,10 +193,10 @@ export default function StackingRulesPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {rule.max_stack_count ?? '∞'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {rule.max_total_discount_percent
                         ? `${rule.max_total_discount_percent}%`
                         : '—'}
@@ -232,6 +233,7 @@ export default function StackingRulesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

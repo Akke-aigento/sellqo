@@ -143,9 +143,9 @@ export default function SupplierDocuments() {
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Type document" />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +159,7 @@ export default function SupplierDocuments() {
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Betalingsstatus" />
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +173,7 @@ export default function SupplierDocuments() {
               </Select>
 
               <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Leverancier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,7 +191,8 @@ export default function SupplierDocuments() {
 
         {/* Documents Table */}
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="overflow-x-auto p-0">
+            <div className="min-w-[750px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -326,6 +327,7 @@ export default function SupplierDocuments() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

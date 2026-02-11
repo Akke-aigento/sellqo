@@ -183,7 +183,7 @@ export default function CustomerDetailPage() {
               <CardTitle className="text-base">Bestellingen</CardTitle>
               <CardDescription>{orders?.length || 0} bestelling(en)</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto px-0 sm:px-6">
               {ordersLoading ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
