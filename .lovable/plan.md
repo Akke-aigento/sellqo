@@ -1,43 +1,67 @@
 
-# Rich Text Editor voor Productbeschrijving
 
-## Probleem
-De "Volledige beschrijving" in het productformulier is nu een simpele `<Textarea>`. Bij beschrijvingen tot 5000 tekens is dat onwerkbaar -- geen opmaak, geen structuur, geen visuele controle.
+# Productformulier: Van 9 tabs naar one-page layout
 
-## Oplossing
-Vervang de `<Textarea>` door een volwaardige TipTap rich text editor met een uitgebreide toolbar. Het project heeft al een `RichTextEditor` component (`src/components/admin/storefront/RichTextEditor.tsx`) en TipTap is volledig geinstalleerd (inclusief `@tiptap/extension-underline` via starter-kit).
+## Huidige situatie
+Het productformulier heeft 9 tabs (Type, Basis, Prijzen, Voorraad, Afbeeldingen, Bestanden, Cadeaukaart, Marketplaces, SEO). Dit maakt het onoverzichtelijk en je moet veel heen-en-weer klikken.
 
-### Nieuwe component: `ProductDescriptionEditor`
-Een nieuwe, uitgebreidere variant specifiek voor productbeschrijvingen, met extra features bovenop de bestaande editor:
+## Nieuwe opzet: One-page met 2-koloms layout
 
-**Toolbar functies:**
-- **Tekststijl**: Vet, Cursief, Onderstrepen, Doorhalen, Code
-- **Koppen**: H2, H3, H4
-- **Lijsten**: Opsommingslijst, Genummerde lijst
-- **Blokken**: Citaat, Horizontale lijn
-- **Links**: URL invoegen/bewerken
-- **Afbeeldingen**: URL-based afbeelding invoegen
-- **Undo/Redo**: Ongedaan maken en opnieuw
-- **Tekenteller**: Live teller die HTML-tags negeert (telt alleen platte tekst), waarschuwt bij >4500 tekens en blokkeert bij 5000
+Alle content komt op 1 scrollbare pagina, logisch gegroepeerd in cards. Alleen conditionele secties (Bestanden/Licenties, Cadeaukaart) en Marketplaces blijven als aparte tabs -- die zijn complex genoeg om apart te houden.
+
+### Layout
+
+```text
++------------------------------------------+
+| Header + Opslaan knop                    |
++------------------------------------------+
+| [Product]  [Marketplaces]                | <-- slechts 2 tabs
++------------------------------------------+
+|                                          |
+| LINKER KOLOM (60%)  | RECHTER KOLOM (40%)|
+|                     |                    |
+| [Product type]      | [Afbeeldingen]    |
+| [Basisinfo]         | [Organisatie]      |
+|   - Naam, Slug      |   - Categorie     |
+|   - Korte beschr.   |   - Tags          |
+|   - Volledige beschr| [Status]          |
+| [Prijzen]           |   - Actief        |
+|   - Verkoop/Inkoop  |   - Uitgelicht    |
+|   - Vergelijking    |   - Verbergen     |
+| [Voorraad & ID]     | [SEO]            |
+|   - SKU, Barcode    |   - Meta titel    |
+|   - Voorraad        |   - Meta beschr.  |
+|   - Verzending      |   - Preview       |
+|                     |                    |
+| --- Conditioneel ---                     |
+| [Digitale bestanden] (als digital)       |
+| [Cadeaukaart config] (als gift_card)     |
++------------------------------------------+
+```
+
+### Voordelen
+- Alles in 1 oogopslag zichtbaar
+- Geen heen-en-weer klikken meer tussen 9 tabs
+- Belangrijke info (naam, prijs, voorraad) altijd zichtbaar
+- Marketplaces blijft apart (eigen complexe UI)
+- Conditionele secties verschijnen automatisch onder de hoofdcontent
+
+## Technische details
 
 ### Wijzigingen
 
-| Bestand | Actie | Details |
-|---------|-------|---------|
-| `src/components/admin/products/ProductDescriptionEditor.tsx` | **Nieuw** | Rich text editor met toolbar, tekenteller, en 5000-teken limiet |
-| `src/pages/admin/ProductForm.tsx` | **Wijzig** | Vervang `<Textarea>` door `<ProductDescriptionEditor>` voor het description veld |
-| `src/pages/admin/ProductForm.tsx` | **Wijzig** | Pas zod-validatie aan: verwijder `.max(5000)` op schema-niveau (validatie zit nu in de editor zelf op platte-tekst basis) |
+| Bestand | Actie |
+|---------|-------|
+| `src/pages/admin/ProductForm.tsx` | Herstructureren: 9 tabs -> 2 tabs (Product / Marketplaces), product tab wordt one-page met 2-koloms grid |
 
-### Technische details
+### Concrete aanpak
 
-**Opslag**: De description wordt opgeslagen als HTML-string in de bestaande `text` kolom in de database. Dit vereist geen database-wijziging.
+1. **TabsList verkleinen**: Van `grid-cols-9` naar slechts 2 tabs: "Product" en "Marketplaces"
+2. **Product tab**: Bevat alle huidige content in een `grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6` layout
+3. **Linker kolom**: Product type selectie, Basisinfo (naam/slug/beschrijvingen), Prijzen, Voorraad/Identificatie/Verzending, en conditioneel Digitale bestanden of Cadeaukaart
+4. **Rechter kolom**: Afbeeldingen, Organisatie (categorie + tags), Status toggles, SEO
+5. **Marketplaces tab**: Blijft ongewijzigd als eigen tab
 
-**Zod-schema aanpassing**: De huidige `.max(5000)` validatie telt HTML-tags mee, wat oneerlijk is. De editor zelf zal de platte-tekst lengte bijhouden en visueel feedback geven. De zod-validatie wordt verruimd (bijv. `.max(20000)`) om ruimte te laten voor HTML-opmaak.
+### Geen database-wijzigingen nodig
+Alle data en velden blijven identiek -- dit is puur een UI-herstructurering.
 
-**Dependencies**: Geen nieuwe packages nodig. Alles is al beschikbaar via `@tiptap/starter-kit` en `@tiptap/react`.
-
-**Karakter-teller logica**:
-- Telt `editor.getText().length` (platte tekst, geen HTML)
-- Groen bij < 4500 tekens
-- Oranje waarschuwing bij 4500-4999 tekens
-- Rood bij 5000 tekens
