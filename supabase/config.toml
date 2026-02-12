@@ -296,3 +296,6 @@ verify_jwt = false
 
 [functions.ai-help-assistant]
 verify_jwt = false
+
+[functions.ai-product-field-assistant]
+verify_jwt = false

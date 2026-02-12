@@ -3,6 +3,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState } from 'react';
+import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
+import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import {
   Bold,
   Italic,
@@ -30,12 +32,14 @@ interface ProductDescriptionEditorProps {
   value: string;
   onChange: (html: string) => void;
   maxLength?: number;
+  aiContext?: AIFieldContext;
 }
 
 export function ProductDescriptionEditor({
   value,
   onChange,
   maxLength = 5000,
+  aiContext,
 }: ProductDescriptionEditorProps) {
   const [charCount, setCharCount] = useState(0);
 
@@ -162,6 +166,22 @@ export function ProductDescriptionEditor({
         </Button>
 
         <div className="flex-1" />
+
+        {/* AI Assistant */}
+        {aiContext && (
+          <AIFieldAssistant
+            fieldType="description"
+            currentValue={editor.getText()}
+            onApply={(html) => {
+              editor.commands.setContent(html);
+              onChange(html);
+            }}
+            context={aiContext}
+            multiVariant
+          />
+        )}
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Undo/Redo */}
         <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="h-8 w-8 p-0" aria-label="Ongedaan maken">
