@@ -33,6 +33,8 @@ import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMar
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
+import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
+import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
@@ -225,6 +227,16 @@ export default function ProductForm() {
   const digitalDeliveryType = form.watch('digital_delivery_type');
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
+
+  const aiContext: AIFieldContext = {
+    name: form.watch('name'),
+    short_description: form.watch('short_description'),
+    description: form.watch('description'),
+    category_name: categories?.find(c => c.id === form.watch('category_id'))?.name,
+    price: form.watch('price'),
+    weight: form.watch('weight'),
+    tags: form.watch('tags'),
+  };
 
   const generateSlug = (name: string) => {
     return name
@@ -558,7 +570,15 @@ export default function ProductForm() {
                     <CardContent className="space-y-4">
                       <FormField control={form.control} name="name" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Naam *</FormLabel>
+                          <div className="flex items-center gap-1">
+                            <FormLabel>Naam *</FormLabel>
+                            <AIFieldAssistant
+                              fieldType="product_title"
+                              currentValue={field.value}
+                              onApply={(text) => handleNameChange(text)}
+                              context={aiContext}
+                            />
+                          </div>
                           <FormControl><Input {...field} onChange={(e) => handleNameChange(e.target.value)} placeholder="Product naam" /></FormControl>
                           <FormMessage />
                         </FormItem>
@@ -573,7 +593,15 @@ export default function ProductForm() {
                       )} />
                       <FormField control={form.control} name="short_description" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Korte beschrijving</FormLabel>
+                          <div className="flex items-center gap-1">
+                            <FormLabel>Korte beschrijving</FormLabel>
+                            <AIFieldAssistant
+                              fieldType="short_description"
+                              currentValue={field.value}
+                              onApply={(text) => form.setValue('short_description', text)}
+                              context={aiContext}
+                            />
+                          </div>
                           <FormControl><Textarea {...field} placeholder="Korte beschrijving voor productlijsten" rows={2} /></FormControl>
                           <FormMessage />
                         </FormItem>
@@ -599,7 +627,7 @@ export default function ProductForm() {
                             )}
                             <CollapsibleContent>
                               <div className="pt-2">
-                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} /></FormControl>
+                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} aiContext={aiContext} /></FormControl>
                               </div>
                             </CollapsibleContent>
                           </Collapsible>
@@ -1124,7 +1152,15 @@ export default function ProductForm() {
                       </div>
                       <FormField control={form.control} name="meta_title" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Meta titel</FormLabel>
+                          <div className="flex items-center gap-1">
+                            <FormLabel>Meta titel</FormLabel>
+                            <AIFieldAssistant
+                              fieldType="meta_title"
+                              currentValue={field.value}
+                              onApply={(text) => form.setValue('meta_title', text)}
+                              context={aiContext}
+                            />
+                          </div>
                           <FormControl><Input {...field} placeholder={form.watch('name') || 'Product titel'} /></FormControl>
                           <FormDescription>{field.value?.length || 0}/60 tekens</FormDescription>
                           <FormMessage />
@@ -1132,7 +1168,15 @@ export default function ProductForm() {
                       )} />
                       <FormField control={form.control} name="meta_description" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Meta beschrijving</FormLabel>
+                          <div className="flex items-center gap-1">
+                            <FormLabel>Meta beschrijving</FormLabel>
+                            <AIFieldAssistant
+                              fieldType="meta_description"
+                              currentValue={field.value}
+                              onApply={(text) => form.setValue('meta_description', text)}
+                              context={aiContext}
+                            />
+                          </div>
                           <FormControl><Textarea {...field} placeholder={form.watch('short_description') || 'Korte beschrijving voor zoekmachines'} rows={3} /></FormControl>
                           <FormDescription>{field.value?.length || 0}/160 tekens</FormDescription>
                           <FormMessage />
