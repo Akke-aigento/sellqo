@@ -1,32 +1,37 @@
 
 
-# Fix: Scrolling & Persistentie van AI Generaties
+# Fix: Scrollen in AI Assistent popover
 
-## Probleem 1: Niet kunnen scrollen
-De container met de 3 variaties heeft een maximale hoogte (`max-h-60`), maar de PopoverContent zelf beperkt de zichtbare ruimte. Bij langere teksten past de inhoud niet in het venster en kun je niet scrollen.
+## Probleem
+De `ScrollArea` van Radix werkt niet met alleen een `max-h` CSS class op het root element. De interne Viewport (`h-full w-full`) heeft een concrete hoogte nodig om scrollgedrag te activeren. Hierdoor kun je bij lange teksten niet scrollen.
 
-**Oplossing**: De PopoverContent krijgt een `max-h-[70vh]` en een `ScrollArea` component zodat de hele inhoud scrollbaar wordt, ook bij langere gegenereerde teksten.
-
-## Probleem 2: Generaties verdwijnen na selectie
-Wanneer je op een variatie klikt, wordt de tekst toegepast maar worden alle variaties direct gewist uit het geheugen. Bij het heropenen van de popover zijn ze weg.
-
-**Oplossing**: Bij het selecteren van een variatie wordt de tekst toegepast en de popover gesloten, maar de variaties blijven in het geheugen staan. Ze worden pas gewist als je expliciet op "Opnieuw genereren" klikt. De geselecteerde variatie wordt visueel gemarkeerd zodat je ziet welke je hebt gekozen.
+## Oplossing
+De ScrollArea krijgt een expliciete `style={{ maxHeight: '65vh' }}` en `overflow-hidden` zodat de Radix Viewport correct de hoogte berekent en scrollgedrag inschakelt.
 
 ---
 
 ## Technische Details
 
-### Wijzigingen in `AIFieldAssistant.tsx`
+### Wijziging in `AIFieldAssistant.tsx`
 
-1. **ScrollArea toevoegen** rond de variaties-lijst voor betrouwbaar scrollen
-2. **`handleAccept` aanpassen**: Sluit de popover en past de tekst toe, maar wist `variations` en `result` NIET meer
-3. **Geselecteerde variatie bijhouden** met een `selectedVariationId` state, zodat bij heropenen de gekozen variant visueel gemarkeerd is
-4. **PopoverContent** krijgt `max-h-[70vh] overflow-hidden` en de binnenste content wordt in een ScrollArea gewrapt
+De `ScrollArea` op regel 197 wordt aangepast:
+
+**Van:**
+```tsx
+<ScrollArea className="max-h-[65vh]">
+```
+
+**Naar:**
+```tsx
+<div className="max-h-[65vh] overflow-hidden">
+  <ScrollArea className="h-full max-h-[65vh]" style={{ maxHeight: '65vh' }}>
+```
+
+Concreet: een wrapper div met vaste `max-h` en `overflow-hidden` wordt om de ScrollArea geplaatst, en de ScrollArea krijgt een inline style zodat Radix de hoogte correct kan resolven voor scrollgedrag.
 
 | Wat | Hoe |
 |---|---|
-| Scroll fix | `ScrollArea` + `max-h-[70vh]` op PopoverContent |
-| Persistentie | `handleAccept` wist geen state meer, alleen `handleRegenerate` doet dat |
-| Visuele feedback | Geselecteerde variatie krijgt een vinkje/highlight |
 | Bestand | `src/components/admin/ai/AIFieldAssistant.tsx` |
+| Regel | ~197 |
+| Fix | Wrapper div + inline style voor max-height op ScrollArea |
 
