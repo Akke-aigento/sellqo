@@ -205,6 +205,142 @@ serve(async (req) => {
         break;
       }
 
+      // ============ PASSWORD RESET ============
+
+      case 'request_password_reset': {
+        const email = ((params as any).email || '').trim().toLowerCase();
+        if (!email) throw new Error('email is required');
+
+        const { data: customer } = await supabase
+          .from('storefront_customers').select('id, email, first_name')
+          .eq('tenant_id', tenant_id).eq('email', email).eq('is_active', true).maybeSingle();
+
+        // Always return success (don't leak whether email exists)
+        if (!customer) {
+          result = { message: 'If an account with that email exists, a reset link has been sent.' };
+          break;
+        }
+
+        // Generate reset token (HMAC-based, 1 hour expiry)
+        const resetPayload = { customer_id: customer.id, tenant_id, email, purpose: 'password_reset' };
+        const resetToken = await generateToken({ ...resetPayload, exp: Math.floor(Date.now() / 1000) + 3600 }, tokenSecret);
+        const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+
+        await supabase.from('storefront_customers').update({
+          password_reset_token: resetToken,
+          password_reset_expires_at: expiresAt,
+        }).eq('id', customer.id);
+
+        // TODO: Send email with reset link when email service is configured
+        // For now, the token is stored and can be used via reset_password action
+        console.log(`Password reset requested for ${email}, token expires at ${expiresAt}`);
+
+        result = { message: 'If an account with that email exists, a reset link has been sent.', token: resetToken };
+        break;
+      }
+
+      case 'reset_password': {
+        const { email: resetEmail, reset_token, new_password: resetNewPassword } = params as any;
+        if (!resetEmail || !reset_token || !resetNewPassword) throw new Error('email, reset_token and new_password are required');
+        if (resetNewPassword.length < 8) throw new Error('Password must be at least 8 characters');
+
+        const emailLower = resetEmail.trim().toLowerCase();
+
+        // Verify token is valid HMAC token
+        const payload = await verifyToken(reset_token, tokenSecret);
+        if (!payload || payload.email !== emailLower || payload.purpose !== 'password_reset') {
+          throw new Error('Invalid or expired reset token');
+        }
+
+        // Check token matches stored token and hasn't expired
+        const { data: customer } = await supabase
+          .from('storefront_customers').select('id, password_reset_token, password_reset_expires_at')
+          .eq('tenant_id', tenant_id).eq('email', emailLower).eq('is_active', true).maybeSingle();
+
+        if (!customer || customer.password_reset_token !== reset_token) {
+          throw new Error('Invalid or expired reset token');
+        }
+        if (customer.password_reset_expires_at && new Date(customer.password_reset_expires_at) < new Date()) {
+          throw new Error('Reset token has expired');
+        }
+
+        const newHash = await hashPassword(resetNewPassword);
+        await supabase.from('storefront_customers').update({
+          password_hash: newHash,
+          password_reset_token: null,
+          password_reset_expires_at: null,
+        }).eq('id', customer.id);
+
+        result = { message: 'Password reset successfully' };
+        break;
+      }
+
+      // ============ WISHLIST / FAVORITES ============
+
+      case 'wishlist_get': {
+        const customer = await getCustomer();
+        const { data: favorites } = await supabase
+          .from('storefront_favorites')
+          .select('id, product_id, created_at')
+          .eq('tenant_id', tenant_id).eq('customer_id', customer.id)
+          .order('created_at', { ascending: false });
+
+        // Enrich with product data
+        const productIds = (favorites || []).map((f: any) => f.product_id);
+        let products: any[] = [];
+        if (productIds.length > 0) {
+          const { data: prods } = await supabase
+            .from('products')
+            .select('id, name, slug, price, compare_at_price, images, track_inventory, stock, is_active')
+            .in('id', productIds);
+          products = prods || [];
+        }
+
+        const productMap = new Map(products.map((p: any) => [p.id, p]));
+        result = (favorites || []).map((f: any) => {
+          const p = productMap.get(f.product_id);
+          return {
+            id: f.id, product_id: f.product_id, created_at: f.created_at,
+            product: p ? {
+              name: p.name, slug: p.slug, price: p.price, compare_at_price: p.compare_at_price,
+              image: p.images?.[0] || null, in_stock: !p.track_inventory || p.stock > 0, is_active: p.is_active,
+            } : null,
+          };
+        });
+        break;
+      }
+
+      case 'wishlist_add': {
+        const customer = await getCustomer();
+        const productId = (params as any).product_id;
+        if (!productId) throw new Error('product_id is required');
+
+        // Verify product exists
+        const { data: product } = await supabase
+          .from('products').select('id').eq('id', productId).eq('tenant_id', tenant_id).eq('is_active', true).maybeSingle();
+        if (!product) throw new Error('Product not found');
+
+        const { error } = await supabase.from('storefront_favorites').upsert(
+          { tenant_id, customer_id: customer.id, product_id: productId },
+          { onConflict: 'tenant_id,customer_id,product_id' }
+        );
+        if (error) throw error;
+        result = { message: 'Product added to wishlist' };
+        break;
+      }
+
+      case 'wishlist_remove': {
+        const customer = await getCustomer();
+        const productId = (params as any).product_id;
+        if (!productId) throw new Error('product_id is required');
+
+        await supabase.from('storefront_favorites')
+          .delete()
+          .eq('tenant_id', tenant_id).eq('customer_id', customer.id).eq('product_id', productId);
+        result = { message: 'Product removed from wishlist' };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

@@ -10062,6 +10062,8 @@ export type Database = {
           last_login_at: string | null
           last_name: string
           password_hash: string
+          password_reset_expires_at: string | null
+          password_reset_token: string | null
           phone: string | null
           tenant_id: string
           updated_at: string
@@ -10076,6 +10078,8 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           password_hash: string
+          password_reset_expires_at?: string | null
+          password_reset_token?: string | null
           phone?: string | null
           tenant_id: string
           updated_at?: string
@@ -10090,6 +10094,8 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           password_hash?: string
+          password_reset_expires_at?: string | null
+          password_reset_token?: string | null
           phone?: string | null
           tenant_id?: string
           updated_at?: string
@@ -10097,6 +10103,52 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "storefront_customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storefront_favorites: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          product_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          product_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          product_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_favorites_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_favorites_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
