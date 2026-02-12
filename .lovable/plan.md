@@ -1,37 +1,47 @@
 
-
-# Fix: Gratis Maanden Geven - Edge Function Errors
+# Fix: Gratis Maanden Geven zonder Stripe
 
 ## Probleem
-De "Gratis Maanden Geven" functie geeft een 404-fout omdat de backend functie niet correct werkt. Er zijn twee technische problemen:
-
-1. **Verouderd patroon**: De functie gebruikt een oud import-patroon (`serve` van `deno.land/std`) in plaats van het huidige `Deno.serve`
-2. **Onvolledige CORS-headers**: De functie mist vereiste headers die de app meestuurt, waardoor verzoeken worden geblokkeerd
+De functie faalt met een 404 omdat de tenant (VanXcel) geen `stripe_subscription_id` heeft in de database. De huidige code vereist een Stripe-abonnement om maanden te verlengen, maar niet elke tenant heeft een Stripe-koppeling.
 
 ## Oplossing
+De edge function `platform-gift-month` aanpassen zodat het ook werkt voor tenants zonder Stripe-abonnement. In dat geval wordt alleen de database direct bijgewerkt (trial_end en/of current_period_end verlengen).
 
-### Bestand: `supabase/functions/platform-gift-month/index.ts`
+## Wijzigingen
 
-**Wijzigingen:**
-- Verwijder de verouderde `serve` import van `deno.land/std`
-- Gebruik `Deno.serve()` in plaats van `serve()` (consistent met andere werkende functies)
-- Voeg de ontbrekende CORS-headers toe: `x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, `x-supabase-client-runtime-version`
+### `supabase/functions/platform-gift-month/index.ts`
+
+**Huidige logica (faalt):**
+1. Haal `stripe_subscription_id` en `current_period_end` op
+2. Als geen `stripe_subscription_id` -> 404 error
+3. Update Stripe subscription
+
+**Nieuwe logica:**
+1. Haal abonnement op inclusief `trial_end`, `current_period_end`, `stripe_subscription_id`
+2. Als geen abonnement gevonden -> 404 error
+3. Bereken nieuw einddatum op basis van het verste punt (trial_end, current_period_end, of nu)
+4. Als er een `stripe_subscription_id` is -> update ook Stripe
+5. Update altijd de database: `trial_end` en `current_period_end` verlengen
+6. Log de admin actie
 
 ### Technische details
 
-**CORS-headers aanpassing (regel 5-8):**
-```typescript
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+```text
+Stroom:
+  Abonnement ophalen
+       |
+  Geen abonnement? --> 404
+       |
+  Bereken startdatum = MAX(trial_end, current_period_end, NOW())
+  Bereken nieuw einddatum = startdatum + X maanden
+       |
+  Heeft Stripe ID? --> Ja --> Update Stripe trial_end
+       |
+  Update database: trial_end + current_period_end
+       |
+  Log admin actie
 ```
 
-**Serve-patroon aanpassing (regel 1, 15):**
-```typescript
-// Verwijder: import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// Vervang serve(...) door Deno.serve(...)
-Deno.serve(async (req) => {
-```
-
-Na deze wijzigingen wordt de functie automatisch opnieuw uitgerold en zou het "Gratis Maanden Geven" weer moeten werken.
+Dit zorgt ervoor dat de functie werkt voor:
+- Tenants met Stripe-abonnement (database + Stripe update)
+- Tenants zonder Stripe-abonnement (alleen database update)
