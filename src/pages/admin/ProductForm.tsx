@@ -66,6 +66,7 @@ import { ChevronRight } from 'lucide-react';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
+import { ProductTranslationTabs } from '@/components/admin/products/ProductTranslationTabs';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
@@ -1122,14 +1123,19 @@ export default function ProductForm() {
                       <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
                         <div className="flex items-center gap-2">
                           <Languages className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">Vertalingen</span>
-                        </div>
-                        <Link to="/admin/marketing/translations">
-                          <Button type="button" variant="outline" size="sm"><ExternalLink className="h-3 w-3 mr-1" />Vertaal Hub</Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      <span className="text-sm font-medium">Vertalingen</span>
+                    </div>
+                    <Link to="/admin/marketing/translations">
+                      <Button type="button" variant="outline" size="sm"><ExternalLink className="h-3 w-3 mr-1" />Vertaal Hub</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Translation Tabs (only when editing) */}
+              {isEditing && id && (
+                <ProductTranslationTabs productId={id} />
+              )}
                 </div>
               </div>
             </TabsContent>
