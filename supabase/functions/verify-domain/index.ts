@@ -21,15 +21,10 @@ const EXPECTED_IP = '185.158.133.1';
 async function resolveCNAME(domain: string): Promise<string[]> {
   try {
     const url = `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=CNAME`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
-    
+    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!response.ok) return [];
-    
     const data = await response.json();
     if (!data.Answer || data.Answer.length === 0) return [];
-    
     return data.Answer.map((answer: { data: string }) => answer.data.replace(/"/g, ''));
   } catch {
     return [];
@@ -38,24 +33,11 @@ async function resolveCNAME(domain: string): Promise<string[]> {
 
 async function resolveDNS(domain: string, type: 'A' | 'TXT'): Promise<string[]> {
   try {
-    // Use Google's DNS-over-HTTPS API for DNS resolution
     const url = `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=${type}`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
-    
-    if (!response.ok) {
-      console.error(`DNS query failed: ${response.status}`);
-      return [];
-    }
-    
+    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) return [];
     const data = await response.json();
-    
-    if (!data.Answer || data.Answer.length === 0) {
-      return [];
-    }
-    
-    // Extract the data field from each answer
+    if (!data.Answer || data.Answer.length === 0) return [];
     return data.Answer.map((answer: { data: string }) => answer.data.replace(/"/g, ''));
   } catch (error) {
     console.error(`DNS resolution error for ${domain} (${type}):`, error);
@@ -64,13 +46,12 @@ async function resolveDNS(domain: string, type: 'A' | 'TXT'): Promise<string[]> 
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { tenant_id, domain: preCheckDomain } = await req.json();
+    const { tenant_id, domain: preCheckDomain, domain_id } = await req.json();
 
     if (!tenant_id) {
       return new Response(
@@ -79,27 +60,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch tenant data
-    const { data: tenant, error: tenantError } = await supabase
-      .from('tenants')
-      .select('custom_domain, domain_verification_token')
-      .eq('id', tenant_id)
-      .single();
+    let domainToCheck: string | null = null;
+    let verificationToken: string | null = null;
 
-    if (tenantError || !tenant) {
-      return new Response(
-        JSON.stringify({ error: 'Tenant not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Multi-domain path: use domain_id to look up from tenant_domains
+    if (domain_id) {
+      const { data: domainRecord, error: domainError } = await supabase
+        .from('tenant_domains')
+        .select('domain, verification_token, tenant_id')
+        .eq('id', domain_id)
+        .eq('tenant_id', tenant_id)
+        .single();
+
+      if (domainError || !domainRecord) {
+        return new Response(
+          JSON.stringify({ error: 'Domain not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      domainToCheck = domainRecord.domain;
+      verificationToken = domainRecord.verification_token;
+    } else {
+      // Legacy path: use tenants table
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('custom_domain, domain_verification_token')
+        .eq('id', tenant_id)
+        .single();
+
+      if (tenantError || !tenant) {
+        return new Response(
+          JSON.stringify({ error: 'Tenant not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      domainToCheck = preCheckDomain || tenant.custom_domain;
+      verificationToken = tenant.domain_verification_token;
     }
-
-    const domainToCheck = preCheckDomain || tenant.custom_domain;
-    const verificationToken = tenant.domain_verification_token;
 
     if (!domainToCheck) {
       return new Response(
@@ -108,29 +111,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Verifying domain: ${domainToCheck}`);
+    console.log(`Verifying domain: ${domainToCheck} (domain_id: ${domain_id || 'legacy'})`);
 
-    // Resolve A record for the domain
     const aRecords = await resolveDNS(domainToCheck, 'A');
-    console.log(`A records for ${domainToCheck}:`, aRecords);
-    
-    // Also check www subdomain
-    const wwwARecords = await resolveDNS(`www.${domainToCheck}`, 'A');
-    console.log(`A records for www.${domainToCheck}:`, wwwARecords);
-
-    // Resolve TXT record for verification
     const txtRecords = await resolveDNS(`_sellqo.${domainToCheck}`, 'TXT');
-    console.log(`TXT records for _sellqo.${domainToCheck}:`, txtRecords);
-
-    // Check for CNAME conflicts on root domain
     const cnameRecords = await resolveCNAME(domainToCheck);
     const hasCnameConflict = cnameRecords.length > 0;
-    console.log(`CNAME records for ${domainToCheck}:`, cnameRecords);
 
-    // Check if A record points to our IP
+    console.log(`A records: ${aRecords}, TXT records: ${txtRecords}, CNAME: ${cnameRecords}`);
+
     const aRecordValid = aRecords.includes(EXPECTED_IP);
-    
-    // Check if TXT record contains our verification token
     const expectedTxtValue = `sellqo-verify=${verificationToken}`;
     const txtRecordValid = txtRecords.some(record => record === expectedTxtValue);
 
@@ -142,7 +132,6 @@ Deno.serve(async (req) => {
       current_txt_record: txtRecords.length > 0 ? txtRecords[0] : null,
     };
 
-    // Add detailed error information
     if (!result.success) {
       if (hasCnameConflict) {
         result.error_type = 'cname_conflict';
@@ -159,19 +148,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If verification successful, update the tenant
+    // Update verification status
     if (result.success && !preCheckDomain) {
-      const { error: updateError } = await supabase
-        .from('tenants')
-        .update({ 
-          domain_verified: true,
-          ssl_status: 'pending',
-        })
-        .eq('id', tenant_id);
-
-      if (updateError) {
-        console.error('Error updating domain_verified:', updateError);
-        result.error = 'Verification succeeded but failed to update status';
+      if (domain_id) {
+        // Multi-domain: update tenant_domains
+        await supabase
+          .from('tenant_domains')
+          .update({ dns_verified: true })
+          .eq('id', domain_id);
+      } else {
+        // Legacy: update tenants
+        await supabase
+          .from('tenants')
+          .update({ domain_verified: true, ssl_status: 'pending' })
+          .eq('id', tenant_id);
       }
     }
 
