@@ -2220,6 +2220,54 @@ export type Database = {
           },
         ]
       }
+      channel_field_mappings: {
+        Row: {
+          channel_category: string | null
+          channel_field: string
+          channel_field_label: string
+          channel_type: string
+          created_at: string
+          field_group: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          sellqo_field: string
+          sort_order: number
+          transform_rule: Json | null
+          updated_at: string
+        }
+        Insert: {
+          channel_category?: string | null
+          channel_field: string
+          channel_field_label: string
+          channel_type: string
+          created_at?: string
+          field_group?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          sellqo_field: string
+          sort_order?: number
+          transform_rule?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          channel_category?: string | null
+          channel_field?: string
+          channel_field_label?: string
+          channel_type?: string
+          created_at?: string
+          field_group?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          sellqo_field?: string
+          sort_order?: number
+          transform_rule?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       content_translations: {
         Row: {
           auto_sync_enabled: boolean | null
@@ -7847,6 +7895,111 @@ export type Database = {
           },
         ]
       }
+      product_channel_warnings: {
+        Row: {
+          channel_type: string
+          checked_at: string
+          id: string
+          missing_fields: Json
+          product_id: string
+          severity: string
+          tenant_id: string
+          warning_message: string | null
+        }
+        Insert: {
+          channel_type: string
+          checked_at?: string
+          id?: string
+          missing_fields?: Json
+          product_id: string
+          severity?: string
+          tenant_id: string
+          warning_message?: string | null
+        }
+        Update: {
+          channel_type?: string
+          checked_at?: string
+          id?: string
+          missing_fields?: Json
+          product_id?: string
+          severity?: string
+          tenant_id?: string
+          warning_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_channel_warnings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_channel_warnings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_custom_specs: {
+        Row: {
+          created_at: string
+          group_name: string
+          group_sort_order: number
+          id: string
+          product_id: string
+          sort_order: number
+          spec_key: string
+          spec_value: string | null
+          tenant_id: string
+          updated_at: string
+          value_type: string
+        }
+        Insert: {
+          created_at?: string
+          group_name?: string
+          group_sort_order?: number
+          id?: string
+          product_id: string
+          sort_order?: number
+          spec_key: string
+          spec_value?: string | null
+          tenant_id: string
+          updated_at?: string
+          value_type?: string
+        }
+        Update: {
+          created_at?: string
+          group_name?: string
+          group_sort_order?: number
+          id?: string
+          product_id?: string
+          sort_order?: number
+          spec_key?: string
+          spec_value?: string | null
+          tenant_id?: string
+          updated_at?: string
+          value_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_custom_specs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_custom_specs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_files: {
         Row: {
           created_at: string | null
@@ -7900,6 +8053,138 @@ export type Database = {
           },
           {
             foreignKeyName: "product_files_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_specifications: {
+        Row: {
+          brand: string | null
+          ce_marking: boolean | null
+          color: string | null
+          composition: Json | null
+          country_of_origin: string | null
+          created_at: string
+          energy_label: string | null
+          hazard_class: string | null
+          height_cm: number | null
+          hs_tariff_code: string | null
+          id: string
+          is_fragile: boolean | null
+          is_hazardous: boolean | null
+          isbn: string | null
+          lead_time_days: number | null
+          length_cm: number | null
+          manufacturer: string | null
+          material: string | null
+          model_number: string | null
+          mpn: string | null
+          package_height_cm: number | null
+          package_length_cm: number | null
+          package_weight_kg: number | null
+          package_width_cm: number | null
+          product_id: string
+          safety_warnings: string | null
+          shipping_class: string | null
+          size: string | null
+          storage_instructions: string | null
+          tenant_id: string
+          units_per_package: number | null
+          upc: string | null
+          updated_at: string
+          warranty_months: number | null
+          weight_kg: number | null
+          width_cm: number | null
+        }
+        Insert: {
+          brand?: string | null
+          ce_marking?: boolean | null
+          color?: string | null
+          composition?: Json | null
+          country_of_origin?: string | null
+          created_at?: string
+          energy_label?: string | null
+          hazard_class?: string | null
+          height_cm?: number | null
+          hs_tariff_code?: string | null
+          id?: string
+          is_fragile?: boolean | null
+          is_hazardous?: boolean | null
+          isbn?: string | null
+          lead_time_days?: number | null
+          length_cm?: number | null
+          manufacturer?: string | null
+          material?: string | null
+          model_number?: string | null
+          mpn?: string | null
+          package_height_cm?: number | null
+          package_length_cm?: number | null
+          package_weight_kg?: number | null
+          package_width_cm?: number | null
+          product_id: string
+          safety_warnings?: string | null
+          shipping_class?: string | null
+          size?: string | null
+          storage_instructions?: string | null
+          tenant_id: string
+          units_per_package?: number | null
+          upc?: string | null
+          updated_at?: string
+          warranty_months?: number | null
+          weight_kg?: number | null
+          width_cm?: number | null
+        }
+        Update: {
+          brand?: string | null
+          ce_marking?: boolean | null
+          color?: string | null
+          composition?: Json | null
+          country_of_origin?: string | null
+          created_at?: string
+          energy_label?: string | null
+          hazard_class?: string | null
+          height_cm?: number | null
+          hs_tariff_code?: string | null
+          id?: string
+          is_fragile?: boolean | null
+          is_hazardous?: boolean | null
+          isbn?: string | null
+          lead_time_days?: number | null
+          length_cm?: number | null
+          manufacturer?: string | null
+          material?: string | null
+          model_number?: string | null
+          mpn?: string | null
+          package_height_cm?: number | null
+          package_length_cm?: number | null
+          package_weight_kg?: number | null
+          package_width_cm?: number | null
+          product_id?: string
+          safety_warnings?: string | null
+          shipping_class?: string | null
+          size?: string | null
+          storage_instructions?: string | null
+          tenant_id?: string
+          units_per_package?: number | null
+          upc?: string | null
+          updated_at?: string
+          warranty_months?: number | null
+          weight_kg?: number | null
+          width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_specifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_specifications_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -13258,6 +13543,10 @@ export type Database = {
       }
       bulk_update_social_channels: {
         Args: { p_product_ids: string[]; p_social_channels: Json }
+        Returns: number
+      }
+      bulk_update_specifications: {
+        Args: { p_product_ids: string[]; p_updates: Json }
         Returns: number
       }
       bulk_update_tags: {
