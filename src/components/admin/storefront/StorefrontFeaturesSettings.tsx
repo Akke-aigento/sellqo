@@ -676,7 +676,7 @@ export function StorefrontFeaturesSettings() {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Multilingual Section */}
+        {/* Multilingual Section - Simplified, reads from tenant_domains */}
         <AccordionItem value="multilingual" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline py-4">
             <div className="flex items-center gap-3">
@@ -685,117 +685,75 @@ export function StorefrontFeaturesSettings() {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Meertalige Webshop</h3>
-                <p className="text-sm text-muted-foreground">Bied je webshop aan in meerdere talen</p>
+                <p className="text-sm text-muted-foreground">Talen worden automatisch bepaald op basis van je gekoppelde domeinen</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="multilingual_enabled">Meertalige webshop activeren</Label>
-                <InfoTooltip text="Schakel meertalige ondersteuning in zodat klanten hun voorkeurstaal kunnen kiezen" />
+            {/* Read-only active languages from domains */}
+            <div className="space-y-3">
+              <Label>Actieve talen (via domeinen)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {SUPPORTED_LANGUAGES.map((lang) => {
+                  const isActive = formData.storefront_languages.includes(lang.code);
+                  const isDefault = lang.code === formData.storefront_default_language;
+                  return (
+                    <div
+                      key={lang.code}
+                      className={`flex items-center gap-3 p-3 border rounded-lg ${
+                        isActive
+                          ? 'border-primary bg-primary/5'
+                          : 'border-muted opacity-50'
+                      }`}
+                    >
+                      <span className="text-xl">{lang.flag}</span>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{lang.name}</p>
+                        <p className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</p>
+                      </div>
+                      {isDefault && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Standaard</span>
+                      )}
+                      {isActive && !isDefault && (
+                        <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">Actief</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <Switch
-                id="multilingual_enabled"
-                checked={formData.storefront_multilingual_enabled}
-                onCheckedChange={(checked) => updateField('storefront_multilingual_enabled', checked)}
-              />
+              <p className="text-xs text-muted-foreground">
+                Talen worden automatisch geactiveerd wanneer je een domein met die taal koppelt bij <strong>Instellingen → Domeinen</strong>.
+              </p>
+              <a href="/admin/settings?tab=domains" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                Domeinen en talen beheren →
+              </a>
             </div>
 
-            {formData.storefront_multilingual_enabled && (
-              <>
-                <div className="space-y-3">
-                  <Label>Beschikbare talen</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <div
-                        key={lang.code}
-                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                          formData.storefront_languages.includes(lang.code)
-                            ? 'border-primary bg-primary/5'
-                            : 'border-muted hover:border-muted-foreground/30'
-                        }`}
-                        onClick={() => toggleLanguage(lang.code)}
-                      >
-                        <Checkbox
-                          checked={formData.storefront_languages.includes(lang.code)}
-                          disabled={
-                            formData.storefront_languages.includes(lang.code) && 
-                            (formData.storefront_languages.length === 1 || lang.code === formData.storefront_default_language)
-                          }
-                        />
-                        <span className="text-xl">{lang.flag}</span>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{lang.name}</p>
-                          <p className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</p>
-                        </div>
-                        {lang.code === formData.storefront_default_language && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Standaard</span>
-                        )}
+            {/* Language selector style - the only editable setting here */}
+            <div className="space-y-2">
+              <Label>Taalwisselaar stijl</Label>
+              <Select
+                value={formData.storefront_language_selector_style}
+                onValueChange={(value) => updateField('storefront_language_selector_style', value as any)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_SELECTOR_STYLES.map((style) => (
+                    <SelectItem key={style.value} value={style.value}>
+                      <div>
+                        <div className="font-medium">{style.label}</div>
+                        <div className="text-xs text-muted-foreground">{style.description}</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Standaardtaal</Label>
-                  <Select
-                    value={formData.storefront_default_language}
-                    onValueChange={(value) => {
-                      // Ensure the default language is in the selected languages
-                      if (!formData.storefront_languages.includes(value)) {
-                        setFormData(prev => ({
-                          ...prev,
-                          storefront_languages: [...prev.storefront_languages, value],
-                          storefront_default_language: value,
-                        }));
-                      } else {
-                        updateField('storefront_default_language', value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUPPORTED_LANGUAGES.filter(l => formData.storefront_languages.includes(l.code)).map((lang) => (
-                        <SelectItem key={lang.code} value={lang.code}>
-                          <div className="flex items-center gap-2">
-                            <span>{lang.flag}</span>
-                            <span>{lang.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    De taal die wordt gebruikt wanneer een bezoeker nog geen voorkeur heeft gekozen
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Taalwisselaar stijl</Label>
-                  <Select
-                    value={formData.storefront_language_selector_style}
-                    onValueChange={(value) => updateField('storefront_language_selector_style', value as any)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LANGUAGE_SELECTOR_STYLES.map((style) => (
-                        <SelectItem key={style.value} value={style.value}>
-                          <div>
-                            <div className="font-medium">{style.label}</div>
-                            <div className="text-xs text-muted-foreground">{style.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Bepaalt hoe bezoekers van taal kunnen wisselen in je webshop
+              </p>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

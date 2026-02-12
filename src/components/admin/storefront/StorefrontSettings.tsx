@@ -7,7 +7,6 @@ import {
   Copy, 
   Check,
   AlertCircle,
-  CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,9 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { toast } from 'sonner';
@@ -62,82 +59,35 @@ export function StorefrontSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Domain Settings */}
+      {/* Domain Summary */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            Domein
+            Domeinen
           </CardTitle>
           <CardDescription>
-            Koppel je eigen domein aan je webshop
+            Beheer je gekoppelde domeinen en taalinstellingen
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Huidige Webshop URL</Label>
-            <div className="flex gap-2">
-              <Input value={storefrontUrl} readOnly className="bg-muted" />
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={() => copyToClipboard(storefrontUrl, 'url')}
-              >
-                {copied === 'url' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-              <Button variant="outline" size="icon" asChild>
-                <a href={storefrontUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          {customDomain ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
-                <div className="flex items-center gap-3">
-                  {domainVerified ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-yellow-500" />
-                  )}
-                  <div>
-                    <p className="font-medium">{customDomain}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {domainVerified ? 'Domein geverifieerd en actief' : 'Wacht op DNS verificatie'}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={domainVerified ? 'default' : 'secondary'}>
-                  {domainVerified ? 'Actief' : 'Pending'}
-                </Badge>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center gap-3">
+              <Globe className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium">Domeinconfiguratie</p>
+                <p className="text-sm text-muted-foreground">
+                  Beheer je domeinen, talen en DNS-verificatie centraal bij Instellingen
+                </p>
               </div>
-
-              {!domainVerified && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>DNS Configuratie Vereist</AlertTitle>
-                  <AlertDescription className="space-y-2">
-                    <p>Voeg de volgende DNS records toe bij je domeinprovider:</p>
-                    <div className="mt-2 p-3 bg-muted rounded-md font-mono text-xs space-y-1">
-                      <div>Type: A | Name: @ | Value: 185.158.133.1</div>
-                      <div>Type: CNAME | Name: www | Value: shops.sellqo.be</div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
             </div>
-          ) : (
-            <Alert>
-              <Globe className="h-4 w-4" />
-              <AlertTitle>Eigen domein koppelen</AlertTitle>
-              <AlertDescription>
-                Ga naar <strong>Instellingen → Algemeen</strong> om je eigen domein te configureren 
-                (bijv. www.jouwwebshop.be)
-              </AlertDescription>
-            </Alert>
-          )}
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin/settings?tab=domains">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Domeinen beheren
+              </a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
