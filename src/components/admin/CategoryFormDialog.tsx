@@ -41,6 +41,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Upload, X, Globe, Image as ImageIcon, Languages, ExternalLink } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
+import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
+import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import type { Category } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 
@@ -223,6 +225,11 @@ export function CategoryFormDialog({
   
   const currentImageUrl = form.watch('image_url');
 
+  const categoryAiContext: AIFieldContext = {
+    name: form.watch('name'),
+    description: form.watch('description'),
+    category_name: form.watch('name'),
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -255,7 +262,15 @@ export function CategoryFormDialog({
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Naam *</FormLabel>
+                      <div className="flex items-center gap-1">
+                        <FormLabel>Naam *</FormLabel>
+                        <AIFieldAssistant
+                          fieldType="category_description"
+                          currentValue={field.value}
+                          onApply={(text) => form.setValue('name', text)}
+                          context={categoryAiContext}
+                        />
+                      </div>
                       <FormControl>
                         <Input placeholder="Bijv. Elektronica" {...field} />
                       </FormControl>
@@ -289,6 +304,7 @@ export function CategoryFormDialog({
                           value={field.value || ''}
                           onChange={field.onChange}
                           maxLength={5000}
+                          aiContext={categoryAiContext}
                         />
                       </FormControl>
                       <FormMessage />
@@ -477,7 +493,16 @@ export function CategoryFormDialog({
                   name={`meta_title_${sourceLang}` as 'meta_title_nl'}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta titel</FormLabel>
+                      <div className="flex items-center gap-1">
+                        <FormLabel>Meta titel</FormLabel>
+                        <AIFieldAssistant
+                          fieldType="meta_title"
+                          currentValue={field.value || ''}
+                          onApply={(text) => form.setValue(`meta_title_${sourceLang}` as 'meta_title_nl', text)}
+                          context={categoryAiContext}
+                          language={sourceLang}
+                        />
+                      </div>
                       <FormControl>
                         <Input placeholder={`SEO titel in ${TRANSLATION_LANGUAGES.find(l => l.code === sourceLang)?.label}...`} {...field} value={field.value || ''} />
                       </FormControl>
@@ -491,7 +516,16 @@ export function CategoryFormDialog({
                   name={`meta_description_${sourceLang}` as 'meta_description_nl'}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta beschrijving</FormLabel>
+                      <div className="flex items-center gap-1">
+                        <FormLabel>Meta beschrijving</FormLabel>
+                        <AIFieldAssistant
+                          fieldType="meta_description"
+                          currentValue={field.value || ''}
+                          onApply={(text) => form.setValue(`meta_description_${sourceLang}` as 'meta_description_nl', text)}
+                          context={categoryAiContext}
+                          language={sourceLang}
+                        />
+                      </div>
                       <FormControl>
                         <Textarea placeholder={`SEO beschrijving in ${TRANSLATION_LANGUAGES.find(l => l.code === sourceLang)?.label}...`} rows={3} className="resize-none" {...field} value={field.value || ''} />
                       </FormControl>

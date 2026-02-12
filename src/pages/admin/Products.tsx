@@ -15,11 +15,13 @@ import {
   Settings2,
   List,
   Grid3X3,
+  Sparkles,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
 import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
+import { BulkAIGenerateDialog } from '@/components/admin/products/BulkAIGenerateDialog';
 import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
 import type { BulkEditState } from '@/components/admin/products/bulk/BulkEditTypes';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -86,6 +88,7 @@ export default function ProductsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
+  const [bulkAIDialogOpen, setBulkAIDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
@@ -401,6 +404,10 @@ export default function ProductsPage() {
               <Trash2 className="mr-2 h-4 w-4" />
               Verwijderen
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI Genereer
+            </Button>
           </div>
         </div>
       )}
@@ -584,6 +591,16 @@ export default function ProductsPage() {
         selectedCount={selectedIds.size}
         selectedIds={Array.from(selectedIds)}
         onApply={handleBulkEdit}
+      />
+
+      <BulkAIGenerateDialog
+        open={bulkAIDialogOpen}
+        onOpenChange={setBulkAIDialogOpen}
+        products={filteredProducts.filter(p => selectedIds.has(p.id))}
+        categories={categories}
+        onComplete={() => {
+          setSelectedIds(new Set());
+        }}
       />
 
       <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
