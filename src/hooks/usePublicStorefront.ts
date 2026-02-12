@@ -7,6 +7,7 @@ import type {
   HomepageSectionContent,
   HomepageSectionSettings 
 } from '@/types/storefront';
+import type { TranslationLanguage } from '@/types/translation';
 
 interface PublicTenant {
   id: string;
@@ -275,4 +276,126 @@ export function usePublicPage(tenantId: string | undefined, pageSlug: string) {
     },
     enabled: !!tenantId && !!pageSlug,
   });
+}
+
+// Domain-aware storefront lookup
+interface DomainInfo {
+  tenantId: string;
+  tenantSlug: string;
+  locale: string;
+  isCanonical: boolean;
+  domain: string;
+}
+
+export function usePublicStorefrontByDomain(hostname: string) {
+  const { data: domainInfo, isLoading: domainLoading, error: domainError } = useQuery({
+    queryKey: ['public-domain-lookup', hostname],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tenant_domains')
+        .select('id, tenant_id, domain, locale, is_canonical')
+        .eq('domain', hostname)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      // Get tenant slug
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('slug')
+        .eq('id', data.tenant_id)
+        .single();
+
+      return {
+        tenantId: data.tenant_id,
+        tenantSlug: tenant?.slug || '',
+        locale: data.locale,
+        isCanonical: data.is_canonical,
+        domain: data.domain,
+      } as DomainInfo;
+    },
+    enabled: !!hostname,
+  });
+
+  return { domainInfo, domainLoading, domainError };
+}
+
+// Fetch all domains for a tenant (for hreflang tags)
+export function useTenantPublicDomains(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['public-tenant-domains', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tenant_domains')
+        .select('domain, locale, is_canonical')
+        .eq('tenant_id', tenantId!)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tenantId,
+  });
+}
+
+// Get translated product content for a specific locale
+export function useLocalizedProduct(
+  tenantId: string | undefined,
+  productId: string | undefined,
+  locale: string,
+  defaultLocale: string = 'nl'
+) {
+  return useQuery({
+    queryKey: ['localized-product', tenantId, productId, locale],
+    queryFn: async () => {
+      if (locale === defaultLocale) return null; // Use default product data
+
+      const { data, error } = await supabase
+        .from('content_translations')
+        .select('field_name, translated_content')
+        .eq('tenant_id', tenantId!)
+        .eq('entity_type', 'product')
+        .eq('entity_id', productId!)
+        .eq('target_language', locale);
+
+      if (error) throw error;
+
+      // Build a field map
+      const fieldMap: Record<string, string | null> = {};
+      for (const t of data || []) {
+        if (t.translated_content) {
+          fieldMap[t.field_name] = t.translated_content;
+        }
+      }
+      return fieldMap;
+    },
+    enabled: !!tenantId && !!productId && locale !== defaultLocale,
+  });
+}
+
+// Generate hreflang and canonical meta for SEO
+export function generateDomainSEOMeta(
+  domains: Array<{ domain: string; locale: string; is_canonical: boolean }>,
+  currentPath: string = '/'
+) {
+  const canonical = domains.find(d => d.is_canonical);
+  const hreflangs = domains.map(d => ({
+    hreflang: d.locale,
+    href: `https://${d.domain}${currentPath}`,
+  }));
+
+  // Add x-default pointing to canonical
+  if (canonical) {
+    hreflangs.push({
+      hreflang: 'x-default',
+      href: `https://${canonical.domain}${currentPath}`,
+    });
+  }
+
+  return {
+    canonicalUrl: canonical ? `https://${canonical.domain}${currentPath}` : null,
+    hreflangs,
+  };
 }
