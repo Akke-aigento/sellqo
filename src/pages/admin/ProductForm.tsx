@@ -31,6 +31,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
+import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
@@ -970,6 +971,11 @@ export default function ProductForm() {
                         <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
                       </CardContent>
                     </Card>
+                  )}
+
+                  {/* Technische Specificaties */}
+                  {isEditing && id && (
+                    <ProductSpecificationsSection productId={id} />
                   )}
                 </div>
 

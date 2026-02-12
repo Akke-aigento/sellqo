@@ -16,6 +16,7 @@ import { BulkStockTab } from './bulk/BulkStockTab';
 import { BulkVisibilityTab } from './bulk/BulkVisibilityTab';
 import { BulkChannelsTab } from './bulk/BulkChannelsTab';
 import { BulkTagsTab } from './bulk/BulkTagsTab';
+import { BulkSpecificationsTab } from './bulk/BulkSpecificationsTab';
 import type { BulkEditState } from './bulk/BulkEditTypes';
 
 interface ProductBulkEditDialogProps {
@@ -95,13 +96,14 @@ export function ProductBulkEditDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="basis">Basis</TabsTrigger>
             <TabsTrigger value="prijzen">Prijzen</TabsTrigger>
             <TabsTrigger value="voorraad">Voorraad</TabsTrigger>
             <TabsTrigger value="zichtbaarheid">Zichtbaar</TabsTrigger>
             <TabsTrigger value="kanalen">Kanalen</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
+            <TabsTrigger value="specs">Specs</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4 pr-2">
@@ -122,6 +124,9 @@ export function ProductBulkEditDialog({
             </TabsContent>
             <TabsContent value="tags" className="mt-0">
               <BulkTagsTab {...tabProps} />
+            </TabsContent>
+            <TabsContent value="specs" className="mt-0">
+              <BulkSpecificationsTab {...tabProps} />
             </TabsContent>
           </div>
         </Tabs>
