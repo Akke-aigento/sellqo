@@ -8,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -77,6 +78,7 @@ export function AIFieldAssistant({
   const [result, setResult] = useState<string | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
   const [activeTab, setActiveTab] = useState<string>('auto');
+  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
 
   const hasAIFeature = checkFeature('ai_copywriting');
 
@@ -149,11 +151,10 @@ export function AIFieldAssistant({
     generate('briefing_generate');
   };
 
-  const handleAccept = (text: string) => {
+  const handleAccept = (text: string, variationId?: string) => {
     onApply(text);
     toast.success('Tekst toegepast!');
-    setResult(null);
-    setVariations([]);
+    if (variationId) setSelectedVariationId(variationId);
     setIsOpen(false);
   };
 
@@ -190,58 +191,68 @@ export function AIFieldAssistant({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start" side="bottom">
+      <PopoverContent className="w-80 max-h-[70vh] overflow-hidden p-0" align="start" side="bottom">
         {/* Result view */}
         {(result || variations.length > 0) ? (
-          <div className="p-3 space-y-3">
-            {result && (
-              <>
-                <p className="text-xs font-medium text-muted-foreground">Voorstel:</p>
-                <div className="text-sm border-l-2 border-primary pl-3 py-1 max-h-40 overflow-y-auto">
-                  {result}
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={handleRegenerate} disabled={isLoading}>
+          <ScrollArea className="max-h-[65vh]">
+            <div className="p-3 space-y-3 relative">
+              {result && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground">Voorstel:</p>
+                  <div className="text-sm border-l-2 border-primary pl-3 py-1">
+                    {result}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={handleRegenerate} disabled={isLoading}>
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Opnieuw
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => handleAccept(result)}>
+                      <Check className="h-3 w-3 mr-1" />
+                      Accepteer
+                    </Button>
+                  </div>
+                </>
+              )}
+              {variations.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground">Kies een variant:</p>
+                  <div className="space-y-2">
+                    {variations.map((v) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => handleAccept(v.text, v.id)}
+                        className={cn(
+                          "w-full text-left p-2 rounded-md border transition-colors",
+                          selectedVariationId === v.id
+                            ? "border-primary bg-primary/10"
+                            : "hover:border-primary hover:bg-primary/5"
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium text-primary">{v.style_label}</span>
+                          {selectedVariationId === v.id && <Check className="h-3 w-3 text-primary" />}
+                        </div>
+                        <p className="text-sm mt-0.5">{v.text}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full" onClick={handleRegenerate} disabled={isLoading}>
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    Opnieuw
+                    Opnieuw genereren
                   </Button>
-                  <Button size="sm" className="flex-1" onClick={() => handleAccept(result)}>
-                    <Check className="h-3 w-3 mr-1" />
-                    Accepteer
-                  </Button>
-                </div>
-              </>
-            )}
-            {variations.length > 0 && (
-              <>
-                <p className="text-xs font-medium text-muted-foreground">Kies een variant:</p>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {variations.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => handleAccept(v.text)}
-                      className="w-full text-left p-2 rounded-md border hover:border-primary hover:bg-primary/5 transition-colors"
-                    >
-                      <span className="text-xs font-medium text-primary">{v.style_label}</span>
-                      <p className="text-sm mt-0.5">{v.text}</p>
-                    </button>
-                  ))}
-                </div>
-                <Button size="sm" variant="outline" className="w-full" onClick={handleRegenerate} disabled={isLoading}>
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Opnieuw genereren
-                </Button>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={handleClose}
-              className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </ScrollArea>
         ) : (
           /* Input view with tabs */
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
