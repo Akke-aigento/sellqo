@@ -39,6 +39,7 @@ import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
+import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -137,6 +138,7 @@ export default function ProductForm() {
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
   const { data: giftCardDesigns = [] } = useGiftCardDesigns();
+  const { primaryKeywords: seoKeywords } = useSEOKeywords();
   
   const [tagsInput, setTagsInput] = useState('');
   const [licenseInput, setLicenseInput] = useState('');
@@ -586,6 +588,7 @@ export default function ProductForm() {
                               currentValue={field.value}
                               onApply={(text) => handleNameChange(text)}
                               context={aiContext}
+                              seoKeywords={seoKeywords}
                             />
                           </div>
                           <FormControl><Input {...field} onChange={(e) => handleNameChange(e.target.value)} placeholder="Product naam" /></FormControl>
@@ -609,6 +612,7 @@ export default function ProductForm() {
                               currentValue={field.value}
                               onApply={(text) => form.setValue('short_description', text)}
                               context={aiContext}
+                              seoKeywords={seoKeywords}
                             />
                           </div>
                           <FormControl><Textarea {...field} placeholder="Korte beschrijving voor productlijsten" rows={2} /></FormControl>
@@ -1169,6 +1173,7 @@ export default function ProductForm() {
                               currentValue={field.value}
                               onApply={(text) => form.setValue('meta_title', text)}
                               context={aiContext}
+                              seoKeywords={seoKeywords}
                             />
                           </div>
                           <FormControl><Input {...field} placeholder={form.watch('name') || 'Product titel'} /></FormControl>
@@ -1185,6 +1190,7 @@ export default function ProductForm() {
                               currentValue={field.value}
                               onApply={(text) => form.setValue('meta_description', text)}
                               context={aiContext}
+                              seoKeywords={seoKeywords}
                             />
                           </div>
                           <FormControl><Textarea {...field} placeholder={form.watch('short_description') || 'Korte beschrijving voor zoekmachines'} rows={3} /></FormControl>

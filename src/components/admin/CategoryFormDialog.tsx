@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Upload, X, Globe, Image as ImageIcon, Languages, ExternalLink } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
+import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import type { Category } from '@/types/product';
@@ -93,6 +94,7 @@ export function CategoryFormDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadImage, uploading } = useImageUpload();
   const { currentTenant } = useTenant();
+  const { primaryKeywords: seoKeywords } = useSEOKeywords();
   
   // Get primary content language from tenant
   const sourceLang = ((currentTenant as any)?.language || 'nl') as TranslationLanguage;
@@ -269,6 +271,7 @@ export function CategoryFormDialog({
                           currentValue={field.value}
                           onApply={(text) => form.setValue('name', text)}
                           context={categoryAiContext}
+                          seoKeywords={seoKeywords}
                         />
                       </div>
                       <FormControl>
@@ -501,6 +504,7 @@ export function CategoryFormDialog({
                           onApply={(text) => form.setValue(`meta_title_${sourceLang}` as 'meta_title_nl', text)}
                           context={categoryAiContext}
                           language={sourceLang}
+                          seoKeywords={seoKeywords}
                         />
                       </div>
                       <FormControl>
@@ -524,6 +528,7 @@ export function CategoryFormDialog({
                           onApply={(text) => form.setValue(`meta_description_${sourceLang}` as 'meta_description_nl', text)}
                           context={categoryAiContext}
                           language={sourceLang}
+                          seoKeywords={seoKeywords}
                         />
                       </div>
                       <FormControl>

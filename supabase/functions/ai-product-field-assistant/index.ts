@@ -27,6 +27,7 @@ interface RequestBody {
   language: string;
   productContext: ProductContext;
   existingTranslation?: string;
+  seoKeywords?: string[];
 }
 
 // Field-specific prompt config
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { fieldType, currentValue, action, briefing, language, productContext, existingTranslation } = body;
+    const { fieldType, currentValue, action, briefing, language, productContext, existingTranslation, seoKeywords } = body;
     const fieldConfig = getFieldConfig(fieldType);
     const langName = languageNames[language] || language;
 
@@ -178,6 +179,13 @@ Deno.serve(async (req) => {
         systemParts.push(`- Amazon beschrijving: Gebruik HTML bullet points (<ul><li>). Focus op features en benefits. Maximaal 2000 tekens.`);
         systemParts.push(`- Amazon bullet points: 5 kernpunten, elk max 500 tekens, begin elk punt met een hoofdletter.`);
       }
+    }
+
+    // SEO Keywords
+    if (seoKeywords?.length) {
+      systemParts.push(`\nSEO KEYWORDS:`);
+      systemParts.push(`Verwerk de volgende zoekwoorden op een NATUURLIJKE manier in de tekst. Forceer ze niet, maar zorg dat ze terugkomen waar het logisch is:`);
+      systemParts.push(seoKeywords.join(", "));
     }
 
     // Learning patterns
