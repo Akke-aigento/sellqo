@@ -1271,6 +1271,94 @@ async function checkoutGetConfirmation(supabase: any, tenantId: string, params: 
   return { ...order, items: items || [] };
 }
 
+// ============== NEWSLETTER SUBSCRIBE ==============
+
+async function newsletterSubscribe(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const email = (params.email as string || '').trim().toLowerCase();
+  const firstName = (params.first_name as string) || undefined;
+  const source = (params.source as string) || 'storefront_api';
+
+  if (!email) throw new Error('email is required');
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) throw new Error('Invalid email format');
+
+  // Check if already subscribed
+  const { data: existing } = await supabase
+    .from('newsletter_subscribers')
+    .select('id, status')
+    .eq('tenant_id', tenantId)
+    .eq('email', email)
+    .maybeSingle();
+
+  if (existing?.status === 'active') {
+    return { message: 'Already subscribed', provider: 'internal', double_optin: false };
+  }
+
+  if (existing) {
+    await supabase.from('newsletter_subscribers').update({
+      status: 'pending', sync_status: 'pending', unsubscribed_at: null,
+      subscribed_at: new Date().toISOString(),
+    }).eq('id', existing.id);
+  } else {
+    const { error } = await supabase.from('newsletter_subscribers').insert({
+      tenant_id: tenantId, email, first_name: firstName || null, source, status: 'pending', sync_status: 'pending',
+    });
+    if (error) throw error;
+  }
+
+  // Get tenant newsletter config
+  const { data: config } = await supabase
+    .from('tenant_newsletter_config').select('provider, double_optin, mailchimp_api_key, mailchimp_audience_id, mailchimp_server_prefix, klaviyo_api_key, klaviyo_list_id')
+    .eq('tenant_id', tenantId).maybeSingle();
+
+  const provider = config?.provider || 'internal';
+  const doubleOptin = config?.double_optin || false;
+
+  // For external providers, invoke the dedicated newsletter-subscribe function
+  if (provider !== 'internal' && (config?.mailchimp_api_key || config?.klaviyo_api_key)) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const res = await fetch(`${supabaseUrl}/functions/v1/newsletter-subscribe`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, email, firstName, source }),
+      });
+      const data = await res.json();
+      return { message: data.message || 'Subscribed', provider, double_optin: doubleOptin };
+    } catch (e) {
+      console.error('Newsletter sync error:', e);
+    }
+  }
+
+  // Internal: mark active directly
+  await supabase.from('newsletter_subscribers').update({
+    status: doubleOptin ? 'pending' : 'active',
+    sync_status: 'synced',
+    confirmed_at: doubleOptin ? null : new Date().toISOString(),
+  }).eq('tenant_id', tenantId).eq('email', email);
+
+  return {
+    message: doubleOptin ? 'Please check your email to confirm' : 'Successfully subscribed',
+    provider, double_optin: doubleOptin,
+  };
+}
+
+// ============== RATE LIMITING ==============
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(tenantId: string, limit = 1000, windowMs = 60000): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(tenantId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(tenantId, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= limit;
+}
+
 // ============== MAIN HANDLER ==============
 
 serve(async (req) => {
@@ -1290,23 +1378,31 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'tenant_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Rate limiting per tenant
+    if (!checkRateLimit(tenant_id)) {
+      return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    }
+
     let result: unknown;
+    let cacheControl: string | null = null;
+
     switch (action) {
-      case 'get_tenant': result = await getTenant(supabase, tenant_id, params); break;
-      case 'get_config': result = await getConfig(supabase, tenant_id, params); break;
-      case 'get_products': result = await getProducts(supabase, tenant_id, params); break;
-      case 'get_product': result = await getProduct(supabase, tenant_id, params); break;
-      case 'get_categories': result = await getCategories(supabase, tenant_id, params); break;
-      case 'get_pages': result = await getPages(supabase, tenant_id, params); break;
-      case 'get_homepage': result = await getHomepage(supabase, tenant_id); break;
-      case 'get_reviews': result = await getReviews(supabase, tenant_id, params); break;
-      case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); break;
+      case 'get_tenant': result = await getTenant(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+      case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+      case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+      case 'get_product': result = await getProduct(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+      case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+      case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+      case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+      case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
+      case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
       case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
       case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
       case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;
       case 'search_products': result = await searchProducts(supabase, tenant_id, params); break;
-      case 'get_seo': result = await getSeo(supabase, tenant_id, params); break;
-      case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); break;
+      case 'get_seo': result = await getSeo(supabase, tenant_id, params); cacheControl = 'public, max-age=600'; break;
+      case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
+      case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
       // Cart actions
       case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
       case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;
@@ -1326,7 +1422,10 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ success: true, data: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+    if (cacheControl) responseHeaders['Cache-Control'] = cacheControl;
+
+    return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
   } catch (error) {
     console.error('Storefront API error:', error);
     return new Response(JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
