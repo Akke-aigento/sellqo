@@ -39,6 +39,10 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   useEffect(() => {
     if (!tenant?.id || !themeSettings || redirecting) return;
 
+    // Skip redirects in preview mode
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('preview') === 'true') return;
+
     const checkRedirect = async () => {
       // If custom frontend is enabled, redirect to it
       if ((themeSettings as any)?.use_custom_frontend && (themeSettings as any)?.custom_frontend_url) {
