@@ -20,8 +20,6 @@ Deno.serve(async (req) => {
     logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -65,37 +63,57 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get subscription
+    // Get subscription (including trial_end)
     const { data: subscription } = await supabase
       .from("tenant_subscriptions")
-      .select("stripe_subscription_id, current_period_end")
+      .select("stripe_subscription_id, current_period_end, trial_end")
       .eq("tenant_id", tenantId)
       .single();
 
-    if (!subscription?.stripe_subscription_id) {
-      return new Response(JSON.stringify({ error: "No active subscription found" }), { 
+    if (!subscription) {
+      return new Response(JSON.stringify({ error: "No subscription found for tenant" }), { 
         status: 404, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
-    // Calculate new trial end (extend current period)
-    const currentEnd = new Date(subscription.current_period_end);
-    const newTrialEnd = new Date(currentEnd);
-    newTrialEnd.setMonth(newTrialEnd.getMonth() + months);
+    // Calculate start date = MAX(trial_end, current_period_end, NOW())
+    const now = new Date();
+    const candidates = [now];
+    if (subscription.trial_end) candidates.push(new Date(subscription.trial_end));
+    if (subscription.current_period_end) candidates.push(new Date(subscription.current_period_end));
+    const startDate = new Date(Math.max(...candidates.map(d => d.getTime())));
+
+    // Calculate new end date
+    const newEndDate = new Date(startDate);
+    newEndDate.setMonth(newEndDate.getMonth() + months);
 
     logStep("Extending subscription", { 
-      currentEnd: currentEnd.toISOString(), 
-      newTrialEnd: newTrialEnd.toISOString() 
+      startDate: startDate.toISOString(), 
+      newEndDate: newEndDate.toISOString(),
+      hasStripe: !!subscription.stripe_subscription_id
     });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    // If Stripe subscription exists, update Stripe too
+    if (subscription.stripe_subscription_id && stripeKey) {
+      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+      await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+        trial_end: Math.floor(newEndDate.getTime() / 1000),
+        proration_behavior: "none",
+      });
+      logStep("Stripe subscription updated");
+    }
 
-    // Update Stripe subscription with trial extension
-    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-      trial_end: Math.floor(newTrialEnd.getTime() / 1000),
-      proration_behavior: "none",
-    });
+    // Always update the database
+    await supabase
+      .from("tenant_subscriptions")
+      .update({
+        trial_end: newEndDate.toISOString(),
+        current_period_end: newEndDate.toISOString(),
+      })
+      .eq("tenant_id", tenantId);
+
+    logStep("Database updated");
 
     // Log admin action
     await supabase
@@ -103,13 +121,13 @@ Deno.serve(async (req) => {
       .insert({
         tenant_id: tenantId,
         action: "gift_month",
-        details: { months, newTrialEnd: newTrialEnd.toISOString() },
+        details: { months, newEndDate: newEndDate.toISOString(), hasStripe: !!subscription.stripe_subscription_id },
         performed_by: user.id,
       });
 
     logStep("Gift month applied successfully");
 
-    return new Response(JSON.stringify({ success: true, newTrialEnd }), {
+    return new Response(JSON.stringify({ success: true, newEndDate }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
