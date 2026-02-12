@@ -116,6 +116,9 @@ export default function ShopCart() {
                       >
                         {item.name}
                       </Link>
+                      {item.variantTitle && (
+                        <p className="text-sm text-muted-foreground">{item.variantTitle}</p>
+                      )}
                       <p className="text-lg font-semibold mt-1">{formatPrice(item.price)}</p>
                     </div>
 

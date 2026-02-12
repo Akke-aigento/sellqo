@@ -337,6 +337,14 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
   const avgRating = reviews?.length ? reviews.reduce((s: number, r: any) => s + r.rating, 0) / reviews.length : null;
 
+  // Fetch variants and variant options
+  const [{ data: variants }, { data: variantOptions }] = await Promise.all([
+    supabase.from('product_variants').select('*').eq('product_id', product.id).eq('tenant_id', tenantId).eq('is_active', true).order('position', { ascending: true }),
+    supabase.from('product_variant_options').select('*').eq('product_id', product.id).eq('tenant_id', tenantId).order('position', { ascending: true }),
+  ]);
+
+  const hasVariants = (variants?.length || 0) > 0;
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -349,10 +357,19 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
-    in_stock: !product.track_inventory || product.stock > 0,
+    in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
     category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
+    has_variants: hasVariants,
+    variants: (variants || []).map((v: any) => ({
+      id: v.id, title: v.title, sku: v.sku, barcode: v.barcode,
+      price: v.price ?? product.price, compare_at_price: v.compare_at_price ?? product.compare_at_price,
+      stock: v.track_inventory ? v.stock : null,
+      in_stock: !v.track_inventory || v.stock > 0,
+      image_url: v.image_url, attribute_values: v.attribute_values, weight: v.weight ?? product.weight,
+    })),
+    options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
     seo: {
       meta_title: t.meta_title || product.meta_title || product.name,
       meta_description: t.meta_description || product.meta_description || product.description?.substring(0, 160) || '',
@@ -433,17 +450,44 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   const totalCount = count || 0;
 
+  // Fetch variant data for all products
+  const productIds = filtered.map((p: any) => p.id);
+  let variantMap: Record<string, any[]> = {};
+  if (productIds.length > 0) {
+    const { data: allVariants } = await supabase
+      .from('product_variants').select('product_id, price, stock, track_inventory, is_active')
+      .in('product_id', productIds).eq('is_active', true);
+    if (allVariants) {
+      for (const v of allVariants) {
+        if (!variantMap[v.product_id]) variantMap[v.product_id] = [];
+        variantMap[v.product_id].push(v);
+      }
+    }
+  }
+
   return {
     products: filtered.map((product: any) => {
       const t = tMap[product.id] || {};
+      const pVariants = variantMap[product.id] || [];
+      const hasVariants = pVariants.length > 0;
+      let priceRange = null;
+      if (hasVariants) {
+        const prices = pVariants.map((v: any) => v.price ?? product.price);
+        priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
+      }
       return {
         id: product.id, name: t.name || product.name, slug: product.slug,
         description: t.description || product.description,
         price: product.price, compare_at_price: product.compare_at_price,
-        images: product.images || [], in_stock: !product.track_inventory || product.stock > 0,
+        images: product.images || [],
+        in_stock: hasVariants
+          ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
+          : (!product.track_inventory || product.stock > 0),
         stock: product.track_inventory ? product.stock : null, sku: product.sku,
         tags: product.tags || [], is_featured: product.is_featured || false,
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
+        has_variants: hasVariants,
+        price_range: priceRange,
       };
     }),
     pagination: {
@@ -949,14 +993,27 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, quantity, unit_price, products(id, name, slug, images, price, track_inventory, stock)')
+    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, slug, images, price, track_inventory, stock)')
     .eq('cart_id', cart.id);
 
-  const cartItems = (items || []).map((item: any) => ({
-    id: item.id, product_id: item.product_id, quantity: item.quantity, unit_price: item.unit_price,
-    product: item.products ? { name: item.products.name, slug: item.products.slug, image: item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
-    line_total: item.quantity * item.unit_price,
-  }));
+  // Fetch variant info for items that have variant_id
+  const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
+  let variantMap: Record<string, any> = {};
+  if (variantIds.length > 0) {
+    const { data: variants } = await supabase.from('product_variants').select('id, title, image_url, attribute_values, price, stock, track_inventory').in('id', variantIds);
+    if (variants) variantMap = Object.fromEntries(variants.map((v: any) => [v.id, v]));
+  }
+
+  const cartItems = (items || []).map((item: any) => {
+    const variant = item.variant_id ? variantMap[item.variant_id] : null;
+    return {
+      id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
+      quantity: item.quantity, unit_price: item.unit_price,
+      product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
+      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
+      line_total: item.quantity * item.unit_price,
+    };
+  });
 
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
@@ -970,6 +1027,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 async function cartAddItem(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const productId = params.product_id as string;
+  const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
 
@@ -978,26 +1036,41 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     .from('products').select('id, price, track_inventory, stock, is_active')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
-  if (product.track_inventory && product.stock < quantity) throw new Error('Insufficient stock');
 
-  // Check if item already in cart
-  const { data: existing } = await supabase
-    .from('storefront_cart_items').select('id, quantity')
-    .eq('cart_id', cartId).eq('product_id', productId).maybeSingle();
+  let unitPrice = product.price;
+  let stockSource = product;
+
+  // If variant_id provided, validate and use variant pricing/stock
+  if (variantId) {
+    const { data: variant } = await supabase
+      .from('product_variants').select('id, price, stock, track_inventory, is_active')
+      .eq('id', variantId).eq('product_id', productId).eq('tenant_id', tenantId).single();
+    if (!variant || !variant.is_active) throw new Error('Variant not found or inactive');
+    unitPrice = variant.price ?? product.price;
+    stockSource = variant;
+  }
+
+  if (stockSource.track_inventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
+
+  // Check if item already in cart (unique by product_id + variant_id)
+  let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
+  if (variantId) existingQuery = existingQuery.eq('variant_id', variantId);
+  else existingQuery = existingQuery.is('variant_id', null);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (existing) {
     const newQty = existing.quantity + quantity;
-    if (product.track_inventory && product.stock < newQty) throw new Error('Insufficient stock');
-    const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: product.price }).eq('id', existing.id);
+    if (stockSource.track_inventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
+    const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('storefront_cart_items').insert({ cart_id: cartId, product_id: productId, quantity, unit_price: product.price });
+    const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
+    if (variantId) insertData.variant_id = variantId;
+    const { error } = await supabase.from('storefront_cart_items').insert(insertData);
     if (error) throw error;
   }
 
-  // Touch cart updated_at
   await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
-
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
@@ -1185,20 +1258,26 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     .select('id, order_number').single();
   if (orderError) throw orderError;
 
-  // 8. Create order items
+  // 8. Create order items (with variant support)
   const orderItems = cart.items.map((item: any) => ({
     order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
     product_name: item.product?.name || '', quantity: item.quantity,
     unit_price: item.unit_price, total: item.line_total,
     sku: null, product_image: item.product?.image || null,
+    variant_id: item.variant_id || null,
+    variant_title: item.variant?.title || null,
   }));
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
 
-  // 9. Decrement stock
+  // 9. Decrement stock (variant-level if applicable)
   for (const item of cart.items) {
-    await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+    if (item.variant_id) {
+      await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+    } else {
+      await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+    }
   }
 
   // 10. Clear cart
