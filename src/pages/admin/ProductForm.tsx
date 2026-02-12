@@ -237,6 +237,14 @@ export default function ProductForm() {
     price: form.watch('price'),
     weight: form.watch('weight'),
     tags: form.watch('tags'),
+    marketplace_channels: (() => {
+      if (!product) return [];
+      const channels: string[] = [];
+      const mappings = (product as any).marketplace_mappings || {};
+      if (mappings.bol_com || (product as any).bol_ean) channels.push('bol_com');
+      if (mappings.amazon || (product as any).amazon_asin) channels.push('amazon');
+      return channels;
+    })(),
   };
 
   const generateSlug = (name: string) => {

@@ -16,6 +16,7 @@ interface ProductContext {
   tags?: string[];
   specifications?: Record<string, string>;
   images?: string[];
+  marketplace_channels?: string[]; // e.g. ['bol_com', 'amazon']
 }
 
 interface RequestBody {
@@ -162,6 +163,21 @@ Deno.serve(async (req) => {
     // SEO tips
     if (fieldConfig.seoTips) {
       systemParts.push(`\nSEO RICHTLIJNEN:\n${fieldConfig.seoTips}`);
+    }
+
+    // Marketplace-aware guidelines
+    const channels = ctx.marketplace_channels || [];
+    if (channels.length > 0) {
+      systemParts.push(`\nMARKETPLACE RICHTLIJNEN:`);
+      if (channels.includes('bol_com')) {
+        systemParts.push(`- Bol.com: Producttitel max 150 tekens. Gebruik het format: Merk + Productnaam + Belangrijkste kenmerk. Vermijd promotietekst in de titel.`);
+        systemParts.push(`- Bol.com beschrijving: Gebruik bullet points voor kenmerken. Begin met het belangrijkste voordeel. Maximaal 2000 tekens.`);
+      }
+      if (channels.includes('amazon')) {
+        systemParts.push(`- Amazon: Titel in Title Case, max 200 tekens. Format: Merk + Modelnaam + Type + Kleur/Variant.`);
+        systemParts.push(`- Amazon beschrijving: Gebruik HTML bullet points (<ul><li>). Focus op features en benefits. Maximaal 2000 tekens.`);
+        systemParts.push(`- Amazon bullet points: 5 kernpunten, elk max 500 tekens, begin elk punt met een hoofdletter.`);
+      }
     }
 
     // Learning patterns

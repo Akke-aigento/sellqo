@@ -37,6 +37,7 @@ export interface AIFieldContext {
   tags?: string[];
   specifications?: Record<string, string>;
   images?: string[];
+  marketplace_channels?: string[];
 }
 
 interface AIFieldAssistantProps {

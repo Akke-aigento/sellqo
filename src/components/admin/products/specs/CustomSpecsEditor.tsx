@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import type { ProductCustomSpec } from '@/types/specifications';
+import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 
 interface CustomSpecsEditorProps {
   specs: ProductCustomSpec[];
@@ -75,6 +76,15 @@ export function CustomSpecsEditor({ specs, productId, onAdd, onUpdate, onDelete 
                   placeholder="Waarde"
                   type={spec.value_type === 'number' ? 'number' : 'text'}
                 />
+                {spec.value_type === 'text' && (
+                  <AIFieldAssistant
+                    fieldType="specification_value"
+                    currentValue={spec.spec_value}
+                    onApply={(text) => onUpdate({ id: spec.id, spec_value: text })}
+                    context={{ name: spec.spec_key }}
+                    className="h-8 w-8"
+                  />
+                )}
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => onDelete(spec.id)}>
                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 </Button>

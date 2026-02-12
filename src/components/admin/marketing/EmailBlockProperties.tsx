@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import type { EmailBlock, EmailBlockStyle, EmailBlockContent } from '@/types/emailBuilder';
 import { BLOCK_TEMPLATES } from '@/types/emailBuilder';
+import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 
 interface EmailBlockPropertiesProps {
   block: EmailBlock | null;
@@ -59,7 +60,15 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <>
             <div>
-              <Label>Header tekst</Label>
+              <div className="flex items-center gap-1">
+                <Label>Header tekst</Label>
+                <AIFieldAssistant
+                  fieldType="newsletter"
+                  currentValue={localBlock.content.headerText || ''}
+                  onApply={(text) => updateContent('headerText', text)}
+                  context={{}}
+                />
+              </div>
               <Input
                 value={localBlock.content.headerText || ''}
                 onChange={(e) => updateContent('headerText', e.target.value)}
@@ -80,7 +89,15 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
       case 'text':
         return (
           <div>
-            <Label>Tekst</Label>
+            <div className="flex items-center gap-1">
+              <Label>Tekst</Label>
+              <AIFieldAssistant
+                fieldType="newsletter"
+                currentValue={localBlock.content.text || ''}
+                onApply={(text) => updateContent('text', text)}
+                context={{}}
+              />
+            </div>
             <Textarea
               value={localBlock.content.text || ''}
               onChange={(e) => updateContent('text', e.target.value)}
