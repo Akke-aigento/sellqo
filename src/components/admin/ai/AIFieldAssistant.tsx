@@ -50,6 +50,7 @@ interface AIFieldAssistantProps {
   fieldType: AIFieldType;
   currentValue: string;
   onApply: (text: string) => void;
+  onSeoGenerated?: (seo: { meta_title: string; meta_description: string }) => void;
   context: AIFieldContext;
   language?: string;
   multiVariant?: boolean;
@@ -68,6 +69,7 @@ export function AIFieldAssistant({
   fieldType,
   currentValue,
   onApply,
+  onSeoGenerated,
   context,
   language = 'nl',
   multiVariant = false,
@@ -120,6 +122,10 @@ export function AIFieldAssistant({
         setVariations(data.variations);
       } else if (data?.text) {
         setResult(data.text);
+        // Auto-apply SEO if returned alongside description
+        if (data?.seo && onSeoGenerated) {
+          onSeoGenerated(data.seo);
+        }
       } else {
         throw new Error('Geen tekst ontvangen');
       }
@@ -159,9 +165,12 @@ export function AIFieldAssistant({
     generate('briefing_generate');
   };
 
-  const handleAccept = (text: string, variationId?: string) => {
+  const handleAccept = (text: string, variationId?: string, seo?: { meta_title: string; meta_description: string }) => {
     onApply(text);
-    toast.success('Tekst toegepast!');
+    if (seo && onSeoGenerated) {
+      onSeoGenerated(seo);
+    }
+    toast.success(seo ? 'Tekst + SEO toegepast!' : 'Tekst toegepast!');
     if (variationId) setSelectedVariationId(variationId);
     setIsDialogOpen(false);
   };
@@ -301,7 +310,7 @@ export function AIFieldAssistant({
                     <button
                       key={v.id}
                       type="button"
-                      onClick={() => handleAccept(v.text, v.id)}
+                      onClick={() => handleAccept(v.text, v.id, (v as any).seo)}
                       className={cn(
                         "w-full text-left p-3 rounded-md border transition-colors",
                         selectedVariationId === v.id

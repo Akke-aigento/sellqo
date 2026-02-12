@@ -206,9 +206,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    systemParts.push(`\nAntwoord ALLEEN met de gegenereerde tekst, zonder aanhalingstekens, uitleg of extra opmaak.`);
     if (fieldType === "description") {
-      systemParts.push(`Gebruik HTML opmaak met <h2>, <h3>, <p>, <ul>, <li> tags voor de productbeschrijving. Maak het visueel aantrekkelijk en goed gestructureerd.`);
+      systemParts.push(`\nGENEREER OOK SEO METADATA bij de beschrijving.`);
+      systemParts.push(`Antwoord ALTIJD in het volgende JSON formaat (geen extra tekst eromheen):`);
+      systemParts.push(`{"description": "<hier de HTML beschrijving>", "meta_title": "<max 60 tekens, keyword vooraan>", "meta_description": "<max 160 tekens, call-to-action, primair voordeel>"}`);
+      systemParts.push(`Gebruik HTML opmaak met <h2>, <h3>, <p>, <ul>, <li> tags voor de description. Maak het visueel aantrekkelijk en goed gestructureerd.`);
+    } else {
+      systemParts.push(`\nAntwoord ALLEEN met de gegenereerde tekst, zonder aanhalingstekens, uitleg of extra opmaak.`);
     }
 
     const systemPrompt = systemParts.join("\n");
@@ -230,7 +234,20 @@ Deno.serve(async (req) => {
         break;
 
       case "generate_variations":
-        userPrompt = `Genereer PRECIES 3 verschillende variaties van een ${fieldConfig.label} voor dit product.
+        if (fieldType === "description") {
+          userPrompt = `Genereer PRECIES 3 verschillende variaties van een ${fieldConfig.label} voor dit product.
+
+Geef de output als een JSON array met exact deze structuur:
+[
+  {"style": "professional", "style_label": "Zakelijk", "description": "<HTML beschrijving>", "meta_title": "<max 60 tekens>", "meta_description": "<max 160 tekens>"},
+  {"style": "creative", "style_label": "Creatief", "description": "<HTML beschrijving>", "meta_title": "<max 60 tekens>", "meta_description": "<max 160 tekens>"},
+  {"style": "concise", "style_label": "Kort & Krachtig", "description": "<HTML beschrijving>", "meta_title": "<max 60 tekens>", "meta_description": "<max 160 tekens>"}
+]
+
+Gebruik HTML opmaak (<h2>, <h3>, <p>, <ul>, <li>) in elke variant.
+Antwoord ALLEEN met de JSON array, geen extra tekst.`;
+        } else {
+          userPrompt = `Genereer PRECIES 3 verschillende variaties van een ${fieldConfig.label} voor dit product.
 
 Geef de output als een JSON array met exact deze structuur:
 [
@@ -239,8 +256,8 @@ Geef de output als een JSON array met exact deze structuur:
   {"style": "concise", "style_label": "Kort & Krachtig", "text": "..."}
 ]
 
-${fieldType === "description" ? "Gebruik HTML opmaak (<h2>, <h3>, <p>, <ul>, <li>) in elke variant." : ""}
 Antwoord ALLEEN met de JSON array, geen extra tekst.`;
+        }
         if (briefing) {
           userPrompt += `\n\nExtra instructie van de gebruiker: "${briefing}"`;
         }
@@ -272,7 +289,7 @@ Antwoord ALLEEN met de JSON array, geen extra tekst.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: action === "generate_variations" || fieldType === "description" ? 1500 : 300,
+        max_tokens: action === "generate_variations" || fieldType === "description" ? 2000 : 300,
         temperature: 0.7,
       }),
     });
@@ -323,18 +340,44 @@ Antwoord ALLEEN met de JSON array, geen extra tekst.`;
       }
     }
 
+    // Handle description field: parse JSON with SEO data
+    if (fieldType === "description" && action !== "generate_variations") {
+      try {
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : generatedText;
+        const parsed = JSON.parse(jsonStr) as { description: string; meta_title?: string; meta_description?: string };
+        
+        const responseData: Record<string, unknown> = { text: parsed.description };
+        if (parsed.meta_title || parsed.meta_description) {
+          responseData.seo = {
+            meta_title: parsed.meta_title || "",
+            meta_description: parsed.meta_description || "",
+          };
+        }
+        return new Response(JSON.stringify(responseData), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        // Fallback: return as plain text if JSON parsing fails
+        return new Response(JSON.stringify({ text: generatedText }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Handle variations
     if (action === "generate_variations") {
       try {
         const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
         const jsonStr = jsonMatch ? jsonMatch[0] : generatedText;
-        const parsed = JSON.parse(jsonStr) as Array<{ style: string; style_label: string; text: string }>;
+        const parsed = JSON.parse(jsonStr) as Array<Record<string, string>>;
 
         const variations = parsed.map((v, idx) => ({
           id: `var-${idx}-${Date.now()}`,
-          text: v.text,
+          text: v.description || v.text,
           style: v.style,
           style_label: v.style_label,
+          ...(v.meta_title ? { seo: { meta_title: v.meta_title, meta_description: v.meta_description || "" } } : {}),
         }));
 
         return new Response(JSON.stringify({ variations }), {

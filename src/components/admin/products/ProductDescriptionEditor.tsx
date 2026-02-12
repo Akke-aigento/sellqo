@@ -33,6 +33,7 @@ interface ProductDescriptionEditorProps {
   onChange: (html: string) => void;
   maxLength?: number;
   aiContext?: AIFieldContext;
+  onSeoGenerated?: (seo: { meta_title: string; meta_description: string }) => void;
 }
 
 export function ProductDescriptionEditor({
@@ -40,6 +41,7 @@ export function ProductDescriptionEditor({
   onChange,
   maxLength = 5000,
   aiContext,
+  onSeoGenerated,
 }: ProductDescriptionEditorProps) {
   const [charCount, setCharCount] = useState(0);
 
@@ -176,6 +178,7 @@ export function ProductDescriptionEditor({
               editor.commands.setContent(html);
               onChange(html);
             }}
+            onSeoGenerated={onSeoGenerated}
             context={aiContext}
             multiVariant
           />

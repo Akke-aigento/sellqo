@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -641,7 +642,7 @@ export default function ProductForm() {
                             )}
                             <CollapsibleContent>
                               <div className="pt-2">
-                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} aiContext={aiContext} /></FormControl>
+                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} aiContext={aiContext} onSeoGenerated={(seo) => { form.setValue('meta_title', seo.meta_title); form.setValue('meta_description', seo.meta_description); toast.success('SEO meta titel en beschrijving automatisch ingevuld'); }} /></FormControl>
                               </div>
                             </CollapsibleContent>
                           </Collapsible>
