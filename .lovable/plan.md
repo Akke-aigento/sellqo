@@ -1,144 +1,149 @@
 
 
-# Variant als Zelfstandig Product met Cross-linking
+# Documentatiesysteem met Twee Niveaus
 
-## Concept
+## Overzicht
 
-Varianten kunnen optioneel als eigen product in de catalogus verschijnen (eigen slug, categorie, SEO), maar blijven onderling gekoppeld via het parent product. Op de productdetailpagina kan de klant wisselen tussen varianten, waarbij navigatie naar de andere productpagina plaatsvindt.
+Een volledig in-app documentatiesysteem met twee gescheiden niveaus:
+- **Tenant Docs**: Helpcenter voor winkel-eigenaren (alle gebruikers)
+- **Platform Admin Docs**: Technische API- en ontwikkelaarsdocumentatie (alleen platform admins)
+
+Content is bewerkbaar via een rich text editor, doorzoekbaar, en georganiseerd in categorieen.
 
 ---
 
-## Database Aanpassingen
+## Database Structuur
 
-Nieuwe kolom op `product_variants`:
+Twee nieuwe tabellen:
 
+### `doc_categories`
 | Kolom | Type | Beschrijving |
 |-------|------|-------------|
-| linked_product_id | UUID (nullable) | FK naar `products.id` -- het zelfstandige product dat deze variant vertegenwoordigt |
+| id | UUID PK | |
+| doc_level | TEXT ('tenant' of 'platform') | Bepaalt zichtbaarheid |
+| title | TEXT | Categorie naam |
+| slug | TEXT | URL-vriendelijke naam |
+| description | TEXT | Korte omschrijving |
+| icon | TEXT | Lucide icon naam |
+| sort_order | INT | Volgorde |
+| parent_id | UUID (nullable, self-ref) | Subcategorieen |
+| created_at / updated_at | TIMESTAMPTZ | |
 
-Dit maakt een bidirectionele koppeling:
-- Vanuit een product: "Welke variant ben ik?" (via `product_variants.linked_product_id = products.id`)
-- Vanuit een variant: "Welk zelfstandig product hoort hierbij?" (via `linked_product_id`)
-
-Nieuwe kolom op `products`:
-
+### `doc_articles`
 | Kolom | Type | Beschrijving |
 |-------|------|-------------|
-| parent_product_id | UUID (nullable) | FK naar `products.id` -- het "moederproduct" waar dit product een variant van is |
+| id | UUID PK | |
+| category_id | UUID FK | Koppeling naar categorie |
+| doc_level | TEXT ('tenant' of 'platform') | Redundant voor snelle RLS |
+| title | TEXT | Artikel titel |
+| slug | TEXT | URL-vriendelijke naam |
+| content | TEXT | HTML content (TipTap) |
+| excerpt | TEXT | Korte samenvatting voor zoekresultaten |
+| tags | TEXT[] | Zoektags |
+| context_path | TEXT (nullable) | Admin route voor contextual help (bijv. '/admin/products') |
+| sort_order | INT | Volgorde binnen categorie |
+| is_published | BOOLEAN | Draft/gepubliceerd |
+| created_by | UUID | Auteur |
+| updated_at | TIMESTAMPTZ | |
+
+### RLS Policies
+- **Tenant docs** (`doc_level = 'tenant'`): Leesbaar voor alle authenticated users; schrijfbaar alleen voor platform admins
+- **Platform docs** (`doc_level = 'platform'`): Lees- EN schrijfbaar alleen voor platform admins
+- Normale tenants zien nooit platform-level data -- niet via API, niet via UI
 
 ---
 
-## Hoe het werkt
+## Sidebar en Routing
 
-```text
-Parent Product: "T-shirt" (product_id = A)
-  - Variant "Rood / M" -> linked_product_id = product B
-  - Variant "Blauw / M" -> linked_product_id = product C
+### Tenant Help
+- Nieuw item in de **Systeem** groep: "Help" met `HelpCircle` icoon
+- Route: `/admin/help` (artikellijst) en `/admin/help/:slug` (artikel detail)
+- Zichtbaar voor alle rollen
 
-Product B: "T-shirt Rood" (parent_product_id = A, categorie: "Sale")
-Product C: "T-shirt Blauw" (parent_product_id = A, categorie: "Zomer")
-```
-
-Scenario klant bezoekt "T-shirt Rood" (product B):
-1. Systeem ziet `parent_product_id = A`
-2. Haalt alle varianten op van product A
-3. Toont variant selector (Kleur: Rood selected, Blauw beschikbaar)
-4. Klant kiest "Blauw" -> navigeert naar product C ("/shop/t-shirt-blauw")
+### Platform Admin Docs
+- Nieuw item in de **Platform** groep: "Documentatie" met `BookOpen` icoon
+- Route: `/admin/platform/docs` en `/admin/platform/docs/:slug`
+- Beschermd via `ProtectedRoute requirePlatformAdmin`
+- Onzichtbaar in sidebar voor niet-admins (bestaand `isPlatformAdmin` check)
 
 ---
 
-## API Aanpassingen
+## Pagina's en Componenten
 
-### get_product (storefront-api)
-- Als product een `parent_product_id` heeft:
-  - Haal opties en varianten op van het parent product
-  - Markeer de huidige variant als "selected"
-  - Voeg `linked_product_slug` toe aan elke variant zodat frontend kan navigeren
-- Response bevat extra velden:
-  - `is_variant_product: true`
-  - `parent_product_id`
-  - `sibling_variants[]` met per variant: `{ id, title, attribute_values, linked_product_slug, image_url, price }`
+### Gedeelde componenten (herbruikbaar voor beide niveaus)
+- **`DocArticleViewer.tsx`**: Rendert artikel content, breadcrumbs, navigatie naar vorig/volgend artikel
+- **`DocArticleEditor.tsx`**: TipTap rich text editor voor het aanmaken/bewerken van artikelen (hergebruik bestaande `RichTextEditor` component)
+- **`DocSearchBar.tsx`**: Zoekbalk die filtert op titel, excerpt en tags
+- **`DocCategoryList.tsx`**: Categorie-overzicht met artikelcount
 
-### get_products (catalogus)
-- Geen wijziging nodig: elk product verschijnt gewoon in zijn eigen categorie
-- Optioneel: filter `parent_product_id IS NULL` als je alleen "hoofd" producten wilt tonen
+### Tenant Help pagina (`/admin/help`)
+- Linker kolom: categorieen met artikellijst
+- Rechter kolom: geselecteerd artikel
+- Zoekbalk bovenaan
+- Geen bewerkfunctionaliteit voor tenants
 
----
+### Platform Docs pagina (`/admin/platform/docs`)
+- Zelfde layout als tenant help
+- Extra: "Nieuw artikel" en "Bewerken" knoppen
+- Extra: Categorie beheer (toevoegen/hernoemen/verwijderen)
+- Extra tab-scheiding: "Tenant Docs beheren" vs "Platform Docs beheren"
 
-## Frontend Aanpassingen
-
-### ShopProductDetail.tsx
-- Detecteer of product een `is_variant_product` is
-- Als ja: toon de variant selector met sibling variants
-- Bij variant wissel: navigeer naar de `linked_product_slug` in plaats van alleen state te wijzigen
-- Gebruik `react-router-dom` `useNavigate` voor de navigatie
-
-Logica:
-```text
-handleAttributeChange(optionName, value):
-  1. Bereken welke variant matcht met nieuwe selectie
-  2. Als variant een linked_product_slug heeft:
-     -> navigate(`/shop/${tenantSlug}/${linked_product_slug}`)
-  3. Anders: gewone state update (voor niet-gekoppelde varianten)
-```
+### Contextual Help (nice-to-have, meegenomen in structuur)
+- `context_path` kolom op artikelen maakt het mogelijk om later een `<ContextualHelpButton>` component te bouwen die op basis van de huidige route het relevante artikel ophaalt
+- Wordt niet in eerste fase als UI gebouwd, maar de data-structuur is klaar
 
 ---
 
-## Beheer (Admin)
+## Seed Data
 
-In de product-editor wordt een optie toegevoegd:
-- Bij elke variant: "Koppel aan bestaand product" dropdown
-- Selecteer een product uit de catalogus -> slaat `linked_product_id` op
-- Of: "Maak zelfstandig product aan" -> maakt een nieuw product aan met `parent_product_id` ingevuld
+Bij de migratie worden kernartikelen aangemaakt:
 
-Dit is een toekomstige admin UI uitbreiding. De database en API worden nu alvast voorbereid.
+**Tenant categorieen en artikelen:**
+1. Producten -- "Hoe voeg ik producten toe", "Varianten beheren"
+2. Bestellingen -- "Bestellingen verwerken", "Retouren afhandelen"
+3. Betalingen -- "Betaalmethode koppelen", "BTW instellen"
+4. Verzending -- "Verzendopties instellen"
+5. Promoties -- "Kortingscodes aanmaken"
+6. Webshop -- "Theme aanpassen", "Domeinen instellen"
+7. Communicatie -- "Inbox gebruiken"
+8. FAQ -- "Veelgestelde vragen"
+
+**Platform categorieen en artikelen:**
+1. Storefront API Referentie -- "Endpoints overzicht", "Authenticatie", "Error codes"
+2. Custom Frontend Gids -- "Startersgids", "Eerste Lovable prompt", "Checkout flow"
+3. Domein & Deployment -- "DNS configuratie", "SSL setup"
+4. Troubleshooting -- "API debugging", "Checkout testen"
 
 ---
 
-## Bestanden die wijzigen
+## Bestanden die worden aangemaakt/gewijzigd
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/migrations/XXXX.sql` | `linked_product_id` op product_variants, `parent_product_id` op products |
-| `supabase/functions/storefront-api/index.ts` | get_product: sibling variants ophalen en linked_product_slug meegeven |
-| `src/pages/storefront/ShopProductDetail.tsx` | Navigatie bij variant wissel naar gekoppeld product |
-| `src/components/storefront/VariantSelector.tsx` | Geen wijziging nodig (dezelfde UI) |
+| Bestand | Actie |
+|---------|-------|
+| `supabase/migrations/XXXX.sql` | Tabellen, RLS, seed data |
+| `src/pages/admin/Help.tsx` | Tenant help pagina |
+| `src/pages/admin/PlatformDocs.tsx` | Platform docs pagina (met editor) |
+| `src/components/admin/docs/DocArticleViewer.tsx` | Artikel weergave |
+| `src/components/admin/docs/DocArticleEditor.tsx` | Artikel editor |
+| `src/components/admin/docs/DocSearchBar.tsx` | Zoekfunctie |
+| `src/components/admin/docs/DocCategoryList.tsx` | Categorie navigatie |
+| `src/hooks/useDocumentation.ts` | Data fetching hook |
+| `src/components/admin/sidebar/sidebarConfig.ts` | Help item toevoegen |
+| `src/App.tsx` | Routes toevoegen |
 
 ---
 
 ## Technische Details
 
-### Migratie SQL
-- `ALTER TABLE product_variants ADD COLUMN linked_product_id UUID REFERENCES products(id) ON DELETE SET NULL`
-- `ALTER TABLE products ADD COLUMN parent_product_id UUID REFERENCES products(id) ON DELETE SET NULL`
-- Index op `products.parent_product_id` voor snelle lookups
+### Zoekfunctie
+Client-side filtering op `title`, `excerpt` en `tags` via een simpele `ILIKE` query. Voor de huidige schaal is dit voldoende; full-text search kan later toegevoegd worden.
 
-### Edge Function Logica (get_product)
-```text
-1. Fetch product by slug
-2. IF product.parent_product_id exists:
-   a. Fetch parent product's variant_options
-   b. Fetch all variants of parent product
-   c. For each variant with linked_product_id:
-      - Join product slug
-   d. Determine which variant matches current product (via linked_product_id = current product id)
-   e. Return sibling_variants[] + selected_variant_index
-3. ELSE IF product has variants (is parent):
-   a. Normal variant flow (bestaand)
-   b. Include linked_product_slug per variant waar beschikbaar
-```
+### Rich Text Editor
+Hergebruik van de bestaande `RichTextEditor` component uit `src/components/admin/storefront/RichTextEditor.tsx`. Deze ondersteunt al bold, italic, headings, lijsten, links en afbeeldingen.
 
-### Frontend Navigatie
-- `useNavigate()` voor client-side navigatie
-- Smooth transition: variant selector toont loading state tijdens navigatie
-- URL verandert naar het gekoppelde product slug
-
----
-
-## Samenvatting
-
-Dit systeem biedt het beste van twee werelden:
-- **Catalogus flexibiliteit**: elke variant kan in eigen categorie, met eigen SEO, eigen prijs
-- **Klantervaring**: naadloze variant selectie op de productpagina met navigatie tussen gekoppelde producten
-- **Backwards compatible**: bestaande producten zonder koppelingen blijven gewoon werken
+### Beveiligingsgarantie
+- RLS op database-niveau: platform docs zijn onzichtbaar voor niet-admins, ongeacht welke URL ze proberen
+- Route-niveau: `ProtectedRoute requirePlatformAdmin` wrapper
+- Sidebar-niveau: platform groep wordt niet gerenderd voor niet-admins
+- Geen client-side security checks -- alles server-side via `is_platform_admin(auth.uid())`
 
