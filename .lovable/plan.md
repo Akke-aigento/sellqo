@@ -1,115 +1,101 @@
 
-
-# Multi-Domain Support per Tenant
+# DNS-verificatie voor gekoppelde domeinen
 
 ## Overzicht
 
-Elke tenant krijgt de mogelijkheid om meerdere domeinen te koppelen aan dezelfde webshop. Elk domein heeft een eigen taalinstelling en er is altijd precies 1 canonical domein voor SEO. De bestaande producten, orders, klanten en voorraad worden gedeeld -- alleen de content-taal en SEO-metadata verschillen per domein.
+Er bestaat al een volledig DNS-verificatiesysteem (edge functions, provider-detectie, Cloudflare auto-connect, SSL-check, progress stepper). Dit werkt echter alleen voor het oude enkele `tenants.custom_domain` veld. De nieuwe `tenant_domains` tabel heeft `dns_verified`, `verification_token` en `ssl_active` kolommen maar deze worden nog nergens gebruikt. Het plan is om de bestaande verificatie-infrastructuur te hergebruiken en te koppelen aan het multi-domain systeem.
 
-## Wat er gebouwd wordt
+## Wat er verandert
 
-### 1. Database: `tenant_domains` tabel
+### 1. Edge function `verify-domain` aanpassen
 
-Nieuwe tabel met de volgende kolommen:
+De huidige edge function leest het domein uit `tenants.custom_domain`. Deze wordt uitgebreid zodat hij ook een `domain_id` parameter accepteert en dan het domein + token uit `tenant_domains` haalt. Bij succes wordt `tenant_domains.dns_verified` op `true` gezet in plaats van `tenants.domain_verified`.
 
-| Kolom | Type | Beschrijving |
-|-------|------|-------------|
-| id | uuid (PK) | Uniek ID |
-| tenant_id | uuid (FK -> tenants) | Koppeling aan tenant |
-| domain | text (unique) | Het domein (bv. vanxcel.be) |
-| locale | text | Taal/locale (nl, en, de, fr) |
-| is_canonical | boolean | Hoofddomein voor SEO (max 1 per tenant) |
-| is_active | boolean | Of het domein actief is |
-| dns_verified | boolean | Of DNS geverifieerd is |
-| verification_token | text | Token voor DNS verificatie |
-| ssl_active | boolean | SSL status |
-| created_at | timestamptz | Aanmaakdatum |
-| updated_at | timestamptz | Laatste wijziging |
+### 2. Edge function `check-domain-ssl` aanpassen
 
-- Unique constraint op `domain`
-- Unique partial index: slechts 1 `is_canonical = true` per `tenant_id`
-- RLS policies: tenant_admin kan eigen domeinen beheren
-- DB trigger: bij `is_canonical = true` zet alle andere domeinen van die tenant op `is_canonical = false`
+Dezelfde aanpassing: accepteert een `domain_id` parameter en update `tenant_domains.ssl_active` bij succes.
 
-### 2. Database: Migratie bestaande domeindata
+### 3. Nieuwe hook `useDomainVerificationMulti`
 
-De huidige `custom_domain` en `domain_verified` kolommen op de `tenants` tabel blijven bestaan voor backwards-compatibiliteit, maar nieuwe domeinen worden in `tenant_domains` beheerd. Eventueel bestaande `custom_domain` waarden worden bij eerste gebruik gemigreerd.
+Een nieuwe hook specifiek voor het multi-domain systeem, gebaseerd op de bestaande `useDomainVerification`. Per domein kan:
+- DNS geverifieerd worden via de `verify-domain` edge function
+- Provider gedetecteerd worden via `detect-domain-provider`
+- Cloudflare auto-connect uitgevoerd worden
+- SSL gecheckt worden via `check-domain-ssl`
+- Automatische polling gestart worden (elke 30 sec, max 5 min)
 
-### 3. Dashboard: "Domeinen" sectie in Settings
+### 4. `MultiDomainSettings` uitbreiden met verificatie-UI
 
-Een nieuw component `MultiDomainSettings` dat de bestaande `DomainSettings` aanvult/vervangt in de Settings pagina:
+De huidige eenvoudige tabel wordt uitgebreid. Wanneer een domein niet geverifieerd is, kan de gebruiker het uitklappen om:
+- De benodigde DNS-records te zien (A-records naar 185.158.133.1, TXT-record met verificatietoken)
+- Records te kopieren met een klik
+- Provider-specifieke instructies te zien (hergebruikt bestaande `ProviderInstructions` component)
+- "Controleer DNS" knop te gebruiken
+- Voortgangsstappen te zien (hergebruikt bestaande `DomainProgressSteps` component)
+- Cloudflare auto-connect te gebruiken indien gedetecteerd
 
-- **Overzichtstabel** met alle gekoppelde domeinen (domein, taal, canonical-badge, status)
-- **Domein toevoegen**: formulier met domein-input, taalselectie, canonical toggle
-- **Domein bewerken**: taal wijzigen, canonical status wijzigen
-- **Domein verwijderen**: met bevestigingsdialoog
-- DNS verificatie-status per domein (hergebruikt bestaande verificatielogica)
+### 5. Verbeterde statussen in de tabel
 
-### 4. Producten: Vertalingen via tabs in ProductForm
-
-In het productformulier komt een taaltab-systeem voor de vertaalbare velden:
-
-- Tabs gebaseerd op de actieve talen van de gekoppelde domeinen van de tenant
-- Per tab: `name`, `description`, `short_description`, `meta_title`, `meta_description`
-- Gebruikt de bestaande `content_translations` tabel -- geen nieuw schema nodig
-- De standaardtaal-tab toont de gewone productvelden (geen vertaalrecord)
-- Andere talen slaan op via `content_translations` met `entity_type = 'product'`
-- Fallback: als geen vertaling bestaat, wordt de standaardtaal getoond
-
-### 5. Storefront API: Domain-aware content
-
-De `usePublicStorefront` hook wordt uitgebreid:
-
-- Nieuwe functie `usePublicStorefrontByDomain(hostname)` die:
-  1. Het domein opzoekt in `tenant_domains`
-  2. De bijbehorende tenant en locale teruggeeft
-  3. Productcontent in de juiste taal serveert (via `content_translations`)
-- Fallback naar standaard tenant-taal als vertaling ontbreekt
-
-SEO-metadata:
-- Canonical URL op basis van het `is_canonical` domein
-- Hreflang tags genereren voor alle actieve domeinen van de tenant
-- Meta title/description in de juiste taal
-
-### 6. Hook: `useTenantDomains`
-
-Nieuwe hook voor CRUD-operaties op `tenant_domains`:
-
-- `domains`: lijst van alle domeinen voor huidige tenant
-- `addDomain(domain, locale, isCanonical)`
-- `updateDomain(id, updates)`
-- `removeDomain(id)`
-- Automatische query-invalidatie
+| Status | Conditie | Weergave |
+|--------|----------|----------|
+| DNS niet geverifieerd | `dns_verified = false` | Oranje badge |
+| Geverifieerd | `dns_verified = true, ssl_active = false` | Groene badge |
+| SSL actief | `dns_verified = true, ssl_active = true` | Groene badge + shield icoon |
 
 ## Technische details
-
-### Bestanden die aangemaakt worden
-
-| Bestand | Beschrijving |
-|---------|-------------|
-| `src/hooks/useTenantDomains.ts` | CRUD hook voor tenant_domains |
-| `src/components/admin/settings/MultiDomainSettings.tsx` | Dashboard UI voor domeinbeheer |
-| `src/components/admin/products/ProductTranslationTabs.tsx` | Taaltabs in productformulier |
 
 ### Bestanden die gewijzigd worden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/pages/admin/Settings.tsx` | Domain sectie vervangen door MultiDomainSettings |
-| `src/pages/admin/ProductForm.tsx` | ProductTranslationTabs toevoegen |
-| `src/hooks/usePublicStorefront.ts` | Domain-aware lookup + hreflang/canonical toevoegen |
+| `supabase/functions/verify-domain/index.ts` | Support `domain_id` param, lees/schrijf naar `tenant_domains` |
+| `supabase/functions/check-domain-ssl/index.ts` | Support `domain_id` param, update `tenant_domains.ssl_active` |
+| `src/components/admin/settings/MultiDomainSettings.tsx` | Volledige verificatie-UI per domein met uitklapbaar paneel |
 
-### Database migratie
+### Bestanden die aangemaakt worden
 
-- Nieuwe tabel `tenant_domains` met RLS
-- Trigger voor `ensure_single_canonical_domain`
-- Index op `tenant_id` en `domain`
+| Bestand | Beschrijving |
+|---------|-------------|
+| `src/hooks/useDomainVerificationMulti.ts` | Hook voor DNS-verificatie per domein uit `tenant_domains` |
 
-### Volgorde van implementatie
+### Bestaande bestanden die hergebruikt worden (ongewijzigd)
 
-1. Database migratie (`tenant_domains` tabel + RLS + trigger)
-2. `useTenantDomains` hook
-3. `MultiDomainSettings` component in dashboard
-4. `ProductTranslationTabs` component in productformulier
-5. Storefront API aanpassingen (domain-aware queries, hreflang, canonical)
+| Bestand | Gebruik |
+|---------|--------|
+| `src/components/admin/settings/DomainProgressSteps.tsx` | Progress stepper (DNS, SSL, Live) |
+| `src/components/admin/settings/ProviderInstructions.tsx` | Provider-specifieke stap-voor-stap instructies |
+| `supabase/functions/detect-domain-provider/index.ts` | Automatische provider-detectie |
+| `supabase/functions/cloudflare-api-connect/index.ts` | One-click Cloudflare koppeling |
 
+### Verificatiestroom per domein
+
+```text
++------------------+     +-------------------+     +----------------+     +-----------+
+| Domein           | --> | Provider          | --> | DNS Records    | --> | Controleer|
+| toegevoegd       |     | gedetecteerd      |     | tonen          |     | DNS       |
++------------------+     +-------------------+     +----------------+     +-----------+
+                          |                                                    |
+                          | Cloudflare?                                        | Succes?
+                          v                                                    v
+                    +------------------+                              +-----------------+
+                    | Auto-connect     |                              | dns_verified =  |
+                    | via API token    |                              | true            |
+                    +------------------+                              +-----------------+
+                                                                           |
+                                                                           v
+                                                                    +------------------+
+                                                                    | SSL check        |
+                                                                    | ssl_active = true|
+                                                                    +------------------+
+```
+
+### UI-ontwerp per domeinrij
+
+Elke domeinrij in de tabel krijgt een uitklapbaar paneel (Collapsible) dat verschijnt wanneer de status wordt aangeklikt:
+
+- **DNS-instructies**: kopieerbare records (A @ -> 185.158.133.1, A www -> 185.158.133.1, TXT _sellqo -> sellqo-verify=TOKEN)
+- **Provider-detectie**: automatisch bij openen, toont specifieke instructies
+- **Cloudflare optie**: als provider Cloudflare is, toon API token input voor auto-connect
+- **Voortgangsbalk**: DomainProgressSteps component
+- **Controleer DNS knop**: start verificatie + polling
+- **Propagatie-waarschuwing**: melding dat DNS tot 48 uur kan duren
