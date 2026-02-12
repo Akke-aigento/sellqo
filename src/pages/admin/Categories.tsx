@@ -297,6 +297,12 @@ export default function CategoriesPage() {
   const handleAddChild = (parentId: string) => {
     setEditingCategory(null);
     setParentIdForNew(parentId);
+    // Ensure parent is expanded so the new subcategory is visible after creation
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.add(parentId);
+      return next;
+    });
     setFormOpen(true);
   };
 
