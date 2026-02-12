@@ -34,6 +34,7 @@ import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsT
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
+import { AIUpsellHint } from '@/components/admin/ai/AIUpsellHint';
 import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
@@ -603,6 +604,7 @@ export default function ProductForm() {
                             />
                           </div>
                           <FormControl><Textarea {...field} placeholder="Korte beschrijving voor productlijsten" rows={2} /></FormControl>
+                          <AIUpsellHint className="mt-1" />
                           <FormMessage />
                         </FormItem>
                       )} />

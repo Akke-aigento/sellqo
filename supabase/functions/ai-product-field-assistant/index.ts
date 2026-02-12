@@ -280,16 +280,7 @@ Antwoord ALLEEN met de JSON array, geen extra tekst.`;
     });
 
     if (!isUnlimited) {
-      await supabase
-        .from("tenant_ai_credits")
-        .update({
-          credits_used: supabase.rpc ? undefined : undefined, // handled below
-        })
-        .eq("tenant_id", tenantId);
-
-      // Use raw SQL-style increment via rpc
-      await supabase.rpc("use_ai_help_credit", { p_tenant_id: tenantId });
-      // Actually we need a proper increment. Let's do it directly:
+      // Deduct credits properly
       const { data: currentCredits } = await supabase
         .from("tenant_ai_credits")
         .select("credits_used")
@@ -297,13 +288,10 @@ Antwoord ALLEEN met de JSON array, geen extra tekst.`;
         .single();
 
       if (currentCredits) {
-        // The use_ai_help_credit already added 1, add remaining if needed
-        if (creditsNeeded > 1) {
-          await supabase
-            .from("tenant_ai_credits")
-            .update({ credits_used: currentCredits.credits_used + (creditsNeeded - 1) })
-            .eq("tenant_id", tenantId);
-        }
+        await supabase
+          .from("tenant_ai_credits")
+          .update({ credits_used: currentCredits.credits_used + creditsNeeded })
+          .eq("tenant_id", tenantId);
       }
     }
 
