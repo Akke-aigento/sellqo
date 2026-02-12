@@ -9958,6 +9958,152 @@ export type Database = {
           },
         ]
       }
+      storefront_cart_items: {
+        Row: {
+          cart_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          cart_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          cart_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_cart_items_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storefront_carts: {
+        Row: {
+          created_at: string
+          currency: string
+          customer_id: string | null
+          discount_code: string | null
+          expires_at: string
+          id: string
+          session_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          discount_code?: string | null
+          expires_at?: string
+          id?: string
+          session_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          discount_code?: string | null
+          expires_at?: string
+          id?: string
+          session_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_carts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_carts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storefront_customers: {
+        Row: {
+          addresses: Json
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          last_name: string
+          password_hash: string
+          phone: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          addresses?: Json
+          created_at?: string
+          email: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          last_name?: string
+          password_hash: string
+          phone?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          addresses?: Json
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          last_name?: string
+          password_hash?: string
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storefront_pages: {
         Row: {
           content: string | null
