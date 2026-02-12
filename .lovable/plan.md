@@ -1,127 +1,118 @@
 
-# Audit en Herstructurering: Domeinen, Talen, Vertalingen en Instellingen
+# Routing-logica: Custom Frontend + Custom Domeinen
 
-## Gevonden Overlap en Inconsistenties
+## Huidige Situatie
 
-### 1. Domein-configuratie op 3 plekken
+Op dit moment bestaan custom domeinen en custom frontend als twee losstaande features:
 
-| Locatie | Wat er staat | Probleem |
-|---------|-------------|----------|
-| **Webshop > Instellingen** (`StorefrontSettings.tsx`) | "Domein" card met huidige URL, DNS-instructies, verwijzing naar "Instellingen > Algemeen" | Verouderd -- verwijst naar het oude single-domain systeem (`tenants.custom_domain`) |
-| **Instellingen > Domeinen** (`MultiDomainSettings.tsx`) | Volledige multi-domain CRUD met DNS-verificatie, locale, canonical | Dit is de juiste, actuele plek |
-| **Instellingen > Winkelinstellingen** (`StoreSettings.tsx`) | "Primaire Contenttaal" dropdown + link naar Vertaal Hub | Taalinstelling die losstaat van de domein-locale mapping |
+- **Custom Frontend**: slaat een `custom_frontend_url` op in `tenant_theme_settings`, maar er is geen logica die bezoekers daadwerkelijk routeert
+- **Custom Domeinen**: `tenant_domains` tabel met DNS-verificatie, maar geen routing naar de custom frontend
+- **Storefront routes**: `/shop/:tenantSlug/*` routes serveren altijd het SellQo-theme, ongeacht of een custom frontend actief is
+- **Storefront API**: accepteert `tenant_id` maar geen `domain` of `locale` parameter -- er is geen domain-aware content
 
-### 2. Taalconfiguratie op 3 plekken
+Er is dus **geen werkende routing** tussen deze features. De custom frontend URL wordt nergens gebruikt behalve als informatie in het dashboard.
 
-| Locatie | Wat er staat | Probleem |
-|---------|-------------|----------|
-| **Webshop > Functies > Meertalige Webshop** (`StorefrontFeaturesSettings.tsx` regel 679-800) | Toggle "meertalig activeren", talen selecteren, standaardtaal, taalwisselaar stijl | Dubbel met domein-locale; tenant moet hier apart talen activeren die al via domeinen gekoppeld zijn |
-| **Instellingen > Winkelinstellingen** (`StoreSettings.tsx` regel 183-206) | "Primaire Contenttaal" dropdown | Derde plek voor taalinstelling, onduidelijk hoe dit relateert aan de meertalige webshop |
-| **Instellingen > Domeinen** (`MultiDomainSettings.tsx`) | Locale per domein | De eigenlijke bron van welke talen actief zijn |
+## Wat er gebouwd wordt
 
-### 3. Vertalingen verspreid
+### 1. Edge Function: `storefront-resolve` (nieuw)
 
-| Locatie | Wat er staat |
-|---------|-------------|
-| **Marketing > Vertalingen** (sidebar) | Volledige TranslationHub met bulk-vertaling, statistieken, instellingen |
-| **Instellingen > Winkelinstellingen** | Link "Vertalingen beheren" naar Vertaal Hub |
-| **Producten > Productformulier** | ProductTranslationTabs (inline vertalingen) + link naar TranslationHub |
-| **Categorieen formulier** | Vertalingen badge met AI-vertaalknop |
+Een nieuwe edge function die als centraal routeringspunt fungeert. Wanneer een bezoeker een domein bezoekt:
 
-### 4. Overige inconsistenties
+1. Zoekt het domein op in `tenant_domains`
+2. Haalt de tenant en theme settings op
+3. Bepaalt de routing:
+   - Custom frontend actief? Geeft de `custom_frontend_url` + locale + tenant info terug
+   - Standaard theme? Geeft tenant slug terug voor de SellQo storefront
 
-- **StoreSettings bevat thema-kleuren** (primary_color, secondary_color) -- dit hoort bij Webshop > Theme
-- **StoreSettings bevat facturatie-instellingen** -- dit hoort bij Instellingen > Financieel (waar al "Automatische Facturatie" staat)
-- **Webshop > Instellingen tab** bevat "Custom Frontend" en "Tracking & Scripts" -- technische zaken tussen visuele content
+Dit is geen reverse proxy (dat vereist infrastructuur buiten Lovable), maar een **resolve endpoint** dat de custom frontend kan aanroepen bij het laden om te weten welke tenant/locale actief is.
 
-## Voorstel: Nieuwe Structuur
+### 2. Storefront API: `resolve_domain` actie toevoegen
 
-### Principe: Single Source of Truth
-
-De `tenant_domains` tabel wordt de enige bron voor actieve talen. De "Meertalige Webshop" sectie in Functies wordt vereenvoudigd: in plaats van zelf talen te beheren, leest die automatisch welke talen actief zijn op basis van de gekoppelde domeinen.
-
-### Webshop-pagina (creatieve hub) -- wat verandert
-
-De Webshop tabs worden:
-- **Theme** -- ongewijzigd
-- **Homepage** -- ongewijzigd
-- **Pagina's** -- ongewijzigd
-- **Reviews** -- ongewijzigd
-- **Juridisch** -- ongewijzigd
-- **Functies** -- Meertalige Webshop sectie wordt vereenvoudigd (zie onder)
-- **Instellingen** -- Domein-card wordt vervangen door compacte samenvatting + doorverwijzing
-
-#### Webshop > Functies > Meertalige Webshop (vereenvoudigd)
-
-In plaats van zelf talen aan/uit te zetten, toont deze sectie:
-- Een read-only overzicht van actieve talen (afgeleid van gekoppelde domeinen)
-- De **taalwisselaar stijl** instelling (dropdown/flags/text) -- dit is de enige instelling die hier overblijft want het gaat over hoe de storefront eruitziet
-- Een link naar **Instellingen > Domeinen** om talen/domeinen te beheren
-- De "meertalig activeren" toggle wordt automatisch: als er meer dan 1 domein-locale is, is het meertalig
-
-#### Webshop > Instellingen (opschonen)
-
-- **Domein-card verwijderen** -- vervangen door een compacte samenvatting: "X domeinen gekoppeld" met link naar Instellingen > Domeinen
-- **Custom Frontend** -- blijft (relevant voor webshop)
-- **Tracking & Scripts** -- blijft (relevant voor webshop)
-
-### Instellingen-pagina -- wat verandert
-
-#### Instellingen > Winkelinstellingen (opschonen)
-
-- **"Primaire Contenttaal"** verwijderen -- wordt afgeleid van het canonical domein in `tenant_domains`
-- **Thema-kleuren** verwijderen -- dit zit al in Webshop > Theme > Aanpassen
-- **Link naar Vertaal Hub** verwijderen -- vertalingen zijn bereikbaar vanuit contextuele plekken
-- **Facturatie-sectie** verwijderen -- zit al bij Instellingen > Financieel > Automatische Facturatie
-- Wat overblijft: BTW-percentage, valuta, verzending inschakelen, systeemthema
-
-#### Instellingen > Domeinen (wordt de central hub)
-
-Blijft zoals het is -- dit is de single source of truth voor:
-- Welke domeinen gekoppeld zijn
-- Welke taal bij elk domein hoort
-- Welk domein canonical is
-- DNS-verificatie status
-
-### Vertalingen (sidebar-item)
-
-Het menu-item "Vertalingen" onder Marketing wordt verplaatst:
-- **Nieuw**: Onder "Beheer" in de sidebar (naast Categorieen) -- want het is een content-beheertool, geen marketingtool
-- De TranslationHub blijft als standalone pagina bestaan -- het is een krachtige tool voor bulk-vertalingen en overzicht
-- Contextuele links vanuit producten en categorieen blijven bestaan
-
-### Flow voor een nieuwe tenant
+De bestaande `storefront-api` edge function krijgt een nieuwe actie `resolve_domain`:
 
 ```text
-1. Instellingen > Domeinen
-   -> Voeg vanxcel.nl toe (NL, canonical)
-   -> Voeg vanxcel.com toe (EN)
-   -> DNS verifiëren
-
-2. Webshop > Functies
-   -> Ziet automatisch: NL + EN actief
-   -> Kiest taalwisselaar stijl (dropdown)
-
-3. Producten bewerken
-   -> Ziet tabs: NL (standaard) | EN
-   -> Vult vertalingen in of gebruikt AI
-
-4. Beheer > Vertalingen (optioneel)
-   -> Bulk alle producten vertalen
-   -> Vertaalcoverage bekijken
+POST /storefront-api
+{
+  "action": "resolve_domain",
+  "params": { "hostname": "vanxcel.be" }
+}
 ```
 
-## Concrete Wijzigingen
+Retourneert:
+- `tenant_id`, `tenant_slug`, `locale`, `is_canonical`
+- `use_custom_frontend`, `custom_frontend_url`
+- Alle actieve domeinen (voor hreflang)
+
+Dit stelt de custom frontend in staat om bij het laden automatisch te detecteren via welk domein de bezoeker binnenkomt, zonder hardcoded tenant ID's.
+
+### 3. Storefront API: locale-aware product data
+
+De bestaande `get_products` en `get_tenant` acties in de storefront-api worden uitgebreid met een optionele `locale` parameter. Wanneer meegegeven:
+
+- Product namen, beschrijvingen en SEO-velden worden opgehaald uit `content_translations` als de locale afwijkt van de standaardtaal
+- Categorie-namen worden vertaald
+- Tenant info (store_name, store_description) wordt vertaald indien beschikbaar
+
+### 4. SellQo Storefront: redirect-logica
+
+De bestaande `/shop/:tenantSlug` routes krijgen een check aan het begin:
+
+- Als de tenant `use_custom_frontend = true` heeft en een `custom_frontend_url` is ingesteld, redirect de bezoeker naar de custom frontend URL
+- Als er custom domeinen bestaan met een canonical domein, redirect naar `https://canonical-domain/`
+- Alleen als er geen custom frontend EN geen custom domeinen zijn, toon het SellQo theme
+
+### 5. Dashboard: Storefront URL-weergave verbeteren
+
+De Webshop-pagina header en StorefrontSettings worden aangepast:
+
+- **Preview URL**: toont het canonical domein als dat bestaat, anders de SellQo URL
+- **Custom Frontend sectie**: toont een hint wanneer er geen domeinen gekoppeld zijn ("Koppel een eigen domein zodat klanten niet de lovable.app URL zien")
+- **Custom Frontend sectie**: toont welke domeinen de custom frontend serveren wanneer er wel domeinen zijn
+
+### 6. Domeinen-sectie: frontend-indicator
+
+In `MultiDomainSettings` wordt per domein getoond wat het serveert:
+- Badge "Custom Frontend" als `use_custom_frontend = true`
+- Badge "SellQo Theme" als standaard theme actief is
+
+Plus een info-alert bovenaan als custom frontend actief is: "Alle geverifieerde domeinen serveren je custom frontend op [URL]"
+
+## Routeringsmatrix
+
+| Custom Domeinen | Custom Frontend | Bezoeker typt | Resultaat |
+|----------------|----------------|---------------|-----------|
+| Ja (geverifieerd) | Ja | vanxcel.be | Custom frontend, locale=nl |
+| Ja (geverifieerd) | Ja | vanxcel.com | Custom frontend, locale=en |
+| Ja (geverifieerd) | Nee | vanxcel.be | SellQo theme, locale=nl |
+| Nee | Ja | sellqo.app/shop/vanxcel | Redirect naar custom_frontend_url |
+| Nee | Nee | sellqo.app/shop/vanxcel | SellQo theme (standaard) |
+
+## Technische Details
+
+### Bestanden die aangemaakt worden
+
+| Bestand | Beschrijving |
+|---------|-------------|
+| `supabase/functions/storefront-resolve/index.ts` | Domain resolve endpoint voor custom frontends |
 
 ### Bestanden die gewijzigd worden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/admin/storefront/StorefrontSettings.tsx` | Domein-card vervangen door compacte samenvatting met link naar Instellingen > Domeinen |
-| `src/components/admin/storefront/StorefrontFeaturesSettings.tsx` | Meertalige Webshop sectie vereenvoudigen: read-only talen uit domeinen, alleen taalwisselaar stijl behouden |
-| `src/components/admin/settings/StoreSettings.tsx` | "Primaire Contenttaal" dropdown verwijderen, thema-kleuren card verwijderen, facturatie-sectie verwijderen, link naar Vertaal Hub verwijderen |
-| `src/components/admin/sidebar/sidebarConfig.ts` | "Vertalingen" verplaatsen van Marketing naar Beheer |
+| `supabase/functions/storefront-api/index.ts` | Nieuwe `resolve_domain` actie + `locale` parameter op `get_products`/`get_tenant` |
+| `src/components/storefront/ShopLayout.tsx` | Redirect-logica: check custom frontend en custom domeinen |
+| `src/pages/admin/Storefront.tsx` | Preview URL logica: toon canonical domein als primaire URL |
+| `src/components/admin/storefront/StorefrontSettings.tsx` | Hint bij custom frontend zonder domeinen, toon gekoppelde domeinen |
+| `src/components/admin/settings/MultiDomainSettings.tsx` | Badge per domein: "Custom Frontend" of "SellQo Theme" |
 
-### Geen bestanden verwijderd
+### Beperkingen
 
-Alle componenten blijven bestaan -- we verplaatsen, vereenvoudigen en verwijzen door.
+- **Reverse proxy is niet mogelijk** binnen de Lovable/Supabase stack. De custom frontend draait op zijn eigen domein (lovable.app). De custom domeinen van de tenant worden via DNS naar Lovable's IP (185.158.133.1) gericht, wat het Lovable platform zelf afhandelt. De `storefront-resolve` endpoint stelt de custom frontend in staat om domain-aware te zijn zonder reverse proxy.
+- De custom frontend is verantwoordelijk voor het aanroepen van `resolve_domain` bij het laden en het gebruiken van de juiste locale. SellQo levert de API en data, niet de hosting van de custom frontend.
+
+### Volgorde van implementatie
+
+1. `storefront-api` uitbreiden met `resolve_domain` actie en `locale` parameter
+2. `storefront-resolve` edge function aanmaken
+3. `ShopLayout.tsx` redirect-logica toevoegen
+4. Dashboard UI aanpassingen (StorefrontSettings, Storefront pagina, MultiDomainSettings)
