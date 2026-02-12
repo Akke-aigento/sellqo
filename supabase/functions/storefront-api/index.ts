@@ -7,8 +7,8 @@ const corsHeaders = {
 };
 
 interface StorefrontRequest {
-  action: 'get_tenant' | 'get_products' | 'get_shipping_methods' | 'get_service_points' | 'calculate_promotions' | 'validate_discount_code';
-  tenant_id: string;
+  action: 'get_tenant' | 'get_products' | 'get_shipping_methods' | 'get_service_points' | 'calculate_promotions' | 'validate_discount_code' | 'resolve_domain';
+  tenant_id?: string;
   params?: Record<string, unknown>;
 }
 
@@ -86,11 +86,13 @@ function calculateDiscountValue(originalAmount: number, discountType: string, di
 
 // ============== EXISTING FUNCTIONS ==============
 
-async function getTenant(supabase: any, tenantId: string) {
+async function getTenant(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
+  const locale = params.locale as string | undefined;
+
   const { data, error } = await supabase
     .from('tenants')
     .select(`
-      id, name, logo_url, primary_color, currency, country, default_vat_rate,
+      id, name, slug, logo_url, primary_color, currency, country, default_vat_rate,
       store_name, store_description, contact_email, contact_phone
     `)
     .eq('id', tenantId)
@@ -99,10 +101,32 @@ async function getTenant(supabase: any, tenantId: string) {
   if (error) throw error;
   if (!data) throw new Error('Tenant not found');
 
+  let storeName = data.store_name || data.name;
+  let storeDescription = data.store_description;
+
+  // Apply locale translations if requested
+  if (locale) {
+    const { data: translations } = await supabase
+      .from('content_translations')
+      .select('field_name, translated_content')
+      .eq('tenant_id', tenantId)
+      .eq('entity_type', 'tenant')
+      .eq('entity_id', tenantId)
+      .eq('target_language', locale);
+
+    if (translations) {
+      for (const t of translations) {
+        if (t.field_name === 'store_name' && t.translated_content) storeName = t.translated_content;
+        if (t.field_name === 'store_description' && t.translated_content) storeDescription = t.translated_content;
+      }
+    }
+  }
+
   return {
     id: data.id,
-    name: data.store_name || data.name,
-    description: data.store_description,
+    slug: data.slug,
+    name: storeName,
+    description: storeDescription,
     logo_url: data.logo_url,
     primary_color: data.primary_color,
     currency: data.currency || 'EUR',
@@ -112,7 +136,67 @@ async function getTenant(supabase: any, tenantId: string) {
   };
 }
 
+// ============== DOMAIN RESOLUTION ==============
+
+async function resolveDomain(supabase: any, params: Record<string, unknown>) {
+  const hostname = (params.hostname as string || '').toLowerCase().trim();
+  if (!hostname) throw new Error('hostname is required');
+
+  // Look up domain
+  const { data: domain, error } = await supabase
+    .from('tenant_domains')
+    .select('id, tenant_id, domain, locale, is_canonical, is_active, dns_verified, ssl_active')
+    .eq('domain', hostname)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!domain) throw new Error('Domain not found');
+
+  // Get tenant info
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id, slug, name, store_name')
+    .eq('id', domain.tenant_id)
+    .single();
+
+  if (!tenant) throw new Error('Tenant not found for domain');
+
+  // Get theme settings (custom frontend info)
+  const { data: themeSettings } = await supabase
+    .from('tenant_theme_settings')
+    .select('use_custom_frontend, custom_frontend_url')
+    .eq('tenant_id', domain.tenant_id)
+    .maybeSingle();
+
+  // Get all active domains for this tenant (for hreflang)
+  const { data: allDomains } = await supabase
+    .from('tenant_domains')
+    .select('domain, locale, is_canonical')
+    .eq('tenant_id', domain.tenant_id)
+    .eq('is_active', true);
+
+  return {
+    tenant_id: tenant.id,
+    tenant_slug: tenant.slug,
+    tenant_name: tenant.store_name || tenant.name,
+    locale: domain.locale,
+    is_canonical: domain.is_canonical,
+    dns_verified: domain.dns_verified,
+    ssl_active: domain.ssl_active,
+    use_custom_frontend: themeSettings?.use_custom_frontend || false,
+    custom_frontend_url: themeSettings?.custom_frontend_url || null,
+    all_domains: (allDomains || []).map((d: any) => ({
+      domain: d.domain,
+      locale: d.locale,
+      is_canonical: d.is_canonical,
+    })),
+  };
+}
+
 async function getProducts(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const locale = params?.locale as string | undefined;
+
   let query = supabase
     .from('products')
     .select(`
@@ -136,19 +220,42 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     return true;
   });
 
-  return visibleProducts.map((product: any) => ({
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    description: product.description,
-    price: product.price,
-    compare_at_price: product.compare_at_price,
-    images: product.images || [],
-    in_stock: !product.track_inventory || product.stock > 0,
-    stock: product.track_inventory ? product.stock : null,
-    sku: product.sku,
-    category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
-  }));
+  // Fetch translations if locale is provided
+  let translationsMap: Record<string, Record<string, string>> = {};
+  if (locale && visibleProducts.length > 0) {
+    const productIds = visibleProducts.map((p: any) => p.id);
+    const { data: translations } = await supabase
+      .from('content_translations')
+      .select('entity_id, field_name, translated_content')
+      .eq('tenant_id', tenantId)
+      .eq('entity_type', 'product')
+      .in('entity_id', productIds)
+      .eq('target_language', locale);
+
+    if (translations) {
+      for (const t of translations) {
+        if (!translationsMap[t.entity_id]) translationsMap[t.entity_id] = {};
+        if (t.translated_content) translationsMap[t.entity_id][t.field_name] = t.translated_content;
+      }
+    }
+  }
+
+  return visibleProducts.map((product: any) => {
+    const t = translationsMap[product.id] || {};
+    return {
+      id: product.id,
+      name: t.name || product.name,
+      slug: product.slug,
+      description: t.description || product.description,
+      price: product.price,
+      compare_at_price: product.compare_at_price,
+      images: product.images || [],
+      in_stock: !product.track_inventory || product.stock > 0,
+      stock: product.track_inventory ? product.stock : null,
+      sku: product.sku,
+      category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
+    };
+  });
 }
 
 async function getShippingMethods(supabase: any, tenantId: string) {
@@ -608,6 +715,15 @@ serve(async (req) => {
     const body: StorefrontRequest = await req.json();
     const { action, tenant_id, params = {} } = body;
 
+    // resolve_domain doesn't require tenant_id
+    if (action === 'resolve_domain') {
+      const result = await resolveDomain(supabase, params);
+      return new Response(
+        JSON.stringify({ success: true, data: result }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!tenant_id) {
       return new Response(
         JSON.stringify({ success: false, error: 'tenant_id is required' }),
@@ -619,7 +735,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'get_tenant':
-        result = await getTenant(supabase, tenant_id);
+        result = await getTenant(supabase, tenant_id, params);
         break;
       case 'get_products':
         result = await getProducts(supabase, tenant_id, params);

@@ -7,6 +7,7 @@ import {
   Copy, 
   Check,
   AlertCircle,
+  Info,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,13 +16,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
+import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { toast } from 'sonner';
 
 export function StorefrontSettings() {
   const { currentTenant } = useTenant();
   const { themeSettings, saveThemeSettings } = useStorefront();
+  const { domains, canonicalDomain } = useTenantDomains();
   const [copied, setCopied] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
@@ -51,11 +55,11 @@ export function StorefrontSettings() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const domainVerified = currentTenant?.domain_verified;
-  const customDomain = currentTenant?.custom_domain;
-  const storefrontUrl = customDomain 
-    ? `https://${customDomain}`
-    : `${window.location.origin}/shop/${currentTenant?.slug}`;
+  const activeDomains = domains.filter(d => d.is_active);
+  const verifiedDomains = activeDomains.filter(d => d.dns_verified);
+  const primaryUrl = canonicalDomain?.domain
+    ? `https://${canonicalDomain.domain}`
+    : `/shop/${currentTenant?.slug}`;
 
   return (
     <div className="space-y-6">
@@ -64,23 +68,52 @@ export function StorefrontSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            Domeinen
+            Domeinen & URL
           </CardTitle>
           <CardDescription>
-            Beheer je gekoppelde domeinen en taalinstellingen
+            Je webshop is bereikbaar via de volgende URL's
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+        <CardContent className="space-y-4">
+          {/* Primary URL */}
+          <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
             <div className="flex items-center gap-3">
-              <Globe className="h-5 w-5 text-primary" />
+              <Globe className="h-4 w-4 text-primary" />
               <div>
-                <p className="font-medium">Domeinconfiguratie</p>
-                <p className="text-sm text-muted-foreground">
-                  Beheer je domeinen, talen en DNS-verificatie centraal bij Instellingen
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{primaryUrl}</span>
+                  {canonicalDomain && <Badge variant="default" className="text-xs">Primair</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.use_custom_frontend 
+                    ? 'Serveert je custom frontend'
+                    : 'Serveert het SellQo theme'}
                 </p>
               </div>
             </div>
+            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(primaryUrl, 'primary-url')}>
+              {copied === 'primary-url' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
+
+          {/* Additional domains info */}
+          {activeDomains.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {verifiedDomains.length} van {activeDomains.length} domeinen geverifieerd
+              {formData.use_custom_frontend && ' — alle domeinen serveren je custom frontend'}
+            </p>
+          )}
+
+          {/* SellQo fallback URL if custom domains exist */}
+          {canonicalDomain && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Technische URL:</span>
+              <code className="bg-muted px-1.5 py-0.5 rounded">/shop/{currentTenant?.slug}</code>
+              <span>(redirect naar primair domein)</span>
+            </div>
+          )}
+
+          <div className="pt-2">
             <Button variant="outline" size="sm" asChild>
               <a href="/admin/settings?tab=domains">
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -126,9 +159,37 @@ export function StorefrontSettings() {
                   placeholder="https://mijn-custom-shop.lovable.app"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Bezoekers worden doorgestuurd naar deze URL
+                  Je domeinen serveren deze URL — klanten zien alleen hun eigen domein
                 </p>
               </div>
+
+              {/* Hint: no domains configured */}
+              {activeDomains.length === 0 && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Koppel een eigen domein</AlertTitle>
+                  <AlertDescription>
+                    Zonder eigen domein zien klanten de technische URL. Koppel een domein zodat klanten altijd je eigen domeinnaam zien.
+                    <Button variant="link" size="sm" className="px-0 ml-1" asChild>
+                      <a href="/admin/settings?tab=domains">Domein toevoegen →</a>
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Show which domains serve the custom frontend */}
+              {verifiedDomains.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Domeinen die je custom frontend serveren:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {verifiedDomains.map(d => (
+                      <Badge key={d.id} variant="secondary" className="text-xs">
+                        {d.domain}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <Alert>
                 <Code className="h-4 w-4" />
@@ -148,6 +209,9 @@ export function StorefrontSettings() {
                         {copied === 'api' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Gebruik de <code className="bg-muted px-1 rounded">resolve_domain</code> actie om automatisch de tenant en locale te detecteren op basis van het domein.
+                    </p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Tenant ID:</span>
                       <code className="text-xs bg-muted px-2 py-1 rounded">

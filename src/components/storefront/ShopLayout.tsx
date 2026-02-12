@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -10,6 +10,7 @@ import { ReviewsFloatingWidget } from '@/components/storefront/reviews/ReviewsFl
 import { ReviewsTrustBar } from '@/components/storefront/reviews/ReviewsTrustBar';
 import { ReviewsStructuredData } from '@/components/storefront/reviews/ReviewsStructuredData';
 import type { ReviewPlatform } from '@/types/reviews-hub';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -17,11 +18,13 @@ interface ShopLayoutProps {
 
 export function ShopLayout({ children }: ShopLayoutProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  const navigate = useNavigate();
   const { tenant, themeSettings, navPages, categories, isLoading, error } = usePublicStorefront(tenantSlug || '');
   const { aggregate, reviews, connections } = usePublicReviews(tenant?.id);
   const { getCartCount, setTenantSlug } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   
   const cartCount = getCartCount();
 
@@ -31,6 +34,38 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       setTenantSlug(tenantSlug);
     }
   }, [tenantSlug, setTenantSlug]);
+
+  // Redirect logic: check if tenant uses custom frontend or has custom domains
+  useEffect(() => {
+    if (!tenant?.id || !themeSettings || redirecting) return;
+
+    const checkRedirect = async () => {
+      // If custom frontend is enabled, redirect to it
+      if ((themeSettings as any)?.use_custom_frontend && (themeSettings as any)?.custom_frontend_url) {
+        setRedirecting(true);
+        window.location.href = (themeSettings as any).custom_frontend_url;
+        return;
+      }
+
+      // If there are custom domains with a canonical, redirect to it
+      const { data: canonicalDomain } = await supabase
+        .from('tenant_domains')
+        .select('domain')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .eq('is_canonical', true)
+        .eq('dns_verified', true)
+        .maybeSingle();
+
+      if (canonicalDomain?.domain) {
+        setRedirecting(true);
+        window.location.href = `https://${canonicalDomain.domain}`;
+        return;
+      }
+    };
+
+    checkRedirect();
+  }, [tenant?.id, themeSettings, redirecting]);
   
   // Extract enabled platforms from connections
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
@@ -76,7 +111,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     };
   }, [themeSettings]);
 
-  if (isLoading) {
+  if (isLoading || redirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />

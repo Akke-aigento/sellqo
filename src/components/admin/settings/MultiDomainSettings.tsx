@@ -19,9 +19,15 @@ import {
 import { useTenantDomains, type TenantDomain } from '@/hooks/useTenantDomains';
 import { TRANSLATION_LANGUAGES } from '@/types/translation';
 import { DomainVerificationPanel } from './DomainVerificationPanel';
+import { useStorefront } from '@/hooks/useStorefront';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 export function MultiDomainSettings() {
   const { domains, isLoading, addDomain, updateDomain, removeDomain } = useTenantDomains();
+  const { themeSettings } = useStorefront();
+  const useCustomFrontend = (themeSettings as any)?.use_custom_frontend;
+  const customFrontendUrl = (themeSettings as any)?.custom_frontend_url;
   const [showAddForm, setShowAddForm] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [newLocale, setNewLocale] = useState('nl');
@@ -85,6 +91,16 @@ export function MultiDomainSettings() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Custom Frontend info alert */}
+        {useCustomFrontend && customFrontendUrl && domains.length > 0 && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Alle geverifieerde domeinen serveren je custom frontend op <strong>{customFrontendUrl}</strong>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
@@ -165,6 +181,9 @@ export function MultiDomainSettings() {
                           Canonical
                         </Badge>
                       )}
+                      <Badge variant="outline" className="text-xs">
+                        {useCustomFrontend ? 'Custom Frontend' : 'SellQo Theme'}
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
