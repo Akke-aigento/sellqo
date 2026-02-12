@@ -413,9 +413,8 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="product">Product</TabsTrigger>
-              <TabsTrigger value="variants">Varianten</TabsTrigger>
               <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
             </TabsList>
 
@@ -953,6 +952,25 @@ export default function ProductForm() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Varianten */}
+                  {isEditing && id ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Varianten</CardTitle>
+                        <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ProductVariantsTab productId={id} />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Right Column - Sidebar */}
@@ -1140,19 +1158,6 @@ export default function ProductForm() {
               )}
                 </div>
               </div>
-            </TabsContent>
-
-            {/* Variants Tab */}
-            <TabsContent value="variants">
-              {isEditing && id ? (
-                <ProductVariantsTab productId={id} />
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
             {/* Marketplaces Tab */}
