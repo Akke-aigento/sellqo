@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +48,7 @@ const categorySchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(100, 'Naam mag maximaal 100 tekens zijn'),
   slug: z.string().min(1, 'Slug is verplicht').max(100, 'Slug mag maximaal 100 tekens zijn')
     .regex(/^[a-z0-9-]+$/, 'Slug mag alleen kleine letters, cijfers en streepjes bevatten'),
-  description: z.string().max(500, 'Beschrijving mag maximaal 500 tekens zijn').optional(),
+  description: z.string().max(5000, 'Beschrijving mag maximaal 5000 tekens zijn').optional(),
   parent_id: z.string().nullable().optional(),
   is_active: z.boolean().optional(),
   hide_from_storefront: z.boolean().optional(),
@@ -284,11 +285,10 @@ export function CategoryFormDialog({
                     <FormItem>
                       <FormLabel>Beschrijving</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Beschrijf de categorie..."
-                          className="resize-none"
-                          rows={3}
-                          {...field}
+                        <ProductDescriptionEditor
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          maxLength={5000}
                         />
                       </FormControl>
                       <FormMessage />
