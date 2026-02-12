@@ -151,9 +151,13 @@ export function CategoryTreeItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">
+            <button
+              type="button"
+              onClick={() => onEdit(category)}
+              className="font-medium truncate cursor-pointer hover:underline text-left"
+            >
               <HighlightText text={category.name} search={searchQuery} />
-            </span>
+            </button>
           </div>
           {/* Breadcrumb path */}
           {level > 0 && (
@@ -179,7 +183,7 @@ export function CategoryTreeItem({
           </Badge>
         )}
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <CategoryMoveDropdown
             category={category}
             allCategories={allCategories}
