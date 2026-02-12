@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Store, Palette, Save, FileText, Languages, ExternalLink } from 'lucide-react';
+import { Store, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,19 +15,6 @@ const CURRENCIES = [
   { code: 'EUR', name: 'Euro (€)', symbol: '€' },
   { code: 'USD', name: 'US Dollar ($)', symbol: '$' },
   { code: 'GBP', name: 'Brits Pond (£)', symbol: '£' },
-];
-
-const LANGUAGES = [
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-];
-
-const INVOICE_FORMATS = [
-  { value: 'pdf', label: 'PDF', description: 'Standaard PDF factuur' },
-  { value: 'ubl', label: 'UBL (e-facturatie)', description: 'XML formaat voor boekhoudprogramma\'s' },
-  { value: 'both', label: 'Beide', description: 'PDF én UBL formaat' },
 ];
 
 export function StoreSettings() {
@@ -43,38 +27,15 @@ export function StoreSettings() {
   const [formData, setFormData] = useState({
     tax_percentage: 21,
     currency: 'EUR',
-    language: 'nl',
     shipping_enabled: true,
-    primary_color: '#3b82f6',
-    secondary_color: '#1e40af',
-    auto_send_invoices: true,
-    invoice_format: 'pdf',
-    invoice_prefix: 'INV',
-    invoice_start_number: 1,
-    invoice_email_subject: '',
-    invoice_email_body: '',
-    invoice_cc_email: '',
-    invoice_bcc_email: '',
   });
 
   useEffect(() => {
     if (currentTenant) {
-      const tenantData = currentTenant as any;
       setFormData({
         tax_percentage: currentTenant.tax_percentage || 21,
         currency: currentTenant.currency || 'EUR',
-        language: tenantData.language || 'nl',
         shipping_enabled: currentTenant.shipping_enabled ?? true,
-        primary_color: currentTenant.primary_color || '#3b82f6',
-        secondary_color: currentTenant.secondary_color || '#1e40af',
-        auto_send_invoices: tenantData.auto_send_invoices ?? true,
-        invoice_format: tenantData.invoice_format || 'pdf',
-        invoice_prefix: tenantData.invoice_prefix || 'INV',
-        invoice_start_number: tenantData.invoice_start_number || 1,
-        invoice_email_subject: tenantData.invoice_email_subject || '',
-        invoice_email_body: tenantData.invoice_email_body || '',
-        invoice_cc_email: tenantData.invoice_cc_email || '',
-        invoice_bcc_email: tenantData.invoice_bcc_email || '',
       });
     }
   }, [currentTenant]);
@@ -89,18 +50,7 @@ export function StoreSettings() {
         .update({
           tax_percentage: formData.tax_percentage,
           currency: formData.currency,
-          language: formData.language,
           shipping_enabled: formData.shipping_enabled,
-          primary_color: formData.primary_color,
-          secondary_color: formData.secondary_color,
-          auto_send_invoices: formData.auto_send_invoices,
-          invoice_format: formData.invoice_format,
-          invoice_prefix: formData.invoice_prefix,
-          invoice_start_number: formData.invoice_start_number,
-          invoice_email_subject: formData.invoice_email_subject || null,
-          invoice_email_body: formData.invoice_email_body || null,
-          invoice_cc_email: formData.invoice_cc_email || null,
-          invoice_bcc_email: formData.invoice_bcc_email || null,
         })
         .eq('id', currentTenant.id);
 
@@ -135,13 +85,13 @@ export function StoreSettings() {
             <div>
               <CardTitle>Algemene instellingen</CardTitle>
               <CardDescription>
-                Configureer BTW, valuta en taalinstellingen
+                Configureer BTW, valuta en verzending
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="tax_percentage">BTW Percentage (%)</Label>
               <Input
@@ -179,50 +129,6 @@ export function StoreSettings() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="language">Primaire Contenttaal</Label>
-              <Select
-                value={formData.language}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}
-              >
-                <SelectTrigger id="language">
-                  <SelectValue placeholder="Selecteer taal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      <span className="flex items-center gap-2">
-                        <span>{lang.flag}</span>
-                        <span>{lang.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                De taal waarin je producten, categorieën en content invoert. Andere talen worden automatisch vertaald.
-              </p>
-            </div>
-          </div>
-
-          {/* Translation Hub Link */}
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-            <div className="flex items-center gap-3">
-              <Languages className="h-5 w-5 text-primary" />
-              <div>
-                <p className="font-medium">Vertalingen beheren</p>
-                <p className="text-sm text-muted-foreground">
-                  AI-vertalingen naar Engels, Duits en Frans
-                </p>
-              </div>
-            </div>
-            <Link to="/admin/marketing/translations">
-              <Button variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Vertaal Hub
-              </Button>
-            </Link>
           </div>
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -239,98 +145,6 @@ export function StoreSettings() {
               }
             />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Theme Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Palette className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Thema kleuren</CardTitle>
-              <CardDescription>
-                Pas de kleuren van je webshop aan
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="primary_color">Primaire kleur</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="primary_color"
-                  type="color"
-                  value={formData.primary_color}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    primary_color: e.target.value 
-                  }))}
-                  className="w-14 h-10 p-1 cursor-pointer"
-                />
-                <Input
-                  value={formData.primary_color}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    primary_color: e.target.value 
-                  }))}
-                  placeholder="#3b82f6"
-                  className="flex-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="secondary_color">Secundaire kleur</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="secondary_color"
-                  type="color"
-                  value={formData.secondary_color}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    secondary_color: e.target.value 
-                  }))}
-                  className="w-14 h-10 p-1 cursor-pointer"
-                />
-                <Input
-                  value={formData.secondary_color}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    secondary_color: e.target.value 
-                  }))}
-                  placeholder="#1e40af"
-                  className="flex-1"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <p className="text-sm font-medium mb-3">Preview</p>
-            <div className="flex gap-3">
-              <Button 
-                style={{ backgroundColor: formData.primary_color }}
-                className="hover:opacity-90"
-              >
-                Primaire knop
-              </Button>
-              <Button 
-                variant="outline"
-                style={{ 
-                  borderColor: formData.secondary_color,
-                  color: formData.secondary_color 
-                }}
-              >
-                Secundaire knop
-              </Button>
-            </div>
-          </div>
 
           {/* System Theme Toggle */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -346,185 +160,11 @@ export function StoreSettings() {
                 if (checked) {
                   setTheme('system');
                 } else {
-                  // When turning off, use current resolved theme
                   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   setTheme(prefersDark ? 'dark' : 'light');
                 }
               }}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Invoice Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <FileText className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Facturatie</CardTitle>
-              <CardDescription>
-                Configureer automatische facturen na betaling
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <p className="font-medium">Automatisch facturen versturen</p>
-              <p className="text-sm text-muted-foreground">
-                Stuur facturen automatisch naar klanten na succesvolle betaling
-              </p>
-            </div>
-            <Switch
-              checked={formData.auto_send_invoices}
-              onCheckedChange={(checked) => 
-                setFormData(prev => ({ ...prev, auto_send_invoices: checked }))
-              }
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="invoice_format">Factuurformaat</Label>
-              <Select
-                value={formData.invoice_format}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, invoice_format: value }))}
-              >
-                <SelectTrigger id="invoice_format">
-                  <SelectValue placeholder="Selecteer formaat" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INVOICE_FORMATS.map((format) => (
-                    <SelectItem key={format.value} value={format.value}>
-                      <div>
-                        <span className="font-medium">{format.label}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          {format.description}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                UBL (e-facturatie) is een XML standaard die direct importeerbaar is in boekhoudprogramma's
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="invoice_prefix">Factuurnummer prefix</Label>
-              <Input
-                id="invoice_prefix"
-                value={formData.invoice_prefix}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  invoice_prefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') 
-                }))}
-                placeholder="INV"
-                maxLength={10}
-              />
-              <p className="text-xs text-muted-foreground">
-                Voorbeeld: {formData.invoice_prefix}-{new Date().getFullYear()}-{String(formData.invoice_start_number).padStart(4, '0')}
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="invoice_start_number">Startnummer</Label>
-              <Input
-                id="invoice_start_number"
-                type="number"
-                min="1"
-                value={formData.invoice_start_number}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  invoice_start_number: Math.max(1, parseInt(e.target.value) || 1)
-                }))}
-                placeholder="1"
-              />
-              <p className="text-xs text-muted-foreground">
-                Het eerste factuurnummer begint met dit nummer. Wijzig alleen als je migreert van een ander systeem.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-muted/50 rounded-lg text-sm">
-            <p className="font-medium mb-2">Factuurnummering</p>
-            <p className="text-muted-foreground">
-              Factuurnummers worden automatisch gegenereerd in het formaat: <code className="bg-background px-1 py-0.5 rounded">{formData.invoice_prefix}-{new Date().getFullYear()}-0001</code>
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Het systeem houdt automatisch opeenvolgende nummers bij. Gaten in de nummering worden voorkomen.
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="invoice_email_subject">E-mail onderwerp (optioneel)</Label>
-            <Input
-              id="invoice_email_subject"
-              value={formData.invoice_email_subject}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                invoice_email_subject: e.target.value 
-              }))}
-              placeholder={`Factuur [nummer] van ${currentTenant?.name || 'je bedrijf'}`}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="invoice_email_body">E-mail tekst (optioneel)</Label>
-            <Textarea
-              id="invoice_email_body"
-              value={formData.invoice_email_body}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                invoice_email_body: e.target.value 
-              }))}
-              placeholder="Voeg een persoonlijke boodschap toe aan je factuur e-mails..."
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground">
-              Deze tekst wordt toegevoegd aan de standaard factuur e-mail
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="invoice_cc_email">CC e-mailadres (optioneel)</Label>
-              <Input
-                id="invoice_cc_email"
-                type="email"
-                value={formData.invoice_cc_email}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  invoice_cc_email: e.target.value 
-                }))}
-                placeholder="boekhouding@bedrijf.nl"
-              />
-              <p className="text-xs text-muted-foreground">
-                Ontvangt een kopie van elke factuur e-mail
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="invoice_bcc_email">BCC e-mailadres (optioneel)</Label>
-              <Input
-                id="invoice_bcc_email"
-                type="email"
-                value={formData.invoice_bcc_email}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  invoice_bcc_email: e.target.value 
-                }))}
-                placeholder="archief@bedrijf.nl"
-              />
-              <p className="text-xs text-muted-foreground">
-                Ontvangt een blinde kopie (onzichtbaar voor klant)
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>

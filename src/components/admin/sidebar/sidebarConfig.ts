@@ -131,12 +131,12 @@ const marketingItems: NavItem[] = [
     ],
   },
   { id: 'seo', title: 'SEO', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo' },
-  { id: 'translations', title: 'Vertalingen', url: '/admin/marketing/translations', icon: Globe },
 ];
 
 // BEHEER - Administratieve functies
 const managementItems: NavItem[] = [
   { id: 'categories', title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
+  { id: 'translations', title: 'Vertalingen', url: '/admin/marketing/translations', icon: Globe },
   {
     id: 'purchasing',
     title: 'Inkoop',
