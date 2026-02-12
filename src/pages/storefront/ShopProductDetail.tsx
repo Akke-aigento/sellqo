@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefront';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
+import { VariantSelector } from '@/components/storefront/VariantSelector';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
@@ -16,6 +17,7 @@ export default function ShopProductDetail() {
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
 
   // Set tenant slug for cart context
   useEffect(() => {
@@ -24,6 +26,43 @@ export default function ShopProductDetail() {
     }
   }, [tenantSlug, setTenantSlug]);
 
+  // Find selected variant based on attributes
+  const selectedVariant = useMemo(() => {
+    if (!product?.variants?.length || !Object.keys(selectedAttributes).length) return null;
+    return product.variants.find((v: any) => {
+      const attrs = v.attribute_values || {};
+      const keys = Object.keys(selectedAttributes);
+      if (keys.length !== Object.keys(attrs).length) return false;
+      return keys.every(k => attrs[k] === selectedAttributes[k]);
+    }) || null;
+  }, [product?.variants, selectedAttributes]);
+
+  // Swap image when variant has image_url
+  useEffect(() => {
+    if (selectedVariant?.image_url) {
+      setSelectedImage(0);
+    }
+  }, [selectedVariant?.image_url]);
+
+  // Derived display values
+  const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const displayComparePrice = selectedVariant?.compare_at_price ?? product?.compare_at_price;
+  const hasDiscount = displayComparePrice && displayComparePrice > displayPrice;
+  const discountPercentage = hasDiscount
+    ? Math.round((1 - displayPrice / displayComparePrice!) * 100)
+    : 0;
+  const inStock = selectedVariant ? selectedVariant.in_stock : product?.in_stock;
+  const stockCount = selectedVariant?.stock ?? product?.stock;
+
+  // Build display images: variant image first if available
+  const displayImages = useMemo(() => {
+    if (!product) return [];
+    if (selectedVariant?.image_url) {
+      return [selectedVariant.image_url, ...(product.images || [])];
+    }
+    return product.images || [];
+  }, [product, selectedVariant?.image_url]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
@@ -31,24 +70,43 @@ export default function ShopProductDetail() {
     }).format(price);
   };
 
+  const handleAttributeChange = useCallback((optionName: string, value: string) => {
+    setSelectedAttributes(prev => ({ ...prev, [optionName]: value }));
+  }, []);
+
   const handleAddToCart = () => {
     if (!product) return;
+    
+    // Validate variant selection
+    if (product.has_variants && !selectedVariant) {
+      toast.error('Selecteer alstublieft alle opties');
+      return;
+    }
+    
+    const variantTitle = selectedVariant
+      ? Object.values(selectedVariant.attribute_values as Record<string, string>).join(' / ')
+      : undefined;
     
     addToCart({
       productId: product.id,
       name: product.name,
-      price: product.price,
+      price: displayPrice,
       quantity,
-      image: product.images?.[0],
-      sku: product.sku,
+      image: selectedVariant?.image_url ?? product.images?.[0],
+      sku: selectedVariant?.sku ?? product.sku,
+      variantId: selectedVariant?.id,
+      variantTitle,
     });
     
-    toast.success(`${quantity}x ${product.name} toegevoegd aan winkelwagen`, {
-      action: {
-        label: 'Bekijk winkelwagen',
-        onClick: () => window.location.href = `/shop/${tenantSlug}/cart`,
+    toast.success(
+      `${quantity}x ${product.name}${variantTitle ? ` (${variantTitle})` : ''} toegevoegd aan winkelwagen`,
+      {
+        action: {
+          label: 'Bekijk winkelwagen',
+          onClick: () => window.location.href = `/shop/${tenantSlug}/cart`,
+        },
       },
-    });
+    );
   };
 
   if (isLoading) {
@@ -81,12 +139,10 @@ export default function ShopProductDetail() {
     );
   }
 
-  const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
-  const discountPercentage = hasDiscount 
-    ? Math.round((1 - product.price / product.compare_at_price!) * 100)
-    : 0;
-
   const cartCount = getCartCount();
+  const allOptionsSelected = product.options?.length
+    ? product.options.every((opt: any) => selectedAttributes[opt.name])
+    : true;
 
   return (
     <ShopLayout>
@@ -121,11 +177,10 @@ export default function ShopProductDetail() {
         <div className="grid md:grid-cols-2 gap-12">
           {/* Images */}
           <div>
-            {/* Main Image */}
             <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
-              {product.images[selectedImage] ? (
+              {displayImages[selectedImage] ? (
                 <img 
-                  src={product.images[selectedImage]} 
+                  src={displayImages[selectedImage]} 
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
@@ -138,10 +193,9 @@ export default function ShopProductDetail() {
               )}
             </div>
 
-            {/* Thumbnails */}
-            {product.images.length > 1 && (
+            {displayImages.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {product.images.map((image, index) => (
+                {displayImages.map((image: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -176,11 +230,11 @@ export default function ShopProductDetail() {
 
             {/* Price */}
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl font-bold">{formatPrice(product.price)}</span>
+              <span className="text-2xl font-bold">{formatPrice(displayPrice)}</span>
               {hasDiscount && (
                 <>
                   <span className="text-lg text-muted-foreground line-through">
-                    {formatPrice(product.compare_at_price!)}
+                    {formatPrice(displayComparePrice!)}
                   </span>
                   <span className="bg-destructive text-destructive-foreground text-sm font-medium px-2 py-1 rounded">
                     -{discountPercentage}%
@@ -189,12 +243,26 @@ export default function ShopProductDetail() {
               )}
             </div>
 
+            {/* Variant Selection */}
+            {product.has_variants && product.options?.length > 0 && (
+              <div className="mb-6">
+                <VariantSelector
+                  options={product.options}
+                  selectedAttributes={selectedAttributes}
+                  onAttributeChange={handleAttributeChange}
+                />
+              </div>
+            )}
+
             {/* Stock Status */}
             <div className="flex items-center gap-2 mb-6">
-              {product.in_stock ? (
+              {inStock ? (
                 <>
                   <Check className="h-5 w-5 text-green-600" />
-                  <span className="text-green-600 font-medium">Op voorraad</span>
+                  <span className="text-green-600 font-medium">
+                    Op voorraad
+                    {stockCount != null && stockCount > 0 && ` (${stockCount} stuks)`}
+                  </span>
                 </>
               ) : (
                 <span className="text-destructive font-medium">Uitverkocht</span>
@@ -210,9 +278,8 @@ export default function ShopProductDetail() {
             )}
 
             {/* Add to Cart */}
-            {product.in_stock && (
+            {inStock && (
               <div className="flex items-center gap-4 mb-8">
-                {/* Quantity Selector */}
                 <div className="flex items-center border rounded-lg">
                   <Button 
                     variant="ghost" 
@@ -226,17 +293,21 @@ export default function ShopProductDetail() {
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    onClick={() => setQuantity(quantity + 1)}
+                    onClick={() => setQuantity(prev => {
+                      const max = stockCount ?? Infinity;
+                      return Math.min(prev + 1, max);
+                    })}
+                    disabled={stockCount != null && quantity >= stockCount}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
 
-                {/* Add to Cart Button */}
                 <Button 
                   size="lg" 
                   className="flex-1"
                   onClick={handleAddToCart}
+                  disabled={product.has_variants && !allOptionsSelected}
                   style={{
                     backgroundColor: themeSettings?.primary_color || undefined,
                   }}
@@ -250,7 +321,6 @@ export default function ShopProductDetail() {
                   )}
                 </Button>
 
-                {/* Wishlist */}
                 {themeSettings?.show_wishlist && (
                   <Button variant="outline" size="icon">
                     <Heart className="h-5 w-5" />
@@ -259,10 +329,17 @@ export default function ShopProductDetail() {
               </div>
             )}
 
+            {/* Not all options selected hint */}
+            {product.has_variants && !allOptionsSelected && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Selecteer alle opties om toe te voegen aan winkelwagen
+              </p>
+            )}
+
             {/* Product Details */}
-            {product.sku && (
+            {(selectedVariant?.sku || product.sku) && (
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium">SKU:</span> {product.sku}
+                <span className="font-medium">SKU:</span> {selectedVariant?.sku || product.sku}
               </p>
             )}
           </div>
