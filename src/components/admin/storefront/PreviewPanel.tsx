@@ -22,7 +22,7 @@ export function PreviewPanel({ className }: PreviewPanelProps) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const previewUrl = currentTenant 
-    ? `/shop/${currentTenant.slug}` 
+    ? `/shop/${currentTenant.slug}?preview=true` 
     : '/shop/preview';
 
   const handleRefresh = () => {
@@ -30,7 +30,10 @@ export function PreviewPanel({ className }: PreviewPanelProps) {
   };
 
   const handleOpenExternal = () => {
-    window.open(previewUrl, '_blank');
+    const externalUrl = currentTenant 
+      ? `/shop/${currentTenant.slug}` 
+      : '/shop/preview';
+    window.open(externalUrl, '_blank');
   };
 
   return (
