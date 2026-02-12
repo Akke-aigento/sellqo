@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
+import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { ThemeGallery } from '@/components/admin/storefront/ThemeGallery';
 import { ThemeCustomizer } from '@/components/admin/storefront/ThemeCustomizer';
 import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
@@ -26,6 +27,7 @@ export default function StorefrontPage() {
     publishStorefront 
   } = useStorefront();
   const [activeTab, setActiveTab] = useState('theme');
+  const { canonicalDomain } = useTenantDomains();
 
   if (!currentTenant) {
     return (
@@ -41,10 +43,11 @@ export default function StorefrontPage() {
 
   const selectedTheme = themes.find(t => t.id === themeSettings?.theme_id);
   const isPublished = themeSettings?.is_published;
-  const customDomain = (currentTenant as any).custom_domain;
-  const storefrontUrl = customDomain 
-    ? `https://${customDomain}`
-    : `/shop/${currentTenant.slug}`;
+  const storefrontUrl = canonicalDomain?.domain
+    ? `https://${canonicalDomain.domain}`
+    : (currentTenant as any).custom_domain 
+      ? `https://${(currentTenant as any).custom_domain}`
+      : `/shop/${currentTenant.slug}`;
 
   return (
     <div className="p-6 space-y-6">

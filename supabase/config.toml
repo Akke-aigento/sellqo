@@ -284,3 +284,9 @@ verify_jwt = false
 
 [functions.marketplace-sync-scheduler]
 verify_jwt = false
+
+[functions.storefront-api]
+verify_jwt = false
+
+[functions.storefront-resolve]
+verify_jwt = false
