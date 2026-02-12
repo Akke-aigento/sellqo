@@ -14,6 +14,8 @@ import {
   Upload,
   Cable,
   Megaphone,
+  HelpCircle,
+  BookOpen,
   Percent,
   FileSpreadsheet,
   Factory,
@@ -176,6 +178,7 @@ const systemItems: NavItem[] = [
   },
   { id: 'billing', title: 'Facturatie', url: '/admin/billing', icon: Receipt },
   { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings },
+  { id: 'help', title: 'Help', url: '/admin/help', icon: HelpCircle },
 ];
 
 // PLATFORM - Platform admin only
@@ -189,6 +192,7 @@ const platformItems: NavItem[] = [
   { id: 'platform-changelog', title: 'Changelog', url: '/admin/platform/changelog', icon: ChangelogIcon },
   { id: 'platform-health', title: 'Health Monitor', url: '/admin/platform/health', icon: Activity },
   { id: 'platform-legal', title: 'Juridisch', url: '/admin/platform/legal', icon: LegalIcon },
+  { id: 'platform-docs', title: 'Documentatie', url: '/admin/platform/docs', icon: BookOpen },
 ];
 
 export const sidebarGroups: NavGroup[] = [

@@ -3388,6 +3388,112 @@ export type Database = {
           },
         ]
       }
+      doc_articles: {
+        Row: {
+          category_id: string
+          content: string
+          context_path: string | null
+          created_at: string
+          created_by: string | null
+          doc_level: string
+          excerpt: string | null
+          id: string
+          is_published: boolean
+          slug: string
+          sort_order: number
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          content?: string
+          context_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_level: string
+          excerpt?: string | null
+          id?: string
+          is_published?: boolean
+          slug: string
+          sort_order?: number
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          content?: string
+          context_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_level?: string
+          excerpt?: string | null
+          id?: string
+          is_published?: boolean
+          slug?: string
+          sort_order?: number
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_articles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "doc_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doc_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          doc_level: string
+          icon: string | null
+          id: string
+          parent_id: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          doc_level: string
+          icon?: string | null
+          id?: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          doc_level?: string
+          icon?: string | null
+          id?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "doc_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_automations: {
         Row: {
           cooldown_hours: number | null
