@@ -100,8 +100,6 @@ export function AIFieldAssistant({
     }
 
     setIsLoading(true);
-    setResult(null);
-    setVariations([]);
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-product-field-assistant', {
@@ -210,6 +208,17 @@ export function AIFieldAssistant({
               <p className="text-xs text-muted-foreground">
                 AI genereert een voorstel op basis van de productinformatie die je al hebt ingevuld.
               </p>
+              {(result || variations.length > 0) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => { setIsPopoverOpen(false); setIsDialogOpen(true); }}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Bekijk vorig voorstel
+                </Button>
+              )}
               <Button
                 size="sm"
                 className="w-full"
@@ -224,13 +233,13 @@ export function AIFieldAssistant({
                 Genereer{multiVariant ? ' 3 varianten' : ''}
               </Button>
             </TabsContent>
-            <TabsContent value="briefing" className="p-3 mt-0 space-y-2">
+            <TabsContent value="briefing" className="p-3 mt-0 space-y-2 max-h-[50vh] overflow-y-auto">
               <Textarea
                 value={briefing}
                 onChange={(e) => setBriefing(e.target.value)}
                 placeholder="Beschrijf wat je wilt, bijv. 'focus op duurzaamheid, noem de lithium technologie'"
-                rows={3}
-                className="text-sm resize-none"
+                rows={4}
+                className="text-sm resize-y max-h-32"
               />
               <Button
                 size="sm"

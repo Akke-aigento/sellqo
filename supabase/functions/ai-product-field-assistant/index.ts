@@ -155,6 +155,10 @@ Deno.serve(async (req) => {
       if (ctx.weight) systemParts.push(`- Gewicht: ${ctx.weight}`);
       if (ctx.tags?.length) systemParts.push(`- Tags: ${ctx.tags.join(", ")}`);
       if (ctx.short_description) systemParts.push(`- Korte beschrijving: ${ctx.short_description}`);
+      if (ctx.description) {
+        const descPlain = ctx.description.replace(/<[^>]*>/g, '').substring(0, 500);
+        systemParts.push(`- Beschrijving: ${descPlain}`);
+      }
       if (ctx.specifications) {
         const specStr = Object.entries(ctx.specifications).map(([k, v]) => `${k}: ${v}`).join(", ");
         if (specStr) systemParts.push(`- Specificaties: ${specStr}`);
