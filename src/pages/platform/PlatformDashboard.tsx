@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Building2,
   Sparkles,
-  DollarSign
+  DollarSign,
+  ArrowRight
 } from "lucide-react";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { usePlatformChangelogs } from "@/hooks/usePlatformChangelogs";
@@ -290,6 +291,12 @@ export default function PlatformDashboard() {
               <Link to="/admin/platform/support">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Support inbox
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full justify-start" asChild>
+              <Link to="/admin/platform/field-mappings">
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Channel Field Mappings
               </Link>
             </Button>
           </CardContent>
