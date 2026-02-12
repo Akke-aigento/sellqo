@@ -7850,6 +7850,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          linked_product_id: string | null
           position: number
           price: number | null
           product_id: string
@@ -7870,6 +7871,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          linked_product_id?: string | null
           position?: number
           price?: number | null
           product_id: string
@@ -7890,6 +7892,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          linked_product_id?: string | null
           position?: number
           price?: number | null
           product_id?: string
@@ -7902,6 +7905,13 @@ export type Database = {
           weight?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_variants_linked_product_id_fkey"
+            columns: ["linked_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
@@ -8005,6 +8015,7 @@ export type Database = {
           odoo_variant_id: string | null
           original_category_value: string | null
           original_created_at: string | null
+          parent_product_id: string | null
           price: number
           product_type: Database["public"]["Enums"]["product_type"] | null
           published_scope: string | null
@@ -8131,6 +8142,7 @@ export type Database = {
           odoo_variant_id?: string | null
           original_category_value?: string | null
           original_created_at?: string | null
+          parent_product_id?: string | null
           price: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           published_scope?: string | null
@@ -8257,6 +8269,7 @@ export type Database = {
           odoo_variant_id?: string | null
           original_category_value?: string | null
           original_created_at?: string | null
+          parent_product_id?: string | null
           price?: number
           product_type?: Database["public"]["Enums"]["product_type"] | null
           published_scope?: string | null
@@ -8317,6 +8330,13 @@ export type Database = {
             columns: ["import_job_id"]
             isOneToOne: false
             referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {

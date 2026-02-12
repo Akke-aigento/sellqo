@@ -337,13 +337,43 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
   const avgRating = reviews?.length ? reviews.reduce((s: number, r: any) => s + r.rating, 0) / reviews.length : null;
 
-  // Fetch variants and variant options
+  // Determine if this product is a variant-product (has parent_product_id)
+  const isVariantProduct = !!product.parent_product_id;
+  const parentProductId = isVariantProduct ? product.parent_product_id : product.id;
+
+  // Fetch variants and variant options from the parent product (or self if parent)
   const [{ data: variants }, { data: variantOptions }] = await Promise.all([
-    supabase.from('product_variants').select('*').eq('product_id', product.id).eq('tenant_id', tenantId).eq('is_active', true).order('position', { ascending: true }),
-    supabase.from('product_variant_options').select('*').eq('product_id', product.id).eq('tenant_id', tenantId).order('position', { ascending: true }),
+    supabase.from('product_variants').select('*').eq('product_id', parentProductId).eq('tenant_id', tenantId).eq('is_active', true).order('position', { ascending: true }),
+    supabase.from('product_variant_options').select('*').eq('product_id', parentProductId).eq('tenant_id', tenantId).order('position', { ascending: true }),
   ]);
 
   const hasVariants = (variants?.length || 0) > 0;
+
+  // For cross-linked variants: fetch linked product slugs
+  let linkedProductSlugs: Record<string, string> = {};
+  if (hasVariants) {
+    const linkedProductIds = (variants || [])
+      .filter((v: any) => v.linked_product_id)
+      .map((v: any) => v.linked_product_id);
+    if (linkedProductIds.length > 0) {
+      const { data: linkedProducts } = await supabase
+        .from('products')
+        .select('id, slug')
+        .in('id', linkedProductIds);
+      if (linkedProducts) {
+        for (const lp of linkedProducts) {
+          linkedProductSlugs[lp.id] = lp.slug;
+        }
+      }
+    }
+  }
+
+  // Determine which variant matches this product (for variant-products)
+  let selectedVariantIndex: number | null = null;
+  if (isVariantProduct && variants) {
+    selectedVariantIndex = variants.findIndex((v: any) => v.linked_product_id === product.id);
+    if (selectedVariantIndex === -1) selectedVariantIndex = null;
+  }
 
   return {
     id: product.id,
@@ -362,12 +392,17 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     tags: product.tags || [],
     category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
     has_variants: hasVariants,
+    is_variant_product: isVariantProduct,
+    parent_product_id: isVariantProduct ? product.parent_product_id : null,
+    selected_variant_index: selectedVariantIndex,
     variants: (variants || []).map((v: any) => ({
       id: v.id, title: v.title, sku: v.sku, barcode: v.barcode,
       price: v.price ?? product.price, compare_at_price: v.compare_at_price ?? product.compare_at_price,
       stock: v.track_inventory ? v.stock : null,
       in_stock: !v.track_inventory || v.stock > 0,
       image_url: v.image_url, attribute_values: v.attribute_values, weight: v.weight ?? product.weight,
+      linked_product_id: v.linked_product_id || null,
+      linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
     options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
     seo: {
