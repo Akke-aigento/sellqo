@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 export interface CartItem {
   id: string;
   productId: string;
+  variantId?: string;
+  variantTitle?: string;
   name: string;
   price: number;
   quantity: number;
@@ -63,10 +65,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = useCallback((item: Omit<CartItem, 'id'>) => {
     setItems(currentItems => {
-      const existingIndex = currentItems.findIndex(i => i.productId === item.productId);
+      const existingIndex = currentItems.findIndex(i => 
+        i.productId === item.productId && (i.variantId || null) === (item.variantId || null)
+      );
       
       if (existingIndex >= 0) {
-        // Update quantity if product already exists
         return currentItems.map((i, index) => 
           index === existingIndex 
             ? { ...i, quantity: i.quantity + item.quantity }
@@ -74,8 +77,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         );
       }
       
-      // Add new item with unique ID
-      return [...currentItems, { ...item, id: `${item.productId}_${Date.now()}` }];
+      const uniqueKey = item.variantId ? `${item.productId}_${item.variantId}` : `${item.productId}`;
+      return [...currentItems, { ...item, id: `${uniqueKey}_${Date.now()}` }];
     });
   }, []);
 

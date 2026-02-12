@@ -231,11 +231,49 @@ serve(async (req) => {
           password_reset_expires_at: expiresAt,
         }).eq('id', customer.id);
 
-        // TODO: Send email with reset link when email service is configured
-        // For now, the token is stored and can be used via reset_password action
-        console.log(`Password reset requested for ${email}, token expires at ${expiresAt}`);
+        // Send password reset email via Resend
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        if (resendApiKey) {
+          try {
+            // Get tenant info for branding
+            const { data: tenant } = await supabase.from('tenants').select('store_name, name, slug').eq('id', tenant_id).single();
+            const storeName = tenant?.store_name || tenant?.name || 'Shop';
 
-        result = { message: 'If an account with that email exists, a reset link has been sent.', token: resetToken };
+            // Build reset URL — use tenant slug-based storefront URL
+            const resetUrl = `https://sellqo.lovable.app/shop/${tenant?.slug || ''}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+
+            const emailRes = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: `${storeName} <noreply@sellqo.nl>`,
+                to: [email],
+                subject: `Wachtwoord herstellen — ${storeName}`,
+                html: `
+                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+                    <h1 style="font-size: 24px; margin-bottom: 16px;">Wachtwoord herstellen</h1>
+                    <p style="color: #555; line-height: 1.6;">Hallo${customer.first_name ? ` ${customer.first_name}` : ''},</p>
+                    <p style="color: #555; line-height: 1.6;">We hebben een verzoek ontvangen om het wachtwoord van je account bij <strong>${storeName}</strong> te herstellen.</p>
+                    <p style="color: #555; line-height: 1.6;">Klik op de onderstaande knop om een nieuw wachtwoord in te stellen. Deze link is 1 uur geldig.</p>
+                    <div style="text-align: center; margin: 32px 0;">
+                      <a href="${resetUrl}" style="background-color: #000; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Nieuw wachtwoord instellen</a>
+                    </div>
+                    <p style="color: #888; font-size: 13px; line-height: 1.5;">Als je dit verzoek niet hebt gedaan, kun je deze e-mail negeren. Je wachtwoord blijft ongewijzigd.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+                    <p style="color: #aaa; font-size: 12px;">${storeName}</p>
+                  </div>
+                `,
+              }),
+            });
+            if (!emailRes.ok) {
+              console.error('Resend error:', await emailRes.text());
+            }
+          } catch (emailErr) {
+            console.error('Failed to send reset email:', emailErr);
+          }
+        }
+
+        result = { message: 'If an account with that email exists, a reset link has been sent.' };
         break;
       }
 
