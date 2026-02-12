@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Bold, Italic, List, ListOrdered, Link as LinkIcon, Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
+import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 
 interface EditableRichTextBlockProps {
   content: RichTextBlockContent;
@@ -118,6 +119,17 @@ export function EditableRichTextBlock({ content, onUpdate }: EditableRichTextBlo
         >
           <LinkIcon className="h-4 w-4" />
         </Toggle>
+        <div className="ml-auto">
+          <AIFieldAssistant
+            fieldType="page_content"
+            currentValue={editor.getText()}
+            onApply={(text) => {
+              editor.commands.setContent(text);
+              onUpdate({ html: text });
+            }}
+            context={{}}
+          />
+        </div>
       </div>
       
       <EditorContent editor={editor} />
