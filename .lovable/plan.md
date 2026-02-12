@@ -1,49 +1,59 @@
 
-# Drie verbeteringen: Briefing scrollen, resultaten onthouden, SEO + beschrijving
+# Auto-generatie SEO bij beschrijving
 
-## 1. Briefing-veld scrollbaar maken
-Het textarea in de popover heeft `resize-none` en maar 3 regels. Bij langere teksten kun je niet scrollen. 
+## Wat verandert er?
+Wanneer je een productbeschrijving genereert via de AI-assistent, worden de **meta titel** en **meta beschrijving** automatisch mee gegenereerd in dezelfde actie. Je hoeft dus niet apart nog op het SEO-knopje te klikken. De SEO-velden worden direct ingevuld. Wil je ze later toch aanpassen? Dat kan nog steeds via de losse SEO-knoppen.
 
-**Oplossing**: Verander het textarea naar `rows={4}` met `resize-y` en voeg `max-h-[40vh] overflow-y-auto` toe aan de briefing tab-content zodat het hele paneel scrollbaar is bij langere teksten.
+## Hoe werkt het?
 
-## 2. Gegenereerde resultaten onthouden
-Na het sluiten van de resultaten-dialog worden `result` en `variations` gewist bij de volgende generatie (regel 103-104). Als je de dialog sluit zonder te accepteren, zijn de resultaten weg.
-
-**Oplossing**: Bewaar het vorige resultaat. Verwijder het wissen van `result`/`variations` aan het begin van `generate()`. Ze worden sowieso overschreven wanneer nieuwe data binnenkomt. Daarnaast: bij het opnieuw openen van de popover (klik op sparkles), toon een "Bekijk vorig voorstel" knop als er nog een resultaat beschikbaar is.
-
-## 3. SEO generatie gebruikt de beschrijving als context
-Het edge function ontvangt de beschrijving via `productContext.description`, maar gebruikt alleen `short_description` in de prompt. Wanneer je een SEO meta-titel of meta-beschrijving genereert, moet de AI ook de volledige beschrijving kennen om relevante SEO-teksten te schrijven.
-
-**Oplossing**: Voeg `ctx.description` toe aan het PRODUCT CONTEXT blok in de edge function. Beperk het tot de eerste 500 tekens om het prompt-budget niet te overschrijden.
+1. Gebruiker klikt op het AI-icoon bij de beschrijving
+2. AI genereert de beschrijving (zoals nu)
+3. In dezelfde AI-call worden ook meta titel en meta beschrijving mee gegenereerd
+4. De beschrijving wordt in de editor gezet (zoals nu), en de SEO-velden worden automatisch ingevuld
+5. Een toast meldt: "Beschrijving + SEO gegenereerd"
 
 ---
 
 ## Technische Details
 
-### `src/components/admin/ai/AIFieldAssistant.tsx`
+### Edge function: `supabase/functions/ai-product-field-assistant/index.ts`
 
-**Briefing scrollbaar:**
-- Regel 233: Verander `resize-none` naar `resize-y` en voeg `max-h-32` toe
-- Regel 227: Voeg `max-h-[50vh] overflow-y-auto` toe aan de briefing TabsContent
+Wanneer `fieldType === "description"`, wordt de AI-prompt aangepast om naast de beschrijving ook SEO-velden te genereren:
 
-**Resultaten onthouden:**
-- Regel 103-104: Verwijder `setResult(null)` en `setVariations([])` uit de `generate` functie
-- Voeg een "Bekijk vorig voorstel" knop toe in de popover (auto tab) die de dialog opent als er nog een `result` of `variations` beschikbaar is
-- Verplaats het wissen naar wanneer er daadwerkelijk nieuw data binnenkomt (de bestaande code op regel 121-124 overschrijft ze al)
+- De prompt krijgt een extra instructie: "Genereer ook een meta_title (max 60 tekens) en meta_description (max 160 tekens)"
+- Het antwoordformaat wordt JSON: `{ "description": "...", "meta_title": "...", "meta_description": "..." }`
+- Dit geldt voor zowel `auto_generate`, `briefing_generate` als `generate_variations`
+- Bij variaties bevat elke variant ook een `meta_title` en `meta_description`
+- De respons krijgt een nieuw veld `seo` met de gegenereerde SEO-data
 
-### `supabase/functions/ai-product-field-assistant/index.ts`
+### Component: `src/components/admin/ai/AIFieldAssistant.tsx`
 
-**SEO + beschrijving context:**
-- Na regel 157 (`ctx.short_description`): voeg toe:
-```typescript
-if (ctx.description) {
-  const descPlain = ctx.description.replace(/<[^>]*>/g, '').substring(0, 500);
-  systemParts.push(`- Beschrijving: ${descPlain}`);
-}
+- Nieuwe optionele prop: `onSeoGenerated?: (seo: { meta_title: string; meta_description: string }) => void`
+- Na ontvangst van data met `seo` veld, roept het component `onSeoGenerated` aan met de SEO-data
+- De bestaande `onApply` flow blijft ongewijzigd
+
+### Component: `src/components/admin/products/ProductDescriptionEditor.tsx`
+
+- Nieuwe optionele prop: `onSeoGenerated?: (seo: { meta_title: string; meta_description: string }) => void`
+- Wordt doorgegeven aan de `AIFieldAssistant`
+
+### Pagina: `src/pages/admin/ProductForm.tsx`
+
+- Geeft een `onSeoGenerated` callback mee aan `ProductDescriptionEditor`:
 ```
-Dit stript de HTML-tags en beperkt tot 500 tekens zodat de prompt niet te lang wordt.
+onSeoGenerated={(seo) => {
+  form.setValue('meta_title', seo.meta_title);
+  form.setValue('meta_description', seo.meta_description);
+  toast.success('SEO meta titel en beschrijving automatisch ingevuld');
+}}
+```
+
+### Geen extra credits
+De SEO wordt mee gegenereerd in dezelfde AI-call, dus er worden geen extra credits verbruikt. De max_tokens voor beschrijvingen wordt licht verhoogd (van 1500 naar 2000) om ruimte te bieden voor de extra SEO-tekst.
 
 | Bestand | Wijziging |
 |---|---|
-| `AIFieldAssistant.tsx` | Briefing scrollbaar, resultaten onthouden met "Bekijk voorstel" knop |
-| `ai-product-field-assistant/index.ts` | Beschrijving meesturen als SEO-context |
+| `ai-product-field-assistant/index.ts` | Prompt uitbreiden voor SEO bij description, JSON response format |
+| `AIFieldAssistant.tsx` | Nieuwe `onSeoGenerated` prop, SEO-data doorgeven |
+| `ProductDescriptionEditor.tsx` | `onSeoGenerated` prop doorlussen |
+| `ProductForm.tsx` | SEO callback koppelen aan form.setValue |
