@@ -1,41 +1,37 @@
 
-# Rich Text Editor voor Categorie Beschrijving
+
+# Fix: Gratis Maanden Geven - Edge Function Errors
 
 ## Probleem
-De categoriebeschrijving gebruikt momenteel een simpel tekstveld (`Textarea`) met een limiet van 500 tekens. Dit is te beperkt en biedt geen opmaakopties. Het moet dezelfde rich text editor gebruiken als bij producten.
+De "Gratis Maanden Geven" functie geeft een 404-fout omdat de backend functie niet correct werkt. Er zijn twee technische problemen:
+
+1. **Verouderd patroon**: De functie gebruikt een oud import-patroon (`serve` van `deno.land/std`) in plaats van het huidige `Deno.serve`
+2. **Onvolledige CORS-headers**: De functie mist vereiste headers die de app meestuurt, waardoor verzoeken worden geblokkeerd
 
 ## Oplossing
-Vervang de `Textarea` in `CategoryFormDialog.tsx` door de bestaande `ProductDescriptionEditor` component (TipTap rich text editor) en verhoog de tekenlimiet naar 5000 tekens, net als bij producten.
 
-## Wijzigingen
+### Bestand: `supabase/functions/platform-gift-month/index.ts`
 
-### 1. `src/components/admin/CategoryFormDialog.tsx`
-- Importeer `ProductDescriptionEditor` uit `@/components/admin/products/ProductDescriptionEditor`
-- Verhoog de Zod-validatie van `.max(500)` naar `.max(5000)` voor het `description` veld
-- Vervang het `Textarea` veld door de `ProductDescriptionEditor` component
-- Koppel de `value` en `onChange` props aan het react-hook-form veld
+**Wijzigingen:**
+- Verwijder de verouderde `serve` import van `deno.land/std`
+- Gebruik `Deno.serve()` in plaats van `serve()` (consistent met andere werkende functies)
+- Voeg de ontbrekende CORS-headers toe: `x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, `x-supabase-client-runtime-version`
 
 ### Technische details
 
-**Zod schema aanpassing (regel 50):**
-```
-description: z.string().max(5000, 'Beschrijving mag maximaal 5000 tekens zijn').optional()
-```
-
-**Formulierveld aanpassing (regels 280-297):**
-Vervang de `Textarea` door:
-```tsx
-<ProductDescriptionEditor
-  value={field.value || ''}
-  onChange={field.onChange}
-  maxLength={5000}
-/>
+**CORS-headers aanpassing (regel 5-8):**
+```typescript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 ```
 
-Dit hergebruikt de bestaande editor die al ondersteuning biedt voor:
-- Vetgedrukt, cursief, onderstrepen, doorhalen
-- Koppen (H2, H3, H4)
-- Opsommingslijsten en genummerde lijsten
-- Links en afbeeldingen
-- Undo/redo
-- Tekenteller met waarschuwing bij nadering limiet
+**Serve-patroon aanpassing (regel 1, 15):**
+```typescript
+// Verwijder: import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Vervang serve(...) door Deno.serve(...)
+Deno.serve(async (req) => {
+```
+
+Na deze wijzigingen wordt de functie automatisch opnieuw uitgerold en zou het "Gratis Maanden Geven" weer moeten werken.
