@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefront';
@@ -14,6 +14,7 @@ export default function ShopProductDetail() {
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { data: product, isLoading, error } = usePublicProduct(tenant?.id, productSlug || '');
   const { addToCart, setTenantSlug, getCartCount } = useCart();
+  const navigate = useNavigate();
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -70,9 +71,37 @@ export default function ShopProductDetail() {
     }).format(price);
   };
 
+  // Initialize selected attributes from selected_variant_index for variant-products
+  useEffect(() => {
+    if (product?.is_variant_product && product.selected_variant_index != null && product.variants?.length) {
+      const currentVariant = product.variants[product.selected_variant_index];
+      if (currentVariant?.attribute_values) {
+        setSelectedAttributes(currentVariant.attribute_values as Record<string, string>);
+      }
+    }
+  }, [product?.is_variant_product, product?.selected_variant_index, product?.variants]);
+
   const handleAttributeChange = useCallback((optionName: string, value: string) => {
-    setSelectedAttributes(prev => ({ ...prev, [optionName]: value }));
-  }, []);
+    const newAttrs = { ...selectedAttributes, [optionName]: value };
+    
+    // Check if there's a linked product for this variant combination
+    if (product?.variants?.length) {
+      const matchingVariant = product.variants.find((v: any) => {
+        const attrs = v.attribute_values || {};
+        const keys = Object.keys(newAttrs);
+        if (keys.length !== Object.keys(attrs).length) return false;
+        return keys.every((k: string) => attrs[k] === newAttrs[k]);
+      });
+      
+      if (matchingVariant?.linked_product_slug && tenantSlug) {
+        // Navigate to the linked product page
+        navigate(`/shop/${tenantSlug}/${matchingVariant.linked_product_slug}`);
+        return;
+      }
+    }
+    
+    setSelectedAttributes(newAttrs);
+  }, [selectedAttributes, product?.variants, tenantSlug, navigate]);
 
   const handleAddToCart = () => {
     if (!product) return;
