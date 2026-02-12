@@ -1,59 +1,58 @@
 
-# Auto-generatie SEO bij beschrijving
+# Preview: geen redirect naar ongeverifieerd domein
 
-## Wat verandert er?
-Wanneer je een productbeschrijving genereert via de AI-assistent, worden de **meta titel** en **meta beschrijving** automatisch mee gegenereerd in dezelfde actie. Je hoeft dus niet apart nog op het SEO-knopje te klikken. De SEO-velden worden direct ingevuld. Wil je ze later toch aanpassen? Dat kan nog steeds via de losse SEO-knoppen.
+## Probleem
+De preview iframe laadt `/shop/{slug}`, maar ShopLayout redirect automatisch naar het custom domein of de custom frontend URL — ook als het domein nog niet geverifieerd is. Hierdoor werkt de preview niet.
 
-## Hoe werkt het?
-
-1. Gebruiker klikt op het AI-icoon bij de beschrijving
-2. AI genereert de beschrijving (zoals nu)
-3. In dezelfde AI-call worden ook meta titel en meta beschrijving mee gegenereerd
-4. De beschrijving wordt in de editor gezet (zoals nu), en de SEO-velden worden automatisch ingevuld
-5. Een toast meldt: "Beschrijving + SEO gegenereerd"
+## Oplossing
+Een `?preview=true` query parameter toevoegen aan de preview URL. ShopLayout controleert deze parameter en slaat de redirect-logica over wanneer het in preview-modus draait.
 
 ---
 
 ## Technische Details
 
-### Edge function: `supabase/functions/ai-product-field-assistant/index.ts`
+### `src/components/admin/storefront/PreviewPanel.tsx`
 
-Wanneer `fieldType === "description"`, wordt de AI-prompt aangepast om naast de beschrijving ook SEO-velden te genereren:
+Voeg `?preview=true` toe aan de preview URL:
 
-- De prompt krijgt een extra instructie: "Genereer ook een meta_title (max 60 tekens) en meta_description (max 160 tekens)"
-- Het antwoordformaat wordt JSON: `{ "description": "...", "meta_title": "...", "meta_description": "..." }`
-- Dit geldt voor zowel `auto_generate`, `briefing_generate` als `generate_variations`
-- Bij variaties bevat elke variant ook een `meta_title` en `meta_description`
-- De respons krijgt een nieuw veld `seo` met de gegenereerde SEO-data
-
-### Component: `src/components/admin/ai/AIFieldAssistant.tsx`
-
-- Nieuwe optionele prop: `onSeoGenerated?: (seo: { meta_title: string; meta_description: string }) => void`
-- Na ontvangst van data met `seo` veld, roept het component `onSeoGenerated` aan met de SEO-data
-- De bestaande `onApply` flow blijft ongewijzigd
-
-### Component: `src/components/admin/products/ProductDescriptionEditor.tsx`
-
-- Nieuwe optionele prop: `onSeoGenerated?: (seo: { meta_title: string; meta_description: string }) => void`
-- Wordt doorgegeven aan de `AIFieldAssistant`
-
-### Pagina: `src/pages/admin/ProductForm.tsx`
-
-- Geeft een `onSeoGenerated` callback mee aan `ProductDescriptionEditor`:
-```
-onSeoGenerated={(seo) => {
-  form.setValue('meta_title', seo.meta_title);
-  form.setValue('meta_description', seo.meta_description);
-  toast.success('SEO meta titel en beschrijving automatisch ingevuld');
-}}
+```typescript
+const previewUrl = currentTenant 
+  ? `/shop/${currentTenant.slug}?preview=true` 
+  : '/shop/preview';
 ```
 
-### Geen extra credits
-De SEO wordt mee gegenereerd in dezelfde AI-call, dus er worden geen extra credits verbruikt. De max_tokens voor beschrijvingen wordt licht verhoogd (van 1500 naar 2000) om ruimte te bieden voor de extra SEO-tekst.
+De "Open extern" knop opent zonder de preview parameter (dus het echte gedrag):
+
+```typescript
+const handleOpenExternal = () => {
+  const externalUrl = currentTenant 
+    ? `/shop/${currentTenant.slug}` 
+    : '/shop/preview';
+  window.open(externalUrl, '_blank');
+};
+```
+
+### `src/components/storefront/ShopLayout.tsx`
+
+In de redirect useEffect (regel 39-68), controleer op de preview parameter en sla redirects over:
+
+```typescript
+useEffect(() => {
+  if (!tenant?.id || !themeSettings || redirecting) return;
+
+  // Skip redirects in preview mode
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('preview') === 'true') return;
+
+  const checkRedirect = async () => {
+    // ... bestaande redirect logica blijft ongewijzigd
+  };
+
+  checkRedirect();
+}, [tenant?.id, themeSettings, redirecting]);
+```
 
 | Bestand | Wijziging |
 |---|---|
-| `ai-product-field-assistant/index.ts` | Prompt uitbreiden voor SEO bij description, JSON response format |
-| `AIFieldAssistant.tsx` | Nieuwe `onSeoGenerated` prop, SEO-data doorgeven |
-| `ProductDescriptionEditor.tsx` | `onSeoGenerated` prop doorlussen |
-| `ProductForm.tsx` | SEO callback koppelen aan form.setValue |
+| `PreviewPanel.tsx` | `?preview=true` toevoegen aan iframe URL |
+| `ShopLayout.tsx` | Redirect overslaan bij `preview=true` parameter |
