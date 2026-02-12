@@ -1,39 +1,32 @@
 
 
-# Plan: AI Assistent - Geheugen & SEO Integratie
+# Fix: Scrolling & Persistentie van AI Generaties
 
-## Wat gaat er veranderen?
+## Probleem 1: Niet kunnen scrollen
+De container met de 3 variaties heeft een maximale hoogte (`max-h-60`), maar de PopoverContent zelf beperkt de zichtbare ruimte. Bij langere teksten past de inhoud niet in het venster en kun je niet scrollen.
 
-### 1. Generatie onthouden (niet meer wissen bij sluiten)
-Nu wordt de gegenereerde tekst gewist zodra je de popover sluit. Straks blijft het laatste voorstel zichtbaar wanneer je de popover opnieuw opent. Alleen bij het klikken op "Opnieuw genereren" wordt er een nieuwe generatie gestart.
+**Oplossing**: De PopoverContent krijgt een `max-h-[70vh]` en een `ScrollArea` component zodat de hele inhoud scrollbaar wordt, ook bij langere gegenereerde teksten.
 
-### 2. SEO Keywords meenemen in AI-suggesties
-De AI houdt nu nog geen rekening met je ingestelde SEO-zoekwoorden. Straks worden je primaire SEO-keywords automatisch meegestuurd zodat de AI ze op een natuurlijke manier verwerkt in titels, beschrijvingen en meta-teksten. Dit sluit aan bij hoe de storefront copy-generator al werkt.
+## Probleem 2: Generaties verdwijnen na selectie
+Wanneer je op een variatie klikt, wordt de tekst toegepast maar worden alle variaties direct gewist uit het geheugen. Bij het heropenen van de popover zijn ze weg.
+
+**Oplossing**: Bij het selecteren van een variatie wordt de tekst toegepast en de popover gesloten, maar de variaties blijven in het geheugen staan. Ze worden pas gewist als je expliciet op "Opnieuw genereren" klikt. De geselecteerde variatie wordt visueel gemarkeerd zodat je ziet welke je hebt gekozen.
 
 ---
 
 ## Technische Details
 
-### AIFieldAssistant.tsx
-- De `onOpenChange` callback stopt met het wissen van `result` en `variations` bij sluiten. De state blijft behouden zolang het component gemount is.
-- De expliciete "Sluiten" knop (X) sluit alleen de popover, zonder data te wissen.
-- Alleen "Accepteer" wist de state (want dan is het voorstel toegepast).
-- Alleen "Opnieuw genereren" overschrijft de bestaande generatie.
-- Nieuwe prop `seoKeywords?: string[]` toegevoegd die wordt meegegeven aan de edge function.
+### Wijzigingen in `AIFieldAssistant.tsx`
 
-### Plekken waar AIFieldAssistant wordt gebruikt (ProductForm, CategoryFormDialog, etc.)
-- Waar beschikbaar worden de SEO-keywords via de bestaande `useSEOKeywords` hook opgehaald en als prop doorgegeven aan de `AIFieldAssistant`.
+1. **ScrollArea toevoegen** rond de variaties-lijst voor betrouwbaar scrollen
+2. **`handleAccept` aanpassen**: Sluit de popover en past de tekst toe, maar wist `variations` en `result` NIET meer
+3. **Geselecteerde variatie bijhouden** met een `selectedVariationId` state, zodat bij heropenen de gekozen variant visueel gemarkeerd is
+4. **PopoverContent** krijgt `max-h-[70vh] overflow-hidden` en de binnenste content wordt in een ScrollArea gewrapt
 
-### Edge Function: ai-product-field-assistant
-- Accepteert een nieuw optioneel veld `seoKeywords` in de request body.
-- Als er keywords aanwezig zijn, worden ze in de systeemprompt opgenomen onder een "SEO KEYWORDS" sectie, met de instructie om ze natuurlijk te verwerken in de tekst.
-- Dit is dezelfde aanpak die al gebruikt wordt in de `ai-generate-storefront-copy` functie, zodat alle AI-output consistent SEO-bewust is.
-
-### Samenvatting wijzigingen
-| Bestand | Wat |
+| Wat | Hoe |
 |---|---|
-| `src/components/admin/ai/AIFieldAssistant.tsx` | State behouden bij sluiten, SEO keywords prop |
-| `src/pages/admin/ProductForm.tsx` | SEO keywords ophalen en doorgeven |
-| `src/components/admin/CategoryFormDialog.tsx` | SEO keywords doorgeven |
-| `supabase/functions/ai-product-field-assistant/index.ts` | SEO keywords in prompt verwerken |
+| Scroll fix | `ScrollArea` + `max-h-[70vh]` op PopoverContent |
+| Persistentie | `handleAccept` wist geen state meer, alleen `handleRegenerate` doet dat |
+| Visuele feedback | Geselecteerde variatie krijgt een vinkje/highlight |
+| Bestand | `src/components/admin/ai/AIFieldAssistant.tsx` |
 
