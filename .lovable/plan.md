@@ -1,101 +1,127 @@
 
-# DNS-verificatie voor gekoppelde domeinen
+# Audit en Herstructurering: Domeinen, Talen, Vertalingen en Instellingen
 
-## Overzicht
+## Gevonden Overlap en Inconsistenties
 
-Er bestaat al een volledig DNS-verificatiesysteem (edge functions, provider-detectie, Cloudflare auto-connect, SSL-check, progress stepper). Dit werkt echter alleen voor het oude enkele `tenants.custom_domain` veld. De nieuwe `tenant_domains` tabel heeft `dns_verified`, `verification_token` en `ssl_active` kolommen maar deze worden nog nergens gebruikt. Het plan is om de bestaande verificatie-infrastructuur te hergebruiken en te koppelen aan het multi-domain systeem.
+### 1. Domein-configuratie op 3 plekken
 
-## Wat er verandert
+| Locatie | Wat er staat | Probleem |
+|---------|-------------|----------|
+| **Webshop > Instellingen** (`StorefrontSettings.tsx`) | "Domein" card met huidige URL, DNS-instructies, verwijzing naar "Instellingen > Algemeen" | Verouderd -- verwijst naar het oude single-domain systeem (`tenants.custom_domain`) |
+| **Instellingen > Domeinen** (`MultiDomainSettings.tsx`) | Volledige multi-domain CRUD met DNS-verificatie, locale, canonical | Dit is de juiste, actuele plek |
+| **Instellingen > Winkelinstellingen** (`StoreSettings.tsx`) | "Primaire Contenttaal" dropdown + link naar Vertaal Hub | Taalinstelling die losstaat van de domein-locale mapping |
 
-### 1. Edge function `verify-domain` aanpassen
+### 2. Taalconfiguratie op 3 plekken
 
-De huidige edge function leest het domein uit `tenants.custom_domain`. Deze wordt uitgebreid zodat hij ook een `domain_id` parameter accepteert en dan het domein + token uit `tenant_domains` haalt. Bij succes wordt `tenant_domains.dns_verified` op `true` gezet in plaats van `tenants.domain_verified`.
+| Locatie | Wat er staat | Probleem |
+|---------|-------------|----------|
+| **Webshop > Functies > Meertalige Webshop** (`StorefrontFeaturesSettings.tsx` regel 679-800) | Toggle "meertalig activeren", talen selecteren, standaardtaal, taalwisselaar stijl | Dubbel met domein-locale; tenant moet hier apart talen activeren die al via domeinen gekoppeld zijn |
+| **Instellingen > Winkelinstellingen** (`StoreSettings.tsx` regel 183-206) | "Primaire Contenttaal" dropdown | Derde plek voor taalinstelling, onduidelijk hoe dit relateert aan de meertalige webshop |
+| **Instellingen > Domeinen** (`MultiDomainSettings.tsx`) | Locale per domein | De eigenlijke bron van welke talen actief zijn |
 
-### 2. Edge function `check-domain-ssl` aanpassen
+### 3. Vertalingen verspreid
 
-Dezelfde aanpassing: accepteert een `domain_id` parameter en update `tenant_domains.ssl_active` bij succes.
+| Locatie | Wat er staat |
+|---------|-------------|
+| **Marketing > Vertalingen** (sidebar) | Volledige TranslationHub met bulk-vertaling, statistieken, instellingen |
+| **Instellingen > Winkelinstellingen** | Link "Vertalingen beheren" naar Vertaal Hub |
+| **Producten > Productformulier** | ProductTranslationTabs (inline vertalingen) + link naar TranslationHub |
+| **Categorieen formulier** | Vertalingen badge met AI-vertaalknop |
 
-### 3. Nieuwe hook `useDomainVerificationMulti`
+### 4. Overige inconsistenties
 
-Een nieuwe hook specifiek voor het multi-domain systeem, gebaseerd op de bestaande `useDomainVerification`. Per domein kan:
-- DNS geverifieerd worden via de `verify-domain` edge function
-- Provider gedetecteerd worden via `detect-domain-provider`
-- Cloudflare auto-connect uitgevoerd worden
-- SSL gecheckt worden via `check-domain-ssl`
-- Automatische polling gestart worden (elke 30 sec, max 5 min)
+- **StoreSettings bevat thema-kleuren** (primary_color, secondary_color) -- dit hoort bij Webshop > Theme
+- **StoreSettings bevat facturatie-instellingen** -- dit hoort bij Instellingen > Financieel (waar al "Automatische Facturatie" staat)
+- **Webshop > Instellingen tab** bevat "Custom Frontend" en "Tracking & Scripts" -- technische zaken tussen visuele content
 
-### 4. `MultiDomainSettings` uitbreiden met verificatie-UI
+## Voorstel: Nieuwe Structuur
 
-De huidige eenvoudige tabel wordt uitgebreid. Wanneer een domein niet geverifieerd is, kan de gebruiker het uitklappen om:
-- De benodigde DNS-records te zien (A-records naar 185.158.133.1, TXT-record met verificatietoken)
-- Records te kopieren met een klik
-- Provider-specifieke instructies te zien (hergebruikt bestaande `ProviderInstructions` component)
-- "Controleer DNS" knop te gebruiken
-- Voortgangsstappen te zien (hergebruikt bestaande `DomainProgressSteps` component)
-- Cloudflare auto-connect te gebruiken indien gedetecteerd
+### Principe: Single Source of Truth
 
-### 5. Verbeterde statussen in de tabel
+De `tenant_domains` tabel wordt de enige bron voor actieve talen. De "Meertalige Webshop" sectie in Functies wordt vereenvoudigd: in plaats van zelf talen te beheren, leest die automatisch welke talen actief zijn op basis van de gekoppelde domeinen.
 
-| Status | Conditie | Weergave |
-|--------|----------|----------|
-| DNS niet geverifieerd | `dns_verified = false` | Oranje badge |
-| Geverifieerd | `dns_verified = true, ssl_active = false` | Groene badge |
-| SSL actief | `dns_verified = true, ssl_active = true` | Groene badge + shield icoon |
+### Webshop-pagina (creatieve hub) -- wat verandert
 
-## Technische details
+De Webshop tabs worden:
+- **Theme** -- ongewijzigd
+- **Homepage** -- ongewijzigd
+- **Pagina's** -- ongewijzigd
+- **Reviews** -- ongewijzigd
+- **Juridisch** -- ongewijzigd
+- **Functies** -- Meertalige Webshop sectie wordt vereenvoudigd (zie onder)
+- **Instellingen** -- Domein-card wordt vervangen door compacte samenvatting + doorverwijzing
+
+#### Webshop > Functies > Meertalige Webshop (vereenvoudigd)
+
+In plaats van zelf talen aan/uit te zetten, toont deze sectie:
+- Een read-only overzicht van actieve talen (afgeleid van gekoppelde domeinen)
+- De **taalwisselaar stijl** instelling (dropdown/flags/text) -- dit is de enige instelling die hier overblijft want het gaat over hoe de storefront eruitziet
+- Een link naar **Instellingen > Domeinen** om talen/domeinen te beheren
+- De "meertalig activeren" toggle wordt automatisch: als er meer dan 1 domein-locale is, is het meertalig
+
+#### Webshop > Instellingen (opschonen)
+
+- **Domein-card verwijderen** -- vervangen door een compacte samenvatting: "X domeinen gekoppeld" met link naar Instellingen > Domeinen
+- **Custom Frontend** -- blijft (relevant voor webshop)
+- **Tracking & Scripts** -- blijft (relevant voor webshop)
+
+### Instellingen-pagina -- wat verandert
+
+#### Instellingen > Winkelinstellingen (opschonen)
+
+- **"Primaire Contenttaal"** verwijderen -- wordt afgeleid van het canonical domein in `tenant_domains`
+- **Thema-kleuren** verwijderen -- dit zit al in Webshop > Theme > Aanpassen
+- **Link naar Vertaal Hub** verwijderen -- vertalingen zijn bereikbaar vanuit contextuele plekken
+- **Facturatie-sectie** verwijderen -- zit al bij Instellingen > Financieel > Automatische Facturatie
+- Wat overblijft: BTW-percentage, valuta, verzending inschakelen, systeemthema
+
+#### Instellingen > Domeinen (wordt de central hub)
+
+Blijft zoals het is -- dit is de single source of truth voor:
+- Welke domeinen gekoppeld zijn
+- Welke taal bij elk domein hoort
+- Welk domein canonical is
+- DNS-verificatie status
+
+### Vertalingen (sidebar-item)
+
+Het menu-item "Vertalingen" onder Marketing wordt verplaatst:
+- **Nieuw**: Onder "Beheer" in de sidebar (naast Categorieen) -- want het is een content-beheertool, geen marketingtool
+- De TranslationHub blijft als standalone pagina bestaan -- het is een krachtige tool voor bulk-vertalingen en overzicht
+- Contextuele links vanuit producten en categorieen blijven bestaan
+
+### Flow voor een nieuwe tenant
+
+```text
+1. Instellingen > Domeinen
+   -> Voeg vanxcel.nl toe (NL, canonical)
+   -> Voeg vanxcel.com toe (EN)
+   -> DNS verifiëren
+
+2. Webshop > Functies
+   -> Ziet automatisch: NL + EN actief
+   -> Kiest taalwisselaar stijl (dropdown)
+
+3. Producten bewerken
+   -> Ziet tabs: NL (standaard) | EN
+   -> Vult vertalingen in of gebruikt AI
+
+4. Beheer > Vertalingen (optioneel)
+   -> Bulk alle producten vertalen
+   -> Vertaalcoverage bekijken
+```
+
+## Concrete Wijzigingen
 
 ### Bestanden die gewijzigd worden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `supabase/functions/verify-domain/index.ts` | Support `domain_id` param, lees/schrijf naar `tenant_domains` |
-| `supabase/functions/check-domain-ssl/index.ts` | Support `domain_id` param, update `tenant_domains.ssl_active` |
-| `src/components/admin/settings/MultiDomainSettings.tsx` | Volledige verificatie-UI per domein met uitklapbaar paneel |
+| `src/components/admin/storefront/StorefrontSettings.tsx` | Domein-card vervangen door compacte samenvatting met link naar Instellingen > Domeinen |
+| `src/components/admin/storefront/StorefrontFeaturesSettings.tsx` | Meertalige Webshop sectie vereenvoudigen: read-only talen uit domeinen, alleen taalwisselaar stijl behouden |
+| `src/components/admin/settings/StoreSettings.tsx` | "Primaire Contenttaal" dropdown verwijderen, thema-kleuren card verwijderen, facturatie-sectie verwijderen, link naar Vertaal Hub verwijderen |
+| `src/components/admin/sidebar/sidebarConfig.ts` | "Vertalingen" verplaatsen van Marketing naar Beheer |
 
-### Bestanden die aangemaakt worden
+### Geen bestanden verwijderd
 
-| Bestand | Beschrijving |
-|---------|-------------|
-| `src/hooks/useDomainVerificationMulti.ts` | Hook voor DNS-verificatie per domein uit `tenant_domains` |
-
-### Bestaande bestanden die hergebruikt worden (ongewijzigd)
-
-| Bestand | Gebruik |
-|---------|--------|
-| `src/components/admin/settings/DomainProgressSteps.tsx` | Progress stepper (DNS, SSL, Live) |
-| `src/components/admin/settings/ProviderInstructions.tsx` | Provider-specifieke stap-voor-stap instructies |
-| `supabase/functions/detect-domain-provider/index.ts` | Automatische provider-detectie |
-| `supabase/functions/cloudflare-api-connect/index.ts` | One-click Cloudflare koppeling |
-
-### Verificatiestroom per domein
-
-```text
-+------------------+     +-------------------+     +----------------+     +-----------+
-| Domein           | --> | Provider          | --> | DNS Records    | --> | Controleer|
-| toegevoegd       |     | gedetecteerd      |     | tonen          |     | DNS       |
-+------------------+     +-------------------+     +----------------+     +-----------+
-                          |                                                    |
-                          | Cloudflare?                                        | Succes?
-                          v                                                    v
-                    +------------------+                              +-----------------+
-                    | Auto-connect     |                              | dns_verified =  |
-                    | via API token    |                              | true            |
-                    +------------------+                              +-----------------+
-                                                                           |
-                                                                           v
-                                                                    +------------------+
-                                                                    | SSL check        |
-                                                                    | ssl_active = true|
-                                                                    +------------------+
-```
-
-### UI-ontwerp per domeinrij
-
-Elke domeinrij in de tabel krijgt een uitklapbaar paneel (Collapsible) dat verschijnt wanneer de status wordt aangeklikt:
-
-- **DNS-instructies**: kopieerbare records (A @ -> 185.158.133.1, A www -> 185.158.133.1, TXT _sellqo -> sellqo-verify=TOKEN)
-- **Provider-detectie**: automatisch bij openen, toont specifieke instructies
-- **Cloudflare optie**: als provider Cloudflare is, toon API token input voor auto-connect
-- **Voortgangsbalk**: DomainProgressSteps component
-- **Controleer DNS knop**: start verificatie + polling
-- **Propagatie-waarschuwing**: melding dat DNS tot 48 uur kan duren
+Alle componenten blijven bestaan -- we verplaatsen, vereenvoudigen en verwijzen door.
