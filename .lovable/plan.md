@@ -1,47 +1,28 @@
 
-# Fix: Gratis Maanden Geven zonder Stripe
+# Fix: Visuele opmaak in Rich Text Editors
 
 ## Probleem
-De functie faalt met een 404 omdat de tenant (VanXcel) geen `stripe_subscription_id` heeft in de database. De huidige code vereist een Stripe-abonnement om maanden te verlengen, maar niet elke tenant heeft een Stripe-koppeling.
+De TipTap rich text editors gebruiken Tailwind's `prose` CSS-klassen voor het weergeven van koppen, lijsten, citaten, etc. Het `@tailwindcss/typography` pakket is wel geinstalleerd, maar **niet geactiveerd** in de Tailwind configuratie. Hierdoor worden alle opmaakstijlen genegeerd en ziet alles er hetzelfde uit als gewone tekst.
 
-## Oplossing
-De edge function `platform-gift-month` aanpassen zodat het ook werkt voor tenants zonder Stripe-abonnement. In dat geval wordt alleen de database direct bijgewerkt (trial_end en/of current_period_end verlengen).
-
-## Wijzigingen
-
-### `supabase/functions/platform-gift-month/index.ts`
-
-**Huidige logica (faalt):**
-1. Haal `stripe_subscription_id` en `current_period_end` op
-2. Als geen `stripe_subscription_id` -> 404 error
-3. Update Stripe subscription
-
-**Nieuwe logica:**
-1. Haal abonnement op inclusief `trial_end`, `current_period_end`, `stripe_subscription_id`
-2. Als geen abonnement gevonden -> 404 error
-3. Bereken nieuw einddatum op basis van het verste punt (trial_end, current_period_end, of nu)
-4. Als er een `stripe_subscription_id` is -> update ook Stripe
-5. Update altijd de database: `trial_end` en `current_period_end` verlengen
-6. Log de admin actie
-
-### Technische details
-
-```text
-Stroom:
-  Abonnement ophalen
-       |
-  Geen abonnement? --> 404
-       |
-  Bereken startdatum = MAX(trial_end, current_period_end, NOW())
-  Bereken nieuw einddatum = startdatum + X maanden
-       |
-  Heeft Stripe ID? --> Ja --> Update Stripe trial_end
-       |
-  Update database: trial_end + current_period_end
-       |
-  Log admin actie
+## Oorzaak
+In `tailwind.config.ts` ontbreekt de typography plugin in de `plugins` array. Er staat nu alleen:
+```
+plugins: [require("tailwindcss-animate")]
 ```
 
-Dit zorgt ervoor dat de functie werkt voor:
-- Tenants met Stripe-abonnement (database + Stripe update)
-- Tenants zonder Stripe-abonnement (alleen database update)
+## Oplossing
+Een eenregelige wijziging in `tailwind.config.ts`:
+
+### `tailwind.config.ts` (regel 118)
+Voeg `require("@tailwindcss/typography")` toe aan de plugins array:
+```
+plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")]
+```
+
+Dit lost het probleem op voor **alle** rich text editors in het project:
+- Categoriebeschrijving
+- Productbeschrijving
+- Storefront visuele editor
+- Alle andere plekken die `prose` klassen gebruiken
+
+Na deze wijziging worden koppen (H2, H3, H4), lijsten, citaten, links en andere opmaak direct visueel zichtbaar in de editors.
