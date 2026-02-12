@@ -48,6 +48,7 @@ interface AIFieldAssistantProps {
   language?: string;
   multiVariant?: boolean;
   className?: string;
+  seoKeywords?: string[];
 }
 
 interface Variation {
@@ -65,6 +66,7 @@ export function AIFieldAssistant({
   language = 'nl',
   multiVariant = false,
   className,
+  seoKeywords,
 }: AIFieldAssistantProps) {
   const { checkFeature } = useUsageLimits();
   const { hasCredits, refetch: refetchCredits } = useAICredits();
@@ -102,6 +104,7 @@ export function AIFieldAssistant({
           briefing: action === 'briefing_generate' ? briefing : undefined,
           language,
           productContext: context,
+          seoKeywords: seoKeywords?.length ? seoKeywords : undefined,
         },
       });
 
@@ -163,19 +166,11 @@ export function AIFieldAssistant({
   };
 
   const handleClose = () => {
-    setResult(null);
-    setVariations([]);
     setIsOpen(false);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) {
-        setResult(null);
-        setVariations([]);
-      }
-    }}>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
