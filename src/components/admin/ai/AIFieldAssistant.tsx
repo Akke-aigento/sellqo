@@ -268,9 +268,10 @@ export function AIFieldAssistant({
             {result && (
               <>
                 <p className="text-xs font-medium text-muted-foreground">Voorstel:</p>
-                <div className="text-sm border-l-2 border-primary pl-3 py-1">
-                  {result}
-                </div>
+                <div
+                  className="prose prose-sm max-w-none dark:prose-invert border-l-2 border-primary pl-3 py-1"
+                  dangerouslySetInnerHTML={{ __html: result }}
+                />
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1" onClick={handleRegenerate} disabled={isLoading}>
                     <RefreshCw className="h-3 w-3 mr-1" />
@@ -303,7 +304,7 @@ export function AIFieldAssistant({
                         <span className="text-xs font-medium text-primary">{v.style_label}</span>
                         {selectedVariationId === v.id && <Check className="h-3 w-3 text-primary" />}
                       </div>
-                      <p className="text-sm mt-1">{v.text}</p>
+                      <div className="prose prose-sm max-w-none dark:prose-invert mt-1" dangerouslySetInnerHTML={{ __html: v.text }} />
                     </button>
                   ))}
                 </div>
