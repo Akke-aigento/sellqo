@@ -14,13 +14,12 @@ interface SSLCheckResult {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { domain, tenant_id } = await req.json();
+    const { domain, tenant_id, domain_id } = await req.json();
 
     if (!domain) {
       return new Response(
@@ -29,7 +28,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Clean domain
     const cleanDomain = domain
       .toLowerCase()
       .replace(/^(https?:\/\/)?(www\.)?/, '')
@@ -46,9 +44,8 @@ Deno.serve(async (req) => {
     };
 
     try {
-      // Try to make a HEAD request to the HTTPS URL
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(`https://${cleanDomain}`, {
         method: 'HEAD',
@@ -57,59 +54,57 @@ Deno.serve(async (req) => {
       });
 
       clearTimeout(timeoutId);
-
-      // If we get here, SSL is working
       result.ssl_active = true;
       result.domain_reachable = true;
-
       console.log(`SSL check successful for ${cleanDomain}, status: ${response.status}`);
-
     } catch (fetchError: unknown) {
       const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
       console.log(`SSL check failed for ${cleanDomain}: ${errorMessage}`);
 
-      // Check if it's a certificate error vs connection error
-      if (errorMessage.includes('certificate') || 
-          errorMessage.includes('SSL') || 
-          errorMessage.includes('CERT') ||
-          errorMessage.includes('handshake')) {
-        // Certificate error - domain reachable but SSL not ready
+      if (errorMessage.includes('certificate') || errorMessage.includes('SSL') || 
+          errorMessage.includes('CERT') || errorMessage.includes('handshake')) {
         result.domain_reachable = true;
         result.ssl_active = false;
         result.error = 'SSL certificaat nog niet actief';
       } else if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
-        // Timeout - domain might not be configured yet
         result.domain_reachable = false;
         result.ssl_active = false;
         result.error = 'Domein niet bereikbaar (timeout)';
       } else {
-        // Other connection error
         result.domain_reachable = false;
         result.ssl_active = false;
         result.error = 'Domein niet bereikbaar';
       }
     }
 
-    // Update tenant SSL status if tenant_id provided
-    if (tenant_id && result.ssl_active) {
+    // Update SSL status
+    if (result.ssl_active) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      await supabase
-        .from('tenants')
-        .update({
-          ssl_status: result.ssl_active ? 'active' : 'pending',
-          ssl_checked_at: new Date().toISOString(),
-        })
-        .eq('id', tenant_id);
+      if (domain_id) {
+        // Multi-domain: update tenant_domains
+        await supabase
+          .from('tenant_domains')
+          .update({ ssl_active: true })
+          .eq('id', domain_id);
+      } else if (tenant_id) {
+        // Legacy: update tenants
+        await supabase
+          .from('tenants')
+          .update({
+            ssl_status: 'active',
+            ssl_checked_at: new Date().toISOString(),
+          })
+          .eq('id', tenant_id);
+      }
     }
 
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: unknown) {
     console.error('Error in check-domain-ssl:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';

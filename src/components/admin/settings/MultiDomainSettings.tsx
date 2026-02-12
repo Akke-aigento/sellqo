@@ -7,33 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { useTenantDomains, type TenantDomain } from '@/hooks/useTenantDomains';
 import { TRANSLATION_LANGUAGES } from '@/types/translation';
+import { DomainVerificationPanel } from './DomainVerificationPanel';
 
 export function MultiDomainSettings() {
   const { domains, isLoading, addDomain, updateDomain, removeDomain } = useTenantDomains();
@@ -115,9 +100,7 @@ export function MultiDomainSettings() {
                 <div className="space-y-2">
                   <Label>Taal</Label>
                   <Select value={newLocale} onValueChange={setNewLocale}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {TRANSLATION_LANGUAGES.map(lang => (
                         <SelectItem key={lang.code} value={lang.code}>
@@ -188,9 +171,7 @@ export function MultiDomainSettings() {
                     {editingId === domain.id ? (
                       <div className="flex items-center gap-1">
                         <Select value={editLocale} onValueChange={setEditLocale}>
-                          <SelectTrigger className="h-8 w-32">
-                            <SelectValue />
-                          </SelectTrigger>
+                          <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {TRANSLATION_LANGUAGES.map(lang => (
                               <SelectItem key={lang.code} value={lang.code}>
@@ -214,11 +195,7 @@ export function MultiDomainSettings() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {domain.dns_verified ? (
-                      <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">Geverifieerd</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700">DNS niet geverifieerd</Badge>
-                    )}
+                    <DomainVerificationPanel domain={domain} />
                   </TableCell>
                   <TableCell>
                     <Switch
@@ -229,12 +206,7 @@ export function MultiDomainSettings() {
                   <TableCell className="text-right">
                     <div className="flex items-center gap-1 justify-end">
                       {!domain.is_canonical && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleSetCanonical(domain.id)}
-                          title="Instellen als canonical"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleSetCanonical(domain.id)} title="Instellen als canonical">
                           <Crown className="h-4 w-4" />
                         </Button>
                       )}
