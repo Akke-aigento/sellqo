@@ -8,6 +8,7 @@ import { GamificationProvider } from '@/components/gamification';
 import { TrialBanner } from './TrialBanner';
 import { TrialExpiredBlocker } from './TrialExpiredBlocker';
 import { useGlobalNotificationListener } from '@/hooks/useGlobalNotificationListener';
+import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -30,6 +31,8 @@ function AdminLayoutContent() {
       <OnboardingWizard />
       {/* Trial expired blocker - blocks access when trial ends */}
       <TrialExpiredBlocker />
+      {/* AI Help Widget - floating chat assistant */}
+      <AIHelpWidget />
     </>
   );
 }

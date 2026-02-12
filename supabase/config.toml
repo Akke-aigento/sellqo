@@ -293,3 +293,6 @@ verify_jwt = false
 
 [functions.storefront-customer-api]
 verify_jwt = false
+
+[functions.ai-help-assistant]
+verify_jwt = false
