@@ -92,6 +92,7 @@ import SyncConflictsPage from "./pages/admin/SyncConflicts";
 import PaymentsPage from "./pages/admin/Payments";
 import HelpPage from "./pages/admin/Help";
 import PlatformDocs from "./pages/admin/PlatformDocs";
+import ChannelFieldMappingAdmin from "./pages/admin/ChannelFieldMappingAdmin";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
@@ -252,6 +253,11 @@ const App = () => (
               <Route path="platform/docs" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <PlatformDocs />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/field-mappings" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <ChannelFieldMappingAdmin />
                 </ProtectedRoute>
               } />
               <Route path="platform/payments" element={
