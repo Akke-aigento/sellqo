@@ -3,7 +3,8 @@ import { useDocCategories, useDocArticles, useDocSearch } from '@/hooks/useDocum
 import { DocSearchBar } from '@/components/admin/docs/DocSearchBar';
 import { DocCategoryList } from '@/components/admin/docs/DocCategoryList';
 import { DocArticleViewer } from '@/components/admin/docs/DocArticleViewer';
-import { Loader2, BookOpen } from 'lucide-react';
+import { Loader2, BookOpen, MessageCircleQuestion } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Help() {
   const [search, setSearch] = useState('');
@@ -39,9 +40,22 @@ export default function Help() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Helpcenter</h1>
-        <p className="text-muted-foreground">Vind antwoorden op je vragen</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Helpcenter</h1>
+          <p className="text-muted-foreground">Vind antwoorden op je vragen</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            // Find and click the floating AI widget button
+            const btn = document.querySelector<HTMLButtonElement>('[title="SellQo Assistent"]');
+            if (btn) btn.click();
+          }}
+        >
+          <MessageCircleQuestion className="h-4 w-4 mr-2" />
+          Vraag het de assistent
+        </Button>
       </div>
 
       <DocSearchBar value={search} onChange={setSearch} />

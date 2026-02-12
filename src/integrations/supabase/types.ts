@@ -1153,6 +1153,85 @@ export type Database = {
           },
         ]
       }
+      ai_help_conversations: {
+        Row: {
+          created_at: string
+          current_route: string | null
+          id: string
+          message_count: number
+          messages: Json
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_route?: string | null
+          id?: string
+          message_count?: number
+          messages?: Json
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_route?: string | null
+          id?: string
+          message_count?: number
+          messages?: Json
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_help_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_help_unanswered: {
+        Row: {
+          created_at: string
+          current_route: string | null
+          id: string
+          question: string
+          resolved: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_route?: string | null
+          id?: string
+          question: string
+          resolved?: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_route?: string | null
+          id?: string
+          question?: string
+          resolved?: boolean
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_help_unanswered_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_knowledge_index: {
         Row: {
           content_hash: string
@@ -13414,6 +13493,7 @@ export type Database = {
             Args: { p_credits_needed?: number; p_tenant_id: string }
             Returns: boolean
           }
+      use_ai_help_credit: { Args: { p_tenant_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
