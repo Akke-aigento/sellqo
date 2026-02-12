@@ -191,12 +191,10 @@ export function AIFieldAssistant({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 max-h-[70vh] overflow-hidden p-0" align="start" side="bottom">
+      <PopoverContent className="w-80 p-0" align="start" side="bottom">
         {/* Result view */}
         {(result || variations.length > 0) ? (
-          <div className="max-h-[65vh] overflow-hidden">
-            <ScrollArea className="h-full" style={{ maxHeight: '65vh' }}>
-              <div className="p-3 space-y-3 relative">
+          <div className="max-h-[60vh] overflow-y-auto overscroll-contain p-3 space-y-3 relative">
               {result && (
                 <>
                   <p className="text-xs font-medium text-muted-foreground">Voorstel:</p>
@@ -252,8 +250,6 @@ export function AIFieldAssistant({
               >
                 <X className="h-3 w-3" />
               </button>
-            </div>
-            </ScrollArea>
           </div>
         ) : (
           /* Input view with tabs */
