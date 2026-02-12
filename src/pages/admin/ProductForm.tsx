@@ -30,6 +30,7 @@ import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
+import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
@@ -412,8 +413,9 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="product">Product</TabsTrigger>
+              <TabsTrigger value="variants">Varianten</TabsTrigger>
               <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
             </TabsList>
 
@@ -1138,6 +1140,19 @@ export default function ProductForm() {
               )}
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Variants Tab */}
+            <TabsContent value="variants">
+              {isEditing && id ? (
+                <ProductVariantsTab productId={id} />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Marketplaces Tab */}
