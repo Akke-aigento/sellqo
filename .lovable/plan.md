@@ -1,149 +1,151 @@
 
 
-# Documentatiesysteem met Twee Niveaus
+# In-App AI Hulp Assistent voor Tenants
 
 ## Overzicht
 
-Een volledig in-app documentatiesysteem met twee gescheiden niveaus:
-- **Tenant Docs**: Helpcenter voor winkel-eigenaren (alle gebruikers)
-- **Platform Admin Docs**: Technische API- en ontwikkelaarsdocumentatie (alleen platform admins)
-
-Content is bewerkbaar via een rich text editor, doorzoekbaar, en georganiseerd in categorieen.
+Een chatbot widget rechtsonder in het admin dashboard die tenant-gebruikers kunnen gebruiken om vragen te stellen over het platform. De bot leest direct uit de `doc_articles` tabel (tenant-level) als kennisbank, waardoor hij automatisch up-to-date is bij elke documentatiewijziging.
 
 ---
 
-## Database Structuur
+## Architectuur
 
-Twee nieuwe tabellen:
+```text
+Gebruiker typt vraag in widget
+       |
+       v
+Frontend stuurt: { message, conversation_history, current_route }
+       |
+       v
+Edge Function: "ai-help-assistant"
+       |
+       +--> Haalt tenant docs op uit doc_articles (doc_level='tenant', is_published=true)
+       +--> Haalt tenant context op (plan, features)
+       +--> Stuurt alles naar Lovable AI (gemini-3-flash-preview)
+       +--> Slaat onbeantwoorde vragen op als de bot het niet weet
+       |
+       v
+Streaming response terug naar widget
+```
 
-### `doc_categories`
+Belangrijk verschil met de bestaande `ai-chatbot-respond`: die is bedoeld voor de **storefront** (klant-facing chatbot). Deze nieuwe functie is voor het **admin dashboard** (tenant-facing helpbot). Volledig gescheiden systemen.
+
+---
+
+## Database
+
+### Nieuwe tabel: `ai_help_conversations`
+
 | Kolom | Type | Beschrijving |
 |-------|------|-------------|
 | id | UUID PK | |
-| doc_level | TEXT ('tenant' of 'platform') | Bepaalt zichtbaarheid |
-| title | TEXT | Categorie naam |
-| slug | TEXT | URL-vriendelijke naam |
-| description | TEXT | Korte omschrijving |
-| icon | TEXT | Lucide icon naam |
-| sort_order | INT | Volgorde |
-| parent_id | UUID (nullable, self-ref) | Subcategorieen |
-| created_at / updated_at | TIMESTAMPTZ | |
-
-### `doc_articles`
-| Kolom | Type | Beschrijving |
-|-------|------|-------------|
-| id | UUID PK | |
-| category_id | UUID FK | Koppeling naar categorie |
-| doc_level | TEXT ('tenant' of 'platform') | Redundant voor snelle RLS |
-| title | TEXT | Artikel titel |
-| slug | TEXT | URL-vriendelijke naam |
-| content | TEXT | HTML content (TipTap) |
-| excerpt | TEXT | Korte samenvatting voor zoekresultaten |
-| tags | TEXT[] | Zoektags |
-| context_path | TEXT (nullable) | Admin route voor contextual help (bijv. '/admin/products') |
-| sort_order | INT | Volgorde binnen categorie |
-| is_published | BOOLEAN | Draft/gepubliceerd |
-| created_by | UUID | Auteur |
+| tenant_id | UUID FK | |
+| user_id | UUID | De admin-gebruiker die de vraag stelt |
+| messages | JSONB | Volledige conversatiegeschiedenis |
+| current_route | TEXT | Laatst bekende route voor context |
+| message_count | INT | Aantal berichten |
+| created_at | TIMESTAMPTZ | |
 | updated_at | TIMESTAMPTZ | |
 
-### RLS Policies
-- **Tenant docs** (`doc_level = 'tenant'`): Leesbaar voor alle authenticated users; schrijfbaar alleen voor platform admins
-- **Platform docs** (`doc_level = 'platform'`): Lees- EN schrijfbaar alleen voor platform admins
-- Normale tenants zien nooit platform-level data -- niet via API, niet via UI
+### Nieuwe tabel: `ai_help_unanswered`
+
+| Kolom | Type | Beschrijving |
+|-------|------|-------------|
+| id | UUID PK | |
+| tenant_id | UUID FK | |
+| user_id | UUID | |
+| question | TEXT | De onbeantwoorde vraag |
+| current_route | TEXT | Waar de gebruiker was |
+| created_at | TIMESTAMPTZ | |
+| resolved | BOOLEAN default false | Of we het later hebben opgelost |
+
+### RLS
+- `ai_help_conversations`: gebruiker kan alleen eigen conversaties lezen/schrijven
+- `ai_help_unanswered`: schrijfbaar door authenticated users, leesbaar alleen door platform admins
 
 ---
 
-## Sidebar en Routing
+## Edge Function: `ai-help-assistant`
 
-### Tenant Help
-- Nieuw item in de **Systeem** groep: "Help" met `HelpCircle` icoon
-- Route: `/admin/help` (artikellijst) en `/admin/help/:slug` (artikel detail)
-- Zichtbaar voor alle rollen
+### Werking
+1. Ontvangt `{ message, conversation_history, current_route }` + auth token
+2. Haalt de gebruiker's `tenant_id` op via auth
+3. Haalt **alle gepubliceerde tenant docs** op: `SELECT title, content, excerpt, tags, context_path FROM doc_articles WHERE doc_level = 'tenant' AND is_published = true`
+4. Sorteert artikelen op relevantie: artikelen waarvan `context_path` matcht met `current_route` krijgen prioriteit
+5. Haalt tenant context op: abonnement/plan, actieve features
+6. Bouwt systeemprompt met strikte regels (geen technische info, geen platform admin info)
+7. Streamt response via SSE terug naar frontend
+8. Als het antwoord een "ik weet het niet" bevat, slaat de vraag op in `ai_help_unanswered`
 
-### Platform Admin Docs
-- Nieuw item in de **Platform** groep: "Documentatie" met `BookOpen` icoon
-- Route: `/admin/platform/docs` en `/admin/platform/docs/:slug`
-- Beschermd via `ProtectedRoute requirePlatformAdmin`
-- Onzichtbaar in sidebar voor niet-admins (bestaand `isPlatformAdmin` check)
+### Systeemprompt (kern)
+- "Je bent de SellQo Hulp Assistent"
+- Kennisbank = alle tenant doc_articles content
+- Contextbewust: "De gebruiker bevindt zich momenteel op: [route]"
+- Tenant context: "Dit account heeft het [plan] abonnement met deze features: [...]"
+- Strikte verboden: technische details, API info, platform admin, andere tenants, bedrijfsdata
+- Bij onbekende vragen: eerlijk aangeven + verwijzen naar support
 
----
-
-## Pagina's en Componenten
-
-### Gedeelde componenten (herbruikbaar voor beide niveaus)
-- **`DocArticleViewer.tsx`**: Rendert artikel content, breadcrumbs, navigatie naar vorig/volgend artikel
-- **`DocArticleEditor.tsx`**: TipTap rich text editor voor het aanmaken/bewerken van artikelen (hergebruik bestaande `RichTextEditor` component)
-- **`DocSearchBar.tsx`**: Zoekbalk die filtert op titel, excerpt en tags
-- **`DocCategoryList.tsx`**: Categorie-overzicht met artikelcount
-
-### Tenant Help pagina (`/admin/help`)
-- Linker kolom: categorieen met artikellijst
-- Rechter kolom: geselecteerd artikel
-- Zoekbalk bovenaan
-- Geen bewerkfunctionaliteit voor tenants
-
-### Platform Docs pagina (`/admin/platform/docs`)
-- Zelfde layout als tenant help
-- Extra: "Nieuw artikel" en "Bewerken" knoppen
-- Extra: Categorie beheer (toevoegen/hernoemen/verwijderen)
-- Extra tab-scheiding: "Tenant Docs beheren" vs "Platform Docs beheren"
-
-### Contextual Help (nice-to-have, meegenomen in structuur)
-- `context_path` kolom op artikelen maakt het mogelijk om later een `<ContextualHelpButton>` component te bouwen die op basis van de huidige route het relevante artikel ophaalt
-- Wordt niet in eerste fase als UI gebouwd, maar de data-structuur is klaar
+### Streaming
+Dezelfde SSE-aanpak als bestaande AI functies. Response wordt token-voor-token gestreamd.
 
 ---
 
-## Seed Data
+## Frontend Componenten
 
-Bij de migratie worden kernartikelen aangemaakt:
+### `AIHelpWidget.tsx` (floating widget)
+- Vaste positie rechtsonder in het dashboard (z-index boven alles)
+- Klein icoon (MessageCircleQuestion) dat uitklapt tot chatvenster
+- Chat interface met:
+  - Berichtenlijst met markdown rendering
+  - Input veld
+  - Streaming response weergave
+  - "Vraag het de assistent" knop op de Help pagina
+- Stuurt automatisch `window.location.pathname` mee als context
+- Conversatiegeschiedenis wordt in lokale state bijgehouden (reset bij nieuwe sessie)
+- Toegevoegd in `AdminLayout.tsx` zodat het op elke admin pagina beschikbaar is
 
-**Tenant categorieen en artikelen:**
-1. Producten -- "Hoe voeg ik producten toe", "Varianten beheren"
-2. Bestellingen -- "Bestellingen verwerken", "Retouren afhandelen"
-3. Betalingen -- "Betaalmethode koppelen", "BTW instellen"
-4. Verzending -- "Verzendopties instellen"
-5. Promoties -- "Kortingscodes aanmaken"
-6. Webshop -- "Theme aanpassen", "Domeinen instellen"
-7. Communicatie -- "Inbox gebruiken"
-8. FAQ -- "Veelgestelde vragen"
+### `AIHelpChatWindow.tsx` (het chatvenster zelf)
+- Maximaal ~400px breed, ~500px hoog
+- Scrollable berichtenlijst
+- Berichten renderen met `react-markdown` (of dangerouslySetInnerHTML met basis HTML)
+- Loading indicator tijdens streaming
+- Optie om conversatie te sluiten/resetten
 
-**Platform categorieen en artikelen:**
-1. Storefront API Referentie -- "Endpoints overzicht", "Authenticatie", "Error codes"
-2. Custom Frontend Gids -- "Startersgids", "Eerste Lovable prompt", "Checkout flow"
-3. Domein & Deployment -- "DNS configuratie", "SSL setup"
-4. Troubleshooting -- "API debugging", "Checkout testen"
+### Integratie met Help pagina
+- Een "Vraag het de assistent" knop op `Help.tsx` die de widget opent
+- Optioneel: als gebruiker vanuit een specifiek artikel de assistent opent, wordt de artikeltitel als context meegegeven
 
 ---
 
-## Bestanden die worden aangemaakt/gewijzigd
+## Bestanden
 
 | Bestand | Actie |
 |---------|-------|
-| `supabase/migrations/XXXX.sql` | Tabellen, RLS, seed data |
-| `src/pages/admin/Help.tsx` | Tenant help pagina |
-| `src/pages/admin/PlatformDocs.tsx` | Platform docs pagina (met editor) |
-| `src/components/admin/docs/DocArticleViewer.tsx` | Artikel weergave |
-| `src/components/admin/docs/DocArticleEditor.tsx` | Artikel editor |
-| `src/components/admin/docs/DocSearchBar.tsx` | Zoekfunctie |
-| `src/components/admin/docs/DocCategoryList.tsx` | Categorie navigatie |
-| `src/hooks/useDocumentation.ts` | Data fetching hook |
-| `src/components/admin/sidebar/sidebarConfig.ts` | Help item toevoegen |
-| `src/App.tsx` | Routes toevoegen |
+| `supabase/migrations/XXXX.sql` | Nieuwe tabellen + RLS |
+| `supabase/functions/ai-help-assistant/index.ts` | Edge function met streaming |
+| `supabase/config.toml` | Registreer nieuwe functie (verify_jwt = false, auth in code) |
+| `src/components/admin/help/AIHelpWidget.tsx` | Floating chat widget |
+| `src/components/admin/help/AIHelpChatWindow.tsx` | Chat venster component |
+| `src/components/admin/AdminLayout.tsx` | Widget toevoegen |
+| `src/pages/admin/Help.tsx` | "Vraag het de assistent" knop |
 
 ---
 
 ## Technische Details
 
-### Zoekfunctie
-Client-side filtering op `title`, `excerpt` en `tags` via een simpele `ILIKE` query. Voor de huidige schaal is dit voldoende; full-text search kan later toegevoegd worden.
+### Context-detectie
+De `current_route` wordt vergeleken met `context_path` van artikelen. Artikelen die matchen worden bovenaan in de kennisbank-context geplaatst, zodat het AI-model deze eerst ziet en relevantere antwoorden geeft.
 
-### Rich Text Editor
-Hergebruik van de bestaande `RichTextEditor` component uit `src/components/admin/storefront/RichTextEditor.tsx`. Deze ondersteunt al bold, italic, headings, lijsten, links en afbeeldingen.
+### Credits
+Gebruikt het bestaande `tenant_ai_credits` systeem (1 credit per vraag). De edge function roept `use_ai_credits` aan voor elke vraag.
 
-### Beveiligingsgarantie
-- RLS op database-niveau: platform docs zijn onzichtbaar voor niet-admins, ongeacht welke URL ze proberen
-- Route-niveau: `ProtectedRoute requirePlatformAdmin` wrapper
-- Sidebar-niveau: platform groep wordt niet gerenderd voor niet-admins
-- Geen client-side security checks -- alles server-side via `is_platform_admin(auth.uid())`
+### Veiligheid
+- Auth token vereist (alleen ingelogde dashboard-gebruikers)
+- Tenant-isolatie: bot ziet alleen docs van `doc_level = 'tenant'`
+- Platform docs zijn onbereikbaar voor de bot -- de query filtert expliciet op `doc_level = 'tenant'`
+- Systeemprompt bevat harde instructies om technische/admin info te weigeren
+- Onbeantwoorde vragen zijn alleen leesbaar door platform admins
+
+### Autonome kennisbank
+Geen sync nodig. De edge function leest bij elke vraag direct uit `doc_articles`. Wanneer documentatie wordt bijgewerkt, heeft de bot direct de nieuwe kennis. Dit is de "harde koppeling" die gevraagd wordt.
 
