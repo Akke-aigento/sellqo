@@ -90,6 +90,8 @@ import FulfillmentPage from "./pages/admin/Fulfillment";
 import BadgesPage from "./pages/admin/Badges";
 import SyncConflictsPage from "./pages/admin/SyncConflicts";
 import PaymentsPage from "./pages/admin/Payments";
+import HelpPage from "./pages/admin/Help";
+import PlatformDocs from "./pages/admin/PlatformDocs";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
@@ -196,6 +198,7 @@ const App = () => (
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="storefront" element={<StorefrontPage />} />
               <Route path="ads" element={<AdsPage />} />
+              <Route path="help" element={<HelpPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <TenantsPage />
@@ -244,6 +247,11 @@ const App = () => (
               <Route path="platform/legal" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <PlatformLegal />
+                </ProtectedRoute>
+              } />
+              <Route path="platform/docs" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformDocs />
                 </ProtectedRoute>
               } />
               <Route path="platform/payments" element={
