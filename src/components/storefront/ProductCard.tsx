@@ -13,9 +13,10 @@ interface ProductCardProps {
   };
   basePath: string;
   showPrice?: boolean;
+  currency?: string;
 }
 
-export function ProductCard({ product, basePath, showPrice = true }: ProductCardProps) {
+export function ProductCard({ product, basePath, showPrice = true, currency = 'EUR' }: ProductCardProps) {
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
   const discountPercentage = hasDiscount 
     ? Math.round((1 - product.price / product.compare_at_price!) * 100)
@@ -24,7 +25,7 @@ export function ProductCard({ product, basePath, showPrice = true }: ProductCard
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
-      currency: 'EUR',
+      currency,
     }).format(price);
   };
 

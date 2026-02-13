@@ -46,6 +46,12 @@ interface PublicCategory {
   parent_id: string | null;
 }
 
+interface PublicLegalPage {
+  id: string;
+  page_type: string;
+  title_nl: string;
+}
+
 export function usePublicStorefront(tenantSlug: string) {
   // Fetch tenant by slug
   const { data: tenant, isLoading: tenantLoading, error: tenantError } = useQuery({
@@ -155,12 +161,29 @@ export function usePublicStorefront(tenantSlug: string) {
     enabled: !!tenantId,
   });
 
+  // Fetch published legal pages
+  const { data: legalPages = [] } = useQuery({
+    queryKey: ['public-legal-pages', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('legal_pages')
+        .select('id, page_type, title_nl')
+        .eq('tenant_id', tenantId!)
+        .eq('is_published', true);
+      
+      if (error) throw error;
+      return (data || []) as PublicLegalPage[];
+    },
+    enabled: !!tenantId,
+  });
+
   return {
     tenant,
     themeSettings,
     homepageSections,
     navPages,
     categories,
+    legalPages,
     isLoading: tenantLoading || themeLoading || sectionsLoading,
     error: tenantError,
   };
@@ -350,7 +373,7 @@ export function useLocalizedProduct(
   return useQuery({
     queryKey: ['localized-product', tenantId, productId, locale],
     queryFn: async () => {
-      if (locale === defaultLocale) return null; // Use default product data
+      if (locale === defaultLocale) return null;
 
       const { data, error } = await supabase
         .from('content_translations')
@@ -362,7 +385,6 @@ export function useLocalizedProduct(
 
       if (error) throw error;
 
-      // Build a field map
       const fieldMap: Record<string, string | null> = {};
       for (const t of data || []) {
         if (t.translated_content) {
@@ -386,7 +408,6 @@ export function generateDomainSEOMeta(
     href: `https://${d.domain}${currentPath}`,
   }));
 
-  // Add x-default pointing to canonical
   if (canonical) {
     hreflangs.push({
       hreflang: 'x-default',

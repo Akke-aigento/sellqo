@@ -101,6 +101,7 @@ import ShopPage from "./pages/storefront/ShopPage";
 import ShopCart from "./pages/storefront/ShopCart";
 import ShopCheckout from "./pages/storefront/ShopCheckout";
 import ShopOrderConfirmation from "./pages/storefront/ShopOrderConfirmation";
+import ShopLegalPage from "./pages/storefront/ShopLegalPage";
 
 const queryClient = new QueryClient();
 
@@ -137,6 +138,7 @@ const App = () => (
             <Route path="/shop/:tenantSlug/cart" element={<CartProvider><ShopCart /></CartProvider>} />
             <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><ShopCheckout /></CartProvider>} />
             <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><ShopOrderConfirmation /></CartProvider>} />
+            <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><ShopLegalPage /></CartProvider>} />
             
             {/* Admin routes */}
             <Route path="/admin" element={
