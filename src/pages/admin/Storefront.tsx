@@ -45,9 +45,7 @@ export default function StorefrontPage() {
   const isPublished = themeSettings?.is_published;
   const storefrontUrl = canonicalDomain?.domain
     ? `https://${canonicalDomain.domain}`
-    : (currentTenant as any).custom_domain 
-      ? `https://${(currentTenant as any).custom_domain}`
-      : `/shop/${currentTenant.slug}`;
+    : `/shop/${currentTenant.slug}`;
 
   return (
     <div className="p-6 space-y-6">
