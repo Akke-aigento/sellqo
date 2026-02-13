@@ -45,7 +45,6 @@ export default function ShopHome() {
     <ShopLayout>
       <Helmet>
         <title>{tenant?.name || 'Shop'}</title>
-        {themeSettings?.favicon_url && <link rel="icon" href={themeSettings.favicon_url} />}
       </Helmet>
       
       {homepageSections.length > 0 ? (

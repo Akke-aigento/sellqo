@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,14 @@ import { usePublicStorefront, usePublicProducts } from '@/hooks/usePublicStorefr
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { ProductCard } from '@/components/storefront/ProductCard';
 import { Helmet } from 'react-helmet-async';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 export default function ShopProducts() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
@@ -53,6 +61,37 @@ export default function ShopProducts() {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumbs */}
+        {(themeSettings as any)?.show_breadcrumbs && (
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={`/shop/${tenantSlug}`}>Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              {selectedCategory ? (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to={`/shop/${tenantSlug}/products`}>Producten</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{selectedCategory.name}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ) : (
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Producten</BreadcrumbPage>
+                </BreadcrumbItem>
+              )}
+            </BreadcrumbList>
+          </Breadcrumb>
+        )}
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -201,6 +240,7 @@ export default function ShopProducts() {
                     key={product.id} 
                     product={product} 
                     basePath={`/shop/${tenantSlug}`}
+                    currency={tenant?.currency || 'EUR'}
                   />
                 ))}
               </div>
