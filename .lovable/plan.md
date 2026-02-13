@@ -1,58 +1,48 @@
 
-# Preview: geen redirect naar ongeverifieerd domein
+
+# Fix: Preview knop moet niet naar ongeverifieerd domein linken
 
 ## Probleem
-De preview iframe laadt `/shop/{slug}`, maar ShopLayout redirect automatisch naar het custom domein of de custom frontend URL — ook als het domein nog niet geverifieerd is. Hierdoor werkt de preview niet.
+De "Preview" knop op de Webshop pagina (`Storefront.tsx`) linkt naar het canonieke domein, ook als dat domein nog niet DNS-geverifieerd is. Hierdoor opent de preview een niet-werkende URL.
+
+De `PreviewPanel` component (met `?preview=true` bypass) wordt alleen in de HomepageBuilder gebruikt, niet op de hoofdpagina.
 
 ## Oplossing
-Een `?preview=true` query parameter toevoegen aan de preview URL. ShopLayout controleert deze parameter en slaat de redirect-logica over wanneer het in preview-modus draait.
+Twee aanpassingen:
+
+1. **`Storefront.tsx`**: De `storefrontUrl` moet alleen een custom domein gebruiken als het daadwerkelijk `dns_verified` is. Anders valt het terug op `/shop/{slug}`.
+
+2. **`useTenantDomains.ts`**: De `canonicalDomain` helper moet ook alleen geverifieerde domeinen teruggeven, zodat het overal correct werkt.
 
 ---
 
 ## Technische Details
 
-### `src/components/admin/storefront/PreviewPanel.tsx`
+### `src/hooks/useTenantDomains.ts`
 
-Voeg `?preview=true` toe aan de preview URL:
-
-```typescript
-const previewUrl = currentTenant 
-  ? `/shop/${currentTenant.slug}?preview=true` 
-  : '/shop/preview';
-```
-
-De "Open extern" knop opent zonder de preview parameter (dus het echte gedrag):
+De `canonicalDomain` variabele filtert nu alleen op `is_canonical`, maar moet ook op `dns_verified` filteren:
 
 ```typescript
-const handleOpenExternal = () => {
-  const externalUrl = currentTenant 
-    ? `/shop/${currentTenant.slug}` 
-    : '/shop/preview';
-  window.open(externalUrl, '_blank');
-};
+// Was:
+const canonicalDomain = domains.find(d => d.is_canonical);
+
+// Wordt:
+const canonicalDomain = domains.find(d => d.is_canonical && d.dns_verified);
 ```
 
-### `src/components/storefront/ShopLayout.tsx`
+### `src/pages/admin/Storefront.tsx`
 
-In de redirect useEffect (regel 39-68), controleer op de preview parameter en sla redirects over:
+De `storefrontUrl` logica wordt vereenvoudigd. Omdat `canonicalDomain` nu al alleen geverifieerde domeinen teruggeeft, werkt de bestaande code al correct. De fallback via `(currentTenant as any).custom_domain` moet ook gecontroleerd worden:
 
 ```typescript
-useEffect(() => {
-  if (!tenant?.id || !themeSettings || redirecting) return;
-
-  // Skip redirects in preview mode
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('preview') === 'true') return;
-
-  const checkRedirect = async () => {
-    // ... bestaande redirect logica blijft ongewijzigd
-  };
-
-  checkRedirect();
-}, [tenant?.id, themeSettings, redirecting]);
+const storefrontUrl = canonicalDomain?.domain
+  ? `https://${canonicalDomain.domain}`
+  : `/shop/${currentTenant.slug}`;
 ```
+
+De extra `custom_domain` check wordt verwijderd omdat die geen verificatie doet.
 
 | Bestand | Wijziging |
 |---|---|
-| `PreviewPanel.tsx` | `?preview=true` toevoegen aan iframe URL |
-| `ShopLayout.tsx` | Redirect overslaan bij `preview=true` parameter |
+| `useTenantDomains.ts` | `canonicalDomain` filtert op `dns_verified` |
+| `Storefront.tsx` | Verwijder onveilige `custom_domain` fallback |
