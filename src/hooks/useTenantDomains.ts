@@ -107,7 +107,7 @@ export function useTenantDomains() {
   const activeLocales = [...new Set(domains.filter(d => d.is_active).map(d => d.locale))];
 
   // Get canonical domain
-  const canonicalDomain = domains.find(d => d.is_canonical);
+  const canonicalDomain = domains.find(d => d.is_canonical && d.dns_verified);
 
   return {
     domains,
