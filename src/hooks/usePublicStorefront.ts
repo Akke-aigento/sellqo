@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { 
   TenantThemeSettings, 
+  ThemeSettings,
   HomepageSection, 
   StorefrontPage,
   HomepageSectionContent,
@@ -177,9 +178,32 @@ export function usePublicStorefront(tenantSlug: string) {
     enabled: !!tenantId,
   });
 
+  // Merge tenant overrides with theme defaults so theme selection always works
+  const mergedThemeSettings = (() => {
+    if (!themeSettings) return null;
+    const themeDefaults = (themeSettings as any).themes?.default_settings as ThemeSettings | undefined;
+    if (!themeDefaults) return themeSettings;
+
+    return {
+      ...themeSettings,
+      primary_color: themeSettings.primary_color || themeDefaults.primary_color,
+      secondary_color: themeSettings.secondary_color || themeDefaults.secondary_color,
+      accent_color: themeSettings.accent_color || themeDefaults.accent_color,
+      background_color: themeSettings.background_color || themeDefaults.background_color,
+      text_color: themeSettings.text_color || themeDefaults.text_color,
+      heading_font: themeSettings.heading_font || themeDefaults.heading_font,
+      body_font: themeSettings.body_font || themeDefaults.body_font,
+      header_style: themeSettings.header_style || themeDefaults.header_style,
+      product_card_style: themeSettings.product_card_style || themeDefaults.product_card_style,
+      products_per_row: themeSettings.products_per_row ?? themeDefaults.products_per_row,
+      show_breadcrumbs: themeSettings.show_breadcrumbs ?? themeDefaults.show_breadcrumbs,
+      show_wishlist: themeSettings.show_wishlist ?? themeDefaults.show_wishlist,
+    } as TenantThemeSettings;
+  })();
+
   return {
     tenant,
-    themeSettings,
+    themeSettings: mergedThemeSettings,
     homepageSections,
     navPages,
     categories,

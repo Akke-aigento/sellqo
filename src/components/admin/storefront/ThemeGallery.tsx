@@ -1,17 +1,44 @@
-import { Check, Crown, Sparkles } from 'lucide-react';
+import { Check, Crown, Sparkles, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useStorefront } from '@/hooks/useStorefront';
+import { useTenant } from '@/hooks/useTenant';
+import { useTenantDomains } from '@/hooks/useTenantDomains';
 
 export function ThemeGallery() {
   const { themes, themeSettings, themesLoading, saveThemeSettings } = useStorefront();
+  const { currentTenant } = useTenant();
+  const { canonicalDomain } = useTenantDomains();
 
   const handleSelectTheme = (themeId: string) => {
-    saveThemeSettings.mutate({ theme_id: themeId });
+    const theme = themes.find(t => t.id === themeId);
+    if (!theme) return;
+
+    // Apply theme default_settings as starting values alongside the theme_id
+    const defaults = theme.default_settings;
+    saveThemeSettings.mutate({
+      theme_id: themeId,
+      primary_color: defaults.primary_color,
+      secondary_color: defaults.secondary_color,
+      accent_color: defaults.accent_color,
+      background_color: defaults.background_color,
+      text_color: defaults.text_color,
+      heading_font: defaults.heading_font,
+      body_font: defaults.body_font,
+      header_style: defaults.header_style,
+      product_card_style: defaults.product_card_style,
+      products_per_row: defaults.products_per_row,
+      show_breadcrumbs: defaults.show_breadcrumbs,
+      show_wishlist: defaults.show_wishlist,
+    });
   };
+
+  const storefrontUrl = canonicalDomain?.domain
+    ? `https://${canonicalDomain.domain}`
+    : currentTenant ? `/shop/${currentTenant.slug}` : null;
 
   if (themesLoading) {
     return (
@@ -149,6 +176,18 @@ export function ThemeGallery() {
             );
           })}
         </div>
+
+        {/* Preview link after theme selection */}
+        {themeSettings?.theme_id && storefrontUrl && (
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" size="sm" asChild>
+              <a href={storefrontUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Bekijk je winkel
+              </a>
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
