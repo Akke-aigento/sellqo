@@ -503,6 +503,11 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
 
 // Centered Header Component
 function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle }: any) {
+  const { openDrawer } = useCart();
+  const { getWishlistCount } = useWishlist();
+  const wishlistCount = getWishlistCount();
+  const showWishlist = (themeSettings as any)?.show_wishlist !== false;
+
   return (
     <div className="py-4">
       <div className="flex justify-between items-center md:justify-center mb-4">
@@ -514,6 +519,11 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
             <nav className="flex flex-col gap-4 mt-8">
               <Link to={basePath} className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Home</Link>
               <Link to={`${basePath}/products`} className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Shop</Link>
+              {showWishlist && (
+                <Link to={`${basePath}/wishlist`} className="text-lg font-medium flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                  <Heart className="h-5 w-5" /> Verlanglijst {wishlistCount > 0 && `(${wishlistCount})`}
+                </Link>
+              )}
               <div className="border-t my-2" />
               {categories.map((cat: any) => (
                 <Link key={cat.id} to={`${basePath}/products?category=${cat.slug}`} className="text-muted-foreground hover:text-foreground" onClick={() => setMobileMenuOpen(false)}>{cat.name}</Link>
@@ -534,51 +544,60 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
           )}
         </Link>
 
-        <Button variant="ghost" size="icon" asChild className="relative md:hidden">
-          <Link to={`${basePath}/cart`}>
-            <ShoppingCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </Link>
+        {/* Mobile cart */}
+        <Button variant="ghost" size="icon" className="relative md:hidden" onClick={openDrawer}>
+          <ShoppingCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{cartCount > 99 ? '99+' : cartCount}</span>
+          )}
         </Button>
       </div>
 
       {/* Desktop nav */}
-      {navStyle === 'mega_menu' ? (
-        <div className="hidden md:flex justify-center border-t pt-4">
-          <MegaMenu categories={categories} basePath={basePath} />
-          <Link to={`${basePath}/cart`} className="relative text-sm font-medium hover:text-primary transition-colors ml-6">
-            <ShoppingCart className="h-5 w-5" />
+      <nav className="hidden md:flex items-center justify-center gap-8 border-t pt-4">
+        <Link to={basePath} className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
+        <Link to={`${basePath}/products`} className="text-sm font-medium hover:text-primary transition-colors">Shop</Link>
+        {categories.slice(0, 4).map((cat: any) => (
+          <Link key={cat.id} to={`${basePath}/products?category=${cat.slug}`} className="text-sm font-medium hover:text-primary transition-colors">{cat.name}</Link>
+        ))}
+        {navPages.slice(0, 2).map((page: any) => (
+          <Link key={page.id} to={`${basePath}/page/${page.slug}`} className="text-sm font-medium hover:text-primary transition-colors">{page.title}</Link>
+        ))}
+        
+        {/* Action icons */}
+        <div className="flex items-center gap-1 ml-4 border-l pl-4">
+          <Button variant="ghost" size="icon" onClick={() => {}}>
+            <Search className="h-4 w-4" />
+          </Button>
+          {showWishlist && (
+            <Button variant="ghost" size="icon" asChild className="relative">
+              <Link to={`${basePath}/wishlist`}>
+                <Heart className="h-4 w-4" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{wishlistCount > 9 ? '9+' : wishlistCount}</span>
+                )}
+              </Link>
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="relative" onClick={openDrawer}>
+            <ShoppingCart className="h-4 w-4" />
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{cartCount > 99 ? '99+' : cartCount}</span>
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{cartCount > 99 ? '99+' : cartCount}</span>
             )}
-          </Link>
+          </Button>
         </div>
-      ) : (
-        <nav className="hidden md:flex items-center justify-center gap-8 border-t pt-4">
-          <Link to={basePath} className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
-          <Link to={`${basePath}/products`} className="text-sm font-medium hover:text-primary transition-colors">Shop</Link>
-          {categories.slice(0, 4).map((cat: any) => (
-            <Link key={cat.id} to={`${basePath}/products?category=${cat.slug}`} className="text-sm font-medium hover:text-primary transition-colors">{cat.name}</Link>
-          ))}
-          {navPages.slice(0, 2).map((page: any) => (
-            <Link key={page.id} to={`${basePath}/page/${page.slug}`} className="text-sm font-medium hover:text-primary transition-colors">{page.title}</Link>
-          ))}
-          <Link to={`${basePath}/cart`} className="relative text-sm font-medium hover:text-primary transition-colors">
-            <ShoppingCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </Link>
-        </nav>
-      )}
+      </nav>
     </div>
   );
 }
 
 // Minimal Header Component
 function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount }: any) {
+  const { openDrawer } = useCart();
+  const { getWishlistCount } = useWishlist();
+  const wishlistCount = getWishlistCount();
+  const showWishlist = (themeSettings as any)?.show_wishlist !== false;
+
   return (
     <div className="flex items-center justify-between h-16">
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -589,6 +608,11 @@ function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, 
           <nav className="flex flex-col gap-4 mt-8">
             <Link to={basePath} className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Home</Link>
             <Link to={`${basePath}/products`} className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Alle Producten</Link>
+            {showWishlist && (
+              <Link to={`${basePath}/wishlist`} className="text-lg font-medium flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                <Heart className="h-5 w-5" /> Verlanglijst {wishlistCount > 0 && `(${wishlistCount})`}
+              </Link>
+            )}
             <div className="border-t my-2" />
             {categories.map((cat: any) => (
               <Link key={cat.id} to={`${basePath}/products?category=${cat.slug}`} className="text-muted-foreground hover:text-foreground" onClick={() => setMobileMenuOpen(false)}>{cat.name}</Link>
@@ -609,14 +633,27 @@ function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, 
         )}
       </Link>
 
-      <Button variant="ghost" size="icon" asChild className="relative">
-        <Link to={`${basePath}/cart`}>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" onClick={() => {}}>
+          <Search className="h-5 w-5" />
+        </Button>
+        {showWishlist && (
+          <Button variant="ghost" size="icon" asChild className="relative">
+            <Link to={`${basePath}/wishlist`}>
+              <Heart className="h-5 w-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">{wishlistCount > 9 ? '9+' : wishlistCount}</span>
+              )}
+            </Link>
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" className="relative" onClick={openDrawer}>
           <ShoppingCart className="h-5 w-5" />
           {cartCount > 0 && (
             <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">{cartCount > 99 ? '99+' : cartCount}</span>
           )}
-        </Link>
-      </Button>
+        </Button>
+      </div>
     </div>
   );
 }

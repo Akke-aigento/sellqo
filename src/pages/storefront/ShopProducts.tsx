@@ -213,7 +213,7 @@ export default function ShopProducts() {
 
           <div>
             {isLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${(themeSettings as any)?.products_per_row || 3}, minmax(0, 1fr))` }}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
                     <div className="bg-muted aspect-square rounded-lg mb-3" />
@@ -230,16 +230,20 @@ export default function ShopProducts() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div 
+                className="grid gap-6"
+                style={{ gridTemplateColumns: `repeat(${(themeSettings as any)?.products_per_row || 3}, minmax(0, 1fr))` }}
+              >
                 {products.map(product => (
                   <ProductCard 
                     key={product.id} 
                     product={product} 
                     basePath={basePath}
                     currency={tenant?.currency || 'EUR'}
+                    cardStyle={(themeSettings as any)?.product_card_style || 'standard'}
                     onQuickView={handleQuickView}
-                    isWishlisted={isInWishlist(product.id)}
-                    onToggleWishlist={handleToggleWishlist}
+                    isWishlisted={(themeSettings as any)?.show_wishlist !== false ? isInWishlist(product.id) : undefined}
+                    onToggleWishlist={(themeSettings as any)?.show_wishlist !== false ? handleToggleWishlist : undefined}
                   />
                 ))}
               </div>

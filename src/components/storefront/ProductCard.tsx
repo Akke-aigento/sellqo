@@ -14,16 +14,18 @@ interface ProductCardProps {
     in_stock: boolean;
     category?: { id: string; name: string; slug: string } | null;
     has_variants?: boolean;
+    short_description?: string;
   };
   basePath: string;
   showPrice?: boolean;
   currency?: string;
+  cardStyle?: 'minimal' | 'standard' | 'detailed';
   onQuickView?: (product: any) => void;
   isWishlisted?: boolean;
   onToggleWishlist?: (product: any) => void;
 }
 
-export function ProductCard({ product, basePath, showPrice = true, currency = 'EUR', onQuickView, isWishlisted, onToggleWishlist }: ProductCardProps) {
+export function ProductCard({ product, basePath, showPrice = true, currency = 'EUR', cardStyle = 'standard', onQuickView, isWishlisted, onToggleWishlist }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
   const discountPercentage = hasDiscount 
@@ -32,10 +34,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
   const hasSecondImage = product.images.length > 1;
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency,
-    }).format(price);
+    return new Intl.NumberFormat('nl-NL', { style: 'currency', currency }).format(price);
   };
 
   return (
@@ -100,7 +99,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           )}
 
           {/* Discount Badge */}
-          {hasDiscount && (
+          {hasDiscount && cardStyle !== 'minimal' && (
             <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-medium px-2 py-1 rounded z-[1]">
               -{discountPercentage}%
             </div>
@@ -144,15 +143,22 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           )}
         </div>
 
-        {/* Info */}
+        {/* Info - varies by cardStyle */}
         <div>
-          {product.category && (
+          {/* Category - standard and detailed only */}
+          {cardStyle !== 'minimal' && product.category && (
             <p className="text-xs text-muted-foreground mb-1">{product.category.name}</p>
           )}
-          <h3 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
+          
+          <h3 className={cn(
+            "font-medium line-clamp-2 group-hover:text-primary transition-colors",
+            cardStyle === 'minimal' ? 'text-xs' : 'text-sm'
+          )}>
             {product.name}
           </h3>
-          {showPrice && (
+
+          {/* Price - standard and detailed only */}
+          {cardStyle !== 'minimal' && showPrice && (
             <div className="mt-1 flex items-center gap-2">
               <span className="font-semibold">{formatPrice(product.price)}</span>
               {hasDiscount && (
@@ -161,6 +167,13 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
                 </span>
               )}
             </div>
+          )}
+
+          {/* Short description - detailed only */}
+          {cardStyle === 'detailed' && product.short_description && (
+            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
+              {product.short_description}
+            </p>
           )}
         </div>
       </Link>
