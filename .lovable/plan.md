@@ -1,72 +1,105 @@
 
-# Theme Selectie: Van Dood Knopje naar Werkend Thema-Systeem
+# Storefront Admin Redesign + Ontbrekende Instellingen Fixen
 
-## Het Kernprobleem
+## Probleem 1: Rommelige Layout
 
-Wanneer je een thema selecteert (Bold, Classic, Modern), wordt alleen het `theme_id` opgeslagen. De bijbehorende kleuren, fonts en layout-instellingen worden **niet toegepast** op de storefront. Het thema bevat `default_settings` met alle juiste waarden, maar niemand leest ze.
+De huidige Theme-tab is een stapeling van losse componenten:
+- ThemeGallery (Card) bovenaan
+- ThemeCustomizer (Card) eronder, met daarin:
+  - Mood Presets sectie
+  - 5 sub-tabs (Branding, Kleuren, Typografie, Layout, Geavanceerd)
+  - Live Preview sidebar
 
-```text
-Admin: Selecteert "Bold" thema
-  --> Slaat op: theme_id = "bold-id"
-  --> Slaat NIET op: primary_color, fonts, header_style, etc.
+Dit voelt als "bij elkaar geknipt en geplakt" omdat er twee niveaus van tabs zijn (hoofd-tabs + sub-tabs), twee niveaus van Cards, en de thema-selectie los staat van de customizer.
 
-Storefront: Leest themeSettings.primary_color
-  --> Vindt: null
-  --> Resultaat: geen verschil zichtbaar
-```
+### Nieuwe Layout: Twee-kolommen Design Studio
 
-## De Oplossing: Twee-lagen Thema Systeem
-
-Bij het selecteren van een thema worden de default_settings van dat thema als **startwaardes** toegepast. De merchant kan daarna kleuren/fonts aanpassen als overrides. De storefront merged altijd: thema-defaults + tenant-overrides.
+De Theme-tab wordt vervangen door een **split-screen layout**:
 
 ```text
-Stap 1: Merchant kiest "Bold" thema
-  --> primary_color, fonts, header_style etc. worden
-      ingevuld vanuit Bold's default_settings
-
-Stap 2: Merchant past accent kleur aan
-  --> Alleen accent_color wordt overschreven,
-      rest blijft uit Bold thema
-
-Stap 3: Storefront rendert
-  --> Leest tenant overrides + vult gaten aan met thema defaults
-  --> Alles werkt
++-----------------------------------------------+
+| [Theme Gallery - horizontale strip met 3 kaarten] |
++-----------------------------+------------------+
+| Sidebar Navigator           | Live Preview     |
+| - Mood Presets (collapsed)  | (altijd zichtbaar)|
+| - Branding                  |                  |
+| - Kleuren                   | Desktop/Tablet/  |
+| - Typografie                | Mobile toggle    |
+| - Layout                    |                  |
+| - Geavanceerd               |                  |
+|                             |                  |
+| [Opslaan] [Reset]           |                  |
++-----------------------------+------------------+
 ```
+
+Kenmerken:
+- ThemeGallery wordt een compacte horizontale strip bovenaan (geen aparte Card)
+- Daaronder een twee-kolommen layout: links de instellingen als scrollbare accordion-secties (geen tabs!), rechts de Live Preview die altijd zichtbaar is
+- Mood Presets worden een collapsible sectie bovenaan de linkerkant
+- Opslaan/Reset knoppen sticky onderaan de linkerkolom
+- Geen geneste tabs meer - alles is vlak en direct toegankelijk via scroll
+
+## Probleem 2: Instellingen die NIET worden toegepast
+
+Na grondig onderzoek zijn dit de ontbrekende implementaties:
+
+| Instelling | Status | Fix |
+|-----------|--------|-----|
+| `products_per_row` | **Niet gebruikt** - ShopProducts grid is hardcoded op `grid-cols-2 md:grid-cols-3` | Dynamisch grid op basis van instelling |
+| `product_card_style` | **Niet gebruikt** - ProductCard heeft geen variatie (minimal/standard/detailed) | ProductCard krijgt 3 stijlen |
+| `show_wishlist` | Alleen op productdetail, **niet** op ProductCard of header | Conditie toevoegen in ShopProducts en headers |
+| Header kleuren | Header gebruikt `bg-background` (Tailwind) i.p.v. thema kleuren | Thema `background_color` en `primary_color` toepassen |
+| CenteredHeader/MinimalHeader | Linken naar `/cart` pagina i.p.v. CartDrawer te openen | `openDrawer` gebruiken |
+| CenteredHeader/MinimalHeader | Geen wishlist icoon, geen search modal | Toevoegen |
 
 ## Technische Wijzigingen
 
-### 1. ThemeGallery.tsx -- Thema-selectie past defaults toe
+### 1. Storefront.tsx - Theme tab layout
+De Theme tab content verandert van:
+```
+<ThemeGallery />
+<ThemeCustomizer />
+```
+Naar een geintegreerde "Design Studio" component.
 
-Wanneer een thema wordt geselecteerd, worden de `default_settings` van dat thema meegestuurd als `saveThemeSettings` payload. Dit vult de kleur/font/layout velden in zodat de storefront ze direct kan lezen.
+### 2. ThemeCustomizer.tsx - Complete herstructurering
+- Verwijder de Card wrapper en sub-tabs
+- Maak het een scrollbare linkerkolom met accordion-secties
+- ThemeGallery wordt inline bovenaan getoond (compact)
+- Mood Presets als collapsible sectie
+- Branding, Kleuren, Typografie, Layout, Geavanceerd als accordion items
+- Live Preview altijd zichtbaar rechts (sticky)
+- Sticky footer met Opslaan/Reset
 
-De admin colorpickers en font selectors tonen dan de actieve waarden (uit het thema) en de merchant kan ze overriden.
+### 3. ShopProducts.tsx - Grid respecteert `products_per_row`
+Het hardcoded `grid-cols-2 md:grid-cols-3` wordt dynamisch:
+- Leest `themeSettings.products_per_row` (2-5)
+- Past grid-template-columns toe via inline style
 
-### 2. usePublicStorefront.ts -- Merged settings voor de storefront
+### 4. ProductCard.tsx - Respecteert `product_card_style`
+Drie stijlen:
+- **minimal**: Alleen afbeelding + naam (geen prijs, geen categorie)
+- **standard**: Afbeelding + naam + prijs (huidige stijl)
+- **detailed**: Afbeelding + categorie + naam + prijs + korte beschrijving
 
-De public storefront hook krijgt dezelfde merge-logica die al bestaat in `useStorefront.getMergedSettings()`. Wanneer een veld op de tenant `null` is maar het thema een default heeft, wordt de default gebruikt. Dit zorgt ervoor dat thema-selectie altijd werkt, zelfs als de tenant nog geen handmatige overrides heeft gemaakt.
+ProductCard krijgt een `cardStyle` prop.
 
-### 3. ShopLayout.tsx -- Gebruikt gemerged settings
+### 5. ShopProducts.tsx - `show_wishlist` conditie
+De wishlist-gerelateerde props op ProductCard worden alleen doorgegeven als `themeSettings.show_wishlist` true is.
 
-In plaats van `themeSettings.primary_color` direct te lezen, gebruikt de layout de gemerged waarden. Dit maakt het onmogelijk dat een ontbrekende kleur/font het thema breekt.
+### 6. ShopLayout.tsx - Headers fixen
+- CenteredHeader en MinimalHeader: cart-knop opent CartDrawer i.p.v. navigatie naar `/cart`
+- CenteredHeader en MinimalHeader: wishlist icoon toevoegen (als `show_wishlist` aan)
+- CenteredHeader en MinimalHeader: search modal knop toevoegen
+- Header styling: thema-kleuren correct toepassen
 
-### 4. ThemeGallery.tsx -- Live preview indicator
-
-Na selectie toont de gallery een "Bekijk je winkel" link zodat de merchant direct het resultaat kan zien. Dit geeft onmiddellijke feedback dat het thema werkt.
-
----
-
-## Overzicht wijzigingen per bestand
+### Overzicht gewijzigde bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/admin/storefront/ThemeGallery.tsx` | Bij selectie: stuur theme defaults mee als tenant velden. Voeg "Bekijk winkel" link toe. |
-| `src/hooks/usePublicStorefront.ts` | Voeg merge-logica toe: tenant overrides + thema defaults (zoals `getMergedSettings` in useStorefront) |
-| `src/components/storefront/ShopLayout.tsx` | Gebruik gemerged `themeSettings` in plaats van raw waarden |
-
-## Resultaat
-
-- **Bold** thema: Donkere achtergrond, rode primary, Montserrat font, minimale header
-- **Classic** thema: Lichte achtergrond, blauwe primary, Playfair Display heading, standaard header
-- **Modern** thema: Witte achtergrond, zwarte primary, Inter font, gecentreerde header
-
-Elke keuze is direct zichtbaar in de storefront zonder handmatig kleuren/fonts te moeten invullen.
+| `src/pages/admin/Storefront.tsx` | Theme tab: verwijder ThemeGallery + ThemeCustomizer, vervang door geintegreerde DesignStudio |
+| `src/components/admin/storefront/ThemeCustomizer.tsx` | Complete herstructurering: split-screen met accordion-secties links, preview rechts, ThemeGallery inline bovenaan |
+| `src/components/admin/storefront/ThemeGallery.tsx` | Compacte inline variant (geen Card wrapper), exporteer als herbruikbaar |
+| `src/pages/storefront/ShopProducts.tsx` | Dynamisch grid op `products_per_row`, conditie `show_wishlist` |
+| `src/components/storefront/ProductCard.tsx` | `cardStyle` prop met minimal/standard/detailed varianten |
+| `src/components/storefront/ShopLayout.tsx` | CenteredHeader + MinimalHeader: CartDrawer, wishlist, search modal, thema-kleuren |
