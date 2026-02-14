@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
-import { ThemeGallery } from '@/components/admin/storefront/ThemeGallery';
+// ThemeGallery is now embedded inside ThemeCustomizer as ThemeGalleryInline
 import { ThemeCustomizer } from '@/components/admin/storefront/ThemeCustomizer';
 import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
@@ -161,8 +161,7 @@ export default function StorefrontPage() {
         </TabsList>
 
         <TabsContent value="theme" className="space-y-6">
-          <ThemeGallery />
-          {themeSettings?.theme_id && <ThemeCustomizer />}
+          <ThemeCustomizer />
         </TabsContent>
 
         <TabsContent value="homepage">
