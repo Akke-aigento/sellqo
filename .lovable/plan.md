@@ -1,52 +1,69 @@
 
-# Storefront Navigatie Redesign: Van Tabs naar Sidebar Navigator
+# Theme Kleuren Doorvoeren naar de Storefront
 
 ## Het Probleem
 
-De huidige 7 tabs in een `grid-cols-7` balk zien er krap en rommelig uit. Op smaller schermen zijn de labels zelfs verborgen (`hidden sm:inline`). Samen met de Design Studio (die al z'n eigen accordion-navigatie heeft) voelt het als dubbele navigatie.
-
-## De Oplossing: Verticale Sidebar Navigatie
-
-Vervang de horizontale tabs door een **verticale sidebar links** met de 7 secties als navigatie-items. De content verschijnt rechts. Dit is consistent met hoe de Design Studio al werkt (links navigatie, rechts content) en schaalt veel beter.
+De thema-kleuren worden opgeslagen en als CSS variabelen gezet (`--shop-primary`, `--shop-secondary`, etc.), maar **geen enkel element in de storefront gebruikt deze variabelen**. Alle componenten gebruiken Tailwind klassen:
 
 ```text
-+--------------------------------------------------+
-| Header: Webshop  [Live] [Preview] [Publiceren]   |
-+--------------------------------------------------+
-| Status Card (huidige thema info)                  |
-+-----------+--------------------------------------+
-| Nav       | Content                              |
-|           |                                      |
-| * Theme   | (ThemeCustomizer / HomepageBuilder /  |
-|   Homepage|  StorefrontPagesManager / etc.)       |
-|   Pagina's|                                      |
-|   Reviews |                                      |
-|   Juridisch                                      |
-|   Functies|                                      |
-|   Instell.|                                      |
-+-----------+--------------------------------------+
+Wat er gebeurt:
+  1. Admin: Kiest rood als primary --> opgeslagen in DB
+  2. ShopLayout: Zet --shop-primary: #dc2626 op <html>
+  3. Header: Gebruikt class="bg-background" --> leest --background (Tailwind)
+  4. Footer: Gebruikt class="bg-muted/30" --> leest --muted (Tailwind)
+  5. Buttons: Gebruikt class="bg-primary" --> leest --primary (Tailwind)
+  
+  Resultaat: --shop-primary wordt NERGENS gelezen. Kleuren hebben geen effect.
 ```
 
-## Ontwerp Details
+## De Oplossing
 
-- **Navigatie-items**: Verticale lijst met icoon + label, actief item krijgt een `bg-muted` highlight en een links accent-border (2px primary)
-- **Compact**: Elk item is een simpele button, geen Card of extra wrapper
-- **Responsive**: Op mobile valt de sidebar weg en wordt het een horizontale scrollbare strip (vergelijkbaar met de huidige tabs maar dan als pills)
-- **Status Card verwijderen**: De losse thema-info Card boven de tabs is overbodig nu de Design Studio al een inline ThemeGallery heeft. Dit bespaart verticale ruimte.
+In plaats van ongebruikte `--shop-*` variabelen te zetten, overschrijven we de **Tailwind CSS variabelen** zelf (`--primary`, `--background`, `--foreground`, etc.) met de thema-kleuren. Dit zorgt ervoor dat ALLE Tailwind klassen automatisch de thema-kleuren gebruiken -- zonder dat we elk component hoeven aan te passen.
 
-## Technische Wijzigingen
+```text
+Na de fix:
+  1. Admin: Kiest rood als primary
+  2. ShopLayout: Zet --primary: <rood in HSL> op root div
+  3. Header "bg-background" --> leest --background --> thema achtergrondkleur
+  4. Buttons "bg-primary" --> leest --primary --> thema primary kleur
+  5. Alles klopt automatisch
+```
+
+## Technische Aanpak
+
+### 1. Hex-naar-HSL converter
+
+Tailwind/shadcn verwacht kleuren in HSL formaat (bijv. `220 14% 96%`). De thema-kleuren staan als hex (`#dc2626`). Er is een simpele utility nodig die hex omzet naar het juiste HSL formaat.
+
+### 2. ShopLayout.tsx - CSS variabelen overschrijven
+
+Het huidige `useEffect` dat `--shop-*` variabelen zet wordt vervangen. In plaats daarvan worden de Tailwind variabelen overschreven op de **wrapper div** van de storefront (niet op `document.documentElement`, zodat het alleen de storefront beinvloedt en niet de admin):
+
+| Thema-instelling | Tailwind variabele | Gebruikt door |
+|---|---|---|
+| `primary_color` | `--primary` | Buttons, badges, links, cart badges |
+| `secondary_color` | `--secondary` | Secondary buttons |
+| `accent_color` | `--accent` | Hover states, highlights |
+| `background_color` | `--background` | Pagina achtergrond, header |
+| `text_color` | `--foreground` | Alle tekst |
+| afgeleid van background | `--muted` | Footer, subtiele achtergronden |
+| afgeleid van background | `--card` | Productkaarten |
+| afgeleid van background | `--border` | Borders |
+
+De variabelen worden als inline `style` op de wrapper div gezet, zodat ze lokaal gelden voor de storefront.
+
+### 3. Header achtergrondkleur
+
+De header gebruikt momenteel `bg-background/95` als Tailwind class. Zodra `--background` correct is overschreven, pakt de header automatisch de juiste kleur. Er is geen extra wijziging nodig.
+
+### 4. Contrastberekening
+
+Voor `--primary-foreground` (tekst op primary knoppen) wordt automatisch wit of zwart gekozen op basis van het contrast met de primary kleur. Hetzelfde voor `--secondary-foreground` en `--accent-foreground`.
+
+## Gewijzigde bestanden
 
 | Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/admin/Storefront.tsx` | Vervang `Tabs`/`TabsList`/`TabsTrigger` door een custom sidebar-navigatie layout met `useState` voor actieve sectie. Verwijder de Status Card. Desktop: sidebar links + content rechts. Mobile: horizontale scrollbare nav-strip. |
+|---|---|
+| `src/components/storefront/ShopLayout.tsx` | Vervang `--shop-*` variabelen door Tailwind variabelen overschrijving via inline styles op wrapper div. Voeg hex-naar-HSL utility toe. Verwijder de `document.documentElement` manipulatie. |
 
-### Implementatie
-
-De Radix Tabs worden vervangen door een simpele `useState('theme')` + conditionele rendering:
-
-- **Desktop** (`md:` en groter): Twee-kolommen grid met een smalle linkerkolom (w-48) voor de navigatie-knoppen en de rest voor content
-- **Mobile**: Horizontale scrollbare strip met pill-buttons (`overflow-x-auto flex gap-2`)
-- Navigatie-items: `button` elementen met `cn()` voor actief/inactief styling
-- Content: simpele conditionele rendering (`activeTab === 'theme' && <ThemeCustomizer />`)
-
-Dit is een relatief kleine wijziging -- alleen `Storefront.tsx` wordt aangepast. De onderliggende componenten (ThemeCustomizer, HomepageBuilder, etc.) blijven ongewijzigd.
+Dit is een gerichte fix in een enkel bestand. Doordat we de Tailwind variabelen overschrijven, werken alle bestaande componenten (ProductCard, headers, footer, buttons, badges) automatisch met de thema-kleuren zonder dat ze individueel aangepast hoeven te worden.
