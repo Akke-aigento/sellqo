@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check } from 'lucide-react';
+import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Label } from '@/components/ui/label';
 import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefront';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { VariantSelector } from '@/components/storefront/VariantSelector';
@@ -19,15 +23,21 @@ export default function ShopProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [viewerCount] = useState(() => Math.floor(Math.random() * 8) + 2);
 
-  // Set tenant slug for cart context
+  // Read storefront config settings
+  const ts = themeSettings as any;
+  const imageZoom = ts?.product_image_zoom || 'none';
+  const variantStyle = ts?.product_variant_style || 'buttons';
+  const reviewsDisplay = ts?.product_reviews_display || 'full';
+  const showStockCount = ts?.show_stock_count || false;
+  const showViewersCount = ts?.show_viewers_count || false;
+
   useEffect(() => {
-    if (tenantSlug) {
-      setTenantSlug(tenantSlug);
-    }
+    if (tenantSlug) setTenantSlug(tenantSlug);
   }, [tenantSlug, setTenantSlug]);
 
-  // Find selected variant based on attributes
   const selectedVariant = useMemo(() => {
     if (!product?.variants?.length || !Object.keys(selectedAttributes).length) return null;
     return product.variants.find((v: any) => {
@@ -38,40 +48,27 @@ export default function ShopProductDetail() {
     }) || null;
   }, [product?.variants, selectedAttributes]);
 
-  // Swap image when variant has image_url
   useEffect(() => {
-    if (selectedVariant?.image_url) {
-      setSelectedImage(0);
-    }
+    if (selectedVariant?.image_url) setSelectedImage(0);
   }, [selectedVariant?.image_url]);
 
-  // Derived display values
   const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
   const displayComparePrice = selectedVariant?.compare_at_price ?? product?.compare_at_price;
   const hasDiscount = displayComparePrice && displayComparePrice > displayPrice;
-  const discountPercentage = hasDiscount
-    ? Math.round((1 - displayPrice / displayComparePrice!) * 100)
-    : 0;
+  const discountPercentage = hasDiscount ? Math.round((1 - displayPrice / displayComparePrice!) * 100) : 0;
   const inStock = selectedVariant ? selectedVariant.in_stock : product?.in_stock;
   const stockCount = selectedVariant?.stock ?? product?.stock;
 
-  // Build display images: variant image first if available
   const displayImages = useMemo(() => {
     if (!product) return [];
-    if (selectedVariant?.image_url) {
-      return [selectedVariant.image_url, ...(product.images || [])];
-    }
+    if (selectedVariant?.image_url) return [selectedVariant.image_url, ...(product.images || [])];
     return product.images || [];
   }, [product, selectedVariant?.image_url]);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency: tenant?.currency || 'EUR',
-    }).format(price);
+    return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: tenant?.currency || 'EUR' }).format(price);
   };
 
-  // Initialize selected attributes from selected_variant_index for variant-products
   useEffect(() => {
     if (product?.is_variant_product && product.selected_variant_index != null && product.variants?.length) {
       const currentVariant = product.variants[product.selected_variant_index];
@@ -83,8 +80,6 @@ export default function ShopProductDetail() {
 
   const handleAttributeChange = useCallback((optionName: string, value: string) => {
     const newAttrs = { ...selectedAttributes, [optionName]: value };
-    
-    // Check if there's a linked product for this variant combination
     if (product?.variants?.length) {
       const matchingVariant = product.variants.find((v: any) => {
         const attrs = v.attribute_values || {};
@@ -92,50 +87,37 @@ export default function ShopProductDetail() {
         if (keys.length !== Object.keys(attrs).length) return false;
         return keys.every((k: string) => attrs[k] === newAttrs[k]);
       });
-      
       if (matchingVariant?.linked_product_slug && tenantSlug) {
-        // Navigate to the linked product page
         navigate(`/shop/${tenantSlug}/${matchingVariant.linked_product_slug}`);
         return;
       }
     }
-    
     setSelectedAttributes(newAttrs);
   }, [selectedAttributes, product?.variants, tenantSlug, navigate]);
 
   const handleAddToCart = () => {
     if (!product) return;
-    
-    // Validate variant selection
     if (product.has_variants && !selectedVariant) {
       toast.error('Selecteer alstublieft alle opties');
       return;
     }
-    
     const variantTitle = selectedVariant
       ? Object.values(selectedVariant.attribute_values as Record<string, string>).join(' / ')
       : undefined;
-    
     addToCart({
-      productId: product.id,
-      name: product.name,
-      price: displayPrice,
-      quantity,
+      productId: product.id, name: product.name, price: displayPrice, quantity,
       image: selectedVariant?.image_url ?? product.images?.[0],
       sku: selectedVariant?.sku ?? product.sku,
-      variantId: selectedVariant?.id,
-      variantTitle,
+      variantId: selectedVariant?.id, variantTitle,
     });
-    
     toast.success(
       `${quantity}x ${product.name}${variantTitle ? ` (${variantTitle})` : ''} toegevoegd aan winkelwagen`,
-      {
-        action: {
-          label: 'Bekijk winkelwagen',
-          onClick: () => window.location.href = `/shop/${tenantSlug}/cart`,
-        },
-      },
+      { action: { label: 'Bekijk winkelwagen', onClick: () => window.location.href = `/shop/${tenantSlug}/cart` } },
     );
+  };
+
+  const handleImageClick = () => {
+    if (imageZoom === 'lightbox') setLightboxOpen(true);
   };
 
   if (isLoading) {
@@ -160,9 +142,7 @@ export default function ShopProductDetail() {
       <ShopLayout>
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Product niet gevonden</h1>
-          <Button asChild>
-            <Link to={`/shop/${tenantSlug}/products`}>Terug naar producten</Link>
-          </Button>
+          <Button asChild><Link to={`/shop/${tenantSlug}/products`}>Terug naar producten</Link></Button>
         </div>
       </ShopLayout>
     );
@@ -172,6 +152,13 @@ export default function ShopProductDetail() {
   const allOptionsSelected = product.options?.length
     ? product.options.every((opt: any) => selectedAttributes[opt.name])
     : true;
+
+  // Determine image interaction classes based on zoom setting
+  const imageClasses = [
+    "w-full h-full object-cover transition-transform duration-300",
+    imageZoom === 'hover' && "group-hover:scale-150 origin-center",
+    (imageZoom === 'click' || imageZoom === 'lightbox') && "cursor-zoom-in",
+  ].filter(Boolean).join(' ');
 
   return (
     <ShopLayout>
@@ -190,12 +177,7 @@ export default function ShopProductDetail() {
             {product.category && (
               <>
                 <ChevronRight className="h-4 w-4" />
-                <Link 
-                  to={`/shop/${tenantSlug}/products?category=${product.category.slug}`}
-                  className="hover:text-foreground"
-                >
-                  {product.category.name}
-                </Link>
+                <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="hover:text-foreground">{product.category.name}</Link>
               </>
             )}
             <ChevronRight className="h-4 w-4" />
@@ -206,12 +188,15 @@ export default function ShopProductDetail() {
         <div className="grid md:grid-cols-2 gap-12">
           {/* Images */}
           <div>
-            <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
+            <div 
+              className="aspect-square rounded-lg overflow-hidden bg-muted mb-4 group"
+              onClick={handleImageClick}
+            >
               {displayImages[selectedImage] ? (
                 <img 
                   src={displayImages[selectedImage]} 
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className={imageClasses}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -225,13 +210,8 @@ export default function ShopProductDetail() {
             {displayImages.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {displayImages.map((image: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === index ? 'border-primary' : 'border-transparent'
-                    }`}
-                  >
+                  <button key={index} onClick={() => setSelectedImage(index)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${selectedImage === index ? 'border-primary' : 'border-transparent'}`}>
                     <img src={image} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -242,18 +222,10 @@ export default function ShopProductDetail() {
           {/* Product Info */}
           <div>
             {product.category && (
-              <Link 
-                to={`/shop/${tenantSlug}/products?category=${product.category.slug}`}
-                className="text-sm text-muted-foreground hover:text-primary"
-              >
-                {product.category.name}
-              </Link>
+              <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="text-sm text-muted-foreground hover:text-primary">{product.category.name}</Link>
             )}
 
-            <h1 
-              className="text-3xl font-bold mt-2 mb-4"
-              style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}
-            >
+            <h1 className="text-3xl font-bold mt-2 mb-4" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
               {product.name}
             </h1>
 
@@ -262,24 +234,30 @@ export default function ShopProductDetail() {
               <span className="text-2xl font-bold">{formatPrice(displayPrice)}</span>
               {hasDiscount && (
                 <>
-                  <span className="text-lg text-muted-foreground line-through">
-                    {formatPrice(displayComparePrice!)}
-                  </span>
-                  <span className="bg-destructive text-destructive-foreground text-sm font-medium px-2 py-1 rounded">
-                    -{discountPercentage}%
-                  </span>
+                  <span className="text-lg text-muted-foreground line-through">{formatPrice(displayComparePrice!)}</span>
+                  <span className="bg-destructive text-destructive-foreground text-sm font-medium px-2 py-1 rounded">-{discountPercentage}%</span>
                 </>
               )}
             </div>
 
-            {/* Variant Selection */}
+            {/* Viewers count */}
+            {showViewersCount && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                <Eye className="h-4 w-4" />
+                <span>{viewerCount} mensen bekijken dit nu</span>
+              </div>
+            )}
+
+            {/* Variant Selection - respects variant_style setting */}
             {product.has_variants && product.options?.length > 0 && (
               <div className="mb-6">
-                <VariantSelector
-                  options={product.options}
-                  selectedAttributes={selectedAttributes}
-                  onAttributeChange={handleAttributeChange}
-                />
+                {variantStyle === 'dropdown' ? (
+                  <DropdownVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                ) : variantStyle === 'swatches' ? (
+                  <SwatchVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                ) : (
+                  <VariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                )}
               </div>
             )}
 
@@ -290,7 +268,9 @@ export default function ShopProductDetail() {
                   <Check className="h-5 w-5 text-green-600" />
                   <span className="text-green-600 font-medium">
                     Op voorraad
-                    {stockCount != null && stockCount > 0 && ` (${stockCount} stuks)`}
+                    {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
+                      <span className="ml-1">— Nog {stockCount} stuks</span>
+                    )}
                   </span>
                 </>
               ) : (
@@ -298,74 +278,49 @@ export default function ShopProductDetail() {
               )}
             </div>
 
+            {/* Low stock urgency */}
+            {showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
+              <div className="flex items-center gap-2 text-sm text-orange-600 mb-4">
+                <Package className="h-4 w-4" />
+                <span className="font-medium">Bijna uitverkocht! Bestel snel.</span>
+              </div>
+            )}
+
             {/* Description */}
             {product.description && (
-              <div 
-                className="prose prose-sm max-w-none mb-8"
-                dangerouslySetInnerHTML={{ __html: product.description }}
-              />
+              <div className="prose prose-sm max-w-none mb-8" dangerouslySetInnerHTML={{ __html: product.description }} />
             )}
 
             {/* Add to Cart */}
             {inStock && (
               <div className="flex items-center gap-4 mb-8">
                 <div className="flex items-center border rounded-lg">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
                     <Minus className="h-4 w-4" />
                   </Button>
                   <span className="w-12 text-center font-medium">{quantity}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => setQuantity(prev => {
-                      const max = stockCount ?? Infinity;
-                      return Math.min(prev + 1, max);
-                    })}
-                    disabled={stockCount != null && quantity >= stockCount}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
 
-                <Button 
-                  size="lg" 
-                  className="flex-1"
-                  onClick={handleAddToCart}
-                  disabled={product.has_variants && !allOptionsSelected}
-                  style={{
-                    backgroundColor: themeSettings?.primary_color || undefined,
-                  }}
-                >
+                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
                   <ShoppingCart className="h-5 w-5 mr-2" />
                   Toevoegen aan winkelwagen
-                  {cartCount > 0 && (
-                    <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      {cartCount}
-                    </span>
-                  )}
+                  {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
                 </Button>
 
                 {themeSettings?.show_wishlist && (
-                  <Button variant="outline" size="icon">
-                    <Heart className="h-5 w-5" />
-                  </Button>
+                  <Button variant="outline" size="icon"><Heart className="h-5 w-5" /></Button>
                 )}
               </div>
             )}
 
-            {/* Not all options selected hint */}
             {product.has_variants && !allOptionsSelected && (
-              <p className="text-sm text-muted-foreground mb-4">
-                Selecteer alle opties om toe te voegen aan winkelwagen
-              </p>
+              <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
             )}
 
-            {/* Product Details */}
             {(selectedVariant?.sku || product.sku) && (
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">SKU:</span> {selectedVariant?.sku || product.sku}
@@ -374,6 +329,85 @@ export default function ShopProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox Dialog */}
+      {imageZoom === 'lightbox' && (
+        <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+          <DialogContent className="max-w-4xl p-2">
+            {displayImages[selectedImage] && (
+              <img src={displayImages[selectedImage]} alt={product.name} className="w-full h-auto max-h-[85vh] object-contain" />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </ShopLayout>
+  );
+}
+
+// Dropdown variant selector
+function DropdownVariantSelector({ options, selectedAttributes, onAttributeChange }: any) {
+  return (
+    <div className="space-y-4">
+      {options.map((option: any) => (
+        <div key={option.name} className="space-y-2">
+          <Label className="text-sm font-medium">{option.name}</Label>
+          <Select value={selectedAttributes[option.name] || ''} onValueChange={(value) => onAttributeChange(option.name, value)}>
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder={`Kies ${option.name.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {option.values.map((val: string) => (
+                <SelectItem key={val} value={val}>{val}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Swatch variant selector (color circles)
+function SwatchVariantSelector({ options, selectedAttributes, onAttributeChange }: any) {
+  const COLOR_MAP: Record<string, string> = {
+    zwart: '#000', black: '#000', wit: '#fff', white: '#fff',
+    rood: '#ef4444', red: '#ef4444', blauw: '#3b82f6', blue: '#3b82f6',
+    groen: '#22c55e', green: '#22c55e', geel: '#eab308', yellow: '#eab308',
+    roze: '#ec4899', pink: '#ec4899', paars: '#a855f7', purple: '#a855f7',
+    oranje: '#f97316', orange: '#f97316', grijs: '#6b7280', gray: '#6b7280',
+    bruin: '#92400e', brown: '#92400e', beige: '#d4c5a9',
+  };
+
+  return (
+    <div className="space-y-4">
+      {options.map((option: any) => {
+        const isColorOption = option.name.toLowerCase().includes('kleur') || option.name.toLowerCase().includes('color');
+        return (
+          <div key={option.name} className="space-y-2">
+            <Label className="text-sm font-medium">
+              {option.name}
+              {selectedAttributes[option.name] && <span className="ml-2 text-muted-foreground font-normal">— {selectedAttributes[option.name]}</span>}
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {option.values.map((val: string) => {
+                const isSelected = selectedAttributes[option.name] === val;
+                const color = isColorOption ? COLOR_MAP[val.toLowerCase()] : undefined;
+                return color ? (
+                  <button key={val} onClick={() => onAttributeChange(option.name, val)}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-muted hover:border-foreground/50'}`}
+                    style={{ backgroundColor: color }} title={val}
+                    aria-label={val} />
+                ) : (
+                  <button key={val} onClick={() => onAttributeChange(option.name, val)}
+                    className={`px-4 py-2 text-sm rounded-md border transition-all ${isSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:border-foreground/50'}`}>
+                    {val}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
