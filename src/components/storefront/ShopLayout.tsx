@@ -114,16 +114,120 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
 
-  // Apply theme colors as CSS variables
+  // Hex to HSL converter for Tailwind CSS variables
+  const hexToHsl = (hex: string): string | null => {
+    if (!hex || !hex.startsWith('#')) return null;
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  };
+
+  // Auto-contrast: returns white or black foreground based on luminance
+  const getContrastForeground = (hex: string): string => {
+    if (!hex || !hex.startsWith('#')) return '0 0% 100%';
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.5 ? '0 0% 0%' : '0 0% 100%';
+  };
+
+  // Derive muted/card/border from background color
+  const deriveFromBackground = (hex: string) => {
+    if (!hex || !hex.startsWith('#')) return {};
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const isLight = luminance > 0.5;
+    // For light backgrounds: slightly darker muted/card, for dark: slightly lighter
+    const hsl = hexToHsl(hex);
+    if (!hsl) return {};
+    const parts = hsl.split(' ');
+    const hue = parts[0];
+    const sat = parseInt(parts[1]);
+    const lig = parseInt(parts[2]);
+    const mutedL = isLight ? Math.max(lig - 4, 0) : Math.min(lig + 8, 100);
+    const cardL = isLight ? Math.max(lig - 2, 0) : Math.min(lig + 5, 100);
+    const borderL = isLight ? Math.max(lig - 10, 0) : Math.min(lig + 12, 100);
+    const mutedFgL = isLight ? 47 : 65;
+    return {
+      '--muted': `${hue} ${Math.min(sat + 10, 100)}% ${mutedL}%`,
+      '--muted-foreground': `${hue} 16% ${mutedFgL}%`,
+      '--card': `${hue} ${sat}% ${cardL}%`,
+      '--card-foreground': getContrastForeground(hex),
+      '--border': `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`,
+      '--input': `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`,
+    };
+  };
+
+  // Build theme CSS variables as inline style for the wrapper div
+  const themeStyle = (() => {
+    const style: Record<string, string> = {};
+    if (!themeSettings) return style;
+    
+    const primary = themeSettings.primary_color;
+    const secondary = themeSettings.secondary_color;
+    const accent = themeSettings.accent_color;
+    const bg = themeSettings.background_color;
+    const text = themeSettings.text_color;
+
+    if (primary) {
+      const hsl = hexToHsl(primary);
+      if (hsl) {
+        style['--primary'] = hsl;
+        style['--primary-foreground'] = getContrastForeground(primary);
+        style['--ring'] = hsl;
+      }
+    }
+    if (secondary) {
+      const hsl = hexToHsl(secondary);
+      if (hsl) {
+        style['--secondary'] = hsl;
+        style['--secondary-foreground'] = getContrastForeground(secondary);
+      }
+    }
+    if (accent) {
+      const hsl = hexToHsl(accent);
+      if (hsl) {
+        style['--accent'] = hsl;
+        style['--accent-foreground'] = getContrastForeground(accent);
+      }
+    }
+    if (bg) {
+      const hsl = hexToHsl(bg);
+      if (hsl) {
+        style['--background'] = hsl;
+        style['--popover'] = hsl;
+        Object.assign(style, deriveFromBackground(bg));
+      }
+    }
+    if (text) {
+      const hsl = hexToHsl(text);
+      if (hsl) {
+        style['--foreground'] = hsl;
+        style['--popover-foreground'] = hsl;
+      }
+    }
+    return style;
+  })();
+
+  // Load Google Fonts
   useEffect(() => {
     if (themeSettings) {
-      const root = document.documentElement;
-      if (themeSettings.primary_color) root.style.setProperty('--shop-primary', themeSettings.primary_color);
-      if (themeSettings.secondary_color) root.style.setProperty('--shop-secondary', themeSettings.secondary_color);
-      if (themeSettings.accent_color) root.style.setProperty('--shop-accent', themeSettings.accent_color);
-      if (themeSettings.background_color) root.style.setProperty('--shop-background', themeSettings.background_color);
-      if (themeSettings.text_color) root.style.setProperty('--shop-text', themeSettings.text_color);
-
       const fonts = [themeSettings.heading_font, themeSettings.body_font].filter(Boolean);
       if (fonts.length > 0) {
         const link = document.createElement('link');
@@ -132,14 +236,6 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         document.head.appendChild(link);
       }
     }
-    return () => {
-      const root = document.documentElement;
-      root.style.removeProperty('--shop-primary');
-      root.style.removeProperty('--shop-secondary');
-      root.style.removeProperty('--shop-accent');
-      root.style.removeProperty('--shop-background');
-      root.style.removeProperty('--shop-text');
-    };
   }, [themeSettings]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -184,9 +280,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       className={cn("min-h-screen flex flex-col", mobileBottomNav && "pb-14 md:pb-0")}
       style={{
         fontFamily: themeSettings?.body_font ? `"${themeSettings.body_font}", sans-serif` : undefined,
-        backgroundColor: themeSettings?.background_color || undefined,
-        color: themeSettings?.text_color || undefined,
-      }}
+        ...themeStyle,
+      } as React.CSSProperties}
     >
       {/* Announcement Bar Carousel */}
       {showAnnouncement && announcementTexts.length > 0 && (
