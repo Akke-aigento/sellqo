@@ -1,94 +1,92 @@
 
-# Storefront Preview: Volledige Audit en Reparatie
 
-Na een grondige analyse van de code EN de database-configuratie heb ik de volgende ontbrekende elementen gevonden:
+# Storefront Instellingen: Volledige Koppeling Audit
 
----
+## Het Probleem
 
-## Gevonden Problemen
-
-| # | Element | Status | Impact |
-|---|---------|--------|--------|
-| 1 | **"Home" link in StandardHeader** | Ontbreekt | CenteredHeader en MinimalHeader hebben het wel, StandardHeader (de actieve stijl) niet |
-| 2 | **Logo uit themeSettings** | Wordt genegeerd | Alle headers/footer gebruiken `tenant.logo_url` (leeg), maar de geupload logo zit in `themeSettings.logo_url` |
-| 3 | **Favicon** | Alleen op homepage | ShopHome zet het via Helmet, maar op product/cart/checkout pagina's ontbreekt het |
-| 4 | **Juridische pagina's in footer** | Volledig ontbrekend | 2 gepubliceerde legal pages (Privacybeleid, Algemene Voorwaarden) worden nergens getoond. Er is zelfs geen route voor ze |
-| 5 | **Mobiel hamburger menu bij Standard/Centered header** | Ontbreekt | Alleen MinimalHeader heeft een mobiel menu. Bij Standard en Centered verdwijnt navigatie op kleine schermen |
-| 6 | **Breadcrumbs op productenpagina** | Ontbreekt | `show_breadcrumbs` staat aan, maar alleen ShopProductDetail toont breadcrumbs. ShopProducts en ShopCart missen ze |
-| 7 | **ProductCard currency** | Hardcoded EUR | ProductCard formatteert altijd EUR, ongeacht `tenant.currency` |
-| 8 | **Zoekfunctie in header** | Doet niets | StandardHeader heeft een zoek-icoon dat `searchOpen` toggelt, maar er verschijnt geen zoekbalk |
-| 9 | **Footer sociale links filteren** | Toont lege sectie | `Object.keys(social_links).length > 0` is true voor `{}`, waardoor "Volg Ons" verschijnt zonder inhoud als er een leeg object is |
-| 10 | **`themeSettings` niet doorgegeven aan StandardHeader/MinimalHeader** | Ontbreekt | CenteredHeader ontvangt `themeSettings` als prop (voor heading_font), Standard en Minimal niet |
-| 11 | **Meta tags ontbreken op subpagina's** | Ontbreekt | ShopProducts heeft Helmet, maar ShopCart, ShopPage missen favicon. Geen consistente meta/SEO |
-| 12 | **Categorie pagina breadcrumbs** | Ontbreekt | Als je op een categorie filtert is er geen breadcrumb-pad |
+De admin-instellingen onder "Functies & Gedrag" worden correct opgeslagen in de database, maar de storefront **leest en gebruikt ze niet**. De volgende configuratie-opties hebben geen enkel effect op de daadwerkelijke webshop:
 
 ---
 
-## Technische Aanpassingen
+## Alle Niet-werkende Instellingen
 
-### 1. ShopLayout.tsx - Header verbeteringen
+| # | Instelling | Opgeslagen als | Effect in storefront |
+|---|-----------|---------------|---------------------|
+| 1 | **Navigatie stijl** (simple/mega_menu) | `nav_style` | Geen -- header is altijd hetzelfde, geen mega menu implementatie |
+| 2 | **Sticky header** aan/uit | `header_sticky` | Geen -- header is altijd `sticky top-0` |
+| 3 | **Zoekbalk weergave** (visible/icon/hidden) | `search_display` | Geen -- zoek-icoon altijd getoond als icon, nooit visible of hidden |
+| 4 | **Mobiele bottom navigatie** | `mobile_bottom_nav` | Geen -- niet gebouwd |
+| 5 | **Cookie banner** aan/uit + stijl | `cookie_banner_enabled`, `cookie_banner_style` | Geen -- geen cookie banner component bestaat |
+| 6 | **Voorraad teller tonen** | `show_stock_count` | Geen -- niet gebruikt in ProductCard of productdetail |
+| 7 | **Kijkers tellen tonen** | `show_viewers_count` | Geen -- niet gebouwd |
+| 8 | **Recente aankopen tonen** | `show_recent_purchases` | Geen -- niet gebouwd |
+| 9 | **Exit intent popup** | `exit_intent_popup` | Geen -- niet gebouwd |
+| 10 | **Nieuwsbrief popup** | `newsletter_popup_enabled` + delay | Geen -- geen popup component |
+| 11 | **Product afbeelding zoom** | `product_image_zoom` | Geen -- niet doorgegeven aan productdetail |
+| 12 | **Variant weergave stijl** | `product_variant_style` | Geen -- altijd standaard buttons |
+| 13 | **Reviews weergave** | `product_reviews_display` | Geen -- niet gecheckt in productdetail |
 
-**StandardHeader:**
-- "Home" link toevoegen als eerste navigatie-item
-- `themeSettings` prop accepteren en logo_url daaruit prioriteren
-- Mobiel hamburger menu toevoegen (zoals MinimalHeader)
-- Zoekbalk tonen wanneer `searchOpen` actief is (input veld dat verschijnt onder de header)
+---
 
-**CenteredHeader:**
-- Mobiel hamburger menu toevoegen voor kleine schermen
-- `themeSettings.logo_url` prioriteit geven boven `tenant.logo_url`
+## Implementatieplan
 
-**MinimalHeader:**
-- `themeSettings` prop accepteren voor logo prioriteit
+### Fase 1: Navigatie-instellingen (direct zichtbaar verschil)
 
-**Footer:**
-- `themeSettings?.logo_url || tenant.logo_url` voor logo weergave
-- Nieuwe "Juridisch" kolom met links naar gepubliceerde legal pages
-- Social links check verbeteren: filteren op daadwerkelijk ingevulde waarden
+**ShopLayout.tsx aanpassen:**
 
-**Favicon:**
-- `useEffect` in ShopLayout die dynamisch de favicon zet via DOM manipulatie, zodat het op ALLE pagina's werkt
-- Favicon Helmet verwijderen uit ShopHome.tsx
+- **`nav_style: 'mega_menu'`**: Wanneer actief, categorien tonen in een uitklapbaar dropdown paneel (hover op desktop) met subcategorieen en eventueel afbeeldingen. Het `simple` formaat blijft de huidige platte links.
+- **`header_sticky`**: De header krijgt conditioneel de `sticky top-0` class. Als `false`, wordt het een gewone statische header.
+- **`search_display`**:
+  - `'visible'`: Zoekbalk altijd zichtbaar in de header (inline input)
+  - `'icon'`: Huidige gedrag (icoon dat uitklapt)
+  - `'hidden'`: Geen zoekfunctie in de header
+- **`mobile_bottom_nav`**: Wanneer actief, een vaste navigatiebalk onderaan het scherm op mobiel met Home, Zoeken, Categorieen, Winkelwagen iconen.
 
-### 2. usePublicStorefront.ts - Legal pages query
+### Fase 2: Cookie Banner Component
 
-Nieuwe query toevoegen die gepubliceerde legal pages ophaalt:
-```
-legal_pages -> tenant_id, is_published=true -> page_type, title_nl
-```
+**Nieuw bestand: `src/components/storefront/CookieBanner.tsx`**
 
-Return als `legalPages` in het hook resultaat.
+Een component die verschijnt wanneer `cookie_banner_enabled` actief is:
+- `'minimal'`: Kleine balk onderaan met "Accepteren" knop
+- `'detailed'`: Balk met categoriekeuzes (functioneel, analytisch, marketing)
+- `'popup'`: Centered modal
+- Consent opslaan in localStorage zodat het niet herhaalt
 
-### 3. Nieuwe route en pagina: ShopLegalPage.tsx
+Renderen in ShopLayout wanneer `themeSettings.cookie_banner_enabled` true is.
 
-Nieuwe storefront pagina aanmaken voor `/shop/:tenantSlug/legal/:pageType` die:
-- De legal page content ophaalt op basis van tenant_id en page_type
-- Het in ShopLayout rendert met juiste heading font
-- Breadcrumbs toont
+### Fase 3: Conversie-elementen
 
-Route toevoegen in App.tsx.
+**Stock count** (`show_stock_count`):
+- In `ShopProductDetail.tsx`: Toon "Nog X op voorraad" wanneer voorraad laag is (bijv. < 10)
 
-### 4. ShopProducts.tsx - Breadcrumbs
+**Kijkers teller** (`show_viewers_count`):
+- Simuleer met een random getal (bijv. "3 mensen bekijken dit nu") op de productdetailpagina
 
-Breadcrumbs toevoegen boven de producten header wanneer `show_breadcrumbs` actief is:
-```
-Home > Producten > [Categorie naam]
-```
+**Recente aankopen popup** (`show_recent_purchases`):
+- Toast-achtige melding die periodiek verschijnt: "Iemand uit Amsterdam kocht [product] 5 min geleden"
 
-### 5. ShopCart.tsx - Breadcrumbs
+**Exit intent popup** (`exit_intent_popup`):
+- Detecteer muis die het venster verlaat (mouseout event op document)
+- Toon een popup met korting of nieuwsbrief aanmelding
+- Eenmalig per sessie (sessionStorage)
 
-Breadcrumbs toevoegen:
-```
-Home > Winkelwagen
-```
+### Fase 4: Nieuwsbrief Popup
 
-### 6. ProductCard.tsx - Currency prop
+**Nieuw bestand: `src/components/storefront/NewsletterPopup.tsx`**
 
-`currency` prop toevoegen en doorgeven vanuit ShopProducts en andere plekken waar ProductCard gebruikt wordt.
+Wanneer `newsletter_popup_enabled` actief:
+- Wacht `newsletter_popup_delay_seconds` seconden
+- Toon een modale popup met email input
+- Toon `newsletter_incentive_text` als dat ingevuld is
+- Opslaan in een `newsletter_subscribers` tabel of alleen lokaal markeren als getoond
 
-### 7. Zoekbalk in StandardHeader
+### Fase 5: Product Detail Instellingen
 
-Wanneer `searchOpen` waar is, een input veld tonen dat navigeert naar `/shop/{slug}/products?q={zoekterm}`.
+**ShopProductDetail.tsx aanpassen:**
+
+- **`product_image_zoom`**: Implementeer de gekozen zoom modus (hover magnifier, click zoom, of lightbox modal)
+- **`product_variant_style`**: Render varianten als dropdown, swatches (kleurcirkels), of buttons op basis van instelling
+- **`product_reviews_display`**: `'full'` toont reviews met tekst, `'stars_only'` toont alleen sterren, `'hidden'` verbergt reviews sectie
 
 ---
 
@@ -96,11 +94,13 @@ Wanneer `searchOpen` waar is, een input veld tonen dat navigeert naar `/shop/{sl
 
 | Bestand | Wijzigingen |
 |---------|-------------|
-| `src/components/storefront/ShopLayout.tsx` | Home link, logo prioriteit uit themeSettings, mobiel menu voor Standard+Centered, zoekbalk, legal pages in footer, favicon useEffect, social links fix, themeSettings prop doorvoeren |
-| `src/hooks/usePublicStorefront.ts` | Legal pages query toevoegen, `legalPages` returnen |
-| `src/pages/storefront/ShopHome.tsx` | Favicon Helmet tag verwijderen |
-| `src/pages/storefront/ShopProducts.tsx` | Breadcrumbs toevoegen, currency doorgeven aan ProductCard |
-| `src/pages/storefront/ShopCart.tsx` | Breadcrumbs toevoegen |
-| `src/pages/storefront/ShopLegalPage.tsx` | **Nieuw**: pagina voor juridische content |
-| `src/components/storefront/ProductCard.tsx` | Currency prop accepteren en gebruiken |
-| `src/App.tsx` | Route toevoegen voor `/shop/:tenantSlug/legal/:pageType` |
+| `src/components/storefront/ShopLayout.tsx` | Mega menu navigatie, conditioneel sticky header, search_display logica, mobile bottom nav, cookie banner integratie, nieuwsbrief popup integratie, recente aankopen integratie |
+| `src/components/storefront/CookieBanner.tsx` | **Nieuw**: Cookie consent component met 3 stijlen |
+| `src/components/storefront/NewsletterPopup.tsx` | **Nieuw**: Nieuwsbrief popup met delay en incentive |
+| `src/components/storefront/RecentPurchaseToast.tsx` | **Nieuw**: "Iemand kocht..." melding |
+| `src/components/storefront/ExitIntentPopup.tsx` | **Nieuw**: Popup bij verlaten pagina |
+| `src/components/storefront/MobileBottomNav.tsx` | **Nieuw**: Vaste navigatie onderaan op mobiel |
+| `src/components/storefront/MegaMenu.tsx` | **Nieuw**: Uitklapbaar categorieenmenu |
+| `src/pages/storefront/ShopProductDetail.tsx` | Image zoom, variant stijl, reviews display instelling uitlezen en toepassen |
+| `src/components/storefront/ProductCard.tsx` | Stock count indicator wanneer ingeschakeld |
+
