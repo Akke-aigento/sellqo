@@ -9,15 +9,18 @@ import { Label } from '@/components/ui/label';
 import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefront';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { VariantSelector } from '@/components/storefront/VariantSelector';
+import { ImageLightbox } from '@/components/storefront/ImageLightbox';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 
 export default function ShopProductDetail() {
   const { tenantSlug, productSlug } = useParams<{ tenantSlug: string; productSlug: string }>();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { data: product, isLoading, error } = usePublicProduct(tenant?.id, productSlug || '');
-  const { addToCart, setTenantSlug, getCartCount } = useCart();
+  const { addToCart, setTenantSlug, getCartCount, openDrawer } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const navigate = useNavigate();
   
   const [selectedImage, setSelectedImage] = useState(0);
@@ -110,10 +113,7 @@ export default function ShopProductDetail() {
       sku: selectedVariant?.sku ?? product.sku,
       variantId: selectedVariant?.id, variantTitle,
     });
-    toast.success(
-      `${quantity}x ${product.name}${variantTitle ? ` (${variantTitle})` : ''} toegevoegd aan winkelwagen`,
-      { action: { label: 'Bekijk winkelwagen', onClick: () => window.location.href = `/shop/${tenantSlug}/cart` } },
-    );
+    // Cart drawer opens automatically via CartContext
   };
 
   const handleImageClick = () => {
@@ -311,8 +311,13 @@ export default function ShopProductDetail() {
                   {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
                 </Button>
 
-                {themeSettings?.show_wishlist && (
-                  <Button variant="outline" size="icon"><Heart className="h-5 w-5" /></Button>
+                {themeSettings?.show_wishlist && product && (
+                  <Button variant="outline" size="icon" onClick={() => toggleWishlist({
+                    productId: product.id, name: product.name, price: displayPrice,
+                    image: product.images?.[0], slug: product.slug,
+                  })}>
+                    <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                  </Button>
                 )}
               </div>
             )}
@@ -330,16 +335,15 @@ export default function ShopProductDetail() {
         </div>
       </div>
 
-      {/* Lightbox Dialog */}
-      {imageZoom === 'lightbox' && (
-        <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-          <DialogContent className="max-w-4xl p-2">
-            {displayImages[selectedImage] && (
-              <img src={displayImages[selectedImage]} alt={product.name} className="w-full h-auto max-h-[85vh] object-contain" />
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Lightbox Gallery */}
+      <ImageLightbox
+        images={displayImages}
+        currentIndex={selectedImage}
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        onIndexChange={setSelectedImage}
+        alt={product.name}
+      />
     </ShopLayout>
   );
 }

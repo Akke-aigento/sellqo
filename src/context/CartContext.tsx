@@ -22,6 +22,9 @@ interface CartContextType {
   getCartCount: () => number;
   getSubtotal: () => number;
   setTenantSlug: (slug: string) => void;
+  isDrawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,6 +34,10 @@ const STORAGE_KEY_PREFIX = 'cart_';
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [tenantSlug, setTenantSlugState] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
   // Load cart from localStorage when tenant changes
   useEffect(() => {
@@ -80,6 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const uniqueKey = item.variantId ? `${item.productId}_${item.variantId}` : `${item.productId}`;
       return [...currentItems, { ...item, id: `${uniqueKey}_${Date.now()}` }];
     });
+    setIsDrawerOpen(true);
   }, []);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
@@ -122,6 +130,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       getCartCount,
       getSubtotal,
       setTenantSlug,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
     }}>
       {children}
     </CartContext.Provider>
