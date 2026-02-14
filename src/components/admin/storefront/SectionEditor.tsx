@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent } from '@/types/storefront';
 import { useCategories } from '@/hooks/useCategories';
+import { VisualMediaPicker } from './visual-editor/VisualMediaPicker';
 
 interface SectionEditorProps {
   section: HomepageSection;
@@ -40,11 +41,12 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Afbeelding URL</Label>
-              <Input
+              <Label>Afbeelding</Label>
+              <VisualMediaPicker
                 value={content.image_url || ''}
-                onChange={(e) => handleContentChange('image_url', e.target.value)}
-                placeholder="https://..."
+                onSelect={(url) => handleContentChange('image_url', url)}
+                aspectRatio="video"
+                placeholder="Klik om hero afbeelding te uploaden"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -181,11 +183,12 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
               />
             </div>
             <div className="space-y-2">
-              <Label>Afbeelding URL</Label>
-              <Input
+              <Label>Afbeelding</Label>
+              <VisualMediaPicker
                 value={content.image_url || ''}
-                onChange={(e) => handleContentChange('image_url', e.target.value)}
-                placeholder="https://..."
+                onSelect={(url) => handleContentChange('image_url', url)}
+                aspectRatio="square"
+                placeholder="Klik om afbeelding te uploaden"
               />
             </div>
             <div className="space-y-2">
@@ -284,10 +287,11 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
             </div>
             <div className="space-y-2">
               <Label>Poster Afbeelding (optioneel)</Label>
-              <Input
+              <VisualMediaPicker
                 value={(formData.content as any).poster_url || ''}
-                onChange={(e) => handleContentChange('poster_url', e.target.value)}
-                placeholder="https://..."
+                onSelect={(url) => handleContentChange('poster_url', url)}
+                aspectRatio="video"
+                placeholder="Klik om poster afbeelding te uploaden"
               />
             </div>
             <div className="flex items-center justify-between">
