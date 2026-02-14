@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Menu, Search, X } from 'lucide-react';
+import { ShoppingCart, Menu, Search, X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -8,6 +8,7 @@ import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { usePublicReviews } from '@/hooks/useReviewsHub';
 import { usePublicProducts } from '@/hooks/usePublicStorefront';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { ReviewsFloatingWidget } from '@/components/storefront/reviews/ReviewsFloatingWidget';
 import { ReviewsTrustBar } from '@/components/storefront/reviews/ReviewsTrustBar';
 import { ReviewsStructuredData } from '@/components/storefront/reviews/ReviewsStructuredData';
@@ -17,6 +18,8 @@ import { CookieBanner } from '@/components/storefront/CookieBanner';
 import { NewsletterPopup } from '@/components/storefront/NewsletterPopup';
 import { ExitIntentPopup } from '@/components/storefront/ExitIntentPopup';
 import { RecentPurchaseToast } from '@/components/storefront/RecentPurchaseToast';
+import { CartDrawer } from '@/components/storefront/CartDrawer';
+import { SearchModal } from '@/components/storefront/SearchModal';
 import { cn } from '@/lib/utils';
 import type { ReviewPlatform } from '@/types/reviews-hub';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,13 +33,16 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const navigate = useNavigate();
   const { tenant, themeSettings, navPages, categories, legalPages, isLoading, error } = usePublicStorefront(tenantSlug || '');
   const { aggregate, reviews, connections } = usePublicReviews(tenant?.id);
-  const { getCartCount, setTenantSlug } = useCart();
+  const { getCartCount, setTenantSlug, isDrawerOpen, closeDrawer } = useCart();
+  const { getWishlistCount } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [redirecting, setRedirecting] = useState(false);
   
   const cartCount = getCartCount();
+  const wishlistCount = getWishlistCount();
 
   // Fetch product names for RecentPurchaseToast
   const { data: allProducts } = usePublicProducts(tenant?.id, { limit: 20 });
@@ -168,6 +174,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const basePath = `/shop/${tenantSlug}`;
   const headerStyle = themeSettings?.header_style || 'standard';
   const showAnnouncement = themeSettings?.show_announcement_bar && themeSettings?.announcement_text;
+  const announcementTexts = showAnnouncement ? String(themeSettings.announcement_text).split('|').map((t: string) => t.trim()).filter(Boolean) : [];
   const logoUrl = ts?.logo_url || tenant.logo_url;
   const socialLinks = themeSettings?.social_links || {};
   const filledSocialLinks = Object.entries(socialLinks).filter(([, value]) => value && String(value).trim() !== '');
@@ -181,23 +188,13 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         color: themeSettings?.text_color || undefined,
       }}
     >
-      {/* Announcement Bar */}
-      {showAnnouncement && (
-        <div 
-          className="py-2 px-4 text-center text-sm"
-          style={{ 
-            backgroundColor: themeSettings?.primary_color || 'hsl(var(--primary))',
-            color: '#ffffff' 
-          }}
-        >
-          {themeSettings?.announcement_link ? (
-            <a href={themeSettings.announcement_link} className="hover:underline">
-              {themeSettings.announcement_text}
-            </a>
-          ) : (
-            themeSettings?.announcement_text
-          )}
-        </div>
+      {/* Announcement Bar Carousel */}
+      {showAnnouncement && announcementTexts.length > 0 && (
+        <AnnouncementCarousel 
+          texts={announcementTexts} 
+          link={themeSettings?.announcement_link}
+          bgColor={themeSettings?.primary_color || 'hsl(var(--primary))'}
+        />
       )}
 
       {/* Header - conditionally sticky */}
@@ -229,6 +226,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               onSearch={handleSearch} cartCount={cartCount}
               mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
               navStyle={navStyle} searchDisplay={searchDisplay}
+              wishlistCount={wishlistCount}
+              onCartClick={() => { if (cartCount > 0) { /* drawer opens via context */ } }}
+              onSearchModalOpen={() => setSearchModalOpen(true)}
             />
           )}
         </div>
@@ -345,8 +345,14 @@ export function ShopLayout({ children }: ShopLayoutProps) {
 
       {/* Mobile Bottom Nav */}
       {mobileBottomNav && (
-        <MobileBottomNav basePath={basePath} cartCount={cartCount} onSearchClick={() => setSearchOpen(true)} />
+        <MobileBottomNav basePath={basePath} cartCount={cartCount} onSearchClick={() => setSearchModalOpen(true)} />
       )}
+
+      {/* Cart Drawer */}
+      <CartDrawer open={isDrawerOpen} onOpenChange={closeDrawer} basePath={basePath} currency={tenant?.currency || 'EUR'} />
+
+      {/* Search Modal */}
+      <SearchModal open={searchModalOpen} onOpenChange={setSearchModalOpen} tenantId={tenant?.id} basePath={basePath} currency={tenant?.currency || 'EUR'} />
 
       {/* Custom CSS */}
       {themeSettings?.custom_css && (
@@ -356,8 +362,40 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   );
 }
 
+// Announcement Carousel
+function AnnouncementCarousel({ texts, link, bgColor }: { texts: string[]; link?: string; bgColor: string }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (texts.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % texts.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [texts.length]);
+
+  const content = texts[currentIndex] || texts[0];
+
+  return (
+    <div 
+      className="py-2 px-4 text-center text-sm overflow-hidden relative h-8 flex items-center justify-center"
+      style={{ backgroundColor: bgColor, color: '#ffffff' }}
+    >
+      <div key={currentIndex} className="animate-fade-in">
+        {link ? (
+          <a href={link} className="hover:underline">{content}</a>
+        ) : (
+          content
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Standard Header Component
-function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay }: any) {
+function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen }: any) {
+  const { openDrawer } = useCart();
+  
   return (
     <>
       <div className="flex items-center justify-between h-16">
@@ -389,7 +427,7 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* Inline search (visible mode) */}
           {searchDisplay === 'visible' && (
             <form onSubmit={onSearch} className="hidden md:flex items-center gap-1">
@@ -399,23 +437,33 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
               </Button>
             </form>
           )}
-          {/* Icon search (icon mode) */}
+          {/* Icon search (icon mode) - opens search modal */}
           {searchDisplay === 'icon' && (
-            <Button variant="ghost" size="icon" onClick={() => setSearchOpen(!searchOpen)} className="hidden md:flex">
+            <Button variant="ghost" size="icon" onClick={onSearchModalOpen} className="hidden md:flex">
               <Search className="h-5 w-5" />
             </Button>
           )}
-          {/* hidden mode: no search shown */}
 
-          <Button variant="ghost" size="icon" asChild className="relative">
-            <Link to={`${basePath}/cart`}>
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount > 99 ? '99+' : cartCount}
+          {/* Wishlist */}
+          <Button variant="ghost" size="icon" asChild className="relative hidden md:flex">
+            <Link to={`${basePath}/wishlist`}>
+              <Heart className="h-5 w-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
                 </span>
               )}
             </Link>
+          </Button>
+
+          {/* Cart - opens drawer */}
+          <Button variant="ghost" size="icon" className="relative" onClick={openDrawer}>
+            <ShoppingCart className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-scale-in">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </Button>
 
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -428,6 +476,9 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
               <nav className="flex flex-col gap-4 mt-8">
                 <Link to={basePath} className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Home</Link>
                 <Link to={`${basePath}/products`} className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Alle Producten</Link>
+                <Link to={`${basePath}/wishlist`} className="text-lg font-medium flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                  <Heart className="h-5 w-5" /> Verlanglijst {wishlistCount > 0 && `(${wishlistCount})`}
+                </Link>
                 <div className="border-t my-2" />
                 {categories.map((cat: any) => (
                   <Link key={cat.id} to={`${basePath}/products?category=${cat.slug}`} className="text-muted-foreground hover:text-foreground" onClick={() => setMobileMenuOpen(false)}>{cat.name}</Link>
@@ -446,17 +497,6 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
           </Sheet>
         </div>
       </div>
-
-      {/* Search bar dropdown (icon mode) */}
-      {searchDisplay === 'icon' && searchOpen && (
-        <div className="pb-4">
-          <form onSubmit={onSearch} className="flex gap-2 max-w-lg mx-auto">
-            <Input value={searchQuery} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)} placeholder="Zoek producten..." className="flex-1" autoFocus />
-            <Button type="submit" size="icon" variant="outline"><Search className="h-4 w-4" /></Button>
-            <Button type="button" size="icon" variant="ghost" onClick={() => setSearchOpen(false)}><X className="h-4 w-4" /></Button>
-          </form>
-        </div>
-      )}
     </>
   );
 }
