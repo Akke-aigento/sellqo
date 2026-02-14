@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale, Star } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
-// ThemeGallery is now embedded inside ThemeCustomizer as ThemeGalleryInline
 import { ThemeCustomizer } from '@/components/admin/storefront/ThemeCustomizer';
 import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
@@ -16,16 +13,21 @@ import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSett
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
 import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
+import { Card, CardContent } from '@/components/ui/card';
+
+const navItems = [
+  { id: 'theme', label: 'Theme', icon: Paintbrush },
+  { id: 'homepage', label: 'Homepage', icon: LayoutDashboard },
+  { id: 'pages', label: "Pagina's", icon: FileText },
+  { id: 'reviews', label: 'Reviews', icon: Star },
+  { id: 'legal', label: 'Juridisch', icon: Scale },
+  { id: 'features', label: 'Functies', icon: Sliders },
+  { id: 'settings', label: 'Instellingen', icon: Settings },
+];
 
 export default function StorefrontPage() {
   const { currentTenant } = useTenant();
-  const { 
-    themes, 
-    themeSettings, 
-    isLoading,
-    saveThemeSettings,
-    publishStorefront 
-  } = useStorefront();
+  const { themeSettings, publishStorefront } = useStorefront();
   const [activeTab, setActiveTab] = useState('theme');
   const { canonicalDomain } = useTenantDomains();
 
@@ -41,11 +43,23 @@ export default function StorefrontPage() {
     );
   }
 
-  const selectedTheme = themes.find(t => t.id === themeSettings?.theme_id);
   const isPublished = themeSettings?.is_published;
   const storefrontUrl = canonicalDomain?.domain
     ? `https://${canonicalDomain.domain}`
     : `/shop/${currentTenant.slug}`;
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'theme': return <ThemeCustomizer />;
+      case 'homepage': return <HomepageBuilder />;
+      case 'pages': return <StorefrontPagesManager />;
+      case 'reviews': return <ReviewsHub />;
+      case 'legal': return <LegalPagesManager />;
+      case 'features': return <StorefrontFeaturesSettings />;
+      case 'settings': return <StorefrontSettings />;
+      default: return null;
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -75,7 +89,7 @@ export default function StorefrontPage() {
               Preview
             </a>
           </Button>
-          <Button 
+          <Button
             onClick={() => publishStorefront.mutate()}
             disabled={publishStorefront.isPending || !themeSettings?.theme_id}
           >
@@ -85,109 +99,53 @@ export default function StorefrontPage() {
         </div>
       </div>
 
-      {/* Status Card */}
-      {isLoading ? (
-        <Card>
-          <CardContent className="py-6">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-16 w-16 rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : selectedTheme ? (
-        <Card>
-          <CardContent className="py-6">
-            <div className="flex items-center gap-4">
-              <div 
-                className="h-16 w-16 rounded-lg border flex items-center justify-center"
-                style={{ backgroundColor: themeSettings?.primary_color || selectedTheme.default_settings.primary_color }}
-              >
-                <Paintbrush className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">{selectedTheme.name} Theme</h3>
-                <p className="text-sm text-muted-foreground">{selectedTheme.description}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <Paintbrush className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Kies een theme om te beginnen</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Selecteer een van onze professionele themes en pas het aan naar je merk
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Mobile: horizontal scrollable nav */}
+      <div className="md:hidden overflow-x-auto pb-2 -mx-1">
+        <div className="flex gap-1.5 px-1 min-w-max">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                activeTab === item.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              <item.icon className="h-3.5 w-3.5" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="theme" className="flex items-center gap-2">
-            <Paintbrush className="h-4 w-4" />
-            <span className="hidden sm:inline">Theme</span>
-          </TabsTrigger>
-          <TabsTrigger value="homepage" className="flex items-center gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">Homepage</span>
-          </TabsTrigger>
-          <TabsTrigger value="pages" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Pagina's</span>
-          </TabsTrigger>
-          <TabsTrigger value="reviews" className="flex items-center gap-2">
-            <Star className="h-4 w-4" />
-            <span className="hidden sm:inline">Reviews</span>
-          </TabsTrigger>
-          <TabsTrigger value="legal" className="flex items-center gap-2">
-            <Scale className="h-4 w-4" />
-            <span className="hidden sm:inline">Juridisch</span>
-          </TabsTrigger>
-          <TabsTrigger value="features" className="flex items-center gap-2">
-            <Sliders className="h-4 w-4" />
-            <span className="hidden sm:inline">Functies</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Instellingen</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Desktop: sidebar + content */}
+      <div className="flex gap-6">
+        {/* Sidebar nav - desktop only */}
+        <nav className="hidden md:flex flex-col gap-1 w-48 shrink-0">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors text-left',
+                activeTab === item.id
+                  ? 'bg-muted text-foreground border-l-2 border-primary'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-transparent'
+              )}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
-        <TabsContent value="theme" className="space-y-6">
-          <ThemeCustomizer />
-        </TabsContent>
-
-        <TabsContent value="homepage">
-          <HomepageBuilder />
-        </TabsContent>
-
-        <TabsContent value="pages">
-          <StorefrontPagesManager />
-        </TabsContent>
-
-        <TabsContent value="reviews">
-          <ReviewsHub />
-        </TabsContent>
-
-        <TabsContent value="legal">
-          <LegalPagesManager />
-        </TabsContent>
-
-        <TabsContent value="features">
-          <StorefrontFeaturesSettings />
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <StorefrontSettings />
-        </TabsContent>
-      </Tabs>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 }
