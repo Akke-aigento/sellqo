@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +11,7 @@ import { PaymentMethodSelector, type PaymentMethod } from '@/components/storefro
 import { BankTransferPayment } from '@/components/storefront/BankTransferPayment';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { useCart } from '@/context/CartContext';
+import { useAddressValidation } from '@/hooks/useAddressValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ interface CustomerData {
   firstName: string;
   lastName: string;
   phone: string;
+  companyName: string;
   street: string;
   houseNumber: string;
   postalCode: string;
@@ -34,6 +36,7 @@ export default function ShopCheckout() {
   const navigate = useNavigate();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
+  const { searchAddress, suggestions, isSearching } = useAddressValidation();
   
   const [step, setStep] = useState<CheckoutStep>('details');
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -41,6 +44,7 @@ export default function ShopCheckout() {
     firstName: '',
     lastName: '',
     phone: '',
+    companyName: '',
     street: '',
     houseNumber: '',
     postalCode: '',
@@ -56,6 +60,14 @@ export default function ShopCheckout() {
     ogmReference: string;
     amount: number;
   } | null>(null);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Read checkout config settings
+  const ts = themeSettings as any;
+  const phoneRequired = ts?.checkout_phone_required || false;
+  const companyField = ts?.checkout_company_field || 'hidden';
+  const addressAutocomplete = ts?.checkout_address_autocomplete || false;
 
   // Set tenant slug for cart context
   useEffect(() => {
@@ -69,7 +81,6 @@ export default function ShopCheckout() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('cancelled') === 'true') {
       toast.info('Je betaling is geannuleerd. Probeer het opnieuw.');
-      // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -79,12 +90,24 @@ export default function ShopCheckout() {
     if (tenant?.payment_methods_enabled) {
       const methods = tenant.payment_methods_enabled as PaymentMethod[];
       setEnabledPaymentMethods(methods.length > 0 ? methods : ['stripe']);
-      // Default to first enabled method
       if (methods.length > 0 && !methods.includes(paymentMethod)) {
         setPaymentMethod(methods[0]);
       }
     }
   }, [tenant?.payment_methods_enabled]);
+
+  // Address autocomplete debounce
+  useEffect(() => {
+    if (!addressAutocomplete || !addressQuery || addressQuery.length < 3) {
+      setShowSuggestions(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      searchAddress(addressQuery, customerData.country);
+      setShowSuggestions(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [addressQuery, addressAutocomplete, customerData.country]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -99,11 +122,34 @@ export default function ShopCheckout() {
 
   const handleInputChange = (field: keyof CustomerData, value: string) => {
     setCustomerData(prev => ({ ...prev, [field]: value }));
+    if (field === 'street' && addressAutocomplete) {
+      setAddressQuery(value);
+    }
+  };
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    setCustomerData(prev => ({
+      ...prev,
+      street: suggestion.street,
+      city: suggestion.city,
+      postalCode: suggestion.postal_code,
+      country: suggestion.country || prev.country,
+    }));
+    setShowSuggestions(false);
+    setAddressQuery('');
   };
 
   const validateForm = (): boolean => {
     if (!customerData.email || !customerData.firstName || !customerData.lastName) {
       toast.error('Vul alle verplichte velden in');
+      return false;
+    }
+    if (phoneRequired && !customerData.phone.trim()) {
+      toast.error('Telefoonnummer is verplicht');
+      return false;
+    }
+    if (companyField === 'required' && !customerData.companyName.trim()) {
+      toast.error('Bedrijfsnaam is verplicht');
       return false;
     }
     if (!customerData.street || !customerData.postalCode || !customerData.city) {
@@ -116,7 +162,6 @@ export default function ShopCheckout() {
   const handleCustomerDetailsSubmit = () => {
     if (!validateForm()) return;
     
-    // If only one payment method enabled, skip selection
     if (enabledPaymentMethods.length === 1) {
       setPaymentMethod(enabledPaymentMethods[0]);
       handlePayment(enabledPaymentMethods[0]);
@@ -131,7 +176,6 @@ export default function ShopCheckout() {
     setIsProcessing(true);
     
     try {
-      // Prepare items in correct format for edge functions
       const formattedItems = cartItems.map(item => ({
         product_id: item.productId,
         product_name: item.name,
@@ -141,7 +185,6 @@ export default function ShopCheckout() {
         unit_price: item.price,
       }));
 
-      // Prepare address object
       const shippingAddress = {
         street: `${customerData.street} ${customerData.houseNumber}`.trim(),
         city: customerData.city,
@@ -150,7 +193,6 @@ export default function ShopCheckout() {
       };
 
       if (method === 'stripe') {
-        // Call create-checkout-session edge function
         const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
           body: {
             tenant_id: tenant.id,
@@ -158,6 +200,7 @@ export default function ShopCheckout() {
             customer_email: customerData.email,
             customer_name: `${customerData.firstName} ${customerData.lastName}`,
             customer_phone: customerData.phone,
+            customer_company: customerData.companyName || undefined,
             shipping_address: shippingAddress,
             billing_address: shippingAddress,
             shipping_cost: shipping,
@@ -166,12 +209,10 @@ export default function ShopCheckout() {
 
         if (error) throw new Error(error.message);
         if (sessionData?.url) {
-          // Clear cart before redirect
           clearCart();
           window.location.href = sessionData.url;
         }
       } else if (method === 'bank_transfer') {
-        // Call create-bank-transfer-order edge function with correct format
         const { data: orderData, error } = await supabase.functions.invoke('create-bank-transfer-order', {
           body: {
             tenant_id: tenant.id,
@@ -179,6 +220,7 @@ export default function ShopCheckout() {
             customer_email: customerData.email,
             customer_name: `${customerData.firstName} ${customerData.lastName}`,
             customer_phone: customerData.phone,
+            customer_company: customerData.companyName || undefined,
             shipping_address: shippingAddress,
             billing_address: shippingAddress,
             shipping_cost: shipping,
@@ -187,10 +229,7 @@ export default function ShopCheckout() {
 
         if (error) throw new Error(error.message);
         
-        // Clear cart and navigate to confirmation
         clearCart();
-        
-        // Navigate to order confirmation page
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
       }
     } catch (error) {
@@ -266,12 +305,15 @@ export default function ShopCheckout() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Telefoonnummer</Label>
+                        <Label htmlFor="phone">
+                          Telefoonnummer {phoneRequired ? '*' : ''}
+                        </Label>
                         <Input
                           id="phone"
                           type="tel"
                           value={customerData.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
+                          required={phoneRequired}
                         />
                       </div>
                     </div>
@@ -297,20 +339,61 @@ export default function ShopCheckout() {
                     </div>
                   </div>
 
+                  {/* Company field - conditionally shown */}
+                  {companyField !== 'hidden' && (
+                    <>
+                      <Separator />
+                      <div className="space-y-4">
+                        <h3 className="font-medium flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Bedrijfsgegevens
+                        </h3>
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">
+                            Bedrijfsnaam {companyField === 'required' ? '*' : '(optioneel)'}
+                          </Label>
+                          <Input
+                            id="companyName"
+                            value={customerData.companyName}
+                            onChange={(e) => handleInputChange('companyName', e.target.value)}
+                            placeholder="Naam van je bedrijf"
+                            required={companyField === 'required'}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   <Separator />
 
                   {/* Address */}
                   <div className="space-y-4">
                     <h3 className="font-medium">Verzendadres</h3>
                     <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="sm:col-span-2 space-y-2">
+                      <div className="sm:col-span-2 space-y-2 relative">
                         <Label htmlFor="street">Straat *</Label>
                         <Input
                           id="street"
                           value={customerData.street}
                           onChange={(e) => handleInputChange('street', e.target.value)}
                           required
+                          placeholder={addressAutocomplete ? 'Begin met typen...' : undefined}
                         />
+                        {/* Address autocomplete suggestions */}
+                        {addressAutocomplete && showSuggestions && suggestions.length > 0 && (
+                          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                            {suggestions.map((s, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                onClick={() => handleSelectSuggestion(s)}
+                              >
+                                {s.full_address}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="houseNumber">Huisnummer</Label>

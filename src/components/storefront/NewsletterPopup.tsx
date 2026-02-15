@@ -1,19 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Mail } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface NewsletterPopupProps {
   tenantSlug: string;
+  tenantId?: string;
   delaySeconds: number;
   incentiveText?: string | null;
 }
 
 const STORAGE_KEY = 'newsletter-popup-shown';
 
-export function NewsletterPopup({ tenantSlug, delaySeconds, incentiveText }: NewsletterPopupProps) {
+export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveText }: NewsletterPopupProps) {
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const key = `${STORAGE_KEY}-${tenantSlug}`;
@@ -31,12 +35,45 @@ export function NewsletterPopup({ tenantSlug, delaySeconds, incentiveText }: New
     setVisible(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
+    if (!email.trim() || !tenantId) return;
+
+    setIsSubmitting(true);
+    try {
+      // Try storefront API first
+      const { error } = await supabase.functions.invoke('storefront-api', {
+        body: {
+          action: 'newsletter_subscribe',
+          tenant_id: tenantId,
+          email: email.trim(),
+          source: 'popup',
+        },
+      });
+
+      if (error) {
+        // Fallback: insert directly into newsletter_subscribers
+        const { error: insertError } = await supabase
+          .from('newsletter_subscribers')
+          .insert({
+            tenant_id: tenantId,
+            email: email.trim(),
+            source: 'popup',
+            status: 'active',
+          });
+        if (insertError && insertError.code !== '23505') {
+          throw insertError;
+        }
+      }
+
       setSubmitted(true);
       localStorage.setItem(`${STORAGE_KEY}-${tenantSlug}`, '1');
       setTimeout(() => setVisible(false), 2000);
+    } catch (err) {
+      console.error('Newsletter signup error:', err);
+      toast.error('Er ging iets mis. Probeer het later opnieuw.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -77,7 +114,9 @@ export function NewsletterPopup({ tenantSlug, delaySeconds, incentiveText }: New
                 required
                 className="flex-1 rounded-md border px-3 py-2 text-sm"
               />
-              <Button type="submit">Aanmelden</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Bezig...' : 'Aanmelden'}
+              </Button>
             </form>
 
             <button

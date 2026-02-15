@@ -7,7 +7,32 @@ interface CookieBannerProps {
   tenantSlug: string;
 }
 
+export interface CookieConsent {
+  functional: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  timestamp: number;
+}
+
 const STORAGE_KEY = 'cookie-consent';
+
+/** Read stored cookie consent. Returns null if not yet given. */
+export function getCookieConsent(tenantSlug: string): CookieConsent | null {
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEY}-${tenantSlug}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as CookieConsent;
+  } catch {
+    return null;
+  }
+}
+
+/** Check if a specific category is consented to */
+export function hasConsent(tenantSlug: string, category: 'analytics' | 'marketing'): boolean {
+  const consent = getCookieConsent(tenantSlug);
+  if (!consent) return false;
+  return consent[category] === true;
+}
 
 export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
   const [visible, setVisible] = useState(false);
@@ -18,18 +43,28 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
   });
 
   useEffect(() => {
-    const consent = localStorage.getItem(`${STORAGE_KEY}-${tenantSlug}`);
+    const consent = getCookieConsent(tenantSlug);
     if (!consent) {
       setVisible(true);
     }
   }, [tenantSlug]);
 
   const accept = (all: boolean = true) => {
-    const value = all
+    const value: CookieConsent = all
       ? { functional: true, analytics: true, marketing: true, timestamp: Date.now() }
       : { ...preferences, timestamp: Date.now() };
     localStorage.setItem(`${STORAGE_KEY}-${tenantSlug}`, JSON.stringify(value));
     setVisible(false);
+
+    // Dispatch custom event so other scripts can react to consent changes
+    window.dispatchEvent(new CustomEvent('cookie-consent-changed', { detail: value }));
+  };
+
+  const decline = () => {
+    const value: CookieConsent = { functional: true, analytics: false, marketing: false, timestamp: Date.now() };
+    localStorage.setItem(`${STORAGE_KEY}-${tenantSlug}`, JSON.stringify(value));
+    setVisible(false);
+    window.dispatchEvent(new CustomEvent('cookie-consent-changed', { detail: value }));
   };
 
   if (!visible) return null;
@@ -135,11 +170,11 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
           Deze website gebruikt cookies voor een betere ervaring.
         </p>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={decline}>
+            Weigeren
+          </Button>
           <Button size="sm" onClick={() => accept(true)}>
             Accepteren
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setVisible(false)}>
-            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
