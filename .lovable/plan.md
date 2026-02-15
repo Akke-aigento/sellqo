@@ -1,23 +1,47 @@
 
-# Live Preview en Storefront Achtergrondkleur Fix
+# Knop Link Dropdown + Upload Fix
 
-## Probleem
+## Twee problemen gevonden
 
-De achtergrondkleur die je instelt (bijv. zwart `#0f0f0f` bij "Bold" mood) wordt wel opgeslagen in de database, maar verschijnt niet op de daadwerkelijke storefront. De oorzaak: het thema-systeem stelt de CSS-variabele `--background` correct in, maar de hoofdcontainer van de pagina past deze variabele niet toe.
+### 1. Knop Link: dropdown met categorieeen
+Het huidige "Knop Link" veld is een vrij tekstveld. Dit wordt vervangen door een dropdown (Select) met vaste pagina-opties en de beschikbare productcategorieen.
 
-De CSS-variabele wordt gezet op de wrapper div, maar die div heeft geen `bg-background` class, waardoor de browser gewoon de standaard witte achtergrond toont.
+De dropdown bevat:
+- Vaste routes: `/products` (Alle producten), `/cart` (Winkelwagen), `/` (Homepage)
+- Dynamische categorieen uit de database (bijv. `/products?category=schoenen`)
 
-## Oplossing
+Dit wordt toegepast op beide plekken waar "Knop Link" voorkomt in `SectionEditor.tsx`: de **hero** sectie en de **text_image** sectie.
 
-Een simpele 1-regel fix: voeg `bg-background` toe aan de wrapper div in `ShopLayout.tsx`, zodat de Tailwind-class de `--background` CSS-variabele oppikt.
+### 2. Upload error: ontbrekende storage bucket
+De `VisualMediaPicker` upload naar een bucket genaamd `tenant-assets`, maar die bucket bestaat niet. Alleen `product-images` en `marketing-assets` bestaan. Er moet een `tenant-assets` bucket aangemaakt worden (publiek, zodat afbeeldingen zichtbaar zijn op de storefront).
 
-## Technische Wijziging
+## Technische Wijzigingen
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/storefront/ShopLayout.tsx` | Regel 280: `bg-background` toevoegen aan de className van de wrapper div. |
+| Bestand / Actie | Wijziging |
+|-----------------|-----------|
+| **SQL Migratie** | `tenant-assets` storage bucket aanmaken met publieke toegang + RLS policy voor authenticated uploads |
+| **`SectionEditor.tsx`** | Op 2 plekken het `Input`-veld voor "Knop Link" vervangen door een `Select` dropdown met vaste pagina's + categorieen uit `useCategories()` hook (al geimporteerd) |
 
-Concreet:
-- `"min-h-screen flex flex-col"` wordt `"min-h-screen flex flex-col bg-background"`
+### Detail: Dropdown opties
 
-Dit zorgt ervoor dat de ingestelde achtergrondkleur (wit, zwart, of elke andere kleur) direct zichtbaar is op de hele pagina.
+```text
+Vaste opties:
+  /products        -> "Alle Producten"
+  /cart             -> "Winkelwagen"
+  /                 -> "Homepage"
+
+Categorie opties (dynamisch):
+  /products?category={slug}  -> Categorienaam
+```
+
+### Detail: Storage bucket
+
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('tenant-assets', 'tenant-assets', true);
+CREATE POLICY "Authenticated users can upload tenant assets"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'tenant-assets');
+CREATE POLICY "Public read access for tenant assets"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'tenant-assets');
+```
