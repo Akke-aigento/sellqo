@@ -277,7 +277,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
 
   return (
     <div 
-      className={cn("min-h-screen flex flex-col", mobileBottomNav && "pb-14 md:pb-0")}
+      className={cn("min-h-screen flex flex-col bg-background", mobileBottomNav && "pb-14 md:pb-0")}
       style={{
         fontFamily: themeSettings?.body_font ? `"${themeSettings.body_font}", sans-serif` : undefined,
         ...themeStyle,
