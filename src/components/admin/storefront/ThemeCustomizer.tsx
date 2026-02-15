@@ -22,6 +22,8 @@ import { ThemeMoodPresets, type MoodPreset } from './ThemeMoodPresets';
 import { ColorPaletteGenerator } from './ColorPaletteGenerator';
 import { FontPairingSuggestions } from './FontPairingSuggestions';
 import { ThemeGalleryInline } from './ThemeGalleryInline';
+import { ThemePresetManager } from './ThemePresetManager';
+import type { ThemePresetSettings } from '@/hooks/useThemePresets';
 import { cn } from '@/lib/utils';
 
 export function ThemeCustomizer() {
@@ -130,6 +132,44 @@ export function ThemeCustomizer() {
     <div className="space-y-6">
       {/* Compact Theme Gallery */}
       <ThemeGalleryInline />
+
+      {/* Theme Presets */}
+      <ThemePresetManager
+        currentSettings={{
+          primary_color: formData.primary_color,
+          secondary_color: formData.secondary_color,
+          accent_color: formData.accent_color,
+          background_color: formData.background_color,
+          text_color: formData.text_color,
+          heading_font: formData.heading_font,
+          body_font: formData.body_font,
+          header_style: formData.header_style,
+          product_card_style: formData.product_card_style,
+          products_per_row: formData.products_per_row,
+          show_breadcrumbs: formData.show_breadcrumbs,
+          show_wishlist: formData.show_wishlist,
+          theme_id: themeSettings?.theme_id,
+        }}
+        onLoadPreset={(settings) => {
+          setFormData(prev => ({
+            ...prev,
+            primary_color: settings.primary_color,
+            secondary_color: settings.secondary_color,
+            accent_color: settings.accent_color,
+            background_color: settings.background_color,
+            text_color: settings.text_color,
+            heading_font: settings.heading_font,
+            body_font: settings.body_font,
+            header_style: settings.header_style,
+            product_card_style: settings.product_card_style,
+            products_per_row: settings.products_per_row,
+            show_breadcrumbs: settings.show_breadcrumbs,
+            show_wishlist: settings.show_wishlist,
+          }));
+          setActiveMoodId(undefined);
+          setActiveMoodData(undefined);
+        }}
+      />
 
       {/* Design Studio: Split Layout */}
       <div className="flex gap-6 items-start">
