@@ -1,47 +1,43 @@
 
-# Knop Link Dropdown + Upload Fix
+# Bevestigingsdialoog bij Theme Wissel
 
-## Twee problemen gevonden
+## Probleem
 
-### 1. Knop Link: dropdown met categorieeen
-Het huidige "Knop Link" veld is een vrij tekstveld. Dit wordt vervangen door een dropdown (Select) met vaste pagina-opties en de beschikbare productcategorieen.
+Wanneer je een ander thema selecteert, worden **alle handmatige aanpassingen** (kleuren, fonts, mood-instellingen) direct overschreven door de standaardwaarden van het nieuwe thema. Er is geen waarschuwing en geen manier om terug te gaan.
 
-De dropdown bevat:
-- Vaste routes: `/products` (Alle producten), `/cart` (Winkelwagen), `/` (Homepage)
-- Dynamische categorieen uit de database (bijv. `/products?category=schoenen`)
+## Oplossing
 
-Dit wordt toegepast op beide plekken waar "Knop Link" voorkomt in `SectionEditor.tsx`: de **hero** sectie en de **text_image** sectie.
+Een **AlertDialog** tonen wanneer de gebruiker een ander thema aanklikt, met duidelijke uitleg dat alle huidige aanpassingen worden gereset. Pas na bevestiging wordt het thema gewisseld.
 
-### 2. Upload error: ontbrekende storage bucket
-De `VisualMediaPicker` upload naar een bucket genaamd `tenant-assets`, maar die bucket bestaat niet. Alleen `product-images` en `marketing-assets` bestaan. Er moet een `tenant-assets` bucket aangemaakt worden (publiek, zodat afbeeldingen zichtbaar zijn op de storefront).
+Als hetzelfde thema opnieuw wordt aangeklikt (al geselecteerd), gebeurt er niets — geen dialoog, geen reset.
+
+## Wat de gebruiker ziet
+
+Bij klik op een ander thema verschijnt een dialoog:
+
+```
+"Theme wijzigen?"
+
+"Als je naar [Themanaam] wisselt, worden al je huidige
+aanpassingen (kleuren, fonts, layout) gereset naar de
+standaardwaarden van dit theme."
+
+[Annuleren]  [Doorgaan]
+```
 
 ## Technische Wijzigingen
 
-| Bestand / Actie | Wijziging |
-|-----------------|-----------|
-| **SQL Migratie** | `tenant-assets` storage bucket aanmaken met publieke toegang + RLS policy voor authenticated uploads |
-| **`SectionEditor.tsx`** | Op 2 plekken het `Input`-veld voor "Knop Link" vervangen door een `Select` dropdown met vaste pagina's + categorieen uit `useCategories()` hook (al geimporteerd) |
+| Bestand | Wijziging |
+|---------|-----------|
+| `ThemeGalleryInline.tsx` | AlertDialog toevoegen met state voor `pendingThemeId`. Bij klik: als thema al actief is, niets doen. Anders: dialoog tonen. Bij bevestiging: `handleSelectTheme` uitvoeren. |
+| `ThemeGallery.tsx` | Zelfde AlertDialog-logica toepassen (dit component wordt ook gebruikt op de volledige Theme-pagina). |
 
-### Detail: Dropdown opties
+### Logica
 
-```text
-Vaste opties:
-  /products        -> "Alle Producten"
-  /cart             -> "Winkelwagen"
-  /                 -> "Homepage"
+1. Gebruiker klikt op een thema
+2. Als `themeId === themeSettings.theme_id` -> niets doen (al geselecteerd)
+3. Anders -> `setPendingThemeId(themeId)` om de dialoog te openen
+4. Bij "Annuleren" -> `setPendingThemeId(null)`
+5. Bij "Doorgaan" -> `handleSelectTheme(pendingThemeId)` uitvoeren en dialoog sluiten
 
-Categorie opties (dynamisch):
-  /products?category={slug}  -> Categorienaam
-```
-
-### Detail: Storage bucket
-
-```sql
-INSERT INTO storage.buckets (id, name, public) VALUES ('tenant-assets', 'tenant-assets', true);
-CREATE POLICY "Authenticated users can upload tenant assets"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'tenant-assets');
-CREATE POLICY "Public read access for tenant assets"
-  ON storage.objects FOR SELECT TO public
-  USING (bucket_id = 'tenant-assets');
-```
+Beide componenten gebruiken dezelfde aanpak met de bestaande `AlertDialog` UI-component.
