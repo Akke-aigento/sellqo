@@ -12125,6 +12125,38 @@ export type Database = {
           },
         ]
       }
+      tenant_theme_presets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          settings: Json
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          settings: Json
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          settings?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_theme_presets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_theme_settings: {
         Row: {
           accent_color: string | null
