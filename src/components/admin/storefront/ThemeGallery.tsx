@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Check, Crown, Sparkles, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
@@ -12,6 +14,8 @@ export function ThemeGallery() {
   const { themes, themeSettings, themesLoading, saveThemeSettings } = useStorefront();
   const { currentTenant } = useTenant();
   const { canonicalDomain } = useTenantDomains();
+  const [pendingThemeId, setPendingThemeId] = useState<string | null>(null);
+  const pendingTheme = themes.find(t => t.id === pendingThemeId);
 
   const handleSelectTheme = (themeId: string) => {
     const theme = themes.find(t => t.id === themeId);
@@ -82,7 +86,10 @@ export function ThemeGallery() {
                   'relative rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:shadow-lg',
                   isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50'
                 )}
-                onClick={() => handleSelectTheme(theme.id)}
+                onClick={() => {
+                  if (theme.id === themeSettings?.theme_id) return;
+                  setPendingThemeId(theme.id);
+                }}
               >
                 {/* Theme Preview */}
                 <div 
@@ -177,7 +184,6 @@ export function ThemeGallery() {
           })}
         </div>
 
-        {/* Preview link after theme selection */}
         {themeSettings?.theme_id && storefrontUrl && (
           <div className="mt-4 flex justify-end">
             <Button variant="outline" size="sm" asChild>
@@ -188,6 +194,23 @@ export function ThemeGallery() {
             </Button>
           </div>
         )}
+
+        <AlertDialog open={!!pendingThemeId} onOpenChange={(open) => { if (!open) setPendingThemeId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Theme wijzigen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Als je naar <strong>{pendingTheme?.name}</strong> wisselt, worden al je huidige aanpassingen (kleuren, fonts, layout) gereset naar de standaardwaarden van dit theme.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuleren</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (pendingThemeId) { handleSelectTheme(pendingThemeId); setPendingThemeId(null); } }}>
+                Doorgaan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

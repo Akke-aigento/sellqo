@@ -1,6 +1,7 @@
 import { Check, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useRef, useState, useEffect } from 'react';
@@ -9,6 +10,8 @@ export function ThemeGalleryInline() {
   const { themes, themeSettings, themesLoading, saveThemeSettings } = useStorefront();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
+  const [pendingThemeId, setPendingThemeId] = useState<string | null>(null);
+  const pendingTheme = themes.find(t => t.id === pendingThemeId);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -58,7 +61,10 @@ export function ThemeGalleryInline() {
           return (
             <button
               key={theme.id}
-              onClick={() => handleSelectTheme(theme.id)}
+              onClick={() => {
+                if (theme.id === themeSettings?.theme_id) return;
+                setPendingThemeId(theme.id);
+              }}
               className={cn(
                 'relative w-[180px] shrink-0 rounded-lg border-2 overflow-hidden transition-all hover:shadow-md text-left',
                 isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50'
@@ -101,10 +107,26 @@ export function ThemeGalleryInline() {
           );
         })}
       </div>
-      {/* Fade gradient scroll indicator */}
       {showFade && (
         <div className="absolute top-0 right-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
       )}
+
+      <AlertDialog open={!!pendingThemeId} onOpenChange={(open) => { if (!open) setPendingThemeId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Theme wijzigen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Als je naar <strong>{pendingTheme?.name}</strong> wisselt, worden al je huidige aanpassingen (kleuren, fonts, layout) gereset naar de standaardwaarden van dit theme.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (pendingThemeId) { handleSelectTheme(pendingThemeId); setPendingThemeId(null); } }}>
+              Doorgaan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
