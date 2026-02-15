@@ -1,64 +1,25 @@
 
+# Mood Presets Horizontaal Scrollbaar Maken
 
-# Mood Presets en Kleurpalet Generator Slim Koppelen
+## Probleem
 
-## Het probleem
+De mood preset pills (Luxury, Playful, Bold, Organic, etc.) zitten in een `flex overflow-x-auto` container, maar de parent containers clippen de overflow niet correct. Hierdoor breidt de rij zich uit voorbij het zichtbare gebied zonder dat je kunt scrollen.
 
-De Mood Presets en Kleurpalet Generator werken nu volledig onafhankelijk van elkaar:
+## Oplossing
 
-- Als je een Mood Preset kiest (bijv. "Luxury"), worden de kleuren ingesteld -- maar de Kleurpalet Generator weet daar niets van en blijft op zijn eigen basekleur staan.
-- Als je een palet genereert, wordt de actieve mood preset niet bijgewerkt of uitgeschakeld.
-- Er is geen duidelijke stap-voor-stap flow. De gebruiker weet niet: "Moet ik eerst een mood kiezen en dan fine-tunen? Of zijn dit twee aparte dingen?"
+Twee kleine CSS-aanpassingen in `ThemeMoodPresets.tsx`:
 
-## De oplossing: Gecombineerde "Design Flow"
+1. **Wrapper `min-w-0 overflow-hidden`** toevoegen aan de buitenste `div`, zodat de flex-children niet buiten de container groeien
+2. **`max-w-full`** op de scroll-container zodat `overflow-x-auto` daadwerkelijk triggert
 
-De twee tools worden samengevoegd in een logische workflow binnen de Kleuren-accordion:
-
-**Stap 1: Kies een mood (startpunt)**
-De Mood Presets worden bovenaan de Kleuren-sectie geplaatst als compacte, horizontaal scrollbare chips/pills (in plaats van een apart collapsible blok). Dit is het snelle startpunt.
-
-**Stap 2: Verfijn met de palette generator**
-Wanneer een mood geselecteerd wordt, wordt de primaire kleur van die mood automatisch als basekleur in de Kleurpalet Generator gezet. De generator toont dan variaties gebaseerd op die mood-kleur. Een label laat zien: "Gebaseerd op Luxury" (of welke mood dan ook actief is).
-
-**Stap 3: Handmatig finetunen**
-De handmatige kleurvelden blijven onderaan staan voor wie volledige controle wil.
-
-## Concrete wijzigingen
-
-### 1. ThemeMoodPresets.tsx -- Compact pill-formaat
-
-De huidige grid met grote kaarten wordt vervangen door een compacte horizontale rij van pills/chips:
-- Elke pill toont: icoon + naam + 3 kleurbolletjes
-- Actieve pill krijgt een ring/border highlight
-- Neemt veel minder ruimte in en is overzichtelijker
-
-### 2. ColorPaletteGenerator.tsx -- Mood-aware
-
-- Nieuwe prop: `activeMood?: { name: string; color: string }`
-- Wanneer een mood actief is, wordt de basekleur automatisch gesynchroniseerd en toont een label "Gebaseerd op [Mood naam]"
-- Gebruiker kan de basekleur nog steeds handmatig aanpassen -- dan verdwijnt het mood-label
-- Wanneer een palette wordt toegepast, wordt `activeMoodId` gereset (zoals nu al gebeurt)
-
-### 3. ThemeCustomizer.tsx -- Eenvoudigere structuur
-
-- Het aparte Collapsible blok voor Mood Presets verdwijnt
-- Mood Presets worden bovenaan de Kleuren-accordion geplaatst
-- De `activeMoodId` state wordt doorgegeven aan de ColorPaletteGenerator
-- Bij mood-selectie wordt de basekleur in de generator automatisch bijgewerkt
-
-## Technische wijzigingen
+## Technische Wijziging
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `ThemeMoodPresets.tsx` | Refactor naar compact horizontaal pill-formaat. Minder hoogte, zelfde functionaliteit. |
-| `ColorPaletteGenerator.tsx` | Nieuwe `activeMood` prop toevoegen. Basekleur synchroniseren met actieve mood. Label tonen bij actieve koppeling. |
-| `ThemeCustomizer.tsx` | Mood Presets verplaatsen naar binnen de Kleuren-accordion (bovenaan). Collapsible verwijderen. Mood-data doorgeven aan ColorPaletteGenerator. |
+| `src/components/admin/storefront/ThemeMoodPresets.tsx` | Buitenste div: `min-w-0` toevoegen. Scroll-container div: `max-w-full` toevoegen zodat overflow correct werkt binnen de smalle accordion. |
 
-## Resultaat
+Concreet wordt regel 150 en 154 aangepast:
+- Regel 150: `<div className="space-y-2">` wordt `<div className="space-y-2 min-w-0">`
+- Regel 154: `<div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">` wordt `<div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-w-full">`
 
-De gebruiker ervaart nu een natuurlijke flow:
-1. Kies snel een sfeer via de mood pills bovenaan
-2. Zie direct gegenereerde kleurpaletten gebaseerd op die sfeer
-3. Pas een palet toe, of fine-tune handmatig
-4. Alles in een logische, samenhangende sectie
-
+Dit is een 2-regel CSS fix in 1 bestand.
