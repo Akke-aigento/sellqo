@@ -147,11 +147,11 @@ interface ThemeMoodPresetsProps {
 
 export function ThemeMoodPresets({ onSelect, activePresetId }: ThemeMoodPresetsProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0">
       <p className="text-xs text-muted-foreground">
         Kies een sfeer als startpunt — kleuren, fonts en layout worden automatisch ingesteld
       </p>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-w-full">
         {MOOD_PRESETS.map((preset) => (
           <button
             key={preset.id}
