@@ -129,8 +129,8 @@ export function ThemeCustomizer() {
       {/* Design Studio: Split Layout */}
       <div className="flex gap-6 items-start">
         {/* Left: Settings Sidebar */}
-        <div className="flex-1 min-w-0 relative">
-          <ScrollArea className="h-[calc(100vh-320px)] pr-4">
+      <div className="flex-1 min-w-0 relative">
+          <ScrollArea className="h-[calc(100vh-280px)] pr-4" type="always">
             {/* Mood Presets - Collapsible */}
             <Collapsible open={moodOpen} onOpenChange={setMoodOpen} className="mb-4">
               <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">

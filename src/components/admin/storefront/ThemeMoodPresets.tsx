@@ -157,7 +157,7 @@ export function ThemeMoodPresets({ onSelect, activePresetId }: ThemeMoodPresetsP
           Kies een sfeer — kleuren, fonts en layout worden automatisch ingesteld
         </p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
         {MOOD_PRESETS.map((preset) => (
           <button
             key={preset.id}
