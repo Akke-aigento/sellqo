@@ -22,7 +22,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'luxury',
     name: 'Luxury',
     description: 'Elegant, donker, premium uitstraling',
-    icon: <Gem className="h-4 w-4" />,
+    icon: <Gem className="h-3.5 w-3.5" />,
     primary_color: '#c9a96e',
     secondary_color: '#2c2c2c',
     accent_color: '#d4af37',
@@ -37,7 +37,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'playful',
     name: 'Playful',
     description: 'Vrolijk, kleurrijk, energiek',
-    icon: <Sparkles className="h-4 w-4" />,
+    icon: <Sparkles className="h-3.5 w-3.5" />,
     primary_color: '#ff6b6b',
     secondary_color: '#ffd93d',
     accent_color: '#6bcb77',
@@ -52,7 +52,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'bold',
     name: 'Bold',
     description: 'Sterk, contrasterend, impactvol',
-    icon: <Zap className="h-4 w-4" />,
+    icon: <Zap className="h-3.5 w-3.5" />,
     primary_color: '#e63946',
     secondary_color: '#1d3557',
     accent_color: '#f1faee',
@@ -67,7 +67,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'organic',
     name: 'Organic',
     description: 'Natuurlijk, warm, aards',
-    icon: <Leaf className="h-4 w-4" />,
+    icon: <Leaf className="h-3.5 w-3.5" />,
     primary_color: '#606c38',
     secondary_color: '#dda15e',
     accent_color: '#bc6c25',
@@ -82,7 +82,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'minimal-light',
     name: 'Clean Light',
     description: 'Strak, wit, modern',
-    icon: <Sun className="h-4 w-4" />,
+    icon: <Sun className="h-3.5 w-3.5" />,
     primary_color: '#000000',
     secondary_color: '#6b7280',
     accent_color: '#3b82f6',
@@ -97,7 +97,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'minimal-dark',
     name: 'Clean Dark',
     description: 'Strak, donker, sophisticated',
-    icon: <Moon className="h-4 w-4" />,
+    icon: <Moon className="h-3.5 w-3.5" />,
     primary_color: '#ffffff',
     secondary_color: '#a1a1aa',
     accent_color: '#22d3ee',
@@ -112,7 +112,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'warm',
     name: 'Warm & Cozy',
     description: 'Uitnodigend, gezellig, ambachtelijk',
-    icon: <Flame className="h-4 w-4" />,
+    icon: <Flame className="h-3.5 w-3.5" />,
     primary_color: '#a0522d',
     secondary_color: '#d2691e',
     accent_color: '#cd853f',
@@ -127,7 +127,7 @@ const MOOD_PRESETS: MoodPreset[] = [
     id: 'tech',
     name: 'Tech & Future',
     description: 'Futuristisch, neon, cutting-edge',
-    icon: <Palette className="h-4 w-4" />,
+    icon: <Palette className="h-3.5 w-3.5" />,
     primary_color: '#8b5cf6',
     secondary_color: '#06b6d4',
     accent_color: '#f472b6',
@@ -147,63 +147,33 @@ interface ThemeMoodPresetsProps {
 
 export function ThemeMoodPresets({ onSelect, activePresetId }: ThemeMoodPresetsProps) {
   return (
-    <div className="space-y-3">
-      <div>
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Mood Presets
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          Kies een sfeer — kleuren, fonts en layout worden automatisch ingesteld
-        </p>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Kies een sfeer als startpunt — kleuren, fonts en layout worden automatisch ingesteld
+      </p>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {MOOD_PRESETS.map((preset) => (
           <button
             key={preset.id}
             onClick={() => onSelect(preset)}
+            title={preset.description}
             className={cn(
-              'relative group rounded-lg border-2 p-3 text-left transition-all hover:shadow-md',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap shrink-0 transition-all',
               activePresetId === preset.id
-                ? 'border-primary ring-2 ring-primary/20'
-                : 'border-border hover:border-primary/50'
+                ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                : 'border-border hover:border-primary/50 hover:bg-muted/50 text-foreground'
             )}
           >
-            {/* Color dots preview */}
-            <div className="flex gap-1 mb-2">
+            <span className="text-muted-foreground">{preset.icon}</span>
+            <span>{preset.name}</span>
+            <div className="flex gap-0.5 ml-1">
               {[preset.primary_color, preset.secondary_color, preset.accent_color].map((c, i) => (
                 <div
                   key={i}
-                  className="w-4 h-4 rounded-full border border-black/10"
+                  className="w-2.5 h-2.5 rounded-full border border-black/10"
                   style={{ backgroundColor: c }}
                 />
               ))}
-              <div
-                className="w-4 h-4 rounded-full border border-black/10 ml-auto"
-                style={{ backgroundColor: preset.background_color }}
-              />
-            </div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-muted-foreground">{preset.icon}</span>
-              <span className="text-xs font-semibold">{preset.name}</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground leading-tight">{preset.description}</p>
-
-            {/* Mini preview strip */}
-            <div
-              className="mt-2 h-6 rounded-sm overflow-hidden flex"
-              style={{ backgroundColor: preset.background_color }}
-            >
-              <div className="w-1/3 h-full" style={{ backgroundColor: preset.primary_color }} />
-              <div className="flex-1 flex items-center justify-center">
-                <span
-                  className="text-[6px] font-bold"
-                  style={{ color: preset.text_color, fontFamily: preset.heading_font }}
-                >
-                  Aa
-                </span>
-              </div>
-              <div className="w-2 h-full" style={{ backgroundColor: preset.accent_color }} />
             </div>
           </button>
         ))}
