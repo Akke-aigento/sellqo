@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Palette, Type, Layout, Code, Save, Image as ImageIcon, RotateCcw, ChevronDown, Sparkles } from 'lucide-react';
+import { Palette, Type, Layout, Code, Save, Image as ImageIcon, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -33,7 +32,7 @@ export function ThemeCustomizer() {
   const selectedTheme = themes.find(t => t.id === themeSettings?.theme_id);
   const defaults = selectedTheme?.default_settings;
   const [activeMoodId, setActiveMoodId] = useState<string>();
-  const [moodOpen, setMoodOpen] = useState(false);
+  const [activeMoodData, setActiveMoodData] = useState<{ name: string; color: string } | undefined>();
 
   const [formData, setFormData] = useState({
     logo_url: null as string | null,
@@ -96,11 +95,13 @@ export function ThemeCustomizer() {
         show_announcement_bar: false, announcement_text: '', footer_text: '', custom_css: '',
       });
       setActiveMoodId(undefined);
+      setActiveMoodData(undefined);
     }
   };
 
   const handleMoodSelect = (preset: MoodPreset) => {
     setActiveMoodId(preset.id);
+    setActiveMoodData({ name: preset.name, color: preset.primary_color });
     setFormData(prev => ({
       ...prev,
       primary_color: preset.primary_color, secondary_color: preset.secondary_color,
@@ -113,6 +114,7 @@ export function ThemeCustomizer() {
 
   const handlePaletteApply = (colors: { primary: string; secondary: string; accent: string; background?: string; text?: string }) => {
     setActiveMoodId(undefined);
+    setActiveMoodData(undefined);
     setFormData(prev => ({
       ...prev, primary_color: colors.primary, secondary_color: colors.secondary, accent_color: colors.accent,
       ...(colors.background && { background_color: colors.background }),
@@ -134,20 +136,6 @@ export function ThemeCustomizer() {
         {/* Left: Settings Sidebar */}
       <div className="flex-1 min-w-0 relative">
           <ScrollArea className="h-[calc(100vh-280px)] pr-4" type="always">
-            {/* Mood Presets - Collapsible */}
-            <Collapsible open={moodOpen} onOpenChange={setMoodOpen} className="mb-4">
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold">Mood Presets</span>
-                </div>
-                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", moodOpen && "rotate-180")} />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3">
-                <ThemeMoodPresets onSelect={handleMoodSelect} activePresetId={activeMoodId} />
-              </CollapsibleContent>
-            </Collapsible>
-
             {/* Accordion Sections */}
             <Accordion type="multiple" defaultValue={['branding', 'colors']} className="space-y-1">
               {/* Branding */}
@@ -176,7 +164,17 @@ export function ThemeCustomizer() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 space-y-6">
-                  <ColorPaletteGenerator baseColor={formData.primary_color || '#3b82f6'} onApply={handlePaletteApply} />
+                  {/* Step 1: Mood Presets as pills */}
+                  <ThemeMoodPresets onSelect={handleMoodSelect} activePresetId={activeMoodId} />
+
+                  {/* Step 2: Palette Generator linked to mood */}
+                  <ColorPaletteGenerator
+                    baseColor={formData.primary_color || '#3b82f6'}
+                    onApply={handlePaletteApply}
+                    activeMood={activeMoodData}
+                  />
+
+                  {/* Step 3: Manual fine-tuning */}
                   <div className="border-t pt-4">
                     <h4 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Handmatig</h4>
                     <div className="grid grid-cols-1 gap-4">

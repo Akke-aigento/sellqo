@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Wand2, Copy, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Wand2, Copy, Check, Link2, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 // Color utility functions
 function hexToHsl(hex: string): [number, number, number] {
@@ -110,11 +110,43 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
 interface ColorPaletteGeneratorProps {
   baseColor: string;
   onApply: (colors: { primary: string; secondary: string; accent: string; background?: string; text?: string }) => void;
+  activeMood?: { name: string; color: string };
 }
 
-export function ColorPaletteGenerator({ baseColor, onApply }: ColorPaletteGeneratorProps) {
+export function ColorPaletteGenerator({ baseColor, onApply, activeMood }: ColorPaletteGeneratorProps) {
   const [inputColor, setInputColor] = useState(baseColor || '#3b82f6');
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
+  const [linkedToMood, setLinkedToMood] = useState(!!activeMood);
+
+  // Sync with mood when linked
+  useEffect(() => {
+    if (activeMood) {
+      setInputColor(activeMood.color);
+      setLinkedToMood(true);
+    }
+  }, [activeMood]);
+
+  // Sync with external baseColor when no mood is active
+  useEffect(() => {
+    if (!activeMood) {
+      setInputColor(baseColor || '#3b82f6');
+    }
+  }, [baseColor, activeMood]);
+
+  const handleColorChange = (color: string) => {
+    setInputColor(color);
+    // If user manually changes color, unlink from mood
+    if (activeMood && color !== activeMood.color) {
+      setLinkedToMood(false);
+    }
+  };
+
+  const relinkToMood = () => {
+    if (activeMood) {
+      setInputColor(activeMood.color);
+      setLinkedToMood(true);
+    }
+  };
 
   const [h, s, l] = hexToHsl(inputColor);
 
@@ -132,7 +164,10 @@ export function ColorPaletteGenerator({ baseColor, onApply }: ColorPaletteGenera
           Kleurpalet Generator
         </h3>
         <p className="text-xs text-muted-foreground">
-          Kies een basekleur en genereer automatisch harmonieuze paletten
+          {activeMood && linkedToMood
+            ? `Paletten gebaseerd op de "${activeMood.name}" mood`
+            : 'Kies een basekleur en genereer automatisch harmonieuze paletten'
+          }
         </p>
       </div>
 
@@ -143,16 +178,36 @@ export function ColorPaletteGenerator({ baseColor, onApply }: ColorPaletteGenera
             <Input
               type="color"
               value={inputColor}
-              onChange={(e) => setInputColor(e.target.value)}
+              onChange={(e) => handleColorChange(e.target.value)}
               className="w-10 h-9 p-0.5 cursor-pointer"
             />
             <Input
               value={inputColor}
-              onChange={(e) => setInputColor(e.target.value)}
+              onChange={(e) => handleColorChange(e.target.value)}
               className="w-24 h-9 text-xs font-mono"
             />
           </div>
         </div>
+        {activeMood && (
+          <div className="flex items-center gap-1.5 pb-0.5">
+            {linkedToMood ? (
+              <Badge variant="secondary" className="text-[10px] gap-1 cursor-default">
+                <Link2 className="h-3 w-3" />
+                {activeMood.name}
+              </Badge>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-[10px] gap-1 text-muted-foreground"
+                onClick={relinkToMood}
+              >
+                <Unlink className="h-3 w-3" />
+                Herlink naar {activeMood.name}
+              </Button>
+            )}
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground pb-1">
           HSL: {h}° / {s}% / {l}%
         </p>
