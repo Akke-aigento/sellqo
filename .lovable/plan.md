@@ -1,22 +1,41 @@
 
-# Kleurpalet Generator Responsief Maken
+# Theme Gallery & Live Preview Verbeteren
 
-## Probleem
+## Probleem 1: Theme Gallery afgekapt
 
-De `ColorPaletteGenerator` gebruikt `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` voor de 5 paletten. Maar omdat het component zit in de smalle sidebar-kolom (niet de volle paginabreedte), slaan de `md:` en `lg:` breakpoints nooit aan. Resultaat: alle 5 paletten staan in een lange verticale lijst die wordt afgekapt door de ScrollArea.
+De ThemeGalleryInline gebruikt `flex-1 min-w-[160px]` waardoor de derde kaart (Modern) wordt afgekapt. Er is geen duidelijk signaal dat er meer content is of kan komen.
 
-## Oplossing
+### Oplossing
+- Verander kaarten naar vaste breedte (`w-[180px] shrink-0`) in plaats van `flex-1 min-w-[160px]`
+- Voeg `scrollbar-thin` styling toe zodat de horizontale scroll duidelijk zichtbaar is
+- Voeg een subtiele fade-gradient toe aan de rechterrand als visueel scroll-signaal
 
-Twee aanpassingen:
+## Probleem 2: Live Preview komt niet overeen met webshop
 
-1. **Grid aanpassen**: Verander naar `grid-cols-1 sm:grid-cols-2` zodat er op de meeste schermbreedtes al 2 kolommen getoond worden, zelfs in de smalle sidebar. Dit maakt de 5 paletten compacter en voorkomt dat ze buiten beeld vallen.
+De huidige LiveThemePreview toont een statische mock (hardcoded hero + 4 nep-producten). De echte webshop rendert dynamische homepage-secties uit de database: Hero Banner, Tekst + Afbeelding, Featured Products, Newsletter, Testimonials, Video, Collection, External Reviews.
 
-2. **Palette kaarten compacter**: De mini-preview hoogte (`h-12`) en padding iets verkleinen zodat meer paletten in beeld passen.
+### Oplossing
+De LiveThemePreview wordt uitgebreid met een optionele `homepageSections` prop. Wanneer secties beschikbaar zijn, worden ze als herkenbare miniatuur-blokken gerenderd:
 
-## Technische Wijziging
+| Sectie type | Mini-weergave |
+|---|---|
+| hero | Groot gekleurd vlak met titel + CTA knop |
+| text_image | Twee kolommen: tekst links, grijs vlak rechts |
+| featured_products | Mini product grid (bestaande mock) |
+| collection | Grid met categorie labels |
+| newsletter | Centered input + knop |
+| testimonials | Quote-blok met aanhalingstekens |
+| video | Grijs vlak met play-icoon |
+| external_reviews | Sterren + quote |
+
+Wanneer er geen secties geconfigureerd zijn, valt de preview terug naar de huidige mock als fallback.
+
+De ThemeCustomizer haalt de homepage-secties op via `usePublicStorefront` en geeft ze door aan LiveThemePreview.
+
+## Technische Wijzigingen
 
 | Bestand | Wijziging |
-|---------|-----------|
-| `src/components/admin/storefront/ColorPaletteGenerator.tsx` | Grid class wijzigen van `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` naar `grid-cols-2 gap-2` zodat de 5 paletten altijd in 2 kolommen tonen (3 + 2 rijen). Padding en spacing iets verkleinen voor compactere weergave. |
-
-Dit is een minimale CSS-only wijziging in 1 bestand.
+|---|---|
+| `src/components/admin/storefront/ThemeGalleryInline.tsx` | Vaste kaartbreedte, fade-gradient indicator bij overflow |
+| `src/components/admin/storefront/LiveThemePreview.tsx` | Nieuwe `homepageSections` prop, mini-section renderers per type, fallback naar huidige mock |
+| `src/components/admin/storefront/ThemeCustomizer.tsx` | Import `usePublicStorefront`, haal `homepageSections` op, geef door aan LiveThemePreview |
