@@ -60,11 +60,24 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
               </div>
               <div className="space-y-2">
                 <Label>Knop Link</Label>
-                <Input
+                <Select
                   value={content.button_link || ''}
-                  onChange={(e) => handleContentChange('button_link', e.target.value)}
-                  placeholder="/products"
-                />
+                  onValueChange={(value) => handleContentChange('button_link', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer pagina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="/products">Alle Producten</SelectItem>
+                    <SelectItem value="/cart">Winkelwagen</SelectItem>
+                    <SelectItem value="/">Homepage</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={`/products?category=${cat.slug}`}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">
@@ -217,11 +230,24 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
               </div>
               <div className="space-y-2">
                 <Label>Knop Link</Label>
-                <Input
+                <Select
                   value={content.button_link || ''}
-                  onChange={(e) => handleContentChange('button_link', e.target.value)}
-                  placeholder="/about"
-                />
+                  onValueChange={(value) => handleContentChange('button_link', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer pagina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="/products">Alle Producten</SelectItem>
+                    <SelectItem value="/cart">Winkelwagen</SelectItem>
+                    <SelectItem value="/">Homepage</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={`/products?category=${cat.slug}`}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
