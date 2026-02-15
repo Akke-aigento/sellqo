@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
+import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { GOOGLE_FONTS, HEADER_STYLES, PRODUCT_CARD_STYLES } from '@/types/storefront';
 import { BrandingUploader } from './BrandingUploader';
 import { LiveThemePreview } from './LiveThemePreview';
@@ -27,6 +28,8 @@ import { cn } from '@/lib/utils';
 export function ThemeCustomizer() {
   const { themeSettings, themes, saveThemeSettings } = useStorefront();
   const { currentTenant } = useTenant();
+  const tenantSlug = currentTenant?.slug || '';
+  const { homepageSections } = usePublicStorefront(tenantSlug);
   const selectedTheme = themes.find(t => t.id === themeSettings?.theme_id);
   const defaults = selectedTheme?.default_settings;
   const [activeMoodId, setActiveMoodId] = useState<string>();
@@ -357,6 +360,7 @@ export function ThemeCustomizer() {
             bodyFont={formData.body_font} headerStyle={formData.header_style}
             productCardStyle={formData.product_card_style} productsPerRow={formData.products_per_row}
             logoUrl={formData.logo_url} shopName={currentTenant?.name || 'Mijn Webshop'}
+            homepageSections={homepageSections}
           />
         </div>
       </div>
