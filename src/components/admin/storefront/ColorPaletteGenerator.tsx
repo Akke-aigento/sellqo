@@ -158,13 +158,13 @@ export function ColorPaletteGenerator({ baseColor, onApply }: ColorPaletteGenera
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {PALETTE_STRATEGIES.map((strategy) => {
           const palette = strategy.generate(h, s, l);
           return (
             <div
               key={strategy.name}
-              className="rounded-lg border p-3 space-y-2 hover:border-primary/50 transition-colors"
+              className="rounded-lg border p-2 space-y-1.5 hover:border-primary/50 transition-colors"
             >
               <div>
                 <p className="text-xs font-semibold">{strategy.name}</p>
@@ -194,7 +194,7 @@ export function ColorPaletteGenerator({ baseColor, onApply }: ColorPaletteGenera
 
               {/* Mini preview */}
               <div
-                className="rounded-sm p-2 h-12 flex items-center gap-2"
+                className="rounded-sm p-1.5 h-9 flex items-center gap-1.5"
                 style={{ backgroundColor: palette.background, color: palette.text }}
               >
                 <div
