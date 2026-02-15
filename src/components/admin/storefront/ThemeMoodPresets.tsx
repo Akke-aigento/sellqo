@@ -151,14 +151,14 @@ export function ThemeMoodPresets({ onSelect, activePresetId }: ThemeMoodPresetsP
       <p className="text-xs text-muted-foreground">
         Kies een sfeer als startpunt — kleuren, fonts en layout worden automatisch ingesteld
       </p>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-w-full">
+      <div className="flex flex-wrap gap-1.5">
         {MOOD_PRESETS.map((preset) => (
           <button
             key={preset.id}
             onClick={() => onSelect(preset)}
             title={preset.description}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap shrink-0 transition-all',
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-all',
               activePresetId === preset.id
                 ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
                 : 'border-border hover:border-primary/50 hover:bg-muted/50 text-foreground'
