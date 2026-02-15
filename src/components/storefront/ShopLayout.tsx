@@ -16,6 +16,7 @@ import { MegaMenu } from '@/components/storefront/MegaMenu';
 import { MobileBottomNav } from '@/components/storefront/MobileBottomNav';
 import { CookieBanner } from '@/components/storefront/CookieBanner';
 import { NewsletterPopup } from '@/components/storefront/NewsletterPopup';
+import { TrustBadges } from '@/components/storefront/TrustBadges';
 import { ExitIntentPopup } from '@/components/storefront/ExitIntentPopup';
 import { RecentPurchaseToast } from '@/components/storefront/RecentPurchaseToast';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
@@ -61,8 +62,10 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const showRecentPurchases = ts?.show_recent_purchases || false;
   const exitIntentPopup = ts?.exit_intent_popup || false;
   const newsletterPopupEnabled = ts?.newsletter_popup_enabled || false;
+  const newsletterEnabled = ts?.newsletter_enabled !== false; // global toggle, default true
   const newsletterPopupDelay = ts?.newsletter_popup_delay_seconds || 5;
   const newsletterIncentiveText = ts?.newsletter_incentive_text || null;
+  const trustBadges = (ts?.trust_badges as string[]) || [];
 
   // Set tenant slug for cart context
   useEffect(() => {
@@ -397,6 +400,13 @@ export function ShopLayout({ children }: ShopLayoutProps) {
             </div>
           )}
 
+          {/* Trust Badges */}
+          {trustBadges.length > 0 && (
+            <div className="mt-8 pt-8 border-t">
+              <TrustBadges badges={trustBadges} variant="footer" />
+            </div>
+          )}
+
           <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} {tenant.name}. Alle rechten voorbehouden.</p>
           </div>
@@ -423,9 +433,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         <CookieBanner style={cookieBannerStyle} tenantSlug={tenantSlug} />
       )}
 
-      {/* Newsletter Popup */}
-      {newsletterPopupEnabled && tenantSlug && (
-        <NewsletterPopup tenantSlug={tenantSlug} delaySeconds={newsletterPopupDelay} incentiveText={newsletterIncentiveText} />
+      {/* Newsletter Popup - only if both global and popup toggles are enabled */}
+      {newsletterEnabled && newsletterPopupEnabled && tenantSlug && (
+        <NewsletterPopup tenantSlug={tenantSlug} tenantId={tenant?.id} delaySeconds={newsletterPopupDelay} incentiveText={newsletterIncentiveText} />
       )}
 
       {/* Exit Intent Popup */}

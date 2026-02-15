@@ -10,6 +10,7 @@ import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefro
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { VariantSelector } from '@/components/storefront/VariantSelector';
 import { ImageLightbox } from '@/components/storefront/ImageLightbox';
+import { RelatedProducts } from '@/components/storefront/RelatedProducts';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
@@ -36,6 +37,8 @@ export default function ShopProductDetail() {
   const reviewsDisplay = ts?.product_reviews_display || 'full';
   const showStockCount = ts?.show_stock_count || false;
   const showViewersCount = ts?.show_viewers_count || false;
+  const stockIndicator = ts?.product_stock_indicator !== false; // default true
+  const relatedMode = ts?.product_related_mode || 'off';
 
   useEffect(() => {
     if (tenantSlug) setTenantSlug(tenantSlug);
@@ -261,25 +264,27 @@ export default function ShopProductDetail() {
               </div>
             )}
 
-            {/* Stock Status */}
-            <div className="flex items-center gap-2 mb-6">
-              {inStock ? (
-                <>
-                  <Check className="h-5 w-5 text-green-600" />
-                  <span className="text-green-600 font-medium">
-                    Op voorraad
-                    {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
-                      <span className="ml-1">— Nog {stockCount} stuks</span>
-                    )}
-                  </span>
-                </>
-              ) : (
-                <span className="text-destructive font-medium">Uitverkocht</span>
-              )}
-            </div>
+            {/* Stock Status - respects stock_indicator setting */}
+            {stockIndicator && (
+              <div className="flex items-center gap-2 mb-6">
+                {inStock ? (
+                  <>
+                    <Check className="h-5 w-5 text-green-600" />
+                    <span className="text-green-600 font-medium">
+                      Op voorraad
+                      {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
+                        <span className="ml-1">— Nog {stockCount} stuks</span>
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-destructive font-medium">Uitverkocht</span>
+                )}
+              </div>
+            )}
 
             {/* Low stock urgency */}
-            {showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
+            {stockIndicator && showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
               <div className="flex items-center gap-2 text-sm text-orange-600 mb-4">
                 <Package className="h-4 w-4" />
                 <span className="font-medium">Bijna uitverkocht! Bestel snel.</span>
@@ -334,6 +339,20 @@ export default function ShopProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Related Products */}
+      {tenant && (
+        <div className="container mx-auto px-4">
+          <RelatedProducts
+            tenantId={tenant.id}
+            currentProductId={product.id}
+            categoryId={product.category?.id}
+            basePath={`/shop/${tenantSlug}`}
+            currency={tenant.currency || 'EUR'}
+            mode={relatedMode}
+          />
+        </div>
+      )}
 
       {/* Lightbox Gallery */}
       <ImageLightbox
