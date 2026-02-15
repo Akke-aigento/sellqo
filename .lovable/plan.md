@@ -1,25 +1,20 @@
 
-# Mood Presets Horizontaal Scrollbaar Maken
+# Mood Presets: Wrappen in plaats van Scrollen
 
 ## Probleem
 
-De mood preset pills (Luxury, Playful, Bold, Organic, etc.) zitten in een `flex overflow-x-auto` container, maar de parent containers clippen de overflow niet correct. Hierdoor breidt de rij zich uit voorbij het zichtbare gebied zonder dat je kunt scrollen.
+De horizontale scroll werkt niet goed binnen de smalle accordion-sidebar. Slechts 2 mood pills zijn zichtbaar en de rest is onbereikbaar.
 
 ## Oplossing
 
-Twee kleine CSS-aanpassingen in `ThemeMoodPresets.tsx`:
-
-1. **Wrapper `min-w-0 overflow-hidden`** toevoegen aan de buitenste `div`, zodat de flex-children niet buiten de container groeien
-2. **`max-w-full`** op de scroll-container zodat `overflow-x-auto` daadwerkelijk triggert
+Vervang de horizontale scroll-layout door een **flex-wrap** grid zodat alle pills zichtbaar zijn op meerdere regels.
 
 ## Technische Wijziging
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/admin/storefront/ThemeMoodPresets.tsx` | Buitenste div: `min-w-0` toevoegen. Scroll-container div: `max-w-full` toevoegen zodat overflow correct werkt binnen de smalle accordion. |
+| `src/components/admin/storefront/ThemeMoodPresets.tsx` | Verander de flex-container van `overflow-x-auto` + `shrink-0` naar `flex-wrap`. Pills worden niet meer `whitespace-nowrap shrink-0` maar mogen wrappen. |
 
-Concreet wordt regel 150 en 154 aangepast:
-- Regel 150: `<div className="space-y-2">` wordt `<div className="space-y-2 min-w-0">`
-- Regel 154: `<div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">` wordt `<div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-w-full">`
-
-Dit is een 2-regel CSS fix in 1 bestand.
+Concreet:
+- Regel 154: `flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-w-full` wordt `flex flex-wrap gap-1.5`
+- Regel 161: Verwijder `whitespace-nowrap shrink-0` van de button classes zodat pills zich aanpassen aan de beschikbare breedte
