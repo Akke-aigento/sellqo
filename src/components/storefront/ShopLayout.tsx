@@ -23,6 +23,7 @@ import { RecentPurchaseToast } from '@/components/storefront/RecentPurchaseToast
 import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { SearchModal } from '@/components/storefront/SearchModal';
 import { cn } from '@/lib/utils';
+import { relativeLuminance } from '@/lib/color-utils';
 import type { ReviewPlatform } from '@/types/reviews-hub';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -151,25 +152,18 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
-  // Auto-contrast: returns white or black foreground based on luminance
+  // Auto-contrast: returns white or black foreground based on WCAG luminance
   const getContrastForeground = (hex: string): string => {
     if (!hex || !hex.startsWith('#')) return '0 0% 100%';
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    return luminance > 0.5 ? '0 0% 0%' : '0 0% 100%';
+    const lum = relativeLuminance(hex);
+    return lum > 0.179 ? '0 0% 0%' : '0 0% 100%';
   };
 
-  // Derive muted/card/border from background color
+  // Derive muted/card/border/foreground from background color
   const deriveFromBackground = (hex: string) => {
     if (!hex || !hex.startsWith('#')) return {};
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    const isLight = luminance > 0.5;
-    // For light backgrounds: slightly darker muted/card, for dark: slightly lighter
+    const lum = relativeLuminance(hex);
+    const isLight = lum > 0.179;
     const hsl = hexToHsl(hex);
     if (!hsl) return {};
     const parts = hsl.split(' ');
@@ -180,11 +174,14 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     const cardL = isLight ? Math.max(lig - 2, 0) : Math.min(lig + 5, 100);
     const borderL = isLight ? Math.max(lig - 10, 0) : Math.min(lig + 12, 100);
     const mutedFgL = isLight ? 47 : 65;
+    const fg = getContrastForeground(hex);
     return {
+      '--foreground': fg,
+      '--popover-foreground': fg,
       '--muted': `${hue} ${Math.min(sat + 10, 100)}% ${mutedL}%`,
       '--muted-foreground': `${hue} 16% ${mutedFgL}%`,
       '--card': `${hue} ${sat}% ${cardL}%`,
-      '--card-foreground': getContrastForeground(hex),
+      '--card-foreground': fg,
       '--border': `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`,
       '--input': `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`,
     };
