@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { MessageSquare, PanelLeftClose, PanelLeft, PenSquare } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { useInbox } from '@/hooks/useInbox';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
 import { useBulkInboxActions } from '@/hooks/useBulkInboxActions';
-import { InboxFilters, ConversationList, ConversationDetail, FolderList } from '@/components/admin/inbox';
+import { InboxFilters, ConversationList, ConversationDetail, FolderList, ComposeDialog } from '@/components/admin/inbox';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
@@ -30,6 +30,7 @@ export default function MessagesPage() {
   const { folders, archiveFolder, trashFolder } = useInboxFolders();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   // Bulk selection hook
   const {
@@ -120,13 +121,26 @@ export default function MessagesPage() {
   return (
     <div className="h-[calc(100vh-4rem)]">
       <div className="p-6 pb-0">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <MessageSquare className="h-6 w-6" />
-          Klantgesprekken
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Beheer alle communicatie met klanten via email en social media
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <MessageSquare className="h-6 w-6" />
+              Klantgesprekken
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Beheer alle communicatie met klanten via email en social media
+            </p>
+          </div>
+          <Button onClick={() => setComposeOpen(true)}>
+            <PenSquare className="h-4 w-4 mr-2" />
+            Nieuw bericht
+          </Button>
+        </div>
+
+        <ComposeDialog
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+        />
       </div>
 
       <div className="p-6 h-[calc(100%-5rem)]">
