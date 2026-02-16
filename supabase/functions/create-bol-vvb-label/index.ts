@@ -11,6 +11,8 @@ interface VVBLabelRequest {
   order_id: string;
   carrier?: string;
   delivery_code?: string;
+  retry?: boolean;
+  label_id?: string;
 }
 
 // Crop A4 PDF to A6 (label is positioned top-left)
@@ -68,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { order_id, carrier = 'POSTNL', delivery_code = '1-2d' }: VVBLabelRequest = await req.json();
+    const { order_id, carrier = 'POSTNL', delivery_code = '1-2d', retry = false, label_id }: VVBLabelRequest = await req.json();
 
     if (!order_id) {
       return new Response(
@@ -139,6 +141,123 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get access token
     const accessToken = await getBolAccessToken(credentials);
+
+    // ===== RETRY MODE: Skip label creation, just download PDF + fetch tracking =====
+    if (retry && label_id) {
+      console.log(`Retry mode: fetching PDF and tracking for existing label ${label_id}`);
+      
+      // Get the existing shipping_labels record to find external_id
+      const { data: existingLabel, error: labelLookupError } = await supabase
+        .from('shipping_labels')
+        .select('*')
+        .eq('id', label_id)
+        .single();
+      
+      if (labelLookupError || !existingLabel) {
+        return new Response(
+          JSON.stringify({ error: 'Label record not found' }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const retryLabelId = existingLabel.external_id;
+      if (!retryLabelId) {
+        return new Response(
+          JSON.stringify({ error: 'Label has no external_id (transporterLabelId)' }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let retryPdfUrl: string | null = null;
+      let retryTracking: string | null = existingLabel.tracking_number;
+
+      // Download PDF
+      const pdfResponse = await fetch(
+        `https://api.bol.com/retailer/shipping-labels/${retryLabelId}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/pdf",
+          },
+        }
+      );
+
+      if (pdfResponse.ok) {
+        const pdfBlob = await pdfResponse.blob();
+        let pdfBuffer = await pdfBlob.arrayBuffer();
+        
+        if (labelFormat === 'a6_cropped') {
+          try {
+            const croppedPdf = await cropToA6(pdfBuffer);
+            pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
+          } catch (cropError) {
+            console.error('Error cropping PDF to A6:', cropError);
+          }
+        }
+        
+        const formatSuffix = labelFormat === 'a6_cropped' ? '-a6' : '';
+        const fileName = `bol-vvb-${order.order_number}${formatSuffix}-retry-${Date.now()}.pdf`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('shipping-labels')
+          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: 'application/pdf' });
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('shipping-labels')
+            .getPublicUrl(`${order.tenant_id}/${fileName}`);
+          retryPdfUrl = urlData?.publicUrl || null;
+        }
+      } else {
+        console.error('Failed to download PDF on retry:', pdfResponse.status);
+      }
+
+      // Get tracking via HEAD
+      if (!retryTracking) {
+        try {
+          const headRes = await fetch(
+            `https://api.bol.com/retailer/shipping-labels/${retryLabelId}`,
+            {
+              method: "HEAD",
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Accept": "application/vnd.retailer.v10+json",
+              },
+            }
+          );
+          retryTracking = headRes.headers.get('X-Track-And-Trace-Code') || null;
+          console.log(`Retry HEAD tracking: ${retryTracking}`);
+        } catch (e) {
+          console.error('Retry HEAD request failed:', e);
+        }
+      }
+
+      // Update the label record
+      const updateFields: Record<string, unknown> = {};
+      if (retryPdfUrl) updateFields.label_url = retryPdfUrl;
+      if (retryTracking) updateFields.tracking_number = retryTracking;
+
+      if (Object.keys(updateFields).length > 0) {
+        await supabase.from('shipping_labels').update(updateFields).eq('id', label_id);
+      }
+
+      // Update order if tracking found
+      if (retryTracking) {
+        await supabase.from('orders').update({
+          tracking_number: retryTracking,
+          carrier: existingLabel.carrier,
+        }).eq('id', order.id);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          label_url: retryPdfUrl,
+          tracking_number: retryTracking,
+          retried: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ===== BUG 2 FIX: Auto-accept order if not yet accepted =====
     const currentSyncStatus = order.sync_status;
@@ -299,10 +418,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Poll for process status (VVB labels are async)
     if (processStatusId) {
       let attempts = 0;
-      const maxAttempts = 10;
+      const maxAttempts = 15;
       
       while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log(`Polling process-status attempt ${attempts + 1}/${maxAttempts}...`);
         
         const statusResponse = await fetch(
           `https://api.bol.com/retailer/process-status/${processStatusId}`,
@@ -395,20 +515,26 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
-      // Get tracking info from label details
-      const detailsResponse = await fetch(
-        `https://api.bol.com/retailer/shipping-labels/${transporterLabelId}`,
-        {
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Accept": "application/vnd.retailer.v10+json",
-          },
+      // Get tracking info via HEAD request (Bol.com v10: tracking in response header)
+      try {
+        const headResponse = await fetch(
+          `https://api.bol.com/retailer/shipping-labels/${transporterLabelId}`,
+          {
+            method: "HEAD",
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "Accept": "application/vnd.retailer.v10+json",
+            },
+          }
+        );
+        
+        const headerTracking = headResponse.headers.get('X-Track-And-Trace-Code');
+        console.log(`HEAD tracking header: ${headerTracking}, status: ${headResponse.status}`);
+        if (headerTracking) {
+          trackingNumber = headerTracking;
         }
-      );
-
-      if (detailsResponse.ok) {
-        const detailsData = await detailsResponse.json();
-        trackingNumber = detailsData.trackAndTrace || null;
+      } catch (headError) {
+        console.error('HEAD request for tracking failed:', headError);
       }
     }
 
