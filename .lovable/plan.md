@@ -1,28 +1,68 @@
 
 
-# CC/BCC e-mailadressen toevoegen aan Facturatie-instellingen
+# Fix: BCC e-mail komt niet aan bij Bol.com orders
 
-## Wat is het probleem?
+## Probleem
 
-De database ondersteunt al `invoice_cc_email` en `invoice_bcc_email` op de tenants-tabel, en de e-mail verzend-functie (`send-invoice-email`) gebruikt deze velden al correct. Maar er is geen plek in de instellingenpagina waar je deze e-mailadressen kunt invullen.
+Resend accepteert de e-mail (je krijgt een `id` terug), maar Bol.com proxy-adressen (`@verkopen.bol.com`) droppen e-mails van externe afzenders silently. De BCC naar Odoo is afhankelijk van dezelfde e-mail call, waardoor die ook niet aankomt.
 
-## Wat gaan we doen?
+## Oorzaak
 
-De pagina **Instellingen > Automatische Facturatie** uitbreiden met twee e-mail invoervelden:
+De huidige code stuurt alles in 1 Resend API-call:
+```
+to: ["...@verkopen.bol.com"]
+bcc: ["verkoopdagboek-shopify@nomadix-bv.odoo.com"]
+```
 
-1. **CC e-mailadres** - Bijv. je boekhoudprogramma (exact.nl, moneybird, etc.)
-2. **BCC e-mailadres** - Voor een extra kopie zonder dat de klant dit ziet
+Wanneer de primaire `to`-delivery faalt (Bol.com dropt de mail), wordt de BCC ook niet afgeleverd.
 
-## Wijzigingen
+## Oplossing
 
-### Bestand: `src/components/admin/settings/InvoiceAutomationSettings.tsx`
+### Bestand: `supabase/functions/send-invoice-email/index.ts`
 
-- **Twee state-variabelen toevoegen:** `ccEmail` en `bccEmail`
-- **Query uitbreiden:** `invoice_cc_email` en `invoice_bcc_email` toevoegen aan de `select()` en `update()` calls
-- **Twee Input-velden toevoegen** onder de bestaande switches:
-  - CC e-mailadres (met uitleg: "Dit adres ontvangt een kopie van elke verstuurde factuur, bijv. je boekhoudsoftware")
-  - BCC e-mailadres (met uitleg: "Blinde kopie - de klant ziet dit adres niet")
-- Beide velden alleen tonen/actief maken als "Automatisch factuur e-mailen" aan staat
-- E-mail validatie toevoegen (basis regex check)
+De BCC/CC e-mails als **aparte Resend API-call** versturen, los van de klant-e-mail. Dit zorgt ervoor dat je boekhoudsoftware altijd de factuur ontvangt, ongeacht of de klant een marketplace proxy-adres heeft.
 
-Geen database-wijzigingen nodig - de kolommen `invoice_cc_email` en `invoice_bcc_email` bestaan al, en `send-invoice-email` gebruikt ze al.
+Concrete wijziging:
+
+1. **Primaire e-mail**: Verstuur naar de klant (`to`) -- zonder CC/BCC
+2. **Kopie-e-mail**: Als CC of BCC is ingesteld, verstuur een aparte e-mail naar die adressen met de factuur-inhoud als `to`-ontvanger
+3. **Non-blocking**: Als de kopie-e-mail faalt, logt het een warning maar blokkeert het de flow niet
+
+```typescript
+// 1. Primaire e-mail naar klant
+await resend.emails.send({
+  from: `${tenant.name} <noreply@sellqo.app>`,
+  to: toEmails,
+  subject: emailSubject,
+  html: emailHtml,
+});
+
+// 2. Aparte kopie naar CC/BCC adressen
+const copyRecipients = [
+  ...(ccEmails || []),
+  ...(bccEmails || []),
+];
+
+if (copyRecipients.length > 0) {
+  try {
+    await resend.emails.send({
+      from: `${tenant.name} <noreply@sellqo.app>`,
+      to: copyRecipients,
+      subject: `[Kopie] ${emailSubject}`,
+      html: emailHtml,
+    });
+  } catch (copyError) {
+    console.warn('Copy email failed (non-blocking):', copyError);
+  }
+}
+```
+
+## Geen database-wijzigingen nodig
+
+De instellingen en velden werken al correct. Alleen de verzendlogica in de edge function moet worden aangepast.
+
+## Verwacht resultaat
+
+- Odoo ontvangt altijd de factuur, ook bij Bol.com orders
+- Klant ontvangt de factuur als het e-mailadres geldig is (bij niet-marketplace orders)
+- Bij marketplace orders: de klant-mail wordt door Bol.com gedropt, maar dat heeft geen invloed meer op de kopie naar je boekhouding
