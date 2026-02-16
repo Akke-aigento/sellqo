@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// BUG 4 FIX: Extended CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface ConfirmShipmentRequest {
@@ -24,13 +25,18 @@ const CARRIER_MAPPING: Record<string, string> = {
   'fedex': 'FEDEX',
 };
 
+// BUG 3 FIX: Standardized token method (Content-Type + body)
 async function getBolAccessToken(credentials: { clientId: string; clientSecret: string }): Promise<string> {
-  const response = await fetch("https://login.bol.com/token?grant_type=client_credentials", {
+  const authString = btoa(`${credentials.clientId}:${credentials.clientSecret}`);
+  
+  const response = await fetch("https://login.bol.com/token", {
     method: "POST",
     headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
       "Accept": "application/json",
-      "Authorization": `Basic ${btoa(`${credentials.clientId}:${credentials.clientSecret}`)}`,
+      "Authorization": `Basic ${authString}`,
     },
+    body: "grant_type=client_credentials",
   });
 
   if (!response.ok) {
@@ -118,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Map carrier to Bol.com transporter code
     const transporterCode = CARRIER_MAPPING[carrier.toLowerCase()] || carrier.toUpperCase();
 
-    // Build shipment request - we need marketplace_order_item_ids from the order items
+    // Build shipment request
     const orderItems = order.order_items || [];
     const shipmentItems = orderItems
       .filter((item: { marketplace_order_item_id?: string }) => item.marketplace_order_item_id)
@@ -177,11 +183,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const shipmentData = await shipmentResponse.json();
 
-    // Update order with success
+    // BUG 5 FIX: Use sync_status consistently
     await supabase
       .from("orders")
       .update({
-        marketplace_sync_status: 'shipped',
+        sync_status: 'shipped',
         marketplace_sync_error: null,
         tracking_number: tracking_number,
         tracking_url: tracking_url,
