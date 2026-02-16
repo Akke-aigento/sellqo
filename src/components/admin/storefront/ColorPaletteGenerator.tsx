@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Wand2, Copy, Check, Link2, Unlink, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { Wand2, Check, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { hexToHsl, hslToHex, getContrastRatio, getContrastLevel, adjustForContrast } from '@/lib/color-utils';
 
@@ -24,7 +21,7 @@ interface PaletteConfig {
 const PALETTE_STRATEGIES: PaletteConfig[] = [
   {
     name: 'Complementair',
-    description: 'Tegenovergestelde kleur voor maximaal contrast',
+    description: 'Maximaal contrast',
     generate: (h, s, l) => ({
       primary: hslToHex(h, s, Math.min(l, 50)),
       secondary: hslToHex(h, Math.max(s - 20, 10), 70),
@@ -35,7 +32,7 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
   },
   {
     name: 'Analoog',
-    description: 'Naburige kleuren voor een harmonieus geheel',
+    description: 'Harmonieus',
     generate: (h, s, l) => ({
       primary: hslToHex(h, s, Math.min(l, 45)),
       secondary: hslToHex((h + 30) % 360, Math.max(s - 15, 10), 55),
@@ -46,7 +43,7 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
   },
   {
     name: 'Triadisch',
-    description: 'Drie gelijkmatig verdeelde kleuren',
+    description: 'Drie gelijke kleuren',
     generate: (h, s, l) => ({
       primary: hslToHex(h, s, Math.min(l, 45)),
       secondary: hslToHex((h + 120) % 360, Math.max(s - 10, 15), 50),
@@ -57,7 +54,7 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
   },
   {
     name: 'Monochroom',
-    description: 'Tinten van dezelfde kleur voor een clean look',
+    description: 'Clean & strak',
     generate: (h, s, l) => ({
       primary: hslToHex(h, s, 35),
       secondary: hslToHex(h, Math.max(s - 30, 10), 55),
@@ -67,8 +64,8 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
     }),
   },
   {
-    name: 'Split-Complementair',
-    description: 'Twee kleuren naast de complement voor balans',
+    name: 'Split-Complement',
+    description: 'Gebalanceerd',
     generate: (h, s, l) => ({
       primary: hslToHex(h, s, Math.min(l, 45)),
       secondary: hslToHex((h + 150) % 360, Math.max(s - 10, 15), 50),
@@ -79,7 +76,6 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
   },
 ];
 
-/** Auto-correct palette colors for readability */
 function ensureContrast(palette: PaletteColors): PaletteColors {
   return {
     ...palette,
@@ -89,198 +85,79 @@ function ensureContrast(palette: PaletteColors): PaletteColors {
   };
 }
 
-/** Get worst contrast level across key pairs */
 function getPaletteContrastLevel(palette: PaletteColors): 'good' | 'low' | 'fail' {
   const textRatio = getContrastRatio(palette.text, palette.background);
   const primaryRatio = getContrastRatio(palette.primary, palette.background);
   const accentRatio = getContrastRatio(palette.accent, palette.background);
-  
   const worst = Math.min(textRatio, primaryRatio, accentRatio);
   return getContrastLevel(worst);
 }
 
 interface ColorPaletteGeneratorProps {
-  baseColor: string;
-  onApply: (colors: { primary: string; secondary: string; accent: string; background?: string; text?: string }) => void;
-  activeMood?: { name: string; color: string };
+  currentColors: PaletteColors;
+  onApply: (colors: PaletteColors) => void;
 }
 
-export function ColorPaletteGenerator({ baseColor, onApply, activeMood }: ColorPaletteGeneratorProps) {
-  const [inputColor, setInputColor] = useState(baseColor || '#3b82f6');
-  const [copiedColor, setCopiedColor] = useState<string | null>(null);
-  const [linkedToMood, setLinkedToMood] = useState(!!activeMood);
-
-  useEffect(() => {
-    if (activeMood) {
-      setInputColor(activeMood.color);
-      setLinkedToMood(true);
-    }
-  }, [activeMood]);
-
-  useEffect(() => {
-    if (!activeMood) {
-      setInputColor(baseColor || '#3b82f6');
-    }
-  }, [baseColor, activeMood]);
-
-  const handleColorChange = (color: string) => {
-    setInputColor(color);
-    if (activeMood && color !== activeMood.color) {
-      setLinkedToMood(false);
-    }
-  };
-
-  const relinkToMood = () => {
-    if (activeMood) {
-      setInputColor(activeMood.color);
-      setLinkedToMood(true);
-    }
-  };
-
-  const [h, s, l] = hexToHsl(inputColor);
-
-  const handleCopy = (color: string) => {
-    navigator.clipboard.writeText(color);
-    setCopiedColor(color);
-    setTimeout(() => setCopiedColor(null), 1500);
-  };
+export function ColorPaletteGenerator({ currentColors, onApply }: ColorPaletteGeneratorProps) {
+  const [h, s, l] = hexToHsl(currentColors.primary || '#3b82f6');
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Wand2 className="h-4 w-4 text-primary" />
-          Kleurpalet Generator
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          {activeMood && linkedToMood
-            ? `Paletten gebaseerd op de "${activeMood.name}" mood`
-            : 'Kies een basekleur en genereer automatisch harmonieuze paletten'
-          }
-        </p>
-      </div>
-
-      <div className="flex items-end gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Basekleur</Label>
-          <div className="flex gap-2">
-            <Input
-              type="color"
-              value={inputColor}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-10 h-9 p-0.5 cursor-pointer"
-            />
-            <Input
-              value={inputColor}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-24 h-9 text-xs font-mono"
-            />
-          </div>
-        </div>
-        {activeMood && (
-          <div className="flex items-center gap-1.5 pb-0.5">
-            {linkedToMood ? (
-              <Badge variant="secondary" className="text-[10px] gap-1 cursor-default">
-                <Link2 className="h-3 w-3" />
-                {activeMood.name}
-              </Badge>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-[10px] gap-1 text-muted-foreground"
-                onClick={relinkToMood}
-              >
-                <Unlink className="h-3 w-3" />
-                Herlink naar {activeMood.name}
-              </Button>
-            )}
-          </div>
-        )}
-        <p className="text-[10px] text-muted-foreground pb-1">
-          HSL: {h}° / {s}% / {l}%
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-2">
         {PALETTE_STRATEGIES.map((strategy) => {
           const rawPalette = strategy.generate(h, s, l);
           const palette = ensureContrast(rawPalette);
           const contrastLevel = getPaletteContrastLevel(palette);
-          
+
           return (
-            <div
+            <button
               key={strategy.name}
-              className="rounded-lg border p-2 space-y-1.5 hover:border-primary/50 transition-colors"
+              className="rounded-lg border p-2.5 hover:border-primary/50 transition-colors text-left flex items-center gap-3 group"
+              onClick={() => onApply(palette)}
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-semibold">{strategy.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{strategy.description}</p>
-                </div>
-                {contrastLevel === 'good' ? (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertTriangle className={cn(
-                    "h-3.5 w-3.5 shrink-0 mt-0.5",
-                    contrastLevel === 'low' ? 'text-orange-500' : 'text-red-500'
-                  )} />
-                )}
+              {/* Color strip */}
+              <div className="flex rounded-md overflow-hidden h-8 w-28 shrink-0">
+                {Object.entries(palette).map(([key, color]) => (
+                  <div
+                    key={key}
+                    className="flex-1"
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
               </div>
 
-              {/* Palette strip */}
-              <div className="flex rounded-md overflow-hidden h-8">
-                {Object.entries(palette).map(([key, color]) => (
-                  <button
-                    key={key}
-                    className="flex-1 relative group"
-                    style={{ backgroundColor: color }}
-                    onClick={() => handleCopy(color)}
-                    title={`${key}: ${color}`}
-                  >
-                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      {copiedColor === color ? (
-                        <Check className="h-3 w-3 text-white drop-shadow-md" />
-                      ) : (
-                        <Copy className="h-3 w-3 text-white drop-shadow-md" />
-                      )}
-                    </span>
-                  </button>
-                ))}
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium">{strategy.name}</span>
+                  {contrastLevel === 'good' ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <AlertTriangle className={cn(
+                      "h-3 w-3",
+                      contrastLevel === 'low' ? 'text-orange-500' : 'text-red-500'
+                    )} />
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground">{strategy.description}</span>
               </div>
 
               {/* Mini preview */}
               <div
-                className="rounded-sm p-1.5 h-9 flex items-center gap-1.5"
+                className="rounded-sm p-1.5 flex items-center gap-1 shrink-0"
                 style={{ backgroundColor: palette.background, color: palette.text }}
               >
                 <div
-                  className="px-2 py-0.5 rounded text-[7px] text-white font-medium"
+                  className="px-1.5 py-0.5 rounded text-[7px] text-white font-medium"
                   style={{ backgroundColor: palette.primary }}
                 >
-                  Button
+                  Btn
                 </div>
                 <span className="text-[7px] font-bold" style={{ color: palette.accent }}>
-                  €29,99
+                  €29
                 </span>
-                <span className="text-[7px] opacity-60">Tekst</span>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-7 text-xs"
-                onClick={() => onApply({
-                  primary: palette.primary,
-                  secondary: palette.secondary,
-                  accent: palette.accent,
-                  background: palette.background,
-                  text: palette.text,
-                })}
-              >
-                Toepassen
-              </Button>
-            </div>
+            </button>
           );
         })}
       </div>

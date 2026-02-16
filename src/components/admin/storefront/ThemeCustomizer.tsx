@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Palette, Type, Layout, Code, Save, Image as ImageIcon, RotateCcw, Sparkles, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Palette, Type, Layout, Code, Save, Image as ImageIcon, RotateCcw, Sparkles, AlertTriangle, CheckCircle2, XCircle, Wand2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,7 @@ import { ThemeGalleryInline } from './ThemeGalleryInline';
 import { ThemePresetManager } from './ThemePresetManager';
 import type { ThemePresetSettings } from '@/hooks/useThemePresets';
 import { cn } from '@/lib/utils';
-import { getContrastRatio, getContrastLevel, getContrastLabel } from '@/lib/color-utils';
+import { getContrastRatio, getContrastLevel } from '@/lib/color-utils';
 
 export function ThemeCustomizer() {
   const { themeSettings, themes, saveThemeSettings } = useStorefront();
@@ -115,13 +115,16 @@ export function ThemeCustomizer() {
     }));
   };
 
-  const handlePaletteApply = (colors: { primary: string; secondary: string; accent: string; background?: string; text?: string }) => {
+  const handlePaletteApply = (colors: { primary: string; secondary: string; accent: string; background: string; text: string }) => {
     setActiveMoodId(undefined);
     setActiveMoodData(undefined);
     setFormData(prev => ({
-      ...prev, primary_color: colors.primary, secondary_color: colors.secondary, accent_color: colors.accent,
-      ...(colors.background && { background_color: colors.background }),
-      ...(colors.text && { text_color: colors.text }),
+      ...prev,
+      primary_color: colors.primary,
+      secondary_color: colors.secondary,
+      accent_color: colors.accent,
+      background_color: colors.background,
+      text_color: colors.text,
     }));
   };
 
@@ -204,24 +207,17 @@ export function ThemeCustomizer() {
                     <span>Kleuren</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-4 space-y-6">
+                <AccordionContent className="pb-4 space-y-5">
                   {/* Step 1: Mood Presets as pills */}
                   <ThemeMoodPresets onSelect={handleMoodSelect} activePresetId={activeMoodId} />
 
-                  {/* Step 2: Palette Generator linked to mood */}
-                  <ColorPaletteGenerator
-                    baseColor={formData.primary_color || '#3b82f6'}
-                    onApply={handlePaletteApply}
-                    activeMood={activeMoodData}
-                  />
-
-                  {/* Step 3: Manual fine-tuning */}
-                  <div className="border-t pt-4">
-                    <h4 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Handmatig</h4>
-                    <div className="grid grid-cols-1 gap-4">
+                  {/* Step 2: Unified Color Card */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Jouw Kleurenpalet</h4>
+                    <div className="space-y-2.5">
                       {[
-                        { key: 'primary_color', label: 'Primair', desc: 'Knoppen & accenten', checkContrast: true },
-                        { key: 'secondary_color', label: 'Secundair', desc: 'Subtiele elementen', checkContrast: false },
+                        { key: 'primary_color', label: 'Primair', desc: 'Knoppen & links', checkContrast: true },
+                        { key: 'secondary_color', label: 'Secundair', desc: 'Subtiele accenten', checkContrast: false },
                         { key: 'accent_color', label: 'Accent', desc: 'Prijzen & badges', checkContrast: true },
                         { key: 'background_color', label: 'Achtergrond', desc: 'Pagina achtergrond', checkContrast: false },
                         { key: 'text_color', label: 'Tekst', desc: 'Standaard tekst', checkContrast: true },
@@ -231,25 +227,26 @@ export function ThemeCustomizer() {
                         const ratio = checkContrast ? getContrastRatio(colorVal, bgColor) : 0;
                         const level = checkContrast ? getContrastLevel(ratio) : 'good';
                         return (
-                          <div key={key} className="space-y-1">
-                            <div className="flex items-center gap-3">
-                              <Input type="color" value={colorVal} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="w-10 h-10 p-1 cursor-pointer shrink-0 rounded-lg" />
-                              <div className="flex-1 min-w-0">
-                                <Label className="text-xs">{label}</Label>
-                                <Input value={colorVal} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="h-8 text-xs mt-0.5" />
+                          <div key={key} className="flex items-center gap-2.5">
+                            <Input type="color" value={colorVal} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="w-9 h-9 p-0.5 cursor-pointer shrink-0 rounded-md border-2" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium">{label}</span>
+                                <span className="text-[10px] text-muted-foreground">— {desc}</span>
                               </div>
+                              <Input value={colorVal} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="h-7 text-xs font-mono mt-0.5" />
                             </div>
                             {checkContrast && (
                               <div className={cn(
-                                "flex items-center gap-1.5 text-[10px] pl-12",
+                                "flex items-center gap-1 shrink-0",
                                 level === 'good' && 'text-green-600',
                                 level === 'low' && 'text-orange-500',
                                 level === 'fail' && 'text-red-500',
                               )}>
-                                {level === 'good' && <CheckCircle2 className="h-3 w-3" />}
-                                {level === 'low' && <AlertTriangle className="h-3 w-3" />}
-                                {level === 'fail' && <XCircle className="h-3 w-3" />}
-                                <span>{ratio.toFixed(1)}:1 – {getContrastLabel(level)}</span>
+                                {level === 'good' && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                {level === 'low' && <AlertTriangle className="h-3.5 w-3.5" />}
+                                {level === 'fail' && <XCircle className="h-3.5 w-3.5" />}
+                                <span className="text-[10px] font-medium">{ratio.toFixed(1)}:1</span>
                               </div>
                             )}
                           </div>
@@ -257,6 +254,57 @@ export function ThemeCustomizer() {
                       })}
                     </div>
                   </div>
+
+                  {/* Live Mini-Preview */}
+                  <div
+                    className="rounded-lg border p-3 space-y-2"
+                    style={{ backgroundColor: formData.background_color, color: formData.text_color }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold" style={{ color: formData.text_color }}>Preview</span>
+                      <div
+                        className="px-2 py-0.5 rounded text-[9px] font-medium"
+                        style={{ backgroundColor: formData.secondary_color, color: '#fff' }}
+                      >
+                        Nieuw
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="px-3 py-1 rounded text-[10px] font-medium text-white"
+                        style={{ backgroundColor: formData.primary_color }}
+                      >
+                        In winkelmand
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: formData.accent_color }}>
+                        €29,99
+                      </span>
+                    </div>
+                    <p className="text-[9px] opacity-70" style={{ color: formData.text_color }}>
+                      Dit is een voorbeeldtekst om de leesbaarheid te testen.
+                    </p>
+                  </div>
+
+                  {/* Step 3: Collapsible Palette Generator */}
+                  <details className="group">
+                    <summary className="flex items-center gap-2 cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1">
+                      <Wand2 className="h-3.5 w-3.5" />
+                      <span>Genereer variaties</span>
+                      <ChevronDown className="h-3 w-3 ml-auto transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="pt-2">
+                      <ColorPaletteGenerator
+                        currentColors={{
+                          primary: formData.primary_color || '#3b82f6',
+                          secondary: formData.secondary_color || '#6b7280',
+                          accent: formData.accent_color || '#f59e0b',
+                          background: formData.background_color || '#ffffff',
+                          text: formData.text_color || '#1a1a1a',
+                        }}
+                        onApply={handlePaletteApply}
+                      />
+                    </div>
+                  </details>
                 </AccordionContent>
               </AccordionItem>
 
