@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Mail, MessageSquare, Send, Search } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Mail, MessageSquare, Send, Search, Facebook, Instagram } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,18 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
-type ComposeChannel = 'email' | 'whatsapp';
+type ComposeChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
+
+interface MetaConnection {
+  id: string;
+  platform: string;
+  page_id: string;
+  page_name: string | null;
+  instagram_account_id: string | null;
+  is_active: boolean;
+}
 
 interface ComposeDialogProps {
   open: boolean;
@@ -39,6 +48,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     name: string;
     email: string;
     phone?: string;
+    metaSenderId?: string;
   } | null>(null);
   const [manualRecipient, setManualRecipient] = useState('');
   const [subject, setSubject] = useState('');
@@ -50,15 +60,88 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     recipientSearch.length >= 2 ? recipientSearch : undefined
   );
 
+  // Fetch active meta messaging connections
+  const { data: metaConnections = [] } = useQuery({
+    queryKey: ['meta-connections', currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant?.id) return [];
+      const { data, error } = await supabase
+        .from('meta_messaging_connections')
+        .select('id, platform, page_id, page_name, instagram_account_id, is_active')
+        .eq('tenant_id', currentTenant.id)
+        .eq('is_active', true);
+      if (error) throw error;
+      return (data || []) as MetaConnection[];
+    },
+    enabled: !!currentTenant?.id && open,
+  });
+
+  const hasFacebook = metaConnections.some(c => c.platform === 'facebook');
+  const hasInstagram = metaConnections.some(c => c.platform === 'instagram');
+  const canSendWhatsApp = currentTenant?.whatsapp_enabled;
+
+  const isSocialChannel = channel === 'facebook' || channel === 'instagram';
+
   const filteredCustomers = useMemo(() => {
     if (recipientSearch.length < 2) return [];
     return customers.slice(0, 8);
   }, [customers, recipientSearch]);
 
-  const canSendWhatsApp = currentTenant?.whatsapp_enabled;
+  // When selecting a customer for social channels, look up their meta_sender_id
+  const handleSelectCustomer = async (customer: typeof customers[0]) => {
+    const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email;
+    let metaSenderId: string | undefined;
+
+    // For social channels, find the meta_sender_id from previous messages
+    if (isSocialChannel && currentTenant?.id) {
+      const { data: msgs } = await supabase
+        .from('customer_messages')
+        .select('meta_sender_id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('customer_id', customer.id)
+        .eq('channel', channel)
+        .not('meta_sender_id', 'is', null)
+        .limit(1);
+      metaSenderId = msgs?.[0]?.meta_sender_id || undefined;
+    }
+
+    setSelectedCustomer({
+      id: customer.id,
+      name,
+      email: customer.email,
+      phone: customer.phone || undefined,
+      metaSenderId,
+    });
+    setRecipientSearch('');
+    setManualRecipient('');
+    setShowResults(false);
+  };
+
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+    setManualRecipient('');
+  };
+
+  const channelLabel = (ch: ComposeChannel) => {
+    switch (ch) {
+      case 'email': return 'e-mail';
+      case 'whatsapp': return 'WhatsApp';
+      case 'facebook': return 'Facebook';
+      case 'instagram': return 'Instagram';
+    }
+  };
+
+  const recipientLabel = () => {
+    switch (channel) {
+      case 'email': return 'Ontvanger (e-mail)';
+      case 'whatsapp': return 'Ontvanger (telefoonnummer)';
+      case 'facebook': return 'Ontvanger (Facebook)';
+      case 'instagram': return 'Ontvanger (Instagram)';
+    }
+  };
 
   const recipientDisplay = selectedCustomer
-    ? `${selectedCustomer.name} (${channel === 'whatsapp' ? selectedCustomer.phone : selectedCustomer.email})`
+    ? `${selectedCustomer.name}${isSocialChannel ? '' : ` (${channel === 'whatsapp' ? selectedCustomer.phone : selectedCustomer.email})`}`
     : manualRecipient;
 
   const canSend = () => {
@@ -72,24 +155,10 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
       const phone = selectedCustomer?.phone || manualRecipient;
       return !!phone && phone.length >= 8;
     }
+    if (channel === 'facebook' || channel === 'instagram') {
+      return !!selectedCustomer?.metaSenderId;
+    }
     return false;
-  };
-
-  const handleSelectCustomer = (customer: typeof customers[0]) => {
-    setSelectedCustomer({
-      id: customer.id,
-      name: [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email,
-      email: customer.email,
-      phone: customer.phone || undefined,
-    });
-    setRecipientSearch('');
-    setManualRecipient('');
-    setShowResults(false);
-  };
-
-  const handleClearCustomer = () => {
-    setSelectedCustomer(null);
-    setManualRecipient('');
   };
 
   const handleSend = async () => {
@@ -114,7 +183,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
           },
         });
         if (error) throw error;
-      } else {
+      } else if (channel === 'whatsapp') {
         const toPhone = selectedCustomer?.phone || manualRecipient;
 
         const { error } = await supabase.functions.invoke('send-whatsapp-message', {
@@ -127,11 +196,29 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
           },
         });
         if (error) throw error;
+      } else {
+        // Facebook or Instagram
+        const connection = metaConnections.find(c => c.platform === channel);
+        if (!connection || !selectedCustomer?.metaSenderId) {
+          throw new Error(`Geen actieve ${channelLabel(channel)} verbinding of ontvangergegevens.`);
+        }
+
+        const { error } = await supabase.functions.invoke('send-meta-message', {
+          body: {
+            tenant_id: currentTenant.id,
+            platform: channel,
+            recipient_id: selectedCustomer.metaSenderId,
+            page_id: connection.page_id,
+            message: message.trim(),
+            customer_id: selectedCustomer.id,
+          },
+        });
+        if (error) throw error;
       }
 
       toast({
         title: 'Bericht verzonden',
-        description: `Nieuw ${channel === 'email' ? 'e-mail' : 'WhatsApp'} bericht is verstuurd.`,
+        description: `Nieuw ${channelLabel(channel)} bericht is verstuurd.`,
       });
 
       // Reset form
@@ -142,7 +229,6 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
       setSubject('');
       setMessage('');
 
-      // Refresh inbox
       queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
       onOpenChange(false);
       onSent?.();
@@ -158,13 +244,20 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     }
   };
 
+  // Reset selected customer when switching to social channel (need meta_sender_id)
+  useEffect(() => {
+    if (isSocialChannel && selectedCustomer && !selectedCustomer.metaSenderId) {
+      setSelectedCustomer(null);
+    }
+  }, [channel]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nieuw bericht</DialogTitle>
           <DialogDescription>
-            Start een nieuw gesprek met een klant via e-mail of WhatsApp.
+            Start een nieuw gesprek met een klant via e-mail, WhatsApp, Facebook of Instagram.
           </DialogDescription>
         </DialogHeader>
 
@@ -174,14 +267,26 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
             <Label className="text-sm font-medium">Kanaal</Label>
             <Tabs value={channel} onValueChange={(v) => setChannel(v as ComposeChannel)} className="mt-1.5">
               <TabsList className="h-9">
-                <TabsTrigger value="email" className="text-xs px-4 h-7">
+                <TabsTrigger value="email" className="text-xs px-3 h-7">
                   <Mail className="h-3.5 w-3.5 mr-1.5" />
                   Email
                 </TabsTrigger>
                 {canSendWhatsApp && (
-                  <TabsTrigger value="whatsapp" className="text-xs px-4 h-7">
+                  <TabsTrigger value="whatsapp" className="text-xs px-3 h-7">
                     <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
                     WhatsApp
+                  </TabsTrigger>
+                )}
+                {hasFacebook && (
+                  <TabsTrigger value="facebook" className="text-xs px-3 h-7">
+                    <Facebook className="h-3.5 w-3.5 mr-1.5" />
+                    Facebook
+                  </TabsTrigger>
+                )}
+                {hasInstagram && (
+                  <TabsTrigger value="instagram" className="text-xs px-3 h-7">
+                    <Instagram className="h-3.5 w-3.5 mr-1.5" />
+                    Instagram
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -190,12 +295,15 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
 
           {/* Recipient */}
           <div>
-            <Label className="text-sm font-medium">
-              {channel === 'email' ? 'Ontvanger (e-mail)' : 'Ontvanger (telefoonnummer)'}
-            </Label>
+            <Label className="text-sm font-medium">{recipientLabel()}</Label>
             {selectedCustomer ? (
               <div className="mt-1.5 flex items-center gap-2 bg-muted rounded-md px-3 py-2 text-sm">
-                <span className="flex-1 truncate">{recipientDisplay}</span>
+                <span className="flex-1 truncate">
+                  {recipientDisplay}
+                  {isSocialChannel && !selectedCustomer.metaSenderId && (
+                    <span className="text-destructive ml-2 text-xs">— geen {channelLabel(channel)} ID gevonden</span>
+                  )}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -209,24 +317,28 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
               <div className="mt-1.5 relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={channel === 'email' ? 'Zoek klant of typ e-mailadres...' : 'Zoek klant of typ telefoonnummer...'}
+                  placeholder={
+                    isSocialChannel
+                      ? 'Zoek een bestaande klant...'
+                      : channel === 'email'
+                        ? 'Zoek klant of typ e-mailadres...'
+                        : 'Zoek klant of typ telefoonnummer...'
+                  }
                   className="pl-8"
                   value={recipientSearch || manualRecipient}
                   onChange={(e) => {
                     const val = e.target.value;
                     setRecipientSearch(val);
-                    setManualRecipient(val);
+                    if (!isSocialChannel) setManualRecipient(val);
                     setShowResults(val.length >= 2);
                   }}
                   onFocus={() => {
                     if (recipientSearch.length >= 2) setShowResults(true);
                   }}
                   onBlur={() => {
-                    // Delay to allow click on result
                     setTimeout(() => setShowResults(false), 200);
                   }}
                 />
-                {/* Customer search results */}
                 {showResults && filteredCustomers.length > 0 && (
                   <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md">
                     <ScrollArea className="max-h-48">
@@ -250,6 +362,11 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                       ))}
                     </ScrollArea>
                   </div>
+                )}
+                {isSocialChannel && recipientSearch.length < 2 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Alleen klanten met eerdere {channelLabel(channel)} conversaties kunnen berichten ontvangen.
+                  </p>
                 )}
               </div>
             )}
