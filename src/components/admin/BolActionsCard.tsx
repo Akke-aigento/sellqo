@@ -256,25 +256,35 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                 onClick={async () => {
                   setIsRetrying(true);
                   try {
-                    const { data, error } = await supabase.functions.invoke('create-bol-vvb-label', {
+                    const response = await supabase.functions.invoke('create-bol-vvb-label', {
                       body: {
                         order_id: order.id,
                         retry: true,
                         label_id: latestLabel.id,
                       },
                     });
-                    if (error) throw error;
-                    if (!data?.success) throw new Error(data?.error || 'Ophalen mislukt');
+                    
+                    // Handle 202 pending status
+                    if (response.data?.status === 'pending') {
+                      toast.info(response.data.message || 'Label wordt nog verwerkt door Bol.com. Probeer over 30 seconden opnieuw.');
+                      return;
+                    }
+                    
+                    if (response.error) throw response.error;
+                    if (!response.data?.success) throw new Error(response.data?.error || response.data?.details || 'Ophalen mislukt');
+                    
                     toast.success('Label opnieuw opgehaald');
                     queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
                     queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-                    if (data.label_url) {
-                      window.open(data.label_url, '_blank');
+                    if (response.data.label_url) {
+                      window.open(response.data.label_url, '_blank');
                     }
                   } catch (err: any) {
-                    toast.error(`Fout: ${err.message}`);
+                    const msg = err?.message || err?.details || 'Onbekende fout';
+                    toast.error(`Fout bij ophalen: ${msg}`);
                   } finally {
-                    setIsRetrying(false);
+                    // Debounce: keep button disabled for 5 seconds
+                    setTimeout(() => setIsRetrying(false), 5000);
                   }
                 }}
                 disabled={isRetrying}

@@ -168,28 +168,64 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Race condition guard: if label already has a URL, another instance already fetched it
+      if (existingLabel.label_url) {
+        console.log('Label already has a URL, skipping retry (likely fetched by another instance)');
+        return new Response(
+          JSON.stringify({
+            success: true,
+            label_url: existingLabel.label_url,
+            tracking_number: existingLabel.tracking_number,
+            retried: true,
+            already_fetched: true,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       let retryPdfUrl: string | null = null;
       let retryTracking: string | null = existingLabel.tracking_number;
 
-      // Download PDF
-      const pdfResponse = await fetch(
-        `https://api.bol.com/retailer/shipping-labels/${retryLabelId}`,
-        {
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Accept": "application/pdf",
-          },
-        }
-      );
+      try {
+        // Download PDF
+        console.log('Fetching PDF from Bol.com, labelId:', retryLabelId);
+        const pdfResponse = await fetch(
+          `https://api.bol.com/retailer/shipping-labels/${retryLabelId}`,
+          {
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "Accept": "application/vnd.retailer.v10+pdf",
+            },
+          }
+        );
+        console.log('PDF response status:', pdfResponse.status);
 
-      if (pdfResponse.ok) {
+        if (pdfResponse.status === 404) {
+          console.log('Label not ready yet (404), returning 202 pending');
+          return new Response(
+            JSON.stringify({ 
+              status: 'pending', 
+              message: 'Label wordt nog verwerkt door Bol.com. Probeer over 30 seconden opnieuw.' 
+            }),
+            { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!pdfResponse.ok) {
+          const errText = await pdfResponse.text();
+          console.error('PDF fetch failed:', pdfResponse.status, errText);
+          throw new Error(`PDF fetch failed: ${pdfResponse.status} - ${errText}`);
+        }
+
         const pdfBlob = await pdfResponse.blob();
         let pdfBuffer = await pdfBlob.arrayBuffer();
+        console.log('PDF downloaded, size:', pdfBuffer.byteLength);
         
         if (labelFormat === 'a6_cropped') {
           try {
             const croppedPdf = await cropToA6(pdfBuffer);
             pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
+            console.log('PDF cropped to A6');
           } catch (cropError) {
             console.error('Error cropping PDF to A6:', cropError);
           }
@@ -201,19 +237,27 @@ const handler = async (req: Request): Promise<Response> => {
           .from('shipping-labels')
           .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: 'application/pdf' });
 
-        if (!uploadError && uploadData) {
+        if (uploadError) {
+          console.error('PDF upload failed:', uploadError);
+        } else if (uploadData) {
           const { data: urlData } = supabase.storage
             .from('shipping-labels')
             .getPublicUrl(`${order.tenant_id}/${fileName}`);
           retryPdfUrl = urlData?.publicUrl || null;
+          console.log('PDF uploaded, URL:', retryPdfUrl);
         }
-      } else {
-        console.error('Failed to download PDF on retry:', pdfResponse.status);
+      } catch (pdfError) {
+        console.error('CRASH in retry PDF fetch:', pdfError instanceof Error ? pdfError.message : pdfError, pdfError instanceof Error ? pdfError.stack : '');
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch shipping label', details: pdfError instanceof Error ? pdfError.message : 'Unknown error' }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Get tracking via HEAD
       if (!retryTracking) {
         try {
+          console.log('Fetching tracking via HEAD request...');
           const headRes = await fetch(
             `https://api.bol.com/retailer/shipping-labels/${retryLabelId}`,
             {
@@ -225,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
           );
           retryTracking = headRes.headers.get('X-Track-And-Trace-Code') || null;
-          console.log(`Retry HEAD tracking: ${retryTracking}`);
+          console.log(`Retry HEAD tracking: ${retryTracking}, status: ${headRes.status}`);
         } catch (e) {
           console.error('Retry HEAD request failed:', e);
         }
@@ -238,6 +282,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (Object.keys(updateFields).length > 0) {
         await supabase.from('shipping_labels').update(updateFields).eq('id', label_id);
+        console.log('Label record updated:', JSON.stringify(updateFields));
       }
 
       // Update order if tracking found
@@ -480,7 +525,7 @@ const handler = async (req: Request): Promise<Response> => {
         {
           headers: {
             "Authorization": `Bearer ${accessToken}`,
-            "Accept": "application/pdf",
+            "Accept": "application/vnd.retailer.v10+pdf",
           },
         }
       );
