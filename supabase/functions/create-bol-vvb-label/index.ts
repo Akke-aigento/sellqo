@@ -92,6 +92,7 @@ async function getBolAccessToken(credentials: { clientId: string; clientSecret: 
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('=== VVB LABEL v2 DEPLOYED ===');
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
