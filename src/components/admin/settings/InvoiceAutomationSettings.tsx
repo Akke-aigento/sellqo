@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { FileText, Mail, Loader2, Info, ShoppingCart, Globe, Store } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 
 export function InvoiceAutomationSettings() {
   const { roles } = useAuth();
@@ -17,6 +18,9 @@ export function InvoiceAutomationSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [autoSendEmail, setAutoSendEmail] = useState(false);
+  const [ccEmail, setCcEmail] = useState('');
+  const [bccEmail, setBccEmail] = useState('');
+  const [emailError, setEmailError] = useState<{ cc?: string; bcc?: string }>({});
 
   useEffect(() => {
     if (activeTenantId) {
@@ -31,7 +35,7 @@ export function InvoiceAutomationSettings() {
     try {
       const { data, error } = await supabase
         .from('tenants')
-        .select('auto_generate_invoice, auto_send_invoice_email')
+        .select('auto_generate_invoice, auto_send_invoice_email, invoice_cc_email, invoice_bcc_email')
         .eq('id', activeTenantId)
         .single();
 
@@ -39,6 +43,8 @@ export function InvoiceAutomationSettings() {
 
       setAutoGenerate(data?.auto_generate_invoice ?? true);
       setAutoSendEmail(data?.auto_send_invoice_email ?? false);
+      setCcEmail(data?.invoice_cc_email ?? '');
+      setBccEmail(data?.invoice_bcc_email ?? '');
     } catch (error: any) {
       console.error('Error loading invoice settings:', error);
     } finally {
@@ -49,6 +55,13 @@ export function InvoiceAutomationSettings() {
   const handleSave = async () => {
     if (!activeTenantId) return;
 
+    const isValidEmail = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const errors: { cc?: string; bcc?: string } = {};
+    if (!isValidEmail(ccEmail)) errors.cc = 'Ongeldig e-mailadres';
+    if (!isValidEmail(bccEmail)) errors.bcc = 'Ongeldig e-mailadres';
+    setEmailError(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsSaving(true);
     try {
       const { error } = await supabase
@@ -56,6 +69,8 @@ export function InvoiceAutomationSettings() {
         .update({
           auto_generate_invoice: autoGenerate,
           auto_send_invoice_email: autoSendEmail,
+          invoice_cc_email: ccEmail || null,
+          invoice_bcc_email: bccEmail || null,
         })
         .eq('id', activeTenantId);
 
@@ -132,6 +147,44 @@ export function InvoiceAutomationSettings() {
               disabled={!autoGenerate}
             />
           </div>
+
+          {autoSendEmail && (
+            <div className="space-y-4 pl-4 border-l-2 border-muted">
+              <div className="space-y-2">
+                <Label htmlFor="cc-email" className="text-base">
+                  CC e-mailadres
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Dit adres ontvangt een kopie van elke verstuurde factuur, bijv. je boekhoudsoftware
+                </p>
+                <Input
+                  id="cc-email"
+                  type="email"
+                  placeholder="boekhouding@jouwbedrijf.nl"
+                  value={ccEmail}
+                  onChange={(e) => { setCcEmail(e.target.value); setEmailError(prev => ({ ...prev, cc: undefined })); }}
+                />
+                {emailError.cc && <p className="text-sm text-destructive">{emailError.cc}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bcc-email" className="text-base">
+                  BCC e-mailadres
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Blinde kopie — de klant ziet dit adres niet
+                </p>
+                <Input
+                  id="bcc-email"
+                  type="email"
+                  placeholder="archief@jouwbedrijf.nl"
+                  value={bccEmail}
+                  onChange={(e) => { setBccEmail(e.target.value); setEmailError(prev => ({ ...prev, bcc: undefined })); }}
+                />
+                {emailError.bcc && <p className="text-sm text-destructive">{emailError.bcc}</p>}
+              </div>
+            </div>
+          )}
 
           <Alert>
             <Info className="h-4 w-4" />
