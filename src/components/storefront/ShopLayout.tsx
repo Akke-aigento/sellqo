@@ -17,6 +17,7 @@ import { MobileBottomNav } from '@/components/storefront/MobileBottomNav';
 import { CookieBanner } from '@/components/storefront/CookieBanner';
 import { NewsletterPopup } from '@/components/storefront/NewsletterPopup';
 import { TrustBadges } from '@/components/storefront/TrustBadges';
+import { StorefrontLanguageSelector } from '@/components/storefront/StorefrontLanguageSelector';
 import { ExitIntentPopup } from '@/components/storefront/ExitIntentPopup';
 import { RecentPurchaseToast } from '@/components/storefront/RecentPurchaseToast';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
@@ -39,6 +40,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [storefrontLanguage, setStorefrontLanguage] = useState(() => {
+    return localStorage.getItem('storefront_language') || 'nl';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [redirecting, setRedirecting] = useState(false);
   
@@ -66,6 +70,15 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const newsletterPopupDelay = ts?.newsletter_popup_delay_seconds || 5;
   const newsletterIncentiveText = ts?.newsletter_incentive_text || null;
   const trustBadges = (ts?.trust_badges as string[]) || [];
+  const multilingualEnabled = ts?.storefront_multilingual_enabled || false;
+  const storefrontLanguages = (ts?.storefront_languages as string[]) || ['nl'];
+  const defaultLanguage = ts?.storefront_default_language || 'nl';
+  const languageSelectorStyle = ts?.storefront_language_selector_style || 'dropdown';
+
+  const handleLanguageChange = (lang: string) => {
+    setStorefrontLanguage(lang);
+    localStorage.setItem('storefront_language', lang);
+  };
 
   // Set tenant slug for cart context
   useEffect(() => {
@@ -307,6 +320,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               cartCount={cartCount} mobileMenuOpen={mobileMenuOpen}
               setMobileMenuOpen={setMobileMenuOpen} navStyle={navStyle}
+              multilingualEnabled={multilingualEnabled} storefrontLanguages={storefrontLanguages}
+              storefrontLanguage={storefrontLanguage} onLanguageChange={handleLanguageChange}
+              languageSelectorStyle={languageSelectorStyle}
             />
           ) : headerStyle === 'minimal' ? (
             <MinimalHeader 
@@ -314,6 +330,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
               cartCount={cartCount}
+              multilingualEnabled={multilingualEnabled} storefrontLanguages={storefrontLanguages}
+              storefrontLanguage={storefrontLanguage} onLanguageChange={handleLanguageChange}
+              languageSelectorStyle={languageSelectorStyle}
             />
           ) : (
             <StandardHeader 
@@ -327,6 +346,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               wishlistCount={wishlistCount}
               onCartClick={() => { if (cartCount > 0) { /* drawer opens via context */ } }}
               onSearchModalOpen={() => setSearchModalOpen(true)}
+              multilingualEnabled={multilingualEnabled} storefrontLanguages={storefrontLanguages}
+              storefrontLanguage={storefrontLanguage} onLanguageChange={handleLanguageChange}
+              languageSelectorStyle={languageSelectorStyle}
             />
           )}
         </div>
@@ -498,7 +520,7 @@ function AnnouncementCarousel({ texts, link, bgColor }: { texts: string[]; link?
 }
 
 // Standard Header Component
-function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen }: any) {
+function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle }: any) {
   const { openDrawer } = useCart();
   
   return (
@@ -547,6 +569,18 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
             <Button variant="ghost" size="icon" onClick={onSearchModalOpen} className="hidden md:flex">
               <Search className="h-5 w-5" />
             </Button>
+          )}
+
+          {/* Language Selector */}
+          {multilingualEnabled && storefrontLanguages.length > 1 && (
+            <div className="hidden md:flex">
+              <StorefrontLanguageSelector
+                languages={storefrontLanguages}
+                currentLanguage={storefrontLanguage}
+                onLanguageChange={onLanguageChange}
+                style={languageSelectorStyle}
+              />
+            </div>
           )}
 
           {/* Wishlist */}
@@ -607,7 +641,7 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
 }
 
 // Centered Header Component
-function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle }: any) {
+function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle }: any) {
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
   const wishlistCount = getWishlistCount();
@@ -674,6 +708,14 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
           <Button variant="ghost" size="icon" onClick={() => {}}>
             <Search className="h-4 w-4" />
           </Button>
+          {multilingualEnabled && storefrontLanguages.length > 1 && (
+            <StorefrontLanguageSelector
+              languages={storefrontLanguages}
+              currentLanguage={storefrontLanguage}
+              onLanguageChange={onLanguageChange}
+              style={languageSelectorStyle}
+            />
+          )}
           {showWishlist && (
             <Button variant="ghost" size="icon" asChild className="relative">
               <Link to={`${basePath}/wishlist`}>
@@ -697,7 +739,7 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
 }
 
 // Minimal Header Component
-function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount }: any) {
+function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle }: any) {
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
   const wishlistCount = getWishlistCount();
@@ -742,6 +784,14 @@ function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, 
         <Button variant="ghost" size="icon" onClick={() => {}}>
           <Search className="h-5 w-5" />
         </Button>
+        {multilingualEnabled && storefrontLanguages.length > 1 && (
+          <StorefrontLanguageSelector
+            languages={storefrontLanguages}
+            currentLanguage={storefrontLanguage}
+            onLanguageChange={onLanguageChange}
+            style={languageSelectorStyle}
+          />
+        )}
         {showWishlist && (
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link to={`${basePath}/wishlist`}>

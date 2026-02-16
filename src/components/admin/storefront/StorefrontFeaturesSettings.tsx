@@ -84,6 +84,7 @@ export function StorefrontFeaturesSettings() {
     // Trust
     cookie_banner_enabled: DEFAULT_TRUST_CONFIG.cookie_banner_enabled,
     cookie_banner_style: DEFAULT_TRUST_CONFIG.cookie_banner_style,
+    trust_badges: DEFAULT_TRUST_CONFIG.trust_badges as string[],
     
     // Navigation
     nav_style: DEFAULT_NAVIGATION_CONFIG.nav_style,
@@ -126,6 +127,7 @@ export function StorefrontFeaturesSettings() {
         product_related_mode: settings.product_related_mode ?? prev.product_related_mode,
         cookie_banner_enabled: settings.cookie_banner_enabled ?? prev.cookie_banner_enabled,
         cookie_banner_style: settings.cookie_banner_style ?? prev.cookie_banner_style,
+        trust_badges: settings.trust_badges ?? prev.trust_badges,
         nav_style: settings.nav_style ?? prev.nav_style,
         header_sticky: settings.header_sticky ?? prev.header_sticky,
         search_display: settings.search_display ?? prev.search_display,
@@ -525,6 +527,45 @@ export function StorefrontFeaturesSettings() {
                 </Select>
               </div>
             )}
+
+            {/* Trust Badges */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <Label>Trust Badges</Label>
+                <InfoTooltip text="Kies welke vertrouwenssignalen je wilt tonen in de footer en checkout" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'veilig_betalen', label: 'Veilig Betalen' },
+                  { value: 'gratis_verzending', label: 'Gratis Verzending' },
+                  { value: 'gratis_retour', label: 'Gratis Retour' },
+                  { value: 'ssl_beveiligd', label: 'SSL Beveiligd' },
+                  { value: 'ideal', label: 'iDEAL' },
+                  { value: 'keurmerk', label: 'Keurmerk' },
+                ].map((badge) => {
+                  const isChecked = formData.trust_badges.includes(badge.value);
+                  return (
+                    <label
+                      key={badge.value}
+                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            trust_badges: checked
+                              ? [...prev.trust_badges, badge.value]
+                              : prev.trust_badges.filter(b => b !== badge.value),
+                          }));
+                        }}
+                      />
+                      <span className="text-sm font-medium">{badge.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </AccordionContent>
         </AccordionItem>
 

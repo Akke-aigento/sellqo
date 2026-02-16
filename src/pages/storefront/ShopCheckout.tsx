@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -62,12 +62,37 @@ export default function ShopCheckout() {
   } | null>(null);
   const [addressQuery, setAddressQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authProcessing, setAuthProcessing] = useState(false);
 
   // Read checkout config settings
   const ts = themeSettings as any;
   const phoneRequired = ts?.checkout_phone_required || false;
   const companyField = ts?.checkout_company_field || 'hidden';
   const addressAutocomplete = ts?.checkout_address_autocomplete || false;
+  const guestEnabled = ts?.checkout_guest_enabled !== false; // default true
+
+  // Check auth state
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUser(data.user);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+      if (session?.user) {
+        setCustomerData(prev => ({
+          ...prev,
+          email: prev.email || session.user.email || '',
+        }));
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Set tenant slug for cart context
   useEffect(() => {
@@ -269,6 +294,75 @@ export default function ShopCheckout() {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Guest checkout gate */}
+        {!guestEnabled && !currentUser && !authLoading && step === 'details' ? (
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LogIn className="h-5 w-5" />
+                Inloggen om te bestellen
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Je moet ingelogd zijn om een bestelling te plaatsen.
+              </p>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>E-mailadres</Label>
+                  <Input
+                    type="email"
+                    value={authEmail}
+                    onChange={e => setAuthEmail(e.target.value)}
+                    placeholder="je@email.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Wachtwoord</Label>
+                  <Input
+                    type="password"
+                    value={authPassword}
+                    onChange={e => setAuthPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={authProcessing}
+                  onClick={async () => {
+                    setAuthProcessing(true);
+                    try {
+                      if (authMode === 'login') {
+                        const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+                        if (error) throw error;
+                        toast.success('Ingelogd!');
+                      } else {
+                        const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+                        if (error) throw error;
+                        toast.success('Account aangemaakt! Controleer je e-mail.');
+                      }
+                    } catch (err: any) {
+                      toast.error(err.message || 'Er ging iets mis');
+                    } finally {
+                      setAuthProcessing(false);
+                    }
+                  }}
+                >
+                  {authProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {authMode === 'login' ? 'Inloggen' : 'Account aanmaken'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-sm"
+                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                >
+                  {authMode === 'login' ? 'Nog geen account? Registreer' : 'Al een account? Log in'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+        <>
         {/* Back Button */}
         {step !== 'confirmation' && (
           <Button
@@ -530,6 +624,8 @@ export default function ShopCheckout() {
             </Card>
           </div>
         </div>
+        </>
+        )}
       </div>
     </ShopLayout>
   );
