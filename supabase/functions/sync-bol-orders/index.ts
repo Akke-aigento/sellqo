@@ -538,26 +538,40 @@ Deno.serve(async (req) => {
         console.log(`Processed ${processedCount} new orders for connection ${connection.id}`)
 
         // Retry mechanism: find orders that were imported but not accepted
+        // v2.1: Skip already shipped/delivered orders, add diagnostic logging
         const autoAcceptEnabled = settings.autoAcceptOrder as boolean
         if (autoAcceptEnabled) {
           try {
+            console.log(`[RETRY] Checking for missed auto-accept orders (connection: ${connection.id})...`)
             const { data: missedOrders } = await supabase
               .from('orders')
-              .select('id, marketplace_order_id')
+              .select('id, marketplace_order_id, status, raw_marketplace_data')
               .eq('marketplace_connection_id', connection.id)
               .eq('sync_status', 'synced')
               .eq('marketplace_source', 'bol_com')
+              .in('status', ['processing', 'pending']) // Skip shipped/delivered/cancelled
               .order('created_at', { ascending: true })
               .limit(5)
 
             if (missedOrders && missedOrders.length > 0) {
-              console.log(`Found ${missedOrders.length} previously missed orders to retry auto-accept`)
+              console.log(`[RETRY] Found ${missedOrders.length} missed orders to retry auto-accept`)
               const supabaseUrl = Deno.env.get('SUPABASE_URL')!
               const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
               for (const missed of missedOrders) {
                 try {
-                  console.log(`Retrying auto-accept for order ${missed.marketplace_order_id}...`)
+                  // Check raw_marketplace_data for order items
+                  const rawData = missed.raw_marketplace_data as { orderItems?: Array<{ orderItemId: string, quantity: number }> } | null
+                  const itemCount = rawData?.orderItems?.length ?? 0
+                  console.log(`[RETRY] Order ${missed.marketplace_order_id} (status: ${missed.status}, items: ${itemCount}) - attempting accept...`)
+                  
+                  if (itemCount === 0) {
+                    console.error(`[RETRY] Order ${missed.marketplace_order_id} has no orderItems in raw_marketplace_data, skipping`)
+                    // Mark as accepted to prevent infinite retries on broken data
+                    await supabase.from('orders').update({ sync_status: 'accept_failed' }).eq('id', missed.id)
+                    continue
+                  }
+
                   const acceptRes = await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
                     method: 'POST',
                     headers: {
@@ -572,13 +586,14 @@ Deno.serve(async (req) => {
                   const acceptBody = await acceptRes.text()
 
                   if (acceptRes.ok) {
-                    console.log(`Retry accept succeeded for ${missed.marketplace_order_id}: ${acceptBody}`)
+                    console.log(`[RETRY] Accept succeeded for ${missed.marketplace_order_id}: ${acceptBody}`)
                     
                     // Auto-create VVB label if enabled
                     const vvbEnabled = settings.vvbEnabled as boolean
                     if (vvbEnabled) {
                       try {
                         const vvbCarrier = (settings.vvbDefaultCarrier as string) || 'POSTNL'
+                        console.log(`[RETRY] Creating VVB label for ${missed.marketplace_order_id} with carrier ${vvbCarrier}...`)
                         const vvbRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
                           method: 'POST',
                           headers: {
@@ -592,26 +607,43 @@ Deno.serve(async (req) => {
                         })
                         const vvbBody = await vvbRes.text()
                         if (vvbRes.ok) {
-                          console.log(`Retry VVB label created for ${missed.marketplace_order_id}`)
+                          console.log(`[RETRY] VVB label created for ${missed.marketplace_order_id}: ${vvbBody}`)
                         } else {
-                          console.error(`Retry VVB label failed for ${missed.marketplace_order_id}: ${vvbBody}`)
+                          console.error(`[RETRY] VVB label failed for ${missed.marketplace_order_id}: ${vvbRes.status} ${vvbBody}`)
                         }
                       } catch (vvbError) {
-                        console.error(`Retry VVB error for ${missed.marketplace_order_id}:`, vvbError)
+                        console.error(`[RETRY] VVB error for ${missed.marketplace_order_id}:`, vvbError)
                       }
+                    } else {
+                      console.log(`[RETRY] VVB not enabled in settings, skipping label creation`)
                     }
                   } else {
-                    console.error(`Retry accept failed for ${missed.marketplace_order_id}: ${acceptRes.status} ${acceptBody}`)
+                    console.error(`[RETRY] Accept failed for ${missed.marketplace_order_id}: HTTP ${acceptRes.status} - ${acceptBody}`)
+                    // If Bol.com returns 403, it likely means the order was already accepted on Bol.com side
+                    // or the API key lacks order management permissions
+                    if (acceptRes.status === 500) {
+                      let parsed: { error?: string } = {}
+                      try { parsed = JSON.parse(acceptBody) } catch {}
+                      if (parsed.error?.includes('403') || parsed.error?.includes('Forbidden')) {
+                        console.log(`[RETRY] Bol.com returned 403 for ${missed.marketplace_order_id} - order may already be accepted on Bol.com. Marking as accepted.`)
+                        await supabase.from('orders').update({ 
+                          sync_status: 'accepted',
+                          updated_at: new Date().toISOString()
+                        }).eq('id', missed.id)
+                      }
+                    }
                   }
 
                   await rateLimitDelay(500)
                 } catch (retryError) {
-                  console.error(`Retry error for ${missed.marketplace_order_id}:`, retryError)
+                  console.error(`[RETRY] Error for ${missed.marketplace_order_id}:`, retryError)
                 }
               }
+            } else {
+              console.log(`[RETRY] No missed orders found for auto-accept`)
             }
           } catch (retryLookupError) {
-            console.error('Error looking up missed orders for retry:', retryLookupError)
+            console.error('[RETRY] Error looking up missed orders:', retryLookupError)
           }
         }
 
