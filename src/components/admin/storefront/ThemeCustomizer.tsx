@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Palette, Type, Layout, Code, Save, Image as ImageIcon, RotateCcw, Sparkles } from 'lucide-react';
+import { Palette, Type, Layout, Code, Save, Image as ImageIcon, RotateCcw, Sparkles, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,7 @@ import { ThemeGalleryInline } from './ThemeGalleryInline';
 import { ThemePresetManager } from './ThemePresetManager';
 import type { ThemePresetSettings } from '@/hooks/useThemePresets';
 import { cn } from '@/lib/utils';
+import { getContrastRatio, getContrastLevel, getContrastLabel } from '@/lib/color-utils';
 
 export function ThemeCustomizer() {
   const { themeSettings, themes, saveThemeSettings } = useStorefront();
@@ -219,20 +220,41 @@ export function ThemeCustomizer() {
                     <h4 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Handmatig</h4>
                     <div className="grid grid-cols-1 gap-4">
                       {[
-                        { key: 'primary_color', label: 'Primair', desc: 'Knoppen & accenten' },
-                        { key: 'secondary_color', label: 'Secundair', desc: 'Subtiele elementen' },
-                        { key: 'accent_color', label: 'Accent', desc: 'Prijzen & badges' },
-                        { key: 'background_color', label: 'Achtergrond', desc: 'Pagina achtergrond' },
-                        { key: 'text_color', label: 'Tekst', desc: 'Standaard tekst' },
-                      ].map(({ key, label, desc }) => (
-                        <div key={key} className="flex items-center gap-3">
-                          <Input type="color" value={(formData as any)[key]} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="w-10 h-10 p-1 cursor-pointer shrink-0 rounded-lg" />
-                          <div className="flex-1 min-w-0">
-                            <Label className="text-xs">{label}</Label>
-                            <Input value={(formData as any)[key]} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="h-8 text-xs mt-0.5" />
+                        { key: 'primary_color', label: 'Primair', desc: 'Knoppen & accenten', checkContrast: true },
+                        { key: 'secondary_color', label: 'Secundair', desc: 'Subtiele elementen', checkContrast: false },
+                        { key: 'accent_color', label: 'Accent', desc: 'Prijzen & badges', checkContrast: true },
+                        { key: 'background_color', label: 'Achtergrond', desc: 'Pagina achtergrond', checkContrast: false },
+                        { key: 'text_color', label: 'Tekst', desc: 'Standaard tekst', checkContrast: true },
+                      ].map(({ key, label, desc, checkContrast }) => {
+                        const colorVal = (formData as any)[key];
+                        const bgColor = formData.background_color || '#ffffff';
+                        const ratio = checkContrast ? getContrastRatio(colorVal, bgColor) : 0;
+                        const level = checkContrast ? getContrastLevel(ratio) : 'good';
+                        return (
+                          <div key={key} className="space-y-1">
+                            <div className="flex items-center gap-3">
+                              <Input type="color" value={colorVal} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="w-10 h-10 p-1 cursor-pointer shrink-0 rounded-lg" />
+                              <div className="flex-1 min-w-0">
+                                <Label className="text-xs">{label}</Label>
+                                <Input value={colorVal} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="h-8 text-xs mt-0.5" />
+                              </div>
+                            </div>
+                            {checkContrast && (
+                              <div className={cn(
+                                "flex items-center gap-1.5 text-[10px] pl-12",
+                                level === 'good' && 'text-green-600',
+                                level === 'low' && 'text-orange-500',
+                                level === 'fail' && 'text-red-500',
+                              )}>
+                                {level === 'good' && <CheckCircle2 className="h-3 w-3" />}
+                                {level === 'low' && <AlertTriangle className="h-3 w-3" />}
+                                {level === 'fail' && <XCircle className="h-3 w-3" />}
+                                <span>{ratio.toFixed(1)}:1 – {getContrastLabel(level)}</span>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </AccordionContent>

@@ -1,52 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Wand2, Copy, Check, Link2, Unlink } from 'lucide-react';
+import { Wand2, Copy, Check, Link2, Unlink, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { hexToHsl, hslToHex, getContrastRatio, getContrastLevel, adjustForContrast } from '@/lib/color-utils';
 
-// Color utility functions
-function hexToHsl(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100; l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
+interface PaletteColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
 }
 
 interface PaletteConfig {
   name: string;
   description: string;
-  generate: (h: number, s: number, l: number) => {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    text: string;
-  };
+  generate: (h: number, s: number, l: number) => PaletteColors;
 }
 
 const PALETTE_STRATEGIES: PaletteConfig[] = [
@@ -107,6 +79,26 @@ const PALETTE_STRATEGIES: PaletteConfig[] = [
   },
 ];
 
+/** Auto-correct palette colors for readability */
+function ensureContrast(palette: PaletteColors): PaletteColors {
+  return {
+    ...palette,
+    primary: adjustForContrast(palette.primary, palette.background, 3.0),
+    accent: adjustForContrast(palette.accent, palette.background, 3.0),
+    text: adjustForContrast(palette.text, palette.background, 4.5),
+  };
+}
+
+/** Get worst contrast level across key pairs */
+function getPaletteContrastLevel(palette: PaletteColors): 'good' | 'low' | 'fail' {
+  const textRatio = getContrastRatio(palette.text, palette.background);
+  const primaryRatio = getContrastRatio(palette.primary, palette.background);
+  const accentRatio = getContrastRatio(palette.accent, palette.background);
+  
+  const worst = Math.min(textRatio, primaryRatio, accentRatio);
+  return getContrastLevel(worst);
+}
+
 interface ColorPaletteGeneratorProps {
   baseColor: string;
   onApply: (colors: { primary: string; secondary: string; accent: string; background?: string; text?: string }) => void;
@@ -118,7 +110,6 @@ export function ColorPaletteGenerator({ baseColor, onApply, activeMood }: ColorP
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
   const [linkedToMood, setLinkedToMood] = useState(!!activeMood);
 
-  // Sync with mood when linked
   useEffect(() => {
     if (activeMood) {
       setInputColor(activeMood.color);
@@ -126,7 +117,6 @@ export function ColorPaletteGenerator({ baseColor, onApply, activeMood }: ColorP
     }
   }, [activeMood]);
 
-  // Sync with external baseColor when no mood is active
   useEffect(() => {
     if (!activeMood) {
       setInputColor(baseColor || '#3b82f6');
@@ -135,7 +125,6 @@ export function ColorPaletteGenerator({ baseColor, onApply, activeMood }: ColorP
 
   const handleColorChange = (color: string) => {
     setInputColor(color);
-    // If user manually changes color, unlink from mood
     if (activeMood && color !== activeMood.color) {
       setLinkedToMood(false);
     }
@@ -215,15 +204,28 @@ export function ColorPaletteGenerator({ baseColor, onApply, activeMood }: ColorP
 
       <div className="grid grid-cols-2 gap-2">
         {PALETTE_STRATEGIES.map((strategy) => {
-          const palette = strategy.generate(h, s, l);
+          const rawPalette = strategy.generate(h, s, l);
+          const palette = ensureContrast(rawPalette);
+          const contrastLevel = getPaletteContrastLevel(palette);
+          
           return (
             <div
               key={strategy.name}
               className="rounded-lg border p-2 space-y-1.5 hover:border-primary/50 transition-colors"
             >
-              <div>
-                <p className="text-xs font-semibold">{strategy.name}</p>
-                <p className="text-[10px] text-muted-foreground">{strategy.description}</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold">{strategy.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{strategy.description}</p>
+                </div>
+                {contrastLevel === 'good' ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className={cn(
+                    "h-3.5 w-3.5 shrink-0 mt-0.5",
+                    contrastLevel === 'low' ? 'text-orange-500' : 'text-red-500'
+                  )} />
+                )}
               </div>
 
               {/* Palette strip */}
