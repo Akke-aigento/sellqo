@@ -220,18 +220,38 @@ serve(async (req) => {
     const ccEmails = tenant.invoice_cc_email ? [tenant.invoice_cc_email] : undefined;
     const bccEmails = tenant.invoice_bcc_email ? [tenant.invoice_bcc_email] : undefined;
 
-    logStep("Sending email", { to: customer.email, cc: ccEmails, bcc: bccEmails });
+    // 1. Primaire e-mail naar klant (zonder CC/BCC)
+    logStep("Sending primary email", { to: customer.email });
 
     const emailResponse = await resend.emails.send({
       from: `${tenant.name} <noreply@sellqo.app>`,
       to: toEmails,
-      cc: ccEmails,
-      bcc: bccEmails,
       subject: emailSubject,
       html: emailHtml,
     });
 
-    logStep("Email sent", { response: emailResponse });
+    logStep("Primary email sent", { response: emailResponse });
+
+    // 2. Aparte kopie naar CC/BCC adressen
+    const copyRecipients = [
+      ...(ccEmails || []),
+      ...(bccEmails || []),
+    ];
+
+    if (copyRecipients.length > 0) {
+      try {
+        logStep("Sending copy email", { to: copyRecipients });
+        const copyResponse = await resend.emails.send({
+          from: `${tenant.name} <noreply@sellqo.app>`,
+          to: copyRecipients,
+          subject: `[Kopie] ${emailSubject}`,
+          html: emailHtml,
+        });
+        logStep("Copy email sent", { response: copyResponse });
+      } catch (copyError) {
+        logStep("WARNING: Copy email failed (non-blocking)", { error: copyError instanceof Error ? copyError.message : String(copyError) });
+      }
+    }
 
     // Update invoice status to sent
     await supabaseClient
