@@ -23,8 +23,21 @@ Deno.serve(async (req) => {
   try {
     logStep("Starting auto-invoice cron job");
 
-    // Find paid orders without invoices where tenant has auto_generate_invoice enabled
-    const { data: orders, error: ordersError } = await supabase
+    // Step 1: Get all order_ids that already have an invoice
+    const { data: existingInvoices, error: invoicesError } = await supabase
+      .from('invoices')
+      .select('order_id')
+      .not('order_id', 'is', null);
+
+    if (invoicesError) {
+      throw new Error(`Failed to fetch existing invoices: ${invoicesError.message}`);
+    }
+
+    const invoicedOrderIds = (existingInvoices || []).map(i => i.order_id).filter(Boolean);
+    logStep(`Found ${invoicedOrderIds.length} orders that already have invoices`);
+
+    // Step 2: Get paid orders WITHOUT invoices, newest first
+    let query = supabase
       .from('orders')
       .select(`
         id,
@@ -39,7 +52,15 @@ Deno.serve(async (req) => {
       .eq('payment_status', 'paid')
       .eq('tenants.auto_generate_invoice', true)
       .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
       .limit(50);
+
+    // Apply NOT IN filter if there are existing invoiced orders
+    if (invoicedOrderIds.length > 0) {
+      query = query.not('id', 'in', `(${invoicedOrderIds.join(',')})`);
+    }
+
+    const { data: orders, error: ordersError } = await query;
 
     if (ordersError) {
       throw new Error(`Failed to fetch orders: ${ordersError.message}`);
@@ -53,26 +74,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    logStep(`Found ${orders.length} potential orders to check`);
+    logStep(`Found ${orders.length} orders without invoices to process`);
 
     let invoicesGenerated = 0;
-    let alreadyExisted = 0;
     let errors = 0;
 
     for (const order of orders) {
       try {
-        // Check if invoice already exists for this order
-        const { data: existingInvoice } = await supabase
-          .from('invoices')
-          .select('id')
-          .eq('order_id', order.id)
-          .maybeSingle();
-
-        if (existingInvoice) {
-          alreadyExisted++;
-          continue;
-        }
-
         const tenant = order.tenants as any;
         const autoSendEmail = tenant?.auto_send_invoice_email ?? false;
 
@@ -125,7 +133,6 @@ Deno.serve(async (req) => {
 
     logStep("Cron job completed", { 
       invoicesGenerated, 
-      alreadyExisted, 
       errors,
       total: orders.length 
     });
@@ -135,7 +142,6 @@ Deno.serve(async (req) => {
         success: true, 
         processed: orders.length,
         invoicesGenerated,
-        alreadyExisted,
         errors
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

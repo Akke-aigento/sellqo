@@ -66,6 +66,27 @@ export function usePaymentConfirmation() {
         console.warn('Failed to record transaction:', txError);
       }
 
+      // 4. Auto-generate invoice if tenant setting is enabled
+      try {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('auto_generate_invoice, auto_send_invoice_email')
+          .eq('id', tenantId)
+          .single();
+
+        if (tenant?.auto_generate_invoice) {
+          console.log('Auto-generating invoice for order:', orderId);
+          await supabase.functions.invoke('generate-invoice', {
+            body: { 
+              order_id: orderId,
+              auto_send_email: tenant.auto_send_invoice_email ?? false
+            }
+          });
+        }
+      } catch (invoiceError) {
+        console.warn('Auto-invoice generation failed (non-blocking):', invoiceError);
+      }
+
       return { success: true };
     },
     onSuccess: () => {
