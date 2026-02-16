@@ -1,41 +1,66 @@
 
-# Fix: VVB Label Aanmaken - Twee API-Fouten
+# Fix: VVB Label & Accept Order - Drie Bugs Gevonden
 
-## Gevonden Problemen
+## Bug 1: Verkeerde parsing van delivery-options response
 
-De edge function `create-bol-vvb-label` retourneert: **"No shipping label offers available for this order"** met een lege array. Dit komt door twee fouten in het API-verzoek:
-
-### Probleem 1: Ontbrekend `quantity` veld
-De Bol.com API v10 vereist dat elk orderItem in het delivery-options verzoek een `quantity` bevat. De huidige code stuurt alleen `orderItemId`:
+De Bol.com API retourneert een **platte structuur** per deliveryOption:
 
 ```text
-Huidige code:    { "orderItems": [{ "orderItemId": "3878044388" }] }
-Correct formaat: { "orderItems": [{ "orderItemId": "3878044388", "quantity": 1 }] }
+{
+  "deliveryOptions": [
+    {
+      "shippingLabelOfferId": "c2a0f857-...",
+      "transporterCode": "BPOST_BE",
+      "labelType": "PARCEL",
+      "labelPrice": { "totalPrice": 5.9 }
+    }
+  ]
+}
 ```
 
-Zonder `quantity` retourneert de API een lege lijst.
+Maar de huidige code zoekt naar een **geneste** `shippingLabelOffers` array binnen elke optie (die niet bestaat). Resultaat: `allOffers` is altijd leeg, dus "No shipping label offers available".
 
-### Probleem 2: Verkeerde response-veldnaam
-De API retourneert het veld `deliveryOptions`, maar de code zoekt naar `purchasableShippingLabels`. Daardoor wordt het resultaat altijd als leeg gezien, zelfs als de API wel opties teruggeeft.
+**Fix**: Elke deliveryOption IS direct een offer. Geen nesting.
+
+## Bug 2: Verkeerd endpoint voor label creatie (Stap 2)
+
+De code gebruikt `/retailer/transporter-labels` (regel 223), maar de Bol.com v10 API vereist `/retailer/shipping-labels` voor het aanmaken van labels. Dit verklaart de 403 Forbidden error -- het endpoint bestaat niet of heeft andere permissies.
+
+**Fix**: Wijzig naar `/retailer/shipping-labels`.
+
+## Bug 3: Inconsistente token-functie
+
+De `create-bol-vvb-label` functie mist de `Content-Type: application/x-www-form-urlencoded` header bij het ophalen van het OAuth token en plaatst `grant_type` in de URL in plaats van de body. Hoewel dit soms werkt, is het niet conform de OAuth2 spec en kan het intermittent falen.
+
+**Fix**: Token-functie overnemen van `sync-bol-orders` (die bewezen werkt).
 
 ## Oplossing
 
-### Gewijzigd bestand
+### Bestand: `supabase/functions/create-bol-vvb-label/index.ts`
 
-| Bestand | Wijziging |
+| Locatie | Wijziging |
 |---------|-----------|
-| `supabase/functions/create-bol-vvb-label/index.ts` | (1) `quantity` toevoegen aan elk orderItem in het request, (2) response-veld wijzigen van `purchasableShippingLabels` naar `deliveryOptions`, (3) carrier-matching aanpassen aan het juiste veldformaat van delivery-options |
+| Regel 43-59 | Token-functie vervangen door de versie uit sync-bol-orders (met Content-Type header en grant_type in body) |
+| Regel 190-208 | Parsing logica vereenvoudigen: elke deliveryOption is direct een offer, geen genest `shippingLabelOffers` |
+| Regel 222-223 | Endpoint wijzigen van `/retailer/transporter-labels` naar `/retailer/shipping-labels` |
+| Regel 306-307 | PDF-download endpoint ook wijzigen van `/retailer/transporter-labels/` naar `/retailer/shipping-labels/` |
+| Regel 350-351 | Details-endpoint ook wijzigen naar `/retailer/shipping-labels/` |
+| Diversen | Extra diagnostische logging toevoegen bij elke API-call |
 
-### Specifieke codewijzigingen
+### Bestand: `supabase/functions/accept-bol-order/index.ts`
 
-**Regel 167** -- `quantity` toevoegen aan de map-functie:
-- Van: `orderItems: bolOrderItemIds.map((id) => ({ orderItemId: id }))`
-- Naar: `orderItems: bolOrderItemIds.map((id, idx) => ({ orderItemId: id, quantity: orderItems[idx].quantity || 1 }))`
+| Locatie | Wijziging |
+|---------|-----------|
+| Regel 117 | Extra logging toevoegen: token length, request body, response status + body |
+| Regel 132-136 | Specifieke 403-afhandeling: als Bol.com 403 retourneert, loggen met details en duidelijke foutmelding teruggeven |
 
-Hiervoor moet de mapping aangepast worden zodat we de `quantity` per item meesturen uit de order_items data.
+### Verwachte flow na fix
 
-**Regel 188** -- Response-veld corrigeren:
-- Van: `offersData.purchasableShippingLabels`
-- Naar: `offersData.deliveryOptions`
-
-**Regel 189-191** -- Carrier-matching aanpassen aan de structuur van `deliveryOptions`. Het veld heet waarschijnlijk `transporterCode` maar kan ook genest zijn -- we voegen extra logging toe zodat we precies zien wat terugkomt.
+```text
+1. Token ophalen (met correcte Content-Type header)
+2. delivery-options aanroepen -> krijgt shippingLabelOfferId
+3. Elke deliveryOption direct als offer gebruiken (geen nesting)
+4. /retailer/shipping-labels aanroepen met shippingLabelOfferId
+5. Process-status pollen tot SUCCESS
+6. Label PDF downloaden van /retailer/shipping-labels/{id}
+```
