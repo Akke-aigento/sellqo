@@ -1,31 +1,41 @@
 
+# Fix: VVB Label Aanmaken - Twee API-Fouten
 
-# Fix: VVB Label Aanmaken - Verkeerd API Endpoint
+## Gevonden Problemen
 
-## Probleem
+De edge function `create-bol-vvb-label` retourneert: **"No shipping label offers available for this order"** met een lege array. Dit komt door twee fouten in het API-verzoek:
 
-De Bol.com API heeft twee aparte endpoints voor verzendlabels:
+### Probleem 1: Ontbrekend `quantity` veld
+De Bol.com API v10 vereist dat elk orderItem in het delivery-options verzoek een `quantity` bevat. De huidige code stuurt alleen `orderItemId`:
 
-| Stap | Correct endpoint | Wat het doet |
-|------|-----------------|-------------|
-| 1 | `POST /retailer/shipping-labels/delivery-options` | Beschikbare labelopties ophalen (geeft `shippingLabelOfferId` terug) |
-| 2 | `POST /retailer/shipping-labels` | Label aanmaken (vereist `shippingLabelOfferId` uit stap 1) |
+```text
+Huidige code:    { "orderItems": [{ "orderItemId": "3878044388" }] }
+Correct formaat: { "orderItems": [{ "orderItemId": "3878044388", "quantity": 1 }] }
+```
 
-De huidige code gebruikt voor **beide** stappen hetzelfde endpoint (`/retailer/shipping-labels`). Daardoor faalt stap 1 direct met de foutmelding: *"shippingLabelOfferId: Required field is missing"*.
+Zonder `quantity` retourneert de API een lege lijst.
+
+### Probleem 2: Verkeerde response-veldnaam
+De API retourneert het veld `deliveryOptions`, maar de code zoekt naar `purchasableShippingLabels`. Daardoor wordt het resultaat altijd als leeg gezien, zelfs als de API wel opties teruggeeft.
 
 ## Oplossing
-
-### `supabase/functions/create-bol-vvb-label/index.ts`
-
-**Stap 1 (regel 157-170)**: Verander het endpoint van `/retailer/shipping-labels` naar `/retailer/shipping-labels/delivery-options`. Dit endpoint accepteert een lijst `orderItems` en retourneert de beschikbare verzendopties inclusief `shippingLabelOfferId`.
-
-**Stap 2 (regel 209-223)**: Dit endpoint is al correct (`/retailer/shipping-labels`). Hier hoeft niets te veranderen -- het ontvangt het `shippingLabelOfferId` uit stap 1 en maakt het label aan.
-
-**Extra**: CORS headers bijwerken met de uitgebreide set (o.a. `x-supabase-client-platform`) zodat calls vanuit de frontend niet geblokkeerd worden.
 
 ### Gewijzigd bestand
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `supabase/functions/create-bol-vvb-label/index.ts` | Fix endpoint URL stap 1: `/shipping-labels` wordt `/shipping-labels/delivery-options` + CORS headers update |
+| `supabase/functions/create-bol-vvb-label/index.ts` | (1) `quantity` toevoegen aan elk orderItem in het request, (2) response-veld wijzigen van `purchasableShippingLabels` naar `deliveryOptions`, (3) carrier-matching aanpassen aan het juiste veldformaat van delivery-options |
 
+### Specifieke codewijzigingen
+
+**Regel 167** -- `quantity` toevoegen aan de map-functie:
+- Van: `orderItems: bolOrderItemIds.map((id) => ({ orderItemId: id }))`
+- Naar: `orderItems: bolOrderItemIds.map((id, idx) => ({ orderItemId: id, quantity: orderItems[idx].quantity || 1 }))`
+
+Hiervoor moet de mapping aangepast worden zodat we de `quantity` per item meesturen uit de order_items data.
+
+**Regel 188** -- Response-veld corrigeren:
+- Van: `offersData.purchasableShippingLabels`
+- Naar: `offersData.deliveryOptions`
+
+**Regel 189-191** -- Carrier-matching aanpassen aan de structuur van `deliveryOptions`. Het veld heet waarschijnlijk `transporterCode` maar kan ook genest zijn -- we voegen extra logging toe zodat we precies zien wat terugkomt.
