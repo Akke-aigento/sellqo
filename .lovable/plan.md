@@ -1,68 +1,47 @@
 
 
-# Fix: BCC e-mail komt niet aan bij Bol.com orders
+# Nieuw gesprek starten vanuit de Inbox
 
-## Probleem
+## Wat ontbreekt er?
 
-Resend accepteert de e-mail (je krijgt een `id` terug), maar Bol.com proxy-adressen (`@verkopen.bol.com`) droppen e-mails van externe afzenders silently. De BCC naar Odoo is afhankelijk van dezelfde e-mail call, waardoor die ook niet aankomt.
+De inbox toont alleen bestaande conversaties en biedt een reply-composer. Er is geen "Nieuw bericht" knop om zelf een gesprek te starten met een klant.
 
-## Oorzaak
+## Wat gaan we doen?
 
-De huidige code stuurt alles in 1 Resend API-call:
-```
-to: ["...@verkopen.bol.com"]
-bcc: ["verkoopdagboek-shopify@nomadix-bv.odoo.com"]
-```
+Een **"Nieuw bericht"** knop toevoegen bovenaan de inbox die een compose-dialoog opent. Hiermee kun je:
 
-Wanneer de primaire `to`-delivery faalt (Bol.com dropt de mail), wordt de BCC ook niet afgeleverd.
+- Een klant zoeken of handmatig een e-mailadres invoeren
+- Een onderwerp en bericht typen
+- Het kanaal kiezen (email / WhatsApp)
+- Het bericht wordt opgeslagen als conversatie in de inbox
 
-## Oplossing
+## Wijzigingen
 
-### Bestand: `supabase/functions/send-invoice-email/index.ts`
+### 1. Nieuw bestand: `src/components/admin/inbox/ComposeDialog.tsx`
 
-De BCC/CC e-mails als **aparte Resend API-call** versturen, los van de klant-e-mail. Dit zorgt ervoor dat je boekhoudsoftware altijd de factuur ontvangt, ongeacht of de klant een marketplace proxy-adres heeft.
+Een dialoog met:
+- **Ontvanger-veld**: Zoek een bestaande klant (autocomplete uit `customers` tabel) of typ een e-mailadres handmatig
+- **Kanaal-keuze**: Email (standaard) of WhatsApp (als beschikbaar)
+- **Onderwerp**: Alleen bij email
+- **Berichtveld**: Textarea voor het bericht
+- **Verzendknop**: Roept de bestaande `send-customer-message` edge function aan voor email, of `send-whatsapp-message` voor WhatsApp
+- Na verzending wordt het nieuwe gesprek zichtbaar in de inbox
 
-Concrete wijziging:
+### 2. Bestand: `src/pages/admin/Messages.tsx`
 
-1. **Primaire e-mail**: Verstuur naar de klant (`to`) -- zonder CC/BCC
-2. **Kopie-e-mail**: Als CC of BCC is ingesteld, verstuur een aparte e-mail naar die adressen met de factuur-inhoud als `to`-ontvanger
-3. **Non-blocking**: Als de kopie-e-mail faalt, logt het een warning maar blokkeert het de flow niet
+- Een **"Nieuw bericht"** knop (met Plus/PenSquare icoon) toevoegen naast de paginatitel of bovenaan de conversatielijst
+- De `ComposeDialog` openen bij klik
+- Na succesvol verzenden: conversatielijst verversen en het nieuwe gesprek selecteren
 
-```typescript
-// 1. Primaire e-mail naar klant
-await resend.emails.send({
-  from: `${tenant.name} <noreply@sellqo.app>`,
-  to: toEmails,
-  subject: emailSubject,
-  html: emailHtml,
-});
+### 3. Bestand: `src/components/admin/inbox/InboxFilters.tsx`
 
-// 2. Aparte kopie naar CC/BCC adressen
-const copyRecipients = [
-  ...(ccEmails || []),
-  ...(bccEmails || []),
-];
+- Optioneel: de compose-knop hier plaatsen als compacte actieknop naast de zoekbalk
 
-if (copyRecipients.length > 0) {
-  try {
-    await resend.emails.send({
-      from: `${tenant.name} <noreply@sellqo.app>`,
-      to: copyRecipients,
-      subject: `[Kopie] ${emailSubject}`,
-      html: emailHtml,
-    });
-  } catch (copyError) {
-    console.warn('Copy email failed (non-blocking):', copyError);
-  }
-}
-```
+## Technische details
 
-## Geen database-wijzigingen nodig
+- De klant-zoekfunctie gebruikt de bestaande `useCustomers` hook
+- Voor email-verzending wordt `send-customer-message` hergebruikt (dezelfde edge function als de ReplyComposer)
+- Voor WhatsApp wordt `send-whatsapp-message` hergebruikt
+- Het bericht wordt automatisch opgeslagen in `customer_messages` door de edge functions, waardoor het direct in de inbox verschijnt
+- Geen database-wijzigingen nodig
 
-De instellingen en velden werken al correct. Alleen de verzendlogica in de edge function moet worden aangepast.
-
-## Verwacht resultaat
-
-- Odoo ontvangt altijd de factuur, ook bij Bol.com orders
-- Klant ontvangt de factuur als het e-mailadres geldig is (bij niet-marketplace orders)
-- Bij marketplace orders: de klant-mail wordt door Bol.com gedropt, maar dat heeft geen invloed meer op de kopie naar je boekhouding
