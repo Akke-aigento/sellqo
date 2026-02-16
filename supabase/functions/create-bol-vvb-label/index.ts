@@ -288,12 +288,21 @@ const handler = async (req: Request): Promise<Response> => {
           const statusData = await statusResponse.json();
           
           if (statusData.status === 'SUCCESS') {
-            // Get the label details from the links
-            const links = statusData.links || [];
-            const labelLink = links.find((l: { rel: string }) => l.rel === 'self');
-            if (labelLink) {
-              transporterLabelId = labelLink.href.split('/').pop();
+            console.log('Process status SUCCESS, full response:', JSON.stringify(statusData));
+            
+            // Bol.com v10: entityId bevat het shipping label ID
+            transporterLabelId = statusData.entityId || null;
+            
+            // Fallback: probeer uit links te halen
+            if (!transporterLabelId) {
+              const links = statusData.links || [];
+              const labelLink = links.find((l: { rel: string }) => l.rel === 'self' || l.rel === 'get');
+              if (labelLink) {
+                transporterLabelId = labelLink.href.split('/').pop();
+              }
             }
+            
+            console.log('Extracted transporterLabelId:', transporterLabelId);
             break;
           } else if (statusData.status === 'FAILURE') {
             return new Response(
