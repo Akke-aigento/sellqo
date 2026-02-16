@@ -16,14 +16,8 @@ interface BolCredentials {
 }
 
 async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
-  const { clientId, clientSecret, accessToken, tokenExpiry } = credentials
-
-  if (accessToken && tokenExpiry) {
-    const expiry = new Date(tokenExpiry)
-    if (expiry > new Date()) {
-      return accessToken
-    }
-  }
+  const { clientId, clientSecret } = credentials
+  console.log('Requesting Bol.com access token for accept-order, clientId starts with:', clientId.substring(0, 8) + '...')
 
   const authString = btoa(`${clientId}:${clientSecret}`)
   
@@ -39,11 +33,12 @@ async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error('Token request failed:', errorText)
-    throw new Error(`Token request failed: ${response.statusText}`)
+    console.error('Token request failed:', response.status, errorText)
+    throw new Error(`Token request failed: ${response.status} - ${errorText}`)
   }
 
   const tokenData = await response.json()
+  console.log('Got Bol.com access token, expires in:', tokenData.expires_in)
   return tokenData.access_token
 }
 
@@ -115,6 +110,8 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Accepting Bol order ${bolOrderId} with ${itemsToAccept.length} items`)
+    console.log('Accept request body:', JSON.stringify({ orderItems: itemsToAccept }))
+    console.log('Access token length:', accessToken.length)
 
     // Call Bol.com Accept Order API
     const acceptResponse = await fetch(`${BOL_API_BASE}/orders/${bolOrderId}/accept`, {
@@ -129,11 +126,18 @@ Deno.serve(async (req) => {
       })
     })
 
+    const responseText = await acceptResponse.text()
+    console.log('Bol accept response status:', acceptResponse.status)
+    console.log('Bol accept response body:', responseText)
+
     if (!acceptResponse.ok) {
-      const errorText = await acceptResponse.text()
-      console.error('Bol accept order failed:', errorText)
-      throw new Error(`Failed to accept order: ${acceptResponse.statusText} - ${errorText}`)
+      if (acceptResponse.status === 403) {
+        console.error('Bol.com 403 Forbidden - order may already be accepted or credentials lack write access')
+      }
+      throw new Error(`Failed to accept order: ${acceptResponse.status} - ${responseText}`)
     }
+
+    const acceptResult = JSON.parse(responseText)
 
     const acceptResult = await acceptResponse.json()
     console.log('Order accepted successfully:', acceptResult)
