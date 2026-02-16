@@ -1,34 +1,71 @@
 
+# Fix: VVB Label Download - label_url is leeg
 
-# Handmatig Bol.com Order Accepteren
+## Probleem
 
-## Wat wordt er gedaan
+Het VVB label is aangemaakt bij Bol.com, maar in de database zijn `label_url` en `tracking_number` beide `null`. Daardoor werkt de download-knop niet.
 
-Een "Order Accepteren" knop toevoegen aan de Bol.com Acties kaart op de orderdetailpagina, plus een kritieke bug fixen in de edge function.
-
-## Bug in edge function
-
-Het bestand `supabase/functions/accept-bol-order/index.ts` heeft een **dubbele variabele declaratie** op regels 140-142:
+De oorzaak zit in de process-status polling (stap 2b van het label-aanmaakproces). Na het aanmaken van het label retourneert Bol.com een `processStatusId`. De code pollt dit, maar wanneer de status `SUCCESS` is, probeert het de label-ID te extraheren uit een `self` link:
 
 ```text
-const acceptResult = JSON.parse(responseText)    // regel 140
-const acceptResult = await acceptResponse.json() // regel 142
+const labelLink = links.find(l => l.rel === 'self');
+transporterLabelId = labelLink.href.split('/').pop();
 ```
 
-Dit veroorzaakt een runtime crash. Daarnaast ontbreken de uitgebreide CORS headers.
+Het probleem is dat de Bol.com v10 process-status response het label-ID als `entityId` retourneert, niet via een `self` link. Als `transporterLabelId` `null` blijft, worden stap 3 (PDF downloaden) en stap 4 (tracking ophalen) overgeslagen.
 
-## Wijzigingen
+## Oplossing
 
-### 1. `supabase/functions/accept-bol-order/index.ts`
-- Verwijder de dubbele `const acceptResult` declaratie (regel 142) -- behoud alleen de `JSON.parse(responseText)` variant (regel 140)
-- CORS headers bijwerken met de uitgebreide set (inclusief `x-supabase-client-platform`)
+### Bestand: `supabase/functions/create-bol-vvb-label/index.ts`
 
-### 2. `src/components/admin/BolActionsCard.tsx`
-- Een "Order Accepteren" knop toevoegen die zichtbaar is wanneer de order nog niet geaccepteerd is (`sync_status` is niet `accepted` en niet `shipped`)
-- De knop roept de `accept-bol-order` edge function aan met `order_id` en `connection_id` (uit `order.marketplace_connection_id`)
-- Na succesvolle acceptatie wordt de order data gerefresht
-- Loading state en foutafhandeling met toast notificaties
+| Locatie | Wijziging |
+|---------|-----------|
+| Regel 288-296 | Process-status parsing uitbreiden: eerst `entityId` proberen, dan `links` als fallback |
+| Regel 290 | Extra logging toevoegen om de volledige process-status response te loggen |
+| Regel 314-374 | Fallback toevoegen: als `transporterLabelId` nog steeds null is na polling, toch een label record aanmaken met beschikbare informatie en retry-logica |
 
-### Verwachte UI
+### Specifieke codewijziging
 
-In de Bol.com Acties kaart verschijnt een groene "Order Accepteren" knop boven de VVB Label knop. Na acceptatie verdwijnt de knop en toont de status "Geaccepteerd".
+De huidige parsing (regel 290-296):
+
+```text
+if (statusData.status === 'SUCCESS') {
+  const links = statusData.links || [];
+  const labelLink = links.find(l => l.rel === 'self');
+  if (labelLink) {
+    transporterLabelId = labelLink.href.split('/').pop();
+  }
+  break;
+}
+```
+
+Wordt:
+
+```text
+if (statusData.status === 'SUCCESS') {
+  console.log('Process status SUCCESS, full response:', JSON.stringify(statusData));
+  
+  // Bol.com v10: entityId bevat het shipping label ID
+  transporterLabelId = statusData.entityId || null;
+  
+  // Fallback: probeer uit links te halen
+  if (!transporterLabelId) {
+    const links = statusData.links || [];
+    const labelLink = links.find(l => l.rel === 'self' || l.rel === 'get');
+    if (labelLink) {
+      transporterLabelId = labelLink.href.split('/').pop();
+    }
+  }
+  
+  console.log('Extracted transporterLabelId:', transporterLabelId);
+  break;
+}
+```
+
+### Verwacht resultaat
+
+Na deze fix zal het VVB label-aanmaakproces:
+1. Het label-ID correct extraheren uit de process-status response
+2. Het label-PDF downloaden en opslaan in storage
+3. De `label_url` en `tracking_number` correct invullen in de database
+4. De download-knop op de orderpagina werkt direct
