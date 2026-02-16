@@ -1,97 +1,94 @@
 
-# Diepgaande Audit: Nog Niet-Werkende Storefront Instellingen
+# Contrastcontrole & Kleurpalet Verbetering
 
-## Nog openstaande problemen (4 stuks)
+## Het probleem
 
-### 1. Meertalige Webshop (Language Selector in Storefront)
+Op de screenshot is duidelijk te zien dat op een donkere achtergrond:
+- **Koppen** (h2/h3 in productbeschrijving) zijn onleesbaar -- ze gebruiken een kleur die te dicht bij de achtergrond ligt
+- **Links** in de rich-text content (prose) zijn slecht zichtbaar
+- **Accent-kleurtekst** (prijskoppen, feature-titels) heeft te weinig contrast
+- De **Color Palette Generator** genereert paletten zonder contrast te valideren
 
-**Status**: Admin-instellingen bestaan (4 velden in database + volledige admin UI), maar de storefront toont GEEN taalselector en content wordt niet vertaald.
-
-**Wat ontbreekt**:
-- Geen taalwisselaar in de header (alle 3 header-varianten: Standard, Centered, Minimal)
-- Geen koppeling met de `content_translations` tabel voor productvertalingen
-- De instellingen `storefront_languages`, `storefront_default_language`, en `storefront_language_selector_style` worden niet gelezen in `ShopLayout.tsx`
-
-**Implementatie**:
-- Nieuw component `StorefrontLanguageSelector.tsx` met 3 stijlen: dropdown, flags, text
-- Integratie in alle 3 header-componenten (`StandardHeader`, `CenteredHeader`, `MinimalHeader`)
-- Taalvoorkeur opslaan in `localStorage`
-- Productgegevens ophalen uit `content_translations` wanneer een niet-standaard taal is geselecteerd
-- Storefront-context uitbreiden met huidige taal, zodat alle pagina's (product, categorie, checkout) de juiste vertaling tonen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/storefront/StorefrontLanguageSelector.tsx` | Nieuw component met dropdown/flags/text stijlen |
-| `src/components/storefront/ShopLayout.tsx` | Language selector toevoegen aan alle 3 headers + taal-instellingen lezen |
-| `src/hooks/usePublicStorefront.ts` | Taal-context toevoegen + vertaalde content ophalen uit `content_translations` |
-| `src/pages/storefront/ShopProductDetail.tsx` | Vertaalde product-velden tonen (naam, beschrijving) |
-| `src/pages/storefront/ShopProducts.tsx` | Vertaalde productnamen in lijstweergave |
+Dit komt omdat:
+1. De `prose` (rich-text) class geen custom styling heeft voor koppen en links wanneer thema-kleuren worden overschreven
+2. De palette generator nooit checkt of kleuren voldoende WCAG-contrast hebben
+3. Er nergens een waarschuwing wordt getoond aan de merchant als de gekozen kleuren onleesbaar zijn
 
 ---
 
-### 2. Reviews op Productpagina
+## Oplossing: 3 onderdelen
 
-**Status**: De variabele `reviewsDisplay` wordt uitgelezen uit settings maar wordt NERGENS gebruikt in de JSX. Er is geen reviews-sectie op de productdetailpagina.
+### 1. WCAG Contrast Checker utility
 
-**Wat ontbreekt**:
-- Geen reviews-sectie onder de productbeschrijving
-- De instelling `product_reviews_display` (`full` / `stars_only` / `hidden`) heeft geen effect
-- Bestaande `usePublicReviews` hook en review-componenten worden alleen in de layout/footer gebruikt
+Een `getContrastRatio(color1, color2)` functie toevoegen die de WCAG 2.1 contrastverhouding berekent (minimaal 4.5:1 voor tekst, 3:1 voor grote tekst). Deze utility wordt gedeeld door de palette generator en de kleurkiezer.
 
-**Implementatie**:
-- Reviews ophalen per product (via product-specifieke reviews of algemene winkel-reviews)
-- Sectie onder productinfo tonen met volledige reviews (`full`), alleen sterren (`stars_only`), of niets (`hidden`)
-- Gemiddelde sterren-rating tonen naast de productnaam
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/storefront/ShopProductDetail.tsx` | Reviews-sectie toevoegen + sterren bij productnaam + `reviewsDisplay` conditioneel |
-| `src/components/storefront/ProductReviewsSection.tsx` | Nieuw component: reviews lijst + gemiddelde rating |
+**Bestand**: `src/lib/color-utils.ts` (nieuw)
 
 ---
 
-### 3. Gastbestelling (Guest Checkout)
+### 2. Contrastwaarschuwingen in de Admin Kleurkiezer
 
-**Status**: `checkout_guest_enabled` bestaat in de database en is configureerbaar in admin, maar wordt NIET gecontroleerd in de checkout-flow.
+Bij elk kleurveld (primair, accent, tekst) wordt live de contrastverhouding berekend ten opzichte van de achtergrondkleur. Als het contrast onvoldoende is (< 4.5:1), verschijnt er een oranje/rode waarschuwing:
 
-**Wat ontbreekt**:
-- Wanneer gastbestelling UIT staat, zou de klant eerst moeten inloggen/registreren
-- Momenteel kan iedereen altijd bestellen zonder account
+- Ratio >= 4.5 -- Groen vinkje "AA OK"
+- Ratio >= 3.0 maar < 4.5 -- Oranje waarschuwing "Laag contrast - grote tekst OK"
+- Ratio < 3.0 -- Rode waarschuwing "Onleesbaar! Pas kleur aan"
 
-**Implementatie**:
-- Bij het laden van checkout: als `checkout_guest_enabled === false`, controleer of er een ingelogde gebruiker is
-- Zo niet: toon een login/registratie-blok in plaats van het bestelformulier
-- Na inloggen: vul e-mail, naam etc. automatisch in uit het klantprofiel
+Dit wordt getoond naast elk kleurveld in het "Kleuren" blok van `ThemeCustomizer.tsx`.
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/storefront/ShopCheckout.tsx` | Guest-check toevoegen + login/registratie blok tonen als gastbestelling uit staat |
+**Bestand**: `src/components/admin/storefront/ThemeCustomizer.tsx`
 
 ---
 
-### 4. Trust Badges Admin UI
+### 3. Palette Generator: contrast-aware paletten
 
-**Status**: De storefront toont trust badges correct als ze zijn ingesteld, maar er is GEEN admin-interface om te kiezen welke badges je wilt tonen.
+De palette generator wordt verbeterd:
+- Na het genereren van een palet wordt elk kleurpaar gecontroleerd (tekst vs achtergrond, accent vs achtergrond, primary vs achtergrond)
+- Paletten met slechte contrastverhoudingen worden automatisch gecorrigeerd (lichtheid aanpassen)
+- Een klein contrast-indicator icoontje wordt getoond bij elk palet (groen = goed, oranje = matig)
+- Bij donkere achtergronden worden accent/primary-kleuren lichter gemaakt zodat ze leesbaar zijn
 
-**Wat ontbreekt**:
-- In de "Trust & Compliance" accordion-sectie staan alleen cookie-banner instellingen
-- Er is geen manier om trust badges (Veilig Betalen, Gratis Verzending, SSL Beveiligd, etc.) aan of uit te zetten
-- Het `trust_badges` veld in de database wordt nooit ingevuld via de admin
-
-**Implementatie**:
-- Checkbox-lijst toevoegen in de Trust & Compliance sectie met alle beschikbare badges
-- Badges: `veilig_betalen`, `gratis_verzending`, `gratis_retour`, `ssl_beveiligd`, `ideal`, `keurmerk`
-- Opslaan als string-array in het `trust_badges` veld
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/admin/storefront/StorefrontFeaturesSettings.tsx` | Trust badges checkbox-lijst toevoegen in de Trust & Compliance sectie + trust_badges opnemen in formData |
+**Bestand**: `src/components/admin/storefront/ColorPaletteGenerator.tsx`
 
 ---
 
-## Samenvatting prioriteit
+### 4. Storefront: prose/rich-text contrast fix
 
-1. **Trust Badges Admin UI** -- Snelle fix, 1 bestand
-2. **Guest Checkout** -- Belangrijk voor beveiliging, 1 bestand
-3. **Reviews op Productpagina** -- Verrijkt winkelervaring, 2 bestanden
-4. **Meertalige Storefront** -- Grootste feature, 5+ bestanden, maar admin-kant is al klaar
+De `prose` class op productpagina's en contentpagina's krijgt expliciete styling die meebeweegt met de thema-variabelen:
+- Koppen: `text-foreground` (niet een accent-kleur)
+- Links: worden gecontroleerd op contrast, fallback naar een leesbare variant
+- Lijsten en body-tekst: `text-foreground` of `text-muted-foreground`
+
+**Bestanden**: `src/pages/storefront/ShopProductDetail.tsx`, `src/pages/storefront/ShopPage.tsx`, `src/pages/storefront/ShopLegalPage.tsx`
+
+---
+
+## Technische Details
+
+### Contrast Ratio Formule (WCAG 2.1)
+
+```text
+relativeLuminance(color) = 0.2126*R + 0.7152*G + 0.0722*B
+  (met gamma-correctie: component <= 0.04045 ? c/12.92 : ((c+0.055)/1.055)^2.4)
+
+contrastRatio = (L1 + 0.05) / (L2 + 0.05)
+  waar L1 = lichtste, L2 = donkerste
+```
+
+### Bestanden die worden aangemaakt of gewijzigd
+
+| Bestand | Actie |
+|---------|-------|
+| `src/lib/color-utils.ts` | Nieuw: WCAG contrast utilities |
+| `src/components/admin/storefront/ThemeCustomizer.tsx` | Contrastwaarschuwingen bij kleurvelden |
+| `src/components/admin/storefront/ColorPaletteGenerator.tsx` | Contrast-aware palette generatie + indicators |
+| `src/pages/storefront/ShopProductDetail.tsx` | Prose styling fix voor rich-text |
+| `src/pages/storefront/ShopPage.tsx` | Prose styling fix |
+| `src/pages/storefront/ShopLegalPage.tsx` | Prose styling fix |
+
+### UI Voorbeeld Contrastwaarschuwing
+
+```text
+[#FF6B35] Accent    Prijzen & badges    [!] Ratio 2.1:1 - Onleesbaar op donkere achtergrond
+[#1E3A5F] Primair   Knoppen & accenten  [v] Ratio 8.4:1 - AA OK
+```
