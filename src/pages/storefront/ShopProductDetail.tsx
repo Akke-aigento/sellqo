@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Label } from '@/components/ui/label';
 import { usePublicStorefront, usePublicProduct } from '@/hooks/usePublicStorefront';
+import { usePublicReviews } from '@/hooks/useReviewsHub';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { VariantSelector } from '@/components/storefront/VariantSelector';
 import { ImageLightbox } from '@/components/storefront/ImageLightbox';
 import { RelatedProducts } from '@/components/storefront/RelatedProducts';
+import { ProductReviewsSection, StarRating } from '@/components/storefront/ProductReviewsSection';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
@@ -20,6 +22,7 @@ export default function ShopProductDetail() {
   const { tenantSlug, productSlug } = useParams<{ tenantSlug: string; productSlug: string }>();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { data: product, isLoading, error } = usePublicProduct(tenant?.id, productSlug || '');
+  const { reviews, aggregate } = usePublicReviews(tenant?.id);
   const { addToCart, setTenantSlug, getCartCount, openDrawer } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const navigate = useNavigate();
@@ -228,9 +231,16 @@ export default function ShopProductDetail() {
               <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="text-sm text-muted-foreground hover:text-primary">{product.category.name}</Link>
             )}
 
-            <h1 className="text-3xl font-bold mt-2 mb-4" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
+            <h1 className="text-3xl font-bold mt-2 mb-2" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
               {product.name}
             </h1>
+
+            {/* Star Rating next to title */}
+            {reviewsDisplay !== 'hidden' && aggregate && aggregate.total_reviews > 0 && (
+              <div className="mb-4">
+                <StarRating rating={aggregate.average_rating} count={aggregate.total_reviews} />
+              </div>
+            )}
 
             {/* Price */}
             <div className="flex items-center gap-3 mb-6">
@@ -339,6 +349,18 @@ export default function ShopProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Reviews Section */}
+      {tenant && reviewsDisplay !== 'hidden' && (
+        <div className="container mx-auto px-4">
+          <ProductReviewsSection
+            reviews={reviews || []}
+            averageRating={aggregate?.average_rating || 0}
+            totalReviews={aggregate?.total_reviews || 0}
+            display={reviewsDisplay}
+          />
+        </div>
+      )}
 
       {/* Related Products */}
       {tenant && (
