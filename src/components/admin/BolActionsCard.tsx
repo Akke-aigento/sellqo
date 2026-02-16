@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck, Printer, ExternalLink } from 'lucide-react';
+import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck, Printer, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   const queryClient = useQueryClient();
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
   const [showFetchDialog, setShowFetchDialog] = useState(false);
 
   // Label printer hook
@@ -124,6 +125,30 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
     },
   });
 
+  // Accept order on Bol.com
+  const acceptBolOrder = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('accept-bol-order', {
+        body: {
+          order_id: order.id,
+          connection_id: order.marketplace_connection_id,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Order accepteren mislukt');
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Order geaccepteerd op Bol.com');
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Fout bij accepteren: ${error.message}`);
+    },
+  });
+
   const handleConfirmToBol = async () => {
     setIsConfirming(true);
     try {
@@ -142,9 +167,19 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
     }
   };
 
+  const handleAcceptOrder = async () => {
+    setIsAccepting(true);
+    try {
+      await acceptBolOrder.mutateAsync();
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
   const syncStatus = order.sync_status || order.fulfillment_status;
   const isShipped = syncStatus === 'shipped' || order.status === 'shipped';
-
+  const isAccepted = syncStatus === 'accepted';
+  const canAccept = !isShipped && !isAccepted && syncStatus !== 'accepted';
   const bolContent = (
     <div className="space-y-4">
       {/* Sync Status */}
@@ -154,6 +189,11 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
           <Badge variant="default" className="bg-green-600">
             <CheckCircle className="h-3 w-3 mr-1" />
             Bevestigd
+          </Badge>
+        ) : isAccepted ? (
+          <Badge variant="default" className="bg-blue-600">
+            <ShieldCheck className="h-3 w-3 mr-1" />
+            Geaccepteerd
           </Badge>
         ) : (
           <Badge variant="secondary">
@@ -211,6 +251,23 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
 
       {/* Actions */}
       <div className="space-y-2">
+        {canAccept && (
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full bg-green-600 hover:bg-green-700"
+            onClick={handleAcceptOrder}
+            disabled={isAccepting}
+          >
+            {isAccepting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 mr-2" />
+            )}
+            Order Accepteren
+          </Button>
+        )}
+
         {!isShipped && !hasVvbLabel && (
           <Button
             variant="default"
