@@ -1,85 +1,65 @@
 
-# Volledige Herziening: Kleuren Sectie & Palette Generator
+# Fix: Automatische Order Acceptatie & VVB Label Creatie
 
-## Probleem (uit screenshots)
+## Diagnose
 
-1. **Palette Generator negeert 4 van 5 kleuren** -- hij genereert op basis van 1 basekleur, maar past alleen `primary` toe. Background, text, secondary en accent worden niet goed meegenomen naar de storefront
-2. **Onduidelijke UX** -- de flow Mood Presets > Palette Generator > Handmatige kleurvelden is verwarrend. Drie losse stukken die niet samenhangen. Een klant weet niet waar te beginnen
-3. **Storefront toont verkeerde kleuren** -- op screenshot 3 is de header teal terwijl "Warm & Cozy" (bruin/oranje) is geselecteerd. De `themeStyle` builder in ShopLayout mist koppelingen
+### Probleem 1: Auto-accept werkt niet
+De bestelling werd bij de **eerste sync** correct geimporteerd, maar de auto-accept code heeft twee problemen:
+- De `fetch()` response body wordt niet uitgelezen (Deno resource leak), waardoor de call stil kan falen
+- **Ernstiger**: als de sync een 2e keer draait voordat de auto-accept klaar is, wordt de order als "already exists" overgeslagen en de auto-accept code wordt dan nooit meer bereikt. Er is geen fallback-mechanisme voor orders die wel zijn geimporteerd maar niet geaccepteerd
 
-## Nieuwe Aanpak: Unified Color Studio
+### Probleem 2: VVB label wordt nooit automatisch aangemaakt
+Er bestaat een `create-bol-vvb-label` Edge Function, maar deze wordt **nergens automatisch aangeroepen** na een succesvolle auto-accept. Het is puur een handmatige actie. De instelling `vvbEnabled: true` bestaat in de settings, maar er is geen code die er iets mee doet in de sync-flow.
 
-In plaats van 3 losse blokken (moods, generator, handmatig) wordt het EEN samenhangende flow:
+---
 
-### Stap 1: Sfeer kiezen (Mood) -- optioneel startpunt
-- Blijft als compacte pills bovenaan
-- Bij klik: vult ALLE 5 kleurvelden direct in (zoals nu, dit werkt al)
+## Oplossing
 
-### Stap 2: Kleurpalet -- de hoofdinterface
-Vervang de huidige "generator + handmatig" door een **enkele visuele kleurkaart**:
+### 1. `sync-bol-orders/index.ts` -- Robuuste auto-accept + auto-VVB
 
+**Wijzigingen:**
+
+a) **Response uitlezen bij auto-accept** -- De `fetch()` naar `accept-bol-order` moet de response body consumeren en het resultaat loggen. Als de accept faalt, loggen we de foutmelding.
+
+b) **Auto-VVB label na succesvolle accept** -- Als `vvbEnabled` aan staat in de settings, na een succesvolle auto-accept automatisch `create-bol-vvb-label` aanroepen met de order_id en de default carrier uit de settings.
+
+c) **Retry-mechanisme voor gemiste orders** -- Na de main sync-loop, een extra check toevoegen: zoek orders die `sync_status = 'synced'` hebben (niet 'accepted') en waar `autoAcceptOrder` aan staat. Deze orders worden alsnog automatisch geaccepteerd + VVB label aangemaakt. Dit vangt het scenario op waar de eerste import wel lukte maar de accept niet.
+
+### 2. `accept-bol-order/index.ts` -- Kleine verbetering
+
+De huidige code werkt functioneel, maar update de `sync_status` naar `'accepted'`. Dit wordt gebruikt als marker door het retry-mechanisme.
+
+---
+
+## Technische Details
+
+### Nieuwe flow in `sync-bol-orders/index.ts`
+
+```text
+Order geimporteerd (nieuw)
+  -> autoAcceptOrder = true?
+     -> Roep accept-bol-order aan (met await + response uitlezen)
+     -> Succesvol?
+        -> Update sync_status naar 'accepted'
+        -> vvbEnabled = true?
+           -> Roep create-bol-vvb-label aan
+           -> Log resultaat (succes/fout)
+
+Na alle orders verwerkt:
+  -> Zoek orders met sync_status = 'synced' (niet accepted)
+     voor deze connectie waar autoAcceptOrder = true
+  -> Probeer alsnog auto-accept + VVB voor max 5 orders
 ```
-+--------------------------------------------------+
-| JOUW KLEURENPALET                                 |
-|                                                   |
-|  [====]  Primair      #a0522d    Knoppen & links  |
-|  [====]  Secundair    #d2691e    Subtiele accenten |
-|  [====]  Accent       #cd853f    Prijzen & badges  |
-|  [====]  Achtergrond  #faf0e6    Pagina achtergrond|
-|  [====]  Tekst        #3e2723    Standaard tekst   |
-|                                                   |
-|  [Wand] Genereer variaties    [Contrast check]    |
-+--------------------------------------------------+
-```
 
-- Elk kleurveld heeft een color picker + hex input + beschrijving wat het doet
-- WCAG contrast badge rechts bij primair, accent en tekst (ratio t.o.v. achtergrond)
-- Alles op 1 plek, geen scrollen nodig
-
-### Stap 3: Palette Generator als popover/uitklapbaar
-- "Genereer variaties" knop opent een compacte sectie met de 5 strategieen (Complementair, Analoog, etc.)
-- De strategieen gebruiken ALLE huidige kleuren als context, niet alleen primary
-- Bij "Toepassen" worden ALLE 5 kleurvelden bijgewerkt
-- Generator is nu een hulpmiddel, niet de hoofdinterface
-
-### Stap 4: Live mini-preview
-- Onder de kleurkaart: een mini-preview blokje dat ALLE 5 kleuren visueel toont
-- Toont: achtergrond + tekst + button (primary) + prijslabel (accent) + badge (secondary)
-- Verandert live mee als je een kleur aanpast
-
-## Technische Wijzigingen
-
-### 1. `ThemeCustomizer.tsx` -- Herstructurering Kleuren sectie
-- Verwijder de scheiding tussen "Palette Generator" en "Handmatig"  
-- Maak 1 unified kleurkaart met alle 5 velden, elk met inline color picker, hex input, label, beschrijving en contrast badge
-- Verplaats de palette generator naar een uitklapbaar blok onder de kleurkaart (Collapsible of Accordion)
-- Voeg een inline mini-preview toe die alle 5 kleuren visueel toont
-- Behoud de mood presets als pills bovenaan (deze werken goed)
-
-### 2. `ColorPaletteGenerator.tsx` -- Vereenvoudiging
-- Verwijder de eigen "basekleur" input -- de generator ontvangt nu ALLE 5 huidige kleuren als props
-- Strategieen genereren nog steeds op basis van de primary hue, maar het preview toont duidelijker wat er verandert
-- Elke strategie-kaart wordt compacter: alleen de kleurstrip + contrast indicator + toepassen knop
-- Verwijder mood-linking logica (dat zit nu in de parent)
-
-### 3. `ShopLayout.tsx` -- Betrouwbare kleur-toepassing
-- Verifieer dat ALLE 5 kleuren correct worden doorgezet als CSS variabelen
-- De volgorde moet zijn: eerst `deriveFromBackground` (fallbacks), dan expliciete overrides voor `--foreground` als `text_color` is gezet
-- Dit is al grotendeels gefixt in de vorige update, maar wordt nogmaals gevalideerd
-
-### Bestanden die worden gewijzigd
+### Gewijzigde bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/admin/storefront/ThemeCustomizer.tsx` | Kleuren sectie herstructureren naar unified kleurkaart + inline preview + generator als uitklapbaar blok |
-| `src/components/admin/storefront/ColorPaletteGenerator.tsx` | Vereenvoudigen: geen eigen basekleur input meer, compactere strategie-kaarten, ontvangt alle kleuren als props |
-| `src/components/storefront/ShopLayout.tsx` | Validatie dat alle 5 CSS variabelen correct worden gezet in de juiste volgorde |
+| `supabase/functions/sync-bol-orders/index.ts` | Auto-accept response handling + auto-VVB call + retry voor gemiste orders |
 
-### UX Verbeteringen samengevat
+### Veiligheidsmaatregelen
 
-- **Was**: 3 losse secties (moods / generator met eigen kleurkiezer / handmatige velden) -- verwarrend
-- **Wordt**: 1 overzichtelijke kleurkaart met alle kleuren, met optioneel een generator-hulpmiddel
-- **Was**: Generator toont alleen kleurstrips zonder uitleg welke kleur wat doet
-- **Wordt**: Elk kleurveld heeft duidelijke label + beschrijving + live contrast feedback
-- **Was**: Mini-preview toont alleen een buttonnetje
-- **Wordt**: Preview toont een echt mini-webshop blokje met alle 5 kleuren in actie
+- Alle auto-accept/VVB calls zijn non-blocking (try/catch) zodat de sync niet faalt als 1 order een probleem heeft
+- Maximaal 5 retry-orders per sync-run om rate limits te respecteren
+- Logging van alle stappen zodat je in de logs precies kunt zien wat er gebeurt
+- VVB label wordt alleen aangemaakt als de accept succesvol was (anders geen label zonder acceptatie)
