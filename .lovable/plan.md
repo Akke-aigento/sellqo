@@ -1,48 +1,85 @@
 
-# Fix: Tekstkleur wordt niet correct overgenomen uit palette
+# Volledige Herziening: Kleuren Sectie & Palette Generator
 
-## Probleem
+## Probleem (uit screenshots)
 
-De Color Palette Generator stuurt wel `background` en `text` kleuren mee naar `onApply`, maar de storefront-code in `ShopLayout.tsx` zet `--foreground` alleen als er een expliciete `text_color` in de thema-instellingen staat. Als die ontbreekt of niet wordt opgeslagen, valt de storefront terug op de standaard donkerblauwe kleur uit `index.css` (`212 52% 24%`), die onleesbaar is op donkere achtergronden.
+1. **Palette Generator negeert 4 van 5 kleuren** -- hij genereert op basis van 1 basekleur, maar past alleen `primary` toe. Background, text, secondary en accent worden niet goed meegenomen naar de storefront
+2. **Onduidelijke UX** -- de flow Mood Presets > Palette Generator > Handmatige kleurvelden is verwarrend. Drie losse stukken die niet samenhangen. Een klant weet niet waar te beginnen
+3. **Storefront toont verkeerde kleuren** -- op screenshot 3 is de header teal terwijl "Warm & Cozy" (bruin/oranje) is geselecteerd. De `themeStyle` builder in ShopLayout mist koppelingen
 
-Daarnaast is de `getContrastForeground` functie te simplistisch: hij geeft puur zwart of wit terug, zonder rekening te houden met de gekozen merkkleur.
+## Nieuwe Aanpak: Unified Color Studio
 
-## Oplossing (3 wijzigingen)
+In plaats van 3 losse blokken (moods, generator, handmatig) wordt het EEN samenhangende flow:
 
-### 1. `ShopLayout.tsx` — Altijd een leesbare `--foreground` afleiden
+### Stap 1: Sfeer kiezen (Mood) -- optioneel startpunt
+- Blijft als compacte pills bovenaan
+- Bij klik: vult ALLE 5 kleurvelden direct in (zoals nu, dit werkt al)
 
-Als er geen expliciete `text_color` is ingesteld, moet `deriveFromBackground` ook `--foreground` en `--popover-foreground` correct afleiden op basis van de achtergrondkleur. Nu doet hij dat alleen voor `--card-foreground` en `--muted-foreground`.
+### Stap 2: Kleurpalet -- de hoofdinterface
+Vervang de huidige "generator + handmatig" door een **enkele visuele kleurkaart**:
 
-**Wijziging**: In de `deriveFromBackground` functie (regel 183-190) ook `--foreground` en `--popover-foreground` toevoegen als fallback. In de themeStyle builder (regel 234-239) de `text`-override ervoor laten gaan zodat een expliciete keuze altijd wint.
+```
++--------------------------------------------------+
+| JOUW KLEURENPALET                                 |
+|                                                   |
+|  [====]  Primair      #a0522d    Knoppen & links  |
+|  [====]  Secundair    #d2691e    Subtiele accenten |
+|  [====]  Accent       #cd853f    Prijzen & badges  |
+|  [====]  Achtergrond  #faf0e6    Pagina achtergrond|
+|  [====]  Tekst        #3e2723    Standaard tekst   |
+|                                                   |
+|  [Wand] Genereer variaties    [Contrast check]    |
++--------------------------------------------------+
+```
 
-### 2. `ShopLayout.tsx` — `getContrastForeground` verbeteren
+- Elk kleurveld heeft een color picker + hex input + beschrijving wat het doet
+- WCAG contrast badge rechts bij primair, accent en tekst (ratio t.o.v. achtergrond)
+- Alles op 1 plek, geen scrollen nodig
 
-De huidige functie mist gamma-correctie bij de luminance-berekening (vergelijkt lineaire RGB in plaats van sRGB). Dit kan verkeerde keuzes opleveren bij midtone kleuren.
+### Stap 3: Palette Generator als popover/uitklapbaar
+- "Genereer variaties" knop opent een compacte sectie met de 5 strategieen (Complementair, Analoog, etc.)
+- De strategieen gebruiken ALLE huidige kleuren als context, niet alleen primary
+- Bij "Toepassen" worden ALLE 5 kleurvelden bijgewerkt
+- Generator is nu een hulpmiddel, niet de hoofdinterface
 
-**Wijziging**: De `relativeLuminance` functie uit `src/lib/color-utils.ts` hergebruiken in plaats van de eigen berekening.
+### Stap 4: Live mini-preview
+- Onder de kleurkaart: een mini-preview blokje dat ALLE 5 kleuren visueel toont
+- Toont: achtergrond + tekst + button (primary) + prijslabel (accent) + badge (secondary)
+- Verandert live mee als je een kleur aanpast
 
-### 3. `ColorPaletteGenerator.tsx` — Zekerheid dat text/background altijd worden meegestuurd
+## Technische Wijzigingen
 
-De `onApply` callback stuurt al `background` en `text` mee, maar de ontvangende kant (ThemeCustomizer of settings) moet deze ook daadwerkelijk opslaan als `background_color` en `text_color`.
+### 1. `ThemeCustomizer.tsx` -- Herstructurering Kleuren sectie
+- Verwijder de scheiding tussen "Palette Generator" en "Handmatig"  
+- Maak 1 unified kleurkaart met alle 5 velden, elk met inline color picker, hex input, label, beschrijving en contrast badge
+- Verplaats de palette generator naar een uitklapbaar blok onder de kleurkaart (Collapsible of Accordion)
+- Voeg een inline mini-preview toe die alle 5 kleuren visueel toont
+- Behoud de mood presets als pills bovenaan (deze werken goed)
 
-**Wijziging**: Verifier in `ThemeCustomizer.tsx` dat wanneer een palette wordt toegepast, `background_color` en `text_color` ook worden opgeslagen in de settings (niet alleen primary/secondary/accent).
+### 2. `ColorPaletteGenerator.tsx` -- Vereenvoudiging
+- Verwijder de eigen "basekleur" input -- de generator ontvangt nu ALLE 5 huidige kleuren als props
+- Strategieen genereren nog steeds op basis van de primary hue, maar het preview toont duidelijker wat er verandert
+- Elke strategie-kaart wordt compacter: alleen de kleurstrip + contrast indicator + toepassen knop
+- Verwijder mood-linking logica (dat zit nu in de parent)
 
-## Technische details
+### 3. `ShopLayout.tsx` -- Betrouwbare kleur-toepassing
+- Verifieer dat ALLE 5 kleuren correct worden doorgezet als CSS variabelen
+- De volgorde moet zijn: eerst `deriveFromBackground` (fallbacks), dan expliciete overrides voor `--foreground` als `text_color` is gezet
+- Dit is al grotendeels gefixt in de vorige update, maar wordt nogmaals gevalideerd
 
-### Gewijzigde bestanden
+### Bestanden die worden gewijzigd
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/storefront/ShopLayout.tsx` | `deriveFromBackground` uitbreiden met `--foreground` fallback + `relativeLuminance` import gebruiken |
-| `src/components/admin/storefront/ThemeCustomizer.tsx` | `onApply` handler van palette generator aanpassen zodat `background_color` en `text_color` worden opgeslagen |
+| `src/components/admin/storefront/ThemeCustomizer.tsx` | Kleuren sectie herstructureren naar unified kleurkaart + inline preview + generator als uitklapbaar blok |
+| `src/components/admin/storefront/ColorPaletteGenerator.tsx` | Vereenvoudigen: geen eigen basekleur input meer, compactere strategie-kaarten, ontvangt alle kleuren als props |
+| `src/components/storefront/ShopLayout.tsx` | Validatie dat alle 5 CSS variabelen correct worden gezet in de juiste volgorde |
 
-### Logica flow na de fix
+### UX Verbeteringen samengevat
 
-```text
-Palette Generator genereert kleuren
-  -> onApply({ primary, secondary, accent, background, text })
-     -> ThemeCustomizer slaat ALLE 5 kleuren op (inclusief background_color en text_color)
-        -> ShopLayout leest text_color -> zet --foreground
-           OF als text_color ontbreekt:
-           -> deriveFromBackground zet --foreground automatisch op basis van achtergrond luminantie
-```
+- **Was**: 3 losse secties (moods / generator met eigen kleurkiezer / handmatige velden) -- verwarrend
+- **Wordt**: 1 overzichtelijke kleurkaart met alle kleuren, met optioneel een generator-hulpmiddel
+- **Was**: Generator toont alleen kleurstrips zonder uitleg welke kleur wat doet
+- **Wordt**: Elk kleurveld heeft duidelijke label + beschrijving + live contrast feedback
+- **Was**: Mini-preview toont alleen een buttonnetje
+- **Wordt**: Preview toont een echt mini-webshop blokje met alle 5 kleuren in actie
