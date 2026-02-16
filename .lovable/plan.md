@@ -1,55 +1,95 @@
 
-# Fix: VVB Label Download + Tracking Ophalen
+# Fix: create-bol-vvb-label Retry Mode Silent Crash
 
 ## Probleem
 
-De database toont voor deze order een shipping_labels record met `label_url: null` en `tracking_number: null`. Het label is wel aangemaakt bij Bol.com (status "created", carrier "BPOST_BE"), maar de PDF en tracking zijn nooit opgehaald.
+De retry-modus crasht stil na het ophalen van de access token. De logs tonen:
+```
+INFO: Retry mode: fetching PDF and tracking for existing label e35d4320-...
+... dan NIETS meer
+```
 
-Er zijn twee oorzaken:
+De functie wordt ook twee keer tegelijk opgestart (race condition door dubbel-klik).
 
-### Oorzaak 1: Polling timeout
-De process-status polling doet maximaal 10 pogingen met 2 seconden wachttijd (= 20 seconden totaal). Bol.com kan langer nodig hebben om het label te verwerken, waardoor `transporterLabelId` null blijft en stap 3 (PDF downloaden) en stap 4 (tracking ophalen) worden overgeslagen.
+## Oorzaken
 
-### Oorzaak 2: Tracking ophalen via verkeerde methode
-De code probeert tracking op te halen via een GET request met JSON Accept-header, maar de Bol.com documentatie schrijft voor dat het trackingnummer via een **HEAD request** op het shipping-labels endpoint wordt teruggegeven in de response header `X-Track-And-Trace-Code`.
+### 1. Geen try-catch rond PDF fetch in retry mode (regels 174-212)
+De PDF download en upload code in de retry-sectie heeft geen eigen error handling. Als de fetch faalt (bijv. verkeerde Accept header, netwerk timeout, of Bol.com geeft een onverwacht antwoord), crasht de functie zonder enige logging.
+
+### 2. Verkeerde Accept header voor Bol.com v10 PDF
+De retry-code gebruikt `Accept: application/pdf` (regel 180), maar Bol.com v10 vereist `Accept: application/vnd.retailer.v10+pdf`. Dit kan een 406 Not Acceptable response geven die niet correct afgehandeld wordt.
+
+De normale flow (regel 482) gebruikt dezelfde verkeerde header - die moet ook aangepast worden.
+
+### 3. Geen 404 handling (label nog niet klaar)
+Als Bol.com het label nog niet verwerkt heeft, geeft het een 404. De code behandelt dit niet apart.
+
+### 4. Race condition (dubbele boot)
+De logs tonen twee "booted" events. Er is geen bescherming tegen gelijktijdige uitvoering.
 
 ## Oplossing
 
 ### Bestand: `supabase/functions/create-bol-vvb-label/index.ts`
 
-**Wijziging 1: Polling verbeteren**
-- Aantal pogingen verhogen van 10 naar 15
-- Wachttijd verhogen van 2 naar 3 seconden (totaal: 45 seconden)
-- Betere logging bij elke poging
+**Wijziging 1: Try-catch + logging in retry mode (regels 171-258)**
+- Wrap de volledige PDF download + tracking sectie in try-catch
+- Log elke stap: voor fetch, response status, na upload
+- Bij crash: log de volledige error stack en return een 500 met details
 
-**Wijziging 2: Tracking ophalen via HEAD request**
-De huidige code (regels 398-412) die een GET + JSON doet vervangen door een HEAD request die het trackingnummer uit de `X-Track-And-Trace-Code` header haalt, conform de Bol.com v10 documentatie.
+**Wijziging 2: Correcte Accept header voor PDF**
+- Retry mode (regel 180): wijzig `application/pdf` naar `application/vnd.retailer.v10+pdf`
+- Normale flow (regel 482): zelfde fix
 
-```text
-Huidig (fout):
-  GET /shipping-labels/{id}
-  Accept: application/vnd.retailer.v10+json
-  -> JSON body: detailsData.trackAndTrace
+**Wijziging 3: 404 handling**
+- Als PDF response status 404 is: return 202 met bericht "Label wordt nog verwerkt"
 
-Nieuw (correct):
-  HEAD /shipping-labels/{id}
-  -> Response header: X-Track-And-Trace-Code
-```
+**Wijziging 4: Race condition guard**
+- Bij start van de functie (zowel retry als normaal): check of er al een label met status "processing" bestaat
+- Retry mode: check of het label niet al een label_url heeft (al opgehaald door andere instantie)
+
+**Wijziging 5: Frontend error handling verbeteren**
 
 ### Bestand: `src/components/admin/BolActionsCard.tsx`
 
-**Wijziging 3: Retry-knop toevoegen voor labels zonder URL**
+- Bij status 202: toon info toast "Label wordt nog verwerkt, probeer over 30 seconden opnieuw"
+- Bij error: toon specifieke foutmelding uit response body
+- Disable retry-knop gedurende 5 seconden na klik (debounce)
 
-Op dit moment worden de download/print-knoppen alleen getoond als `label_url` bestaat. Een "Opnieuw ophalen" knop toevoegen die verschijnt wanneer er wel een label record bestaat maar `label_url` null is. Deze knop roept een nieuwe flow aan die het label opnieuw probeert op te halen op basis van het opgeslagen `external_id` (het transporterLabelId).
+## Technisch detail
 
-### Bestand: `supabase/functions/create-bol-vvb-label/index.ts`
+De kernwijziging in retry mode:
 
-**Wijziging 4: Retry endpoint toevoegen**
+```text
+// VOOR (regels 174-212 - crasht stil bij fout):
+const pdfResponse = await fetch(...);
+if (pdfResponse.ok) { ... }
 
-Ondersteuning toevoegen voor een `retry` mode in de request body. Wanneer `retry: true` en een `label_id` worden meegegeven, slaat de functie de label-aanmaak over en probeert alleen de PDF te downloaden en tracking op te halen voor een bestaand label.
-
-## Verwacht resultaat
-
-- Nieuwe VVB labels: langer pollen (45s), tracking via HEAD request
-- Bestaande labels zonder URL: retry-knop om alsnog PDF + tracking op te halen
-- De download-knop werkt direct na succesvolle retry
+// NA (met volledige error handling):
+try {
+  console.log('Fetching PDF from Bol.com, labelId:', retryLabelId);
+  const pdfResponse = await fetch(
+    `https://api.bol.com/retailer/shipping-labels/${retryLabelId}`,
+    { headers: { Authorization: ..., Accept: 'application/vnd.retailer.v10+pdf' } }
+  );
+  console.log('PDF response status:', pdfResponse.status);
+  
+  if (pdfResponse.status === 404) {
+    return Response(JSON.stringify({ 
+      status: 'pending', 
+      message: 'Label wordt nog verwerkt' 
+    }), { status: 202, ... });
+  }
+  
+  if (!pdfResponse.ok) {
+    const errText = await pdfResponse.text();
+    console.error('PDF fetch failed:', pdfResponse.status, errText);
+    throw new Error(`PDF fetch failed: ${pdfResponse.status}`);
+  }
+  
+  // ... rest van verwerking met logging per stap
+} catch (error) {
+  console.error('CRASH in retry PDF fetch:', error.message, error.stack);
+  return Response(JSON.stringify({ error: 'Failed', details: error.message }), 
+    { status: 500, ... });
+}
+```
