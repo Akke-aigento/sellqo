@@ -19,20 +19,13 @@ async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
   const pages = pdfDoc.getPages();
   const page = pages[0];
   
-  // A6 dimensions in PDF points (1 inch = 72 points)
-  // A6 = 105mm × 148mm = 297.64 × 419.53 points
   const A6_WIDTH = 297.64;
   const A6_HEIGHT = 419.53;
-  
-  // Get page dimensions
   const { height } = page.getSize();
   
-  // Crop box: top-left A6 portion
-  // In PDF coordinates Y=0 is at bottom, so we calculate from top
   page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
   page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
   
-  // Create new PDF with only the cropped portion
   const newPdf = await PDFDocument.create();
   const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
   newPdf.addPage(copiedPage);
@@ -147,13 +140,49 @@ const handler = async (req: Request): Promise<Response> => {
     // Get access token
     const accessToken = await getBolAccessToken(credentials);
 
+    // ===== BUG 2 FIX: Auto-accept order if not yet accepted =====
+    const currentSyncStatus = order.sync_status;
+    if (currentSyncStatus !== 'accepted' && currentSyncStatus !== 'shipped') {
+      console.log(`Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), auto-accepting first...`);
+      try {
+        const acceptRes = await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            connection_id: order.marketplace_connection_id
+          })
+        });
+        const acceptBody = await acceptRes.text();
+        if (acceptRes.ok) {
+          console.log(`Order ${order.order_number} auto-accepted successfully: ${acceptBody}`);
+        } else if (acceptRes.status === 500 && acceptBody.includes('403')) {
+          // 403 from Bol.com means already accepted manually
+          console.log(`Order ${order.order_number} already accepted at Bol.com (403), continuing...`);
+          await supabase.from('orders').update({ sync_status: 'accepted' }).eq('id', order.id);
+        } else {
+          console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
+          // Don't block VVB label creation - continue anyway
+        }
+        // Small delay after accept before creating label
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (acceptError) {
+        console.error('Auto-accept error (non-blocking):', acceptError);
+      }
+    }
+
     // Get order items with Bol.com IDs
     const orderItems = order.order_items || [];
-    const bolOrderItemIds = orderItems
-      .filter((item: { marketplace_order_item_id?: string }) => item.marketplace_order_item_id)
-      .map((item: { marketplace_order_item_id: string }) => item.marketplace_order_item_id);
+    
+    // BUG 7 FIX: Filter items WITH marketplace IDs and keep the full item for quantity access
+    const bolOrderItems = orderItems.filter(
+      (item: { marketplace_order_item_id?: string }) => item.marketplace_order_item_id
+    );
 
-    if (bolOrderItemIds.length === 0) {
+    if (bolOrderItems.length === 0) {
       return new Response(
         JSON.stringify({ error: "No order items with Bol.com IDs found" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -161,6 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Step 1: Get available shipping label offers
+    // BUG 7 FIX: Use quantity from the filtered item directly instead of index-based lookup
     const offersResponse = await fetch(
       `https://api.bol.com/retailer/shipping-labels/delivery-options`,
       {
@@ -171,7 +201,10 @@ const handler = async (req: Request): Promise<Response> => {
           "Accept": "application/vnd.retailer.v10+json",
         },
         body: JSON.stringify({
-          orderItems: bolOrderItemIds.map((id: string, idx: number) => ({ orderItemId: id, quantity: orderItems[idx]?.quantity || 1 })),
+          orderItems: bolOrderItems.map((item: { marketplace_order_item_id: string; quantity?: number }) => ({
+            orderItemId: item.marketplace_order_item_id,
+            quantity: item.quantity || 1,
+          })),
         }),
       }
     );
@@ -191,14 +224,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const offersData = await offersResponse.json();
     
-    // Find the best matching offer based on carrier preference
     console.log("Bol.com delivery-options response:", JSON.stringify(offersData));
     
     const deliveryOptions = offersData.deliveryOptions || [];
     console.log(`Found ${deliveryOptions.length} delivery options`);
     
-    // In Bol.com v10 API, each deliveryOption IS an offer (flat structure)
-    // Each has: shippingLabelOfferId, transporterCode, labelType, labelPrice, etc.
     const allOffers = deliveryOptions.map((option: any) => ({
       shippingLabelOfferId: option.shippingLabelOfferId,
       transporterCode: option.transporterCode,
@@ -229,6 +259,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Step 2: Create the shipping label
     console.log(`Creating shipping label with offerId: ${selectedOffer.shippingLabelOfferId}, carrier: ${selectedOffer.transporterCode}`);
+    const bolOrderItemIds = bolOrderItems.map((item: { marketplace_order_item_id: string }) => item.marketplace_order_item_id);
     const labelResponse = await fetch(
       `https://api.bol.com/retailer/shipping-labels`,
       {
@@ -260,7 +291,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     const labelData = await labelResponse.json();
     
-    // The response contains a process status - we may need to poll for the label
     const processStatusId = labelData.processStatusId;
     let labelPdfUrl: string | null = null;
     let trackingNumber: string | null = null;
@@ -272,7 +302,7 @@ const handler = async (req: Request): Promise<Response> => {
       const maxAttempts = 10;
       
       while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         const statusResponse = await fetch(
           `https://api.bol.com/retailer/process-status/${processStatusId}`,
@@ -305,6 +335,7 @@ const handler = async (req: Request): Promise<Response> => {
             console.log('Extracted transporterLabelId:', transporterLabelId);
             break;
           } else if (statusData.status === 'FAILURE') {
+            console.error('VVB label creation failed:', JSON.stringify(statusData));
             return new Response(
               JSON.stringify({ 
                 success: false, 
@@ -314,6 +345,8 @@ const handler = async (req: Request): Promise<Response> => {
               { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+          // PENDING - continue polling
+          console.log(`Process status: ${statusData.status}, attempt ${attempts + 1}/${maxAttempts}`);
         }
         
         attempts++;
@@ -333,11 +366,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
 
       if (pdfResponse.ok) {
-        // Store the PDF in Supabase storage
         const pdfBlob = await pdfResponse.blob();
         let pdfBuffer = await pdfBlob.arrayBuffer();
         
-        // Crop to A6 if configured (default behavior)
         if (labelFormat === 'a6_cropped') {
           try {
             const croppedPdf = await cropToA6(pdfBuffer);
@@ -345,7 +376,6 @@ const handler = async (req: Request): Promise<Response> => {
             console.log('Successfully cropped PDF to A6 format');
           } catch (cropError) {
             console.error('Error cropping PDF to A6, using original:', cropError);
-            // Fall back to original PDF if cropping fails
           }
         }
         
@@ -402,18 +432,60 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error saving label:", labelError);
     }
 
-    // Update order with tracking info
-    await supabase
-      .from("orders")
-      .update({
+    // ===== BUG 6 FIX: Only set "shipped" status if label + tracking were successful =====
+    if (transporterLabelId && trackingNumber) {
+      // ===== BUG 5 FIX: Use sync_status consistently =====
+      await supabase
+        .from("orders")
+        .update({
+          carrier: selectedOffer.transporterCode,
+          tracking_number: trackingNumber,
+          status: "shipped",
+          shipped_at: new Date().toISOString(),
+          fulfillment_status: "shipped",
+          sync_status: 'shipped',
+        })
+        .eq("id", order.id);
+
+      // ===== BUG 1 FIX: Confirm shipment at Bol.com =====
+      try {
+        console.log(`Confirming shipment to Bol.com for order ${order.order_number}...`);
+        const confirmRes = await fetch(`${supabaseUrl}/functions/v1/confirm-bol-shipment`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            tracking_number: trackingNumber,
+            carrier: selectedOffer.transporterCode,
+          })
+        });
+        const confirmBody = await confirmRes.text();
+        if (confirmRes.ok) {
+          console.log(`Shipment confirmed to Bol.com for order ${order.order_number}: ${confirmBody}`);
+        } else {
+          console.error(`Failed to confirm shipment to Bol.com: ${confirmRes.status} ${confirmBody}`);
+          // Store error but don't fail the whole operation
+          await supabase.from('orders').update({
+            marketplace_sync_error: `Shipment confirmation failed: ${confirmBody}`,
+          }).eq('id', order.id);
+        }
+      } catch (confirmError) {
+        console.error('Shipment confirmation error (non-blocking):', confirmError);
+      }
+    } else {
+      // Label created but incomplete - update what we have without marking as shipped
+      console.warn(`VVB label incomplete for order ${order.order_number}: transporterLabelId=${transporterLabelId}, trackingNumber=${trackingNumber}`);
+      const partialUpdate: Record<string, unknown> = {
         carrier: selectedOffer.transporterCode,
-        tracking_number: trackingNumber,
-        status: "shipped",
-        shipped_at: new Date().toISOString(),
-        fulfillment_status: "shipped",
-        marketplace_sync_status: 'shipped',
-      })
-      .eq("id", order.id);
+      };
+      if (trackingNumber) partialUpdate.tracking_number = trackingNumber;
+      if (labelPdfUrl) partialUpdate.label_url = labelPdfUrl;
+      
+      await supabase.from("orders").update(partialUpdate).eq("id", order.id);
+    }
 
     console.log(`Successfully created VVB label for order ${order.order_number}`);
 
