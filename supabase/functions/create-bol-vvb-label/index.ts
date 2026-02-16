@@ -164,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
           "Accept": "application/vnd.retailer.v10+json",
         },
         body: JSON.stringify({
-          orderItems: bolOrderItemIds.map((id: string) => ({ orderItemId: id })),
+          orderItems: bolOrderItemIds.map((id: string, idx: number) => ({ orderItemId: id, quantity: orderItems[idx]?.quantity || 1 })),
         }),
       }
     );
@@ -185,13 +185,26 @@ const handler = async (req: Request): Promise<Response> => {
     const offersData = await offersResponse.json();
     
     // Find the best matching offer based on carrier preference
-    const shippingLabelOffers = offersData.purchasableShippingLabels || [];
-    let selectedOffer = shippingLabelOffers.find(
-      (offer: { transporterCode: string }) => offer.transporterCode === finalCarrier
+    console.log("Bol.com delivery-options response:", JSON.stringify(offersData));
+    
+    const deliveryOptions = offersData.deliveryOptions || [];
+    
+    // Each deliveryOption has orderItems and shippingLabelOffers
+    // Flatten all shippingLabelOffers from all deliveryOptions
+    const allOffers: any[] = [];
+    for (const option of deliveryOptions) {
+      const offers = option.shippingLabelOffers || [];
+      for (const offer of offers) {
+        allOffers.push({ ...offer, transporterCode: option.transporterCode || offer.transporterCode });
+      }
+    }
+    
+    let selectedOffer = allOffers.find(
+      (offer: any) => (offer.transporterCode || '').toUpperCase() === finalCarrier.toUpperCase()
     );
     
-    if (!selectedOffer && shippingLabelOffers.length > 0) {
-      selectedOffer = shippingLabelOffers[0]; // Use first available offer
+    if (!selectedOffer && allOffers.length > 0) {
+      selectedOffer = allOffers[0];
     }
 
     if (!selectedOffer) {
@@ -199,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ 
           success: false, 
           error: "No shipping label offers available for this order",
-          available_offers: shippingLabelOffers
+          available_offers: deliveryOptions
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
