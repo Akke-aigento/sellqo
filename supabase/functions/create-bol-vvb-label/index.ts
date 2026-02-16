@@ -41,20 +41,27 @@ async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
 }
 
 async function getBolAccessToken(credentials: { clientId: string; clientSecret: string }): Promise<string> {
-  const response = await fetch("https://login.bol.com/token?grant_type=client_credentials", {
+  const authString = btoa(`${credentials.clientId}:${credentials.clientSecret}`);
+  console.log('Requesting Bol.com access token, clientId starts with:', credentials.clientId.substring(0, 8) + '...');
+  
+  const response = await fetch("https://login.bol.com/token", {
     method: "POST",
     headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
       "Accept": "application/json",
-      "Authorization": `Basic ${btoa(`${credentials.clientId}:${credentials.clientSecret}`)}`,
+      "Authorization": `Basic ${authString}`,
     },
+    body: "grant_type=client_credentials",
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Failed to get Bol.com access token: ${error}`);
+    console.error('Token request failed:', response.status, error);
+    throw new Error(`Failed to get Bol.com access token: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
+  console.log('Got Bol.com access token, expires in:', data.expires_in);
   return data.access_token;
 }
 
@@ -188,16 +195,18 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Bol.com delivery-options response:", JSON.stringify(offersData));
     
     const deliveryOptions = offersData.deliveryOptions || [];
+    console.log(`Found ${deliveryOptions.length} delivery options`);
     
-    // Each deliveryOption has orderItems and shippingLabelOffers
-    // Flatten all shippingLabelOffers from all deliveryOptions
-    const allOffers: any[] = [];
-    for (const option of deliveryOptions) {
-      const offers = option.shippingLabelOffers || [];
-      for (const offer of offers) {
-        allOffers.push({ ...offer, transporterCode: option.transporterCode || offer.transporterCode });
-      }
-    }
+    // In Bol.com v10 API, each deliveryOption IS an offer (flat structure)
+    // Each has: shippingLabelOfferId, transporterCode, labelType, labelPrice, etc.
+    const allOffers = deliveryOptions.map((option: any) => ({
+      shippingLabelOfferId: option.shippingLabelOfferId,
+      transporterCode: option.transporterCode,
+      labelType: option.labelType,
+      labelPrice: option.labelPrice,
+      packageRestrictions: option.packageRestrictions,
+    }));
+    console.log(`Mapped ${allOffers.length} offers:`, JSON.stringify(allOffers.map((o: any) => ({ id: o.shippingLabelOfferId, carrier: o.transporterCode }))));
     
     let selectedOffer = allOffers.find(
       (offer: any) => (offer.transporterCode || '').toUpperCase() === finalCarrier.toUpperCase()
@@ -218,9 +227,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Step 2: Create the transporter label
+    // Step 2: Create the shipping label
+    console.log(`Creating shipping label with offerId: ${selectedOffer.shippingLabelOfferId}, carrier: ${selectedOffer.transporterCode}`);
     const labelResponse = await fetch(
-      `https://api.bol.com/retailer/transporter-labels`,
+      `https://api.bol.com/retailer/shipping-labels`,
       {
         method: "POST",
         headers: {
@@ -237,7 +247,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!labelResponse.ok) {
       const errorText = await labelResponse.text();
-      console.error("Bol.com transporter-labels error:", errorText);
+      console.error("Bol.com shipping-labels error:", labelResponse.status, errorText);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -304,7 +314,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Step 3: Get the label PDF if we have the label ID
     if (transporterLabelId) {
       const pdfResponse = await fetch(
-        `https://api.bol.com/retailer/transporter-labels/${transporterLabelId}`,
+        `https://api.bol.com/retailer/shipping-labels/${transporterLabelId}`,
         {
           headers: {
             "Authorization": `Bearer ${accessToken}`,
@@ -348,7 +358,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Get tracking info from label details
       const detailsResponse = await fetch(
-        `https://api.bol.com/retailer/transporter-labels/${transporterLabelId}`,
+        `https://api.bol.com/retailer/shipping-labels/${transporterLabelId}`,
         {
           headers: {
             "Authorization": `Bearer ${accessToken}`,
