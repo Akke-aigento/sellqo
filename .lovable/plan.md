@@ -1,94 +1,48 @@
 
-# Contrastcontrole & Kleurpalet Verbetering
+# Fix: Tekstkleur wordt niet correct overgenomen uit palette
 
-## Het probleem
+## Probleem
 
-Op de screenshot is duidelijk te zien dat op een donkere achtergrond:
-- **Koppen** (h2/h3 in productbeschrijving) zijn onleesbaar -- ze gebruiken een kleur die te dicht bij de achtergrond ligt
-- **Links** in de rich-text content (prose) zijn slecht zichtbaar
-- **Accent-kleurtekst** (prijskoppen, feature-titels) heeft te weinig contrast
-- De **Color Palette Generator** genereert paletten zonder contrast te valideren
+De Color Palette Generator stuurt wel `background` en `text` kleuren mee naar `onApply`, maar de storefront-code in `ShopLayout.tsx` zet `--foreground` alleen als er een expliciete `text_color` in de thema-instellingen staat. Als die ontbreekt of niet wordt opgeslagen, valt de storefront terug op de standaard donkerblauwe kleur uit `index.css` (`212 52% 24%`), die onleesbaar is op donkere achtergronden.
 
-Dit komt omdat:
-1. De `prose` (rich-text) class geen custom styling heeft voor koppen en links wanneer thema-kleuren worden overschreven
-2. De palette generator nooit checkt of kleuren voldoende WCAG-contrast hebben
-3. Er nergens een waarschuwing wordt getoond aan de merchant als de gekozen kleuren onleesbaar zijn
+Daarnaast is de `getContrastForeground` functie te simplistisch: hij geeft puur zwart of wit terug, zonder rekening te houden met de gekozen merkkleur.
 
----
+## Oplossing (3 wijzigingen)
 
-## Oplossing: 3 onderdelen
+### 1. `ShopLayout.tsx` — Altijd een leesbare `--foreground` afleiden
 
-### 1. WCAG Contrast Checker utility
+Als er geen expliciete `text_color` is ingesteld, moet `deriveFromBackground` ook `--foreground` en `--popover-foreground` correct afleiden op basis van de achtergrondkleur. Nu doet hij dat alleen voor `--card-foreground` en `--muted-foreground`.
 
-Een `getContrastRatio(color1, color2)` functie toevoegen die de WCAG 2.1 contrastverhouding berekent (minimaal 4.5:1 voor tekst, 3:1 voor grote tekst). Deze utility wordt gedeeld door de palette generator en de kleurkiezer.
+**Wijziging**: In de `deriveFromBackground` functie (regel 183-190) ook `--foreground` en `--popover-foreground` toevoegen als fallback. In de themeStyle builder (regel 234-239) de `text`-override ervoor laten gaan zodat een expliciete keuze altijd wint.
 
-**Bestand**: `src/lib/color-utils.ts` (nieuw)
+### 2. `ShopLayout.tsx` — `getContrastForeground` verbeteren
 
----
+De huidige functie mist gamma-correctie bij de luminance-berekening (vergelijkt lineaire RGB in plaats van sRGB). Dit kan verkeerde keuzes opleveren bij midtone kleuren.
 
-### 2. Contrastwaarschuwingen in de Admin Kleurkiezer
+**Wijziging**: De `relativeLuminance` functie uit `src/lib/color-utils.ts` hergebruiken in plaats van de eigen berekening.
 
-Bij elk kleurveld (primair, accent, tekst) wordt live de contrastverhouding berekend ten opzichte van de achtergrondkleur. Als het contrast onvoldoende is (< 4.5:1), verschijnt er een oranje/rode waarschuwing:
+### 3. `ColorPaletteGenerator.tsx` — Zekerheid dat text/background altijd worden meegestuurd
 
-- Ratio >= 4.5 -- Groen vinkje "AA OK"
-- Ratio >= 3.0 maar < 4.5 -- Oranje waarschuwing "Laag contrast - grote tekst OK"
-- Ratio < 3.0 -- Rode waarschuwing "Onleesbaar! Pas kleur aan"
+De `onApply` callback stuurt al `background` en `text` mee, maar de ontvangende kant (ThemeCustomizer of settings) moet deze ook daadwerkelijk opslaan als `background_color` en `text_color`.
 
-Dit wordt getoond naast elk kleurveld in het "Kleuren" blok van `ThemeCustomizer.tsx`.
+**Wijziging**: Verifier in `ThemeCustomizer.tsx` dat wanneer een palette wordt toegepast, `background_color` en `text_color` ook worden opgeslagen in de settings (niet alleen primary/secondary/accent).
 
-**Bestand**: `src/components/admin/storefront/ThemeCustomizer.tsx`
+## Technische details
 
----
+### Gewijzigde bestanden
 
-### 3. Palette Generator: contrast-aware paletten
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/storefront/ShopLayout.tsx` | `deriveFromBackground` uitbreiden met `--foreground` fallback + `relativeLuminance` import gebruiken |
+| `src/components/admin/storefront/ThemeCustomizer.tsx` | `onApply` handler van palette generator aanpassen zodat `background_color` en `text_color` worden opgeslagen |
 
-De palette generator wordt verbeterd:
-- Na het genereren van een palet wordt elk kleurpaar gecontroleerd (tekst vs achtergrond, accent vs achtergrond, primary vs achtergrond)
-- Paletten met slechte contrastverhoudingen worden automatisch gecorrigeerd (lichtheid aanpassen)
-- Een klein contrast-indicator icoontje wordt getoond bij elk palet (groen = goed, oranje = matig)
-- Bij donkere achtergronden worden accent/primary-kleuren lichter gemaakt zodat ze leesbaar zijn
-
-**Bestand**: `src/components/admin/storefront/ColorPaletteGenerator.tsx`
-
----
-
-### 4. Storefront: prose/rich-text contrast fix
-
-De `prose` class op productpagina's en contentpagina's krijgt expliciete styling die meebeweegt met de thema-variabelen:
-- Koppen: `text-foreground` (niet een accent-kleur)
-- Links: worden gecontroleerd op contrast, fallback naar een leesbare variant
-- Lijsten en body-tekst: `text-foreground` of `text-muted-foreground`
-
-**Bestanden**: `src/pages/storefront/ShopProductDetail.tsx`, `src/pages/storefront/ShopPage.tsx`, `src/pages/storefront/ShopLegalPage.tsx`
-
----
-
-## Technische Details
-
-### Contrast Ratio Formule (WCAG 2.1)
+### Logica flow na de fix
 
 ```text
-relativeLuminance(color) = 0.2126*R + 0.7152*G + 0.0722*B
-  (met gamma-correctie: component <= 0.04045 ? c/12.92 : ((c+0.055)/1.055)^2.4)
-
-contrastRatio = (L1 + 0.05) / (L2 + 0.05)
-  waar L1 = lichtste, L2 = donkerste
-```
-
-### Bestanden die worden aangemaakt of gewijzigd
-
-| Bestand | Actie |
-|---------|-------|
-| `src/lib/color-utils.ts` | Nieuw: WCAG contrast utilities |
-| `src/components/admin/storefront/ThemeCustomizer.tsx` | Contrastwaarschuwingen bij kleurvelden |
-| `src/components/admin/storefront/ColorPaletteGenerator.tsx` | Contrast-aware palette generatie + indicators |
-| `src/pages/storefront/ShopProductDetail.tsx` | Prose styling fix voor rich-text |
-| `src/pages/storefront/ShopPage.tsx` | Prose styling fix |
-| `src/pages/storefront/ShopLegalPage.tsx` | Prose styling fix |
-
-### UI Voorbeeld Contrastwaarschuwing
-
-```text
-[#FF6B35] Accent    Prijzen & badges    [!] Ratio 2.1:1 - Onleesbaar op donkere achtergrond
-[#1E3A5F] Primair   Knoppen & accenten  [v] Ratio 8.4:1 - AA OK
+Palette Generator genereert kleuren
+  -> onApply({ primary, secondary, accent, background, text })
+     -> ThemeCustomizer slaat ALLE 5 kleuren op (inclusief background_color en text_color)
+        -> ShopLayout leest text_color -> zet --foreground
+           OF als text_color ontbreekt:
+           -> deriveFromBackground zet --foreground automatisch op basis van achtergrond luminantie
 ```
