@@ -1,12 +1,11 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+}
 
-const BOL_TOKEN_URL = 'https://login.bol.com/token?grant_type=client_credentials';
+const BOL_TOKEN_URL = 'https://login.bol.com/token';
 const BOL_API_URL = 'https://api.bol.com/retailer';
 
 interface CheckStatusRequest {
@@ -17,14 +16,16 @@ interface CheckStatusRequest {
 }
 
 async function getBolAccessToken(clientId: string, clientSecret: string): Promise<string> {
-  const credentials = btoa(`${clientId}:${clientSecret}`);
+  const authString = btoa(`${clientId}:${clientSecret}`);
   
   const response = await fetch(BOL_TOKEN_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${authString}`,
       'Accept': 'application/json',
     },
+    body: 'grant_type=client_credentials',
   });
   
   if (!response.ok) {
@@ -36,7 +37,7 @@ async function getBolAccessToken(clientId: string, clientSecret: string): Promis
   return data.access_token;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -72,10 +73,19 @@ serve(async (req) => {
       );
     }
 
-    const { client_id, client_secret } = connection.credentials;
+    const credentials = connection.credentials as { clientId?: string; clientSecret?: string; client_id?: string; client_secret?: string };
+    const clientId = credentials.clientId || credentials.client_id;
+    const clientSecret = credentials.clientSecret || credentials.client_secret;
+
+    if (!clientId || !clientSecret) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing Bol.com credentials' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get access token
-    const accessToken = await getBolAccessToken(client_id, client_secret);
+    const accessToken = await getBolAccessToken(clientId, clientSecret);
 
     // Check process status
     const statusResponse = await fetch(`${BOL_API_URL}/process-status/${process_status_id}`, {
