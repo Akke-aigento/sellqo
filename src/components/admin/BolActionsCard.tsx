@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck, Printer, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck, Printer, ExternalLink, ShieldCheck, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [showFetchDialog, setShowFetchDialog] = useState(false);
 
   // Label printer hook
@@ -243,6 +244,47 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                 title="Open in nieuw tabblad"
               >
                 <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          {!latestLabel.label_url && latestLabel.status === 'created' && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={async () => {
+                  setIsRetrying(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('create-bol-vvb-label', {
+                      body: {
+                        order_id: order.id,
+                        retry: true,
+                        label_id: latestLabel.id,
+                      },
+                    });
+                    if (error) throw error;
+                    if (!data?.success) throw new Error(data?.error || 'Ophalen mislukt');
+                    toast.success('Label opnieuw opgehaald');
+                    queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
+                    queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+                    if (data.label_url) {
+                      window.open(data.label_url, '_blank');
+                    }
+                  } catch (err: any) {
+                    toast.error(`Fout: ${err.message}`);
+                  } finally {
+                    setIsRetrying(false);
+                  }
+                }}
+                disabled={isRetrying}
+              >
+                {isRetrying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Opnieuw ophalen
               </Button>
             </div>
           )}
