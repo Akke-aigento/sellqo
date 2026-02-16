@@ -303,7 +303,14 @@ export default function ShopProductDetail() {
 
             {/* Description */}
             {product.description && (
-              <div className="prose prose-sm max-w-none mb-8" dangerouslySetInnerHTML={{ __html: product.description }} />
+              <div 
+                className="prose prose-sm max-w-none mb-8 dark:prose-invert
+                           prose-headings:font-bold prose-headings:text-foreground
+                           prose-p:text-muted-foreground prose-a:text-primary prose-a:underline
+                           prose-strong:text-foreground prose-li:text-muted-foreground
+                           prose-ul:list-disc prose-ol:list-decimal"
+                dangerouslySetInnerHTML={{ __html: product.description }} 
+              />
             )}
 
             {/* Add to Cart */}

@@ -80,7 +80,11 @@ export default function ShopLegalPage() {
               {legalPage.title_nl}
             </h1>
             <div
-              className="prose prose-sm max-w-none"
+              className="prose prose-sm max-w-none dark:prose-invert
+                         prose-headings:font-bold prose-headings:text-foreground
+                         prose-p:text-muted-foreground prose-a:text-primary prose-a:underline
+                         prose-strong:text-foreground prose-li:text-muted-foreground
+                         prose-ul:list-disc prose-ol:list-decimal"
               dangerouslySetInnerHTML={{ __html: legalPage.content_nl || '' }}
             />
           </article>
