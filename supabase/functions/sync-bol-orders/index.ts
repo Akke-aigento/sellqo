@@ -471,7 +471,7 @@ Deno.serve(async (req) => {
                 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
                 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
                 
-                await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
+                const acceptRes = await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${serviceKey}`,
@@ -482,7 +482,43 @@ Deno.serve(async (req) => {
                     connection_id: connection.id
                   })
                 })
-                console.log(`Order ${bolOrder.orderId} auto-accepted`)
+                const acceptBody = await acceptRes.text()
+                
+                if (acceptRes.ok) {
+                  console.log(`Order ${bolOrder.orderId} auto-accepted successfully: ${acceptBody}`)
+                  
+                  // Auto-create VVB label if enabled
+                  const vvbEnabled = settings.vvbEnabled as boolean
+                  if (vvbEnabled) {
+                    try {
+                      const vvbCarrier = (settings.vvbDefaultCarrier as string) || 'POSTNL'
+                      console.log(`Auto-creating VVB label for order ${bolOrder.orderId} with carrier ${vvbCarrier}...`)
+                      
+                      const vvbRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${serviceKey}`,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          order_id: newOrder.id,
+                          carrier: vvbCarrier
+                        })
+                      })
+                      const vvbBody = await vvbRes.text()
+                      
+                      if (vvbRes.ok) {
+                        console.log(`VVB label created for order ${bolOrder.orderId}: ${vvbBody}`)
+                      } else {
+                        console.error(`VVB label creation failed for order ${bolOrder.orderId}: ${vvbRes.status} ${vvbBody}`)
+                      }
+                    } catch (vvbError) {
+                      console.error(`Failed to create VVB label for order ${bolOrder.orderId}:`, vvbError)
+                    }
+                  }
+                } else {
+                  console.error(`Auto-accept failed for order ${bolOrder.orderId}: ${acceptRes.status} ${acceptBody}`)
+                }
               } catch (acceptError) {
                 console.error(`Failed to auto-accept order ${bolOrder.orderId}:`, acceptError)
                 // Non-blocking - continue with sync
@@ -500,6 +536,84 @@ Deno.serve(async (req) => {
         }
 
         console.log(`Processed ${processedCount} new orders for connection ${connection.id}`)
+
+        // Retry mechanism: find orders that were imported but not accepted
+        const autoAcceptEnabled = settings.autoAcceptOrder as boolean
+        if (autoAcceptEnabled) {
+          try {
+            const { data: missedOrders } = await supabase
+              .from('orders')
+              .select('id, marketplace_order_id')
+              .eq('marketplace_connection_id', connection.id)
+              .eq('sync_status', 'synced')
+              .eq('marketplace_source', 'bol_com')
+              .order('created_at', { ascending: true })
+              .limit(5)
+
+            if (missedOrders && missedOrders.length > 0) {
+              console.log(`Found ${missedOrders.length} previously missed orders to retry auto-accept`)
+              const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+              const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+              for (const missed of missedOrders) {
+                try {
+                  console.log(`Retrying auto-accept for order ${missed.marketplace_order_id}...`)
+                  const acceptRes = await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${serviceKey}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      order_id: missed.id,
+                      connection_id: connection.id
+                    })
+                  })
+                  const acceptBody = await acceptRes.text()
+
+                  if (acceptRes.ok) {
+                    console.log(`Retry accept succeeded for ${missed.marketplace_order_id}: ${acceptBody}`)
+                    
+                    // Auto-create VVB label if enabled
+                    const vvbEnabled = settings.vvbEnabled as boolean
+                    if (vvbEnabled) {
+                      try {
+                        const vvbCarrier = (settings.vvbDefaultCarrier as string) || 'POSTNL'
+                        const vvbRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${serviceKey}`,
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({
+                            order_id: missed.id,
+                            carrier: vvbCarrier
+                          })
+                        })
+                        const vvbBody = await vvbRes.text()
+                        if (vvbRes.ok) {
+                          console.log(`Retry VVB label created for ${missed.marketplace_order_id}`)
+                        } else {
+                          console.error(`Retry VVB label failed for ${missed.marketplace_order_id}: ${vvbBody}`)
+                        }
+                      } catch (vvbError) {
+                        console.error(`Retry VVB error for ${missed.marketplace_order_id}:`, vvbError)
+                      }
+                    }
+                  } else {
+                    console.error(`Retry accept failed for ${missed.marketplace_order_id}: ${acceptRes.status} ${acceptBody}`)
+                  }
+
+                  await rateLimitDelay(500)
+                } catch (retryError) {
+                  console.error(`Retry error for ${missed.marketplace_order_id}:`, retryError)
+                }
+              }
+            }
+          } catch (retryLookupError) {
+            console.error('Error looking up missed orders for retry:', retryLookupError)
+          }
+        }
 
         // Update connection stats
         const currentStats = (connection.stats as Record<string, unknown>) || {}
