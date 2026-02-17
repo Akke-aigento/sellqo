@@ -647,6 +647,79 @@ Deno.serve(async (req) => {
           }
         }
 
+        // VVB Retry: find accepted orders that are missing a shipping label
+        const vvbEnabled = settings.vvbEnabled as boolean
+        if (vvbEnabled) {
+          try {
+            console.log(`[VVB-RETRY] Checking for accepted orders without VVB label (connection: ${connection.id})...`)
+
+            // Find orders that are accepted but have no shipping label yet
+            const { data: acceptedOrders } = await supabase
+              .from('orders')
+              .select('id, marketplace_order_id, order_number')
+              .eq('marketplace_connection_id', connection.id)
+              .eq('sync_status', 'accepted')
+              .eq('marketplace_source', 'bol_com')
+              .in('status', ['pending', 'processing'])
+              .order('created_at', { ascending: true })
+              .limit(10) // fetch a bit more, we'll filter below
+
+            if (acceptedOrders && acceptedOrders.length > 0) {
+              // Check which of these orders already have a shipping label
+              const orderIds = acceptedOrders.map(o => o.id)
+              const { data: existingLabels } = await supabase
+                .from('shipping_labels')
+                .select('order_id')
+                .in('order_id', orderIds)
+
+              const labelledOrderIds = new Set((existingLabels || []).map(l => l.order_id))
+              const ordersWithoutLabel = acceptedOrders.filter(o => !labelledOrderIds.has(o.id))
+
+              if (ordersWithoutLabel.length > 0) {
+                console.log(`[VVB-RETRY] Found ${ordersWithoutLabel.length} accepted orders without VVB label`)
+                const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+                const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                const vvbCarrier = (settings.vvbDefaultCarrier as string) || 'POSTNL'
+
+                // Process max 5 per cycle to avoid rate limits
+                const toProcess = ordersWithoutLabel.slice(0, 5)
+                for (const order of toProcess) {
+                  try {
+                    console.log(`[VVB-RETRY] Creating VVB label for order ${order.marketplace_order_id} (${order.order_number}) with carrier ${vvbCarrier}...`)
+                    const vvbRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${serviceKey}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        order_id: order.id,
+                        carrier: vvbCarrier
+                      })
+                    })
+                    const vvbBody = await vvbRes.text()
+                    if (vvbRes.ok) {
+                      console.log(`[VVB-RETRY] VVB label created for ${order.marketplace_order_id}: ${vvbBody}`)
+                    } else {
+                      console.error(`[VVB-RETRY] VVB label failed for ${order.marketplace_order_id}: ${vvbRes.status} ${vvbBody}`)
+                    }
+                  } catch (vvbRetryError) {
+                    console.error(`[VVB-RETRY] Error creating VVB label for ${order.marketplace_order_id}:`, vvbRetryError)
+                  }
+                  // 1 second between calls to respect rate limits
+                  await rateLimitDelay(1000)
+                }
+              } else {
+                console.log(`[VVB-RETRY] All accepted orders already have VVB labels`)
+              }
+            } else {
+              console.log(`[VVB-RETRY] No accepted orders without label found`)
+            }
+          } catch (vvbRetryLookupError) {
+            console.error('[VVB-RETRY] Error looking up missed VVB labels:', vvbRetryLookupError)
+          }
+        }
+
         // Update connection stats
         const currentStats = (connection.stats as Record<string, unknown>) || {}
         
