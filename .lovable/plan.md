@@ -1,25 +1,46 @@
 
+# Offerte omzetten naar bestelling (en daarna factuur)
 
-# Factuur e-mails versturen via facturen@sellqo.app
+## Huidige situatie
 
-## Wat verandert er
+De offerte detailpagina heeft momenteel geen knop om een offerte om te zetten naar een bestelling. Het veld `converted_order_id` bestaat al in de `quotes` tabel, maar de conversielogica ontbreekt volledig.
 
-De `from`-adres in de factuur e-mail functie wordt gewijzigd van `noreply@sellqo.app` naar `facturen@sellqo.app`. Dit geldt voor:
-- De primaire factuur e-mail naar de klant
-- De kopie e-mail naar CC/BCC ontvangers (Odoo, boekhouding)
+## Wat wordt gebouwd
 
-De afzendernaam blijft per tenant: `"Bedrijfsnaam <facturen@sellqo.app>"`.
+Een "Omzetten naar bestelling" knop op de offerte detailpagina die:
+1. Een nieuwe bestelling aanmaakt op basis van de offerte-items
+2. De offerte koppelt aan de bestelling via `converted_order_id`
+3. De offerte-status verandert naar `converted`
+4. De gebruiker doorstuurt naar de nieuwe bestelling (waar al een "Factuur genereren" knop beschikbaar is)
 
-## Waarom dit veilig is
+De knop is alleen zichtbaar als de offerte status `accepted` of `sent` heeft, en nog niet eerder is omgezet.
 
-- Het domein `sellqo.app` is al geverifieerd in Resend (anders zou `noreply@` ook niet werken)
-- Resend staat toe om elk adres op een geverifieerd domein te gebruiken
-- Alle tenants gebruiken dezelfde afzender — alleen de display naam verschilt per tenant
+## Technische wijzigingen
 
-## Technische wijziging
+### 1. useQuotes.ts - Nieuwe `convertToOrder` mutatie
 
-**Bestand:** `supabase/functions/send-invoice-email/index.ts`
+Toevoegen van een `convertToOrder` mutation die:
+- Een ordernummer genereert via `generate_order_number` RPC
+- Een nieuwe order aanmaakt in de `orders` tabel met alle relevante data van de offerte (klant, bedragen, notities)
+- Order items aanmaakt in `order_items` op basis van de `quote_items`
+- De offerte updatet: `status = 'converted'`, `converted_order_id = order.id`
+- De aangemaakte order retourneert
 
-Twee regels aanpassen:
-- Regel 227: `noreply@sellqo.app` -> `facturen@sellqo.app` (primaire e-mail)
-- Regel 245: `noreply@sellqo.app` -> `facturen@sellqo.app` (kopie e-mail)
+### 2. QuoteDetail.tsx - UI wijzigingen
+
+- Nieuwe "Omzetten naar bestelling" knop in de **Acties** kaart (sidebar)
+- Alleen zichtbaar bij status `accepted` of `sent` (en als `converted_order_id` nog null is)
+- Bevestigingsdialoog voordat de conversie plaatsvindt
+- Na succesvolle conversie: navigatie naar de bestelling detailpagina
+- Als de offerte al is omgezet: toon een link naar de gekoppelde bestelling
+
+### Flow na conversie
+
+```text
+Offerte (accepted) 
+  -> Klik "Omzetten naar bestelling"
+  -> Bevestig
+  -> Bestelling wordt aangemaakt (status: pending, payment_status: unpaid)
+  -> Navigatie naar bestelling
+  -> Daar kan de factuur gegenereerd worden via bestaande functionaliteit
+```
