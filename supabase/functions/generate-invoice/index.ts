@@ -1013,8 +1013,11 @@ async function generateFacturXPDF(data: {
     logStep("QR code generation failed", { error: String(qrErr) });
   }
 
-  const qrSize = 80; // total size of QR code in PDF points
-  const sectionHeight = qrIsDark ? Math.max(90, qrSize + 20) : 90;
+  const qrSize = 110; // total size of QR code in PDF points (~3pt per cell for 37 modules)
+  const sectionHeight = qrIsDark ? Math.max(120, qrSize + 30) : 90;
+  
+  // Save the top of the payment section for QR positioning
+  const sectionTopY = yPos;
   
   page.drawRectangle({
     x: margin,
@@ -1044,11 +1047,11 @@ async function generateFacturXPDF(data: {
     x: margin + 10, y: yPos, size: 8, font: helveticaFont, color: grayColor 
   });
 
-  // Draw the QR code pixel-by-pixel on the right side
+  // Draw the QR code pixel-by-pixel on the right side, anchored to the top of the section
   if (qrIsDark && qrModuleCount > 0) {
     const cellSize = qrSize / qrModuleCount;
     const qrX = width - margin - qrSize - 10;
-    const qrY = yPos + 10;
+    const qrY = sectionTopY - qrSize + 5; // Anchored to section top
     
     for (let row = 0; row < qrModuleCount; row++) {
       for (let col = 0; col < qrModuleCount; col++) {
