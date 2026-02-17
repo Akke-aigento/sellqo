@@ -19,6 +19,16 @@ function formatCurrency(amount: number, currency: string = 'EUR'): string {
   }).format(amount);
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 8192;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -105,7 +115,46 @@ serve(async (req) => {
     const invoiceFormat = tenant.invoice_format || 'pdf';
     const currency = tenant.currency || 'EUR';
 
-    // Build attachments info for email
+    // Download PDF/UBL and prepare as email attachments
+    const emailAttachments: { filename: string; content: string }[] = [];
+
+    if (invoice.pdf_url) {
+      try {
+        logStep("Downloading PDF for attachment", { url: invoice.pdf_url });
+        const pdfResponse = await fetch(invoice.pdf_url);
+        if (pdfResponse.ok) {
+          const pdfBuffer = await pdfResponse.arrayBuffer();
+          emailAttachments.push({
+            filename: `${invoice.invoice_number}.pdf`,
+            content: arrayBufferToBase64(pdfBuffer),
+          });
+          logStep("PDF attachment ready", { size: pdfBuffer.byteLength });
+        } else {
+          logStep("WARNING: Could not download PDF", { status: pdfResponse.status });
+        }
+      } catch (pdfErr) {
+        logStep("WARNING: PDF download failed", { error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr) });
+      }
+    }
+
+    if (invoice.ubl_url && (invoiceFormat === 'ubl' || invoiceFormat === 'both')) {
+      try {
+        logStep("Downloading UBL for attachment", { url: invoice.ubl_url });
+        const ublResponse = await fetch(invoice.ubl_url);
+        if (ublResponse.ok) {
+          const ublBuffer = await ublResponse.arrayBuffer();
+          emailAttachments.push({
+            filename: `${invoice.invoice_number}.xml`,
+            content: arrayBufferToBase64(ublBuffer),
+          });
+          logStep("UBL attachment ready", { size: ublBuffer.byteLength });
+        }
+      } catch (ublErr) {
+        logStep("WARNING: UBL download failed", { error: ublErr instanceof Error ? ublErr.message : String(ublErr) });
+      }
+    }
+
+    // Build attachments info for email body (download links)
     const attachmentsInfo: string[] = [];
     if (invoice.pdf_url && (invoiceFormat === 'pdf' || invoiceFormat === 'both')) {
       attachmentsInfo.push(`<a href="${invoice.pdf_url}" style="color: #3b82f6;">Download factuur (PDF)</a>`);
@@ -220,14 +269,15 @@ serve(async (req) => {
     const ccEmails = tenant.invoice_cc_email ? [tenant.invoice_cc_email] : undefined;
     const bccEmails = tenant.invoice_bcc_email ? [tenant.invoice_bcc_email] : undefined;
 
-    // 1. Primaire e-mail naar klant (zonder CC/BCC)
-    logStep("Sending primary email", { to: customer.email });
+    // 1. Primaire e-mail naar klant (met PDF bijlage)
+    logStep("Sending primary email", { to: customer.email, attachments: emailAttachments.length });
 
     const emailResponse = await resend.emails.send({
       from: `${tenant.name} <facturen@sellqo.app>`,
       to: toEmails,
       subject: emailSubject,
       html: emailHtml,
+      attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
     });
 
     logStep("Primary email sent", { response: emailResponse });
@@ -246,6 +296,7 @@ serve(async (req) => {
           to: copyRecipients,
           subject: `[Kopie] ${emailSubject}`,
           html: emailHtml,
+          attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
         });
         logStep("Copy email sent", { response: copyResponse });
       } catch (copyError) {
