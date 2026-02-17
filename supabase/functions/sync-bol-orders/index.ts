@@ -736,10 +736,13 @@ Deno.serve(async (req) => {
             if (acceptedOrders && acceptedOrders.length > 0) {
               // Check which of these orders already have a shipping label
               const orderIds = acceptedOrders.map(o => o.id)
+              // Only count labels that are actually complete (have external_id or label_url)
+              // Incomplete labels (both null) should be retried
               const { data: existingLabels } = await supabase
                 .from('shipping_labels')
                 .select('order_id')
                 .in('order_id', orderIds)
+                .or('external_id.not.is.null,label_url.not.is.null')
 
               const labelledOrderIds = new Set((existingLabels || []).map(l => l.order_id))
               const ordersWithoutLabel = acceptedOrders.filter(o => !labelledOrderIds.has(o.id))
