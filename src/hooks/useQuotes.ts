@@ -271,6 +271,94 @@ export function useQuotes(filters?: QuoteFilters) {
     },
   });
 
+  const convertToOrder = useMutation({
+    mutationFn: async (quoteId: string) => {
+      if (!currentTenant?.id) throw new Error('Geen tenant geselecteerd');
+
+      // Fetch quote with items and customer
+      const { data: quoteData, error: quoteError } = await supabase
+        .from('quotes')
+        .select(`*, customer:customers(*), quote_items(*)`)
+        .eq('id', quoteId)
+        .single();
+
+      if (quoteError) throw quoteError;
+      if (!quoteData) throw new Error('Offerte niet gevonden');
+      if (quoteData.converted_order_id) throw new Error('Offerte is al omgezet');
+
+      // Generate order number
+      const { data: orderNumber, error: numberError } = await supabase
+        .rpc('generate_order_number', { _tenant_id: currentTenant.id });
+      if (numberError) throw numberError;
+
+      const customer = quoteData.customer as any;
+      const customerName = customer
+        ? `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.company_name || customer.email
+        : '';
+
+      // Create order
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          tenant_id: currentTenant.id,
+          customer_id: quoteData.customer_id,
+          order_number: orderNumber,
+          status: 'pending' as const,
+          payment_status: 'pending' as const,
+          subtotal: quoteData.subtotal,
+          tax_amount: quoteData.tax_amount,
+          discount_amount: quoteData.discount_amount,
+          total: quoteData.total,
+          customer_email: customer?.email || '',
+          customer_name: customerName,
+          customer_phone: customer?.phone || null,
+          notes: quoteData.notes,
+          internal_notes: quoteData.internal_notes,
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items from quote items
+      const items = (quoteData.quote_items as any[]) || [];
+      if (items.length > 0) {
+        const orderItems = items.map((item: any) => ({
+          order_id: order.id,
+          product_id: item.product_id || null,
+          product_name: item.product_name,
+          product_sku: item.product_sku || null,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
+        if (itemsError) throw itemsError;
+      }
+
+      // Update quote: status -> converted, link to order
+      const { error: updateError } = await supabase
+        .from('quotes')
+        .update({ status: 'converted', converted_order_id: order.id })
+        .eq('id', quoteId);
+      if (updateError) throw updateError;
+
+      return order;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['quote'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast({ title: 'Offerte omgezet naar bestelling' });
+    },
+    onError: (error) => {
+      toast({ title: 'Fout bij omzetten', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     quotes: quotes ?? [],
     isLoading,
@@ -282,6 +370,7 @@ export function useQuotes(filters?: QuoteFilters) {
     deleteQuote,
     generatePaymentLink,
     sendQuote,
+    convertToOrder,
   };
 }
 
