@@ -385,7 +385,7 @@ export default function QuoteDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {/* Convert to order button */}
-              {(quote.status === 'accepted' || quote.status === 'sent') && !quote.converted_order_id && (
+              {(quote.status === 'draft' || quote.status === 'accepted' || quote.status === 'sent') && !quote.converted_order_id && (
                 <Button 
                   className="w-full justify-start"
                   onClick={() => setShowConvertDialog(true)}
