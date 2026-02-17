@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface TokenResponse {
@@ -20,16 +20,38 @@ interface AccountInfo {
   profileUrl?: string;
 }
 
+async function getCredentialsFromDb(
+  supabase: any,
+  tenantId: string,
+  platform: string
+): Promise<{ clientId: string; clientSecret: string }> {
+  // whatsapp uses facebook credentials
+  const credentialPlatform = platform === 'whatsapp' ? 'facebook' : platform;
+
+  const { data, error } = await supabase
+    .from('tenant_oauth_credentials')
+    .select('client_id, client_secret')
+    .eq('tenant_id', tenantId)
+    .eq('platform', credentialPlatform)
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) {
+    throw new Error(`No OAuth credentials found for tenant ${tenantId}, platform ${credentialPlatform}`);
+  }
+
+  return { clientId: data.client_id, clientSecret: data.client_secret };
+}
+
 async function exchangeCodeForToken(
   platform: string,
   code: string,
   redirectUri: string,
+  clientId: string,
+  clientSecret: string,
   codeVerifier?: string
 ): Promise<TokenResponse> {
-  const clientId = Deno.env.get(`${platform.toUpperCase()}_CLIENT_ID`)!;
-  const clientSecret = Deno.env.get(`${platform.toUpperCase()}_CLIENT_SECRET`)!;
-
-  if (platform === 'facebook') {
+  if (platform === 'facebook' || platform === 'whatsapp') {
     const params = new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
@@ -86,7 +108,7 @@ async function exchangeCodeForToken(
 }
 
 async function getAccountInfo(platform: string, accessToken: string): Promise<AccountInfo> {
-  if (platform === 'facebook') {
+  if (platform === 'facebook' || platform === 'whatsapp') {
     const response = await fetch(
       `https://graph.facebook.com/v18.0/me?fields=id,name,picture&access_token=${accessToken}`
     );
@@ -124,15 +146,13 @@ async function getAccountInfo(platform: string, accessToken: string): Promise<Ac
 
 serve(async (req) => {
   const url = new URL(req.url);
-  
-  // Handle GET requests (OAuth callback redirect)
+
   if (req.method === 'GET') {
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
     if (error) {
-      // Redirect back to app with error
       return new Response(null, {
         status: 302,
         headers: { Location: `/admin/settings?section=social&error=${encodeURIComponent(error)}` },
@@ -151,7 +171,7 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Verify state and get stored data
+      // Verify state
       const { data: oauthState, error: stateError } = await supabase
         .from('oauth_states')
         .select('*')
@@ -165,7 +185,6 @@ serve(async (req) => {
         });
       }
 
-      // Check if state expired
       if (new Date(oauthState.expires_at) < new Date()) {
         await supabase.from('oauth_states').delete().eq('state', state);
         return new Response(null, {
@@ -174,24 +193,27 @@ serve(async (req) => {
         });
       }
 
-      const { platform, tenant_id, redirect_url, code_verifier } = oauthState;
+      const { platform, tenant_id, code_verifier } = oauthState;
       const redirectUri = `${supabaseUrl}/functions/v1/social-oauth-callback`;
 
+      // Fetch per-tenant credentials from the database
+      const { clientId, clientSecret } = await getCredentialsFromDb(supabase, tenant_id, platform);
+
       // Exchange code for token
-      const tokenData = await exchangeCodeForToken(platform, code, redirectUri, code_verifier);
+      const tokenData = await exchangeCodeForToken(platform, code, redirectUri, clientId, clientSecret, code_verifier);
 
       // Get account info
       const accountInfo = await getAccountInfo(platform, tokenData.access_token);
 
-      // Calculate token expiry
       const tokenExpiresAt = tokenData.expires_in
         ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
         : null;
 
-      // Save connection to database
+      // Save connection — use the actual platform stored in oauth_states
+      const savePlatform = platform === 'whatsapp' ? 'facebook' : platform;
       const { error: insertError } = await supabase.from('social_connections').upsert({
         tenant_id,
-        platform,
+        platform: savePlatform,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || null,
         token_expires_at: tokenExpiresAt,
@@ -213,9 +235,8 @@ serve(async (req) => {
       }
 
       // For Facebook: Extract page tokens and create meta_messaging_connections
-      if (platform === 'facebook') {
+      if (savePlatform === 'facebook') {
         try {
-          // Get all pages the user manages
           const pagesResponse = await fetch(
             `https://graph.facebook.com/v18.0/me/accounts?access_token=${tokenData.access_token}`
           );
@@ -223,7 +244,6 @@ serve(async (req) => {
 
           if (pagesData.data && Array.isArray(pagesData.data)) {
             for (const page of pagesData.data) {
-              // Upsert Facebook Messenger connection for this page
               await supabase.from('meta_messaging_connections').upsert({
                 tenant_id,
                 platform: 'facebook',
@@ -236,20 +256,17 @@ serve(async (req) => {
                 onConflict: 'tenant_id,platform,page_id',
               });
 
-              // Check for linked Instagram Business Account
               const igResponse = await fetch(
                 `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
               );
               const igData = await igResponse.json();
 
               if (igData.instagram_business_account?.id) {
-                // Get Instagram account details
                 const igDetailsResponse = await fetch(
                   `https://graph.facebook.com/v18.0/${igData.instagram_business_account.id}?fields=username,name&access_token=${page.access_token}`
                 );
                 const igDetails = await igDetailsResponse.json();
 
-                // Upsert Instagram DM connection
                 await supabase.from('meta_messaging_connections').upsert({
                   tenant_id,
                   platform: 'instagram',
@@ -267,15 +284,13 @@ serve(async (req) => {
           }
           console.log('Meta messaging connections created successfully');
         } catch (metaError) {
-          // Log but don't fail the OAuth flow - messaging is optional
           console.error('Failed to create meta messaging connections:', metaError);
         }
       }
 
-      // Clean up OAuth state
+      // Clean up
       await supabase.from('oauth_states').delete().eq('state', state);
 
-      // Redirect back to app with success
       return new Response(null, {
         status: 302,
         headers: { Location: '/admin/settings?section=social&success=connected' },

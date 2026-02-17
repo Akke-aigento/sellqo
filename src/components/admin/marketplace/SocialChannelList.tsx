@@ -3,6 +3,7 @@ import { SocialChannelCard } from './SocialChannelCard';
 import { ConnectSocialChannelDialog } from './ConnectSocialChannelDialog';
 import { SocialChannelSettingsDialog } from './SocialChannelSettingsDialog';
 import { MetaShopWizard } from './MetaShopWizard';
+import { WhatsAppConnectWizard } from './WhatsAppConnectWizard';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { SOCIAL_CHANNEL_INFO, type SocialChannelType } from '@/types/socialChannels';
 import {
@@ -30,7 +31,6 @@ const CHANNEL_ORDER: SocialChannelType[] = [
 const META_COMMERCE_CHANNELS: SocialChannelType[] = [
   'facebook_shop',
   'instagram_shop',
-  'whatsapp_business',
 ];
 
 export function SocialChannelList() {
@@ -42,12 +42,14 @@ export function SocialChannelList() {
 
   const [connectingType, setConnectingType] = useState<SocialChannelType | null>(null);
   const [metaWizardType, setMetaWizardType] = useState<SocialChannelType | null>(null);
+  const [whatsappWizardOpen, setWhatsappWizardOpen] = useState(false);
   const [settingsType, setSettingsType] = useState<SocialChannelType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
 
   const handleConnect = (type: SocialChannelType) => {
-    // Use Meta Commerce wizard for Meta channels, simple dialog for feed-based
-    if (META_COMMERCE_CHANNELS.includes(type)) {
+    if (type === 'whatsapp_business') {
+      setWhatsappWizardOpen(true);
+    } else if (META_COMMERCE_CHANNELS.includes(type)) {
       setMetaWizardType(type);
     } else {
       setConnectingType(type);
@@ -98,7 +100,7 @@ export function SocialChannelList() {
         />
       )}
 
-      {/* Meta Commerce Wizard (for Facebook/Instagram/WhatsApp) */}
+      {/* Meta Commerce Wizard (for Facebook/Instagram) */}
       {metaWizardType && (
         <MetaShopWizard
           open={!!metaWizardType}
@@ -107,6 +109,13 @@ export function SocialChannelList() {
           onSuccess={() => setMetaWizardType(null)}
         />
       )}
+
+      {/* WhatsApp Connect Wizard */}
+      <WhatsAppConnectWizard
+        open={whatsappWizardOpen}
+        onOpenChange={setWhatsappWizardOpen}
+        onSuccess={() => setWhatsappWizardOpen(false)}
+      />
 
       {/* Settings Dialog */}
       {settingsType && (
