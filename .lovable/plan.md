@@ -1,62 +1,69 @@
 
 
-# Fix: Accept status moet geverifieerd worden bij Bol.com
+# Fix: Drie bugs in de VVB/Accept flow
 
-## Het probleem
+## Gevonden problemen
 
-De `accept-bol-order` functie zet de order **meteen** op `sync_status: 'accepted'` zodra Bol.com een HTTP 200 teruggeeft. Maar bij Bol.com v10 API betekent een 200 alleen **"verzoek ontvangen"** -- het daadwerkelijke resultaat komt pas later via de `processStatusId`. De accept kan nog FAILURE of TIMEOUT worden.
+Na analyse van de logs en database voor order #1109 (C0000XML9F):
 
 ```text
-Huidige (foute) flow:
-1. PUT /orders/{id}/accept -> 200 OK + processStatusId
-2. sync_status = 'accepted'  <-- METEEN, zonder verificatie
-3. processStatusId wordt WEGGEGOOID en nooit gecontroleerd
-
-Wat er moet gebeuren:
-1. PUT /orders/{id}/accept -> 200 OK + processStatusId
-2. sync_status = 'accept_pending' + processStatusId opslaan
-3. Poll process-status tot SUCCESS/FAILURE
-4. Alleen bij SUCCESS -> sync_status = 'accepted'
-5. Bij FAILURE -> sync_status = 'accept_failed'
+1. accept-bol-order -> 403 "Unauthorized Request" -> order NIET geaccepteerd
+2. sync_status bleef 'synced' (correct door nieuwe code)
+3. create-bol-vvb-label WEL aangeroepen, maakt een shipping_labels record aan
+   maar met external_id=null, label_url=null, tracking_number=null
+4. VVB-RETRY slaat order over omdat er al een shipping_labels record BESTAAT
+   (checkt niet of het record compleet is)
+5. create-bol-vvb-label heeft nog oude 403-fallback die orders als 'accepted'
+   markeert zonder verificatie (regel 448-450)
 ```
 
-Daarnaast: de retry-logica (regel 624-633) markeert orders als `'accepted'` bij een Bol.com 403 fout, wat ook onbetrouwbaar is.
+## Drie bugs te fixen
 
-## Oplossing
+### Bug 1: VVB-RETRY checkt alleen OF een label bestaat, niet of het COMPLEET is
 
-### 1. Bestand: `supabase/functions/accept-bol-order/index.ts`
+**Bestand:** `supabase/functions/sync-bol-orders/index.ts`
 
-- Na een succesvolle 200 response: `sync_status` op `'accept_pending'` zetten (niet `'accepted'`)
-- De `processStatusId` opslaan in de order (nieuw veld of in `raw_marketplace_data`)
-- De process status **pollen** (max 10 pogingen, 2 sec interval) -- vergelijkbaar met hoe `create-bol-vvb-label` dit al doet
-- Alleen bij `SUCCESS` -> `sync_status = 'accepted'`
-- Bij `FAILURE` of `TIMEOUT` -> `sync_status = 'accept_failed'` met foutmelding
+De huidige query zoekt orders zonder shipping_labels record. Maar als een label record bestaat met `external_id = null` en `label_url = null`, wordt de order overgeslagen.
 
-### 2. Database: nieuw veld toevoegen
+**Fix:** Bij het ophalen van bestaande labels, alleen records meetellen die daadwerkelijk een `external_id` OF `label_url` hebben. Incomplete labels (zonder beide) worden genegeerd zodat de retry ze opnieuw probeert.
 
-Kolom `bol_process_status_id` (text, nullable) toevoegen aan de `orders` tabel om de process status ID op te slaan voor tracking.
+### Bug 2: create-bol-vvb-label slaat lege labels op als 'created'
 
-### 3. Bestand: `supabase/functions/sync-bol-orders/index.ts`
+**Bestand:** `supabase/functions/create-bol-vvb-label/index.ts`
 
-**Retry-blok aanpassen:**
-- Naast `sync_status = 'synced'` ook zoeken naar `sync_status = 'accept_pending'` (orders waarvan de poll mislukt is)
-- Voor `'accept_pending'` orders: eerst de opgeslagen `processStatusId` controleren via de Bol.com process-status API
-- Bij SUCCESS -> `'accepted'`, bij FAILURE -> `'accept_failed'`
-- De 403-fallback verwijderen die nu onterecht orders als accepted markeert (regel 624-633)
+Regel 738-753: het label wordt altijd opgeslagen met `status: 'created'`, ook als `transporterLabelId` null is (polling nooit SUCCESS kreeg). Dit maakt dat VVB-RETRY denkt dat het label klaar is.
 
-**VVB retry-blok:**
-- Blijft zoeken op `sync_status = 'accepted'` (nu betrouwbaar omdat het pas op accepted staat na echte Bol.com verificatie)
+**Fix:** 
+- Als `transporterLabelId` null is, status op `'pending'` zetten in plaats van `'created'`
+- Dit zorgt ervoor dat incomplete labels herkenbaar zijn
 
-### 4. Bestand: Frontend status weergave
+### Bug 3: create-bol-vvb-label heeft nog oude 403-fallback
 
-De UI moet `'accept_pending'` en `'accept_failed'` statussen correct tonen zodat de gebruiker ziet wat er aan de hand is.
+**Bestand:** `supabase/functions/create-bol-vvb-label/index.ts`
+
+Regel 448-450: bij een 403 van accept-bol-order wordt de order nog steeds als `'accepted'` gemarkeerd zonder verificatie. Dit is dezelfde bug die we net in sync-bol-orders hebben gefixt.
+
+**Fix:** De 403-fallback verwijderen. Als accept faalt, niet doorgaan met VVB label aanmaak -- laat de retry-logica het oppakken.
+
+### Extra: Order #1109 herstellen
+
+De incomplete shipping_labels record voor order #1109 moet opgeschoond worden zodat de retry het opnieuw kan oppakken.
 
 ## Technische details
 
-- De Bol.com process-status API endpoint is: `GET /retailer/process-status/{processStatusId}`
-- Mogelijke statussen: `PENDING`, `SUCCESS`, `FAILURE`, `TIMEOUT`
-- De poll-logica is al bewezen in `create-bol-vvb-label` (15 pogingen, 2 sec interval)
-- Voor accept gebruiken we 10 pogingen met 2 sec interval (20 sec max) -- accepts zijn sneller dan labels
-- Als de poll niet klaar is binnen die tijd, blijft de status op `'accept_pending'` en pakt de retry het op bij de volgende sync-cycle
-- De `processStatusId` wordt opgeslagen zodat we bij retry niet opnieuw hoeven te accepten, maar gewoon de status kunnen checken
+### sync-bol-orders wijziging (VVB-RETRY)
+```text
+Huidig:  SELECT order_id FROM shipping_labels WHERE order_id IN (...)
+Nieuw:   SELECT order_id FROM shipping_labels WHERE order_id IN (...)
+         AND (external_id IS NOT NULL OR label_url IS NOT NULL)
+```
+
+### create-bol-vvb-label wijzigingen
+1. Label insert: `status: transporterLabelId ? 'created' : 'pending'`
+2. Verwijder regel 448-450 (403 fallback die sync_status op 'accepted' zet)
+3. Als accept faalt (niet-403), return error in plaats van doorgaan
+
+### Database cleanup
+- Verwijder het incomplete shipping_labels record voor order #1109
+- Zorg dat sync_status 'synced' blijft zodat de retry het oppakt
 
