@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, Truck, Printer, ExternalLink, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Package, Send, Download, Loader2, CheckCircle, AlertCircle, AlertTriangle, Truck, Printer, ExternalLink, ShieldCheck, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -180,7 +180,9 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   const syncStatus = order.sync_status || order.fulfillment_status;
   const isShipped = syncStatus === 'shipped' || order.status === 'shipped';
   const isAccepted = syncStatus === 'accepted';
-  const canAccept = !isShipped && !isAccepted && syncStatus !== 'accepted';
+  const isAcceptPending = syncStatus === 'accept_pending';
+  const isAcceptFailed = syncStatus === 'accept_failed';
+  const canAccept = !isShipped && !isAccepted && !isAcceptPending && syncStatus !== 'accepted';
   const bolContent = (
     <div className="space-y-4">
       {/* Sync Status */}
@@ -195,6 +197,16 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
           <Badge variant="default" className="bg-blue-600">
             <ShieldCheck className="h-3 w-3 mr-1" />
             Geaccepteerd
+          </Badge>
+        ) : isAcceptPending ? (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Acceptatie in behandeling
+          </Badge>
+        ) : isAcceptFailed ? (
+          <Badge variant="destructive">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Acceptatie mislukt
           </Badge>
         ) : (
           <Badge variant="secondary">

@@ -42,6 +42,51 @@ async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
   return tokenData.access_token
 }
 
+async function pollProcessStatus(accessToken: string, processStatusId: string, maxAttempts = 10, intervalMs = 2000): Promise<{ status: string; errorMessage?: string }> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    console.log(`[POLL] Checking process status ${processStatusId}, attempt ${attempt}/${maxAttempts}...`)
+    
+    const statusResponse = await fetch(`${BOL_API_BASE}/process-status/${processStatusId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.retailer.v10+json'
+      }
+    })
+
+    if (!statusResponse.ok) {
+      const errorText = await statusResponse.text()
+      console.error(`[POLL] Process status request failed: ${statusResponse.status} - ${errorText}`)
+      // Don't throw, just continue polling
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs))
+        continue
+      }
+      return { status: 'TIMEOUT', errorMessage: `Failed to check process status: ${statusResponse.status}` }
+    }
+
+    const statusData = await statusResponse.json()
+    console.log(`[POLL] Process status: ${statusData.status}`)
+
+    if (statusData.status === 'SUCCESS') {
+      return { status: 'SUCCESS' }
+    } else if (statusData.status === 'FAILURE') {
+      return { status: 'FAILURE', errorMessage: statusData.errorMessage || 'Accept failed at Bol.com' }
+    } else if (statusData.status === 'TIMEOUT') {
+      return { status: 'TIMEOUT', errorMessage: 'Process timed out at Bol.com' }
+    }
+
+    // PENDING - wait and retry
+    if (attempt < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, intervalMs))
+    }
+  }
+
+  // Exhausted all attempts while still PENDING
+  console.log(`[POLL] Process status still PENDING after ${maxAttempts} attempts`)
+  return { status: 'PENDING' }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -110,8 +155,6 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Accepting Bol order ${bolOrderId} with ${itemsToAccept.length} items`)
-    console.log('Accept request body:', JSON.stringify({ orderItems: itemsToAccept }))
-    console.log('Access token length:', accessToken.length)
 
     // Call Bol.com Accept Order API
     const acceptResponse = await fetch(`${BOL_API_BASE}/orders/${bolOrderId}/accept`, {
@@ -138,24 +181,58 @@ Deno.serve(async (req) => {
     }
 
     const acceptResult = JSON.parse(responseText)
-    console.log('Order accepted successfully:', acceptResult)
+    const processStatusId = acceptResult.processStatusId
+    console.log('Accept request acknowledged, processStatusId:', processStatusId)
 
-    // Update order status in database if order_id provided
+    // Step 1: Set status to accept_pending and store processStatusId
     if (order_id) {
       await supabase
         .from('orders')
         .update({
-          sync_status: 'accepted',
+          sync_status: 'accept_pending',
+          bol_process_status_id: processStatusId,
           updated_at: new Date().toISOString()
         })
         .eq('id', order_id)
     }
 
+    // Step 2: Poll for actual result
+    const pollResult = await pollProcessStatus(accessToken, processStatusId)
+    console.log('Poll result:', pollResult)
+
+    if (order_id) {
+      if (pollResult.status === 'SUCCESS') {
+        await supabase
+          .from('orders')
+          .update({
+            sync_status: 'accepted',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order_id)
+        console.log('Order verified as accepted at Bol.com')
+      } else if (pollResult.status === 'FAILURE' || pollResult.status === 'TIMEOUT') {
+        await supabase
+          .from('orders')
+          .update({
+            sync_status: 'accept_failed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order_id)
+        console.error(`Order accept failed/timed out: ${pollResult.errorMessage}`)
+      }
+      // If still PENDING after all attempts, status stays 'accept_pending' for retry in next sync cycle
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        processStatusId: acceptResult.processStatusId,
-        message: 'Order accepted successfully'
+        processStatusId,
+        verifiedStatus: pollResult.status,
+        message: pollResult.status === 'SUCCESS' 
+          ? 'Order accepted and verified' 
+          : pollResult.status === 'PENDING'
+            ? 'Order accept pending - will be verified in next sync cycle'
+            : `Order accept ${pollResult.status.toLowerCase()}: ${pollResult.errorMessage}`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

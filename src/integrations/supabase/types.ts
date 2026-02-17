@@ -6282,6 +6282,7 @@ export type Database = {
         Row: {
           applied_gift_card_ids: string[] | null
           billing_address: Json | null
+          bol_process_status_id: string | null
           cancelled_at: string | null
           carrier: string | null
           created_at: string | null
@@ -6347,6 +6348,7 @@ export type Database = {
         Insert: {
           applied_gift_card_ids?: string[] | null
           billing_address?: Json | null
+          bol_process_status_id?: string | null
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string | null
@@ -6412,6 +6414,7 @@ export type Database = {
         Update: {
           applied_gift_card_ids?: string[] | null
           billing_address?: Json | null
+          bol_process_status_id?: string | null
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string | null

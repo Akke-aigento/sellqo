@@ -619,19 +619,8 @@ Deno.serve(async (req) => {
                     }
                   } else {
                     console.error(`[RETRY] Accept failed for ${missed.marketplace_order_id}: HTTP ${acceptRes.status} - ${acceptBody}`)
-                    // If Bol.com returns 403, it likely means the order was already accepted on Bol.com side
-                    // or the API key lacks order management permissions
-                    if (acceptRes.status === 500) {
-                      let parsed: { error?: string } = {}
-                      try { parsed = JSON.parse(acceptBody) } catch {}
-                      if (parsed.error?.includes('403') || parsed.error?.includes('Forbidden')) {
-                        console.log(`[RETRY] Bol.com returned 403 for ${missed.marketplace_order_id} - order may already be accepted on Bol.com. Marking as accepted.`)
-                        await supabase.from('orders').update({ 
-                          sync_status: 'accepted',
-                          updated_at: new Date().toISOString()
-                        }).eq('id', missed.id)
-                      }
-                    }
+                    // Do NOT blindly mark as accepted on 403 - the accept-bol-order function
+                    // now handles verification via process-status polling
                   }
 
                   await rateLimitDelay(500)
@@ -645,6 +634,86 @@ Deno.serve(async (req) => {
           } catch (retryLookupError) {
             console.error('[RETRY] Error looking up missed orders:', retryLookupError)
           }
+        }
+
+        // Accept-pending retry: verify orders that are still waiting for Bol.com confirmation
+        try {
+          console.log(`[ACCEPT-PENDING] Checking for orders with accept_pending status (connection: ${connection.id})...`)
+          const { data: pendingOrders } = await supabase
+            .from('orders')
+            .select('id, marketplace_order_id, bol_process_status_id')
+            .eq('marketplace_connection_id', connection.id)
+            .eq('sync_status', 'accept_pending')
+            .eq('marketplace_source', 'bol_com')
+            .in('status', ['pending', 'processing'])
+            .order('created_at', { ascending: true })
+            .limit(5)
+
+          if (pendingOrders && pendingOrders.length > 0) {
+            console.log(`[ACCEPT-PENDING] Found ${pendingOrders.length} orders to verify`)
+            
+            const bolCredentials = connection.credentials as { clientId?: string; clientSecret?: string; client_id?: string; client_secret?: string }
+            const cId = bolCredentials.clientId || bolCredentials.client_id || ''
+            const cSecret = bolCredentials.clientSecret || bolCredentials.client_secret || ''
+            
+            if (cId && cSecret) {
+              const authStr = btoa(`${cId}:${cSecret}`)
+              const tokenRes = await fetch('https://login.bol.com/token', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'Authorization': `Basic ${authStr}`,
+                  'Accept': 'application/json'
+                },
+                body: 'grant_type=client_credentials'
+              })
+              
+              if (tokenRes.ok) {
+                const tokenData = await tokenRes.json()
+                const bolToken = tokenData.access_token
+
+                for (const pending of pendingOrders) {
+                  if (!pending.bol_process_status_id) {
+                    console.error(`[ACCEPT-PENDING] Order ${pending.marketplace_order_id} has no process status ID, marking as accept_failed`)
+                    await supabase.from('orders').update({ sync_status: 'accept_failed', updated_at: new Date().toISOString() }).eq('id', pending.id)
+                    continue
+                  }
+
+                  try {
+                    console.log(`[ACCEPT-PENDING] Checking process status ${pending.bol_process_status_id} for ${pending.marketplace_order_id}...`)
+                    const statusRes = await fetch(`https://api.bol.com/retailer/process-status/${pending.bol_process_status_id}`, {
+                      method: 'GET',
+                      headers: { 'Authorization': `Bearer ${bolToken}`, 'Accept': 'application/vnd.retailer.v10+json' }
+                    })
+
+                    if (statusRes.ok) {
+                      const statusData = await statusRes.json()
+                      console.log(`[ACCEPT-PENDING] Process status for ${pending.marketplace_order_id}: ${statusData.status}`)
+
+                      if (statusData.status === 'SUCCESS') {
+                        await supabase.from('orders').update({ sync_status: 'accepted', updated_at: new Date().toISOString() }).eq('id', pending.id)
+                        console.log(`[ACCEPT-PENDING] Order ${pending.marketplace_order_id} verified as accepted`)
+                      } else if (statusData.status === 'FAILURE' || statusData.status === 'TIMEOUT') {
+                        await supabase.from('orders').update({ sync_status: 'accept_failed', updated_at: new Date().toISOString() }).eq('id', pending.id)
+                        console.error(`[ACCEPT-PENDING] Order ${pending.marketplace_order_id} accept ${statusData.status}: ${statusData.errorMessage || ''}`)
+                      }
+                    } else {
+                      console.error(`[ACCEPT-PENDING] Failed to check status for ${pending.marketplace_order_id}: ${statusRes.status}`)
+                    }
+                  } catch (statusError) {
+                    console.error(`[ACCEPT-PENDING] Error checking ${pending.marketplace_order_id}:`, statusError)
+                  }
+                  await rateLimitDelay(500)
+                }
+              } else {
+                console.error('[ACCEPT-PENDING] Failed to get Bol.com access token')
+              }
+            }
+          } else {
+            console.log(`[ACCEPT-PENDING] No orders with accept_pending status found`)
+          }
+        } catch (pendingRetryError) {
+          console.error('[ACCEPT-PENDING] Error checking pending orders:', pendingRetryError)
         }
 
         // VVB Retry: find accepted orders that are missing a shipping label
