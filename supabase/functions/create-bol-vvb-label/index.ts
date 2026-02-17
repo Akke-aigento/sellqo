@@ -445,11 +445,17 @@ const handler = async (req: Request): Promise<Response> => {
         const acceptBody = await acceptRes.text();
         if (acceptRes.ok) {
           console.log(`Order ${order.order_number} auto-accepted successfully`);
-        } else if (acceptRes.status === 500 && acceptBody.includes("403")) {
-          console.log(`Order ${order.order_number} already accepted at Bol.com (403), continuing...`);
-          await supabase.from("orders").update({ sync_status: "accepted" }).eq("id", order.id);
         } else {
           console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
+          // Do NOT mark as accepted on 403 - let retry logic handle verification
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Order accept failed: ${acceptRes.status}`,
+              details: acceptBody,
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (acceptError) {
@@ -746,7 +752,7 @@ const handler = async (req: Request): Promise<Response> => {
           carrier: selectedOffer.transporterCode,
           tracking_number: trackingNumber,
           label_url: labelPdfUrl,
-          status: "created",
+          status: transporterLabelId ? "created" : "pending",
         },
       ])
       .select()
