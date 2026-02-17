@@ -25,6 +25,9 @@ export function useQuotes(filters?: QuoteFilters) {
 
       if (filters?.status) {
         query = query.eq('status', filters.status);
+      } else {
+        // Hide converted quotes by default
+        query = query.neq('status', 'converted');
       }
 
       if (filters?.search) {
