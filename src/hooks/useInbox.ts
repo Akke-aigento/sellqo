@@ -231,8 +231,17 @@ export function useInbox() {
     const grouped = new Map<string, InboxMessage[]>();
 
     for (const msg of messages) {
-      // Group by customer_id, or by email/phone if no customer
-      const key = msg.customer_id || msg.from_email || msg.to_email || 'unknown';
+      // Normaliseer subject voor threading
+      const normalizedSubject = (msg.subject || '')
+        .replace(/^(Re:|Fw:|Fwd:)\s*/gi, '')
+        .trim()
+        .toLowerCase();
+      
+      // Groepeer op contact + onderwerp
+      const contactKey = msg.customer_id 
+        || (msg.direction === 'outbound' ? msg.to_email : msg.from_email) 
+        || 'unknown';
+      const key = `${contactKey}::${normalizedSubject || 'no-subject'}`;
       const existing = grouped.get(key) || [];
       grouped.set(key, [...existing, msg]);
     }

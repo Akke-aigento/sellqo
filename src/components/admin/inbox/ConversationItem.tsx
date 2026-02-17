@@ -63,77 +63,68 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
         isUnread && 'bg-primary/5'
       )}
     >
-      <div className="flex gap-3">
-        {/* Avatar with unread indicator */}
-        <div className="relative">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className={cn(isUnread && 'bg-primary text-primary-foreground')}>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          {isUnread && (
-            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-destructive rounded-full border-2 border-background" />
+      <div className="space-y-1">
+        {/* Row 1: Avatar + channel icon + time */}
+        <div className="flex items-center justify-between">
+          <div className="relative">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className={cn('text-xs', isUnread && 'bg-primary text-primary-foreground')}>
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            {isUnread && (
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-background" />
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ChannelIcon className="h-3 w-3" />
+            <span>
+              {formatDistanceToNow(new Date(lastMessage.created_at), {
+                addSuffix: false,
+                locale: nl,
+              })}
+            </span>
+            {isReplied && <Check className="h-3.5 w-3.5 text-green-500" />}
+          </div>
+        </div>
+
+        {/* Row 2: Sender name full width */}
+        <div className="flex items-center gap-1.5">
+          <span className={cn('text-sm font-medium truncate', isUnread && 'font-semibold')}>
+            {customer?.name || 'Onbekend'}
+          </span>
+          {marketplace === 'bol_com' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>Bol.com bericht</TooltipContent>
+            </Tooltip>
+          )}
+          {marketplace === 'amazon' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Store className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>Amazon bericht</TooltipContent>
+            </Tooltip>
           )}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={cn('font-medium truncate', isUnread && 'font-semibold')}>
-                {customer?.name || 'Onbekend'}
-              </span>
-              {/* Marketplace badge */}
-              {marketplace === 'bol_com' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                  </TooltipTrigger>
-                  <TooltipContent>Bol.com bericht</TooltipContent>
-                </Tooltip>
-              )}
-              {marketplace === 'amazon' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Store className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                  </TooltipTrigger>
-                  <TooltipContent>Amazon bericht</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-              <ChannelIcon className="h-3 w-3" />
-              <span>
-                {formatDistanceToNow(new Date(lastMessage.created_at), {
-                  addSuffix: false,
-                  locale: nl,
-                })}
-              </span>
-            </div>
-          </div>
+        {/* Row 3: Subject full width */}
+        <p className={cn('text-xs truncate', isUnread ? 'text-foreground font-medium' : 'text-muted-foreground')}>
+          {lastMessage.subject || '(Geen onderwerp)'}
+        </p>
 
-          {/* Subject or preview */}
-          <p className={cn('text-sm truncate', isUnread ? 'text-foreground' : 'text-muted-foreground')}>
-            {lastMessage.subject || '(Geen onderwerp)'}
-          </p>
-
-          {/* Preview text */}
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {lastMessage.direction === 'outbound' && (
-              <span className="inline-flex items-center gap-0.5 mr-1">
-                <Check className="h-3 w-3" />
-              </span>
-            )}
-            {previewText || '(Geen inhoud)'}
-          </p>
-        </div>
-
-        {/* Replied indicator */}
-        {isReplied && (
-          <div className="shrink-0 self-center">
-            <Check className="h-4 w-4 text-green-500" />
-          </div>
-        )}
+        {/* Row 4: Preview text full width */}
+        <p className="text-xs text-muted-foreground truncate">
+          {lastMessage.direction === 'outbound' && (
+            <span className="inline-flex items-center gap-0.5 mr-1">
+              <Check className="h-3 w-3" />
+            </span>
+          )}
+          {previewText || '(Geen inhoud)'}
+        </p>
       </div>
     </button>
   );
