@@ -24,6 +24,11 @@ interface SendMessageRequest {
   // Email threading headers
   in_reply_to?: string;
   references?: string;
+  // CC/BCC
+  cc?: string[];
+  bcc?: string[];
+  // Attachments
+  attachments?: { filename: string; path: string }[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -51,12 +56,15 @@ const handler = async (req: Request): Promise<Response> => {
       context_data = {},
       in_reply_to,
       references,
+      cc,
+      bcc,
+      attachments,
     }: SendMessageRequest = await req.json();
 
     // Fetch tenant info for branding and reply-to
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("name, owner_email, logo_url, primary_color, address_line1, city, postal_code, country")
+      .select("name, owner_email, logo_url, primary_color, address, city, postal_code, country")
       .eq("id", tenant_id)
       .single();
 
@@ -138,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="background-color: #f9fafb; padding: 24px 32px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">
-                ${tenant.address_line1 ? `${tenant.address_line1}, ` : ''}${tenant.postal_code || ''} ${tenant.city || ''}${tenant.country ? `, ${tenant.country}` : ''}
+                ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code || ''} ${tenant.city || ''}${tenant.country ? `, ${tenant.country}` : ''}
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
                 Je kunt direct antwoorden op deze email. Je antwoord gaat naar ${replyToEmail}.
@@ -168,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
         from_email: `${fromName} <noreply@sellqo.app>`,
         to_email: customer_email,
         reply_to_email: replyToEmail,
-        status: 'sending',
+        delivery_status: 'sending',
         context_type,
         context_data,
       })
@@ -197,6 +205,9 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHtml,
       text: body_text || body_html.replace(/<[^>]*>/g, ''),
       ...(Object.keys(emailHeaders).length > 0 && { headers: emailHeaders }),
+      ...(cc && cc.length > 0 && { cc }),
+      ...(bcc && bcc.length > 0 && { bcc }),
+      ...(attachments && attachments.length > 0 && { attachments }),
     });
 
     if (emailResponse.error) {
@@ -204,7 +215,7 @@ const handler = async (req: Request): Promise<Response> => {
       await supabaseClient
         .from("customer_messages")
         .update({
-          status: 'failed',
+          delivery_status: 'failed',
           error_message: emailResponse.error.message,
         })
         .eq("id", message.id);
@@ -217,7 +228,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from("customer_messages")
       .update({
         resend_id: emailResponse.data?.id,
-        status: 'sent',
+        delivery_status: 'sent',
         sent_at: new Date().toISOString(),
       })
       .eq("id", message.id);

@@ -13,3 +13,4 @@ export { ConversationActions } from './ConversationActions';
 export { BulkActionsToolbar } from './BulkActionsToolbar';
 export { AISuggestionBox } from './AISuggestionBox';
 export { ComposeDialog } from './ComposeDialog';
+export { ComposeRichEditor } from './ComposeRichEditor';
