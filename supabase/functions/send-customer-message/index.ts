@@ -187,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to create message record: ${insertError.message}`);
     }
 
-    // Build email headers for threading
+    // Build email headers for threading and deliverability
     const emailHeaders: Record<string, string> = {};
     if (in_reply_to) {
       emailHeaders['In-Reply-To'] = in_reply_to;
@@ -195,6 +195,10 @@ const handler = async (req: Request): Promise<Response> => {
     if (references) {
       emailHeaders['References'] = references;
     }
+
+    // List-Unsubscribe headers (RFC 8058 / Gmail requirement)
+    emailHeaders['List-Unsubscribe'] = `<mailto:${replyToEmail}?subject=Unsubscribe>`;
+    emailHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
