@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Send, Link2, Copy, Trash2, Loader2, User, Calendar, Clock, Mail, Phone, ExternalLink, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Edit, Send, Link2, Copy, Trash2, Loader2, User, Calendar, Clock, Mail, Phone, ExternalLink, MessageSquare, ShoppingCart, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -36,12 +36,14 @@ export default function QuoteDetailPage() {
   const { toast } = useToast();
 
   const { quote, isLoading } = useQuote(id);
-  const { sendQuote, generatePaymentLink, deleteQuote } = useQuotes();
+  const { sendQuote, generatePaymentLink, deleteQuote, convertToOrder } = useQuotes();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
   if (isLoading) {
     return (
@@ -91,6 +93,17 @@ export default function QuoteDetailPage() {
   const handleDelete = async () => {
     await deleteQuote.mutateAsync(quote.id);
     navigate('/admin/orders/quotes');
+  };
+
+  const handleConvertToOrder = async () => {
+    setIsConverting(true);
+    try {
+      const order = await convertToOrder.mutateAsync(quote.id);
+      navigate(`/admin/orders/${order.id}`);
+    } finally {
+      setIsConverting(false);
+      setShowConvertDialog(false);
+    }
   };
 
   const getCustomerName = () => {
@@ -371,6 +384,28 @@ export default function QuoteDetailPage() {
               <CardTitle>Acties</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              {/* Convert to order button */}
+              {(quote.status === 'accepted' || quote.status === 'sent') && !quote.converted_order_id && (
+                <Button 
+                  className="w-full justify-start"
+                  onClick={() => setShowConvertDialog(true)}
+                  disabled={isConverting}
+                >
+                  {isConverting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+                  Omzetten naar bestelling
+                </Button>
+              )}
+              {/* Link to converted order */}
+              {quote.converted_order_id && (
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate(`/admin/orders/${quote.converted_order_id}`)}
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Bekijk bestelling
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 className="w-full justify-start text-destructive hover:text-destructive"
@@ -401,6 +436,26 @@ export default function QuoteDetailPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Convert to Order Dialog */}
+      <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Omzetten naar bestelling</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je offerte {quote.quote_number} wilt omzetten naar een bestelling?
+              Er wordt een nieuwe bestelling aangemaakt en de offerte-status wordt gewijzigd naar "Omgezet".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConverting}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConvertToOrder} disabled={isConverting}>
+              {isConverting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Omzetten
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
