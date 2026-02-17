@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import qrcode from "https://esm.sh/qrcode-generator@1.4.4?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -983,11 +984,43 @@ async function generateFacturXPDF(data: {
 
   // Payment info with EPC QR code
   yPos -= 60;
+  
+  // Build EPC QR code data
+  const epcLines = [
+    'BCD', '002', '1', 'SCT',
+    tenant.bic || '',
+    (tenant.name || '').slice(0, 70),
+    (tenant.iban || '').replace(/\s/g, '').toUpperCase(),
+    `EUR${total.toFixed(2)}`,
+    '',
+    ogmReference.replace(/[^\d]/g, ''),
+    '',
+    ''
+  ];
+  const epcString = epcLines.join('\n');
+  
+  // Generate QR code matrix using qrcode-generator
+  let qrModuleCount = 0;
+  let qrIsDark: ((row: number, col: number) => boolean) | null = null;
+  try {
+    const qrGen = qrcode(0, 'M');
+    qrGen.addData(epcString);
+    qrGen.make();
+    qrModuleCount = qrGen.getModuleCount();
+    qrIsDark = (r: number, c: number) => qrGen.isDark(r, c);
+    logStep("QR code generated", { size: qrModuleCount });
+  } catch (qrErr) {
+    logStep("QR code generation failed", { error: String(qrErr) });
+  }
+
+  const qrSize = 80; // total size of QR code in PDF points
+  const sectionHeight = qrIsDark ? Math.max(90, qrSize + 20) : 90;
+  
   page.drawRectangle({
     x: margin,
-    y: yPos - 70,
+    y: yPos - sectionHeight + 20,
     width: width - 2 * margin,
-    height: 90,
+    height: sectionHeight,
     color: rgb(0.976, 0.980, 0.984), // #f9fafb
   });
 
@@ -1006,11 +1039,31 @@ async function generateFacturXPDF(data: {
   yPos -= 14;
   page.drawText(`Mededeling: ${ogmReference}`, { x: margin + 10, y: yPos, size: 10, font: helveticaBold, color: primaryColor });
   
-  // EPC QR code note (QR code generation would require external library in production)
   yPos -= 20;
   page.drawText('Scan de QR-code met uw banking app om te betalen', { 
     x: margin + 10, y: yPos, size: 8, font: helveticaFont, color: grayColor 
   });
+
+  // Draw the QR code pixel-by-pixel on the right side
+  if (qrIsDark && qrModuleCount > 0) {
+    const cellSize = qrSize / qrModuleCount;
+    const qrX = width - margin - qrSize - 10;
+    const qrY = yPos + 10;
+    
+    for (let row = 0; row < qrModuleCount; row++) {
+      for (let col = 0; col < qrModuleCount; col++) {
+        if (qrIsDark(row, col)) {
+          page.drawRectangle({
+            x: qrX + col * cellSize,
+            y: qrY + (qrModuleCount - 1 - row) * cellSize,
+            width: cellSize,
+            height: cellSize,
+            color: rgb(0, 0, 0),
+          });
+        }
+      }
+    }
+  }
 
   // Footer
   yPos = margin + 30;
