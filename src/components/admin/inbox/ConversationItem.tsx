@@ -40,8 +40,22 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
 
   const ChannelIcon = getChannelIcon(channel);
 
-  const initials = customer?.name
-    ? customer.name
+  // Channel color mapping
+  const getChannelColor = (ch: ConversationChannel) => {
+    switch (ch) {
+      case 'whatsapp': return 'text-green-500';
+      case 'facebook': return 'text-blue-500';
+      case 'instagram': return 'text-pink-500';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const cleanName = (customer?.name || '')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+
+  const initials = cleanName
+    ? cleanName
         .split(' ')
         .map((n) => n[0])
         .join('')
@@ -77,7 +91,6 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
             )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <ChannelIcon className="h-3 w-3" />
             <span>
               {formatDistanceToNow(new Date(lastMessage.created_at), {
                 addSuffix: false,
@@ -90,8 +103,9 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
 
         {/* Row 2: Sender name full width */}
         <div className="flex items-center gap-1.5">
+          <ChannelIcon className={cn('h-4 w-4 shrink-0', getChannelColor(channel))} />
           <span className={cn('text-sm font-medium truncate', isUnread && 'font-semibold')}>
-            {customer?.name || 'Onbekend'}
+            {cleanName || 'Onbekend'}
           </span>
           {marketplace === 'bol_com' && (
             <Tooltip>

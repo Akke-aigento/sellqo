@@ -24,8 +24,12 @@ export function ConversationDragOverlay({ conversation }: ConversationDragOverla
 
   const ChannelIcon = getChannelIcon(channel);
 
-  const initials = customer?.name
-    ? customer.name
+  const cleanName = (customer?.name || '')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+
+  const initials = cleanName
+    ? cleanName
         .split(' ')
         .map((n) => n[0])
         .join('')
@@ -42,7 +46,7 @@ export function ConversationDragOverlay({ conversation }: ConversationDragOverla
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-sm truncate">
-              {customer?.name || 'Onbekend'}
+              {cleanName || 'Onbekend'}
             </span>
             <ChannelIcon className="h-3 w-3 text-muted-foreground shrink-0" />
           </div>
