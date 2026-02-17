@@ -1,75 +1,32 @@
 
 
-# Compose Dialog upgraden + verzendprobleem fixen
+# List-Unsubscribe header toevoegen aan uitgaande emails
 
-## 1. Fix: Edge Function `send-customer-message` (kritiek)
+## Wat
 
-Twee kolom-naam mismatches veroorzaken de 500-fout:
+Een `List-Unsubscribe` header toevoegen aan alle uitgaande emails vanuit de `send-customer-message` Edge Function. Dit verbetert de mail-tester score en zorgt ervoor dat email clients (Gmail, Outlook) een nette "uitschrijven" knop tonen in plaats van de email als spam te markeren.
 
-- **Select**: `address_line1` bestaat niet, moet `address` zijn
-- **Insert**: `status` bestaat niet in `customer_messages`, moet `delivery_status` zijn
+## Aanpak
 
-Wijzigingen in `supabase/functions/send-customer-message/index.ts`:
-- Regel 59: `.select("name, owner_email, logo_url, primary_color, address_line1, ...")` wordt `address`
-- Regel 171: `status: 'sending'` wordt `delivery_status: 'sending'`
-- Regel 208: `status: 'failed'` wordt `delivery_status: 'failed'`
-- Regel 218: `status: 'sent'` wordt `delivery_status: 'sent'`
+### Edge Function: `supabase/functions/send-customer-message/index.ts`
 
-## 2. CC/BCC velden toevoegen
+In het `emailHeaders` object (rond regel 191) worden twee headers toegevoegd:
 
-In `ComposeDialog.tsx`:
-- Twee nieuwe state variabelen: `cc` en `bcc` (strings, komma-gescheiden)
-- Twee nieuwe Input-velden onder het ontvanger-veld, inklapbaar via een "CC/BCC" toggle link
-- Meesturen in de body naar de Edge Function
+- `List-Unsubscribe`: met een `mailto:` link naar het reply-to adres van de tenant, met subject "Unsubscribe"
+- `List-Unsubscribe-Post`: met waarde `List-Unsubscribe=One-Click` (vereist door RFC 8058 en Gmail)
 
-In `send-customer-message/index.ts`:
-- `cc` en `bcc` als optionele velden accepteren in de request
-- Doorgeven aan `resend.emails.send({ cc: [...], bcc: [...] })`
+```typescript
+// Altijd List-Unsubscribe toevoegen
+emailHeaders['List-Unsubscribe'] = `<mailto:${replyToEmail}?subject=Unsubscribe>`;
+emailHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+```
 
-## 3. Rich text editor (TipTap)
+De `...(Object.keys(emailHeaders).length > 0 && { headers: emailHeaders })` conditie op regel 207 zorgt er al voor dat headers worden meegegeven, dus verder hoeft er niets te veranderen.
 
-TipTap is al geinstalleerd in het project. Het simpele `<Textarea>` wordt vervangen door een TipTap editor met een toolbar:
+### Resultaat
 
-- **Bold**, **Italic**, **Underline** (al geinstalleerd: `@tiptap/extension-underline`)
-- **Links** (al geinstalleerd: `@tiptap/extension-link`)
-- **Bullet list**, **Ordered list** (in starter-kit)
-
-De HTML output van TipTap gaat direct als `body_html` naar de Edge Function.
-
-## 4. Klant kiezen uit CRM (verbetering)
-
-De klant-zoekfunctie bestaat al maar is niet heel zichtbaar. Verbeteringen:
-- Bij selectie van een klant wordt automatisch het e-mailadres ingevuld
-- Duidelijkere visuele feedback bij geselecteerde klant
-- Toon klant-avatar/initialen bij selectie
-
-## 5. Bijlages toevoegen
-
-- "Bijlage toevoegen" knop met file input (max 10MB per bestand)
-- Bestanden uploaden naar Supabase Storage bucket `message-attachments`
-- Public URLs meesturen als `attachments` array naar de Edge Function
-- Resend ondersteunt attachments via URL: `attachments: [{ filename, path: url }]`
-- Visuele lijst van toegevoegde bijlages met verwijder-optie
-
-Hiervoor is een nieuwe storage bucket nodig (`message-attachments`) met RLS policies.
-
-## Technische details
-
-### Database migratie
-- Nieuwe storage bucket `message-attachments` aanmaken
-- RLS policy: authenticated users met matching tenant_id kunnen uploaden/lezen
-
-### Edge Function wijzigingen (`send-customer-message/index.ts`)
-- Fix kolomnamen (`address`, `delivery_status`)
-- Accepteer `cc`, `bcc`, `attachments` velden
-- Geef door aan Resend API
-
-### Frontend wijzigingen (`ComposeDialog.tsx`)
-- TipTap editor ipv Textarea
-- CC/BCC velden (inklapbaar)
-- File upload component met drag & drop
-- Klant-selectie verbetering
-
-### Nieuwe component
-- `src/components/admin/inbox/ComposeRichEditor.tsx` - TipTap wrapper met toolbar
+- Gmail/Outlook tonen een "Uitschrijven" knop bovenaan de email
+- Mail-tester score verbetert (de "geen List-Unsubscribe" waarschuwing verdwijnt)
+- Geen database wijzigingen nodig
+- Eén bestand wordt aangepast
 
