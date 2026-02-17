@@ -3,27 +3,32 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Platform OAuth configurations
 const PLATFORMS = {
   facebook: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // Updated scopes for Meta Commerce + Messaging (Facebook Shop, Instagram Shop, Messenger, Instagram DMs)
     scopes: [
       'pages_manage_posts',
-      'pages_read_engagement', 
+      'pages_read_engagement',
       'instagram_basic',
       'instagram_content_publish',
-      // Meta Commerce scopes for shop functionality
-      'catalog_management',        // Create/update products in catalogs
-      'business_management',       // Access business accounts
-      'pages_read_user_content',   // Read shop settings
-      // Meta Messaging scopes for inbox integration
-      'pages_messaging',           // Facebook Messenger conversations
-      'instagram_manage_messages', // Instagram DMs
-      'pages_manage_metadata',     // Webhook subscriptions for messaging
+      'catalog_management',
+      'business_management',
+      'pages_read_user_content',
+      'pages_messaging',
+      'instagram_manage_messages',
+      'pages_manage_metadata',
+    ].join(','),
+  },
+  whatsapp: {
+    authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
+    scopes: [
+      'whatsapp_business_management',
+      'whatsapp_business_messaging',
+      'business_management',
     ].join(','),
   },
   twitter: {
@@ -65,27 +70,36 @@ serve(async (req) => {
       );
     }
 
-    // Get platform-specific client credentials from secrets
-    const clientId = Deno.env.get(`${platform.toUpperCase()}_CLIENT_ID`);
-    const clientSecret = Deno.env.get(`${platform.toUpperCase()}_CLIENT_SECRET`);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (!clientId) {
+    // Determine the credential platform (whatsapp uses facebook credentials)
+    const credentialPlatform = platform === 'whatsapp' ? 'facebook' : platform;
+
+    // Fetch per-tenant credentials from the database
+    const { data: creds, error: credsError } = await supabase
+      .from('tenant_oauth_credentials')
+      .select('client_id, client_secret')
+      .eq('tenant_id', tenantId)
+      .eq('platform', credentialPlatform)
+      .eq('is_active', true)
+      .single();
+
+    if (credsError || !creds) {
       return new Response(
-        JSON.stringify({ 
-          error: `OAuth niet geconfigureerd voor ${platform}. Neem contact op met support.`,
+        JSON.stringify({
+          error: `OAuth niet geconfigureerd voor ${platform}. Ga naar Instellingen → API Credentials om je ${credentialPlatform === 'facebook' ? 'Meta' : credentialPlatform} App credentials in te voeren.`,
           missingConfig: true,
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const clientId = creds.client_id;
+
     // Generate state for CSRF protection
     const state = generateState();
-
-    // Store state in database for verification during callback
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Store OAuth state temporarily (expires in 10 minutes)
     await supabase.from('oauth_states').upsert({
@@ -99,7 +113,7 @@ serve(async (req) => {
     // Build OAuth URL based on platform
     let authUrl: string;
 
-    if (platform === 'facebook') {
+    if (platform === 'facebook' || platform === 'whatsapp') {
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: `${supabaseUrl}/functions/v1/social-oauth-callback`,
@@ -120,7 +134,6 @@ serve(async (req) => {
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-      // Store code verifier for token exchange
       await supabase.from('oauth_states').update({ code_verifier: codeVerifier }).eq('state', state);
 
       const params = new URLSearchParams({
