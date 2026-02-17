@@ -1,27 +1,31 @@
 
-# Fix: "invalid input value for enum quote_status: rejected"
 
-## Oorzaak
+# Omgezette offertes verbergen in de offertelijst
 
-De bestelling wordt wel correct aangemaakt (vandaar dat je #1110 ziet in de bestellingenlijst), maar daarna faalt de status-update van de offerte naar `converted`.
+## Aanpak
 
-Het probleem zit in de database trigger `handle_quote_notification` op de `quotes` tabel. Deze trigger bevat een CASE-statement dat de waarde `'rejected'` vergelijkt met de `quote_status` enum. Maar `rejected` bestaat niet als waarde in die enum -- de correcte waarde is `declined`.
+Standaard worden offertes met status `converted` uitgefilterd uit de lijst, zodat de lijst overzichtelijk blijft. Ze zijn nog steeds beschikbaar via het statusfilter "Omgezet" als je ze wilt terugvinden.
 
-PostgreSQL probeert `'rejected'` te casten naar het `quote_status` enum type, en dat mislukt met de fout die je ziet.
+## Wijzigingen
 
-## Oplossing
+### 1. `src/hooks/useQuotes.ts` - Query aanpassen
 
-In de database-functie `handle_quote_notification` de CASE-waarde `'rejected'` wijzigen naar `'declined'`:
+In de query die offertes ophaalt, een extra filter toevoegen: als er geen specifiek statusfilter is ingesteld, worden `converted` offertes uitgesloten.
 
 ```text
-Huidig:   WHEN 'rejected' THEN
-Nieuw:    WHEN 'declined' THEN
+// Als statusFilter niet is ingesteld (of 'all'):
+query = query.neq('status', 'converted')
+
+// Als statusFilter WEL op 'converted' staat:
+// Geen extra filter, dan worden ze juist getoond
 ```
 
-De bijbehorende notification type blijft `quote_rejected` (dat is een string, geen enum).
+### 2. `src/pages/admin/Quotes.tsx` - Geen wijziging nodig
 
-## Impact
+Het statusfilter heeft al een "Omgezet" optie, dus gebruikers kunnen altijd bewust kiezen om omgezette offertes te bekijken.
 
-- De conversie van offerte naar bestelling zal direct werken zonder foutmelding
-- Notificaties bij afgewezen offertes zullen ook correct worden aangemaakt (nu werden ze ook al niet verstuurd door dezelfde fout)
-- Geen verdere code-wijzigingen nodig -- de frontend-code is correct
+## Resultaat
+
+- Offertelijst toont standaard alleen actieve/relevante offertes
+- Omgezette offertes zijn niet "weg" maar verborgen uit het standaardoverzicht
+- Via het filter "Omgezet" zijn ze altijd terug te vinden
