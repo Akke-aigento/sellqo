@@ -1,35 +1,51 @@
 
-# Facebook & Instagram toevoegen aan Nieuw Bericht dialoog
+# Fix Meta OAuth fout + WhatsApp eigen koppelflow
 
-## Wat verandert er?
+## Probleem 1: Meta OAuth geeft 400 error
 
-De ComposeDialog ondersteunt momenteel alleen Email en WhatsApp. We voegen **Facebook Messenger** en **Instagram DM** toe als kanaalopties.
+De `social-oauth-init` edge function zoekt naar `FACEBOOK_CLIENT_ID` en `FACEBOOK_CLIENT_SECRET` secrets, maar deze zijn niet geconfigureerd. Hierdoor faalt elke poging om Facebook Shop, Instagram Shop of WhatsApp te verbinden.
 
-## Wijzigingen
+**Oplossing:** De Meta App credentials moeten worden toegevoegd als secrets. Hiervoor heb je een Meta (Facebook) Developer App nodig op https://developers.facebook.com. De benodigde gegevens zijn:
+- App ID (= Client ID)
+- App Secret (= Client Secret)
 
-### Bestand: `src/components/admin/inbox/ComposeDialog.tsx`
+## Probleem 2: WhatsApp koppelen via eigen flow (niet via Facebook login)
 
-1. **Channel type uitbreiden**: `'email' | 'whatsapp'` wordt `'email' | 'whatsapp' | 'facebook' | 'instagram'`
+WhatsApp Business hoort niet via dezelfde Facebook Commerce wizard te gaan. De WhatsApp Business API biedt een **Embedded Signup** flow, waarbij de gebruiker een QR-code scant of inlogt via WhatsApp Web.
 
-2. **Meta-verbindingen ophalen**: Een query naar `meta_messaging_connections` om te checken welke platformen actief zijn voor de tenant, en om de `page_id` op te halen die nodig is voor het versturen
+### Wijzigingen
 
-3. **Kanaal-tabs uitbreiden**: Facebook en Instagram tabs tonen (met Facebook/Instagram iconen) wanneer er een actieve verbinding bestaat
+#### 1. Secrets toevoegen
+- `FACEBOOK_CLIENT_ID` - Je Meta App ID
+- `FACEBOOK_CLIENT_SECRET` - Je Meta App Secret
 
-4. **Ontvanger-veld aanpassen**: 
-   - Bij Facebook/Instagram moet een bestaande klant geselecteerd worden (je kunt geen handmatig social ID invoeren)
-   - De klant moet een `meta_sender_id` hebben (opgeslagen in eerdere conversaties)
-   - Label wordt "Ontvanger (Facebook)" of "Ontvanger (Instagram)"
+Dit lost direct de 400 error op voor Facebook Shop en Instagram Shop.
 
-5. **Verzendlogica uitbreiden**: Bij Facebook/Instagram de bestaande `send-meta-message` edge function aanroepen met:
-   - `tenant_id`, `platform` ('facebook'/'instagram'), `recipient_id` (meta_sender_id van de klant), `page_id` (uit de connection), `message`, `customer_id`
+#### 2. Nieuw bestand: `src/components/admin/marketplace/WhatsAppConnectWizard.tsx`
 
-6. **Validatie aanpassen**: `canSend()` checkt bij social kanalen of er een klant met meta_sender_id is geselecteerd
+Een apart koppelscherm voor WhatsApp Business met:
+- **Stap 1:** Uitleg over de koppeling (je hebt een WhatsApp Business Account nodig)
+- **Stap 2:** WhatsApp Business telefoonnummer invoeren
+- **Stap 3:** Verificatie via de Meta WhatsApp Embedded Signup flow (popup)
+- **Stap 4:** Bevestiging en configuratie
 
-7. **Toast/beschrijving aanpassen**: Kanaal-naam correct weergeven (Facebook/Instagram)
+Dit gebruikt de Meta WhatsApp Business Platform API maar presenteert het als een WhatsApp-specifieke ervaring (geen Facebook-branding).
+
+#### 3. Bestand aanpassen: `src/components/admin/marketplace/SocialChannelList.tsx`
+
+- `whatsapp_business` uit de `META_COMMERCE_CHANNELS` array halen
+- Nieuwe `WHATSAPP_CHANNELS` array toevoegen
+- Bij klik op "Verbind WhatsApp Business" de `WhatsAppConnectWizard` openen in plaats van de `MetaShopWizard`
+
+#### 4. Bestand aanpassen: `supabase/functions/social-oauth-init/index.ts`
+
+- Een `whatsapp` platform config toevoegen met de juiste WhatsApp Embedded Signup scopes (`whatsapp_business_management`, `whatsapp_business_messaging`)
+- De OAuth URL wijzen naar de WhatsApp Embedded Signup endpoint
 
 ## Technische details
 
-- Hergebruikt de bestaande `send-meta-message` edge function (dezelfde als de ReplyComposer)
-- Haalt actieve verbindingen op via `supabase.from('meta_messaging_connections').select('*').eq('tenant_id', ...).eq('is_active', true)`
-- Voor het ophalen van het `meta_sender_id` van een klant wordt gekeken naar eerdere berichten in `customer_messages` voor die klant
-- Geen database-wijzigingen nodig
+- WhatsApp Business Platform gebruikt dezelfde Meta Graph API onder de motorkap, maar de gebruikerservaring is anders
+- De Embedded Signup flow opent een Meta popup waar de gebruiker specifiek WhatsApp Business koppelt (niet Facebook)
+- Na de koppeling slaan we het WhatsApp Business Account ID en telefoonnummer op in `social_channel_connections`
+- De bestaande `send-whatsapp-message` edge function wordt hergebruikt voor berichtverzending
+- Facebook Shop en Instagram Shop blijven via de bestaande MetaShopWizard werken (zodra de secrets zijn ingesteld)
