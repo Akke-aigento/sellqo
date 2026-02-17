@@ -1,51 +1,90 @@
 
-# Fix Meta OAuth fout + WhatsApp eigen koppelflow
+# Per-Tenant Meta/Social Credentials (niet hardcoden!)
 
-## Probleem 1: Meta OAuth geeft 400 error
+## Het probleem
 
-De `social-oauth-init` edge function zoekt naar `FACEBOOK_CLIENT_ID` en `FACEBOOK_CLIENT_SECRET` secrets, maar deze zijn niet geconfigureerd. Hierdoor faalt elke poging om Facebook Shop, Instagram Shop of WhatsApp te verbinden.
+De huidige `social-oauth-init` en `social-oauth-callback` edge functions zoeken naar globale environment secrets (`FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`). In een multi-tenant SaaS als Sellqo is dat fundamenteel fout: elke tenant heeft zijn eigen Meta Developer App en dus eigen credentials.
 
-**Oplossing:** De Meta App credentials moeten worden toegevoegd als secrets. Hiervoor heb je een Meta (Facebook) Developer App nodig op https://developers.facebook.com. De benodigde gegevens zijn:
-- App ID (= Client ID)
-- App Secret (= Client Secret)
+## De oplossing
 
-## Probleem 2: WhatsApp koppelen via eigen flow (niet via Facebook login)
+Credentials per tenant opslaan in de database en de OAuth edge functions aanpassen om deze uit de database te lezen in plaats van uit globale secrets.
 
-WhatsApp Business hoort niet via dezelfde Facebook Commerce wizard te gaan. De WhatsApp Business API biedt een **Embedded Signup** flow, waarbij de gebruiker een QR-code scant of inlogt via WhatsApp Web.
+## Wijzigingen
 
-### Wijzigingen
+### 1. Database: nieuwe tabel `tenant_oauth_credentials`
 
-#### 1. Secrets toevoegen
-- `FACEBOOK_CLIENT_ID` - Je Meta App ID
-- `FACEBOOK_CLIENT_SECRET` - Je Meta App Secret
+Een tabel waarin elke tenant zijn eigen OAuth credentials opslaat per platform:
 
-Dit lost direct de 400 error op voor Facebook Shop en Instagram Shop.
+```text
+tenant_oauth_credentials
+- id (UUID, PK)
+- tenant_id (UUID, FK -> tenants)
+- platform (text: 'facebook', 'twitter', 'linkedin')
+- client_id (text, encrypted)
+- client_secret (text, encrypted)
+- is_active (boolean, default true)
+- created_at / updated_at
+- UNIQUE(tenant_id, platform)
+```
 
-#### 2. Nieuw bestand: `src/components/admin/marketplace/WhatsAppConnectWizard.tsx`
+Met RLS policies zodat alleen tenant admins hun eigen credentials kunnen beheren.
 
-Een apart koppelscherm voor WhatsApp Business met:
-- **Stap 1:** Uitleg over de koppeling (je hebt een WhatsApp Business Account nodig)
-- **Stap 2:** WhatsApp Business telefoonnummer invoeren
-- **Stap 3:** Verificatie via de Meta WhatsApp Embedded Signup flow (popup)
-- **Stap 4:** Bevestiging en configuratie
+### 2. Admin UI: Credentials invulscherm
 
-Dit gebruikt de Meta WhatsApp Business Platform API maar presenteert het als een WhatsApp-specifieke ervaring (geen Facebook-branding).
+Nieuw bestand: `src/components/admin/marketplace/SocialCredentialsForm.tsx`
 
-#### 3. Bestand aanpassen: `src/components/admin/marketplace/SocialChannelList.tsx`
+- Een formulier per platform (Facebook/Meta, Twitter, LinkedIn) waar de tenant zijn App ID en App Secret kan invoeren
+- Wordt getoond in de marketplace/social settings pagina
+- Duidelijke uitleg waar ze de credentials kunnen vinden (link naar developers.facebook.com etc.)
+- Secret wordt gemaskeerd na opslaan (alleen eerste/laatste 4 tekens zichtbaar)
 
-- `whatsapp_business` uit de `META_COMMERCE_CHANNELS` array halen
-- Nieuwe `WHATSAPP_CHANNELS` array toevoegen
-- Bij klik op "Verbind WhatsApp Business" de `WhatsAppConnectWizard` openen in plaats van de `MetaShopWizard`
+### 3. Edge function: `social-oauth-init` aanpassen
 
-#### 4. Bestand aanpassen: `supabase/functions/social-oauth-init/index.ts`
+In plaats van:
+```
+const clientId = Deno.env.get('FACEBOOK_CLIENT_ID');
+```
 
-- Een `whatsapp` platform config toevoegen met de juiste WhatsApp Embedded Signup scopes (`whatsapp_business_management`, `whatsapp_business_messaging`)
-- De OAuth URL wijzen naar de WhatsApp Embedded Signup endpoint
+Wordt het:
+```
+const { data: creds } = await supabase
+  .from('tenant_oauth_credentials')
+  .select('client_id, client_secret')
+  .eq('tenant_id', tenantId)
+  .eq('platform', platform)
+  .eq('is_active', true)
+  .single();
+```
+
+De edge function leest de credentials uit de database op basis van de `tenantId` die meegegeven wordt.
+
+### 4. Edge function: `social-oauth-callback` aanpassen
+
+Zelfde aanpassing: bij het token exchange worden de `client_id` en `client_secret` opgehaald uit `tenant_oauth_credentials` via de `tenant_id` die in de `oauth_states` tabel staat.
+
+### 5. WhatsApp Connect Wizard
+
+Nieuw bestand: `src/components/admin/marketplace/WhatsAppConnectWizard.tsx`
+
+Een aparte koppelwizard voor WhatsApp Business:
+- Stap 1: Check of de tenant Meta credentials heeft ingevuld (zo niet, doorverwijzen naar credentials-formulier)
+- Stap 2: Start de Meta WhatsApp Embedded Signup flow (popup) met de tenant's eigen credentials
+- Stap 3: Bevestiging en telefoonnummer opslaan
+
+### 6. SocialChannelList aanpassen
+
+- WhatsApp uit `META_COMMERCE_CHANNELS` halen
+- Bij klik op WhatsApp de `WhatsAppConnectWizard` openen
+- Bij klik op Facebook/Instagram eerst checken of credentials zijn ingevuld
+
+### 7. `social-oauth-init` WhatsApp platform toevoegen
+
+WhatsApp-specifieke scopes toevoegen (`whatsapp_business_management`, `whatsapp_business_messaging`).
 
 ## Technische details
 
-- WhatsApp Business Platform gebruikt dezelfde Meta Graph API onder de motorkap, maar de gebruikerservaring is anders
-- De Embedded Signup flow opent een Meta popup waar de gebruiker specifiek WhatsApp Business koppelt (niet Facebook)
-- Na de koppeling slaan we het WhatsApp Business Account ID en telefoonnummer op in `social_channel_connections`
-- De bestaande `send-whatsapp-message` edge function wordt hergebruikt voor berichtverzending
-- Facebook Shop en Instagram Shop blijven via de bestaande MetaShopWizard werken (zodra de secrets zijn ingesteld)
+- Credentials worden opgeslagen in de database met RLS, niet als globale secrets
+- De `social-oauth-init` en `social-oauth-callback` edge functions lezen credentials per tenant uit de `tenant_oauth_credentials` tabel
+- De MetaShopWizard toont een waarschuwing als er nog geen credentials zijn ingesteld en linkt naar het instellingenscherm
+- De WhatsApp wizard is een apart component met een eigen flow, los van de Facebook Commerce wizard
+- Geen globale secrets meer nodig voor Meta OAuth
