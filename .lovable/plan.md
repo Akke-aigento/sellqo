@@ -1,48 +1,75 @@
 
 
-# EPC QR-code vergroten en correct positioneren
+# Compose Dialog upgraden + verzendprobleem fixen
 
-## Probleem
+## 1. Fix: Edge Function `send-customer-message` (kritiek)
 
-De QR-code wordt technisch correct gegenereerd met de juiste EPC-data (BIC, IBAN, bedrag, OGM), maar:
+Twee kolom-naam mismatches veroorzaken de 500-fout:
 
-1. **Te klein om te scannen**: 80pt bij 37 modules = ~2pt per cel. Banking apps hebben minimaal ~3pt per cel nodig
-2. **Verkeerde positionering**: de QR wordt getekend nadat yPos al volledig is verlaagd, waardoor hij te laag staat en mogelijk overlapt met de footer
+- **Select**: `address_line1` bestaat niet, moet `address` zijn
+- **Insert**: `status` bestaat niet in `customer_messages`, moet `delivery_status` zijn
 
-## Oplossing
+Wijzigingen in `supabase/functions/send-customer-message/index.ts`:
+- Regel 59: `.select("name, owner_email, logo_url, primary_color, address_line1, ...")` wordt `address`
+- Regel 171: `status: 'sending'` wordt `delivery_status: 'sending'`
+- Regel 208: `status: 'failed'` wordt `delivery_status: 'failed'`
+- Regel 218: `status: 'sent'` wordt `delivery_status: 'sent'`
 
-### `supabase/functions/generate-invoice/index.ts`
+## 2. CC/BCC velden toevoegen
 
-**Wijziging 1** - QR-code groter maken:
-- Van `qrSize = 80` naar `qrSize = 110` (bij 37 modules = ~3pt per cel, goed scanbaar)
+In `ComposeDialog.tsx`:
+- Twee nieuwe state variabelen: `cc` en `bcc` (strings, komma-gescheiden)
+- Twee nieuwe Input-velden onder het ontvanger-veld, inklapbaar via een "CC/BCC" toggle link
+- Meesturen in de body naar de Edge Function
 
-**Wijziging 2** - Sectie-hoogte aanpassen:
-- `sectionHeight` verhogen naar `Math.max(120, qrSize + 30)` om ruimte te maken
+In `send-customer-message/index.ts`:
+- `cc` en `bcc` als optionele velden accepteren in de request
+- Doorgeven aan `resend.emails.send({ cc: [...], bcc: [...] })`
 
-**Wijziging 3** - QR-code positionering corrigeren:
-- De QR-code rechts bovenin de betalingssectie plaatsen, uitgelijnd met de "Betalingsgegevens" titel
-- `qrY` berekenen relatief aan de bovenkant van de sectie (niet aan de onderkant na alle tekst)
+## 3. Rich text editor (TipTap)
 
-```text
-Huidige layout:                    Nieuwe layout:
-+---------------------------+      +---------------------------+
-| Betalingsgegevens         |      | Betalingsgegevens  [QR]  |
-| IBAN: BE41 7390 ...       |      | IBAN: BE41 7390    [QR]  |
-| BIC: KREDBEBBXXX          |      | BIC: KREDBEBBXXX   [QR]  |
-| Mededeling: +++002/...+++ |      | Mededeling: +++..  [QR]  |
-| Scan de QR-code...        |      | Scan de QR-code... [QR]  |
-|              [tiny QR]    |      +---------------------------+
-+---------------------------+
-```
+TipTap is al geinstalleerd in het project. Het simpele `<Textarea>` wordt vervangen door een TipTap editor met een toolbar:
 
-**Wijziging 4** - Bewaar de yPos bovenkant voor QR-positionering:
-- Sla de startpositie op voordat de betalingstekst wordt getekend
-- Gebruik die als ankerpunt voor de QR-code
+- **Bold**, **Italic**, **Underline** (al geinstalleerd: `@tiptap/extension-underline`)
+- **Links** (al geinstalleerd: `@tiptap/extension-link`)
+- **Bullet list**, **Ordered list** (in starter-kit)
 
-De EPC-data zelf is correct (BCD/002/1/SCT/BIC/naam/IBAN/bedrag/OGM) en hoeft niet te wijzigen.
+De HTML output van TipTap gaat direct als `body_html` naar de Edge Function.
 
-## Resultaat
+## 4. Klant kiezen uit CRM (verbetering)
 
-- QR-code is groot genoeg om betrouwbaar te scannen met elke banking app
-- QR staat netjes rechts uitgelijnd naast de betalingsgegevens
-- Bij het scannen opent de banking app met alle velden (IBAN, bedrag, mededeling) automatisch ingevuld
+De klant-zoekfunctie bestaat al maar is niet heel zichtbaar. Verbeteringen:
+- Bij selectie van een klant wordt automatisch het e-mailadres ingevuld
+- Duidelijkere visuele feedback bij geselecteerde klant
+- Toon klant-avatar/initialen bij selectie
+
+## 5. Bijlages toevoegen
+
+- "Bijlage toevoegen" knop met file input (max 10MB per bestand)
+- Bestanden uploaden naar Supabase Storage bucket `message-attachments`
+- Public URLs meesturen als `attachments` array naar de Edge Function
+- Resend ondersteunt attachments via URL: `attachments: [{ filename, path: url }]`
+- Visuele lijst van toegevoegde bijlages met verwijder-optie
+
+Hiervoor is een nieuwe storage bucket nodig (`message-attachments`) met RLS policies.
+
+## Technische details
+
+### Database migratie
+- Nieuwe storage bucket `message-attachments` aanmaken
+- RLS policy: authenticated users met matching tenant_id kunnen uploaden/lezen
+
+### Edge Function wijzigingen (`send-customer-message/index.ts`)
+- Fix kolomnamen (`address`, `delivery_status`)
+- Accepteer `cc`, `bcc`, `attachments` velden
+- Geef door aan Resend API
+
+### Frontend wijzigingen (`ComposeDialog.tsx`)
+- TipTap editor ipv Textarea
+- CC/BCC velden (inklapbaar)
+- File upload component met drag & drop
+- Klant-selectie verbetering
+
+### Nieuwe component
+- `src/components/admin/inbox/ComposeRichEditor.tsx` - TipTap wrapper met toolbar
+
