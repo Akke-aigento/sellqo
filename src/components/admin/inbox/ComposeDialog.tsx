@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Mail, MessageSquare, Send, Search, Facebook, Instagram } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Mail, MessageSquare, Send, Search, Facebook, Instagram, ChevronDown, ChevronUp, Paperclip, X, FileIcon, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { ComposeRichEditor } from './ComposeRichEditor';
 
 type ComposeChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
 
@@ -30,6 +32,13 @@ interface MetaConnection {
   is_active: boolean;
 }
 
+interface AttachmentFile {
+  file: File;
+  uploading: boolean;
+  url?: string;
+  error?: string;
+}
+
 interface ComposeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +49,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [channel, setChannel] = useState<ComposeChannel>('email');
   const [recipientSearch, setRecipientSearch] = useState('');
@@ -49,12 +59,22 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     email: string;
     phone?: string;
     metaSenderId?: string;
+    initials?: string;
   } | null>(null);
   const [manualRecipient, setManualRecipient] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [messageHtml, setMessageHtml] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // CC/BCC
+  const [showCcBcc, setShowCcBcc] = useState(false);
+  const [cc, setCc] = useState('');
+  const [bcc, setBcc] = useState('');
+
+  // Attachments
+  const [attachments, setAttachments] = useState<AttachmentFile[]>([]);
 
   const { customers, isLoading: isSearching } = useCustomers(
     recipientSearch.length >= 2 ? recipientSearch : undefined
@@ -79,7 +99,6 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
   const hasFacebook = metaConnections.some(c => c.platform === 'facebook');
   const hasInstagram = metaConnections.some(c => c.platform === 'instagram');
   const canSendWhatsApp = currentTenant?.whatsapp_enabled;
-
   const isSocialChannel = channel === 'facebook' || channel === 'instagram';
 
   const filteredCustomers = useMemo(() => {
@@ -87,12 +106,14 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     return customers.slice(0, 8);
   }, [customers, recipientSearch]);
 
-  // When selecting a customer for social channels, look up their meta_sender_id
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).filter(Boolean).join('').toUpperCase().slice(0, 2);
+  };
+
   const handleSelectCustomer = async (customer: typeof customers[0]) => {
     const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email;
     let metaSenderId: string | undefined;
 
-    // For social channels, find the meta_sender_id from previous messages
     if (isSocialChannel && currentTenant?.id) {
       const { data: msgs } = await supabase
         .from('customer_messages')
@@ -111,6 +132,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
       email: customer.email,
       phone: customer.phone || undefined,
       metaSenderId,
+      initials: getInitials(name),
     });
     setRecipientSearch('');
     setManualRecipient('');
@@ -140,12 +162,9 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     }
   };
 
-  const recipientDisplay = selectedCustomer
-    ? `${selectedCustomer.name}${isSocialChannel ? '' : ` (${channel === 'whatsapp' ? selectedCustomer.phone : selectedCustomer.email})`}`
-    : manualRecipient;
-
   const canSend = () => {
-    if (!message.trim()) return false;
+    const hasMessage = channel === 'email' ? messageHtml.replace(/<[^>]*>/g, '').trim().length > 0 : message.trim().length > 0;
+    if (!hasMessage) return false;
     if (channel === 'email') {
       if (!subject.trim()) return false;
       const email = selectedCustomer?.email || manualRecipient;
@@ -161,6 +180,40 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     return false;
   };
 
+  // Upload attachment to storage
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || !currentTenant?.id) return;
+
+    const newFiles: AttachmentFile[] = Array.from(files).map(f => ({ file: f, uploading: true }));
+    setAttachments(prev => [...prev, ...newFiles]);
+
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i].file;
+      if (file.size > 10 * 1024 * 1024) {
+        setAttachments(prev => prev.map(a => a.file === file ? { ...a, uploading: false, error: 'Max 10MB' } : a));
+        continue;
+      }
+
+      const path = `${currentTenant.id}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from('message-attachments').upload(path, file);
+
+      if (error) {
+        setAttachments(prev => prev.map(a => a.file === file ? { ...a, uploading: false, error: error.message } : a));
+      } else {
+        const { data: urlData } = supabase.storage.from('message-attachments').getPublicUrl(path);
+        setAttachments(prev => prev.map(a => a.file === file ? { ...a, uploading: false, url: urlData.publicUrl } : a));
+      }
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const parseCcBcc = (value: string): string[] => {
+    return value.split(',').map(e => e.trim()).filter(e => e.includes('@'));
+  };
+
   const handleSend = async () => {
     if (!currentTenant?.id || !canSend()) return;
 
@@ -170,22 +223,30 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
         const toEmail = selectedCustomer?.email || manualRecipient;
         const toName = selectedCustomer?.name || manualRecipient;
 
+        const ccList = parseCcBcc(cc);
+        const bccList = parseCcBcc(bcc);
+        const attachmentsList = attachments
+          .filter(a => a.url && !a.error)
+          .map(a => ({ filename: a.file.name, path: a.url! }));
+
         const { error } = await supabase.functions.invoke('send-customer-message', {
           body: {
             tenant_id: currentTenant.id,
             customer_email: toEmail,
             customer_name: toName,
             subject: subject.trim(),
-            body_html: message.trim().replace(/\n/g, '<br>'),
-            body_text: message.trim(),
+            body_html: messageHtml,
+            body_text: messageHtml.replace(/<[^>]*>/g, ''),
             context_type: 'general',
             customer_id: selectedCustomer?.id,
+            ...(ccList.length > 0 && { cc: ccList }),
+            ...(bccList.length > 0 && { bcc: bccList }),
+            ...(attachmentsList.length > 0 && { attachments: attachmentsList }),
           },
         });
         if (error) throw error;
       } else if (channel === 'whatsapp') {
         const toPhone = selectedCustomer?.phone || manualRecipient;
-
         const { error } = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
             tenant_id: currentTenant.id,
@@ -197,12 +258,10 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
         });
         if (error) throw error;
       } else {
-        // Facebook or Instagram
         const connection = metaConnections.find(c => c.platform === channel);
         if (!connection || !selectedCustomer?.metaSenderId) {
           throw new Error(`Geen actieve ${channelLabel(channel)} verbinding of ontvangergegevens.`);
         }
-
         const { error } = await supabase.functions.invoke('send-meta-message', {
           body: {
             tenant_id: currentTenant.id,
@@ -228,6 +287,11 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
       setRecipientSearch('');
       setSubject('');
       setMessage('');
+      setMessageHtml('');
+      setCc('');
+      setBcc('');
+      setShowCcBcc(false);
+      setAttachments([]);
 
       queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
       onOpenChange(false);
@@ -244,7 +308,6 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     }
   };
 
-  // Reset selected customer when switching to social channel (need meta_sender_id)
   useEffect(() => {
     if (isSocialChannel && selectedCustomer && !selectedCustomer.metaSenderId) {
       setSelectedCustomer(null);
@@ -253,7 +316,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nieuw bericht</DialogTitle>
           <DialogDescription>
@@ -298,18 +361,21 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
             <Label className="text-sm font-medium">{recipientLabel()}</Label>
             {selectedCustomer ? (
               <div className="mt-1.5 flex items-center gap-2 bg-muted rounded-md px-3 py-2 text-sm">
-                <span className="flex-1 truncate">
-                  {recipientDisplay}
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                    {selectedCustomer.initials || <User className="h-3 w-3" />}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex-1 truncate font-medium">
+                  {selectedCustomer.name}
+                  <span className="text-muted-foreground font-normal ml-1.5">
+                    {!isSocialChannel && (channel === 'whatsapp' ? selectedCustomer.phone : selectedCustomer.email)}
+                  </span>
                   {isSocialChannel && !selectedCustomer.metaSenderId && (
                     <span className="text-destructive ml-2 text-xs">— geen {channelLabel(channel)} ID gevonden</span>
                   )}
                 </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={handleClearCustomer}
-                >
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleClearCustomer}>
                   Wijzig
                 </Button>
               </div>
@@ -342,24 +408,32 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                 {showResults && filteredCustomers.length > 0 && (
                   <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md">
                     <ScrollArea className="max-h-48">
-                      {filteredCustomers.map((c) => (
-                        <button
-                          key={c.id}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleSelectCustomer(c);
-                          }}
-                        >
-                          <div className="font-medium">
-                            {[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {c.email}
-                            {c.phone && ` · ${c.phone}`}
-                          </div>
-                        </button>
-                      ))}
+                      {filteredCustomers.map((c) => {
+                        const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email;
+                        return (
+                          <button
+                            key={c.id}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectCustomer(c);
+                            }}
+                          >
+                            <Avatar className="h-7 w-7 shrink-0">
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                {getInitials(name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{name}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {c.email}
+                                {c.phone && ` · ${c.phone}`}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </ScrollArea>
                   </div>
                 )}
@@ -371,6 +445,42 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
               </div>
             )}
           </div>
+
+          {/* CC/BCC toggle (email only) */}
+          {channel === 'email' && (
+            <>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                onClick={() => setShowCcBcc(!showCcBcc)}
+              >
+                {showCcBcc ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                CC / BCC
+              </button>
+              {showCcBcc && (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">CC</Label>
+                    <Input
+                      className="mt-1 h-8 text-sm"
+                      placeholder="email1@example.com, email2@example.com"
+                      value={cc}
+                      onChange={(e) => setCc(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">BCC</Label>
+                    <Input
+                      className="mt-1 h-8 text-sm"
+                      placeholder="email1@example.com, email2@example.com"
+                      value={bcc}
+                      onChange={(e) => setBcc(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Subject (email only) */}
           {channel === 'email' && (
@@ -388,24 +498,72 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
           {/* Message body */}
           <div>
             <Label className="text-sm font-medium">Bericht</Label>
-            <Textarea
-              className="mt-1.5 min-h-[120px] resize-y"
-              placeholder="Typ je bericht..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                  handleSend();
-                }
-              }}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Cmd+Enter om te verzenden
-            </p>
+            {channel === 'email' ? (
+              <div className="mt-1.5">
+                <ComposeRichEditor
+                  content={messageHtml}
+                  onChange={setMessageHtml}
+                />
+              </div>
+            ) : (
+              <Textarea
+                className="mt-1.5 min-h-[120px] resize-y"
+                placeholder="Typ je bericht..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    handleSend();
+                  }
+                }}
+              />
+            )}
           </div>
 
+          {/* Attachments (email only) */}
+          {channel === 'email' && (
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => handleFileSelect(e.target.files)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+                Bijlage toevoegen
+              </Button>
+              {attachments.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  {attachments.map((att, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-muted rounded px-2.5 py-1.5 text-xs">
+                      <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate flex-1">{att.file.name}</span>
+                      <span className="text-muted-foreground shrink-0">
+                        {att.uploading ? 'Uploaden...' : att.error ? <span className="text-destructive">{att.error}</span> : `${(att.file.size / 1024).toFixed(0)} KB`}
+                      </span>
+                      <button type="button" onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Send button */}
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {channel === 'email' ? 'Klant kan direct antwoorden op deze email' : 'Cmd+Enter om te verzenden'}
+            </p>
             <Button onClick={handleSend} disabled={!canSend() || isSending}>
               <Send className="h-4 w-4 mr-2" />
               {isSending ? 'Verzenden...' : 'Verzenden'}
