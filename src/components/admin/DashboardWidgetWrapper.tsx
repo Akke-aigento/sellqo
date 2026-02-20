@@ -45,6 +45,7 @@ export function DashboardWidgetWrapper({
       style={style}
       className={cn(
         widgetSizeClasses[size],
+        'h-full',
         isDragging && 'z-50 opacity-75',
         isEditMode && 'relative'
       )}
