@@ -243,7 +243,7 @@ export default function PaymentsPage() {
                   <p>Nog geen transacties</p>
                 </div>
               ) : (
-                <div className="min-w-[600px]">
+                <div>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -319,7 +319,7 @@ export default function PaymentsPage() {
                   <p>Nog geen uitbetalingen</p>
                 </div>
               ) : (
-                <div className="min-w-[400px]">
+                <div>
                 <Table>
                   <TableHeader>
                     <TableRow>

@@ -131,7 +131,7 @@ export default function CreditNotesPage() {
               </p>
             </div>
           ) : (
-            <div className="min-w-[600px]">
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>

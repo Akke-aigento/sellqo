@@ -141,7 +141,7 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
-            <div className="min-w-[700px]">
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>
