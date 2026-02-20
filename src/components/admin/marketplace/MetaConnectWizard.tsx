@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronRight, Loader2, MessageCircle, Phone, Eye, EyeOff, Save, ExternalLink } from 'lucide-react';
+import { Facebook, Check, ChevronRight, Loader2, ExternalLink, Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -12,30 +13,36 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 
-interface WhatsAppConnectWizardProps {
+interface MetaConnectWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (connectionId: string) => void;
 }
 
-type WizardStep = 'credentials' | 'connect' | 'phone' | 'complete';
+type WizardStep = 'credentials' | 'authorize' | 'features';
 
-export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAppConnectWizardProps) {
+const META_FEATURES = [
+  { id: 'facebook_shop', label: 'Facebook Shop', description: 'Catalogus synchronisatie naar Facebook' },
+  { id: 'instagram_shop', label: 'Instagram Shop', description: 'Product tags in posts en stories' },
+  { id: 'facebook_messenger', label: 'Facebook Messenger', description: 'Ontvang berichten in je inbox' },
+  { id: 'instagram_dm', label: 'Instagram DM\'s', description: 'Ontvang DM\'s in je inbox' },
+  { id: 'autopost', label: 'Autopost', description: 'AI social media posts plannen en publiceren' },
+];
+
+export function MetaConnectWizard({ open, onOpenChange }: MetaConnectWizardProps) {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<WizardStep>('credentials');
-  const [isLoading, setIsLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [businessName, setBusinessName] = useState('');
-
-  // Credentials form state
   const [appId, setAppId] = useState('');
   const [appSecret, setAppSecret] = useState('');
   const [showSecret, setShowSecret] = useState(false);
-  const [isSavingCreds, setIsSavingCreds] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
+    'facebook_shop', 'instagram_shop', 'facebook_messenger', 'instagram_dm', 'autopost',
+  ]);
 
-  // Check if Meta credentials are configured
+  // Check existing credentials
   const { data: existingCredentials, isLoading: checkingCredentials } = useQuery({
     queryKey: ['tenant-oauth-credentials', currentTenant?.id, 'facebook'],
     queryFn: async () => {
@@ -53,13 +60,8 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
     enabled: !!currentTenant?.id && open,
   });
 
-  const hasCredentials = !!existingCredentials;
-
-  // Auto-skip credentials step
-  const effectiveStep = step === 'credentials' && hasCredentials ? 'connect' : step;
-
-  const steps: WizardStep[] = ['credentials', 'connect', 'phone', 'complete'];
-  const stepIndex = steps.indexOf(effectiveStep);
+  // Auto-skip credentials step if already configured
+  const effectiveStep = step === 'credentials' && existingCredentials ? 'authorize' : step;
 
   const handleSaveCredentials = async () => {
     if (!appId.trim() || !appSecret.trim() || !currentTenant?.id) {
@@ -67,7 +69,7 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
       return;
     }
 
-    setIsSavingCreds(true);
+    setIsSaving(true);
     try {
       const { error } = await supabase
         .from('tenant_oauth_credentials')
@@ -83,21 +85,23 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
 
       queryClient.invalidateQueries({ queryKey: ['tenant-oauth-credentials', currentTenant.id] });
       toast.success('Meta credentials opgeslagen');
-      setStep('connect');
+      setStep('authorize');
     } catch (err: any) {
       toast.error('Opslaan mislukt: ' + err.message);
     } finally {
-      setIsSavingCreds(false);
+      setIsSaving(false);
     }
   };
 
-  const handleStartEmbeddedSignup = async () => {
-    setIsLoading(true);
+  const handleAuthorize = async () => {
+    if (!currentTenant?.id) return;
+
+    setIsAuthorizing(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-oauth-init', {
         body: {
-          platform: 'whatsapp',
-          tenantId: currentTenant?.id,
+          platform: 'facebook',
+          tenantId: currentTenant.id,
           redirectUrl: window.location.origin + '/admin/connect?tab=channels',
         },
       });
@@ -114,59 +118,35 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
         throw error;
       }
 
-      const popup = window.open(data.authUrl, 'whatsapp_signup', 'width=700,height=800');
-
-      const checkPopup = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkPopup);
-          setStep('phone');
-          setIsLoading(false);
-        }
-      }, 500);
-    } catch (error: any) {
-      toast.error('Kon WhatsApp koppeling niet starten: ' + error.message);
-      setIsLoading(false);
-    }
-  };
-
-  const handleSavePhone = async () => {
-    if (!phoneNumber.trim()) {
-      toast.error('Vul een telefoonnummer in');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('social_channel_connections')
-        .insert([{
-          tenant_id: currentTenant?.id,
-          channel_type: 'whatsapp_business',
-          channel_name: businessName || 'WhatsApp Business',
-          credentials: {
-            phoneNumber: phoneNumber.trim(),
-            businessName: businessName.trim(),
-          } as any,
-          is_active: true,
-          sync_status: 'idle',
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setStep('complete');
-      toast.success('WhatsApp Business verbonden!');
-
-      setTimeout(() => {
-        onSuccess(data.id);
-        onOpenChange(false);
-      }, 2000);
-    } catch (error: any) {
-      toast.error('Kon niet opslaan: ' + error.message);
+      if (data?.authUrl) {
+        sessionStorage.setItem('social_oauth_state', data.state);
+        sessionStorage.setItem('social_oauth_platform', 'facebook');
+        window.location.href = data.authUrl;
+      }
+    } catch (err: any) {
+      toast.error('Kon OAuth niet starten: ' + (err.message || 'Onbekende fout'));
     } finally {
-      setIsLoading(false);
+      setIsAuthorizing(false);
     }
   };
+
+  const handleComplete = () => {
+    toast.success('Meta kanaal configuratie opgeslagen');
+    onOpenChange(false);
+    // Reset
+    setStep('credentials');
+    setAppId('');
+    setAppSecret('');
+  };
+
+  const toggleFeature = (featureId: string) => {
+    setSelectedFeatures(prev =>
+      prev.includes(featureId) ? prev.filter(f => f !== featureId) : [...prev, featureId]
+    );
+  };
+
+  const steps: WizardStep[] = ['credentials', 'authorize', 'features'];
+  const currentStepIndex = steps.indexOf(effectiveStep);
 
   const maskValue = (val: string) => {
     if (val.length <= 8) return '••••••••';
@@ -178,26 +158,26 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <MessageCircle className="h-5 w-5 text-green-600" />
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Facebook className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <DialogTitle>WhatsApp Business koppelen</DialogTitle>
-              <DialogDescription>Berichten en notificaties via WhatsApp</DialogDescription>
+              <DialogTitle>Meta koppelen</DialogTitle>
+              <DialogDescription>Facebook & Instagram</DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        {/* Progress */}
+        {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2 py-3">
           {steps.map((s, i) => (
             <div key={s} className="flex items-center">
               <div className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
-                stepIndex === i ? 'bg-green-600 text-white' :
-                stepIndex > i ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'
+                currentStepIndex === i ? 'bg-blue-600 text-white' :
+                currentStepIndex > i ? 'bg-blue-100 text-blue-700' : 'bg-muted text-muted-foreground'
               )}>
-                {stepIndex > i ? <Check className="h-4 w-4" /> : i + 1}
+                {currentStepIndex > i ? <Check className="h-4 w-4" /> : i + 1}
               </div>
               {i < steps.length - 1 && <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />}
             </div>
@@ -205,7 +185,7 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
         </div>
 
         <div className="py-2">
-          {/* Step 1: Credentials (inline) */}
+          {/* Step 1: Credentials */}
           {effectiveStep === 'credentials' && (
             <div className="space-y-4">
               {checkingCredentials ? (
@@ -217,7 +197,7 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
                   <div>
                     <h3 className="font-medium">Stap 1: Meta App Credentials</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      WhatsApp Business werkt via de Meta API. Voer je App credentials in.{' '}
+                      Om te verbinden heb je een Meta Developer App nodig.{' '}
                       <a
                         href="https://developers.facebook.com/apps"
                         target="_blank"
@@ -231,19 +211,19 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
 
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <Label htmlFor="wa-app-id">App ID</Label>
+                      <Label htmlFor="meta-app-id">App ID</Label>
                       <Input
-                        id="wa-app-id"
+                        id="meta-app-id"
                         value={appId}
                         onChange={(e) => setAppId(e.target.value)}
                         placeholder="Plak je Meta App ID hier"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="wa-app-secret">App Secret</Label>
+                      <Label htmlFor="meta-app-secret">App Secret</Label>
                       <div className="relative">
                         <Input
-                          id="wa-app-secret"
+                          id="meta-app-secret"
                           type={showSecret ? 'text' : 'password'}
                           value={appSecret}
                           onChange={(e) => setAppSecret(e.target.value)}
@@ -264,10 +244,10 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
 
                   <Button
                     onClick={handleSaveCredentials}
-                    disabled={isSavingCreds || !appId.trim() || !appSecret.trim()}
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    disabled={isSaving || !appId.trim() || !appSecret.trim()}
+                    className="w-full"
                   >
-                    {isSavingCreds ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     Opslaan & Volgende
                   </Button>
                 </>
@@ -275,11 +255,11 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
             </div>
           )}
 
-          {/* Step 2: Connect via Embedded Signup */}
-          {effectiveStep === 'connect' && (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <Phone className="h-8 w-8 text-green-600" />
+          {/* Step 2: Authorize */}
+          {effectiveStep === 'authorize' && (
+            <div className="space-y-4 text-center">
+              <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                <Facebook className="h-8 w-8 text-blue-600" />
               </div>
 
               {existingCredentials && (
@@ -295,18 +275,23 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
               )}
 
               <div>
-                <h3 className="font-medium">Stap 2: WhatsApp Business koppelen</h3>
+                <h3 className="font-medium">Stap 2: Account autoriseren</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Er opent een venster waar je je WhatsApp Business account koppelt via Meta.
+                  Je wordt doorgestuurd naar Facebook om je pagina('s) en accounts te autoriseren.
                 </p>
               </div>
+
               <Button
-                onClick={handleStartEmbeddedSignup}
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={handleAuthorize}
+                disabled={isAuthorizing}
+                className="w-full"
               >
-                {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-2" />}
-                Koppel WhatsApp Business
+                {isAuthorizing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Facebook className="h-4 w-4 mr-2" />
+                )}
+                Verbind met Facebook
               </Button>
 
               {existingCredentials && (
@@ -320,58 +305,41 @@ export function WhatsAppConnectWizard({ open, onOpenChange, onSuccess }: WhatsAp
             </div>
           )}
 
-          {/* Step 3: Phone number */}
-          {effectiveStep === 'phone' && (
+          {/* Step 3: Feature selection */}
+          {effectiveStep === 'features' && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-medium">Stap 3: Bevestig je gegevens</h3>
-                <p className="text-sm text-muted-foreground">
-                  Vul het telefoonnummer in dat je hebt gekoppeld.
-                </p>
-              </div>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="wa-business-name">Bedrijfsnaam</Label>
-                  <Input
-                    id="wa-business-name"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="Bijv. Mijn Webshop"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="wa-phone">WhatsApp telefoonnummer</Label>
-                  <Input
-                    id="wa-phone"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+31 6 12345678"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSavePhone}
-                disabled={isLoading || !phoneNumber.trim()}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Koppeling voltooien
-              </Button>
-            </div>
-          )}
-
-          {/* Step 4: Complete */}
-          {effectiveStep === 'complete' && (
-            <div className="text-center space-y-4 py-4">
-              <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <Check className="h-8 w-8 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-medium text-lg">WhatsApp Business verbonden!</h3>
+                <h3 className="font-medium">Stap 3: Wat wil je gebruiken?</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Je kunt nu berichten versturen via WhatsApp Business.
+                  Selecteer welke functies je wilt activeren voor Meta.
                 </p>
               </div>
+
+              <div className="space-y-3">
+                {META_FEATURES.map((feature) => (
+                  <label
+                    key={feature.id}
+                    className={cn(
+                      'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
+                      selectedFeatures.includes(feature.id) ? 'border-blue-200 bg-blue-50/50' : 'border-border hover:bg-muted/50'
+                    )}
+                  >
+                    <Checkbox
+                      checked={selectedFeatures.includes(feature.id)}
+                      onCheckedChange={() => toggleFeature(feature.id)}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <span className="font-medium text-sm">{feature.label}</span>
+                      <p className="text-xs text-muted-foreground">{feature.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <Button onClick={handleComplete} className="w-full">
+                Voltooien
+              </Button>
             </div>
           )}
         </div>
