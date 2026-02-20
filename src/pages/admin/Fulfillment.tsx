@@ -339,7 +339,7 @@ export default function Fulfillment() {
             {orders?.length || 0} orders gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto px-0 sm:px-6">
+        <CardContent className="px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (

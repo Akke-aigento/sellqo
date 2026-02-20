@@ -162,7 +162,7 @@ export default function InvoicesPage() {
             {invoices.length} facturen gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto px-0 sm:px-6">
+        <CardContent className="px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -204,11 +204,11 @@ export default function InvoicesPage() {
                       <TableCell className="font-medium">
                         {invoice.invoice_number}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[180px]">
                         <div>
-                          <div className="font-medium">{customer.name}</div>
+                          <div className="font-medium truncate">{customer.name}</div>
                           {customer.email && (
-                            <div className="text-sm text-muted-foreground">{customer.email}</div>
+                            <div className="text-sm text-muted-foreground truncate">{customer.email}</div>
                           )}
                         </div>
                       </TableCell>

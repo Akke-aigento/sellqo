@@ -113,7 +113,7 @@ export default function CreditNotesPage() {
             {creditNotes.length} creditnota's gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto px-0 sm:px-6">
+        <CardContent className="px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -151,7 +151,7 @@ export default function CreditNotesPage() {
                     <TableCell className="font-medium">
                       {creditNote.credit_note_number}
                     </TableCell>
-                    <TableCell>{getCustomerName(creditNote)}</TableCell>
+                    <TableCell className="max-w-[180px] truncate">{getCustomerName(creditNote)}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {creditNote.original_invoice ? (
                         <Button
