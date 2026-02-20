@@ -121,14 +121,16 @@ export function MessagingChannelList() {
         });
 
         if (error) {
-          const errorData = data || {};
-          if (errorData?.missingConfig) {
-            toast.error(
-              'Meta App credentials niet geconfigureerd. Ga naar Instellingen → API Credentials om je Meta App ID en Secret in te voeren.',
-              { duration: 8000 }
-            );
-            return;
-          }
+          try {
+            const errorBody = await error.context?.json?.();
+            if (errorBody?.missingConfig) {
+              toast.error(
+                'Meta App credentials niet geconfigureerd. Ga naar Instellingen → API Credentials om je Meta App ID en Secret in te voeren.',
+                { duration: 8000 }
+              );
+              return;
+            }
+          } catch {}
           throw error;
         }
 
