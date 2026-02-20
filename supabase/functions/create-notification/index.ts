@@ -17,6 +17,8 @@ interface NotificationRequest {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   action_url?: string;
   user_id?: string;
+  notification_id?: string;
+  skip_in_app?: boolean;
 }
 
 const prioritySubjects: Record<string, string> = {
@@ -40,30 +42,37 @@ serve(async (req: Request): Promise<Response> => {
 
     const notification: NotificationRequest = await req.json();
     const priority = notification.priority || 'medium';
+    const skipInApp = notification.skip_in_app || false;
+    let notificationId = notification.notification_id || null;
 
-    // 1. Create the in-app notification
-    const { data: notificationData, error: notificationError } = await supabase
-      .from('notifications')
-      .insert({
-        tenant_id: notification.tenant_id,
-        user_id: notification.user_id || null,
-        category: notification.category,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        data: notification.data || {},
-        priority,
-        action_url: notification.action_url || null,
-      })
-      .select()
-      .single();
+    // 1. Create the in-app notification (skip if already created by trigger)
+    if (!skipInApp) {
+      const { data: notificationData, error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          tenant_id: notification.tenant_id,
+          user_id: notification.user_id || null,
+          category: notification.category,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          data: notification.data || {},
+          priority,
+          action_url: notification.action_url || null,
+        })
+        .select()
+        .single();
 
-    if (notificationError) {
-      console.error('Error creating notification:', notificationError);
-      throw notificationError;
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        throw notificationError;
+      }
+
+      notificationId = notificationData.id;
+      console.log('Notification created:', notificationId);
+    } else {
+      console.log('Skipping in-app creation, notification_id:', notificationId);
     }
-
-    console.log('Notification created:', notificationData.id);
 
     // 2. Check if email should be sent
     const { data: settings } = await supabase
@@ -167,7 +176,7 @@ serve(async (req: Request): Promise<Response> => {
           await supabase
             .from('notifications')
             .update({ email_sent_at: new Date().toISOString() })
-            .eq('id', notificationData.id);
+            .eq('id', notificationId);
         } catch (emailError) {
           console.error('Error sending email:', emailError);
           // Don't throw - notification was still created successfully
@@ -178,7 +187,7 @@ serve(async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        notification_id: notificationData.id,
+        notification_id: notificationId,
         email_sent: shouldSendEmail 
       }),
       {
