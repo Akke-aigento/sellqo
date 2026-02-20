@@ -38,7 +38,7 @@ export function DashboardWidgetWrapper({
       className={cn(
         isDragging && 'z-50 opacity-75',
         isEditMode && 'relative',
-        isLastInColumn && 'flex-grow [&>div]:h-full'
+        isLastInColumn && 'flex-grow [&>div]:h-full [&>div>*]:h-full'
       )}
     >
       {isEditMode && (
