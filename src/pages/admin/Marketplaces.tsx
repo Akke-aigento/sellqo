@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, Megaphone } from 'lucide-react';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, Megaphone, MessageCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +20,7 @@ import { MarketplaceCard } from '@/components/admin/marketplace/MarketplaceCard'
 import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/ConnectMarketplaceDialog';
 import { SocialChannelList } from '@/components/admin/marketplace/SocialChannelList';
 import { SocialConnectionsManager } from '@/components/admin/settings/SocialConnectionsManager';
+import { MessagingChannelList } from '@/components/admin/marketplace/MessagingChannelList';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { useSocialConnections } from '@/hooks/useSocialConnections';
@@ -157,7 +158,7 @@ export default function MarketplacesPage() {
 
       {/* Tabs for Marketplaces, Social Commerce and Autopost */}
       <Tabs defaultValue="marketplaces" className="w-full">
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
             E-commerce
@@ -169,6 +170,10 @@ export default function MarketplacesPage() {
           <TabsTrigger value="autopost" className="flex items-center gap-2">
             <Megaphone className="w-4 h-4" />
             Autopost
+          </TabsTrigger>
+          <TabsTrigger value="messaging" className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            Berichten
           </TabsTrigger>
         </TabsList>
 
@@ -219,6 +224,16 @@ export default function MarketplacesPage() {
             </p>
           </div>
           <SocialConnectionsManager />
+        </TabsContent>
+
+        <TabsContent value="messaging" className="mt-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Berichten Kanalen</h2>
+            <p className="text-muted-foreground">
+              Verbind messaging kanalen om klantberichten direct in je inbox te ontvangen en beantwoorden.
+            </p>
+          </div>
+          <MessagingChannelList />
         </TabsContent>
       </Tabs>
 
