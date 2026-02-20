@@ -38,6 +38,7 @@ export function MetaConnectWizard({ open, onOpenChange }: MetaConnectWizardProps
   const [showSecret, setShowSecret] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
+  const [isEditingCredentials, setIsEditingCredentials] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
     'facebook_shop', 'instagram_shop', 'facebook_messenger', 'instagram_dm', 'autopost',
   ]);
@@ -61,7 +62,7 @@ export function MetaConnectWizard({ open, onOpenChange }: MetaConnectWizardProps
   });
 
   // Auto-skip credentials step if already configured
-  const effectiveStep = step === 'credentials' && existingCredentials ? 'authorize' : step;
+  const effectiveStep = step === 'credentials' && existingCredentials && !isEditingCredentials ? 'authorize' : step;
 
   const handleSaveCredentials = async () => {
     if (!appId.trim() || !appSecret.trim() || !currentTenant?.id) {
@@ -85,6 +86,7 @@ export function MetaConnectWizard({ open, onOpenChange }: MetaConnectWizardProps
 
       queryClient.invalidateQueries({ queryKey: ['tenant-oauth-credentials', currentTenant.id] });
       toast.success('Meta credentials opgeslagen');
+      setIsEditingCredentials(false);
       setStep('authorize');
     } catch (err: any) {
       toast.error('Opslaan mislukt: ' + err.message);
@@ -121,7 +123,8 @@ export function MetaConnectWizard({ open, onOpenChange }: MetaConnectWizardProps
       if (data?.authUrl) {
         sessionStorage.setItem('social_oauth_state', data.state);
         sessionStorage.setItem('social_oauth_platform', 'facebook');
-        window.location.href = data.authUrl;
+        window.open(data.authUrl, '_blank');
+        toast.info('Facebook autorisatie geopend in een nieuw tabblad.');
       }
     } catch (err: any) {
       toast.error('Kon OAuth niet starten: ' + (err.message || 'Onbekende fout'));
@@ -297,7 +300,12 @@ export function MetaConnectWizard({ open, onOpenChange }: MetaConnectWizardProps
               {existingCredentials && (
                 <button
                   className="text-xs text-muted-foreground hover:text-foreground underline"
-                  onClick={() => setStep('credentials')}
+                  onClick={() => {
+                    setIsEditingCredentials(true);
+                    setStep('credentials');
+                    setAppId(existingCredentials?.client_id || '');
+                    setAppSecret('');
+                  }}
                 >
                   Credentials wijzigen
                 </button>
