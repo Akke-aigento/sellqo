@@ -123,7 +123,7 @@ export default function OrdersPage() {
             {orders.length} bestelling{orders.length !== 1 ? 'en' : ''} gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto px-0 sm:px-6">
+        <CardContent className="px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -234,9 +234,9 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
           {order.order_items?.length || 0} artikel{(order.order_items?.length || 0) !== 1 ? 'en' : ''}
         </div>
       </TableCell>
-      <TableCell onClick={onView}>
-        <div className="font-medium">{order.customer_name || '-'}</div>
-        <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+      <TableCell onClick={onView} className="max-w-[200px]">
+        <div className="font-medium truncate">{order.customer_name || '-'}</div>
+        <div className="text-sm text-muted-foreground truncate">{order.customer_email}</div>
       </TableCell>
       <TableCell className="hidden lg:table-cell" onClick={onView}>
         <OrderMarketplaceBadge source={order.marketplace_source} />

@@ -148,7 +148,7 @@ export default function SubscriptionsPage() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="overflow-x-auto px-0 sm:px-6">
+        <CardContent className="px-0 sm:px-6">
           <div>
           <Table>
             <TableHeader>
@@ -172,12 +172,12 @@ export default function SubscriptionsPage() {
               ) : (
                 subscriptions.map((sub) => (
                   <TableRow key={sub.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium max-w-[150px] truncate">
                       {sub.customer?.company_name || 
                         `${sub.customer?.first_name || ''} ${sub.customer?.last_name || ''}`.trim() ||
                         sub.customer?.email}
                     </TableCell>
-                    <TableCell>{sub.name}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{sub.name}</TableCell>
                     <TableCell>{formatCurrency(sub.total)}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {getIntervalLabel(sub.interval, sub.interval_count, t)}

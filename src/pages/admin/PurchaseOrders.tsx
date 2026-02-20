@@ -150,7 +150,7 @@ export default function PurchaseOrders() {
 
         {/* Orders Table */}
         <Card>
-          <CardContent className="overflow-x-auto p-0 sm:p-6">
+          <CardContent className="p-0 sm:p-6">
             <div>
             <Table>
               <TableHeader>
@@ -182,7 +182,7 @@ export default function PurchaseOrders() {
                           {order.order_number}
                         </Link>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[180px] truncate">
                         <Link
                           to={`/admin/suppliers/${order.supplier_id}`}
                           className="hover:text-primary"

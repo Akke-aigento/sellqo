@@ -224,7 +224,7 @@ export default function PaymentsPage() {
               <CardTitle>Recente Transacties</CardTitle>
               <CardDescription>Al je Stripe transacties van de afgelopen periode</CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto px-0 sm:px-6">
+            <CardContent className="px-0 sm:px-6">
               {transactionsError ? (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -300,7 +300,7 @@ export default function PaymentsPage() {
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto px-0 sm:px-6">
+            <CardContent className="px-0 sm:px-6">
               {payoutsError ? (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />

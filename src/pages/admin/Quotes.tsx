@@ -142,7 +142,6 @@ export default function QuotesPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
             <div>
             <Table>
               <TableHeader>
@@ -164,7 +163,7 @@ export default function QuotesPage() {
                     onClick={() => navigate(`/admin/orders/quotes/${quote.id}`)}
                   >
                     <TableCell className="font-medium">{quote.quote_number}</TableCell>
-                    <TableCell>{getCustomerName(quote)}</TableCell>
+                    <TableCell className="max-w-[180px] truncate">{getCustomerName(quote)}</TableCell>
                     <TableCell>
                       <QuoteStatusBadge status={quote.status} />
                     </TableCell>
@@ -228,7 +227,6 @@ export default function QuotesPage() {
                 ))}
               </TableBody>
             </Table>
-            </div>
             </div>
           )}
         </CardContent>
