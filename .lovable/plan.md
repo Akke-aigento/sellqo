@@ -1,67 +1,40 @@
 
 
-# Inbox Responsive Maken voor Tablet en Mobiel
+# Tablet: Mobiel-achtige Layout (Eén paneel)
 
-## Probleem
+## Wat verandert
 
-De inbox pagina heeft een vaste 3-kolommen layout die altijd wordt getoond, ongeacht schermgrootte. Op mobiel (390px) en tablet (768px) past dit niet en verdwijnt alles.
+De tablet-versie (768px - 1024px) gaat werken zoals de mobiele versie: **één paneel tegelijk** zichtbaar. De gebruiker ziet óf de gesprekkenlijst, óf het detail-paneel met een terugknop.
 
-## Aanpak: Paneel-gebaseerde navigatie op kleinere schermen
+## Wijzigingen
 
-### Mobiel (< 768px)
-- Toon **een paneel tegelijk**: gesprekkenlijst OF gesprekdetail
-- Mappenlijst wordt automatisch ingeklapt (alleen iconen)
-- Wanneer je een gesprek selecteert, schuift het detail-paneel in beeld
-- Terugknop in de detail-header om terug te gaan naar de lijst
-- Header wordt compacter (kleinere titel, knop past beter)
+### `src/pages/admin/Messages.tsx`
 
-### Tablet (768px - 1024px)
-- Mappenlijst automatisch ingeklapt (iconen-modus)
-- Gesprekkenlijst smaller (w-60 i.p.v. w-72)
-- Detail-paneel neemt de rest in
+De huidige code behandelt tablet anders dan mobiel. Dit wordt samengevoegd:
 
-### Desktop (> 1024px)
-- Huidige layout blijft exact hetzelfde
+- **`showList` en `showDetail`** logica aanpassen: nu alleen gebaseerd op `!isMobile`, wordt `!isMobile && !isTablet` (dus zowel mobiel als tablet toont één paneel)
+- **`handleSelectConversation`**: ook op tablet naar detail-view schakelen
+- **`handleBack`**: ook beschikbaar op tablet
+- **Gesprekkenlijst breedte**: op tablet `flex-1` (volledig breed) in plaats van `w-60`
+- **Header**: op tablet dezelfde compactere weergave als mobiel
+- **`onBack` prop**: ook doorgeven aan `ConversationDetail` wanneer het tablet is
 
-## Technische wijzigingen
+Concreet worden de volgende regels aangepast:
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/admin/Messages.tsx` | Responsieve layout-logica: `useIsMobile()` hook, state voor actief paneel (list/detail), conditioneel tonen van panelen, automatisch sidebar collapsen op tablet |
-| `src/components/admin/inbox/ConversationDetail.tsx` | Terugknop toevoegen in de header op mobiel (callback `onBack`) |
+| Regel | Huidige situatie | Wordt |
+|-------|-----------------|-------|
+| `showList` / `showDetail` (r148-149) | Alleen mobiel toont één paneel | Mobiel **en** tablet tonen één paneel |
+| `handleSelectConversation` (r76) | Alleen bij `isMobile` naar detail | Bij `isMobile \|\| isTablet` naar detail |
+| Gesprekkenlijst breedte (r219) | Tablet krijgt `w-60` | Tablet krijgt `flex-1` (volledig breed) |
+| Header (r153-163) | Compact alleen op mobiel | Compact op mobiel **en** tablet |
+| `onBack` prop (r270) | Alleen op mobiel | Op mobiel **en** tablet |
 
-### Messages.tsx - Kernwijzigingen
+### Geen wijzigingen nodig in andere bestanden
 
-1. Import `useIsMobile` hook en voeg een `md` breakpoint check toe
-2. Voeg `mobileView` state toe: `'list' | 'detail'`
-3. Bij gesprek selectie op mobiel: schakel naar detail-view
-4. Sidebar automatisch collapsen op schermen < 1024px
-5. Conditionele rendering:
-   - Mobiel: toon alleen het actieve paneel
-   - Tablet/desktop: toon alle panelen maar met aangepaste breedtes
-6. Header compacter op mobiel (kleinere padding, kortere tekst)
+`ConversationDetail.tsx` heeft al de `onBack` prop en terugknop-logica ingebouwd. Die werkt automatisch goed wanneer de prop wordt meegegeven.
 
-### ConversationDetail.tsx - Kernwijzigingen
+## Resultaat
 
-1. Nieuwe prop: `onBack?: () => void`
-2. Op mobiel een terugknop tonen links in de header
-3. Header layout iets compacter voor kleinere schermen
-
-### Layout classes (voorbeeld)
-
-```text
-Mobiel:
-  - Folders: verborgen (of w-10 collapsed)
-  - List: volledig breed wanneer actief
-  - Detail: volledig breed wanneer actief, met terugknop
-
-Tablet:
-  - Folders: w-12 (collapsed)
-  - List: w-60
-  - Detail: flex-1
-
-Desktop (ongewijzigd):
-  - Folders: w-44 (of w-12 collapsed)
-  - List: w-72
-  - Detail: flex-1
-```
+- **Mobiel (< 768px)**: Eén paneel, zoals nu -- geen verandering
+- **Tablet (768px - 1024px)**: Eén paneel, met gesprekkenlijst over volle breedte en detail-paneel met terugknop
+- **Desktop (> 1024px)**: Drie kolommen -- geen verandering
