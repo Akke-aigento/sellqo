@@ -15,11 +15,14 @@ import {
   Edit,
   Trash2,
   ExternalLink,
-  UserPlus
+  UserPlus,
+  Loader2
 } from 'lucide-react';
-import { useCustomer, useCustomerOrders } from '@/hooks/useCustomers';
+import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
 import { useTenant } from '@/hooks/useTenant';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +43,51 @@ export default function CustomerDetailPage() {
   const { orders, isLoading: ordersLoading } = useCustomerOrders(customerId);
   const { conversations, isLoading: conversationsLoading } = useCustomerConversations(customerId);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const { createCustomer } = useCustomers();
+
+  // Query customer_messages for from_email when customer not found
+  const { data: messageData } = useQuery({
+    queryKey: ['customer-message-lookup', customerId, currentTenant?.id],
+    queryFn: async () => {
+      if (!customerId || !currentTenant?.id) return null;
+      const { data } = await supabase
+        .from('customer_messages')
+        .select('from_email, context_data')
+        .eq('customer_id', customerId)
+        .eq('tenant_id', currentTenant.id)
+        .eq('direction', 'inbound')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      return data?.[0] || null;
+    },
+    enabled: !!customerId && !!currentTenant?.id && !isLoading && !customer,
+  });
+
+  const handleDirectCreate = async () => {
+    if (!messageData?.from_email || !currentTenant?.id) return;
+    setIsCreating(true);
+    try {
+      // Try to extract name from context_data or from_email
+      const contextData = messageData.context_data as Record<string, unknown> | null;
+      const senderName = (contextData?.sender_name as string) || (contextData?.from_name as string) || '';
+      const nameParts = senderName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      const result = await createCustomer.mutateAsync({
+        customer_type: 'prospect',
+        first_name: firstName,
+        last_name: lastName,
+        email: messageData.from_email,
+      });
+      navigate(`/admin/customers/${result.id}`);
+    } catch {
+      // Error toast is handled by useCustomers hook
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -63,17 +111,30 @@ export default function CustomerDetailPage() {
             Klant nog niet in klantenbestand of bestaat niet meer.
           </AlertDescription>
         </Alert>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Toevoegen aan klantenbestand
-        </Button>
-        <CustomerSelectDialog
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          onSelect={(newCustomer: Customer) => {
-            navigate(`/admin/customers/${newCustomer.id}`);
-          }}
-        />
+        {messageData?.from_email ? (
+          <Button onClick={handleDirectCreate} disabled={isCreating}>
+            {isCreating ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <UserPlus className="h-4 w-4 mr-2" />
+            )}
+            Toevoegen: {messageData.from_email}
+          </Button>
+        ) : (
+          <>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Toevoegen aan klantenbestand
+            </Button>
+            <CustomerSelectDialog
+              open={showCreateDialog}
+              onOpenChange={setShowCreateDialog}
+              onSelect={(newCustomer: Customer) => {
+                navigate(`/admin/customers/${newCustomer.id}`);
+              }}
+            />
+          </>
+        )}
       </div>
     );
   }
