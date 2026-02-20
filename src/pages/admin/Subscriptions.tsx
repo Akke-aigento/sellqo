@@ -149,7 +149,7 @@ export default function SubscriptionsPage() {
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
-          <div className="min-w-[700px]">
+          <div>
           <Table>
             <TableHeader>
               <TableRow>

@@ -352,7 +352,7 @@ export default function Fulfillment() {
               <p>Geen orders gevonden</p>
             </div>
           ) : (
-            <div className="min-w-[600px]">
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>

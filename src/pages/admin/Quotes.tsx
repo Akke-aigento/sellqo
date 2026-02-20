@@ -143,7 +143,7 @@ export default function QuotesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-            <div className="min-w-[600px]">
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>

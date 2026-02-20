@@ -151,7 +151,7 @@ export default function PurchaseOrders() {
         {/* Orders Table */}
         <Card>
           <CardContent className="overflow-x-auto p-0 sm:p-6">
-            <div className="min-w-[600px]">
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>

@@ -180,7 +180,7 @@ export default function InvoicesPage() {
               </p>
             </div>
           ) : (
-            <div className="min-w-[750px]">
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>
