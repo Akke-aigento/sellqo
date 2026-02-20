@@ -1,40 +1,34 @@
 
-
-# Tablet: Mobiel-achtige Layout (Eén paneel)
+# Klant niet gevonden: Tekst aanpassen en "Toevoegen" knop
 
 ## Wat verandert
 
-De tablet-versie (768px - 1024px) gaat werken zoals de mobiele versie: **één paneel tegelijk** zichtbaar. De gebruiker ziet óf de gesprekkenlijst, óf het detail-paneel met een terugknop.
+### 1. Melding tekst aanpassen
+De rode foutmelding op de klantdetailpagina (`src/pages/admin/CustomerDetail.tsx`, regel 59) wordt gewijzigd van:
 
-## Wijzigingen
+> "Klant niet gevonden. Deze klant bestaat mogelijk niet meer."
 
-### `src/pages/admin/Messages.tsx`
+naar:
 
-De huidige code behandelt tablet anders dan mobiel. Dit wordt samengevoegd:
+> "Klant nog niet in klantenbestand of bestaat niet meer."
 
-- **`showList` en `showDetail`** logica aanpassen: nu alleen gebaseerd op `!isMobile`, wordt `!isMobile && !isTablet` (dus zowel mobiel als tablet toont één paneel)
-- **`handleSelectConversation`**: ook op tablet naar detail-view schakelen
-- **`handleBack`**: ook beschikbaar op tablet
-- **Gesprekkenlijst breedte**: op tablet `flex-1` (volledig breed) in plaats van `w-60`
-- **Header**: op tablet dezelfde compactere weergave als mobiel
-- **`onBack` prop**: ook doorgeven aan `ConversationDetail` wanneer het tablet is
+### 2. Knop toevoegen: "Toevoegen aan klantenbestand"
+Onder de melding komt een knop waarmee je de klant direct kunt aanmaken. Dit werkt door:
 
-Concreet worden de volgende regels aangepast:
+- Het `customerId` uit de URL te parsen (dit bevat vaak het e-mailadres of naam-informatie)
+- Een knop te tonen die de `CustomerSelectDialog` opent in "nieuwe klant"-modus, of direct een simpel formulier toont
+- Na het aanmaken wordt de gebruiker doorgestuurd naar de nieuwe klantpagina
 
-| Regel | Huidige situatie | Wordt |
-|-------|-----------------|-------|
-| `showList` / `showDetail` (r148-149) | Alleen mobiel toont één paneel | Mobiel **en** tablet tonen één paneel |
-| `handleSelectConversation` (r76) | Alleen bij `isMobile` naar detail | Bij `isMobile \|\| isTablet` naar detail |
-| Gesprekkenlijst breedte (r219) | Tablet krijgt `w-60` | Tablet krijgt `flex-1` (volledig breed) |
-| Header (r153-163) | Compact alleen op mobiel | Compact op mobiel **en** tablet |
-| `onBack` prop (r270) | Alleen op mobiel | Op mobiel **en** tablet |
+## Technische wijzigingen
 
-### Geen wijzigingen nodig in andere bestanden
+### `src/pages/admin/CustomerDetail.tsx`
 
-`ConversationDetail.tsx` heeft al de `onBack` prop en terugknop-logica ingebouwd. Die werkt automatisch goed wanneer de prop wordt meegegeven.
+| Onderdeel | Wijziging |
+|-----------|-----------|
+| Foutmelding tekst (regel 59) | Tekst aanpassen naar nieuwe formulering |
+| Foutmelding blok (regels 50-63) | Knop toevoegen onder de Alert met "Toevoegen aan klantenbestand" |
+| Imports | `UserPlus` icoon toevoegen, `CustomerSelectDialog` importeren |
+| State | `showCreateDialog` state toevoegen |
+| Logica | Na aanmaken klant via dialog, navigeren naar de nieuwe klant-pagina |
 
-## Resultaat
-
-- **Mobiel (< 768px)**: Eén paneel, zoals nu -- geen verandering
-- **Tablet (768px - 1024px)**: Eén paneel, met gesprekkenlijst over volle breedte en detail-paneel met terugknop
-- **Desktop (> 1024px)**: Drie kolommen -- geen verandering
+De bestaande `CustomerSelectDialog` component wordt hergebruikt -- die heeft al een "Nieuwe klant aanmaken" formulier ingebouwd. De dialog opent direct in de "nieuwe klant"-modus zodat de gebruiker meteen kan invullen.
