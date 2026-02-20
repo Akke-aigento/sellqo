@@ -1,30 +1,58 @@
 
-# Horizontaal scrollen verwijderen op alle bestellingen-pagina's
+# Horizontaal scrollen definitief verwijderen
 
-## Probleem
+## Oorzaak
 
-Alle tabellen in de bestellingen-sectie hebben een `min-w-[600px]` / `min-w-[700px]` / `min-w-[750px]` wrapper die horizontaal scrollen forceert, zelfs op desktop. Dit moet nooit voorkomen.
+Het probleem zit dieper dan de `min-w` wrappers die we eerder verwijderd hebben. De `Table` UI-component zelf bevat een wrapper `<div className="relative w-full overflow-auto">` die horizontaal scrollen mogelijk maakt. Daarnaast bevatten sommige tabelcellen lange tekst (e.g. emailadressen) die de tabel breder maken dan het scherm.
 
-## Oplossing
+## Oplossing (twee stappen)
 
-Alle `min-w-[...]` wrappers rondom tabellen verwijderen. De tabellen hebben al voldoende kolommen verborgen via `hidden sm:table-cell` / `hidden md:table-cell` / `hidden lg:table-cell`, waardoor ze op elk schermformaat passen zonder horizontaal scrollen.
+### Stap 1: Table component aanpassen
 
-## Bestanden en wijzigingen
+In `src/components/ui/table.tsx` de `overflow-auto` vervangen door `overflow-hidden` zodat tabellen nooit horizontaal scrollen maar altijd binnen hun container passen.
 
-| Bestand | Huidige min-w | Actie |
-|---------|--------------|-------|
-| `src/pages/admin/Orders.tsx` (regel 144) | `min-w-[700px]` | Verwijderen |
-| `src/pages/admin/Quotes.tsx` (regel 146) | `min-w-[600px]` | Verwijderen |
-| `src/pages/admin/Invoices.tsx` (regel 183) | `min-w-[750px]` | Verwijderen |
-| `src/pages/admin/CreditNotes.tsx` (regel 134) | `min-w-[600px]` | Verwijderen |
-| `src/pages/admin/PurchaseOrders.tsx` (regel 154) | `min-w-[600px]` | Verwijderen |
-| `src/pages/admin/Fulfillment.tsx` (regel 355) | `min-w-[600px]` | Verwijderen |
-| `src/pages/admin/Payments.tsx` (regel 246) | `min-w-[600px]` | Verwijderen |
-| `src/pages/admin/Payments.tsx` (regel 322) | `min-w-[400px]` | Verwijderen |
-| `src/pages/admin/Subscriptions.tsx` (regel 152) | `min-w-[700px]` | Verwijderen |
+### Stap 2: Per pagina tabelcellen met lange content afkappen
 
-Bij elke tabel wordt de `<div className="min-w-[...]">` wrapper verwijderd of vervangen door een simpele `<div>` zonder min-width, zodat de tabel altijd 100% breed is en nooit horizontaal scrollen vereist.
+Op elke pagina waar lange tekst (emails, namen, omschrijvingen) voorkomt, `truncate` en `max-w-[...]` toepassen zodat de inhoud wordt afgekapt met "..." in plaats van de tabel breder te maken.
 
-## Technische aanpak
+## Wijzigingen per bestand
 
-Per bestand: de `min-w-[XXX]` class verwijderen van de wrapper-div rondom de Table-component. De bestaande responsive column-hiding (`hidden sm:table-cell` etc.) zorgt ervoor dat de tabel altijd past.
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/ui/table.tsx` | `overflow-auto` naar `overflow-hidden` in de Table wrapper |
+| `src/pages/admin/Orders.tsx` | `truncate max-w-[200px]` op Klant-kolom (emails); verwijder `overflow-x-auto` van CardContent |
+| `src/pages/admin/Quotes.tsx` | `truncate max-w-[180px]` op Klant-kolom; verwijder dubbele `overflow-x-auto` wrapper div |
+| `src/pages/admin/Invoices.tsx` | `truncate max-w-[180px]` op Klant email; verwijder `overflow-x-auto` van CardContent |
+| `src/pages/admin/CreditNotes.tsx` | `truncate max-w-[180px]` op Klant-kolom; verwijder `overflow-x-auto` |
+| `src/pages/admin/PurchaseOrders.tsx` | `truncate` op Leverancier-kolom; `overflow-x-auto` verwijderen van CardContent |
+| `src/pages/admin/Fulfillment.tsx` | `truncate` op Klant-kolom; `overflow-x-auto` verwijderen |
+| `src/pages/admin/Payments.tsx` | `truncate` op Omschrijving; `overflow-x-auto` verwijderen van beide CardContent containers |
+| `src/pages/admin/Subscriptions.tsx` | `truncate max-w-[150px]` op Klant en Naam kolommen; `overflow-x-auto` verwijderen |
+
+## Technische details
+
+### Table component (`src/components/ui/table.tsx`)
+
+De wrapper div verandert van:
+```
+<div className="relative w-full overflow-auto">
+```
+naar:
+```
+<div className="relative w-full overflow-hidden">
+```
+
+Dit voorkomt dat tabellen ooit horizontaal scrollen. In combinatie met de al bestaande `hidden sm:table-cell` classes op kolommen zorgt dit ervoor dat tabellen altijd binnen het scherm passen.
+
+### Tabelcellen met lange tekst
+
+Cellen die emails of lange namen bevatten krijgen `truncate` en een `max-w` class. Voorbeeld:
+```
+<TableCell className="truncate max-w-[200px]">
+```
+
+Dit kapt de tekst netjes af met "..." als deze te lang is, in plaats van de tabel breder te maken.
+
+### CardContent overflow verwijderen
+
+Alle `className="overflow-x-auto px-0 sm:px-6"` worden vereenvoudigd naar `className="px-0 sm:px-6"` omdat de overflow niet meer nodig is.
