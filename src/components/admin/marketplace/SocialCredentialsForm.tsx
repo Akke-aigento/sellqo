@@ -57,7 +57,7 @@ interface CredentialCardProps {
   tenantId: string;
 }
 
-function CredentialCard({ config, existing, tenantId }: CredentialCardProps) {
+export function CredentialCard({ config, existing, tenantId }: CredentialCardProps) {
   const queryClient = useQueryClient();
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');

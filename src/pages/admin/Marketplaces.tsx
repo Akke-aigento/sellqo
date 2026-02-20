@@ -2,28 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, Megaphone, MessageCircle } from 'lucide-react';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MarketplaceCard } from '@/components/admin/marketplace/MarketplaceCard';
 import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/ConnectMarketplaceDialog';
-import { SocialChannelList } from '@/components/admin/marketplace/SocialChannelList';
-import { SocialConnectionsManager } from '@/components/admin/settings/SocialConnectionsManager';
-import { MessagingChannelList } from '@/components/admin/marketplace/MessagingChannelList';
+import { UnifiedChannelList } from '@/components/admin/marketplace/UnifiedChannelList';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
-import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
@@ -47,6 +39,10 @@ export default function MarketplacesPage() {
   const [connectingType, setConnectingType] = useState<MarketplaceType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
 
+  // Read tab from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const defaultTab = urlParams.get('tab') === 'channels' ? 'channels' : 'marketplaces';
+
   const handleConnect = (type: MarketplaceType) => {
     setConnectingType(type);
   };
@@ -60,11 +56,10 @@ export default function MarketplacesPage() {
 
   const handleDisconnect = async () => {
     if (!disconnectingId) return;
-    
     try {
       await deleteConnection.mutateAsync(disconnectingId);
       setDisconnectingId(null);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };
@@ -145,7 +140,7 @@ export default function MarketplacesPage() {
         </Card>
       </div>
 
-      {/* Error Alert if any connection has errors */}
+      {/* Error Alert */}
       {connections.some(c => c.last_error) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -156,29 +151,20 @@ export default function MarketplacesPage() {
         </Alert>
       )}
 
-      {/* Tabs for Marketplaces, Social Commerce and Autopost */}
-      <Tabs defaultValue="marketplaces" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+      {/* Simplified Tabs: Marktplaatsen + Kanalen */}
+      <Tabs defaultValue={defaultTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
-            E-commerce
+            Marktplaatsen
           </TabsTrigger>
-          <TabsTrigger value="social" className="flex items-center gap-2">
+          <TabsTrigger value="channels" className="flex items-center gap-2">
             <Share2 className="w-4 h-4" />
-            Social Commerce
-          </TabsTrigger>
-          <TabsTrigger value="autopost" className="flex items-center gap-2">
-            <Megaphone className="w-4 h-4" />
-            Autopost
-          </TabsTrigger>
-          <TabsTrigger value="messaging" className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />
-            Berichten
+            Kanalen
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="marketplaces" className="mt-6">
-          {/* Marketplace Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'odoo', 'ebay'] as MarketplaceType[]).map((type) => {
               const info = MARKETPLACE_INFO[type];
@@ -196,7 +182,6 @@ export default function MarketplacesPage() {
               );
             })}
 
-            {/* Request Integration Card */}
             <MarketplaceCard
               info={MARKETPLACE_INFO.request as any}
               onConnect={handleRequestIntegration}
@@ -206,34 +191,14 @@ export default function MarketplacesPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="social" className="mt-6">
+        <TabsContent value="channels" className="mt-6">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Social Commerce Kanalen</h2>
+            <h2 className="text-xl font-semibold mb-2">Kanalen</h2>
             <p className="text-muted-foreground">
-              Verbind je producten met sociale media en shopping platforms om je bereik te vergroten.
+              Social commerce, messaging en autoposting — alles op één plek.
             </p>
           </div>
-          <SocialChannelList />
-        </TabsContent>
-
-        <TabsContent value="autopost" className="mt-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Automatisch Posten</h2>
-            <p className="text-muted-foreground">
-              Koppel je social media accounts om automatisch content te posten via AI.
-            </p>
-          </div>
-          <SocialConnectionsManager />
-        </TabsContent>
-
-        <TabsContent value="messaging" className="mt-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Berichten Kanalen</h2>
-            <p className="text-muted-foreground">
-              Verbind messaging kanalen om klantberichten direct in je inbox te ontvangen en beantwoorden.
-            </p>
-          </div>
-          <MessagingChannelList />
+          <UnifiedChannelList />
         </TabsContent>
       </Tabs>
 
