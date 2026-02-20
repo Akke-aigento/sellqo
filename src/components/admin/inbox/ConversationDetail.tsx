@@ -1,7 +1,8 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram, UserPlus } from 'lucide-react';
+import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram, UserPlus, ArrowLeft } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface ConversationDetailProps {
   onDelete?: () => void;
   onRestore?: () => void;
   onMoveToFolder?: (folderId: string | null) => void;
+  onBack?: () => void;
 }
 
 export function ConversationDetail({
@@ -32,10 +34,12 @@ export function ConversationDetail({
   onDelete,
   onRestore,
   onMoveToFolder,
+  onBack,
 }: ConversationDetailProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { createCustomer } = useCustomers();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   // Mark as read when viewing
@@ -146,9 +150,14 @@ export function ConversationDetail({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b flex items-center gap-4">
-        <Avatar className="h-10 w-10">
-          <AvatarFallback>{initials}</AvatarFallback>
+      <div className={`${isMobile ? 'p-3' : 'p-4'} border-b flex items-center gap-3`}>
+        {onBack && (
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+        <Avatar className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'}`}>
+          <AvatarFallback className={isMobile ? 'text-xs' : ''}>{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -173,8 +182,8 @@ export function ConversationDetail({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {linkedOrderId && (
+        <div className="flex items-center gap-1 sm:gap-2">
+          {linkedOrderId && !isMobile && (
             <Button variant="outline" size="sm" asChild>
               <Link to={`/admin/orders/${linkedOrderId}`}>
                 <Package className="h-4 w-4 mr-1" />
@@ -183,7 +192,7 @@ export function ConversationDetail({
               </Link>
             </Button>
           )}
-          {customer?.id ? (
+          {!isMobile && (customer?.id ? (
             <Button variant="outline" size="sm" asChild>
               <Link to={`/admin/customers/${customer.id}`}>
                 <User className="h-4 w-4 mr-1" />
@@ -201,7 +210,7 @@ export function ConversationDetail({
               <UserPlus className="h-4 w-4 mr-1" />
               {isCreatingCustomer ? 'Aanmaken...' : 'Maak klant aan'}
             </Button>
-          )}
+          ))}
           {/* Conversation actions dropdown */}
           <ConversationActions
             conversationStatus={conversationStatus}
