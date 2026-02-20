@@ -43,7 +43,8 @@ import {
   ExternalLink,
   Printer,
   CheckCircle2,
-  Upload
+  Upload,
+  Eye
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -420,14 +421,14 @@ export default function Fulfillment() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1 sm:gap-2">
                         {!order.tracking_number ? (
                           <Button
                             size="sm"
                             onClick={() => openTrackingDialog(order)}
                           >
-                            <Truck className="h-4 w-4 mr-2" />
-                            Tracking
+                            <Truck className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Tracking</span>
                           </Button>
                         ) : (
                           <Button
@@ -435,7 +436,8 @@ export default function Fulfillment() {
                             variant="outline"
                             onClick={() => openTrackingDialog(order)}
                           >
-                            Bewerken
+                            <span className="hidden sm:inline">Bewerken</span>
+                            <span className="sm:hidden">Edit</span>
                           </Button>
                         )}
                         {!isWarehouse && (
@@ -444,7 +446,8 @@ export default function Fulfillment() {
                             variant="ghost"
                             onClick={() => navigate(`/admin/orders/${order.id}`)}
                           >
-                            Details
+                            <span className="hidden sm:inline">Details</span>
+                            <Eye className="h-4 w-4 sm:hidden" />
                           </Button>
                         )}
                       </div>

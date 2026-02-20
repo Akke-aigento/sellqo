@@ -113,7 +113,7 @@ export default function CreditNotesPage() {
             {creditNotes.length} creditnota's gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -131,14 +131,15 @@ export default function CreditNotesPage() {
               </p>
             </div>
           ) : (
+            <div className="min-w-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nummer</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead>Originele factuur</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Datum</TableHead>
+                  <TableHead className="hidden md:table-cell">Originele factuur</TableHead>
+                  <TableHead className="hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
                   <TableHead className="text-right">Bedrag</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
@@ -151,7 +152,7 @@ export default function CreditNotesPage() {
                       {creditNote.credit_note_number}
                     </TableCell>
                     <TableCell>{getCustomerName(creditNote)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {creditNote.original_invoice ? (
                         <Button
                           variant="link"
@@ -165,8 +166,8 @@ export default function CreditNotesPage() {
                         '-'
                       )}
                     </TableCell>
-                    <TableCell>{getTypeBadge(creditNote.type)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">{getTypeBadge(creditNote.type)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {format(new Date(creditNote.issue_date), 'd MMM yyyy', { locale: nl })}
                     </TableCell>
                     <TableCell className="text-right font-medium text-destructive">
@@ -211,6 +212,7 @@ export default function CreditNotesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

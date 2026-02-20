@@ -114,14 +114,14 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/orders/quotes')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{quote.quote_number}</h1>
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight">{quote.quote_number}</h1>
               <QuoteStatusBadge status={quote.status} />
             </div>
             <p className="text-muted-foreground">
@@ -129,7 +129,7 @@ export default function QuoteDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {quote.status === 'draft' && (
             <>
               <Button variant="outline" onClick={() => navigate(`/admin/orders/quotes/${quote.id}/edit`)}>

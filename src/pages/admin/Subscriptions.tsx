@@ -124,7 +124,7 @@ export default function SubscriptionsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle>{t('subscriptions.title')}</CardTitle>
               <CardDescription>
@@ -135,7 +135,7 @@ export default function SubscriptionsPage() {
               value={statusFilter}
               onValueChange={(v) => setStatusFilter(v as SubscriptionStatus | 'all')}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t('common.status')} />
               </SelectTrigger>
               <SelectContent>
@@ -156,8 +156,8 @@ export default function SubscriptionsPage() {
                 <TableHead>{t('subscriptions.customer')}</TableHead>
                 <TableHead>{t('subscriptions.name')}</TableHead>
                 <TableHead>{t('common.total')}</TableHead>
-                <TableHead>{t('subscriptions.billing_cycle')}</TableHead>
-                <TableHead>{t('subscriptions.next_invoice')}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t('subscriptions.billing_cycle')}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t('subscriptions.next_invoice')}</TableHead>
                 <TableHead>{t('common.status')}</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
@@ -179,10 +179,10 @@ export default function SubscriptionsPage() {
                     </TableCell>
                     <TableCell>{sub.name}</TableCell>
                     <TableCell>{formatCurrency(sub.total)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {getIntervalLabel(sub.interval, sub.interval_count, t)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {sub.next_invoice_date && sub.status === 'active' ? (
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
