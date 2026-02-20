@@ -205,10 +205,3 @@ export function getWidgetsByCategory(category: WidgetCategory): DashboardWidgetD
 // Default widget order (all widgets in default order)
 export const defaultWidgetOrder = dashboardWidgets.map((w) => w.id);
 
-// Widget size to grid classes mapping
-export const widgetSizeClasses: Record<WidgetSize, string> = {
-  sm: 'lg:col-span-1',
-  md: 'lg:col-span-1',
-  lg: 'lg:col-span-2',
-  full: 'lg:col-span-3',
-};

@@ -11,7 +11,7 @@ export function TodayWidget() {
   const { feedItems, todayStats, isConnected, isLoading } = useTodayLiveFeed();
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader className="pb-3">
         <LiveFeedHeader isConnected={isConnected} />
       </CardHeader>

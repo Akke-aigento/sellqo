@@ -71,6 +71,44 @@ export function DashboardGrid() {
   // Filter visible widgets
   const visibleWidgets = widgetOrder.filter((id) => isWidgetVisible(id));
 
+  // Split into full-width and column widgets
+  const fullWidgetIds = visibleWidgets.filter((id) => {
+    const def = getWidgetById(id);
+    return def?.defaultSize === 'full';
+  });
+
+  // Find leading full widgets, column widgets, and trailing full widgets
+  const leadingFull: string[] = [];
+  const trailingFull: string[] = [];
+  const columnWidgets: string[] = [];
+
+  let foundNonFull = false;
+  let lastNonFullIndex = -1;
+
+  // Find the last non-full widget index
+  for (let i = visibleWidgets.length - 1; i >= 0; i--) {
+    const def = getWidgetById(visibleWidgets[i]);
+    if (def?.defaultSize !== 'full') {
+      lastNonFullIndex = i;
+      break;
+    }
+  }
+
+  for (let i = 0; i < visibleWidgets.length; i++) {
+    const id = visibleWidgets[i];
+    const def = getWidgetById(id);
+    const isFull = def?.defaultSize === 'full';
+
+    if (!foundNonFull && isFull) {
+      leadingFull.push(id);
+    } else if (i > lastNonFullIndex && isFull) {
+      trailingFull.push(id);
+    } else {
+      foundNonFull = true;
+      columnWidgets.push(id);
+    }
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -92,7 +130,6 @@ export function DashboardGrid() {
       <DashboardWidgetWrapper
         key={widgetId}
         id={widgetId}
-        size={widgetDef.defaultSize}
         isEditMode={isEditMode}
       >
         <Widget />
@@ -145,16 +182,25 @@ export function DashboardGrid() {
         </div>
       </div>
 
-      {/* Widget Grid */}
+      {/* Widget Layout */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={visibleWidgets} strategy={rectSortingStrategy}>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {visibleWidgets.map(renderWidget)}
-          </div>
+          {/* Leading full-width widgets */}
+          {leadingFull.map(renderWidget)}
+
+          {/* Masonry columns for regular widgets */}
+          {columnWidgets.length > 0 && (
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+              {columnWidgets.map(renderWidget)}
+            </div>
+          )}
+
+          {/* Trailing full-width widgets */}
+          {trailingFull.map(renderWidget)}
         </SortableContext>
       </DndContext>
 
