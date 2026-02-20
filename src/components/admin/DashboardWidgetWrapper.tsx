@@ -8,12 +8,14 @@ interface DashboardWidgetWrapperProps {
   id: string;
   children: ReactNode;
   isEditMode?: boolean;
+  isLastInColumn?: boolean;
 }
 
 export function DashboardWidgetWrapper({
   id,
   children,
   isEditMode = false,
+  isLastInColumn = false,
 }: DashboardWidgetWrapperProps) {
   const {
     attributes,
@@ -34,9 +36,9 @@ export function DashboardWidgetWrapper({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'break-inside-avoid mb-4',
         isDragging && 'z-50 opacity-75',
-        isEditMode && 'relative'
+        isEditMode && 'relative',
+        isLastInColumn && 'flex-grow [&>div]:h-full'
       )}
     >
       {isEditMode && (

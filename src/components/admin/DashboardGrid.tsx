@@ -120,7 +120,7 @@ export function DashboardGrid() {
     }
   };
 
-  const renderWidget = (widgetId: string) => {
+  const renderWidget = (widgetId: string, isLastInColumn = false) => {
     const Widget = widgetComponents[widgetId];
     const widgetDef = getWidgetById(widgetId);
     
@@ -131,6 +131,7 @@ export function DashboardGrid() {
         key={widgetId}
         id={widgetId}
         isEditMode={isEditMode}
+        isLastInColumn={isLastInColumn}
       >
         <Widget />
       </DashboardWidgetWrapper>
@@ -190,17 +191,42 @@ export function DashboardGrid() {
       >
         <SortableContext items={visibleWidgets} strategy={rectSortingStrategy}>
           {/* Leading full-width widgets */}
-          {leadingFull.map(renderWidget)}
+          {leadingFull.map((id) => renderWidget(id))}
 
-          {/* Masonry columns for regular widgets */}
+          {/* Flexbox columns for regular widgets */}
           {columnWidgets.length > 0 && (
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
-              {columnWidgets.map(renderWidget)}
-            </div>
+            <>
+              {/* Mobile: 1 column */}
+              <div className="flex flex-col gap-4 md:hidden">
+                {columnWidgets.map((id, i) => renderWidget(id, i === columnWidgets.length - 1))}
+              </div>
+              {/* Tablet: 2 columns */}
+              <div className="hidden md:flex lg:hidden gap-4">
+                {Array.from({ length: 2 }, (_, colIdx) => {
+                  const col = columnWidgets.filter((_, i) => i % 2 === colIdx);
+                  return (
+                    <div key={colIdx} className="flex-1 flex flex-col gap-4">
+                      {col.map((id, i) => renderWidget(id, i === col.length - 1))}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Desktop: 3 columns */}
+              <div className="hidden lg:flex gap-4">
+                {Array.from({ length: 3 }, (_, colIdx) => {
+                  const col = columnWidgets.filter((_, i) => i % 3 === colIdx);
+                  return (
+                    <div key={colIdx} className="flex-1 flex flex-col gap-4">
+                      {col.map((id, i) => renderWidget(id, i === col.length - 1))}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {/* Trailing full-width widgets */}
-          {trailingFull.map(renderWidget)}
+          {trailingFull.map((id) => renderWidget(id))}
         </SortableContext>
       </DndContext>
 
