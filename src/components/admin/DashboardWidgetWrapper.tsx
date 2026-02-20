@@ -3,25 +3,15 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { WidgetSize } from '@/config/dashboardWidgets';
-
-const widgetSizeClasses: Record<WidgetSize, string> = {
-  sm: 'lg:col-span-1',
-  md: 'lg:col-span-1',
-  lg: 'lg:col-span-2',
-  full: 'lg:col-span-3',
-};
 
 interface DashboardWidgetWrapperProps {
   id: string;
-  size?: WidgetSize;
   children: ReactNode;
   isEditMode?: boolean;
 }
 
 export function DashboardWidgetWrapper({
   id,
-  size = 'md',
   children,
   isEditMode = false,
 }: DashboardWidgetWrapperProps) {
@@ -44,8 +34,7 @@ export function DashboardWidgetWrapper({
       ref={setNodeRef}
       style={style}
       className={cn(
-        widgetSizeClasses[size],
-        'h-full',
+        'break-inside-avoid mb-4',
         isDragging && 'z-50 opacity-75',
         isEditMode && 'relative'
       )}
