@@ -14,7 +14,8 @@ import {
   Calendar,
   Edit,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  UserPlus
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders } from '@/hooks/useCustomers';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
@@ -28,6 +29,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatCurrency } from '@/lib/utils';
+import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
+import type { Customer } from '@/types/order';
 
 export default function CustomerDetailPage() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -36,6 +39,7 @@ export default function CustomerDetailPage() {
   const { customer, isLoading, error } = useCustomer(customerId);
   const { orders, isLoading: ordersLoading } = useCustomerOrders(customerId);
   const { conversations, isLoading: conversationsLoading } = useCustomerConversations(customerId);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   if (isLoading) {
     return (
@@ -56,9 +60,20 @@ export default function CustomerDetailPage() {
         </Button>
         <Alert variant="destructive">
           <AlertDescription>
-            Klant niet gevonden. Deze klant bestaat mogelijk niet meer.
+            Klant nog niet in klantenbestand of bestaat niet meer.
           </AlertDescription>
         </Alert>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Toevoegen aan klantenbestand
+        </Button>
+        <CustomerSelectDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSelect={(newCustomer: Customer) => {
+            navigate(`/admin/customers/${newCustomer.id}`);
+          }}
+        />
       </div>
     );
   }
