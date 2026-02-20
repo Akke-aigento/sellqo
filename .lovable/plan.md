@@ -1,78 +1,58 @@
 
 
-# Berichten-tabblad toevoegen aan SellQo Connect
+# Fix: Facebook/Instagram Messenger verbinding - 400 error
 
-## Wat verandert
+## Oorzaak
 
-Een vierde tabblad **"Berichten"** wordt toegevoegd aan de SellQo Connect pagina. Dit tabblad toont alle kanalen waarmee klanten direct berichten kunnen sturen naar je inbox, los van de Shop- en Autopost-flows.
+Er zijn twee problemen:
 
-## Kanalen in het Berichten-tabblad
+### 1. Geen Meta credentials geconfigureerd
+De `tenant_oauth_credentials` tabel is leeg. De `social-oauth-init` edge function vereist dat je eerst je Meta App ID en App Secret hebt ingevoerd via **Instellingen -> API Credentials** (het `SocialCredentialsForm`). Zonder deze credentials kan de OAuth-flow niet starten.
 
-| Kanaal | Status | Koppelmethode |
-|--------|--------|---------------|
-| Facebook Messenger | Beschikbaar | Facebook OAuth (bestaande flow) |
-| Instagram DM's | Beschikbaar | Facebook OAuth (bestaande flow) |
-| WhatsApp Business | Beschikbaar | WhatsApp Embedded Signup (bestaande wizard) |
-| Telegram Business | Binnenkort | Bot token invoer (coming soon) |
-| Live Chat | Binnenkort | Configuratie (coming soon) |
+### 2. Foutmelding wordt niet correct getoond
+Wanneer de edge function een 400 returnt met een duidelijke melding ("OAuth niet geconfigureerd, ga naar Instellingen..."), vangt de code dit af als een generieke error via `if (error) throw error`. De gebruiksvriendelijke melding met `missingConfig` wordt daardoor nooit bereikt.
 
-## Layout
+## Oplossing
 
-```text
-Berichten-tabblad:
+### Bestand: `src/components/admin/marketplace/MessagingChannelList.tsx`
 
-+---------------------------+  +---------------------------+  +---------------------------+
-| [FB icon] Facebook        |  | [IG icon] Instagram       |  | [WA icon] WhatsApp        |
-| Messenger                 |  | Direct Messages           |  | Business                  |
-|                           |  |                           |  |                           |
-| Ontvang en beantwoord     |  | Ontvang en beantwoord     |  | Berichten en notificaties |
-| Facebook berichten        |  | Instagram DM's            |  | via WhatsApp              |
-|                           |  |                           |  |                           |
-| [Verbinden]               |  | [Verbinden]               |  | [Verbinden]               |
-+---------------------------+  +---------------------------+  +---------------------------+
+De error handling in `handleConnect` aanpassen zodat een 400-response correct wordt geparsed:
 
-+---------------------------+  +---------------------------+
-| [TG icon] Telegram        |  | [Chat icon] Live Chat     |
-| Business                  |  | Widget                    |
-|                           |  |                           |
-| Ontvang Telegram          |  | Chat widget voor je       |
-| berichten in je inbox     |  | webshop                   |
-|                           |  |                           |
-| [Binnenkort]              |  | [Binnenkort]              |
-+---------------------------+  +---------------------------+
+**Huidige code (probleem):**
+```typescript
+const { data, error } = await supabase.functions.invoke('social-oauth-init', { ... });
+if (error) throw error;  // <-- Gooit fout voordat missingConfig wordt gecheckt
 ```
 
-## Technische details
+**Nieuwe code (fix):**
+```typescript
+const { data, error } = await supabase.functions.invoke('social-oauth-init', { ... });
 
-### 1. Nieuw bestand: `src/components/admin/marketplace/MessagingChannelList.tsx`
+if (error) {
+  // Bij een non-2xx response bevat data vaak de JSON body met details
+  const errorData = data || {};
+  if (errorData?.missingConfig) {
+    toast.error(
+      'Meta App credentials niet geconfigureerd. Ga naar Instellingen → API Credentials om je Meta App ID en Secret in te voeren.',
+      { duration: 8000 }
+    );
+    return;
+  }
+  throw error;
+}
+```
 
-- Toont kaarten voor alle 5 messaging-kanalen
-- Facebook Messenger en Instagram DM's halen status op uit `meta_messaging_connections`
-- WhatsApp haalt status op uit `social_channel_connections` (type `whatsapp_business`)
-- Telegram en Live Chat worden getoond met een "Binnenkort" badge
-- "Verbinden" voor FB/IG start de bestaande Facebook OAuth flow via `social-oauth-init`
-- "Verbinden" voor WhatsApp opent de bestaande `WhatsAppConnectWizard`
+Dit zorgt ervoor dat:
+- Bij een ontbrekende configuratie een duidelijke melding verschijnt die de gebruiker naar de juiste plek stuurt
+- Andere fouten nog steeds als generieke fout worden getoond
 
-### 2. Nieuw bestand: `src/hooks/useMetaMessagingConnections.ts`
+### Geen andere wijzigingen nodig
 
-- Query op `meta_messaging_connections` tabel voor de huidige tenant
-- Returnt connecties per platform (facebook/instagram)
-- Delete-mutatie voor ontkoppelen
-- Helper: `getConnectionByPlatform(platform)`
+- De `social-oauth-init` edge function werkt correct -- hij stuurt al de juiste 400-response met `missingConfig: true`
+- De `SocialCredentialsForm` in Instellingen werkt al voor het invoeren van Meta credentials
+- Zodra de credentials zijn ingevoerd, zal de OAuth-flow correct starten
 
-### 3. Wijziging: `src/pages/admin/Marketplaces.tsx`
+---
 
-- TabsList uitbreiden van 3 naar 4 kolommen (`grid-cols-4`)
-- Nieuw tabblad "Berichten" met `MessageCircle` icoon
-- Import en render van `MessagingChannelList`
-- Stats-rij: eventueel een "Berichten Kanalen" stat toevoegen
+**Belangrijk:** Na deze fix moet je eerst je Meta App ID en App Secret invoeren via Instellingen voordat Facebook Messenger / Instagram DM's verbonden kunnen worden.
 
-### 4. Bestaande componenten hergebruikt
-
-- `WhatsAppConnectWizard` - wordt hergebruikt voor WhatsApp koppeling
-- `social-oauth-init` edge function - wordt hergebruikt voor FB/IG messaging OAuth
-- `meta_messaging_connections` tabel - data wordt al aangemaakt bij Facebook OAuth callback
-
-### Geen database wijzigingen nodig
-
-De `meta_messaging_connections` tabel en alle benodigde edge functions bestaan al. De WhatsApp-koppeling werkt al via de Social Commerce tab en wordt nu ook vanuit het Berichten-tabblad bereikbaar.
