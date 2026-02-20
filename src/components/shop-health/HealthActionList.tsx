@@ -14,7 +14,7 @@ interface HealthActionListProps {
 export function HealthActionList({ actionItems }: HealthActionListProps) {
   if (actionItems.length === 0) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -31,7 +31,7 @@ export function HealthActionList({ actionItems }: HealthActionListProps) {
   }
   
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-amber-500" />

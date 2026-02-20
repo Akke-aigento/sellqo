@@ -101,9 +101,9 @@ export function DashboardGrid() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header with controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
@@ -152,7 +152,7 @@ export function DashboardGrid() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={visibleWidgets} strategy={rectSortingStrategy}>
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             {visibleWidgets.map(renderWidget)}
           </div>
         </SortableContext>

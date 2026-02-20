@@ -109,7 +109,7 @@ export function DashboardPOSWidget() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <Skeleton className="h-5 w-24" />
           <Skeleton className="h-4 w-32" />
@@ -124,7 +124,7 @@ export function DashboardPOSWidget() {
 
   if (!stats || stats.terminals.length === 0) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Monitor className="h-5 w-5 text-primary" />
@@ -151,7 +151,7 @@ export function DashboardPOSWidget() {
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">

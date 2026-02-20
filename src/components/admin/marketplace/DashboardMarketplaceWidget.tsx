@@ -25,7 +25,7 @@ export function DashboardMarketplaceWidget() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <Skeleton className="h-5 w-40" />
         </CardHeader>
@@ -38,7 +38,7 @@ export function DashboardMarketplaceWidget() {
 
   if (activeConnections.length === 0) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" />
@@ -69,7 +69,7 @@ export function DashboardMarketplaceWidget() {
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-base flex items-center gap-2">

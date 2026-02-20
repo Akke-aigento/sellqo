@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 export function QuickActionsWidget() {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Snelle acties</CardTitle>
         <CardDescription>Veelgebruikte taken</CardDescription>
