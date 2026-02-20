@@ -73,10 +73,10 @@ export default function MessagesPage() {
   // Handle conversation selection (switch to detail on mobile)
   const handleSelectConversation = useCallback((id: string | null) => {
     setSelectedConversationId(id);
-    if (id && isMobile) {
+    if (id && (isMobile || isTablet)) {
       setMobileView('detail');
     }
-  }, [setSelectedConversationId, isMobile]);
+  }, [setSelectedConversationId, isMobile, isTablet]);
 
   // Handle back from detail on mobile
   const handleBack = useCallback(() => {
@@ -118,7 +118,7 @@ export default function MessagesPage() {
       setFilters({ ...filters, folderId });
     }
     setSelectedConversationId(null);
-    if (isMobile) setMobileView('list');
+    if (isMobile || isTablet) setMobileView('list');
   };
 
   // Drag and drop handlers
@@ -145,34 +145,35 @@ export default function MessagesPage() {
   };
 
   // Mobile: show only one panel at a time
-  const showList = !isMobile || mobileView === 'list';
-  const showDetail = !isMobile || mobileView === 'detail';
+  const isSinglePanel = isMobile || isTablet;
+  const showList = !isSinglePanel || mobileView === 'list';
+  const showDetail = !isSinglePanel || mobileView === 'detail';
 
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <div className={`${isMobile ? 'p-3 pb-0' : 'p-6 pb-0'}`}>
+      <div className={`${isSinglePanel ? 'p-3 pb-0' : 'p-6 pb-0'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
-              <MessageSquare className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
-              {isMobile ? 'Gesprekken' : 'Klantgesprekken'}
+            <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
+              <MessageSquare className={`${isSinglePanel ? 'h-5 w-5' : 'h-6 w-6'}`} />
+              {isSinglePanel ? 'Gesprekken' : 'Klantgesprekken'}
             </h1>
-            {!isMobile && (
+            {!isSinglePanel && (
               <p className="text-muted-foreground mt-1">
                 Beheer alle communicatie met klanten via email en social media
               </p>
             )}
           </div>
-          <Button onClick={() => setComposeOpen(true)} size={isMobile ? 'sm' : 'default'}>
+          <Button onClick={() => setComposeOpen(true)} size={isSinglePanel ? 'sm' : 'default'}>
             <PenSquare className="h-4 w-4 mr-2" />
-            {isMobile ? 'Nieuw' : 'Nieuw bericht'}
+            {isSinglePanel ? 'Nieuw' : 'Nieuw bericht'}
           </Button>
         </div>
 
         <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
       </div>
 
-      <div className={`${isMobile ? 'p-3' : 'p-6'} h-[calc(100%-${isMobile ? '3.5rem' : '5rem'})]`}>
+      <div className={`${isSinglePanel ? 'p-3' : 'p-6'} h-[calc(100%-${isSinglePanel ? '3.5rem' : '5rem'})]`}>
         <Card className="h-full flex overflow-hidden">
           <DndContext
             collisionDetection={closestCenter}
@@ -186,7 +187,7 @@ export default function MessagesPage() {
                   {!isSidebarCollapsed && (
                     <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
                   )}
-                  {!isMobile && (
+                  {!isSinglePanel && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -216,7 +217,7 @@ export default function MessagesPage() {
 
             {/* Middle - Conversation list */}
             {showList && (
-              <div className={`${isMobile ? 'flex-1' : isTablet ? 'w-60 min-w-60' : 'w-72 min-w-72'} border-r flex flex-col shrink-0 overflow-hidden`}>
+              <div className={`${isSinglePanel ? 'flex-1' : 'w-72 min-w-72'} border-r flex flex-col shrink-0 overflow-hidden`}>
                 <InboxFilters
                   filters={filters}
                   onFiltersChange={setFilters}
@@ -267,7 +268,7 @@ export default function MessagesPage() {
                   onDelete={() => deleteConversation(selectedConversation.id)}
                   onRestore={() => restoreConversation(selectedConversation.id)}
                   onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
-                  onBack={isMobile ? handleBack : undefined}
+                  onBack={isSinglePanel ? handleBack : undefined}
                 />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6">
