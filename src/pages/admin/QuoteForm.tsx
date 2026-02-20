@@ -138,7 +138,7 @@ export default function QuoteFormPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">
             {isEditing ? `Offerte ${quote?.quote_number}` : 'Nieuwe offerte'}
           </h1>
           <p className="text-muted-foreground">

@@ -37,7 +37,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           marketplace_source: value === 'all' ? undefined : value as MarketplaceSource 
         })}
       >
-        <SelectTrigger className="w-full sm:w-[160px]">
+        <SelectTrigger className="w-full sm:w-[140px]">
           <SelectValue placeholder="Bron" />
         </SelectTrigger>
         <SelectContent>
@@ -56,7 +56,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           status: value === 'all' ? undefined : value as OrderStatus 
         })}
       >
-        <SelectTrigger className="w-full sm:w-[160px]">
+        <SelectTrigger className="w-full sm:w-[140px]">
           <SelectValue placeholder="Orderstatus" />
         </SelectTrigger>
         <SelectContent>
@@ -77,7 +77,7 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           payment_status: value === 'all' ? undefined : value as PaymentStatus 
         })}
       >
-        <SelectTrigger className="w-full sm:w-[160px]">
+        <SelectTrigger className="w-full sm:w-[140px]">
           <SelectValue placeholder="Betaalstatus" />
         </SelectTrigger>
         <SelectContent>

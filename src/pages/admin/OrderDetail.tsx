@@ -73,8 +73,8 @@ export default function OrderDetailPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-48" />
-        <div className="grid gap-6 md:grid-cols-3">
-          <Skeleton className="h-[300px] md:col-span-2" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Skeleton className="h-[300px] lg:col-span-2" />
           <Skeleton className="h-[300px]" />
         </div>
       </div>
@@ -98,14 +98,14 @@ export default function OrderDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/orders')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-semibold tracking-tight">{order.order_number}</h1>
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{order.order_number}</h1>
               <OrderMarketplaceBadge source={order.marketplace_source} />
               <OrderStatusBadge status={order.status} />
               <PaymentStatusBadge status={order.payment_status} />
@@ -122,9 +122,9 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Order Items */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Order Items */}
           <Card>
             <CardHeader>
@@ -332,7 +332,7 @@ export default function OrderDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Klantinfo */}
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                 <div className="text-sm">
                   <div className="font-medium">{order.customer_name || 'Onbekend'}</div>
                   <div className="text-muted-foreground">{order.customer_email}</div>
@@ -364,7 +364,7 @@ export default function OrderDetailPage() {
               <Separator />
 
               {/* Adressen in 2 kolommen */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <MapPin className="h-3 w-3 text-muted-foreground" />

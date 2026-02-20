@@ -79,7 +79,7 @@ export default function PurchaseOrders() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <StatsCard
             title="Concepten"
             value={stats?.draft || 0}
@@ -117,7 +117,7 @@ export default function PurchaseOrders() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -132,7 +132,7 @@ export default function PurchaseOrders() {
                 </SelectContent>
               </Select>
               <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Leverancier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,15 +150,16 @@ export default function PurchaseOrders() {
 
         {/* Orders Table */}
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="overflow-x-auto p-0 sm:p-6">
+            <div className="min-w-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Ordernummer</TableHead>
                   <TableHead>Leverancier</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Orderdatum</TableHead>
-                  <TableHead>Verwachte levering</TableHead>
+                  <TableHead className="hidden sm:table-cell">Orderdatum</TableHead>
+                  <TableHead className="hidden sm:table-cell">Verwachte levering</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
@@ -192,12 +193,12 @@ export default function PurchaseOrders() {
                       <TableCell>
                         <PurchaseOrderStatusBadge status={order.status} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {format(new Date(order.order_date), "d MMM yyyy", {
                           locale: nl,
                         })}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {order.expected_delivery_date
                           ? format(
                               new Date(order.expected_delivery_date),
@@ -255,6 +256,7 @@ export default function PurchaseOrders() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

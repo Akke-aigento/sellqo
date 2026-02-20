@@ -72,9 +72,9 @@ export default function QuotesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Offertes</h1>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Offertes</h1>
           <p className="text-muted-foreground">
             Maak en beheer offertes voor je klanten
           </p>
@@ -101,7 +101,7 @@ export default function QuotesPage() {
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as QuoteStatus | 'all')}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -142,15 +142,17 @@ export default function QuotesPage() {
               )}
             </div>
           ) : (
+            <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nummer</TableHead>
                   <TableHead>Klant</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Geldig tot</TableHead>
+                  <TableHead className="hidden sm:table-cell">Geldig tot</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="text-right">Datum</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right">Datum</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -166,7 +168,7 @@ export default function QuotesPage() {
                     <TableCell>
                       <QuoteStatusBadge status={quote.status} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {quote.valid_until 
                         ? format(new Date(quote.valid_until), 'd MMM yyyy', { locale: nl })
                         : '-'}
@@ -174,7 +176,7 @@ export default function QuotesPage() {
                     <TableCell className="text-right font-medium">
                       €{Number(quote.total).toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-right text-muted-foreground">
                       {format(new Date(quote.created_at), 'd MMM yyyy', { locale: nl })}
                     </TableCell>
                     <TableCell>
@@ -226,6 +228,8 @@ export default function QuotesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </div>
           )}
         </CardContent>
       </Card>

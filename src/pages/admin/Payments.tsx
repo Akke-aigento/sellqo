@@ -101,8 +101,8 @@ export default function PaymentsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Betalingen</h1>
-          <p className="text-muted-foreground">Bekijk je transacties en uitbetalingen</p>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Betalingen</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Bekijk je transacties en uitbetalingen</p>
         </div>
         
         <Alert>
@@ -118,10 +118,10 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Betalingen</h1>
-          <p className="text-muted-foreground">Bekijk je transacties en uitbetalingen</p>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Betalingen</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Bekijk je transacties en uitbetalingen</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -130,7 +130,7 @@ export default function PaymentsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Beschikbaar Saldo</CardTitle>
@@ -206,14 +206,17 @@ export default function PaymentsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="overflow-x-auto">
         <TabsList>
           <TabsTrigger value="overview">Transacties</TabsTrigger>
           <TabsTrigger value="payouts">Uitbetalingen</TabsTrigger>
           <TabsTrigger value="reconciliation">
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Bank Reconciliatie
+            <span className="hidden sm:inline">Bank Reconciliatie</span>
+            <span className="sm:hidden">Bank</span>
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-4">
           <Card>
@@ -316,12 +319,13 @@ export default function PaymentsPage() {
                   <p>Nog geen uitbetalingen</p>
                 </div>
               ) : (
+                <div className="min-w-[400px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Aankomstdatum</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Methode</TableHead>
+                      <TableHead className="hidden sm:table-cell">Methode</TableHead>
                       <TableHead className="text-right">Bedrag</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -332,7 +336,7 @@ export default function PaymentsPage() {
                           {formatDate(payout.arrival_date)}
                         </TableCell>
                         <TableCell>{getPayoutStatusBadge(payout.status)}</TableCell>
-                        <TableCell className="capitalize">{payout.method}</TableCell>
+                        <TableCell className="hidden sm:table-cell capitalize">{payout.method}</TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(payout.amount, payout.currency)}
                         </TableCell>
@@ -340,6 +344,7 @@ export default function PaymentsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
