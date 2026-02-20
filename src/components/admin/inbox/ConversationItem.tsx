@@ -2,7 +2,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Conversation, ConversationChannel } from '@/hooks/useInbox';
 
@@ -78,19 +77,34 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
       )}
     >
       <div className="space-y-1">
-        {/* Row 1: Avatar + channel icon + time */}
-        <div className="flex items-center justify-between">
-          <div className="relative">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className={cn('text-xs', isUnread && 'bg-primary text-primary-foreground')}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+        {/* Row 1: Channel icon + sender name + time */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <ChannelIcon className={cn('h-4 w-4 shrink-0', getChannelColor(channel))} />
+            <span className={cn('text-sm font-medium truncate', isUnread && 'font-semibold')}>
+              {cleanName || 'Onbekend'}
+            </span>
             {isUnread && (
-              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-background" />
+              <span className="h-2 w-2 bg-destructive rounded-full shrink-0" />
+            )}
+            {marketplace === 'bol_com' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent>Bol.com bericht</TooltipContent>
+              </Tooltip>
+            )}
+            {marketplace === 'amazon' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Store className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent>Amazon bericht</TooltipContent>
+              </Tooltip>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
             <span>
               {formatDistanceToNow(new Date(lastMessage.created_at), {
                 addSuffix: false,
@@ -99,30 +113,6 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
             </span>
             {isReplied && <Check className="h-3.5 w-3.5 text-green-500" />}
           </div>
-        </div>
-
-        {/* Row 2: Sender name full width */}
-        <div className="flex items-center gap-1.5">
-          <ChannelIcon className={cn('h-4 w-4 shrink-0', getChannelColor(channel))} />
-          <span className={cn('text-sm font-medium truncate', isUnread && 'font-semibold')}>
-            {cleanName || 'Onbekend'}
-          </span>
-          {marketplace === 'bol_com' && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-              </TooltipTrigger>
-              <TooltipContent>Bol.com bericht</TooltipContent>
-            </Tooltip>
-          )}
-          {marketplace === 'amazon' && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Store className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              </TooltipTrigger>
-              <TooltipContent>Amazon bericht</TooltipContent>
-            </Tooltip>
-          )}
         </div>
 
         {/* Row 3: Subject full width */}

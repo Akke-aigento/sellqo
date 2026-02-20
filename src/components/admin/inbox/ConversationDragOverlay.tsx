@@ -1,5 +1,4 @@
 import { Mail, MessageSquare, Facebook, Instagram } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { Conversation, ConversationChannel } from '@/hooks/useInbox';
 
 interface ConversationDragOverlayProps {
@@ -39,22 +38,15 @@ export function ConversationDragOverlay({ conversation }: ConversationDragOverla
 
   return (
     <div className="bg-background border rounded-lg shadow-lg p-3 w-64 opacity-90 cursor-grabbing">
-      <div className="flex gap-3 items-center">
-        <Avatar className="h-8 w-8">
-          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-medium text-sm truncate">
-              {cleanName || 'Onbekend'}
-            </span>
-            <ChannelIcon className="h-3 w-3 text-muted-foreground shrink-0" />
-          </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {conversation.lastMessage?.subject || 'Geen onderwerp'}
-          </p>
-        </div>
+      <div className="flex items-center gap-1.5">
+        <ChannelIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="font-medium text-sm truncate">
+          {cleanName || 'Onbekend'}
+        </span>
       </div>
+      <p className="text-xs text-muted-foreground truncate mt-1">
+        {conversation.lastMessage?.subject || 'Geen onderwerp'}
+      </p>
     </div>
   );
 }
