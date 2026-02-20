@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { MessageSquare, PanelLeftClose, PanelLeft, PenSquare } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { useInbox } from '@/hooks/useInbox';
@@ -8,7 +8,22 @@ import { InboxFilters, ConversationList, ConversationDetail, FolderList, Compose
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Conversation } from '@/hooks/useInbox';
+
+const TABLET_BREAKPOINT = 1024;
+
+function useIsTablet() {
+  const [isTablet, setIsTablet] = useState(false);
+  useEffect(() => {
+    const check = () => setIsTablet(window.innerWidth < TABLET_BREAKPOINT);
+    check();
+    const mql = window.matchMedia(`(max-width: ${TABLET_BREAKPOINT - 1}px)`);
+    mql.addEventListener('change', check);
+    return () => mql.removeEventListener('change', check);
+  }, []);
+  return isTablet;
+}
 
 export default function MessagesPage() {
   const {
@@ -28,9 +43,19 @@ export default function MessagesPage() {
   } = useInbox();
 
   const { folders, archiveFolder, trashFolder } = useInboxFolders();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
+
+  // Auto-collapse sidebar on tablet and mobile
+  useEffect(() => {
+    if (isMobile || isTablet) {
+      setIsSidebarCollapsed(true);
+    }
+  }, [isMobile, isTablet]);
 
   // Bulk selection hook
   const {
@@ -45,6 +70,20 @@ export default function MessagesPage() {
     isLoading: isBulkLoading,
   } = useBulkInboxActions(conversations);
 
+  // Handle conversation selection (switch to detail on mobile)
+  const handleSelectConversation = useCallback((id: string | null) => {
+    setSelectedConversationId(id);
+    if (id && isMobile) {
+      setMobileView('detail');
+    }
+  }, [setSelectedConversationId, isMobile]);
+
+  // Handle back from detail on mobile
+  const handleBack = useCallback(() => {
+    setMobileView('list');
+    setSelectedConversationId(null);
+  }, [setSelectedConversationId]);
+
   // Count by channel
   const counts = useMemo(() => {
     const email = conversations.filter((c) => c.channel === 'email').length;
@@ -57,30 +96,20 @@ export default function MessagesPage() {
   // Count by folder
   const folderCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    
-    // Inbox count (active messages without folder)
     counts['inbox'] = conversations.filter(c => c.messageStatus === 'active' && !c.folderId).length;
-    
-    // Archive count
     if (archiveFolder) {
       counts[archiveFolder.id] = conversations.filter(c => c.messageStatus === 'archived').length;
     }
-    
-    // Trash count
     if (trashFolder) {
       counts[trashFolder.id] = conversations.filter(c => c.messageStatus === 'deleted').length;
     }
-    
-    // Custom folder counts
     folders.filter(f => !f.is_system).forEach(folder => {
       counts[folder.id] = conversations.filter(c => c.folderId === folder.id).length;
     });
-    
     return counts;
   }, [conversations, folders, archiveFolder, trashFolder]);
 
   const handleFolderSelect = (folderId: string | null) => {
-    // Map system folder IDs to filter values
     if (folderId === archiveFolder?.id) {
       setFilters({ ...filters, folderId: 'archived' });
     } else if (folderId === trashFolder?.id) {
@@ -89,6 +118,7 @@ export default function MessagesPage() {
       setFilters({ ...filters, folderId });
     }
     setSelectedConversationId(null);
+    if (isMobile) setMobileView('list');
   };
 
   // Drag and drop handlers
@@ -100,13 +130,9 @@ export default function MessagesPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveConversation(null);
-
     if (!over) return;
-
     const conversationId = active.id as string;
     const targetFolderId = over.id as string;
-
-    // Handle system folders
     if (targetFolderId === 'inbox') {
       moveToFolder({ conversationId, folderId: null });
     } else if (targetFolderId === archiveFolder?.id) {
@@ -118,99 +144,108 @@ export default function MessagesPage() {
     }
   };
 
+  // Mobile: show only one panel at a time
+  const showList = !isMobile || mobileView === 'list';
+  const showDetail = !isMobile || mobileView === 'detail';
+
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <div className="p-6 pb-0">
+      <div className={`${isMobile ? 'p-3 pb-0' : 'p-6 pb-0'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <MessageSquare className="h-6 w-6" />
-              Klantgesprekken
+            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
+              <MessageSquare className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+              {isMobile ? 'Gesprekken' : 'Klantgesprekken'}
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Beheer alle communicatie met klanten via email en social media
-            </p>
+            {!isMobile && (
+              <p className="text-muted-foreground mt-1">
+                Beheer alle communicatie met klanten via email en social media
+              </p>
+            )}
           </div>
-          <Button onClick={() => setComposeOpen(true)}>
+          <Button onClick={() => setComposeOpen(true)} size={isMobile ? 'sm' : 'default'}>
             <PenSquare className="h-4 w-4 mr-2" />
-            Nieuw bericht
+            {isMobile ? 'Nieuw' : 'Nieuw bericht'}
           </Button>
         </div>
 
-        <ComposeDialog
-          open={composeOpen}
-          onOpenChange={setComposeOpen}
-        />
+        <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
       </div>
 
-      <div className="p-6 h-[calc(100%-5rem)]">
+      <div className={`${isMobile ? 'p-3' : 'p-6'} h-[calc(100%-${isMobile ? '3.5rem' : '5rem'})]`}>
         <Card className="h-full flex overflow-hidden">
           <DndContext
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            {/* Left sidebar - Folders */}
-            <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
-              <div className="p-1.5 border-b flex items-center justify-between shrink-0">
-                {!isSidebarCollapsed && (
-                  <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0"
-                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                >
-                  {isSidebarCollapsed ? (
-                    <PanelLeft className="h-3.5 w-3.5" />
-                  ) : (
-                    <PanelLeftClose className="h-3.5 w-3.5" />
+            {/* Left sidebar - Folders (hidden on mobile when viewing detail) */}
+            {showList && (
+              <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
+                <div className="p-1.5 border-b flex items-center justify-between shrink-0">
+                  {!isSidebarCollapsed && (
+                    <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
                   )}
-                </Button>
-              </div>
-              <FolderList
-                selectedFolderId={
-                  filters.folderId === 'archived' ? archiveFolder?.id || null :
-                  filters.folderId === 'deleted' ? trashFolder?.id || null :
-                  filters.folderId
-                }
-                onFolderSelect={handleFolderSelect}
-                folderCounts={folderCounts}
-                collapsed={isSidebarCollapsed}
-              />
-            </div>
-
-            {/* Middle - Conversation list */}
-            <div className="w-72 min-w-72 border-r flex flex-col shrink-0 overflow-hidden">
-              <InboxFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-                emailCount={counts.email}
-                whatsappCount={counts.whatsapp}
-                facebookCount={counts.facebook}
-                instagramCount={counts.instagram}
-                unreadCount={unreadTotal}
-              />
-              <div className="flex-1 overflow-hidden">
-                <ConversationList
-                  conversations={conversations}
-                  selectedId={selectedConversationId}
-                  onSelect={setSelectedConversationId}
-                  isLoading={isLoading}
-                  selectedIds={selectedIds}
-                  onToggleSelection={toggleSelection}
-                  onSelectAll={selectAll}
-                  onClearSelection={clearSelection}
-                  onBulkArchive={bulkArchive}
-                  onBulkDelete={bulkDelete}
-                  onBulkRestore={bulkRestore}
-                  onBulkMoveToFolder={bulkMoveToFolder}
-                  currentFolder={filters.folderId}
-                  isBulkLoading={isBulkLoading}
+                  {!isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    >
+                      {isSidebarCollapsed ? (
+                        <PanelLeft className="h-3.5 w-3.5" />
+                      ) : (
+                        <PanelLeftClose className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <FolderList
+                  selectedFolderId={
+                    filters.folderId === 'archived' ? archiveFolder?.id || null :
+                    filters.folderId === 'deleted' ? trashFolder?.id || null :
+                    filters.folderId
+                  }
+                  onFolderSelect={handleFolderSelect}
+                  folderCounts={folderCounts}
+                  collapsed={isSidebarCollapsed}
                 />
               </div>
-            </div>
+            )}
+
+            {/* Middle - Conversation list */}
+            {showList && (
+              <div className={`${isMobile ? 'flex-1' : isTablet ? 'w-60 min-w-60' : 'w-72 min-w-72'} border-r flex flex-col shrink-0 overflow-hidden`}>
+                <InboxFilters
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  emailCount={counts.email}
+                  whatsappCount={counts.whatsapp}
+                  facebookCount={counts.facebook}
+                  instagramCount={counts.instagram}
+                  unreadCount={unreadTotal}
+                />
+                <div className="flex-1 overflow-hidden">
+                  <ConversationList
+                    conversations={conversations}
+                    selectedId={selectedConversationId}
+                    onSelect={handleSelectConversation}
+                    isLoading={isLoading}
+                    selectedIds={selectedIds}
+                    onToggleSelection={toggleSelection}
+                    onSelectAll={selectAll}
+                    onClearSelection={clearSelection}
+                    onBulkArchive={bulkArchive}
+                    onBulkDelete={bulkDelete}
+                    onBulkRestore={bulkRestore}
+                    onBulkMoveToFolder={bulkMoveToFolder}
+                    currentFolder={filters.folderId}
+                    isBulkLoading={isBulkLoading}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Drag overlay */}
             <DragOverlay>
@@ -221,29 +256,32 @@ export default function MessagesPage() {
           </DndContext>
 
           {/* Right panel - Conversation detail */}
-          <div className="flex-1 min-w-0">
-            {selectedConversation ? (
-              <ConversationDetail
-                conversation={selectedConversation}
-                onMarkAsRead={() => markConversationAsRead(selectedConversation.id)}
-                onMessageSent={() => {}}
-                onArchive={() => archiveConversation(selectedConversation.id)}
-                onDelete={() => deleteConversation(selectedConversation.id)}
-                onRestore={() => restoreConversation(selectedConversation.id)}
-                onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
-              />
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <MessageSquare className="h-8 w-8 text-muted-foreground" />
+          {showDetail && (
+            <div className="flex-1 min-w-0">
+              {selectedConversation ? (
+                <ConversationDetail
+                  conversation={selectedConversation}
+                  onMarkAsRead={() => markConversationAsRead(selectedConversation.id)}
+                  onMessageSent={() => {}}
+                  onArchive={() => archiveConversation(selectedConversation.id)}
+                  onDelete={() => deleteConversation(selectedConversation.id)}
+                  onRestore={() => restoreConversation(selectedConversation.id)}
+                  onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
+                  onBack={isMobile ? handleBack : undefined}
+                />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                    Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                  Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
-                </p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
     </div>
