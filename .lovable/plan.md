@@ -1,34 +1,41 @@
 
-# Fix: Bestellingen plaatsen loopt vast - "Tenant not found"
+# Fix: Twee checkout-fouten oplossen
 
-## Oorzaak gevonden
+## Probleem 1: Bankoverschrijving - "invalid input value for enum payment_status: awaiting_payment"
 
-Beide edge functions (`create-checkout-session` en `create-bank-transfer-order`) proberen kolommen `oss_enabled` en `oss_threshold_reached` op te halen uit de `tenants` tabel, maar deze kolommen bestaan niet in de database. Dit laat de query falen, waardoor de foutmelding "Tenant not found" verschijnt.
+De edge function `create-bank-transfer-order` probeert een order aan te maken met `payment_status: "awaiting_payment"`, maar de database-enum `payment_status` kent alleen de waarden: `pending`, `paid`, `refunded`, `failed`.
 
-## Oplossing
+**Oplossing:** In `supabase/functions/create-bank-transfer-order/index.ts` de waarde `"awaiting_payment"` wijzigen naar `"pending"`.
 
-**Twee ontbrekende kolommen toevoegen aan de `tenants` tabel:**
+## Probleem 2: iDEAL/Creditcard - "payment method type provided: ideal is invalid"
 
-| Kolom | Type | Default | Doel |
-|-------|------|---------|------|
-| `oss_enabled` | boolean | false | EU One-Stop Shop BTW-regeling actief |
-| `oss_threshold_reached` | boolean | false | OSS drempelbedrag bereikt |
+De edge function `create-checkout-session` forceert `payment_method_types: ["card", "ideal", "bancontact"]`, maar Stripe weigert dit op Connect-account niveau. Hoewel de methoden in jouw SellQo admin aanstaan, moet Stripe zelf bepalen welke methoden beschikbaar zijn.
 
-Dit is een eenvoudige database-migratie die de bestaande data niet beïnvloedt. Na het toevoegen van deze kolommen zullen beide checkout-functies correct werken.
+**Oplossing:** In `supabase/functions/create-checkout-session/index.ts` de hardcoded `payment_method_types` vervangen door `automatic_payment_methods: { enabled: true }`. Stripe bepaalt dan automatisch welke betaalmethoden beschikbaar zijn op basis van het account, valuta en land.
+
+## Bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `supabase/functions/create-bank-transfer-order/index.ts` (regel 248) | `"awaiting_payment"` naar `"pending"` |
+| `supabase/functions/create-checkout-session/index.ts` (regel 544) | `payment_method_types: [...]` vervangen door `automatic_payment_methods: { enabled: true }` |
 
 ## Technische details
 
-### Database migratie (SQL)
-```sql
-ALTER TABLE public.tenants 
-  ADD COLUMN IF NOT EXISTS oss_enabled boolean DEFAULT false,
-  ADD COLUMN IF NOT EXISTS oss_threshold_reached boolean DEFAULT false;
+### create-bank-transfer-order (regel 248)
+```typescript
+// Was:
+payment_status: "awaiting_payment",
+// Wordt:
+payment_status: "pending",
 ```
 
-### Geen code-wijzigingen nodig
-De edge functions (`create-checkout-session` en `create-bank-transfer-order`) selecteren deze kolommen al correct en gebruiken ze in de BTW-berekening. Zodra de kolommen bestaan, werkt alles.
+### create-checkout-session (regel 544)
+```typescript
+// Was:
+payment_method_types: ["card", "ideal", "bancontact"],
+// Wordt:
+automatic_payment_methods: { enabled: true },
+```
 
-### Impact
-- Bestaande tenants krijgen `oss_enabled = false` en `oss_threshold_reached = false` als default
-- Geen invloed op bestaande bestellingen of data
-- Beide betaalmethoden (iDEAL/Creditcard/Bancontact en Directe Bankoverschrijving) werken weer
+Hierdoor bepaalt Stripe zelf welke betaalmethoden beschikbaar zijn op basis van de instellingen van het merchant-account, valuta, en land. Geen handmatige configuratie meer nodig.
