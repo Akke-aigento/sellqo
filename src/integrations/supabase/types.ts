@@ -12593,8 +12593,10 @@ export type Database = {
           logo_url: string | null
           name: string
           notification_email: string | null
+          oss_enabled: boolean | null
           oss_identification_number: string | null
           oss_registration_date: string | null
+          oss_threshold_reached: boolean | null
           owner_email: string
           owner_name: string | null
           packing_slip_prefix: string | null
@@ -12687,8 +12689,10 @@ export type Database = {
           logo_url?: string | null
           name: string
           notification_email?: string | null
+          oss_enabled?: boolean | null
           oss_identification_number?: string | null
           oss_registration_date?: string | null
+          oss_threshold_reached?: boolean | null
           owner_email: string
           owner_name?: string | null
           packing_slip_prefix?: string | null
@@ -12781,8 +12785,10 @@ export type Database = {
           logo_url?: string | null
           name?: string
           notification_email?: string | null
+          oss_enabled?: boolean | null
           oss_identification_number?: string | null
           oss_registration_date?: string | null
+          oss_threshold_reached?: boolean | null
           owner_email?: string
           owner_name?: string | null
           packing_slip_prefix?: string | null
