@@ -1,58 +1,34 @@
 
-# Horizontaal scrollen definitief verwijderen
+# Fix: Bestellingen plaatsen loopt vast - "Tenant not found"
 
-## Oorzaak
+## Oorzaak gevonden
 
-Het probleem zit dieper dan de `min-w` wrappers die we eerder verwijderd hebben. De `Table` UI-component zelf bevat een wrapper `<div className="relative w-full overflow-auto">` die horizontaal scrollen mogelijk maakt. Daarnaast bevatten sommige tabelcellen lange tekst (e.g. emailadressen) die de tabel breder maken dan het scherm.
+Beide edge functions (`create-checkout-session` en `create-bank-transfer-order`) proberen kolommen `oss_enabled` en `oss_threshold_reached` op te halen uit de `tenants` tabel, maar deze kolommen bestaan niet in de database. Dit laat de query falen, waardoor de foutmelding "Tenant not found" verschijnt.
 
-## Oplossing (twee stappen)
+## Oplossing
 
-### Stap 1: Table component aanpassen
+**Twee ontbrekende kolommen toevoegen aan de `tenants` tabel:**
 
-In `src/components/ui/table.tsx` de `overflow-auto` vervangen door `overflow-hidden` zodat tabellen nooit horizontaal scrollen maar altijd binnen hun container passen.
+| Kolom | Type | Default | Doel |
+|-------|------|---------|------|
+| `oss_enabled` | boolean | false | EU One-Stop Shop BTW-regeling actief |
+| `oss_threshold_reached` | boolean | false | OSS drempelbedrag bereikt |
 
-### Stap 2: Per pagina tabelcellen met lange content afkappen
-
-Op elke pagina waar lange tekst (emails, namen, omschrijvingen) voorkomt, `truncate` en `max-w-[...]` toepassen zodat de inhoud wordt afgekapt met "..." in plaats van de tabel breder te maken.
-
-## Wijzigingen per bestand
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/ui/table.tsx` | `overflow-auto` naar `overflow-hidden` in de Table wrapper |
-| `src/pages/admin/Orders.tsx` | `truncate max-w-[200px]` op Klant-kolom (emails); verwijder `overflow-x-auto` van CardContent |
-| `src/pages/admin/Quotes.tsx` | `truncate max-w-[180px]` op Klant-kolom; verwijder dubbele `overflow-x-auto` wrapper div |
-| `src/pages/admin/Invoices.tsx` | `truncate max-w-[180px]` op Klant email; verwijder `overflow-x-auto` van CardContent |
-| `src/pages/admin/CreditNotes.tsx` | `truncate max-w-[180px]` op Klant-kolom; verwijder `overflow-x-auto` |
-| `src/pages/admin/PurchaseOrders.tsx` | `truncate` op Leverancier-kolom; `overflow-x-auto` verwijderen van CardContent |
-| `src/pages/admin/Fulfillment.tsx` | `truncate` op Klant-kolom; `overflow-x-auto` verwijderen |
-| `src/pages/admin/Payments.tsx` | `truncate` op Omschrijving; `overflow-x-auto` verwijderen van beide CardContent containers |
-| `src/pages/admin/Subscriptions.tsx` | `truncate max-w-[150px]` op Klant en Naam kolommen; `overflow-x-auto` verwijderen |
+Dit is een eenvoudige database-migratie die de bestaande data niet beïnvloedt. Na het toevoegen van deze kolommen zullen beide checkout-functies correct werken.
 
 ## Technische details
 
-### Table component (`src/components/ui/table.tsx`)
-
-De wrapper div verandert van:
-```
-<div className="relative w-full overflow-auto">
-```
-naar:
-```
-<div className="relative w-full overflow-hidden">
+### Database migratie (SQL)
+```sql
+ALTER TABLE public.tenants 
+  ADD COLUMN IF NOT EXISTS oss_enabled boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS oss_threshold_reached boolean DEFAULT false;
 ```
 
-Dit voorkomt dat tabellen ooit horizontaal scrollen. In combinatie met de al bestaande `hidden sm:table-cell` classes op kolommen zorgt dit ervoor dat tabellen altijd binnen het scherm passen.
+### Geen code-wijzigingen nodig
+De edge functions (`create-checkout-session` en `create-bank-transfer-order`) selecteren deze kolommen al correct en gebruiken ze in de BTW-berekening. Zodra de kolommen bestaan, werkt alles.
 
-### Tabelcellen met lange tekst
-
-Cellen die emails of lange namen bevatten krijgen `truncate` en een `max-w` class. Voorbeeld:
-```
-<TableCell className="truncate max-w-[200px]">
-```
-
-Dit kapt de tekst netjes af met "..." als deze te lang is, in plaats van de tabel breder te maken.
-
-### CardContent overflow verwijderen
-
-Alle `className="overflow-x-auto px-0 sm:px-6"` worden vereenvoudigd naar `className="px-0 sm:px-6"` omdat de overflow niet meer nodig is.
+### Impact
+- Bestaande tenants krijgen `oss_enabled = false` en `oss_threshold_reached = false` als default
+- Geen invloed op bestaande bestellingen of data
+- Beide betaalmethoden (iDEAL/Creditcard/Bancontact en Directe Bankoverschrijving) werken weer
