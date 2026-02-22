@@ -163,7 +163,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       mode: "subscription",
-      payment_method_types: ["card", "bancontact", "ideal"],
+      automatic_payment_methods: { enabled: true },
       line_items: [
         {
           price: priceId,
