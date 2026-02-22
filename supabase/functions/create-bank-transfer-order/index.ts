@@ -245,7 +245,7 @@ serve(async (req) => {
         shipping_cost,
         total,
         status: "pending",
-        payment_status: "awaiting_payment",
+        payment_status: "pending",
         payment_method: "bank_transfer",
         shipping_method_id,
         delivery_type,

@@ -541,7 +541,7 @@ serve(async (req) => {
     const tenantSlug = tenant.slug || tenant_id;
     
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card", "ideal", "bancontact"],
+      automatic_payment_methods: { enabled: true },
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/shop/${tenantSlug}/order/${order.id}?session_id={CHECKOUT_SESSION_ID}`,
