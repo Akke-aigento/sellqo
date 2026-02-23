@@ -75,7 +75,7 @@ export default function ShopCart() {
 
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
-        {(themeSettings as any)?.show_breadcrumbs && (
+        {(themeSettings as any)?.show_breadcrumbs !== false && (
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
               <BreadcrumbItem>

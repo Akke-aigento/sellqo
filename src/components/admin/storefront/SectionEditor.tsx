@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { Save } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Save, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent } from '@/types/storefront';
 import { useCategories } from '@/hooks/useCategories';
+import { useProducts } from '@/hooks/useProducts';
 import { VisualMediaPicker } from './visual-editor/VisualMediaPicker';
 
 interface SectionEditorProps {
@@ -102,35 +104,10 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
 
       case 'featured_products': {
         return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Maximum aantal producten</Label>
-              <Select
-                value={String((formData.content as any).max_products || 8)}
-                onValueChange={(value) => handleContentChange('max_products', parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="4">4 producten</SelectItem>
-                  <SelectItem value="6">6 producten</SelectItem>
-                  <SelectItem value="8">8 producten</SelectItem>
-                  <SelectItem value="12">12 producten</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Toon prijzen</Label>
-              <Switch
-                checked={(formData.content as any).show_prices !== false}
-                onCheckedChange={(checked) => handleContentChange('show_prices', checked)}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Tip: Markeer producten als "uitgelicht" in het productbeheer om ze hier te tonen.
-            </p>
-          </div>
+          <FeaturedProductsEditor
+            content={formData.content as any}
+            onContentChange={handleContentChange}
+          />
         );
       }
 
@@ -445,6 +422,123 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
           <Save className="h-4 w-4 mr-2" />
           Opslaan
         </Button>
+      </div>
+    </div>
+  );
+}
+
+// Inline product picker for Featured Products section
+function FeaturedProductsEditor({ content, onContentChange }: {
+  content: { product_ids?: string[]; max_products?: number; show_prices?: boolean };
+  onContentChange: (key: string, value: unknown) => void;
+}) {
+  const { products = [] } = useProducts();
+  const [search, setSearch] = useState('');
+  const selectedIds: string[] = content.product_ids || [];
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return products;
+    const q = search.toLowerCase();
+    return products.filter((p: any) => p.name?.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q));
+  }, [products, search]);
+
+  const toggleProduct = (id: string) => {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter(pid => pid !== id)
+      : [...selectedIds, id];
+    onContentChange('product_ids', next);
+  };
+
+  const removeProduct = (id: string) => {
+    onContentChange('product_ids', selectedIds.filter(pid => pid !== id));
+  };
+
+  const selectedProducts = products.filter((p: any) => selectedIds.includes(p.id));
+
+  return (
+    <div className="space-y-4">
+      {/* Selected products */}
+      {selectedProducts.length > 0 && (
+        <div className="space-y-2">
+          <Label>Geselecteerde producten ({selectedProducts.length})</Label>
+          <div className="flex flex-wrap gap-2">
+            {selectedProducts.map((p: any) => (
+              <span key={p.id} className="inline-flex items-center gap-1 bg-muted text-sm rounded-full px-3 py-1">
+                {p.name}
+                <button type="button" onClick={() => removeProduct(p.id)} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Product search */}
+      <div className="space-y-2">
+        <Label>Producten zoeken</Label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Zoek op naam of SKU..."
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      {/* Product list */}
+      <div className="border rounded-md max-h-60 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground p-3">Geen producten gevonden</p>
+        ) : (
+          filtered.map((product: any) => (
+            <label
+              key={product.id}
+              className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+            >
+              <Checkbox
+                checked={selectedIds.includes(product.id)}
+                onCheckedChange={() => toggleProduct(product.id)}
+              />
+              {product.images?.[0] && (
+                <img src={product.images[0]} alt="" className="h-8 w-8 rounded object-cover" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{product.name}</p>
+                {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
+              </div>
+              <span className="text-sm text-muted-foreground">&euro;{Number(product.price).toFixed(2)}</span>
+            </label>
+          ))
+        )}
+      </div>
+
+      {/* Settings */}
+      <div className="space-y-2">
+        <Label>Maximum aantal producten</Label>
+        <Select
+          value={String(content.max_products || 8)}
+          onValueChange={(value) => onContentChange('max_products', parseInt(value))}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="4">4 producten</SelectItem>
+            <SelectItem value="6">6 producten</SelectItem>
+            <SelectItem value="8">8 producten</SelectItem>
+            <SelectItem value="12">12 producten</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Toon prijzen</Label>
+        <Switch
+          checked={content.show_prices !== false}
+          onCheckedChange={(checked) => onContentChange('show_prices', checked)}
+        />
       </div>
     </div>
   );

@@ -250,8 +250,18 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     if (text) {
       const hsl = hexToHsl(text);
       if (hsl) {
+        // Override ALL foreground variables so text_color is respected everywhere
         style['--foreground'] = hsl;
         style['--popover-foreground'] = hsl;
+        style['--card-foreground'] = hsl;
+        // Derive a muted version from the user's text color (reduce opacity/lightness)
+        const parts = hsl.split(' ');
+        const hue = parts[0];
+        const sat = parseInt(parts[1]);
+        const lig = parseInt(parts[2]);
+        // Muted foreground: same hue, lower saturation, pushed toward middle lightness
+        const mutedLig = lig > 50 ? Math.max(lig - 25, 40) : Math.min(lig + 25, 60);
+        style['--muted-foreground'] = `${hue} ${Math.max(sat - 8, 0)}% ${mutedLig}%`;
       }
     }
     return style;
