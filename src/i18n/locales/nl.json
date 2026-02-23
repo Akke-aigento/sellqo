@@ -675,7 +675,10 @@
     "import": "Importeren"
   },
   "checkout": {
-    "securePayment": "Veilig betalen met"
+    "securePayment": "Veilig betalen met",
+    "searchAddress": "Zoek je adres...",
+    "country": "Land",
+    "shippingAddress": "Verzendadres"
   },
   "footer": {
     "sslSecure": "SSL Beveiligd",

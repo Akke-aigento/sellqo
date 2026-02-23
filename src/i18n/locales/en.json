@@ -650,7 +650,10 @@
     "seconds": "seconds"
   },
   "checkout": {
-    "securePayment": "Pay securely with"
+    "securePayment": "Pay securely with",
+    "searchAddress": "Search your address...",
+    "country": "Country",
+    "shippingAddress": "Shipping address"
   },
   "footer": {
     "sslSecure": "SSL Secured",

@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2, LogIn } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/storefront/PaymentMethodSelector';
 import { BankTransferPayment } from '@/components/storefront/BankTransferPayment';
@@ -15,6 +16,7 @@ import { useAddressValidation } from '@/hooks/useAddressValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -37,6 +39,7 @@ export default function ShopCheckout() {
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
+  const { t } = useTranslation();
   
   const [step, setStep] = useState<CheckoutStep>('details');
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -145,43 +148,27 @@ export default function ShopCheckout() {
   const shipping = subtotal > 0 ? 5.95 : 0;
   const total = subtotal + shipping;
 
-  // Track if user is actively typing in the street field
-  const isManualTypingRef = useRef(false);
-  const autofillCheckTimerRef = useRef<ReturnType<typeof setTimeout>>();
-
   const handleInputChange = (field: keyof CustomerData, value: string) => {
-    setCustomerData(prev => {
-      const next = { ...prev, [field]: value };
+    setCustomerData(prev => ({ ...prev, [field]: value }));
+  };
 
-      // Detect browser autofill: if a non-street address field changes
-      // shortly after the street field, multiple fields were filled at once
-      if (field !== 'street' && (field === 'city' || field === 'postalCode' || field === 'houseNumber' || field === 'country')) {
-        // Another address field changed — likely autofill
-        isManualTypingRef.current = false;
-        setShowSuggestions(false);
-        setAddressQuery('');
-      }
-
-      return next;
-    });
-
-    if (field === 'street' && addressAutocomplete) {
-      // Mark as manual typing; we'll verify after a short delay
-      isManualTypingRef.current = true;
-      if (autofillCheckTimerRef.current) clearTimeout(autofillCheckTimerRef.current);
-      autofillCheckTimerRef.current = setTimeout(() => {
-        // If still marked as manual after 50ms (no other fields changed), proceed
-        if (isManualTypingRef.current) {
-          setAddressQuery(value);
-        }
-      }, 50);
+  // Handle address search query changes (separate from individual fields)
+  const handleSearchQueryChange = (value: string) => {
+    setAddressQuery(value);
+    if (value.length < 3) {
+      setShowSuggestions(false);
     }
   };
 
   const handleSelectSuggestion = (suggestion: any) => {
+    // Split street into street name and house number if possible
+    const streetParts = suggestion.street || '';
+    const streetMatch = streetParts.match(/^(.+?)\s+(\d+\S*)$/);
+    
     setCustomerData(prev => ({
       ...prev,
-      street: suggestion.street,
+      street: streetMatch ? streetMatch[1] : streetParts,
+      houseNumber: streetMatch ? streetMatch[2] : prev.houseNumber,
       city: suggestion.city,
       postalCode: suggestion.postal_code,
       country: suggestion.country || prev.country,
@@ -496,19 +483,22 @@ export default function ShopCheckout() {
 
                   {/* Address */}
                   <div className="space-y-4">
-                    <h3 className="font-medium">Verzendadres</h3>
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="sm:col-span-2 space-y-2 relative">
-                        <Label htmlFor="street">Straat *</Label>
-                        <Input
-                          id="street"
-                          value={customerData.street}
-                          onChange={(e) => handleInputChange('street', e.target.value)}
-                          required
-                          placeholder={addressAutocomplete ? 'Begin met typen...' : undefined}
-                        />
-                        {/* Address autocomplete suggestions */}
-                        {addressAutocomplete && showSuggestions && suggestions.length > 0 && (
+                    <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
+                    
+                    {/* Separate address search bar */}
+                    {addressAutocomplete && (
+                      <div className="relative">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            value={addressQuery}
+                            onChange={(e) => handleSearchQueryChange(e.target.value)}
+                            placeholder={t('checkout.searchAddress')}
+                            className="pl-9"
+                            autoComplete="off"
+                          />
+                        </div>
+                        {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
                             {suggestions.map((s, i) => (
                               <button
@@ -522,6 +512,18 @@ export default function ShopCheckout() {
                             ))}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      <div className="sm:col-span-2 space-y-2">
+                        <Label htmlFor="street">Straat *</Label>
+                        <Input
+                          id="street"
+                          value={customerData.street}
+                          onChange={(e) => handleInputChange('street', e.target.value)}
+                          required
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="houseNumber">Huisnummer</Label>
@@ -551,6 +553,25 @@ export default function ShopCheckout() {
                           required
                         />
                       </div>
+                    </div>
+                    {/* Country selector */}
+                    <div className="space-y-2">
+                      <Label>{t('checkout.country')} *</Label>
+                      <Select
+                        value={customerData.country}
+                        onValueChange={(value) => handleInputChange('country', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BE">België</SelectItem>
+                          <SelectItem value="NL">Nederland</SelectItem>
+                          <SelectItem value="DE">Deutschland</SelectItem>
+                          <SelectItem value="FR">France</SelectItem>
+                          <SelectItem value="LU">Luxembourg</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

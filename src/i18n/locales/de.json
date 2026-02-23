@@ -481,7 +481,10 @@
     "import": "Importieren"
   },
   "checkout": {
-    "securePayment": "Sicher bezahlen mit"
+    "securePayment": "Sicher bezahlen mit",
+    "searchAddress": "Adresse suchen...",
+    "country": "Land",
+    "shippingAddress": "Lieferadresse"
   },
   "footer": {
     "sslSecure": "SSL Gesichert",
