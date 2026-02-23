@@ -114,6 +114,7 @@ interface TenantData {
   export_text: string | null;
   enable_b2b_checkout: boolean | null;
   simplified_vat_mode: boolean | null;
+  default_vat_handling: string | null;
 }
 
 // Validate VAT number via VIES (simplified - in production use the validate-vat function)
@@ -327,7 +328,8 @@ serve(async (req) => {
         tax_percentage, currency, country,
         oss_enabled, oss_threshold_reached,
         reverse_charge_text, export_text,
-        enable_b2b_checkout, simplified_vat_mode
+        enable_b2b_checkout, simplified_vat_mode,
+        default_vat_handling
       `)
       .eq("id", tenant_id)
       .single();
@@ -379,7 +381,10 @@ serve(async (req) => {
 
     // Calculate subtotal (in currency units, not cents)
     const subtotal = items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-    
+
+    // Determine VAT handling mode: 'inclusive' means prices already contain VAT
+    const vatHandling = (tenant as any).default_vat_handling || 'inclusive';
+
     // Calculate VAT based on customer type and location (using effective values after B2B check)
     const vatCalculation = await calculateVat({
       subtotal,
@@ -389,28 +394,54 @@ serve(async (req) => {
       customerCountry,
       vatNumber: effectiveVatNumber,
     });
-    
+
     logStep("VAT calculated", {
       vatType: vatCalculation.vatType,
       vatRate: vatCalculation.vatRate,
       vatAmount: vatCalculation.vatAmount,
       vatCountry: vatCalculation.vatCountry,
+      vatHandling,
     });
 
-    // Calculate totals (convert to cents for Stripe)
+    // Calculate totals based on VAT handling mode
     const subtotalCents = Math.round(subtotal * 100);
     const shippingCents = Math.round(shipping_cost * 100);
-    const vatCents = Math.round(vatCalculation.vatAmount * 100);
-    const totalCents = subtotalCents + shippingCents + vatCents;
+
+    let vatAmountForOrder: number;
+    let totalForOrder: number;
+    let vatCentsForStripe: number;
+
+    if (vatHandling === 'inclusive') {
+      // Prices INCLUDE VAT — do NOT add VAT on top
+      // Extract VAT from inclusive prices for bookkeeping (same logic as generate-invoice)
+      const grossAmount = subtotal + shipping_cost;
+      if (vatCalculation.vatRate === 0) {
+        vatAmountForOrder = 0;
+      } else {
+        vatAmountForOrder = Math.round((grossAmount - grossAmount / (1 + vatCalculation.vatRate / 100)) * 100) / 100;
+      }
+      totalForOrder = grossAmount; // No extra VAT added
+      vatCentsForStripe = 0; // Don't add a VAT line item to Stripe
+      logStep("Inclusive VAT - extracting from prices", { grossAmount, extractedVat: vatAmountForOrder, total: totalForOrder });
+    } else {
+      // Prices EXCLUDE VAT — add VAT on top (original behavior)
+      vatAmountForOrder = vatCalculation.vatAmount;
+      totalForOrder = subtotal + shipping_cost + vatAmountForOrder;
+      vatCentsForStripe = Math.round(vatAmountForOrder * 100);
+      logStep("Exclusive VAT - adding on top", { vatAmount: vatAmountForOrder, total: totalForOrder });
+    }
+
+    const totalCents = Math.round(totalForOrder * 100);
 
     // Calculate platform fee (in cents)
     const platformFee = Math.round(totalCents * (PLATFORM_FEE_PERCENT / 100));
-    logStep("Totals calculated", { 
-      subtotalCents, 
-      shippingCents, 
-      vatCents, 
-      totalCents, 
-      platformFee 
+    logStep("Totals calculated", {
+      subtotalCents,
+      shippingCents,
+      vatCentsForStripe,
+      totalCents,
+      platformFee,
+      vatHandling,
     });
 
     // Create line items for Stripe Checkout
@@ -440,15 +471,15 @@ serve(async (req) => {
       });
     }
 
-    // Add VAT as a separate line item if applicable
-    if (vatCents > 0) {
+    // Add VAT as a separate line item ONLY for exclusive pricing
+    if (vatCentsForStripe > 0) {
       lineItems.push({
         price_data: {
           currency: tenant.currency?.toLowerCase() || "eur",
           product_data: {
             name: `BTW (${vatCalculation.vatRate}%)`,
           },
-          unit_amount: vatCents,
+          unit_amount: vatCentsForStripe,
         },
         quantity: 1,
       });
@@ -484,9 +515,9 @@ serve(async (req) => {
         shipping_address: effectiveShippingAddress,
         billing_address: billing_address || effectiveShippingAddress,
         subtotal: subtotal,
-        tax_amount: vatCalculation.vatAmount,
+        tax_amount: vatAmountForOrder,
         shipping_cost: shipping_cost,
-        total: subtotal + shipping_cost + vatCalculation.vatAmount,
+        total: totalForOrder,
         status: "pending",
         payment_status: "pending",
         shipping_method_id,
@@ -585,8 +616,9 @@ serve(async (req) => {
       vat_calculation: {
         type: vatCalculation.vatType,
         rate: vatCalculation.vatRate,
-        amount: vatCalculation.vatAmount,
+        amount: vatAmountForOrder,
         text: vatCalculation.vatText,
+        handling: vatHandling,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

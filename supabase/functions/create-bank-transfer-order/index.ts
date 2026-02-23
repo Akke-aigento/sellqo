@@ -147,7 +147,8 @@ serve(async (req) => {
         tax_percentage, currency, country,
         oss_enabled, oss_threshold_reached,
         reverse_charge_text, export_text,
-        enable_b2b_checkout, simplified_vat_mode
+        enable_b2b_checkout, simplified_vat_mode,
+        default_vat_handling
       `)
       .eq("id", tenant_id)
       .single();
@@ -201,10 +202,30 @@ serve(async (req) => {
     }
 
     const totalAmount = subtotal + shipping_cost;
-    const vatAmount = Math.round(totalAmount * (vatRate / 100) * 100) / 100;
-    const total = totalAmount + vatAmount;
 
-    logStep("Totals calculated", { subtotal, shipping_cost, vatAmount, total });
+    // Determine VAT handling mode: 'inclusive' means prices already contain VAT
+    const vatHandling = (tenant as any).default_vat_handling || 'inclusive';
+
+    let vatAmount: number;
+    let total: number;
+
+    if (vatHandling === 'inclusive') {
+      // Prices INCLUDE VAT — extract VAT from inclusive prices for bookkeeping
+      if (vatRate === 0) {
+        vatAmount = 0;
+      } else {
+        vatAmount = Math.round((totalAmount - totalAmount / (1 + vatRate / 100)) * 100) / 100;
+      }
+      total = totalAmount; // No extra VAT added — prices already include it
+      logStep("Inclusive VAT - extracting from prices", { grossAmount: totalAmount, extractedVat: vatAmount, total });
+    } else {
+      // Prices EXCLUDE VAT — add VAT on top
+      vatAmount = Math.round(totalAmount * (vatRate / 100) * 100) / 100;
+      total = totalAmount + vatAmount;
+      logStep("Exclusive VAT - adding on top", { vatAmount, total });
+    }
+
+    logStep("Totals calculated", { subtotal, shipping_cost, vatAmount, total, vatHandling });
 
     // Generate order number
     const { data: orderNumberData } = await supabaseClient.rpc('generate_order_number', { 
