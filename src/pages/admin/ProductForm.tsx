@@ -999,15 +999,7 @@ export default function ProductForm() {
 
                   {/* Varianten */}
                   {isEditing && id ? (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Varianten</CardTitle>
-                        <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ProductVariantsTab productId={id} />
-                      </CardContent>
-                    </Card>
+                    <ProductVariantsTab productId={id} />
                   ) : (
                     <Card>
                       <CardContent className="py-8 text-center">
