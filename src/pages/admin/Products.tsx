@@ -115,10 +115,12 @@ export default function ProductsPage() {
       if (visibilityFilter === 'store_only' && (!hideFromStorefront || !product.is_active)) return false;
       if (visibilityFilter === 'hidden' && product.is_active) return false;
 
-      // Stock filter
-      if (stockFilter === 'out_of_stock' && product.stock > 0) return false;
-      if (stockFilter === 'low_stock' && (product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
-      if (stockFilter === 'in_stock' && product.stock <= 0) return false;
+      // Stock filter - products without inventory tracking are always "in stock"
+      const trackInventory = (product as any).track_inventory !== false;
+      const effectivelyInStock = !trackInventory || product.stock > 0;
+      if (stockFilter === 'out_of_stock' && effectivelyInStock) return false;
+      if (stockFilter === 'low_stock' && (!trackInventory || product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
+      if (stockFilter === 'in_stock' && !effectivelyInStock) return false;
 
       // Category filter
       if (categoryFilter !== 'all' && product.category_id !== categoryFilter) return false;
