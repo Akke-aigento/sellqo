@@ -193,7 +193,7 @@ function MiniPreviewCard({
 
 export function ThemeWizard() {
   const { t } = useTranslation();
-  const { themeSettings, themes, saveThemeSettings, publishStorefront } = useStorefront();
+  const { themeSettings, themes, saveThemeSettings, publishStorefront, settingsLoading } = useStorefront();
   const { currentTenant } = useTenant();
   const tenantSlug = currentTenant?.slug || '';
   const { homepageSections } = usePublicStorefront(tenantSlug);
@@ -202,8 +202,9 @@ export function ThemeWizard() {
 
   // Wizard state — returning users skip to step 4
   const hasExistingTheme = !!(themeSettings?.brand_color && themeSettings?.theme_mode && themeSettings?.theme_style);
-  const [step, setStep] = useState(hasExistingTheme ? 4 : 1);
+  const [step, setStep] = useState<number | null>(null); // null = not yet determined
   const [wizardRestarted, setWizardRestarted] = useState(false);
+  const [initialStepSet, setInitialStepSet] = useState(false);
   const [brandColor, setBrandColor] = useState('#3b82f6');
   const [selectedMood, setSelectedMood] = useState<MoodId>('light-clean');
   const [selectedStyle, setSelectedStyle] = useState<StyleId>('modern');
@@ -231,7 +232,15 @@ export function ThemeWizard() {
     favicon_url: null as string | null,
   });
 
-  // Initialize from existing settings
+  // Determine initial step once data is loaded (no flash)
+  useEffect(() => {
+    if (settingsLoading || initialStepSet) return;
+    const existing = !!(themeSettings?.brand_color && themeSettings?.theme_mode && themeSettings?.theme_style);
+    setStep(existing ? 4 : 1);
+    setInitialStepSet(true);
+  }, [settingsLoading, themeSettings, initialStepSet]);
+
+  // Initialize form values from existing settings
   useEffect(() => {
     if (themeSettings) {
       if (themeSettings.brand_color) {
@@ -250,11 +259,6 @@ export function ThemeWizard() {
         // Determine style
         const styleOpt = STYLE_OPTIONS.find(s => s.themeStyle === style);
         if (styleOpt) setSelectedStyle(styleOpt.id);
-
-        // Skip to step 4 for returning users (unless they manually restarted)
-        if (themeSettings.brand_color && !wizardRestarted) {
-          setStep(4);
-        }
       }
 
       setAdvancedOverrides(prev => ({
@@ -381,6 +385,15 @@ export function ThemeWizard() {
 
     saveThemeSettings.mutate(payload as any);
   };
+
+  // Show loading state until we know which step to start on
+  if (step === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   // Navigation
   const canGoNext = step < TOTAL_STEPS;
@@ -895,7 +908,7 @@ export function ThemeWizard() {
       <div className="flex items-center justify-between pt-4 border-t">
         <Button
           variant="outline"
-          onClick={() => setStep(s => s - 1)}
+          onClick={() => setStep(s => (s ?? 1) - 1)}
           disabled={!canGoBack}
           className="gap-2"
         >
@@ -908,7 +921,7 @@ export function ThemeWizard() {
         </span>
 
         {canGoNext ? (
-          <Button onClick={() => setStep(s => s + 1)} className="gap-2">
+          <Button onClick={() => setStep(s => (s ?? 0) + 1)} className="gap-2">
             {t('common.next')}
             <ChevronRight className="h-4 w-4" />
           </Button>
