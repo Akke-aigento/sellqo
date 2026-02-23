@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { renderMiniSection } from './preview/MiniSections';
+import { relativeLuminance } from '@/lib/color-utils';
 import type { HomepageSection } from '@/types/storefront';
 
 interface LiveThemePreviewProps {
@@ -19,6 +20,8 @@ interface LiveThemePreviewProps {
   logoUrl?: string | null;
   shopName?: string;
   homepageSections?: HomepageSection[];
+  /** CSS variables from generateThemePalette — applied to root for exact storefront match */
+  cssVariables?: Record<string, string>;
 }
 
 type Device = 'desktop' | 'tablet' | 'mobile';
@@ -37,6 +40,7 @@ export function LiveThemePreview({
   logoUrl,
   shopName = 'Mijn Webshop',
   homepageSections,
+  cssVariables,
 }: LiveThemePreviewProps) {
   const [device, setDevice] = useState<Device>('desktop');
 
@@ -58,6 +62,17 @@ export function LiveThemePreview({
   const visibleProducts = mockProducts.slice(0, Math.min(productsPerRow, 4));
 
   const sectionProps = { primaryColor, secondaryColor, accentColor, textColor, headingFont };
+
+  // Announcement text color: auto-contrast against primary
+  const announcementTextColor = relativeLuminance(primaryColor) > 0.179 ? '#000000' : '#ffffff';
+
+  // Merge CSS variables into inline styles for exact palette match
+  const rootStyle: React.CSSProperties = {
+    backgroundColor,
+    color: textColor,
+    fontFamily: `"${bodyFont}", sans-serif`,
+    ...(cssVariables as any),
+  };
 
   return (
     <div className="space-y-3">
@@ -88,18 +103,18 @@ export function LiveThemePreview({
             'rounded-lg border-2 border-border overflow-hidden transition-all duration-300 shadow-lg',
             deviceWidths[device]
           )}
-          style={{ backgroundColor, color: textColor, fontFamily: `"${bodyFont}", sans-serif` }}
+          style={rootStyle}
         >
           {/* Announcement bar */}
           <div
             className="text-center py-1 text-[8px] font-medium tracking-wide"
-            style={{ backgroundColor: primaryColor, color: '#fff' }}
+            style={{ backgroundColor: primaryColor, color: announcementTextColor }}
           >
-            🚀 Gratis verzending vanaf €50
+            Gratis verzending vanaf €50
           </div>
 
           {/* Header */}
-          <div className="border-b px-3 py-2">
+          <div className="border-b px-3 py-2" style={{ borderColor: `${textColor}15` }}>
             {headerStyle === 'centered' ? (
               <div className="text-center space-y-1">
                 {logoUrl ? (
@@ -109,7 +124,7 @@ export function LiveThemePreview({
                     {shopName}
                   </p>
                 )}
-                <div className="flex justify-center gap-3 text-[7px] text-muted-foreground">
+                <div className="flex justify-center gap-3 text-[7px]" style={{ color: `${textColor}80` }}>
                   <span>Home</span><span>Shop</span><span>Over ons</span><span>Contact</span>
                 </div>
               </div>
@@ -136,7 +151,7 @@ export function LiveThemePreview({
                 ) : (
                   <p className="text-[9px] font-bold" style={{ fontFamily: `"${headingFont}", serif` }}>{shopName}</p>
                 )}
-                <div className="flex gap-3 text-[7px]">
+                <div className="flex gap-3 text-[7px]" style={{ color: `${textColor}80` }}>
                   <span>Home</span><span>Shop</span><span>Over ons</span>
                 </div>
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: primaryColor + '30' }} />
@@ -160,7 +175,10 @@ export function LiveThemePreview({
                   Nieuwe Collectie
                 </h2>
                 <p className="text-[7px] mb-2 opacity-70">Ontdek onze nieuwste producten</p>
-                <div className="inline-block rounded-full px-3 py-0.5 text-[7px] font-medium text-white" style={{ backgroundColor: primaryColor }}>
+                <div
+                  className="inline-block rounded-full px-3 py-0.5 text-[7px] font-medium"
+                  style={{ backgroundColor: primaryColor, color: announcementTextColor }}
+                >
                   Shop Nu →
                 </div>
               </div>
@@ -176,7 +194,7 @@ export function LiveThemePreview({
                           <div className="w-1/2 h-1/2 rounded-full" style={{ backgroundColor: primaryColor }} />
                         </div>
                         {product.oldPrice && (
-                          <div className="absolute top-1 left-1 px-1 rounded text-[5px] font-bold text-white" style={{ backgroundColor: accentColor }}>SALE</div>
+                          <div className="absolute top-1 left-1 px-1 rounded text-[5px] font-bold" style={{ backgroundColor: accentColor, color: announcementTextColor }}>SALE</div>
                         )}
                       </div>
                       <p className="text-[7px] font-medium truncate">{product.name}</p>
@@ -197,7 +215,7 @@ export function LiveThemePreview({
           )}
 
           {/* Footer */}
-          <div className="border-t px-3 py-2 text-center">
+          <div className="border-t px-3 py-2 text-center" style={{ borderColor: `${textColor}15` }}>
             <p className="text-[6px] opacity-40">© 2026 {shopName}</p>
           </div>
         </div>

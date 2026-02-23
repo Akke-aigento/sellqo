@@ -301,6 +301,9 @@ export function ThemeWizard() {
   const previewHeadingFont = advancedOverrides.heading_font || palette.headingFont;
   const previewBodyFont = advancedOverrides.body_font || palette.bodyFont;
 
+  // Pass CSS variables from the palette to preview for exact storefront match
+  const previewCssVariables = palette.cssVariables;
+
   // Hex input state (separate to avoid losing cursor)
   const [hexInput, setHexInput] = useState(brandColor);
   useEffect(() => { setHexInput(brandColor); }, [brandColor]);
@@ -581,6 +584,7 @@ export function ThemeWizard() {
           logoUrl={advancedOverrides.logo_url}
           shopName={currentTenant?.name || 'Mijn Webshop'}
           homepageSections={homepageSections}
+          cssVariables={previewCssVariables}
         />
       </div>
 

@@ -30,8 +30,8 @@ export function HeroSection({ section }: HeroSectionProps) {
       )}
       
       {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black"
+      <div
+        className="absolute inset-0 bg-foreground"
         style={{ opacity: overlayOpacity }}
       />
       
@@ -47,12 +47,12 @@ export function HeroSection({ section }: HeroSectionProps) {
           textAlign === 'right' ? 'ml-auto' : ''
         }`}>
           {section.title && (
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-background mb-4">
               {section.title}
             </h1>
           )}
           {section.subtitle && (
-            <p className="text-lg md:text-xl text-white/90 mb-8">
+            <p className="text-lg md:text-xl text-background/90 mb-8">
               {section.subtitle}
             </p>
           )}

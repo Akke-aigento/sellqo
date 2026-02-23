@@ -81,7 +81,7 @@ export function BankTransferPayment({
         <div className="grid md:grid-cols-2 gap-6">
           {/* QR Code Section */}
           <div className="flex flex-col items-center">
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
+            <div className="bg-background p-4 rounded-xl shadow-sm border">
               <QRCode
                 value={epcString}
                 size={180}
@@ -160,7 +160,7 @@ export function BankTransferPayment({
                 Mededeling <span className="text-destructive">*</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <code className="text-sm font-mono bg-amber-50 text-amber-900 px-2 py-1 rounded flex-1 font-bold border border-amber-200">
+                <code className="text-sm font-mono bg-muted text-foreground px-2 py-1 rounded flex-1 font-bold border border-border">
                   {formattedOGM}
                 </code>
                 <Button
@@ -179,12 +179,12 @@ export function BankTransferPayment({
         </div>
 
         {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mt-6 p-4 bg-muted/50 border border-border rounded-lg">
           <div className="flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-900">
+            <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-foreground">
               <p className="font-medium">SEPA Instant beschikbaar</p>
-              <p className="mt-1 text-blue-700">
+              <p className="mt-1 text-muted-foreground">
                 Met de meeste Belgische en Nederlandse banken wordt je betaling binnen enkele seconden verwerkt. 
                 Je bestelling wordt verzonden zodra de betaling is ontvangen.
               </p>

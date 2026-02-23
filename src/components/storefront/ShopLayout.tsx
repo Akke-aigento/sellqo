@@ -206,16 +206,19 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     };
   })();
 
-  // Resolved fonts: palette fonts take precedence, then tenant overrides
-  const resolvedHeadingFont = themeSettings?.heading_font || palette.headingFont;
-  const resolvedBodyFont = themeSettings?.body_font || palette.bodyFont;
+  // Resolved fonts: tenant overrides win (the wizard saves the chosen style fonts
+  // to heading_font/body_font, so this always reflects the user's latest choice).
+  // Fall back to palette fonts for tenants without stored font settings.
+  const resolvedHeadingFont = themeSettings?.heading_font || palette.headingFont || 'Inter';
+  const resolvedBodyFont = themeSettings?.body_font || palette.bodyFont || 'Inter';
 
-  // Load Google Fonts (with cleanup)
+  // Load Google Fonts (with cleanup) – include weights 400-700, deduplicate
   useEffect(() => {
-    const fonts = [resolvedHeadingFont, resolvedBodyFont].filter(Boolean);
-    if (fonts.length === 0) return;
+    const uniqueFonts = [...new Set([resolvedHeadingFont, resolvedBodyFont].filter(Boolean))];
+    if (uniqueFonts.length === 0) return;
     const link = document.createElement('link');
-    link.href = `https://fonts.googleapis.com/css2?family=${fonts.map(f => f!.replace(' ', '+')).join('&family=')}&display=swap`;
+    const families = uniqueFonts.map(f => `family=${f!.replace(/ /g, '+')}:wght@400;500;600;700`).join('&');
+    link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
     link.rel = 'stylesheet';
     document.head.appendChild(link);
     return () => { link.parentNode?.removeChild(link); };

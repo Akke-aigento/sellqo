@@ -80,7 +80,7 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
       <div className="bg-background rounded-lg shadow-xl max-w-md w-full mx-4 p-8 text-center relative">
         <button
           onClick={handleClose}
@@ -112,7 +112,7 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
                 onChange={e => setEmail(e.target.value)}
                 placeholder="je@email.nl"
                 required
-                className="flex-1 rounded-md border px-3 py-2 text-sm"
+                className="flex-1 rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
               />
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Bezig...' : 'Aanmelden'}

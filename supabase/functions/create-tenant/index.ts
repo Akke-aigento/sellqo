@@ -236,6 +236,35 @@ serve(async (req) => {
       logStep("Role assigned successfully");
     }
 
+    // === Auto-create default theme settings ===
+    const { error: themeError } = await supabase
+      .from("tenant_theme_settings")
+      .insert({
+        tenant_id: tenant.id,
+        brand_color: "#3B82F6",
+        theme_mode: "light",
+        theme_style: "modern",
+        primary_color: "#3B82F6",
+        secondary_color: "#e5e7eb",
+        accent_color: "#f59e0b",
+        background_color: "#ffffff",
+        text_color: "#111827",
+        heading_font: "Inter",
+        body_font: "Inter",
+        header_style: "standard",
+        product_card_style: "standard",
+        products_per_row: 4,
+        show_breadcrumbs: true,
+        show_wishlist: true,
+        show_announcement_bar: false,
+        is_published: false,
+      });
+    if (themeError) {
+      logStep("WARNING: Failed to create default theme settings", { error: themeError.message });
+    } else {
+      logStep("Default theme settings created");
+    }
+
     // === Update subscription with selected plan (if not free) ===
     const selectedPlanId = body.selected_plan_id;
     if (selectedPlanId && selectedPlanId !== 'free') {

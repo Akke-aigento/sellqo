@@ -107,7 +107,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
 
           {/* Out of Stock Badge */}
           {!product.in_stock && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[1]">
+            <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center z-[1]">
               <span className="bg-background text-foreground text-sm font-medium px-3 py-1 rounded">
                 Uitverkocht
               </span>
