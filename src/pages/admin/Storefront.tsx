@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
-import { ThemeCustomizer } from '@/components/admin/storefront/ThemeCustomizer';
+import { ThemeWizard } from '@/components/admin/storefront/ThemeWizard';
 import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
 import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSettings';
@@ -52,7 +52,7 @@ export default function StorefrontPage() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'theme': return <ThemeCustomizer />;
+      case 'theme': return <ThemeWizard />;
       case 'homepage': return <HomepageBuilder />;
       case 'pages': return <StorefrontPagesManager />;
       case 'reviews': return <ReviewsHub />;

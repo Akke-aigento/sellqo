@@ -687,5 +687,88 @@
   "footer": {
     "sslSecure": "SSL Beveiligd",
     "verifiedPartner": "Stripe Geverifieerd Partner"
+  },
+  "theme": {
+    "wizard": {
+      "pickColor": "Kies je hoofdkleur",
+      "pickColorDesc": "Deze kleur vormt de basis van je volledige webshop-design",
+      "pickMood": "Kies je sfeer",
+      "pickMoodDesc": "Selecteer de uitstraling die bij je merk past",
+      "pickStyle": "Kies je stijl",
+      "pickStyleDesc": "Kies een typografie-stijl voor je webshop",
+      "previewTitle": "Bekijk je thema",
+      "previewDesc": "Zo ziet je webshop eruit met de gekozen instellingen",
+      "preview": "Live voorbeeld",
+      "publish": "Publiceer thema",
+      "saveDraft": "Opslaan als concept",
+      "advancedSettings": "Geavanceerde instellingen",
+      "colorOverrides": "Kleur aanpassingen",
+      "typographyOverrides": "Typografie aanpassingen",
+      "resetToGenerated": "Terugzetten naar gegenereerd",
+      "stepOf": "Stap {{current}} van {{total}}",
+      "moods": {
+        "lightClean": {
+          "title": "Licht & Clean",
+          "desc": "Heldere achtergrond, subtiele schaduwen, frisse uitstraling"
+        },
+        "darkPremium": {
+          "title": "Donker & Premium",
+          "desc": "Donkere achtergrond, glow-effecten, luxe gevoel"
+        },
+        "colorfulPlayful": {
+          "title": "Kleurrijk & Speels",
+          "desc": "Lichte achtergrond, kleurrijke accenten, vrolijk design"
+        },
+        "minimalistSleek": {
+          "title": "Minimalistisch & Strak",
+          "desc": "Veel witruimte, subtiel design, rustige uitstraling"
+        }
+      },
+      "styles": {
+        "modern": {
+          "title": "Modern",
+          "desc": "Clean en professioneel — Inter",
+          "sampleHeading": "Ontdek onze collectie",
+          "sampleBody": "Hoogwaardige producten met oog voor detail en duurzaamheid."
+        },
+        "elegant": {
+          "title": "Elegant",
+          "desc": "Stijlvol en verfijnd — Playfair Display + Lato",
+          "sampleHeading": "Ontdek onze collectie",
+          "sampleBody": "Hoogwaardige producten met oog voor detail en duurzaamheid."
+        },
+        "bold": {
+          "title": "Bold",
+          "desc": "Krachtig en opvallend — Montserrat",
+          "sampleHeading": "Ontdek onze collectie",
+          "sampleBody": "Hoogwaardige producten met oog voor detail en duurzaamheid."
+        }
+      },
+      "colors": {
+        "primary": "Primair",
+        "primaryDesc": "Knoppen & links",
+        "secondary": "Secundair",
+        "secondaryDesc": "Subtiele accenten",
+        "accent": "Accent",
+        "accentDesc": "Prijzen & badges",
+        "background": "Achtergrond",
+        "backgroundDesc": "Pagina achtergrond",
+        "text": "Tekst",
+        "textDesc": "Standaard tekst"
+      },
+      "layout": {
+        "headerStyle": "Header stijl",
+        "cardStyle": "Card stijl",
+        "productsPerRow": "Producten per rij",
+        "products": "producten",
+        "breadcrumbsDesc": "Navigatie pad",
+        "wishlistDesc": "Verlanglijstje",
+        "announcementDesc": "Mededeling boven header",
+        "announcementText": "Tekst"
+      },
+      "advanced": {
+        "customCss": "Geavanceerd"
+      }
+    }
   }
 }

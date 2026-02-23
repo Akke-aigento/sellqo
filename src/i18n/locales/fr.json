@@ -493,5 +493,88 @@
   "footer": {
     "sslSecure": "Sécurisé SSL",
     "verifiedPartner": "Partenaire Stripe Vérifié"
+  },
+  "theme": {
+    "wizard": {
+      "pickColor": "Choisissez votre couleur",
+      "pickColorDesc": "Cette couleur forme la base de tout le design de votre boutique",
+      "pickMood": "Choisissez l'ambiance",
+      "pickMoodDesc": "Sélectionnez l'atmosphère qui correspond à votre marque",
+      "pickStyle": "Choisissez votre style",
+      "pickStyleDesc": "Choisissez un style typographique pour votre boutique",
+      "previewTitle": "Aperçu de votre thème",
+      "previewDesc": "Voici à quoi ressemblera votre boutique avec les paramètres choisis",
+      "preview": "Aperçu en direct",
+      "publish": "Publier le thème",
+      "saveDraft": "Enregistrer comme brouillon",
+      "advancedSettings": "Paramètres avancés",
+      "colorOverrides": "Personnalisation des couleurs",
+      "typographyOverrides": "Personnalisation typographique",
+      "resetToGenerated": "Réinitialiser aux valeurs générées",
+      "stepOf": "Étape {{current}} sur {{total}}",
+      "moods": {
+        "lightClean": {
+          "title": "Clair & Épuré",
+          "desc": "Fond lumineux, ombres subtiles, apparence fraîche"
+        },
+        "darkPremium": {
+          "title": "Sombre & Premium",
+          "desc": "Fond sombre, effets lumineux, sensation luxueuse"
+        },
+        "colorfulPlayful": {
+          "title": "Coloré & Ludique",
+          "desc": "Fond clair, accents colorés, design joyeux"
+        },
+        "minimalistSleek": {
+          "title": "Minimaliste & Élégant",
+          "desc": "Beaucoup d'espace blanc, design subtil, esthétique calme"
+        }
+      },
+      "styles": {
+        "modern": {
+          "title": "Moderne",
+          "desc": "Épuré et professionnel — Inter",
+          "sampleHeading": "Découvrez notre collection",
+          "sampleBody": "Des produits de haute qualité avec le souci du détail et de la durabilité."
+        },
+        "elegant": {
+          "title": "Élégant",
+          "desc": "Stylé et raffiné — Playfair Display + Lato",
+          "sampleHeading": "Découvrez notre collection",
+          "sampleBody": "Des produits de haute qualité avec le souci du détail et de la durabilité."
+        },
+        "bold": {
+          "title": "Audacieux",
+          "desc": "Puissant et frappant — Montserrat",
+          "sampleHeading": "Découvrez notre collection",
+          "sampleBody": "Des produits de haute qualité avec le souci du détail et de la durabilité."
+        }
+      },
+      "colors": {
+        "primary": "Primaire",
+        "primaryDesc": "Boutons & liens",
+        "secondary": "Secondaire",
+        "secondaryDesc": "Accents subtils",
+        "accent": "Accent",
+        "accentDesc": "Prix & badges",
+        "background": "Arrière-plan",
+        "backgroundDesc": "Fond de page",
+        "text": "Texte",
+        "textDesc": "Texte par défaut"
+      },
+      "layout": {
+        "headerStyle": "Style d'en-tête",
+        "cardStyle": "Style de carte",
+        "productsPerRow": "Produits par ligne",
+        "products": "produits",
+        "breadcrumbsDesc": "Chemin de navigation",
+        "wishlistDesc": "Liste de souhaits",
+        "announcementDesc": "Avis au-dessus de l'en-tête",
+        "announcementText": "Texte"
+      },
+      "advanced": {
+        "customCss": "Avancé"
+      }
+    }
   }
 }

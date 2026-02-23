@@ -662,5 +662,88 @@
   "footer": {
     "sslSecure": "SSL Secured",
     "verifiedPartner": "Stripe Verified Partner"
+  },
+  "theme": {
+    "wizard": {
+      "pickColor": "Pick your brand color",
+      "pickColorDesc": "This color forms the foundation of your entire storefront design",
+      "pickMood": "Choose your mood",
+      "pickMoodDesc": "Select the atmosphere that matches your brand",
+      "pickStyle": "Choose your style",
+      "pickStyleDesc": "Pick a typography style for your storefront",
+      "previewTitle": "Preview your theme",
+      "previewDesc": "This is how your storefront will look with the chosen settings",
+      "preview": "Live preview",
+      "publish": "Publish theme",
+      "saveDraft": "Save as draft",
+      "advancedSettings": "Advanced settings",
+      "colorOverrides": "Color overrides",
+      "typographyOverrides": "Typography overrides",
+      "resetToGenerated": "Reset to generated",
+      "stepOf": "Step {{current}} of {{total}}",
+      "moods": {
+        "lightClean": {
+          "title": "Light & Clean",
+          "desc": "Bright background, subtle shadows, fresh look"
+        },
+        "darkPremium": {
+          "title": "Dark & Premium",
+          "desc": "Dark background, glow effects, luxurious feel"
+        },
+        "colorfulPlayful": {
+          "title": "Colorful & Playful",
+          "desc": "Light background, colorful accents, cheerful design"
+        },
+        "minimalistSleek": {
+          "title": "Minimalist & Sleek",
+          "desc": "Lots of whitespace, subtle design, calm aesthetic"
+        }
+      },
+      "styles": {
+        "modern": {
+          "title": "Modern",
+          "desc": "Clean and professional — Inter",
+          "sampleHeading": "Discover our collection",
+          "sampleBody": "High-quality products with attention to detail and sustainability."
+        },
+        "elegant": {
+          "title": "Elegant",
+          "desc": "Stylish and refined — Playfair Display + Lato",
+          "sampleHeading": "Discover our collection",
+          "sampleBody": "High-quality products with attention to detail and sustainability."
+        },
+        "bold": {
+          "title": "Bold",
+          "desc": "Powerful and striking — Montserrat",
+          "sampleHeading": "Discover our collection",
+          "sampleBody": "High-quality products with attention to detail and sustainability."
+        }
+      },
+      "colors": {
+        "primary": "Primary",
+        "primaryDesc": "Buttons & links",
+        "secondary": "Secondary",
+        "secondaryDesc": "Subtle accents",
+        "accent": "Accent",
+        "accentDesc": "Prices & badges",
+        "background": "Background",
+        "backgroundDesc": "Page background",
+        "text": "Text",
+        "textDesc": "Default text"
+      },
+      "layout": {
+        "headerStyle": "Header style",
+        "cardStyle": "Card style",
+        "productsPerRow": "Products per row",
+        "products": "products",
+        "breadcrumbsDesc": "Navigation path",
+        "wishlistDesc": "Wishlist",
+        "announcementDesc": "Notice above header",
+        "announcementText": "Text"
+      },
+      "advanced": {
+        "customCss": "Advanced"
+      }
+    }
   }
 }
