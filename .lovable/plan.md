@@ -1,31 +1,55 @@
 
-## Fix: Onboarding Product Creation - Invalid Column `image_url`
+
+## Fix: Product Variants System - End-to-End
 
 ### Problem
-The onboarding flow crashes when creating a product because `useOnboarding.ts` (line 715) inserts into a column called `image_url` on the `products` table. This column does not exist. The products table uses:
-- `images` (text array) for all product images
-- `featured_image` (text) for the primary image
+Variants are a "phantom feature" -- the admin UI for creating them exists and writes to the database correctly, but the data is never read back in the right places:
 
-The error message confirms this: *"Could not find the 'image_url' column of 'products' in the schema cache"*
+1. **`usePublicProduct`** (storefront) only queries the `products` table. It never fetches `product_variants` or `product_variant_options`, so `product.variants`, `product.options`, and `product.has_variants` are always `undefined`.
+2. **`usePublicProducts`** (product listing) also never includes variant info, so `has_variants` is always false on product cards.
+3. The storefront detail page (`ShopProductDetail.tsx`) has full variant UI code that references `product.variants` and `product.options` -- but these properties are never populated.
 
-### Fix
-One-line change in `src/hooks/useOnboarding.ts` (line 715):
+### Solution
 
-Replace:
-```
-image_url: productImageUrl || null,
-```
+**File 1: `src/hooks/usePublicStorefront.ts`**
 
-With:
-```
-images: productImageUrl ? [productImageUrl] : [],
-featured_image: productImageUrl || null,
-```
+Update `usePublicProduct` to also fetch variants and options after loading the product:
 
-This maps the uploaded onboarding image to the correct columns: `images` as an array with one entry, and `featured_image` for the primary display image. It also needs `product_type: 'physical'` as a default since that column is required.
+- After fetching the product, make two additional queries:
+  - `product_variants` filtered by `product_id` and `is_active = true`, ordered by `position`
+  - `product_variant_options` filtered by `product_id`, ordered by `position`
+- Attach these as `variants` and `options` on the returned product object
+- Compute `has_variants: variants.length > 0`
+
+Update `usePublicProducts` to include a variant count indicator:
+
+- After fetching products, do a single query on `product_variants` grouped by `product_id` (or a simpler approach: fetch variant counts for all product IDs)
+- Set `has_variants: true` on products that have at least one active variant
+
+**File 2: `src/hooks/usePublicStorefront.ts` -- types**
+
+Add the variant-related fields (`variants`, `options`, `has_variants`) to the return type so TypeScript is satisfied.
 
 ### Technical Details
-- **File**: `src/hooks/useOnboarding.ts`, lines ~709-720
-- **Root cause**: Column name mismatch (`image_url` vs `images`/`featured_image`)
-- **Risk**: None -- straightforward column mapping fix
-- **Also adding**: `product_type: 'physical'` as a sensible default for onboarding products, since the `product_type` column is required on the products table
+
+```text
+usePublicProduct flow (current):
+  products table --> return product
+
+usePublicProduct flow (fixed):
+  products table --> product_variants --> product_variant_options --> return enriched product
+                     (where product_id = X)   (where product_id = X)
+                     
+  Enriched product includes:
+    .variants = [{ id, title, sku, price, compare_at_price, stock, image_url, attribute_values, ... }]
+    .options = [{ name, values }]
+    .has_variants = true/false
+```
+
+Changes are isolated to `usePublicStorefront.ts`. The storefront components (`ShopProductDetail`, `VariantSelector`, `QuickViewModal`, `ProductCard`) already have complete variant handling code -- they just need the data.
+
+### Scope
+- 1 file changed: `src/hooks/usePublicStorefront.ts`
+- No database changes needed (tables and RLS policies already exist and are permissive)
+- No storefront component changes needed (variant UI is already fully built)
+
