@@ -1,35 +1,28 @@
 
 
-## Unieke SKU, EAN/Barcode & Interne Referentie per variant
+## Fix: Bewerkknop variant veroorzaakt pagina-redirect
 
-### Huidige situatie
-- De database heeft al `sku` en `barcode` kolommen op `product_variants`
-- De admin-tabel toont alleen SKU als bewerkbaar veld
-- Er is geen `internal_reference` kolom in de database
+### Oorzaak
+De `ProductVariantsTab` zit in een `<form>` element (in `ProductForm.tsx`, regel 439). Wanneer je op het bewerkpotlood klikt, is de `<Button>` standaard van `type="submit"` -- hierdoor wordt het formulier verzonden, het product opgeslagen, en navigeert de pagina terug naar het productoverzicht.
 
-### Wijzigingen
+### Oplossing
+In `src/components/admin/products/ProductVariantsTab.tsx` moeten alle interactieve `<Button>`-elementen expliciet `type="button"` krijgen, zodat ze het formulier niet per ongeluk versturen. Dit geldt voor:
 
-**Database migratie** -- 1 kolom toevoegen:
-- `internal_reference` (text, nullable) op `product_variants` -- vrij tekstveld voor interne codes, magazijnlocaties, inkoopcodes, etc.
+- Bewerkknop (potlood-icoon, regel 458)
+- Opslaan-knop (vinkje, regel 449)
+- Annuleren-knop (kruisje, regel 452)
+- Optie-bewerk knop (regel 173, 176, 185)
+- "Toevoegen" knop (regel 242)
+- "Varianten genereren" knop (regel 250)
+- Ontkoppelen-knop (regel 425)
+- Koppelen-knop (regel 435)
+- Afbeelding-verwijderknop (regel 305)
 
-**Bestand 1: `src/hooks/useProductVariants.ts`**
-- `internal_reference` toevoegen aan de `ProductVariant` interface
-- `internal_reference` toevoegen aan `VariantFormData` interface
-- `barcode` en `internal_reference` meenemen in `startEditVariant` data
+Daarnaast voegen we `e.stopPropagation()` toe aan de bewerkknop als extra veiligheid.
 
-**Bestand 2: `src/components/admin/products/ProductVariantsTab.tsx`**
-- De tabelheader uitbreiden met kolommen: **EAN/Barcode** en **Interne ref.**
-- Bij inline bewerken: invoervelden tonen voor `barcode` en `internal_reference`
-- Bij weergave: de waarden tonen (of "—" als leeg)
-- `barcode` en `internal_reference` meenemen in `startEditVariant`
+### Technische details
 
-### Resultaat tabel-layout
+**1 bestand aangepast**: `src/components/admin/products/ProductVariantsTab.tsx`
 
-```text
-| Afbeelding | Variant | SKU | EAN/Barcode | Interne ref. | Prijs | Voorraad | Actief | Gekoppeld | Acties |
-```
+Alle `<Button>` componenten binnen dit bestand krijgen `type="button"` zodat geen enkele klik onbedoeld het bovenliggende formulier indient. Dit is een paar regels per knop en lost het probleem volledig op.
 
-### Scope
-- 1 database migratie (1 kolom)
-- 2 bestanden aangepast
-- Geen storefront-wijzigingen nodig
