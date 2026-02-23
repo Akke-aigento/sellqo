@@ -479,5 +479,12 @@
   },
   "navigation": {
     "import": "Importieren"
+  },
+  "checkout": {
+    "securePayment": "Sicher bezahlen mit"
+  },
+  "footer": {
+    "sslSecure": "SSL Gesichert",
+    "verifiedPartner": "Stripe Verifizierter Partner"
   }
 }

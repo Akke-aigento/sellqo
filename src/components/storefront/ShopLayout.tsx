@@ -17,6 +17,7 @@ import { MobileBottomNav } from '@/components/storefront/MobileBottomNav';
 import { CookieBanner } from '@/components/storefront/CookieBanner';
 import { NewsletterPopup } from '@/components/storefront/NewsletterPopup';
 import { TrustBadges } from '@/components/storefront/TrustBadges';
+import { PaymentMethodIcons } from '@/components/storefront/PaymentMethodIcons';
 import { StorefrontLanguageSelector } from '@/components/storefront/StorefrontLanguageSelector';
 import { ExitIntentPopup } from '@/components/storefront/ExitIntentPopup';
 import { RecentPurchaseToast } from '@/components/storefront/RecentPurchaseToast';
@@ -426,7 +427,12 @@ export function ShopLayout({ children }: ShopLayoutProps) {
             </div>
           )}
 
-          <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
+          {/* Payment Method Icons Trust Bar */}
+          <div className="mt-8 pt-8 border-t">
+            <PaymentMethodIcons variant="footer" />
+          </div>
+
+          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} {tenant.name}. Alle rechten voorbehouden.</p>
           </div>
         </div>
