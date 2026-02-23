@@ -1,53 +1,40 @@
 
 
-## Analyse & Fix: Dubbele kader + varianten verschijnen niet
+## Variant-afbeeldingen: kleurwisseling met eigen foto's
 
-### Probleem 1: Dubbele kader (UI)
+### Wat er nu al werkt
+De storefront-code is **al volledig voorbereid**: wanneer een variant een `image_url` heeft, toont `ShopProductDetail` die afbeelding bovenaan de galerij. Bij kleurwissel springt de foto automatisch mee. Het enige wat ontbreekt is de admin-kant: je kunt nu geen afbeelding koppelen aan een variant.
 
-In `ProductForm.tsx` (regel 1002-1010) wordt `ProductVariantsTab` al in een `<Card>` gewrapped met een eigen `<CardHeader>` ("Varianten" / "Beheer productvarianten..."). Maar `ProductVariantsTab` zelf rendert intern ook twee `<Card>` componenten (Variant opties + Varianten tabel). Dit geeft het "dubbele kader" effect dat je ziet.
+### Wat er verandert
 
-**Fix**: Verwijder de buitenste Card-wrapper in `ProductForm.tsx` en render `ProductVariantsTab` direct. De component heeft al zijn eigen Cards met headers.
+**Bestand 1: `src/components/admin/products/ProductVariantsTab.tsx`**
 
-**Bestand**: `src/pages/admin/ProductForm.tsx` (regels 1000-1017)
+- Een nieuwe kolom "Afbeelding" toevoegen aan de varianten-tabel
+- Bij bewerken van een variant verschijnt een upload-knop (camera-icoontje) waarmee je een afbeelding uploadt naar de `product-images` bucket
+- Een thumbnail-preview tonen in de tabel (klein vierkantje, 40x40px)
+- Mogelijkheid om de afbeelding te verwijderen (kruisje op de thumbnail)
+- De `image_url` wordt meegestuurd bij opslaan via de bestaande `updateVariant` mutatie
 
-Verander van:
-```
-<Card>
-  <CardHeader>
-    <CardTitle>Varianten</CardTitle>
-    <CardDescription>Beheer productvarianten...</CardDescription>
-  </CardHeader>
-  <CardContent>
-    <ProductVariantsTab productId={id} />
-  </CardContent>
-</Card>
-```
-Naar:
-```
-<ProductVariantsTab productId={id} />
-```
+**Bestand 2: `src/hooks/useProductVariants.ts`**
 
-En de else-tak (product nog niet opgeslagen) blijft als losse Card.
+- `image_url` toevoegen aan het `startEditVariant` data-object zodat het correct wordt meegenomen bij inline editing
 
----
+### Hoe het werkt in de praktijk
 
-### Probleem 2: Varianten verschijnen niet in frontend
+1. Je maakt opties aan: **Kleur** (Rood, Blauw, Zwart) en **Maat** (S, M, L, XL)
+2. Je genereert varianten -> 12 combinaties verschijnen
+3. Bij elke kleur-variant upload je een eigen afbeelding (bijv. rode versie van het product)
+4. Op de webshop: klant selecteert "Blauw" -> productfoto wisselt automatisch naar de blauwe versie
+5. Maat wisselen verandert de foto niet (tenzij je daar ook een aparte foto aan koppelt)
 
-Dit is geen code-bug meer (de storefront-fix van de vorige stap is correct). Het probleem is dat er momenteel **0 varianten in de database staan** voor dit product. Er is wel een optie "XS" aangemaakt met waarde "Extra Small", maar er zijn geen varianten gegenereerd.
+### Technische details
 
-De flow is: Opties toevoegen -> "Varianten genereren uit opties" klikken -> varianten worden aangemaakt in `product_variants` tabel.
+- Hergebruik van de bestaande `useImageUpload` hook voor uploads naar `product-images` bucket
+- De kolom `image_url` op `product_variants` bestaat al in de database -- geen migratie nodig
+- De storefront-logica in `ShopProductDetail.tsx` hoeft niet aangepast te worden: `displayImages` en `selectedVariant.image_url` werken al correct
+- Upload-pad: `{tenant_id}/variants/{variant_id}_{timestamp}.{ext}` voor nette organisatie
 
-Zonder die stap bestaat er geen data om te tonen. De storefront-code werkt correct: `has_variants` is `false` omdat er geen rijen in `product_variants` zijn.
-
-**Geen code-fix nodig** -- na het oplossen van de dubbele kader kun je in de admin opties toevoegen en op "Varianten genereren uit opties" klikken. De varianten verschijnen dan automatisch in de frontend.
-
----
-
-### Samenvatting wijzigingen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/admin/ProductForm.tsx` | Verwijder dubbele Card-wrapper rond `ProductVariantsTab` |
-
-1 bestand, minimale wijziging.
-
+### Scope
+- 2 bestanden aangepast
+- 0 database-wijzigingen
+- 0 storefront-wijzigingen (dat werkt al)
