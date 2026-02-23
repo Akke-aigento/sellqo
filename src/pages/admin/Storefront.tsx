@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale, Star } from 'lucide-react';
+import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale, Star, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSett
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
 import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
+import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
 import { Card, CardContent } from '@/components/ui/card';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { id: 'homepage', label: 'Homepage', icon: LayoutDashboard },
   { id: 'pages', label: "Pagina's", icon: FileText },
   { id: 'reviews', label: 'Reviews', icon: Star },
+  { id: 'social', label: 'Social Media', icon: Share2 },
   { id: 'legal', label: 'Juridisch', icon: Scale },
   { id: 'features', label: 'Functies', icon: Sliders },
   { id: 'settings', label: 'Instellingen', icon: Settings },
@@ -54,6 +56,7 @@ export default function StorefrontPage() {
       case 'homepage': return <HomepageBuilder />;
       case 'pages': return <StorefrontPagesManager />;
       case 'reviews': return <ReviewsHub />;
+      case 'social': return <SocialMediaHub />;
       case 'legal': return <LegalPagesManager />;
       case 'features': return <StorefrontFeaturesSettings />;
       case 'settings': return <StorefrontSettings />;

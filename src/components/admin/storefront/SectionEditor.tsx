@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Save, Search, X } from 'lucide-react';
+import { Save, Search, X, Plus, Trash2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent } from '@/types/storefront';
+import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent, TestimonialsContent } from '@/types/storefront';
 import { useCategories } from '@/hooks/useCategories';
 import { useProducts } from '@/hooks/useProducts';
 import { VisualMediaPicker } from './visual-editor/VisualMediaPicker';
@@ -21,6 +21,7 @@ interface SectionEditorProps {
 export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps) {
   const [formData, setFormData] = useState<HomepageSection>(section);
   const { categories } = useCategories();
+  const { products } = useProducts();
 
   const handleContentChange = (key: string, value: unknown) => {
     setFormData({
@@ -371,6 +372,113 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
                 checked={(formData.content as any).show_aggregate_score !== false}
                 onCheckedChange={(checked) => handleContentChange('show_aggregate_score', checked)}
               />
+            </div>
+          </div>
+        );
+      }
+
+      case 'testimonials': {
+        const reviews = ((formData.content as TestimonialsContent).reviews || []);
+        const addReview = () => {
+          handleContentChange('reviews', [...reviews, { name: '', text: '', rating: 5 }]);
+        };
+        const updateReview = (idx: number, field: string, value: unknown) => {
+          const updated = reviews.map((r, i) => i === idx ? { ...r, [field]: value } : r);
+          handleContentChange('reviews', updated);
+        };
+        const removeReview = (idx: number) => {
+          handleContentChange('reviews', reviews.filter((_, i) => i !== idx));
+        };
+        return (
+          <div className="space-y-4">
+            {reviews.map((review, idx) => (
+              <div key={idx} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">Review {idx + 1}</Label>
+                  <Button variant="ghost" size="sm" onClick={() => removeReview(idx)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Naam</Label>
+                    <Input
+                      value={review.name}
+                      onChange={(e) => updateReview(idx, 'name', e.target.value)}
+                      placeholder="Naam reviewer"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Beoordeling</Label>
+                    <div className="flex gap-1 pt-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => updateReview(idx, 'rating', star)}
+                          className="focus:outline-none"
+                        >
+                          <Star className={`h-5 w-5 ${star <= (review.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Tekst</Label>
+                  <Textarea
+                    value={review.text}
+                    onChange={(e) => updateReview(idx, 'text', e.target.value)}
+                    rows={2}
+                    placeholder="Wat zegt de klant..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Avatar (optioneel)</Label>
+                  <Input
+                    value={review.avatar_url || ''}
+                    onChange={(e) => updateReview(idx, 'avatar_url', e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={addReview} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Review toevoegen
+            </Button>
+          </div>
+        );
+      }
+
+      case 'announcement': {
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tekst</Label>
+              <Input
+                value={(formData.content as any).text || ''}
+                onChange={(e) => handleContentChange('text', e.target.value)}
+                placeholder="Gratis verzending vanaf €50!"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Link URL (optioneel)</Label>
+                <Input
+                  value={(formData.content as any).link_url || ''}
+                  onChange={(e) => handleContentChange('link_url', e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Link tekst (optioneel)</Label>
+                <Input
+                  value={(formData.content as any).link_text || ''}
+                  onChange={(e) => handleContentChange('link_text', e.target.value)}
+                  placeholder="Meer info →"
+                />
+              </div>
             </div>
           </div>
         );

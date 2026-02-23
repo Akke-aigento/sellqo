@@ -9,6 +9,7 @@ import { NewsletterSection } from '@/components/storefront/sections/NewsletterSe
 import { TestimonialsSection } from '@/components/storefront/sections/TestimonialsSection';
 import { VideoSection } from '@/components/storefront/sections/VideoSection';
 import { ExternalReviewsSection } from '@/components/storefront/sections/ExternalReviewsSection';
+import { AnnouncementSection } from '@/components/storefront/sections/AnnouncementSection';
 import type { HomepageSection } from '@/types/storefront';
 import { Helmet } from 'react-helmet-async';
 
@@ -34,6 +35,8 @@ export default function ShopHome() {
         return <TestimonialsSection key={key} section={section} />;
       case 'video':
         return <VideoSection key={key} section={section} />;
+      case 'announcement':
+        return <AnnouncementSection key={key} section={section} />;
       case 'external_reviews':
         return <ExternalReviewsSection key={key} section={section} tenantId={tenant?.id} />;
       default:

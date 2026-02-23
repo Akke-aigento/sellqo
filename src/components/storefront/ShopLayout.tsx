@@ -107,6 +107,37 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     }
   }, [tenantSlug, setTenantSlug]);
 
+  // Inject custom_head_scripts from tenant theme settings
+  useEffect(() => {
+    if (!themeSettings?.custom_head_scripts) return;
+    const scripts = themeSettings.custom_head_scripts;
+    // Create a container element to parse the scripts
+    const container = document.createElement('div');
+    container.innerHTML = scripts;
+    const addedNodes: Node[] = [];
+    // Append each child node (script tags, meta tags, etc.) to the document head
+    Array.from(container.childNodes).forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        if (el.tagName === 'SCRIPT') {
+          // Re-create script elements so the browser executes them
+          const script = document.createElement('script');
+          Array.from(el.attributes).forEach(attr => script.setAttribute(attr.name, attr.value));
+          script.textContent = el.textContent;
+          document.head.appendChild(script);
+          addedNodes.push(script);
+        } else {
+          const cloned = el.cloneNode(true);
+          document.head.appendChild(cloned);
+          addedNodes.push(cloned);
+        }
+      }
+    });
+    return () => {
+      addedNodes.forEach(n => n.parentNode?.removeChild(n));
+    };
+  }, [themeSettings?.custom_head_scripts]);
+
   // Global favicon from themeSettings
   useEffect(() => {
     if (themeSettings?.favicon_url) {
