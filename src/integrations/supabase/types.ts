@@ -12226,6 +12226,7 @@ export type Database = {
           announcement_text: string | null
           background_color: string | null
           body_font: string | null
+          brand_color: string | null
           checkout_address_autocomplete: boolean | null
           checkout_company_field: string | null
           checkout_guest_enabled: boolean | null
@@ -12286,6 +12287,8 @@ export type Database = {
           tenant_id: string
           text_color: string | null
           theme_id: string | null
+          theme_mode: string | null
+          theme_style: string | null
           trust_badges: Json | null
           updated_at: string | null
           use_custom_frontend: boolean | null
@@ -12296,6 +12299,7 @@ export type Database = {
           announcement_text?: string | null
           background_color?: string | null
           body_font?: string | null
+          brand_color?: string | null
           checkout_address_autocomplete?: boolean | null
           checkout_company_field?: string | null
           checkout_guest_enabled?: boolean | null
@@ -12356,6 +12360,8 @@ export type Database = {
           tenant_id: string
           text_color?: string | null
           theme_id?: string | null
+          theme_mode?: string | null
+          theme_style?: string | null
           trust_badges?: Json | null
           updated_at?: string | null
           use_custom_frontend?: boolean | null
@@ -12366,6 +12372,7 @@ export type Database = {
           announcement_text?: string | null
           background_color?: string | null
           body_font?: string | null
+          brand_color?: string | null
           checkout_address_autocomplete?: boolean | null
           checkout_company_field?: string | null
           checkout_guest_enabled?: boolean | null
@@ -12426,6 +12433,8 @@ export type Database = {
           tenant_id?: string
           text_color?: string | null
           theme_id?: string | null
+          theme_mode?: string | null
+          theme_style?: string | null
           trust_badges?: Json | null
           updated_at?: string | null
           use_custom_frontend?: boolean | null

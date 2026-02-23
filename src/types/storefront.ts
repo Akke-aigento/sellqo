@@ -25,6 +25,9 @@ export interface ThemeSettings {
   text_color: string;
   heading_font: string;
   body_font: string;
+  brand_color?: string | null;
+  theme_mode?: 'light' | 'dark' | string | null;
+  theme_style?: 'modern' | 'elegant' | 'bold' | 'playful' | string | null;
 }
 
 export interface TenantThemeSettings {
@@ -46,6 +49,11 @@ export interface TenantThemeSettings {
   accent_color: string | null;
   background_color: string | null;
   text_color: string | null;
+
+  // Intelligent palette
+  brand_color?: string | null;
+  theme_mode?: 'light' | 'dark' | string | null;
+  theme_style?: 'modern' | 'elegant' | 'bold' | 'playful' | string | null;
   
   // Typography
   heading_font: string;
@@ -275,6 +283,9 @@ export interface ThemeSettingsFormData {
   accent_color: string;
   heading_font: string;
   body_font: string;
+  brand_color?: string | null;
+  theme_mode?: 'light' | 'dark' | string | null;
+  theme_style?: 'modern' | 'elegant' | 'bold' | 'playful' | string | null;
   header_style: string;
   show_announcement_bar: boolean;
   announcement_text: string;

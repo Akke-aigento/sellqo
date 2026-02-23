@@ -154,6 +154,8 @@ export function useStorefront() {
         // Multilingual settings
         'storefront_multilingual_enabled', 'storefront_languages', 'storefront_default_language',
         'storefront_language_selector_style',
+        // Intelligent palette
+        'brand_color', 'theme_mode', 'theme_style',
       ];
 
       for (const key of allowedFields) {

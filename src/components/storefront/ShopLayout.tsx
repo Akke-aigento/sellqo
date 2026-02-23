@@ -25,6 +25,8 @@ import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { SearchModal } from '@/components/storefront/SearchModal';
 import { cn } from '@/lib/utils';
 import { relativeLuminance } from '@/lib/color-utils';
+import { generateThemePalette as genPalette, generateThemePaletteLegacy } from '@/lib/theme-palette';
+import type { ThemeMode, ThemeStyle } from '@/lib/theme-palette';
 
 // Sanitize CSS to prevent XSS via style injection
 function sanitizeCSS(css: string): string {
@@ -45,152 +47,6 @@ function sanitizeCSS(css: string): string {
 }
 import type { ReviewPlatform } from '@/types/reviews-hub';
 import { supabase } from '@/integrations/supabase/client';
-
-// Hex to HSL converter for Tailwind CSS variables
-function hexToHsl(hex: string): string | null {
-  if (!hex || !hex.startsWith('#')) return null;
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-}
-
-// Auto-contrast: returns white or black foreground based on WCAG luminance
-function getContrastForeground(hex: string): string {
-  if (!hex || !hex.startsWith('#')) return '0 0% 100%';
-  const lum = relativeLuminance(hex);
-  return lum > 0.179 ? '0 0% 0%' : '0 0% 100%';
-}
-
-// Generate all theme CSS variables from tenant color settings
-function generateThemePalette(
-  bgHex?: string,
-  primaryHex?: string,
-  secondaryHex?: string,
-  accentHex?: string,
-  textHex?: string
-): Record<string, string> {
-  const style: Record<string, string> = {};
-
-  // Background-derived variables
-  if (bgHex) {
-    const bgHsl = hexToHsl(bgHex);
-    if (bgHsl) {
-      const lum = relativeLuminance(bgHex);
-      const isLight = lum > 0.179;
-      const parts = bgHsl.split(' ');
-      const hue = parts[0];
-      const sat = parseInt(parts[1]);
-      const lig = parseInt(parts[2]);
-      const fg = getContrastForeground(bgHex);
-
-      style['--background'] = bgHsl;
-      style['--popover'] = bgHsl;
-      style['--foreground'] = fg;
-      style['--popover-foreground'] = fg;
-
-      const cardL = isLight ? Math.max(lig - 2, 0) : Math.min(lig + 5, 100);
-      style['--card'] = `${hue} ${sat}% ${cardL}%`;
-      style['--card-foreground'] = fg;
-
-      const mutedL = isLight ? Math.max(lig - 4, 0) : Math.min(lig + 8, 100);
-      style['--muted'] = `${hue} ${Math.min(sat + 10, 100)}% ${mutedL}%`;
-      const mutedFgL = isLight ? 47 : 65;
-      style['--muted-foreground'] = `${hue} 16% ${mutedFgL}%`;
-
-      const borderL = isLight ? Math.max(lig - 10, 0) : Math.min(lig + 12, 100);
-      style['--border'] = `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`;
-      style['--input'] = `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`;
-
-      // Destructive: bright red on light, muted red on dark
-      if (isLight) {
-        style['--destructive'] = '0 84% 60%';
-        style['--destructive-foreground'] = '0 0% 98%';
-      } else {
-        style['--destructive'] = '0 62% 30%';
-        style['--destructive-foreground'] = '0 0% 98%';
-      }
-
-      // Secondary fallback: derived from background if not provided
-      if (!secondaryHex) {
-        const secL = isLight ? Math.max(lig - 6, 0) : Math.min(lig + 10, 100);
-        style['--secondary'] = `${hue} ${Math.min(sat + 5, 100)}% ${secL}%`;
-        style['--secondary-foreground'] = fg;
-      }
-
-      // Accent fallback: use primary if available, else derive from bg
-      if (!accentHex && !primaryHex) {
-        const accL = isLight ? Math.max(lig - 4, 0) : Math.min(lig + 8, 100);
-        style['--accent'] = `${hue} ${Math.min(sat + 10, 100)}% ${accL}%`;
-        style['--accent-foreground'] = fg;
-      }
-    }
-  }
-
-  // Primary
-  if (primaryHex) {
-    const hsl = hexToHsl(primaryHex);
-    if (hsl) {
-      style['--primary'] = hsl;
-      style['--primary-foreground'] = getContrastForeground(primaryHex);
-      style['--ring'] = hsl;
-
-      // Accent fallback to primary if no explicit accent
-      if (!accentHex) {
-        style['--accent'] = hsl;
-        style['--accent-foreground'] = getContrastForeground(primaryHex);
-      }
-    }
-  }
-
-  // Secondary (explicit)
-  if (secondaryHex) {
-    const hsl = hexToHsl(secondaryHex);
-    if (hsl) {
-      style['--secondary'] = hsl;
-      style['--secondary-foreground'] = getContrastForeground(secondaryHex);
-    }
-  }
-
-  // Accent (explicit)
-  if (accentHex) {
-    const hsl = hexToHsl(accentHex);
-    if (hsl) {
-      style['--accent'] = hsl;
-      style['--accent-foreground'] = getContrastForeground(accentHex);
-    }
-  }
-
-  // Text color override
-  if (textHex) {
-    const hsl = hexToHsl(textHex);
-    if (hsl) {
-      style['--foreground'] = hsl;
-      style['--popover-foreground'] = hsl;
-      style['--card-foreground'] = hsl;
-      const parts = hsl.split(' ');
-      const hue = parts[0];
-      const sat = parseInt(parts[1]);
-      const lig = parseInt(parts[2]);
-      const mutedLig = lig > 50 ? Math.max(lig - 25, 40) : Math.min(lig + 25, 60);
-      style['--muted-foreground'] = `${hue} ${Math.max(sat - 8, 0)}% ${mutedLig}%`;
-    }
-  }
-
-  return style;
-}
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -327,27 +183,43 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
 
-  // Build theme CSS variables from tenant color settings
-  const themeStyle = themeSettings ? generateThemePalette(
-    themeSettings.background_color,
-    themeSettings.primary_color,
-    themeSettings.secondary_color,
-    themeSettings.accent_color,
-    themeSettings.text_color
-  ) : {};
-
-  // Load Google Fonts
-  useEffect(() => {
-    if (themeSettings) {
-      const fonts = [themeSettings.heading_font, themeSettings.body_font].filter(Boolean);
-      if (fonts.length > 0) {
-        const link = document.createElement('link');
-        link.href = `https://fonts.googleapis.com/css2?family=${fonts.map(f => f.replace(' ', '+')).join('&family=')}&display=swap`;
-        link.rel = 'stylesheet';
-        document.head.appendChild(link);
-      }
+  // Build theme CSS variables: intelligent palette (brand_color) or legacy path
+  const palette = (() => {
+    if (!themeSettings) return { cssVariables: {} as Record<string, string>, headingFont: '', bodyFont: '' };
+    const brandColor = (themeSettings as any).brand_color as string | undefined;
+    if (brandColor) {
+      const mode = ((themeSettings as any).theme_mode || 'light') as ThemeMode;
+      const style = ((themeSettings as any).theme_style || 'modern') as ThemeStyle;
+      return genPalette(brandColor, mode, style);
     }
-  }, [themeSettings]);
+    // Legacy path – existing 5-color tenants
+    return {
+      cssVariables: generateThemePaletteLegacy(
+        themeSettings.background_color,
+        themeSettings.primary_color,
+        themeSettings.secondary_color,
+        themeSettings.accent_color,
+        themeSettings.text_color,
+      ),
+      headingFont: themeSettings.heading_font || '',
+      bodyFont: themeSettings.body_font || '',
+    };
+  })();
+
+  // Resolved fonts: palette fonts take precedence, then tenant overrides
+  const resolvedHeadingFont = themeSettings?.heading_font || palette.headingFont;
+  const resolvedBodyFont = themeSettings?.body_font || palette.bodyFont;
+
+  // Load Google Fonts (with cleanup)
+  useEffect(() => {
+    const fonts = [resolvedHeadingFont, resolvedBodyFont].filter(Boolean);
+    if (fonts.length === 0) return;
+    const link = document.createElement('link');
+    link.href = `https://fonts.googleapis.com/css2?family=${fonts.map(f => f!.replace(' ', '+')).join('&family=')}&display=swap`;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => { link.parentNode?.removeChild(link); };
+  }, [resolvedHeadingFont, resolvedBodyFont]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -390,8 +262,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     <div 
       className={cn("min-h-screen flex flex-col bg-background", mobileBottomNav && "pb-14 md:pb-0")}
       style={{
-        fontFamily: themeSettings?.body_font ? `"${themeSettings.body_font}", sans-serif` : undefined,
-        ...themeStyle,
+        fontFamily: resolvedBodyFont ? `"${resolvedBodyFont}", sans-serif` : undefined,
+        ...palette.cssVariables,
       } as React.CSSProperties}
     >
       {/* Announcement Bar Carousel */}
@@ -400,7 +272,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
           texts={announcementTexts}
           link={themeSettings?.announcement_link}
           bgColor={themeSettings?.primary_color || 'hsl(var(--primary))'}
-          textColor={themeSettings?.primary_color ? `hsl(${getContrastForeground(themeSettings.primary_color)})` : '#ffffff'}
+          textColor={themeSettings?.primary_color ? (relativeLuminance(themeSettings.primary_color) > 0.179 ? '#000000' : '#ffffff') : '#ffffff'}
         />
       )}
 
@@ -411,7 +283,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       )}>
         <div className="container mx-auto px-4">
           {headerStyle === 'centered' ? (
-            <CenteredHeader 
+            <CenteredHeader
               tenant={tenant} basePath={basePath} categories={categories}
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               cartCount={cartCount} mobileMenuOpen={mobileMenuOpen}
@@ -419,9 +291,10 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               multilingualEnabled={multilingualEnabled} storefrontLanguages={storefrontLanguages}
               storefrontLanguage={storefrontLanguage} onLanguageChange={handleLanguageChange}
               languageSelectorStyle={languageSelectorStyle}
+              resolvedHeadingFont={resolvedHeadingFont}
             />
           ) : headerStyle === 'minimal' ? (
-            <MinimalHeader 
+            <MinimalHeader
               tenant={tenant} basePath={basePath} categories={categories}
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
@@ -429,9 +302,10 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               multilingualEnabled={multilingualEnabled} storefrontLanguages={storefrontLanguages}
               storefrontLanguage={storefrontLanguage} onLanguageChange={handleLanguageChange}
               languageSelectorStyle={languageSelectorStyle}
+              resolvedHeadingFont={resolvedHeadingFont}
             />
           ) : (
-            <StandardHeader 
+            <StandardHeader
               tenant={tenant} basePath={basePath} categories={categories}
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               searchOpen={searchOpen} setSearchOpen={setSearchOpen}
@@ -445,6 +319,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               multilingualEnabled={multilingualEnabled} storefrontLanguages={storefrontLanguages}
               storefrontLanguage={storefrontLanguage} onLanguageChange={handleLanguageChange}
               languageSelectorStyle={languageSelectorStyle}
+              resolvedHeadingFont={resolvedHeadingFont}
             />
           )}
         </div>
@@ -463,7 +338,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               {logoUrl ? (
                 <img src={logoUrl} alt={tenant.name} className="h-10 mb-4" />
               ) : (
-                <h3 className="text-xl font-bold mb-4" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
+                <h3 className="text-xl font-bold mb-4" style={{ fontFamily: resolvedHeadingFont ? `"${resolvedHeadingFont}", serif` : undefined }}>
                   {tenant.name}
                 </h3>
               )}
@@ -621,7 +496,7 @@ function AnnouncementCarousel({ texts, link, bgColor, textColor }: { texts: stri
 }
 
 // Standard Header Component
-function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle }: any) {
+function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
   const { openDrawer } = useCart();
   
   return (
@@ -632,7 +507,7 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
           {logoUrl ? (
             <img src={logoUrl} alt={tenant.name} className="h-8" />
           ) : (
-            <span className="font-bold text-xl" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
+            <span className="font-bold text-xl" style={{ fontFamily: resolvedHeadingFont ? `"${resolvedHeadingFont}", serif` : undefined }}>
               {tenant.name}
             </span>
           )}
@@ -742,7 +617,7 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
 }
 
 // Centered Header Component
-function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle }: any) {
+function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
   const wishlistCount = getWishlistCount();
@@ -780,7 +655,7 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
           {logoUrl ? (
             <img src={logoUrl} alt={tenant.name} className="h-12" />
           ) : (
-            <span className="font-bold text-2xl" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>{tenant.name}</span>
+            <span className="font-bold text-2xl" style={{ fontFamily: resolvedHeadingFont ? `"${resolvedHeadingFont}", serif` : undefined }}>{tenant.name}</span>
           )}
         </Link>
 
@@ -840,7 +715,7 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
 }
 
 // Minimal Header Component
-function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle }: any) {
+function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
   const wishlistCount = getWishlistCount();
@@ -877,7 +752,7 @@ function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, 
         {logoUrl ? (
           <img src={logoUrl} alt={tenant.name} className="h-8" />
         ) : (
-          <span className="font-bold text-xl" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>{tenant.name}</span>
+          <span className="font-bold text-xl" style={{ fontFamily: resolvedHeadingFont ? `"${resolvedHeadingFont}", serif` : undefined }}>{tenant.name}</span>
         )}
       </Link>
 
