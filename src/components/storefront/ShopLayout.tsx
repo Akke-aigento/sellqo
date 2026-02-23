@@ -25,6 +25,24 @@ import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { SearchModal } from '@/components/storefront/SearchModal';
 import { cn } from '@/lib/utils';
 import { relativeLuminance } from '@/lib/color-utils';
+
+// Sanitize CSS to prevent XSS via style injection
+function sanitizeCSS(css: string): string {
+  let cleaned = css;
+  // Remove any HTML tags (e.g. <script>, </style>, etc.)
+  cleaned = cleaned.replace(/<[^>]*>/gi, '');
+  // Remove javascript: protocol in any context
+  cleaned = cleaned.replace(/javascript\s*:/gi, '');
+  // Remove expression() (IE CSS expression attack)
+  cleaned = cleaned.replace(/expression\s*\(/gi, '');
+  // Remove -moz-binding (Firefox XBL binding attack)
+  cleaned = cleaned.replace(/-moz-binding\s*:/gi, '');
+  // Remove behavior: (IE .htc behavior attack)
+  cleaned = cleaned.replace(/behavior\s*:/gi, '');
+  // Remove @import with javascript or data URIs
+  cleaned = cleaned.replace(/@import\s+(?:url\s*\()?\s*['"]?\s*(?:javascript|data)\s*:/gi, '');
+  return cleaned;
+}
 import type { ReviewPlatform } from '@/types/reviews-hub';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -484,9 +502,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       {/* Search Modal */}
       <SearchModal open={searchModalOpen} onOpenChange={setSearchModalOpen} tenantId={tenant?.id} basePath={basePath} currency={tenant?.currency || 'EUR'} />
 
-      {/* Custom CSS */}
+      {/* Custom CSS (sanitized to prevent XSS) */}
       {themeSettings?.custom_css && (
-        <style dangerouslySetInnerHTML={{ __html: themeSettings.custom_css }} />
+        <style dangerouslySetInnerHTML={{ __html: sanitizeCSS(themeSettings.custom_css) }} />
       )}
     </div>
   );

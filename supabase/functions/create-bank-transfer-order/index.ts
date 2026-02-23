@@ -137,7 +137,53 @@ serve(async (req) => {
     if (!tenant_id) throw new Error("tenant_id is required");
     if (!items || items.length === 0) throw new Error("items are required");
     if (!customer_email) throw new Error("customer_email is required");
+
+    // Validate quantities
+    for (const item of items) {
+      if (!item.product_id || !Number.isInteger(item.quantity) || item.quantity < 1) {
+        throw new Error(`Invalid item: product_id and quantity >= 1 are required`);
+      }
+    }
     logStep("Request validated", { tenant_id, itemCount: items.length });
+
+    // SERVER-SIDE PRICE VALIDATION: Fetch actual prices from DB, ignore client-sent prices
+    const productIds = items.map(i => i.product_id);
+    const { data: dbProducts, error: productsError } = await supabaseClient
+      .from("products")
+      .select("id, name, price, sku, images")
+      .in("id", productIds)
+      .eq("tenant_id", tenant_id);
+
+    if (productsError) {
+      throw new Error("Failed to verify product prices");
+    }
+
+    const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
+    // Verify all products exist and belong to this tenant
+    for (const item of items) {
+      if (!productMap.has(item.product_id)) {
+        throw new Error(`Product not found: ${item.product_id}`);
+      }
+    }
+
+    // Replace client prices with server-verified prices
+    const verifiedItems = items.map(item => {
+      const dbProduct = productMap.get(item.product_id)!;
+      const firstImage = Array.isArray(dbProduct.images) && dbProduct.images.length > 0
+        ? dbProduct.images[0] : item.product_image;
+      return {
+        ...item,
+        unit_price: Number(dbProduct.price),
+        product_name: dbProduct.name,
+        product_sku: dbProduct.sku || item.product_sku,
+        product_image: firstImage,
+      };
+    });
+    logStep("Prices verified from database", {
+      itemCount: verifiedItems.length,
+      verifiedTotal: verifiedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0),
+    });
 
     // Get tenant data
     const { data: tenant, error: tenantError } = await supabaseClient
@@ -174,8 +220,8 @@ serve(async (req) => {
     }
     customerCountry = customerCountry.toUpperCase();
 
-    // Calculate subtotal
-    const subtotal = items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+    // Calculate subtotal using verified prices
+    const subtotal = verifiedItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
 
     // Calculate VAT (simplified - standard rate)
     const tenantCountry = tenant.country?.toUpperCase() || 'BE';
@@ -288,8 +334,8 @@ serve(async (req) => {
     }
     logStep("Order created", { orderId: order.id });
 
-    // Create order items
-    const orderItems = items.map(item => ({
+    // Create order items (using verified prices)
+    const orderItems = verifiedItems.map(item => ({
       order_id: order.id,
       product_id: item.product_id,
       product_name: item.product_name,

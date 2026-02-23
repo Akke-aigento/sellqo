@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,7 @@ export default function ShopCheckout() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
   const [isProcessing, setIsProcessing] = useState(false);
+  const submittingRef = useRef(false);
   const [bankTransferOrder, setBankTransferOrder] = useState<{
     orderId: string;
     orderNumber: string;
@@ -217,7 +218,8 @@ export default function ShopCheckout() {
 
   const handlePayment = async (method: PaymentMethod) => {
     if (!tenant) return;
-    
+    if (submittingRef.current) return; // Prevent double-click
+    submittingRef.current = true;
     setIsProcessing(true);
     
     try {
@@ -289,6 +291,7 @@ export default function ShopCheckout() {
       console.error('Payment error:', error);
       toast.error('Er ging iets mis bij het verwerken van je bestelling');
     } finally {
+      submittingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -591,7 +594,12 @@ export default function ShopCheckout() {
                       backgroundColor: themeSettings?.primary_color || undefined,
                     }}
                   >
-                    {enabledPaymentMethods.length === 1 ? 'Doorgaan naar betaling' : 'Kies betaalmethode'}
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Bezig...
+                      </>
+                    ) : enabledPaymentMethods.length === 1 ? 'Doorgaan naar betaling' : 'Kies betaalmethode'}
                   </Button>
                 </CardContent>
               </Card>
