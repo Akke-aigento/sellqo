@@ -282,6 +282,7 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+    console.log('DEPLOY CHECK: payment_method_types removed, using dynamic methods');
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
