@@ -46,6 +46,152 @@ function sanitizeCSS(css: string): string {
 import type { ReviewPlatform } from '@/types/reviews-hub';
 import { supabase } from '@/integrations/supabase/client';
 
+// Hex to HSL converter for Tailwind CSS variables
+function hexToHsl(hex: string): string | null {
+  if (!hex || !hex.startsWith('#')) return null;
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+// Auto-contrast: returns white or black foreground based on WCAG luminance
+function getContrastForeground(hex: string): string {
+  if (!hex || !hex.startsWith('#')) return '0 0% 100%';
+  const lum = relativeLuminance(hex);
+  return lum > 0.179 ? '0 0% 0%' : '0 0% 100%';
+}
+
+// Generate all theme CSS variables from tenant color settings
+function generateThemePalette(
+  bgHex?: string,
+  primaryHex?: string,
+  secondaryHex?: string,
+  accentHex?: string,
+  textHex?: string
+): Record<string, string> {
+  const style: Record<string, string> = {};
+
+  // Background-derived variables
+  if (bgHex) {
+    const bgHsl = hexToHsl(bgHex);
+    if (bgHsl) {
+      const lum = relativeLuminance(bgHex);
+      const isLight = lum > 0.179;
+      const parts = bgHsl.split(' ');
+      const hue = parts[0];
+      const sat = parseInt(parts[1]);
+      const lig = parseInt(parts[2]);
+      const fg = getContrastForeground(bgHex);
+
+      style['--background'] = bgHsl;
+      style['--popover'] = bgHsl;
+      style['--foreground'] = fg;
+      style['--popover-foreground'] = fg;
+
+      const cardL = isLight ? Math.max(lig - 2, 0) : Math.min(lig + 5, 100);
+      style['--card'] = `${hue} ${sat}% ${cardL}%`;
+      style['--card-foreground'] = fg;
+
+      const mutedL = isLight ? Math.max(lig - 4, 0) : Math.min(lig + 8, 100);
+      style['--muted'] = `${hue} ${Math.min(sat + 10, 100)}% ${mutedL}%`;
+      const mutedFgL = isLight ? 47 : 65;
+      style['--muted-foreground'] = `${hue} 16% ${mutedFgL}%`;
+
+      const borderL = isLight ? Math.max(lig - 10, 0) : Math.min(lig + 12, 100);
+      style['--border'] = `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`;
+      style['--input'] = `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`;
+
+      // Destructive: bright red on light, muted red on dark
+      if (isLight) {
+        style['--destructive'] = '0 84% 60%';
+        style['--destructive-foreground'] = '0 0% 98%';
+      } else {
+        style['--destructive'] = '0 62% 30%';
+        style['--destructive-foreground'] = '0 0% 98%';
+      }
+
+      // Secondary fallback: derived from background if not provided
+      if (!secondaryHex) {
+        const secL = isLight ? Math.max(lig - 6, 0) : Math.min(lig + 10, 100);
+        style['--secondary'] = `${hue} ${Math.min(sat + 5, 100)}% ${secL}%`;
+        style['--secondary-foreground'] = fg;
+      }
+
+      // Accent fallback: use primary if available, else derive from bg
+      if (!accentHex && !primaryHex) {
+        const accL = isLight ? Math.max(lig - 4, 0) : Math.min(lig + 8, 100);
+        style['--accent'] = `${hue} ${Math.min(sat + 10, 100)}% ${accL}%`;
+        style['--accent-foreground'] = fg;
+      }
+    }
+  }
+
+  // Primary
+  if (primaryHex) {
+    const hsl = hexToHsl(primaryHex);
+    if (hsl) {
+      style['--primary'] = hsl;
+      style['--primary-foreground'] = getContrastForeground(primaryHex);
+      style['--ring'] = hsl;
+
+      // Accent fallback to primary if no explicit accent
+      if (!accentHex) {
+        style['--accent'] = hsl;
+        style['--accent-foreground'] = getContrastForeground(primaryHex);
+      }
+    }
+  }
+
+  // Secondary (explicit)
+  if (secondaryHex) {
+    const hsl = hexToHsl(secondaryHex);
+    if (hsl) {
+      style['--secondary'] = hsl;
+      style['--secondary-foreground'] = getContrastForeground(secondaryHex);
+    }
+  }
+
+  // Accent (explicit)
+  if (accentHex) {
+    const hsl = hexToHsl(accentHex);
+    if (hsl) {
+      style['--accent'] = hsl;
+      style['--accent-foreground'] = getContrastForeground(accentHex);
+    }
+  }
+
+  // Text color override
+  if (textHex) {
+    const hsl = hexToHsl(textHex);
+    if (hsl) {
+      style['--foreground'] = hsl;
+      style['--popover-foreground'] = hsl;
+      style['--card-foreground'] = hsl;
+      const parts = hsl.split(' ');
+      const hue = parts[0];
+      const sat = parseInt(parts[1]);
+      const lig = parseInt(parts[2]);
+      const mutedLig = lig > 50 ? Math.max(lig - 25, 40) : Math.min(lig + 25, 60);
+      style['--muted-foreground'] = `${hue} ${Math.max(sat - 8, 0)}% ${mutedLig}%`;
+    }
+  }
+
+  return style;
+}
+
 interface ShopLayoutProps {
   children: ReactNode;
 }
@@ -181,122 +327,14 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
 
-  // Hex to HSL converter for Tailwind CSS variables
-  const hexToHsl = (hex: string): string | null => {
-    if (!hex || !hex.startsWith('#')) return null;
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h = 0, s = 0;
-    const l = (max + min) / 2;
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
-      }
-    }
-    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-  };
-
-  // Auto-contrast: returns white or black foreground based on WCAG luminance
-  const getContrastForeground = (hex: string): string => {
-    if (!hex || !hex.startsWith('#')) return '0 0% 100%';
-    const lum = relativeLuminance(hex);
-    return lum > 0.179 ? '0 0% 0%' : '0 0% 100%';
-  };
-
-  // Derive muted/card/border/foreground from background color
-  const deriveFromBackground = (hex: string) => {
-    if (!hex || !hex.startsWith('#')) return {};
-    const lum = relativeLuminance(hex);
-    const isLight = lum > 0.179;
-    const hsl = hexToHsl(hex);
-    if (!hsl) return {};
-    const parts = hsl.split(' ');
-    const hue = parts[0];
-    const sat = parseInt(parts[1]);
-    const lig = parseInt(parts[2]);
-    const mutedL = isLight ? Math.max(lig - 4, 0) : Math.min(lig + 8, 100);
-    const cardL = isLight ? Math.max(lig - 2, 0) : Math.min(lig + 5, 100);
-    const borderL = isLight ? Math.max(lig - 10, 0) : Math.min(lig + 12, 100);
-    const mutedFgL = isLight ? 47 : 65;
-    const fg = getContrastForeground(hex);
-    return {
-      '--foreground': fg,
-      '--popover-foreground': fg,
-      '--muted': `${hue} ${Math.min(sat + 10, 100)}% ${mutedL}%`,
-      '--muted-foreground': `${hue} 16% ${mutedFgL}%`,
-      '--card': `${hue} ${sat}% ${cardL}%`,
-      '--card-foreground': fg,
-      '--border': `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`,
-      '--input': `${hue} ${Math.min(sat + 5, 100)}% ${borderL}%`,
-    };
-  };
-
-  // Build theme CSS variables as inline style for the wrapper div
-  const themeStyle = (() => {
-    const style: Record<string, string> = {};
-    if (!themeSettings) return style;
-    
-    const primary = themeSettings.primary_color;
-    const secondary = themeSettings.secondary_color;
-    const accent = themeSettings.accent_color;
-    const bg = themeSettings.background_color;
-    const text = themeSettings.text_color;
-
-    if (primary) {
-      const hsl = hexToHsl(primary);
-      if (hsl) {
-        style['--primary'] = hsl;
-        style['--primary-foreground'] = getContrastForeground(primary);
-        style['--ring'] = hsl;
-      }
-    }
-    if (secondary) {
-      const hsl = hexToHsl(secondary);
-      if (hsl) {
-        style['--secondary'] = hsl;
-        style['--secondary-foreground'] = getContrastForeground(secondary);
-      }
-    }
-    if (accent) {
-      const hsl = hexToHsl(accent);
-      if (hsl) {
-        style['--accent'] = hsl;
-        style['--accent-foreground'] = getContrastForeground(accent);
-      }
-    }
-    if (bg) {
-      const hsl = hexToHsl(bg);
-      if (hsl) {
-        style['--background'] = hsl;
-        style['--popover'] = hsl;
-        Object.assign(style, deriveFromBackground(bg));
-      }
-    }
-    if (text) {
-      const hsl = hexToHsl(text);
-      if (hsl) {
-        // Override ALL foreground variables so text_color is respected everywhere
-        style['--foreground'] = hsl;
-        style['--popover-foreground'] = hsl;
-        style['--card-foreground'] = hsl;
-        // Derive a muted version from the user's text color (reduce opacity/lightness)
-        const parts = hsl.split(' ');
-        const hue = parts[0];
-        const sat = parseInt(parts[1]);
-        const lig = parseInt(parts[2]);
-        // Muted foreground: same hue, lower saturation, pushed toward middle lightness
-        const mutedLig = lig > 50 ? Math.max(lig - 25, 40) : Math.min(lig + 25, 60);
-        style['--muted-foreground'] = `${hue} ${Math.max(sat - 8, 0)}% ${mutedLig}%`;
-      }
-    }
-    return style;
-  })();
+  // Build theme CSS variables from tenant color settings
+  const themeStyle = themeSettings ? generateThemePalette(
+    themeSettings.background_color,
+    themeSettings.primary_color,
+    themeSettings.secondary_color,
+    themeSettings.accent_color,
+    themeSettings.text_color
+  ) : {};
 
   // Load Google Fonts
   useEffect(() => {
@@ -358,10 +396,11 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     >
       {/* Announcement Bar Carousel */}
       {showAnnouncement && announcementTexts.length > 0 && (
-        <AnnouncementCarousel 
-          texts={announcementTexts} 
+        <AnnouncementCarousel
+          texts={announcementTexts}
           link={themeSettings?.announcement_link}
           bgColor={themeSettings?.primary_color || 'hsl(var(--primary))'}
+          textColor={themeSettings?.primary_color ? `hsl(${getContrastForeground(themeSettings.primary_color)})` : '#ffffff'}
         />
       )}
 
@@ -552,7 +591,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
 }
 
 // Announcement Carousel
-function AnnouncementCarousel({ texts, link, bgColor }: { texts: string[]; link?: string; bgColor: string }) {
+function AnnouncementCarousel({ texts, link, bgColor, textColor }: { texts: string[]; link?: string; bgColor: string; textColor?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -568,7 +607,7 @@ function AnnouncementCarousel({ texts, link, bgColor }: { texts: string[]; link?
   return (
     <div 
       className="py-2 px-4 text-center text-sm overflow-hidden relative h-8 flex items-center justify-center"
-      style={{ backgroundColor: bgColor, color: '#ffffff' }}
+      style={{ backgroundColor: bgColor, color: textColor || '#ffffff' }}
     >
       <div key={currentIndex} className="animate-fade-in">
         {link ? (

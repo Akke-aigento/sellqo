@@ -59,7 +59,7 @@ export function HeroSection({ section }: HeroSectionProps) {
           {content.button_text && content.button_link && (
             <Link
               to={content.button_link}
-              className="inline-flex items-center justify-center px-8 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
+              className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-colors"
             >
               {content.button_text}
             </Link>
