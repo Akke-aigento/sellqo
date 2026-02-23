@@ -232,7 +232,11 @@ export default function ShopCheckout() {
           },
         });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          const body = await error.context?.json?.().catch(() => null);
+          console.error('create-checkout-session error:', body?.error || error.message);
+          throw new Error(body?.error || error.message);
+        }
         if (sessionData?.url) {
           clearCart();
           window.location.href = sessionData.url;
@@ -252,7 +256,11 @@ export default function ShopCheckout() {
           },
         });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          const body = await error.context?.json?.().catch(() => null);
+          console.error('create-bank-transfer-order error:', body?.error || error.message);
+          throw new Error(body?.error || error.message);
+        }
         
         clearCart();
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
