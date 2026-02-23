@@ -678,7 +678,11 @@
     "securePayment": "Veilig betalen met",
     "searchAddress": "Zoek je adres...",
     "country": "Land",
-    "shippingAddress": "Verzendadres"
+    "shippingAddress": "Verzendadres",
+    "onlinePayment": "Online betalen",
+    "onlinePaymentSubtitle": "Kies je betaalmethode op de volgende pagina",
+    "bankTransfer": "Directe Bankoverschrijving",
+    "bankTransferSubtitle": "Scan de QR-code met je bank-app - direct betaald!"
   },
   "footer": {
     "sslSecure": "SSL Beveiligd",

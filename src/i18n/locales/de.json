@@ -484,7 +484,11 @@
     "securePayment": "Sicher bezahlen mit",
     "searchAddress": "Adresse suchen...",
     "country": "Land",
-    "shippingAddress": "Lieferadresse"
+    "shippingAddress": "Lieferadresse",
+    "onlinePayment": "Online bezahlen",
+    "onlinePaymentSubtitle": "Wählen Sie Ihre Zahlungsmethode auf der nächsten Seite",
+    "bankTransfer": "Direkte Banküberweisung",
+    "bankTransferSubtitle": "Scannen Sie den QR-Code mit Ihrer Banking-App - sofort bezahlt!"
   },
   "footer": {
     "sslSecure": "SSL Gesichert",
