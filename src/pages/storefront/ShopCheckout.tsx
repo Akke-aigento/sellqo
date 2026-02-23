@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Building2, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -145,10 +145,36 @@ export default function ShopCheckout() {
   const shipping = subtotal > 0 ? 5.95 : 0;
   const total = subtotal + shipping;
 
+  // Track if user is actively typing in the street field
+  const isManualTypingRef = useRef(false);
+  const autofillCheckTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
   const handleInputChange = (field: keyof CustomerData, value: string) => {
-    setCustomerData(prev => ({ ...prev, [field]: value }));
+    setCustomerData(prev => {
+      const next = { ...prev, [field]: value };
+
+      // Detect browser autofill: if a non-street address field changes
+      // shortly after the street field, multiple fields were filled at once
+      if (field !== 'street' && (field === 'city' || field === 'postalCode' || field === 'houseNumber' || field === 'country')) {
+        // Another address field changed — likely autofill
+        isManualTypingRef.current = false;
+        setShowSuggestions(false);
+        setAddressQuery('');
+      }
+
+      return next;
+    });
+
     if (field === 'street' && addressAutocomplete) {
-      setAddressQuery(value);
+      // Mark as manual typing; we'll verify after a short delay
+      isManualTypingRef.current = true;
+      if (autofillCheckTimerRef.current) clearTimeout(autofillCheckTimerRef.current);
+      autofillCheckTimerRef.current = setTimeout(() => {
+        // If still marked as manual after 50ms (no other fields changed), proceed
+        if (isManualTypingRef.current) {
+          setAddressQuery(value);
+        }
+      }, 50);
     }
   };
 
