@@ -85,6 +85,8 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       compare_at_price: variant.compare_at_price,
       stock: variant.stock,
       sku: variant.sku,
+      barcode: variant.barcode,
+      internal_reference: variant.internal_reference,
       is_active: variant.is_active,
       image_url: variant.image_url,
     });
@@ -279,6 +281,8 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                     <TableHead className="w-[60px]">Afbeelding</TableHead>
                     <TableHead>Variant</TableHead>
                     <TableHead>SKU</TableHead>
+                    <TableHead>EAN/Barcode</TableHead>
+                    <TableHead>Interne ref.</TableHead>
                     <TableHead>Prijs</TableHead>
                     <TableHead>Voorraad</TableHead>
                     <TableHead>Actief</TableHead>
@@ -348,6 +352,30 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                           />
                         ) : (
                           <span className="text-sm text-muted-foreground">{variant.sku || '—'}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingVariantId === variant.id ? (
+                          <Input
+                            value={editVariantData.barcode ?? ''}
+                            onChange={e => setEditVariantData(prev => ({ ...prev, barcode: e.target.value }))}
+                            placeholder="EAN-13"
+                            className="w-28"
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{variant.barcode || '—'}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingVariantId === variant.id ? (
+                          <Input
+                            value={editVariantData.internal_reference ?? ''}
+                            onChange={e => setEditVariantData(prev => ({ ...prev, internal_reference: e.target.value }))}
+                            placeholder="Ref."
+                            className="w-24"
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{(variant as any).internal_reference || '—'}</span>
                         )}
                       </TableCell>
                       <TableCell>
