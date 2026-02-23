@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, Camera, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
 import { useProducts } from '@/hooks/useProducts';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 
 interface ProductVariantsTabProps {
@@ -26,6 +28,10 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
     generateVariants,
   } = useProductVariants(productId);
   const { products } = useProducts();
+  const { uploadImage, uploading } = useImageUpload();
+  const { currentTenant } = useTenant();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingVariantId, setUploadingVariantId] = useState<string | null>(null);
 
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
@@ -80,7 +86,23 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       stock: variant.stock,
       sku: variant.sku,
       is_active: variant.is_active,
+      image_url: variant.image_url,
     });
+  };
+
+  const handleVariantImageUpload = async (variantId: string, file: File) => {
+    if (!currentTenant) return;
+    setUploadingVariantId(variantId);
+    const customPath = `${currentTenant.id}/variants/${variantId}_${Date.now()}`;
+    const url = await uploadImage(file, 'product-images', customPath);
+    if (url) {
+      updateVariant.mutate({ id: variantId, data: { image_url: url } });
+    }
+    setUploadingVariantId(null);
+  };
+
+  const handleRemoveVariantImage = (variantId: string) => {
+    updateVariant.mutate({ id: variantId, data: { image_url: null } });
   };
 
   const saveEditVariant = () => {
@@ -254,6 +276,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">Afbeelding</TableHead>
                     <TableHead>Variant</TableHead>
                     <TableHead>SKU</TableHead>
                     <TableHead>Prijs</TableHead>
@@ -266,6 +289,44 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                 <TableBody>
                   {variants.map(variant => (
                     <TableRow key={variant.id}>
+                      <TableCell>
+                        <div className="relative w-10 h-10 group">
+                          {variant.image_url ? (
+                            <>
+                              <img
+                                src={variant.image_url}
+                                alt={variant.title}
+                                className="w-10 h-10 rounded object-cover border"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariantImage(variant.id)}
+                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </>
+                          ) : (
+                            <label className="w-10 h-10 rounded border border-dashed flex items-center justify-center cursor-pointer hover:bg-muted transition-colors">
+                              {uploadingVariantId === variant.id ? (
+                                <span className="animate-spin text-xs">⏳</span>
+                              ) : (
+                                <Camera className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleVariantImageUpload(variant.id, file);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div>
                           <span className="font-medium">{variant.title}</span>
