@@ -673,5 +673,12 @@
   },
   "navigation": {
     "import": "Importeren"
+  },
+  "checkout": {
+    "securePayment": "Veilig betalen met"
+  },
+  "footer": {
+    "sslSecure": "SSL Beveiligd",
+    "verifiedPartner": "Stripe Geverifieerd Partner"
   }
 }

@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, Building2, QrCode, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PaymentMethodIcons } from '@/components/storefront/PaymentMethodIcons';
 
 export type PaymentMethod = 'stripe' | 'bank_transfer';
 
@@ -123,6 +124,8 @@ export function PaymentMethodSelector({
             })}
           </div>
         </RadioGroup>
+
+        <PaymentMethodIcons variant="checkout" />
       </CardContent>
     </Card>
   );

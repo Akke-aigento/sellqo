@@ -648,5 +648,12 @@
     "processing": "Importing...",
     "duration": "Duration",
     "seconds": "seconds"
+  },
+  "checkout": {
+    "securePayment": "Pay securely with"
+  },
+  "footer": {
+    "sslSecure": "SSL Secured",
+    "verifiedPartner": "Stripe Verified Partner"
   }
 }
