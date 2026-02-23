@@ -1,4 +1,4 @@
-import { Play, Star, Mail } from 'lucide-react';
+import { Play, Star, Mail, Megaphone } from 'lucide-react';
 import type { HomepageSection } from '@/types/storefront';
 
 interface MiniSectionProps {
@@ -146,6 +146,15 @@ export function MiniExternalReviews({ section, accentColor }: MiniSectionProps) 
   );
 }
 
+export function MiniAnnouncement({ section, primaryColor }: MiniSectionProps) {
+  return (
+    <div className="px-3 py-2 text-center" style={{ backgroundColor: primaryColor + '15' }}>
+      <Megaphone className="h-3 w-3 mx-auto mb-0.5 opacity-40" />
+      <p className="text-[7px] font-medium">{section.title || (section.content as any)?.text || 'Aankondiging'}</p>
+    </div>
+  );
+}
+
 export function renderMiniSection(section: HomepageSection, props: Omit<MiniSectionProps, 'section'>) {
   const sectionProps = { section, ...props };
   switch (section.section_type) {
@@ -156,6 +165,7 @@ export function renderMiniSection(section: HomepageSection, props: Omit<MiniSect
     case 'newsletter': return <MiniNewsletter key={section.id} {...sectionProps} />;
     case 'testimonials': return <MiniTestimonials key={section.id} {...sectionProps} />;
     case 'video': return <MiniVideo key={section.id} {...sectionProps} />;
+    case 'announcement': return <MiniAnnouncement key={section.id} {...sectionProps} />;
     case 'external_reviews': return <MiniExternalReviews key={section.id} {...sectionProps} />;
     default: return null;
   }
