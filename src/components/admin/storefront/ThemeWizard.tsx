@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Sun, Moon, Palette, LayoutTemplate, Check, ChevronLeft, ChevronRight,
-  Rocket, Settings2, Save, Eye,
+  Rocket, Settings2, Save, Eye, RotateCcw,
   CheckCircle2, AlertTriangle, XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { generateThemePalette, STYLE_PRESETS, type ThemeMode, type ThemeStyle } from '@/lib/theme-palette';
 import { hslToHex, hexToHsl, getContrastRatio, getContrastLevel } from '@/lib/color-utils';
 import { LiveThemePreview } from './LiveThemePreview';
+import { BrandingUploader } from './BrandingUploader';
 import { GOOGLE_FONTS, HEADER_STYLES, PRODUCT_CARD_STYLES } from '@/types/storefront';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -199,8 +200,10 @@ export function ThemeWizard() {
   const selectedTheme = themes.find(t => t.id === themeSettings?.theme_id);
   const defaults = selectedTheme?.default_settings;
 
-  // Wizard state
-  const [step, setStep] = useState(1);
+  // Wizard state — returning users skip to step 4
+  const hasExistingTheme = !!(themeSettings?.brand_color && themeSettings?.theme_mode && themeSettings?.theme_style);
+  const [step, setStep] = useState(hasExistingTheme ? 4 : 1);
+  const [wizardRestarted, setWizardRestarted] = useState(false);
   const [brandColor, setBrandColor] = useState('#3b82f6');
   const [selectedMood, setSelectedMood] = useState<MoodId>('light-clean');
   const [selectedStyle, setSelectedStyle] = useState<StyleId>('modern');
@@ -247,6 +250,11 @@ export function ThemeWizard() {
         // Determine style
         const styleOpt = STYLE_OPTIONS.find(s => s.themeStyle === style);
         if (styleOpt) setSelectedStyle(styleOpt.id);
+
+        // Skip to step 4 for returning users (unless they manually restarted)
+        if (themeSettings.brand_color && !wizardRestarted) {
+          setStep(4);
+        }
       }
 
       setAdvancedOverrides(prev => ({
@@ -386,6 +394,17 @@ export function ThemeWizard() {
       <div className="text-center space-y-1">
         <h2 className="text-xl font-bold">{t('theme.wizard.pickColor')}</h2>
         <p className="text-sm text-muted-foreground">{t('theme.wizard.pickColorDesc')}</p>
+      </div>
+
+      {/* Logo & Favicon upload */}
+      <div className="border rounded-lg p-5 space-y-1">
+        <h4 className="text-sm font-medium mb-3">{t('theme.wizard.branding')}</h4>
+        <BrandingUploader
+          logoUrl={advancedOverrides.logo_url}
+          faviconUrl={advancedOverrides.favicon_url}
+          onLogoChange={(url) => setAdvancedOverrides(prev => ({ ...prev, logo_url: url }))}
+          onFaviconChange={(url) => setAdvancedOverrides(prev => ({ ...prev, favicon_url: url }))}
+        />
       </div>
 
       <div className="flex flex-col items-center gap-6">
@@ -849,7 +868,20 @@ export function ThemeWizard() {
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Step indicator */}
-      <StepIndicator current={step} total={TOTAL_STEPS} />
+      <div className="flex items-center justify-center gap-4">
+        <StepIndicator current={step} total={TOTAL_STEPS} />
+        {step === 4 && hasExistingTheme && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setWizardRestarted(true); setStep(1); }}
+            className="gap-1.5 text-xs text-muted-foreground"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            {t('theme.wizard.restart')}
+          </Button>
+        )}
+      </div>
 
       {/* Step content */}
       <div className="min-h-[400px]">

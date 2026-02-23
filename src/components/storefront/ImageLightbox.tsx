@@ -36,7 +36,7 @@ export function ImageLightbox({ images, currentIndex, open, onOpenChange, onInde
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 bg-foreground/95 border-none overflow-hidden">
+      <DialogContent className="max-w-5xl p-0 bg-black/95 border-none overflow-hidden">
         <div className="relative flex items-center justify-center min-h-[60vh] max-h-[85vh]">
           {/* Image */}
           <img
@@ -50,14 +50,14 @@ export function ImageLightbox({ images, currentIndex, open, onOpenChange, onInde
             <>
               <Button
                 variant="ghost" size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-foreground/40 hover:bg-foreground/60 text-background rounded-full h-10 w-10"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full h-10 w-10"
                 onClick={goPrev}
               >
                 <ChevronLeft className="h-6 w-6" />
               </Button>
               <Button
                 variant="ghost" size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-foreground/40 hover:bg-foreground/60 text-background rounded-full h-10 w-10"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full h-10 w-10"
                 onClick={goNext}
               >
                 <ChevronRight className="h-6 w-6" />
@@ -67,7 +67,7 @@ export function ImageLightbox({ images, currentIndex, open, onOpenChange, onInde
 
           {/* Counter */}
           {images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-foreground/60 text-background text-sm px-3 py-1 rounded-full">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
               {currentIndex + 1} / {images.length}
             </div>
           )}
@@ -75,13 +75,13 @@ export function ImageLightbox({ images, currentIndex, open, onOpenChange, onInde
 
         {/* Thumbnail strip */}
         {images.length > 1 && (
-          <div className="flex gap-2 px-4 py-3 overflow-x-auto justify-center bg-foreground/80">
+          <div className="flex gap-2 px-4 py-3 overflow-x-auto justify-center bg-black/80">
             {images.map((img, i) => (
               <button
                 key={i}
                 onClick={() => onIndexChange(i)}
                 className={`flex-shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-all ${
-                  i === currentIndex ? 'border-background opacity-100' : 'border-transparent opacity-50 hover:opacity-75'
+                  i === currentIndex ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-75'
                 }`}
               >
                 <img src={img} alt="" className="w-full h-full object-cover" />

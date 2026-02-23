@@ -71,7 +71,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
 
   if (style === 'popup') {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
         <div className="bg-background rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">Cookie-instellingen</h3>

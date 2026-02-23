@@ -667,6 +667,7 @@
     "wizard": {
       "pickColor": "Pick your brand color",
       "pickColorDesc": "This color forms the foundation of your entire storefront design",
+      "branding": "Logo & Favicon",
       "pickMood": "Choose your mood",
       "pickMoodDesc": "Select the atmosphere that matches your brand",
       "pickStyle": "Choose your style",
@@ -676,6 +677,7 @@
       "preview": "Live preview",
       "publish": "Publish theme",
       "saveDraft": "Save as draft",
+      "restart": "Restart wizard",
       "advancedSettings": "Advanced settings",
       "colorOverrides": "Color overrides",
       "typographyOverrides": "Typography overrides",

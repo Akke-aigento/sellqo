@@ -37,7 +37,7 @@ export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupPr
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
       <div className="bg-background rounded-lg shadow-xl max-w-md w-full mx-4 p-8 text-center relative">
         <button
           onClick={() => setVisible(false)}

@@ -498,6 +498,7 @@
     "wizard": {
       "pickColor": "Choisissez votre couleur",
       "pickColorDesc": "Cette couleur forme la base de tout le design de votre boutique",
+      "branding": "Logo & Favicon",
       "pickMood": "Choisissez l'ambiance",
       "pickMoodDesc": "Sélectionnez l'atmosphère qui correspond à votre marque",
       "pickStyle": "Choisissez votre style",
@@ -507,6 +508,7 @@
       "preview": "Aperçu en direct",
       "publish": "Publier le thème",
       "saveDraft": "Enregistrer comme brouillon",
+      "restart": "Relancer l'assistant",
       "advancedSettings": "Paramètres avancés",
       "colorOverrides": "Personnalisation des couleurs",
       "typographyOverrides": "Personnalisation typographique",

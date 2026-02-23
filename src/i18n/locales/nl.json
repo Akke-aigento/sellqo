@@ -692,6 +692,7 @@
     "wizard": {
       "pickColor": "Kies je hoofdkleur",
       "pickColorDesc": "Deze kleur vormt de basis van je volledige webshop-design",
+      "branding": "Logo & Favicon",
       "pickMood": "Kies je sfeer",
       "pickMoodDesc": "Selecteer de uitstraling die bij je merk past",
       "pickStyle": "Kies je stijl",
@@ -701,6 +702,7 @@
       "preview": "Live voorbeeld",
       "publish": "Publiceer thema",
       "saveDraft": "Opslaan als concept",
+      "restart": "Wizard opnieuw starten",
       "advancedSettings": "Geavanceerde instellingen",
       "colorOverrides": "Kleur aanpassingen",
       "typographyOverrides": "Typografie aanpassingen",
