@@ -653,7 +653,11 @@
     "securePayment": "Pay securely with",
     "searchAddress": "Search your address...",
     "country": "Country",
-    "shippingAddress": "Shipping address"
+    "shippingAddress": "Shipping address",
+    "onlinePayment": "Pay online",
+    "onlinePaymentSubtitle": "Choose your payment method on the next page",
+    "bankTransfer": "Direct Bank Transfer",
+    "bankTransferSubtitle": "Scan the QR code with your banking app - paid instantly!"
   },
   "footer": {
     "sslSecure": "SSL Secured",
