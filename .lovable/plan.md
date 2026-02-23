@@ -1,30 +1,31 @@
 
-# Dynamische standaard landkeuze op checkout
+## Fix: Onboarding Product Creation - Invalid Column `image_url`
 
-## Probleem
-Het land in de checkout staat hardcoded op `'BE'`. Het zou automatisch het land van de tenant (winkel) moeten gebruiken.
+### Problem
+The onboarding flow crashes when creating a product because `useOnboarding.ts` (line 715) inserts into a column called `image_url` on the `products` table. This column does not exist. The products table uses:
+- `images` (text array) for all product images
+- `featured_image` (text) for the primary image
 
-## Oplossing
-In `src/pages/storefront/ShopCheckout.tsx`:
+The error message confirms this: *"Could not find the 'image_url' column of 'products' in the schema cache"*
 
-1. **Verwijder hardcoded `'BE'`** -- Zet de initiële `country` op een lege string `''`
-2. **Voeg een `useEffect` toe** die, zodra de tenant data geladen is, het land instelt op `tenant.country` (bijv. `'NL'`, `'BE'`, `'DE'`), maar alleen als de gebruiker het nog niet zelf heeft gewijzigd
+### Fix
+One-line change in `src/hooks/useOnboarding.ts` (line 715):
 
-## Technisch detail
+Replace:
+```
+image_url: productImageUrl || null,
+```
 
-Wijziging in `src/pages/storefront/ShopCheckout.tsx`:
+With:
+```
+images: productImageUrl ? [productImageUrl] : [],
+featured_image: productImageUrl || null,
+```
 
-- Regel 55: `country: 'BE'` wordt `country: ''`
-- Nieuw `useEffect` na bestaande effects:
-  ```typescript
-  useEffect(() => {
-    if (tenant?.country && !customerData.country) {
-      setCustomerData(prev => ({ ...prev, country: tenant.country || 'BE' }));
-    }
-  }, [tenant]);
-  ```
+This maps the uploaded onboarding image to the correct columns: `images` as an array with one entry, and `featured_image` for the primary display image. It also needs `product_type: 'physical'` as a default since that column is required.
 
-Dit zorgt ervoor dat:
-- Een Belgische winkel standaard "Belgie" toont
-- Een Nederlandse winkel standaard "Nederland" toont
-- Als de klant het land al heeft gewijzigd, wordt het niet overschreven
+### Technical Details
+- **File**: `src/hooks/useOnboarding.ts`, lines ~709-720
+- **Root cause**: Column name mismatch (`image_url` vs `images`/`featured_image`)
+- **Risk**: None -- straightforward column mapping fix
+- **Also adding**: `product_type: 'physical'` as a sensible default for onboarding products, since the `product_type` column is required on the products table
