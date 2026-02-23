@@ -52,7 +52,7 @@ export default function ShopCheckout() {
     houseNumber: '',
     postalCode: '',
     city: '',
-    country: 'BE',
+    country: '',
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
@@ -123,6 +123,13 @@ export default function ShopCheckout() {
       }
     }
   }, [tenant?.payment_methods_enabled]);
+
+  // Set default country from tenant
+  useEffect(() => {
+    if (tenant?.country && !customerData.country) {
+      setCustomerData(prev => ({ ...prev, country: tenant.country || 'BE' }));
+    }
+  }, [tenant]);
 
   // Address autocomplete debounce
   useEffect(() => {
