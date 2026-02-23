@@ -20,6 +20,7 @@ export interface ProductVariant {
   image_url: string | null;
   attribute_values: Record<string, string>;
   weight: number | null;
+  internal_reference: string | null;
   position: number;
   linked_product_id: string | null;
   created_at: string;
@@ -52,6 +53,7 @@ export interface VariantFormData {
   weight?: number | null;
   position?: number;
   linked_product_id?: string | null;
+  internal_reference?: string | null;
 }
 
 export interface VariantOptionFormData {

@@ -8340,6 +8340,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          internal_reference: string | null
           is_active: boolean
           linked_product_id: string | null
           position: number
@@ -8361,6 +8362,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          internal_reference?: string | null
           is_active?: boolean
           linked_product_id?: string | null
           position?: number
@@ -8382,6 +8384,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          internal_reference?: string | null
           is_active?: boolean
           linked_product_id?: string | null
           position?: number
