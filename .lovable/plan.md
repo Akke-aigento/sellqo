@@ -1,55 +1,53 @@
 
 
-## Fix: Product Variants System - End-to-End
+## Analyse & Fix: Dubbele kader + varianten verschijnen niet
 
-### Problem
-Variants are a "phantom feature" -- the admin UI for creating them exists and writes to the database correctly, but the data is never read back in the right places:
+### Probleem 1: Dubbele kader (UI)
 
-1. **`usePublicProduct`** (storefront) only queries the `products` table. It never fetches `product_variants` or `product_variant_options`, so `product.variants`, `product.options`, and `product.has_variants` are always `undefined`.
-2. **`usePublicProducts`** (product listing) also never includes variant info, so `has_variants` is always false on product cards.
-3. The storefront detail page (`ShopProductDetail.tsx`) has full variant UI code that references `product.variants` and `product.options` -- but these properties are never populated.
+In `ProductForm.tsx` (regel 1002-1010) wordt `ProductVariantsTab` al in een `<Card>` gewrapped met een eigen `<CardHeader>` ("Varianten" / "Beheer productvarianten..."). Maar `ProductVariantsTab` zelf rendert intern ook twee `<Card>` componenten (Variant opties + Varianten tabel). Dit geeft het "dubbele kader" effect dat je ziet.
 
-### Solution
+**Fix**: Verwijder de buitenste Card-wrapper in `ProductForm.tsx` en render `ProductVariantsTab` direct. De component heeft al zijn eigen Cards met headers.
 
-**File 1: `src/hooks/usePublicStorefront.ts`**
+**Bestand**: `src/pages/admin/ProductForm.tsx` (regels 1000-1017)
 
-Update `usePublicProduct` to also fetch variants and options after loading the product:
-
-- After fetching the product, make two additional queries:
-  - `product_variants` filtered by `product_id` and `is_active = true`, ordered by `position`
-  - `product_variant_options` filtered by `product_id`, ordered by `position`
-- Attach these as `variants` and `options` on the returned product object
-- Compute `has_variants: variants.length > 0`
-
-Update `usePublicProducts` to include a variant count indicator:
-
-- After fetching products, do a single query on `product_variants` grouped by `product_id` (or a simpler approach: fetch variant counts for all product IDs)
-- Set `has_variants: true` on products that have at least one active variant
-
-**File 2: `src/hooks/usePublicStorefront.ts` -- types**
-
-Add the variant-related fields (`variants`, `options`, `has_variants`) to the return type so TypeScript is satisfied.
-
-### Technical Details
-
-```text
-usePublicProduct flow (current):
-  products table --> return product
-
-usePublicProduct flow (fixed):
-  products table --> product_variants --> product_variant_options --> return enriched product
-                     (where product_id = X)   (where product_id = X)
-                     
-  Enriched product includes:
-    .variants = [{ id, title, sku, price, compare_at_price, stock, image_url, attribute_values, ... }]
-    .options = [{ name, values }]
-    .has_variants = true/false
+Verander van:
+```
+<Card>
+  <CardHeader>
+    <CardTitle>Varianten</CardTitle>
+    <CardDescription>Beheer productvarianten...</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <ProductVariantsTab productId={id} />
+  </CardContent>
+</Card>
+```
+Naar:
+```
+<ProductVariantsTab productId={id} />
 ```
 
-Changes are isolated to `usePublicStorefront.ts`. The storefront components (`ShopProductDetail`, `VariantSelector`, `QuickViewModal`, `ProductCard`) already have complete variant handling code -- they just need the data.
+En de else-tak (product nog niet opgeslagen) blijft als losse Card.
 
-### Scope
-- 1 file changed: `src/hooks/usePublicStorefront.ts`
-- No database changes needed (tables and RLS policies already exist and are permissive)
-- No storefront component changes needed (variant UI is already fully built)
+---
+
+### Probleem 2: Varianten verschijnen niet in frontend
+
+Dit is geen code-bug meer (de storefront-fix van de vorige stap is correct). Het probleem is dat er momenteel **0 varianten in de database staan** voor dit product. Er is wel een optie "XS" aangemaakt met waarde "Extra Small", maar er zijn geen varianten gegenereerd.
+
+De flow is: Opties toevoegen -> "Varianten genereren uit opties" klikken -> varianten worden aangemaakt in `product_variants` tabel.
+
+Zonder die stap bestaat er geen data om te tonen. De storefront-code werkt correct: `has_variants` is `false` omdat er geen rijen in `product_variants` zijn.
+
+**Geen code-fix nodig** -- na het oplossen van de dubbele kader kun je in de admin opties toevoegen en op "Varianten genereren uit opties" klikken. De varianten verschijnen dan automatisch in de frontend.
+
+---
+
+### Samenvatting wijzigingen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/pages/admin/ProductForm.tsx` | Verwijder dubbele Card-wrapper rond `ProductVariantsTab` |
+
+1 bestand, minimale wijziging.
 
