@@ -36,6 +36,7 @@ interface PublicProduct {
   images: string[];
   in_stock: boolean;
   category: { id: string; name: string; slug: string } | null;
+  has_variants?: boolean;
 }
 
 interface PublicCategory {
@@ -249,7 +250,23 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
 
-      return (data || []).map(product => ({
+      const products = data || [];
+      const productIds = products.map(p => p.id);
+
+      // Fetch variant counts for all products in one query
+      let variantProductIds: Set<string> = new Set();
+      if (productIds.length > 0) {
+        const { data: variants } = await supabase
+          .from('product_variants')
+          .select('product_id')
+          .in('product_id', productIds)
+          .eq('is_active', true);
+        for (const v of variants || []) {
+          variantProductIds.add(v.product_id);
+        }
+      }
+
+      return products.map(product => ({
         id: product.id,
         name: product.name,
         slug: product.slug,
@@ -263,6 +280,7 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
           name: product.categories.name,
           slug: product.categories.slug,
         } : null,
+        has_variants: variantProductIds.has(product.id),
       })) as PublicProduct[];
     },
     enabled: !!tenantId,
@@ -290,6 +308,28 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       if (!data) throw new Error('Product not found');
 
       const product = data as any;
+
+      // Fetch active variants and options in parallel
+      const [variantsRes, optionsRes] = await Promise.all([
+        supabase
+          .from('product_variants')
+          .select('*')
+          .eq('product_id', product.id)
+          .eq('is_active', true)
+          .order('position', { ascending: true }),
+        supabase
+          .from('product_variant_options')
+          .select('*')
+          .eq('product_id', product.id)
+          .order('position', { ascending: true }),
+      ]);
+
+      const variants = (variantsRes.data || []).map(v => ({
+        ...v,
+        attribute_values: (v.attribute_values as Record<string, string>) || {},
+      }));
+      const options = (optionsRes.data || []) as Array<{ id: string; name: string; values: string[]; position: number }>;
+
       return {
         ...product,
         images: product.images || [],
@@ -299,6 +339,9 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
           name: product.categories.name,
           slug: product.categories.slug,
         } : null,
+        variants,
+        options,
+        has_variants: variants.length > 0,
       };
     },
     enabled: !!tenantId && !!productSlug,
