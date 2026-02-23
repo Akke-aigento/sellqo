@@ -1,46 +1,64 @@
 
-
-# Fix: Notificaties alleen na betaling versturen
+# Fix: Adres autocomplete zoekbalk + Landkeuze toevoegen
 
 ## Probleem
-
-De eerder goedgekeurde migratie is **niet daadwerkelijk uitgevoerd** in de database. De huidige `handle_order_notification()` functie stuurt nog steeds een notificatie bij elke `INSERT` op de `orders` tabel, zonder te controleren of `payment_status = 'paid'` is.
+1. De adres autocomplete is gekoppeld aan het straatveld zelf, waardoor het conflicteert met browser autofill. Er is geen aparte zoekbalk zichtbaar.
+2. Er ontbreekt een landkeuze (country selector) op de checkout pagina.
 
 ## Oplossing
 
-De database migratie alsnog uitvoeren. Dit omvat twee wijzigingen:
+### 1. Aparte adres zoekbalk boven de adresvelden
+Een apart zoekveld toevoegen boven de adresvelden (Straat, Huisnummer, etc.) dat:
+- Alleen suggesties toont wanneer de gebruiker actief typt in dit zoekveld
+- Bij selectie van een suggestie automatisch alle adresvelden invult (straat, stad, postcode, land)
+- Niet reageert op browser autofill (dat vult alleen de individuele velden in)
+- Placeholder tekst toont zoals "Zoek je adres..." (via i18n)
 
-### 1. Functie aanpassen
-De `handle_order_notification()` functie wordt vervangen zodat de "Nieuwe bestelling" notificatie **alleen** wordt verstuurd wanneer:
-- **INSERT** met `payment_status = 'paid'`
-- **UPDATE** waarbij `payment_status` verandert naar `'paid'`
+### 2. Landkeuze dropdown
+Een Select dropdown toevoegen onder de postcode/stad rij met landopties:
+- Belgie (BE), Nederland (NL), Duitsland (DE), Frankrijk (FR), Luxemburg (LU)
+- Standaard: BE (zoals nu al ingesteld)
 
-### 2. Trigger aanpassen
-De bestaande trigger `on_order_notification` wordt verwijderd en opnieuw aangemaakt zodat deze ook op `UPDATE` events triggert (nodig om de payment_status wijziging op te vangen).
+### 3. i18n vertalingen
+Nieuwe keys toevoegen aan alle 4 taalbestanden:
+- `checkout.searchAddress`: "Zoek je adres" / "Search your address" / "Rechercher votre adresse" / "Adresse suchen"
+- `checkout.country`: "Land" / "Country" / "Pays" / "Land"
+- `checkout.shippingAddress`: "Verzendadres" / "Shipping address" / etc.
 
 ## Technische details
 
-Een enkele SQL-migratie met:
+### Bestanden die worden aangepast:
 
-```sql
--- Stap 1: Functie vervangen
-CREATE OR REPLACE FUNCTION public.handle_order_notification()
--- Bevat de nieuwe logica met payment_status check
+1. **`src/pages/storefront/ShopCheckout.tsx`**
+   - Verwijder de autocomplete-logica van het straatveld
+   - Voeg een apart zoekveld toe boven de adres grid, alleen zichtbaar als `addressAutocomplete` aan staat
+   - Verplaats de suggesties-dropdown naar dit nieuwe zoekveld
+   - Voeg een landkeuze Select component toe als nieuwe rij onder postcode/stad
+   - Verwijder de `isManualTypingRef` / `autofillCheckTimerRef` logica (niet meer nodig met apart zoekveld)
 
--- Stap 2: Trigger opnieuw aanmaken voor INSERT OR UPDATE
-DROP TRIGGER IF EXISTS on_order_notification ON public.orders;
-CREATE TRIGGER on_order_notification
-  AFTER INSERT OR UPDATE ON public.orders
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_order_notification();
+2. **`src/i18n/locales/nl.json`**, **`en.json`**, **`fr.json`**, **`de.json`**
+   - Checkout keys uitbreiden met `searchAddress`, `country`, `shippingAddress`
+
+### Layout van adressectie (na wijziging):
+
+```text
++--------------------------------------------------+
+| Verzendadres                                      |
++--------------------------------------------------+
+| [Zoek je adres...                    ] (zoekbalk) |  <-- alleen als autocomplete aan
++--------------------------------------------------+
+| Straat *                    | Huisnummer          |
+| [________________]          | [____]              |
++--------------------------------------------------+
+| Postcode *       | Stad *                         |
+| [________]       | [________________]             |
++--------------------------------------------------+
+| Land *                                            |
+| [Belgie              v]  (Select dropdown)        |
++--------------------------------------------------+
 ```
 
-### Geen frontend/edge function wijzigingen nodig
-Alleen de database trigger-functie en trigger worden aangepast.
-
-### Verwacht resultaat
-- Checkout aanmaken zonder te betalen: geen notificatie
-- Checkout annuleren: geen notificatie
-- Succesvolle betaling (webhook update naar `paid`): notificatie wordt verstuurd
-- "Markeer als betaald" bij bankoverschrijving: notificatie wordt verstuurd
-
+### Gedrag
+- Gebruiker typt in zoekbalk -> TomTom suggesties verschijnen -> klik vult alle velden
+- Browser autofill vult individuele velden -> zoekbalk blijft leeg, geen suggesties
+- Land selectie stuurt ook de country parameter mee naar de TomTom API voor betere resultaten
