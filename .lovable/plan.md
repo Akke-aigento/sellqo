@@ -1,28 +1,35 @@
 
 
-## Fix: Bewerkknop variant veroorzaakt pagina-redirect
+## Fix: Producten zonder voorraadregistratie tonen als "Uitverkocht"
 
-### Oorzaak
-De `ProductVariantsTab` zit in een `<form>` element (in `ProductForm.tsx`, regel 439). Wanneer je op het bewerkpotlood klikt, is de `<Button>` standaard van `type="submit"` -- hierdoor wordt het formulier verzonden, het product opgeslagen, en navigeert de pagina terug naar het productoverzicht.
+### Probleem
+Wanneer een product `track_inventory = false` heeft (voorraad wordt niet bijgehouden), wordt het toch als "Uitverkocht" getoond als `stock = 0`. Dit is fout -- zulke producten moeten altijd als "op voorraad" worden behandeld.
 
-### Oplossing
-In `src/components/admin/products/ProductVariantsTab.tsx` moeten alle interactieve `<Button>`-elementen expliciet `type="button"` krijgen, zodat ze het formulier niet per ongeluk versturen. Dit geldt voor:
+### Wat al goed werkt
+De webshop-pagina's (productoverzicht, productdetail, quick view) berekenen `in_stock` al correct:
+```
+in_stock = !product.track_inventory || product.stock > 0
+```
 
-- Bewerkknop (potlood-icoon, regel 458)
-- Opslaan-knop (vinkje, regel 449)
-- Annuleren-knop (kruisje, regel 452)
-- Optie-bewerk knop (regel 173, 176, 185)
-- "Toevoegen" knop (regel 242)
-- "Varianten genereren" knop (regel 250)
-- Ontkoppelen-knop (regel 425)
-- Koppelen-knop (regel 435)
-- Afbeelding-verwijderknop (regel 305)
+### Wat gerepareerd moet worden
 
-Daarnaast voegen we `e.stopPropagation()` toe aan de bewerkknop als extra veiligheid.
+**1. Google Product Feed** (`supabase/functions/generate-product-feed/index.ts`, regel 157)
 
-### Technische details
+Nu:
+```
+product.stock > 0 ? 'in_stock' : 'out_of_stock'
+```
+Wordt:
+```
+(!product.track_inventory || product.stock > 0) ? 'in_stock' : 'out_of_stock'
+```
 
-**1 bestand aangepast**: `src/components/admin/products/ProductVariantsTab.tsx`
+**2. Admin voorraadfilter** (`src/pages/admin/Products.tsx`, regels 119-121)
 
-Alle `<Button>` componenten binnen dit bestand krijgen `type="button"` zodat geen enkele klik onbedoeld het bovenliggende formulier indient. Dit is een paar regels per knop en lost het probleem volledig op.
+Nu filtert het puur op `stock`-waarde. Producten zonder voorraadregistratie moeten:
+- Altijd door het `in_stock` filter komen
+- Nooit verschijnen bij `out_of_stock` of `low_stock`
 
+### Scope
+- 2 bestanden aangepast
+- Geen database-wijzigingen nodig
