@@ -274,6 +274,41 @@ export default function ShopProductDetail() {
               </div>
             )}
 
+            {/* Add to Cart */}
+            {inStock && (
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center border rounded-lg">
+                  <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  Toevoegen aan winkelwagen
+                  {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
+                </Button>
+
+                {themeSettings?.show_wishlist && product && (
+                  <Button variant="outline" size="icon" onClick={() => toggleWishlist({
+                    productId: product.id, name: product.name, price: displayPrice,
+                    image: product.images?.[0], slug: product.slug,
+                  })}>
+                    <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {product.has_variants && !allOptionsSelected && (
+              <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
+            )}
+
             {/* Stock Status - respects stock_indicator setting */}
             {stockIndicator && (
               <div className="flex items-center gap-2 mb-6">
@@ -311,41 +346,6 @@ export default function ShopProductDetail() {
                            prose-ul:list-disc prose-ol:list-decimal"
                 dangerouslySetInnerHTML={{ __html: product.description }} 
               />
-            )}
-
-            {/* Add to Cart */}
-            {inStock && (
-              <div className="flex items-center gap-4 mb-8">
-                <div className="flex items-center border rounded-lg">
-                  <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
-                  <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
-                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Toevoegen aan winkelwagen
-                  {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
-                </Button>
-
-                {themeSettings?.show_wishlist && product && (
-                  <Button variant="outline" size="icon" onClick={() => toggleWishlist({
-                    productId: product.id, name: product.name, price: displayPrice,
-                    image: product.images?.[0], slug: product.slug,
-                  })}>
-                    <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {product.has_variants && !allOptionsSelected && (
-              <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
             )}
 
             {(selectedVariant?.sku || product.sku) && (
