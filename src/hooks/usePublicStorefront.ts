@@ -24,6 +24,13 @@ interface PublicTenant {
   payment_methods_enabled: string[] | null;
   pass_transaction_fee_to_customer: boolean | null;
   transaction_fee_label: string | null;
+  enable_b2b_checkout: boolean | null;
+  require_vies_validation: boolean | null;
+  block_invalid_vat_orders: boolean | null;
+  default_vat_handling: string | null;
+  tax_percentage: number | null;
+  oss_enabled: boolean | null;
+  oss_threshold_reached: boolean | null;
 }
 
 interface PublicProduct {
@@ -64,7 +71,7 @@ export function usePublicStorefront(tenantSlug: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tenants')
-        .select('id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label')
+        .select('id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, enable_b2b_checkout, require_vies_validation, block_invalid_vat_orders, default_vat_handling, tax_percentage, oss_enabled, oss_threshold_reached')
         .eq('slug', tenantSlug)
         .maybeSingle();
       

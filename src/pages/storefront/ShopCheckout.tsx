@@ -130,14 +130,14 @@ export default function ShopCheckout() {
   const guestEnabled = ts?.checkout_guest_enabled !== false;
 
   // Tenant BTW settings
-  const enableB2bCheckout = (tenant as any)?.enable_b2b_checkout ?? false;
-  const requireViesValidation = (tenant as any)?.require_vies_validation ?? true;
-  const blockInvalidVatOrders = (tenant as any)?.block_invalid_vat_orders ?? false;
+  const enableB2bCheckout = tenant?.enable_b2b_checkout ?? false;
+  const requireViesValidation = tenant?.require_vies_validation ?? true;
+  const blockInvalidVatOrders = tenant?.block_invalid_vat_orders ?? false;
   const tenantCountry = (tenant?.country || 'BE').toUpperCase();
-  const tenantVatRate = (tenant as any)?.tax_percentage || 21;
-  const ossEnabled = (tenant as any)?.oss_enabled ?? false;
-  const ossThresholdReached = (tenant as any)?.oss_threshold_reached ?? false;
-  const defaultVatHandling = (tenant as any)?.default_vat_handling || 'exclusive';
+  const tenantVatRate = tenant?.tax_percentage || 21;
+  const ossEnabled = tenant?.oss_enabled ?? false;
+  const ossThresholdReached = tenant?.oss_threshold_reached ?? false;
+  const defaultVatHandling = tenant?.default_vat_handling || 'exclusive';
 
   // Check auth state
   useEffect(() => {

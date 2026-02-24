@@ -487,7 +487,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       )}
 
       {/* Cart Drawer */}
-      <CartDrawer open={isDrawerOpen} onOpenChange={closeDrawer} basePath={basePath} currency={tenant?.currency || 'EUR'} />
+      <CartDrawer open={isDrawerOpen} onOpenChange={closeDrawer} basePath={basePath} currency={tenant?.currency || 'EUR'} tenantId={tenant?.id} />
 
       {/* Search Modal */}
       <SearchModal open={searchModalOpen} onOpenChange={setSearchModalOpen} tenantId={tenant?.id} basePath={basePath} currency={tenant?.currency || 'EUR'} />
