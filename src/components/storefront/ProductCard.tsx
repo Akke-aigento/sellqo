@@ -15,6 +15,9 @@ interface ProductCardProps {
     category?: { id: string; name: string; slug: string } | null;
     has_variants?: boolean;
     short_description?: string;
+    product_type?: string;
+    gift_card_denominations?: number[] | null;
+    gift_card_min_amount?: number | null;
   };
   basePath: string;
   showPrice?: boolean;
@@ -160,11 +163,26 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           {/* Price - standard and detailed only */}
           {cardStyle !== 'minimal' && showPrice && (
             <div className="mt-1 flex items-center gap-2">
-              <span className="font-semibold">{formatPrice(product.price)}</span>
-              {hasDiscount && (
-                <span className="text-sm text-muted-foreground line-through">
-                  {formatPrice(product.compare_at_price!)}
-                </span>
+              {product.product_type === 'gift_card' ? (
+                (() => {
+                  const denoms = product.gift_card_denominations;
+                  const minAmount = product.gift_card_min_amount;
+                  const lowestPrice = denoms && denoms.length > 0
+                    ? Math.min(...denoms)
+                    : minAmount || null;
+                  return lowestPrice ? (
+                    <span className="font-semibold">Vanaf {formatPrice(lowestPrice)}</span>
+                  ) : null;
+                })()
+              ) : (
+                <>
+                  <span className="font-semibold">{formatPrice(product.price)}</span>
+                  {hasDiscount && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      {formatPrice(product.compare_at_price!)}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           )}
