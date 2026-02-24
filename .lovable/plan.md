@@ -1,64 +1,100 @@
 
 
-## Fix: Mobiele bugs in de storefront (scroll, afgekapte tekst, knoppen)
+## Plan: BTW-nummer (VIES) + Kortingscode integratie in Checkout & Winkelwagen
 
-### Gevonden problemen
+### Analyse
 
-**Bug 1: Scrollen blokkeert na tikken op een product**
-In `ProductCard.tsx` wordt een hover-overlay met knoppen (Quick View, Toevoegen) getoond via `onMouseEnter`/`onMouseLeave`. Op mobiel triggert een touch-event `mouseenter` maar niet betrouwbaar `mouseleave`, waardoor de overlay "blijft hangen" en scroll-events blokkeert.
+**Probleem 1: BTW-nummer ontbreekt in checkout**
+Er bestaat al een volledig uitgewerkte `CheckoutForm.tsx` component met B2B/B2C toggle, BTW-nummer invoer, VIES-validatie en BTW-preview. Deze component wordt echter **niet gebruikt** in `ShopCheckout.tsx`. De checkout pagina heeft enkel een simpel bedrijfsnaam-veld zonder BTW-nummer.
 
-**Bug 2: Afgekapte productnamen ("Loveke Cadeaukaa...")**
-De productgrid in `ShopProducts.tsx` (regel 238) gebruikt een inline `gridTemplateColumns` op basis van `products_per_row` (bv. 3) zonder responsieve breakpoints. Op mobiel worden 3 kolommen in een smal scherm geperst, waardoor kaarten te smal zijn en tekst hard wordt afgekapt.
+**Probleem 2: Kortingscode werkt niet**
+- In `ShopCart.tsx` staat een kortingscode-veld, maar de `applyDiscount` functie is een dummy (wacht 1 seconde en geeft altijd "Ongeldige kortingscode")
+- In `ShopCheckout.tsx` is er **geen** kortingscode-veld
+- De backend API's bestaan al volledig: `validate_discount_code` en `cart_apply_discount` in de storefront-api edge function
+- Het promotiesysteem (`src/lib/promotions/`) is uitgebouwd maar nergens verbonden met de storefront UI
 
-**Bug 3: Knoppen over de afbeelding (Quick View / Toevoegen)**
-De hover-overlay knoppen (Quick View + winkelwagen) verschijnen bij touch op de afbeelding en bedekken deze. Op mobiel is dit verwarrend en onbruikbaar, zoals te zien in de screenshot.
+**Probleem 3: Kortingen niet zichtbaar in overzicht**
+Het besteloverzicht in zowel cart als checkout toont geen kortingsregels, enkel subtotaal + verzending = totaal.
 
 ---
 
-### Oplossingen
+### Oplossing
 
-**1. ProductCard.tsx -- Hover overlay uitschakelen op mobiel**
-- De hover-overlay met knoppen (regels 120-146) wordt alleen getoond op apparaten die hover ondersteunen (desktop)
-- Op mobiel wordt de hele kaart klikbaar naar de productpagina (zoals nu), zonder overlay-knoppen
-- De wishlist-knop blijft altijd zichtbaar op mobiel (geen hover nodig)
-- Technisch: CSS `@media (hover: hover)` of een `touch-action` aanpak gebruiken, en de `onMouseEnter`/`onMouseLeave` alleen op non-touch apparaten activeren
+#### 1. ShopCheckout.tsx -- BTW-nummer + VIES validatie
 
-**2. ShopProducts.tsx -- Responsieve grid**
-- De inline `gridTemplateColumns` (regel 238) wordt vervangen door Tailwind responsive classes
-- Mobiel: altijd 2 kolommen
-- Tablet (md): 3 kolommen
-- Desktop (lg): de geconfigureerde `products_per_row` waarde (standaard 3, max 4)
-- Dezelfde fix voor de skeleton loader (regel 219)
+- **B2B/B2C toggle** toevoegen in het klantgegevens-formulier (alleen als `enable_b2b_checkout` aan staat in tenant settings)
+- Bij "Zakelijk": toon BTW-nummer veld met "Valideer" knop
+- VIES-validatie via bestaande `validate-vat` edge function
+- Bij geldig BTW + ander EU-land: reverse charge (0% BTW) tonen in overzicht
+- Tenant settings `require_vies_validation` en `block_invalid_vat_orders` respecteren
+- BTW-nummer + validatiestatus meesturen naar de checkout/betaal edge functions
+- `CustomerData` interface uitbreiden met `vatNumber`, `customerType` (`b2b`/`b2c`), `vatValidated`
 
-**3. ProductCard.tsx -- Betere tekst-afhandeling op smalle kaarten**
-- Productnaam: `line-clamp-2` behouden maar `break-words` toevoegen zodat lange woorden netjes afbreken
-- Wishlist-knop: altijd zichtbaar op mobiel (niet alleen bij hover)
+#### 2. ShopCart.tsx -- Werkende kortingscode
+
+- De dummy `applyDiscount` functie vervangen door een echte API-call naar `storefront-api` met action `validate_discount_code`
+- Bij succesvolle validatie: de korting opslaan in lokale state (code, type, waarde, beschrijving)
+- Korting tonen als groene regel in het overzicht met verwijder-knop (X)
+- Totaal herberekenen met korting
+- De kortingscode meegeven aan checkout (via URL parameter of CartContext)
+
+#### 3. ShopCheckout.tsx -- Kortingscode in checkout
+
+- Kortingscode-veld toevoegen in het besteloverzicht (sidebar + mobile bar)
+- Zelfde validatielogica als in de cart
+- Als er al een code is meegegeven vanuit de cart, deze automatisch toepassen
+- Kortingsregel tonen in de totaalberekening
+- Korting meesturen naar de checkout/betaal edge functions (`create-checkout-session`, `create-bank-transfer-order`)
+
+#### 4. CartContext uitbreiden
+
+- `discountCode` state toevoegen (code + berekende korting)
+- `applyDiscountCode` en `removeDiscountCode` functies
+- Zodat de korting bewaard blijft tussen cart en checkout
+
+#### 5. Mobile-first
+
+- B2B/B2C toggle: full-width knoppen gestapeld op mobiel (`flex-col sm:flex-row`)
+- BTW-nummer veld + valideer knop: `flex-col sm:flex-row` layout
+- Kortingscode veld: compacte layout met "Toepassen" knop, past in de sticky mobile bar
+- Kortingsregel in overzicht: groene tekst met `-` prefix, responsive
 
 ---
 
 ### Technische details
 
-**ProductCard.tsx wijzigingen:**
-
-```text
-- Verwijder onMouseEnter/onMouseLeave (of maak ze touch-aware)
-- Hover overlay: voeg "hidden md:flex" toe (verberg op mobiel, toon op desktop bij hover)
-- Wishlist knop: verander "opacity-0 group-hover:opacity-100" naar "md:opacity-0 md:group-hover:opacity-100" (altijd zichtbaar op mobiel)
-- Voeg "break-words" toe aan productnaam
-```
-
-**ShopProducts.tsx wijzigingen:**
-
-```text
-- Vervang inline gridTemplateColumns door Tailwind classes:
-  "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-{products_per_row} gap-4 md:gap-6"
-- Zelfde aanpassing voor skeleton loader grid
-```
-
-### Bestanden die worden aangepast
+**Bestanden die worden aangepast:**
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/storefront/ProductCard.tsx` | Hover overlay verbergen op mobiel, wishlist altijd zichtbaar, break-words |
-| `src/pages/storefront/ShopProducts.tsx` | Responsieve grid met Tailwind classes i.p.v. inline style |
+| `src/context/CartContext.tsx` | `discountCode` state + `applyDiscountCode`/`removeDiscountCode` functies toevoegen |
+| `src/pages/storefront/ShopCheckout.tsx` | BTW-nummer sectie (B2B/B2C toggle, VIES-validatie), kortingscode veld, kortingsregels in overzicht, data meesturen naar edge functions |
+| `src/pages/storefront/ShopCart.tsx` | Dummy `applyDiscount` vervangen door echte API-call, korting tonen in overzicht, verwijder-optie |
 
+**Bestaande code die hergebruikt wordt:**
+- `CheckoutForm.tsx` -- de BTW-logica (VIES-validatie, VAT preview berekening, EU landen lijst) wordt gekopieerd/geintegreerd in `ShopCheckout.tsx` (niet het hele component, want de checkout heeft al zijn eigen formulierstructuur)
+- `validate-vat` edge function -- al bestaand, wordt aangeroepen vanuit checkout
+- `storefront-api` `validate_discount_code` -- al bestaand, wordt aangeroepen vanuit cart en checkout
+- `src/lib/promotions/calculators/discountCode.ts` -- berekening client-side
+
+**Data flow kortingscode:**
+```text
+ShopCart: gebruiker voert code in
+  -> API call: storefront-api/validate_discount_code
+  -> Bij succes: opslaan in CartContext (code + discount info)
+  -> Tonen in overzicht als kortingsregel
+
+ShopCheckout: code uit CartContext laden
+  -> Tonen in overzicht
+  -> Meesturen naar create-checkout-session / create-bank-transfer-order
+  -> Edge function past korting toe op order
+```
+
+**Data flow BTW:**
+```text
+ShopCheckout: B2B toggle -> BTW-nummer invoer
+  -> "Valideer" knop -> validate-vat edge function
+  -> Bij geldig: reverse charge preview (0% BTW)
+  -> Bij ongeldig + block_invalid_vat_orders: bestelling blokkeren
+  -> BTW-data meesturen naar checkout edge functions
+```
