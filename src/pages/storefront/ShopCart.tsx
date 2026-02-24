@@ -40,16 +40,16 @@ export default function ShopCart() {
     }).format(price);
   };
 
-  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) {
-      handleRemoveItem(productId);
+      handleRemoveItem(itemId);
       return;
     }
-    updateQuantity(productId, newQuantity);
+    updateQuantity(itemId, newQuantity);
   };
 
-  const handleRemoveItem = (productId: string) => {
-    removeItem(productId);
+  const handleRemoveItem = (itemId: string) => {
+    removeItem(itemId);
     toast.success('Product verwijderd uit winkelwagen');
   };
 
@@ -153,7 +153,7 @@ export default function ShopCart() {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -162,7 +162,7 @@ export default function ShopCart() {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -171,7 +171,7 @@ export default function ShopCart() {
                         variant="ghost" 
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleRemoveItem(item.productId)}
+                        onClick={() => handleRemoveItem(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

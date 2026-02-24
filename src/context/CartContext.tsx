@@ -16,8 +16,8 @@ interface CartContextType {
   items: CartItem[];
   tenantSlug: string | null;
   addToCart: (item: Omit<CartItem, 'id'>) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  removeItem: (itemId: string) => void;
   clearCart: () => void;
   getCartCount: () => number;
   getSubtotal: () => number;
@@ -90,21 +90,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsDrawerOpen(true);
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((itemId: string, quantity: number) => {
     if (quantity < 1) {
-      removeItem(productId);
+      removeItem(itemId);
       return;
     }
     
     setItems(currentItems =>
       currentItems.map(item =>
-        item.productId === productId ? { ...item, quantity } : item
+        item.id === itemId ? { ...item, quantity } : item
       )
     );
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
-    setItems(currentItems => currentItems.filter(item => item.productId !== productId));
+  const removeItem = useCallback((itemId: string) => {
+    setItems(currentItems => currentItems.filter(item => item.id !== itemId));
   }, []);
 
   const clearCart = useCallback(() => {
