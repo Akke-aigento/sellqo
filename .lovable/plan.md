@@ -1,69 +1,50 @@
 
-## Variant voorraad volgt product-niveau `track_inventory`
 
-### Probleem
+## Fix: CartDrawer layout overflow
 
-1. **Admin**: Bij het genereren/aanmaken van varianten wordt `stock` altijd op `0` gezet, ook als het product `track_inventory: false` heeft. De voorraadkolom toont altijd een numeriek veld.
-2. **Storefront**: `selectedVariant.in_stock` wordt nooit berekend -- varianten krijgen geen `in_stock` property. Met `stock: 0` toont de storefront "Uitverkocht" voor elke variant, ook bij producten zonder voorraadtracking.
+### Problemen (zichtbaar in screenshot)
+
+1. **Regeltotaal valt buiten het vak**: De prijs rechts ("€ 178,0") wordt afgeknipt en overlapt bijna de rand van de drawer.
+2. **Footer loopt over**: "Subtotaal" en "€ 267,00" zitten tegen elkaar geplakt, en de knoppen "Afrekenen" en "Verder winkelen" vallen deels buiten beeld.
+
+### Oorzaak
+
+- De cart-item rij is een `flex` container met 3 delen: afbeelding (vast), info (flex-1), en regeltotaal (geen breedte-beperking). Lange productnamen en prijzen duwen het totaal buiten de container.
+- De `SheetFooter` heeft `flex-col` maar de standaard Sheet-styling voegt extra flexbox-gedrag toe dat de layout breekt.
 
 ### Oplossing
 
-**1. Storefront: `in_stock` berekenen per variant (`src/hooks/usePublicStorefront.ts`)**
+**Bestand: `src/components/storefront/CartDrawer.tsx`**
 
-Bij het ophalen van een product met varianten, de `in_stock` property per variant berekenen op basis van het product-niveau `track_inventory`:
+1. **Item-rij layout fixen**:
+   - Voeg `overflow-hidden` toe aan de item-container
+   - Verplaats de regeltotaal-prijs naar binnen de info-kolom (onder de stukprijs), zodat er geen derde kolom meer nodig is die kan overlopen
+   - Alternatief: geef de totaalprijs een `min-w-[70px] text-right` zodat het netjes uitlijnt
 
-```typescript
-const variants = (variantsRes.data || []).map(v => ({
-  ...v,
-  attribute_values: (v.attribute_values as Record<string, string>) || {},
-  in_stock: !product.track_inventory || v.stock > 0,
-}));
+2. **Footer fixen**:
+   - Voeg `sm:flex-col` en `!flex-col` toe om Radix Sheet default styling te overschrijven
+   - Zorg dat subtotaal-rij, afrekenen-knop en verder-winkelen-knop elk op een eigen regel staan met correcte padding
+
+### Technische details
+
+```text
+CartDrawer.tsx wijzigingen:
+
+Regel 43 (item container):
+- Was: className="py-4 flex gap-4"
+- Wordt: className="py-4 flex gap-3 overflow-hidden"
+
+Regel 75 (regeltotaal):
+- Was: className="font-semibold text-sm flex-shrink-0"
+- Wordt: className="font-semibold text-sm flex-shrink-0 min-w-[70px] text-right whitespace-nowrap"
+
+Regel 83 (footer):
+- Was: className="flex-col gap-3 px-6 py-4 border-t"
+- Wordt: className="!flex-col gap-3 px-6 py-4 border-t sm:flex-col"
 ```
 
-Dit zorgt ervoor dat:
-- Producten zonder voorraadtracking: alle varianten zijn altijd `in_stock: true`
-- Producten met voorraadtracking: variant `in_stock` hangt af van eigen `stock > 0`
+### Resultaat
+- Prijzen blijven netjes binnen hun kolom
+- Footer-elementen staan elk op een eigen regel zonder overlap
+- Layout werkt correct op alle schermbreedtes
 
-**2. Storefront: `stockCount` respecteert `track_inventory` (`src/pages/storefront/ShopProductDetail.tsx` en `src/components/storefront/QuickViewModal.tsx`)**
-
-```typescript
-const stockCount = product?.track_inventory 
-  ? (selectedVariant?.stock ?? product?.stock) 
-  : undefined;
-```
-
-Zodat het quantity-veld geen maximum heeft bij producten zonder tracking.
-
-**3. Admin Variants Tab: voorraadkolom aanpassen (`src/components/admin/products/ProductVariantsTab.tsx`)**
-
-- De component krijgt een nieuwe prop: `trackInventory: boolean`
-- Als `trackInventory` is `false`:
-  - De Voorraad-kolom toont "oneindig symbool" in plaats van een getal
-  - Bij het bewerken is het voorraadveld uitgeschakeld of verborgen
-- Als `trackInventory` is `true`:
-  - Voorraad wordt normaal getoond en bewerkbaar (huidige gedrag)
-
-**4. Admin ProductForm: prop doorgeven (`src/pages/admin/ProductForm.tsx`)**
-
-De `track_inventory` waarde doorgeven aan `ProductVariantsTab`:
-
-```typescript
-<ProductVariantsTab 
-  productId={product.id} 
-  trackInventory={form.watch('track_inventory')} 
-/>
-```
-
-**5. Variant generatie: standaard `stock` op `null` bij geen tracking (`src/hooks/useProductVariants.ts`)**
-
-Bij het genereren van varianten, als het product geen voorraad bijhoudt, `stock` niet op 0 zetten. Aangezien de database-kolom een default van 0 heeft, is dit cosmetisch (de storefront `in_stock` berekening lost het echte probleem op).
-
-### Bestanden die wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/hooks/usePublicStorefront.ts` | `in_stock` per variant berekenen |
-| `src/pages/storefront/ShopProductDetail.tsx` | `stockCount` respecteert `track_inventory` |
-| `src/components/storefront/QuickViewModal.tsx` | Idem |
-| `src/components/admin/products/ProductVariantsTab.tsx` | Nieuwe prop `trackInventory`, voorraadkolom conditioneel |
-| `src/pages/admin/ProductForm.tsx` | `trackInventory` prop doorgeven |
