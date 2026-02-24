@@ -1,37 +1,22 @@
 
 
-## Fix: Categorie-beschrijvingen in CategoriesGridSection tonen HTML als tekst
-
-### Probleem
-
-In de nieuwe Categorieën Grid sectie op de homepage worden categorie-beschrijvingen als raw HTML getoond (bijv. `<p><strong>Sweaters</strong></p>`). Dit is hetzelfde probleem dat eerder is opgelost in ShopProducts en ProductCard.
-
-### Oplossing
-
-In `src/components/storefront/sections/CategoriesGridSection.tsx` regel 109: de `<p>` tag vervangen door een `<div>` met `dangerouslySetInnerHTML` en prose-styling.
+## Volgorde betaalmethoden omdraaien in checkout
 
 ### Wijziging
 
-**`src/components/storefront/sections/CategoriesGridSection.tsx` -- regel 108-110**
+In `src/components/storefront/PaymentMethodSelector.tsx` de twee betaalopties van volgorde verwisselen: **Bank Transfer (QR)** komt eerst, **Stripe (Online betalen)** komt daarna.
 
-Van:
-```tsx
-{content.show_description && cat.description && (
-  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{cat.description}</p>
-)}
-```
+### Technisch
 
-Naar:
-```tsx
-{content.show_description && cat.description && (
-  <div 
-    className="text-sm text-muted-foreground mt-1 line-clamp-2 prose prose-sm max-w-none"
-    dangerouslySetInnerHTML={{ __html: cat.description }}
-  />
-)}
-```
+**`src/components/storefront/PaymentMethodSelector.tsx`** -- regels 125-197
+
+De twee blokken in de RadioGroup omdraaien:
+1. Eerst het `{hasBankTransfer && (...)}` blok (regels 164-197)
+2. Dan het `{hasStripe && (...)}` blok (regels 126-162)
+
+Daarnaast de standaard geselecteerde waarde aanpassen zodat `bank_transfer` standaard geselecteerd is wanneer beschikbaar (dit wordt waarschijnlijk al door de parent bepaald, maar we checken dit).
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/storefront/sections/CategoriesGridSection.tsx` | `dangerouslySetInnerHTML` voor beschrijving |
+| `src/components/storefront/PaymentMethodSelector.tsx` | Volgorde blokken omdraaien: bank_transfer eerst, stripe daarna |
 
