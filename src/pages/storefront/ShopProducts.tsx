@@ -216,7 +216,7 @@ export default function ShopProducts() {
 
           <div>
             {isLoading ? (
-              <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${(themeSettings as any)?.products_per_row || 3}, minmax(0, 1fr))` }}>
+              <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 ${(themeSettings as any)?.products_per_row === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
                     <div className="bg-muted aspect-square rounded-lg mb-3" />
@@ -234,8 +234,7 @@ export default function ShopProducts() {
               </div>
             ) : (
               <div 
-                className="grid gap-6"
-                style={{ gridTemplateColumns: `repeat(${(themeSettings as any)?.products_per_row || 3}, minmax(0, 1fr))` }}
+                className={`grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 ${(themeSettings as any)?.products_per_row === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
               >
                 {products.map(product => (
                   <ProductCard 
