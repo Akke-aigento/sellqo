@@ -1001,7 +1001,7 @@ export default function ProductForm() {
 
                   {/* Varianten */}
                   {isEditing && id ? (
-                    <ProductVariantsTab productId={id} />
+                    <ProductVariantsTab productId={id} trackInventory={form.watch('track_inventory')} />
                   ) : (
                     <Card>
                       <CardContent className="py-8 text-center">

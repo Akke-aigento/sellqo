@@ -18,9 +18,10 @@ import { toast } from 'sonner';
 
 interface ProductVariantsTabProps {
   productId: string;
+  trackInventory?: boolean;
 }
 
-export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId, trackInventory = true }: ProductVariantsTabProps) {
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -407,15 +408,19 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                         )}
                       </TableCell>
                       <TableCell>
-                        {editingVariantId === variant.id ? (
-                          <Input
-                            type="number"
-                            value={editVariantData.stock ?? 0}
-                            onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))}
-                            className="w-20"
-                          />
+                        {trackInventory ? (
+                          editingVariantId === variant.id ? (
+                            <Input
+                              type="number"
+                              value={editVariantData.stock ?? 0}
+                              onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))}
+                              className="w-20"
+                            />
+                          ) : (
+                            <span>{variant.stock}</span>
+                          )
                         ) : (
-                          <span>{variant.stock}</span>
+                          <span className="text-muted-foreground" title="Voorraad wordt niet bijgehouden">∞</span>
                         )}
                       </TableCell>
                       <TableCell>

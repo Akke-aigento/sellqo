@@ -327,6 +327,7 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       const variants = (variantsRes.data || []).map(v => ({
         ...v,
         attribute_values: (v.attribute_values as Record<string, string>) || {},
+        in_stock: !product.track_inventory || v.stock > 0,
       }));
       const options = (optionsRes.data || []) as Array<{ id: string; name: string; values: string[]; position: number }>;
 
