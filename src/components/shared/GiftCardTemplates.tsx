@@ -126,43 +126,47 @@ export function GiftCardTemplatePreview({
         className={cn('absolute inset-0', template.bgStyle)}
         style={bgOverride}
       />
-      <div className={cn('relative p-4 flex flex-col justify-between h-full', compact && 'p-3')}>
-        <div>
-          <p className={cn('text-[10px] uppercase tracking-widest opacity-70', template.textColor)}>
-            Cadeaukaart
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {logoUrl && (
-              <img
-                src={logoUrl}
-                alt=""
-                className={cn(
-                  'h-5 w-5 object-contain rounded-sm',
-                  ['elegant', 'festive', 'gradient'].includes(template.id) && 'bg-white/20 p-0.5'
-                )}
-              />
-            )}
-            <p className={cn('font-medium text-xs opacity-80', template.textColor)}>
+      <div className={cn('relative p-3 flex flex-col h-full', compact && 'p-2')}>
+        {/* Logo area - central, dominant */}
+        {logoUrl ? (
+          <div className="flex-1 flex items-center justify-center py-2">
+            <img
+              src={logoUrl}
+              alt=""
+              className={cn(
+                'max-h-[45%] max-w-[60%] object-contain',
+                ['elegant', 'festive', 'gradient'].includes(template.id) && 'drop-shadow-lg'
+              )}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className={cn('font-bold text-lg', template.textColor)}>
               {storeName}
             </p>
           </div>
-        </div>
-        <div>
+        )}
+        {/* Footer: compact info */}
+        <div className="flex items-end justify-between gap-1 mt-auto">
+          <div className="min-w-0">
+            <p className={cn('text-[8px] uppercase tracking-widest opacity-60 leading-none', template.textColor)}>
+              Cadeaukaart
+            </p>
+            {logoUrl && (
+              <p className={cn('font-medium text-[10px] opacity-70 truncate leading-tight mt-0.5', template.textColor)}>
+                {storeName}
+              </p>
+            )}
+          </div>
           <p
             className={cn(
-              'font-bold',
-              compact ? 'text-xl' : 'text-2xl',
+              'font-bold text-lg shrink-0',
               template.accentColor
             )}
             style={accentOverride}
           >
             {amount ? formatPrice(amount) : '€ —'}
           </p>
-          {!compact && (
-            <p className={cn('text-[10px] mt-1 opacity-60', template.textColor)}>
-              {template.name}
-            </p>
-          )}
         </div>
       </div>
       {selected && (
@@ -214,22 +218,23 @@ export function GiftCardTemplateRenderer({
         <p className={cn('text-xs uppercase tracking-[0.2em] opacity-70 mb-1', template.textColor)}>
           Cadeaukaart
         </p>
-        <div className="flex items-center gap-3 mb-6">
-          {logoUrl && (
+        {/* Logo - large and centered */}
+        {logoUrl && (
+          <div className="flex justify-center my-6">
             <img
               src={logoUrl}
               alt=""
               className={cn(
-                'h-10 w-10 object-contain rounded',
-                ['elegant', 'festive', 'gradient'].includes(template.id) && 'bg-white/20 p-1'
+                'h-20 md:h-24 max-w-[70%] object-contain',
+                ['elegant', 'festive', 'gradient'].includes(template.id) && 'drop-shadow-lg'
               )}
             />
-          )}
-          <p className={cn('text-lg font-semibold', template.textColor)}>
-            {storeName}
-          </p>
-        </div>
-        <p className={cn('text-4xl font-bold mb-4', template.accentColor)}>
+          </div>
+        )}
+        <p className={cn('text-lg font-semibold', logoUrl ? 'text-center' : '', template.textColor)}>
+          {storeName}
+        </p>
+        <p className={cn('text-4xl font-bold mb-4', logoUrl ? 'text-center mt-4' : 'mt-6', template.accentColor)}>
           {formatPrice(amount)}
         </p>
         {recipientName && (
