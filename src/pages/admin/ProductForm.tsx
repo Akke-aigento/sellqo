@@ -421,7 +421,19 @@ export default function ProductForm() {
     if (!downloadRef.current) return;
     setDownloadingTemplate(true);
     try {
-      const dataUrl = await toPng(downloadRef.current, { pixelRatio: 2, cacheBust: true });
+      // Temporarily make visible for capture
+      const el = downloadRef.current;
+      el.style.opacity = '1';
+      el.style.position = 'fixed';
+      el.style.top = '0';
+      el.style.left = '0';
+      el.style.zIndex = '99999';
+      // Wait for render
+      await new Promise(r => setTimeout(r, 100));
+      const dataUrl = await toPng(el, { pixelRatio: 2, cacheBust: true, backgroundColor: undefined });
+      // Hide again
+      el.style.opacity = '0';
+      el.style.zIndex = '-50';
       const link = document.createElement('a');
       link.download = `cadeaukaart-${form.getValues('gift_card_design_id') || 'elegant'}.png`;
       link.href = dataUrl;
