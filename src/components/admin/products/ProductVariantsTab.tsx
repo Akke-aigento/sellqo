@@ -161,7 +161,15 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
           {options.map(option => (
             <div key={option.id} className="flex items-start gap-3 p-3 border rounded-lg">
               <div className="flex-1">
-                <Label className="font-medium">{option.name}</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="font-medium">{option.name}</Label>
+                  <span className="text-xs text-muted-foreground">({option.values.length} {option.values.length === 1 ? 'waarde' : 'waarden'})</span>
+                  {option.values.length === 1 && (
+                    <Badge variant="outline" className="text-xs text-destructive border-destructive/30 bg-destructive/10">
+                      ⚠ Slechts 1 waarde — bedoelde je dit als waarde van een andere optie?
+                    </Badge>
+                  )}
+                </div>
                 {editingOptionId === option.id ? (
                   <div className="flex items-center gap-2 mt-1">
                     <Input
@@ -236,7 +244,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               <Input
                 value={newOptionValues}
                 onChange={e => setNewOptionValues(e.target.value)}
-                placeholder="bijv. Rood, Blauw, Groen"
+                placeholder="bijv. XS, S, M, L, XL"
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
               />
             </div>
@@ -245,6 +253,11 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               Toevoegen
             </Button>
           </div>
+
+          {/* Helptext */}
+          <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+            💡 <strong>Tip:</strong> Voeg alle waarden voor 1 eigenschap toe in een enkele optie. Voorbeeld: Optienaam <em>"Maat"</em> met waarden <em>"XS, S, M, L, XL"</em>. Voor kleuren: Optienaam <em>"Kleur"</em> met waarden <em>"Rood, Blauw, Groen"</em>.
+          </p>
 
           {/* Generate variants button */}
           {options.length > 0 && (
