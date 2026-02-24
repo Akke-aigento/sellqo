@@ -1,54 +1,82 @@
 
 
-## Fix: CartDrawer prijzen afgeknipt + quantity bug bij varianten
+## Multi-categorie koppeling voor producten
 
-### Probleem 1: Quantity wijzigt ALLE items van hetzelfde product
+### Huidige situatie
+Producten hebben een enkel `category_id` veld (uuid) dat verwijst naar 1 categorie. Dit beperkt de flexibiliteit: een product kan niet tegelijk in "Winterjassen" EN "Speciale actie" staan.
 
-`updateQuantity(productId, quantity)` en `removeItem(productId)` matchen op `productId`. Wanneer hetzelfde product met verschillende varianten (bijv. XS en L) in het mandje zit, delen ze dezelfde `productId`. Gevolg: het aanpassen van de hoeveelheid van 1 variant wijzigt ALLE varianten.
+### Aanpak
 
-**Oplossing**: Gebruik het unieke `item.id` in plaats van `productId` als identifier voor updateQuantity en removeItem.
+We maken een many-to-many koppeltabel `product_categories` aan. Het bestaande `category_id` veld blijft bestaan als "hoofdcategorie" voor backward compatibility, maar producten kunnen nu ook extra categorieën krijgen.
 
-**Bestand: `src/context/CartContext.tsx`**
-- `updateQuantity`: parameter hernoemen naar `itemId` en matchen op `item.id`
-- `removeItem`: parameter hernoemen naar `itemId` en matchen op `item.id`
+### Stap 1: Database migratie
 
-**Bestand: `src/components/storefront/CartDrawer.tsx`**
-- Alle aanroepen van `updateQuantity` en `removeItem` wijzigen van `item.productId` naar `item.id`
+Nieuwe tabel `product_categories`:
 
-### Probleem 2: Prijs afgeknipt aan rechterkant
+```text
+product_categories
+  - id (uuid, PK)
+  - product_id (uuid, FK -> products)
+  - category_id (uuid, FK -> categories)
+  - is_primary (boolean, default false)
+  - sort_order (integer, default 0)
+  - created_at (timestamptz)
+  UNIQUE(product_id, category_id)
+```
 
-De regeltotaal ("€ 89,00") wordt afgeknipt. De 3-kolom layout (afbeelding 80px + info flex-1 + prijs) laat niet genoeg ruimte.
+Migratie vult de tabel met bestaande `category_id` koppelingen (als `is_primary = true`). RLS policies voor tenant-isolatie.
 
-**Oplossing**: Verplaats de regeltotaal naar binnen de info-kolom (onder de stukprijs en knoppen) zodat er geen aparte derde kolom nodig is. Dit voorkomt overflow volledig.
+### Stap 2: Product formulier aanpassen
 
-**Bestand: `src/components/storefront/CartDrawer.tsx`**
-- Verwijder de aparte prijs-paragraaf (regel 75-77)
-- Voeg de regeltotaal toe binnen de info-div, bovenaan naast de productnaam als een flex-row
+**Bestand: `src/pages/admin/ProductForm.tsx`**
+- Het huidige "Categorie" dropdown-veld vervangen door een multi-select component
+- De eerste geselecteerde categorie wordt automatisch de primaire
+- Gebruiker kan de primaire categorie markeren
+
+### Stap 3: Hooks aanpassen
+
+**Bestand: `src/hooks/usePublicStorefront.ts`**
+- `usePublicProducts`: Bij filteren op categorie, query via `product_categories` tabel in plaats van `products.category_id`
+- `usePublicProduct`: Alle categorieën van een product ophalen
+
+**Bestand: `src/types/product.ts`**
+- `Product` interface uitbreiden met `categories?: Category[]` (meervoud)
+- `ProductFormData`: `category_id` vervangen door `category_ids: string[]`
+
+### Stap 4: Storefront & filters aanpassen
+
+**Bestand: `src/pages/admin/Products.tsx`**
+- Categorie-filter werkt via `product_categories` tabel
+- Bulk edit: meerdere categorieën toewijzen
+
+**Bestand: `src/components/storefront/sections/CollectionSection.tsx`**
+- Producten ophalen via `product_categories` koppeltabel
+
+### Stap 5: Bulk operaties
+
+**Bestand: `src/components/admin/products/bulk/BulkBasicTab.tsx`**
+- Categorie bulk-edit aanpassen voor multi-select (toevoegen/verwijderen van categorieën)
 
 ### Technische details
 
+Database query voorbeeld (storefront):
 ```text
-CartContext.tsx:
-
-updateQuantity (regel 93-104):
-  Was:  updateQuantity(productId: string, quantity: number)
-        item.productId === productId
-  Wordt: updateQuantity(itemId: string, quantity: number)
-         item.id === itemId
-
-removeItem (regel 106-108):
-  Was:  removeItem(productId: string)
-        item.productId !== productId
-  Wordt: removeItem(itemId: string)
-         item.id !== itemId
-
-CartDrawer.tsx:
-
-- updateQuantity(item.productId, ...) -> updateQuantity(item.id, ...)
-- removeItem(item.productId) -> removeItem(item.id)
-- Regeltotaal verplaatsen van aparte kolom naar flex-row met productnaam
+-- Producten in categorie "Speciale actie"
+SELECT p.* FROM products p
+INNER JOIN product_categories pc ON pc.product_id = p.id
+WHERE pc.category_id = 'actie-uuid'
+AND p.is_active = true
+AND p.hide_from_storefront = false
 ```
 
+Backward compatibility:
+- `products.category_id` blijft bestaan als snelle referentie naar de primaire categorie
+- Een trigger synchroniseert `products.category_id` met de `is_primary = true` rij in `product_categories`
+- Bestaande code die `category_id` leest blijft werken
+
 ### Resultaat
-- Quantity knoppen wijzigen alleen het specifieke item, niet alle varianten van hetzelfde product
-- Prijzen worden volledig weergegeven zonder afknippen
+- Producten kunnen aan onbeperkt aantal categorieën gekoppeld worden
+- "Speciale actie", "Nieuw", "Uitgelicht" etc. werken als echte categorieën
+- Storefront filtert correct op alle gekoppelde categorieën
+- Bestaande data wordt automatisch gemigreerd
+
