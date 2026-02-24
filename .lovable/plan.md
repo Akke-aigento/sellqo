@@ -1,57 +1,69 @@
 
-## Fix: Variant-systeem volledig opschonen
+## Variant voorraad volgt product-niveau `track_inventory`
 
-### Kernprobleem
+### Probleem
 
-Het variant-systeem heeft een fundamenteel UX-probleem in de admin: de gebruiker voert elke maat/kleur als een **aparte optie** in (optienaam "XS" met waarde "Extra Small") in plaats van **een optie "Maat"** met meerdere waarden ("XS, S, M, L, XL").
+1. **Admin**: Bij het genereren/aanmaken van varianten wordt `stock` altijd op `0` gezet, ook als het product `track_inventory: false` heeft. De voorraadkolom toont altijd een numeriek veld.
+2. **Storefront**: `selectedVariant.in_stock` wordt nooit berekend -- varianten krijgen geen `in_stock` property. Met `stock: 0` toont de storefront "Uitverkocht" voor elke variant, ook bij producten zonder voorraadtracking.
 
-Dit veroorzaakt een kettingreactie van problemen:
-- De variant-generator maakt 1 variant met 5 attributen i.p.v. 5 varianten met elk 1 attribuut
-- De storefront toont 5 losse keuzegroepen (elk met 1 knop) i.p.v. 1 groep "Maat" met 5 knoppen
+### Oplossing
 
-### Oplossing: Admin UX verbeteren + voorbeelden duidelijker maken
+**1. Storefront: `in_stock` berekenen per variant (`src/hooks/usePublicStorefront.ts`)**
 
-**Bestand: `src/components/admin/products/ProductVariantsTab.tsx`**
+Bij het ophalen van een product met varianten, de `in_stock` property per variant berekenen op basis van het product-niveau `track_inventory`:
 
-1. **Betere placeholders en uitleg bij het toevoegen van opties**
-   - Placeholder optienaam: `"bijv. Maat"` (nu al correct maar nadruk verhogen)
-   - Placeholder waarden: `"bijv. XS, S, M, L, XL"` (duidelijker dat ALLE waarden in 1 regel)
-   - Toevoegen van een helptext onder de optie-invoervelden: *"Tip: Voeg alle waarden voor 1 eigenschap toe in een enkele optie. Voorbeeld: Optienaam 'Maat' met waarden 'XS, S, M, L, XL'. Voor kleuren: Optienaam 'Kleur' met waarden 'Rood, Blauw, Groen'."*
-
-2. **Visuele waarschuwing bij verdachte opties**
-   - Als een optie maar 1 waarde heeft, toon een waarschuwingsbadge: "Slechts 1 waarde -- bedoelde je dit als waarde van een andere optie?"
-   - Dit helpt toekomstige fouten voorkomen
-
-3. **Verbeterde optie-weergave in de lijst**
-   - Toon het aantal waarden bij elke optie: bijv. "Maat (5 waarden)"
-
-**Bestand: `src/components/storefront/VariantSelector.tsx`**
-
-4. **MAX_TOGGLE_VALUES verhogen**
-   - Verhogen van 5 naar 8, zodat de meeste maat/kleur-opties als buttons getoond worden in plaats van een dropdown
-
-5. **Quantity reset bij variant-wissel** (al geimplementeerd in ShopProductDetail, bevestigen)
-
-### Huidige foutieve data opruimen
-
-De bestaande data voor het Loveke-product moet handmatig worden opgeschoond. Dit kan ik niet automatisch doen, maar ik kan de admin-interface zo verbeteren dat:
-- De huidige verkeerde opties makkelijk te verwijderen zijn
-- Nieuwe opties correct worden aangemaakt
-
-### Technische details
-
-```text
-Wijzigingen in ProductVariantsTab.tsx:
-- Regel ~225-247: Helptext toevoegen onder de invoervelden
-- Regel ~162-222: Waarschuwingsindicator bij opties met slechts 1 waarde
-- Optienaam-label aanpassen: "{option.name} ({option.values.length} waarden)"
-
-Wijzigingen in VariantSelector.tsx:
-- Regel 16: MAX_TOGGLE_VALUES van 5 naar 8
+```typescript
+const variants = (variantsRes.data || []).map(v => ({
+  ...v,
+  attribute_values: (v.attribute_values as Record<string, string>) || {},
+  in_stock: !product.track_inventory || v.stock > 0,
+}));
 ```
 
-### Wat dit oplost
-- Nieuwe tenants begrijpen direct hoe ze opties correct moeten invoeren
-- Bestaande foutieve opties worden visueel gemarkeerd
-- Kleuren toevoegen werkt correct: optie "Kleur" met waarden "Rood, Blauw, Groen" genereert 3 varianten
-- Combinatie Maat + Kleur genereert correct het cartesisch product (bijv. 5 maten x 3 kleuren = 15 varianten)
+Dit zorgt ervoor dat:
+- Producten zonder voorraadtracking: alle varianten zijn altijd `in_stock: true`
+- Producten met voorraadtracking: variant `in_stock` hangt af van eigen `stock > 0`
+
+**2. Storefront: `stockCount` respecteert `track_inventory` (`src/pages/storefront/ShopProductDetail.tsx` en `src/components/storefront/QuickViewModal.tsx`)**
+
+```typescript
+const stockCount = product?.track_inventory 
+  ? (selectedVariant?.stock ?? product?.stock) 
+  : undefined;
+```
+
+Zodat het quantity-veld geen maximum heeft bij producten zonder tracking.
+
+**3. Admin Variants Tab: voorraadkolom aanpassen (`src/components/admin/products/ProductVariantsTab.tsx`)**
+
+- De component krijgt een nieuwe prop: `trackInventory: boolean`
+- Als `trackInventory` is `false`:
+  - De Voorraad-kolom toont "oneindig symbool" in plaats van een getal
+  - Bij het bewerken is het voorraadveld uitgeschakeld of verborgen
+- Als `trackInventory` is `true`:
+  - Voorraad wordt normaal getoond en bewerkbaar (huidige gedrag)
+
+**4. Admin ProductForm: prop doorgeven (`src/pages/admin/ProductForm.tsx`)**
+
+De `track_inventory` waarde doorgeven aan `ProductVariantsTab`:
+
+```typescript
+<ProductVariantsTab 
+  productId={product.id} 
+  trackInventory={form.watch('track_inventory')} 
+/>
+```
+
+**5. Variant generatie: standaard `stock` op `null` bij geen tracking (`src/hooks/useProductVariants.ts`)**
+
+Bij het genereren van varianten, als het product geen voorraad bijhoudt, `stock` niet op 0 zetten. Aangezien de database-kolom een default van 0 heeft, is dit cosmetisch (de storefront `in_stock` berekening lost het echte probleem op).
+
+### Bestanden die wijzigen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/hooks/usePublicStorefront.ts` | `in_stock` per variant berekenen |
+| `src/pages/storefront/ShopProductDetail.tsx` | `stockCount` respecteert `track_inventory` |
+| `src/components/storefront/QuickViewModal.tsx` | Idem |
+| `src/components/admin/products/ProductVariantsTab.tsx` | Nieuwe prop `trackInventory`, voorraadkolom conditioneel |
+| `src/pages/admin/ProductForm.tsx` | `trackInventory` prop doorgeven |
