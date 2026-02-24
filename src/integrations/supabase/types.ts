@@ -8816,13 +8816,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "products_gift_card_design_id_fkey"
-            columns: ["gift_card_design_id"]
-            isOneToOne: false
-            referencedRelation: "gift_card_designs"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "products_import_job_id_fkey"
             columns: ["import_job_id"]
             isOneToOne: false

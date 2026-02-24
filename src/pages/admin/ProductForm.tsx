@@ -139,7 +139,7 @@ export default function ProductForm() {
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { createProduct, updateProduct } = useProducts();
   const { categories } = useCategories();
-  const { categoryIds: savedCategoryIds, primaryCategoryId: savedPrimaryCategoryId, syncCategories } = useProductCategories(id);
+  const { categoryIds: savedCategoryIds, primaryCategoryId: savedPrimaryCategoryId, syncCategories, isLoading: isCategoriesLoading } = useProductCategories(id);
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
@@ -245,12 +245,16 @@ export default function ProductForm() {
   // Initialize selected categories from saved data via useEffect
   // to avoid race conditions when data is still loading
   useEffect(() => {
-    if (isEditing && savedCategoryIds.length > 0 && !categoriesInitialized) {
+    if (!isEditing && !categoriesInitialized) {
+      // New product: no saved categories to wait for
+      setCategoriesInitialized(true);
+    } else if (isEditing && !categoriesInitialized && !isCategoriesLoading) {
+      // Editing: initialize once the query has finished loading (even if empty)
       setSelectedCategoryIds(savedCategoryIds);
       setPrimaryCategoryId(savedPrimaryCategoryId);
       setCategoriesInitialized(true);
     }
-  }, [isEditing, savedCategoryIds, savedPrimaryCategoryId, categoriesInitialized]);
+  }, [isEditing, savedCategoryIds, savedPrimaryCategoryId, categoriesInitialized, isCategoriesLoading]);
 
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
