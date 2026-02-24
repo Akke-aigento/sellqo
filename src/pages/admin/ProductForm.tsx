@@ -445,7 +445,7 @@ export default function ProductForm() {
 
             {/* Product Tab - One-page 2-column layout */}
             <TabsContent value="product" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
                   {/* Product Type */}
@@ -1015,7 +1015,7 @@ export default function ProductForm() {
                 </div>
 
                 {/* Right Column - Sidebar */}
-                <div className="space-y-6">
+                <div className="space-y-6 order-first xl:order-none">
                   {/* Images */}
                   <Card>
                     <CardHeader>
@@ -1041,7 +1041,7 @@ export default function ProductForm() {
                           </label>
                         </div>
                         {form.watch('images').length > 0 && (
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-2 gap-3">
                             {form.watch('images').map((url, index) => (
                               <div key={url} className={cn(
                                 "relative group aspect-square rounded-lg overflow-hidden border-2",
