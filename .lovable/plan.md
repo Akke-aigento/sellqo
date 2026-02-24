@@ -1,50 +1,43 @@
 
 
-## Fix: CartDrawer layout overflow
+## Fix: CartDrawer prijzen + Add-to-cart positie op productpagina
 
-### Problemen (zichtbaar in screenshot)
+### Probleem 1: CartDrawer prijzen afgeknipt
 
-1. **Regeltotaal valt buiten het vak**: De prijs rechts ("€ 178,0") wordt afgeknipt en overlapt bijna de rand van de drawer.
-2. **Footer loopt over**: "Subtotaal" en "€ 267,00" zitten tegen elkaar geplakt, en de knoppen "Afrekenen" en "Verder winkelen" vallen deels buiten beeld.
+De `overflow-hidden` op de item-rij (regel 43) knipt de regeltotaal-prijs af aan de rechterkant. De prijs "€ 89,00" wordt weergegeven als "€ 89,0" omdat de laatste karakters buiten het zichtbare vlak vallen.
 
-### Oorzaak
-
-- De cart-item rij is een `flex` container met 3 delen: afbeelding (vast), info (flex-1), en regeltotaal (geen breedte-beperking). Lange productnamen en prijzen duwen het totaal buiten de container.
-- De `SheetFooter` heeft `flex-col` maar de standaard Sheet-styling voegt extra flexbox-gedrag toe dat de layout breekt.
-
-### Oplossing
+**Oplossing**: Verwijder `overflow-hidden` van de item-rij en beperk de breedte via de middelste kolom (`min-w-0` op flex-1 is al aanwezig). Voeg `pr-1` toe aan de ScrollArea om extra ruimte rechts te geven voor de prijs.
 
 **Bestand: `src/components/storefront/CartDrawer.tsx`**
+- Regel 43: `overflow-hidden` verwijderen van item container
+- Regel 40: `pr-1` toevoegen aan ScrollArea padding
 
-1. **Item-rij layout fixen**:
-   - Voeg `overflow-hidden` toe aan de item-container
-   - Verplaats de regeltotaal-prijs naar binnen de info-kolom (onder de stukprijs), zodat er geen derde kolom meer nodig is die kan overlopen
-   - Alternatief: geef de totaalprijs een `min-w-[70px] text-right` zodat het netjes uitlijnt
+### Probleem 2: Add-to-cart knop te ver naar beneden
 
-2. **Footer fixen**:
-   - Voeg `sm:flex-col` en `!flex-col` toe om Radix Sheet default styling te overschrijven
-   - Zorg dat subtotaal-rij, afrekenen-knop en verder-winkelen-knop elk op een eigen regel staan met correcte padding
+Op de productdetailpagina staat de volgorde nu: varianten -> voorraadstatus -> beschrijving -> add-to-cart. De gebruiker wil de add-to-cart knop direct na de varianten, zodat je niet hoeft te scrollen.
+
+**Oplossing**: Verplaats het add-to-cart blok (regels 317-345) naar direct na de variant selector (na regel 275), voor de stock status en beschrijving.
+
+**Bestand: `src/pages/storefront/ShopProductDetail.tsx`**
+
+Nieuwe volgorde:
+1. Categorie + titel + rating + prijs
+2. Viewers count
+3. Variant selector
+4. Add-to-cart (quantity + knop + wishlist) -- verplaatst omhoog
+5. Stock status
+6. Beschrijving
+7. SKU
 
 ### Technische details
 
 ```text
-CartDrawer.tsx wijzigingen:
+CartDrawer.tsx:
+- Regel 40: className="flex-1 px-6" -> className="flex-1 px-6 pr-7"
+- Regel 43: className="py-4 flex gap-3 overflow-hidden" -> className="py-4 flex gap-3"
 
-Regel 43 (item container):
-- Was: className="py-4 flex gap-4"
-- Wordt: className="py-4 flex gap-3 overflow-hidden"
-
-Regel 75 (regeltotaal):
-- Was: className="font-semibold text-sm flex-shrink-0"
-- Wordt: className="font-semibold text-sm flex-shrink-0 min-w-[70px] text-right whitespace-nowrap"
-
-Regel 83 (footer):
-- Was: className="flex-col gap-3 px-6 py-4 border-t"
-- Wordt: className="!flex-col gap-3 px-6 py-4 border-t sm:flex-col"
+ShopProductDetail.tsx:
+- Regels 317-345 (add-to-cart blok) verplaatsen naar na regel 275 (na variant selector)
+- Regels 347-349 (opties hint) mee verplaatsen
 ```
-
-### Resultaat
-- Prijzen blijven netjes binnen hun kolom
-- Footer-elementen staan elk op een eigen regel zonder overlap
-- Layout werkt correct op alle schermbreedtes
 
