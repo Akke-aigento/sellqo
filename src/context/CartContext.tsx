@@ -1,5 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
+export interface GiftCardMeta {
+  recipientName: string;
+  recipientEmail: string;
+  personalMessage?: string;
+  sendDate?: string;
+  designId?: string;
+}
+
 export interface CartItem {
   id: string;
   productId: string;
@@ -10,6 +18,7 @@ export interface CartItem {
   quantity: number;
   image?: string;
   sku?: string;
+  giftCard?: GiftCardMeta;
 }
 
 interface CartContextType {

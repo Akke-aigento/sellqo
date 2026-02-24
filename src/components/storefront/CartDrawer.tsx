@@ -56,21 +56,32 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
                       {item.variantTitle && (
                         <p className="text-xs text-muted-foreground mt-0.5">{item.variantTitle}</p>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatCurrency(item.price, currency)} per stuk
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex items-center border rounded-md">
-                          <Button variant="ghost" size="icon" className="h-7 w-7"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}>
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}>
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                      {item.giftCard ? (
+                        <div className="mt-1 space-y-0.5">
+                          <p className="text-xs text-primary font-medium">🎁 Cadeaukaart</p>
+                          <p className="text-xs text-muted-foreground">
+                            Voor: {item.giftCard.recipientName} ({item.giftCard.recipientEmail})
+                          </p>
                         </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatCurrency(item.price, currency)} per stuk
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {!item.giftCard && (
+                          <div className="flex items-center border rounded-md">
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{item.quantity}</span>
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
                           onClick={() => removeItem(item.id)}>
                           <Trash2 className="h-3.5 w-3.5" />

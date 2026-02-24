@@ -6210,6 +6210,7 @@ export type Database = {
         Row: {
           created_at: string | null
           gift_card_id: string | null
+          gift_card_metadata: Json | null
           id: string
           marketplace_order_item_id: string | null
           order_id: string
@@ -6227,6 +6228,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           gift_card_id?: string | null
+          gift_card_metadata?: Json | null
           id?: string
           marketplace_order_item_id?: string | null
           order_id: string
@@ -6244,6 +6246,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           gift_card_id?: string | null
+          gift_card_metadata?: Json | null
           id?: string
           marketplace_order_item_id?: string | null
           order_id?: string

@@ -299,3 +299,6 @@ verify_jwt = false
 
 [functions.ai-product-field-assistant]
 verify_jwt = false
+
+[functions.process-gift-card-order]
+verify_jwt = false

@@ -683,7 +683,8 @@ export default function ProductForm() {
                     </CardContent>
                   </Card>
 
-                  {/* Pricing */}
+                  {/* Pricing - hidden for gift cards */}
+                  {!isGiftCard && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Prijzen</CardTitle>
@@ -732,8 +733,10 @@ export default function ProductForm() {
                       </div>
                     </CardContent>
                   </Card>
+                  )}
 
-                  {/* Inventory & Identification */}
+                  {/* Inventory & Identification - hidden for gift cards */}
+                  {!isGiftCard && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Voorraad & Identificatie</CardTitle>
@@ -822,6 +825,7 @@ export default function ProductForm() {
                       )}
                     </CardContent>
                   </Card>
+                  )}
 
                   {/* Conditional: Digital Files */}
                   {isDigital && (
@@ -1024,23 +1028,33 @@ export default function ProductForm() {
                             <FormMessage />
                           </FormItem>
                         )} />
+                        <Button type="button" variant="outline" size="sm" asChild className="mt-2">
+                          <Link to="/admin/promotions/gift-card-designs">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Ontwerpen beheren
+                          </Link>
+                        </Button>
                       </CardContent>
                     </Card>
                   )}
 
-                  {/* Varianten */}
-                  {isEditing && id ? (
-                    <ProductVariantsTab productId={id} trackInventory={form.watch('track_inventory')} />
-                  ) : (
-                    <Card>
-                      <CardContent className="py-8 text-center">
-                        <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
-                      </CardContent>
-                    </Card>
+                  {/* Varianten - hidden for gift cards */}
+                  {!isGiftCard && (
+                    <>
+                    {isEditing && id ? (
+                      <ProductVariantsTab productId={id} trackInventory={form.watch('track_inventory')} />
+                    ) : (
+                      <Card>
+                        <CardContent className="py-8 text-center">
+                          <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    </>
                   )}
 
-                  {/* Technische Specificaties */}
-                  {isEditing && id && (
+                  {/* Technische Specificaties - hidden for gift cards */}
+                  {!isGiftCard && isEditing && id && (
                     <ProductSpecificationsSection productId={id} />
                   )}
                 </div>
