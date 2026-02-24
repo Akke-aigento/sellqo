@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -239,12 +239,15 @@ export default function ProductForm() {
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
 
-  // Initialize selected categories from saved data
-  if (isEditing && savedCategoryIds.length > 0 && !categoriesInitialized) {
-    setSelectedCategoryIds(savedCategoryIds);
-    setPrimaryCategoryId(savedPrimaryCategoryId);
-    setCategoriesInitialized(true);
-  }
+  // Initialize selected categories from saved data via useEffect
+  // to avoid race conditions when data is still loading
+  useEffect(() => {
+    if (isEditing && savedCategoryIds.length > 0 && !categoriesInitialized) {
+      setSelectedCategoryIds(savedCategoryIds);
+      setPrimaryCategoryId(savedPrimaryCategoryId);
+      setCategoriesInitialized(true);
+    }
+  }, [isEditing, savedCategoryIds, savedPrimaryCategoryId, categoriesInitialized]);
 
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
@@ -394,8 +397,8 @@ export default function ProductForm() {
       const created = await createProduct.mutateAsync(submitData as any);
       productId = created.id;
     }
-    // Sync multi-categories
-    if (productId) {
+    // Sync multi-categories only if initialized (prevents wiping on race condition)
+    if (productId && categoriesInitialized) {
       await syncCategories.mutateAsync({
         productId,
         categoryIds: selectedCategoryIds,
