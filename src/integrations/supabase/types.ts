@@ -6223,6 +6223,7 @@ export type Database = {
           unit_price: number
           variant_id: string | null
           variant_title: string | null
+          vat_rate: number | null
           vendor: string | null
         }
         Insert: {
@@ -6241,6 +6242,7 @@ export type Database = {
           unit_price: number
           variant_id?: string | null
           variant_title?: string | null
+          vat_rate?: number | null
           vendor?: string | null
         }
         Update: {
@@ -6259,6 +6261,7 @@ export type Database = {
           unit_price?: number
           variant_id?: string | null
           variant_title?: string | null
+          vat_rate?: number | null
           vendor?: string | null
         }
         Relationships: [
