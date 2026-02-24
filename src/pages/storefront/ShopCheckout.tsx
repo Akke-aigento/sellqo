@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -20,12 +20,46 @@ import { useTranslation } from 'react-i18next';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
+// EU VAT rates by country
+const EU_VAT_RATES: Record<string, number> = {
+  'AT': 20, 'BE': 21, 'BG': 20, 'HR': 25, 'CY': 19, 'CZ': 21,
+  'DK': 25, 'EE': 22, 'FI': 25.5, 'FR': 20, 'DE': 19, 'GR': 24,
+  'HU': 27, 'IE': 23, 'IT': 22, 'LV': 21, 'LT': 21, 'LU': 17,
+  'MT': 18, 'NL': 21, 'PL': 23, 'PT': 23, 'RO': 19, 'SK': 20,
+  'SI': 22, 'ES': 21, 'SE': 25,
+};
+
+const EU_COUNTRY_CODES = Object.keys(EU_VAT_RATES);
+
+const COUNTRIES = [
+  { code: 'BE', name: 'België' },
+  { code: 'NL', name: 'Nederland' },
+  { code: 'DE', name: 'Duitsland' },
+  { code: 'FR', name: 'Frankrijk' },
+  { code: 'LU', name: 'Luxemburg' },
+  { code: 'AT', name: 'Oostenrijk' },
+  { code: 'ES', name: 'Spanje' },
+  { code: 'IT', name: 'Italië' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'IE', name: 'Ierland' },
+  { code: 'GB', name: 'Verenigd Koninkrijk' },
+  { code: 'CH', name: 'Zwitserland' },
+  { code: 'PL', name: 'Polen' },
+  { code: 'CZ', name: 'Tsjechië' },
+  { code: 'DK', name: 'Denemarken' },
+  { code: 'SE', name: 'Zweden' },
+  { code: 'FI', name: 'Finland' },
+  { code: 'NO', name: 'Noorwegen' },
+];
+
 interface CustomerData {
   email: string;
   firstName: string;
   lastName: string;
   phone: string;
   companyName: string;
+  vatNumber: string;
+  customerType: 'b2c' | 'b2b';
   street: string;
   houseNumber: string;
   postalCode: string;
@@ -37,7 +71,10 @@ export default function ShopCheckout() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
-  const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
+  const { 
+    items: cartItems, setTenantSlug, getSubtotal, clearCart,
+    appliedDiscount, applyDiscountCode, removeDiscountCode,
+  } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
   const { t } = useTranslation();
   
@@ -48,6 +85,8 @@ export default function ShopCheckout() {
     lastName: '',
     phone: '',
     companyName: '',
+    vatNumber: '',
+    customerType: 'b2c',
     street: '',
     houseNumber: '',
     postalCode: '',
@@ -73,12 +112,32 @@ export default function ShopCheckout() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authProcessing, setAuthProcessing] = useState(false);
 
+  // VAT validation state
+  const [vatValidation, setVatValidation] = useState<{
+    status: 'idle' | 'validating' | 'valid' | 'invalid';
+    companyName?: string;
+  }>({ status: 'idle' });
+
+  // Discount code state for checkout
+  const [discountCode, setDiscountCode] = useState('');
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+
   // Read checkout config settings
   const ts = themeSettings as any;
   const phoneRequired = ts?.checkout_phone_required || false;
   const companyField = ts?.checkout_company_field || 'hidden';
   const addressAutocomplete = ts?.checkout_address_autocomplete || false;
-  const guestEnabled = ts?.checkout_guest_enabled !== false; // default true
+  const guestEnabled = ts?.checkout_guest_enabled !== false;
+
+  // Tenant BTW settings
+  const enableB2bCheckout = (tenant as any)?.enable_b2b_checkout ?? false;
+  const requireViesValidation = (tenant as any)?.require_vies_validation ?? true;
+  const blockInvalidVatOrders = (tenant as any)?.block_invalid_vat_orders ?? false;
+  const tenantCountry = (tenant?.country || 'BE').toUpperCase();
+  const tenantVatRate = (tenant as any)?.tax_percentage || 21;
+  const ossEnabled = (tenant as any)?.oss_enabled ?? false;
+  const ossThresholdReached = (tenant as any)?.oss_threshold_reached ?? false;
+  const defaultVatHandling = (tenant as any)?.default_vat_handling || 'exclusive';
 
   // Check auth state
   useEffect(() => {
@@ -98,14 +157,10 @@ export default function ShopCheckout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Set tenant slug for cart context
   useEffect(() => {
-    if (tenantSlug) {
-      setTenantSlug(tenantSlug);
-    }
+    if (tenantSlug) setTenantSlug(tenantSlug);
   }, [tenantSlug, setTenantSlug]);
 
-  // Handle cancelled Stripe checkout redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('cancelled') === 'true') {
@@ -114,7 +169,6 @@ export default function ShopCheckout() {
     }
   }, []);
 
-  // Load tenant payment settings
   useEffect(() => {
     if (tenant?.payment_methods_enabled) {
       const methods = tenant.payment_methods_enabled as PaymentMethod[];
@@ -125,14 +179,12 @@ export default function ShopCheckout() {
     }
   }, [tenant?.payment_methods_enabled]);
 
-  // Set default country from tenant
   useEffect(() => {
     if (tenant?.country && !customerData.country) {
       setCustomerData(prev => ({ ...prev, country: tenant.country || 'BE' }));
     }
   }, [tenant]);
 
-  // Address autocomplete debounce
   useEffect(() => {
     if (!addressAutocomplete || !addressQuery || addressQuery.length < 3) {
       setShowSuggestions(false);
@@ -153,26 +205,52 @@ export default function ShopCheckout() {
   };
 
   const subtotal = getSubtotal();
+  const discountAmount = appliedDiscount?.calculated_amount || 0;
   const shipping = subtotal > 0 ? 5.95 : 0;
-  const total = subtotal + shipping;
+  const subtotalAfterDiscount = subtotal - discountAmount;
+
+  // VAT calculation
+  const calculateVat = () => {
+    if (defaultVatHandling === 'inclusive') {
+      return { amount: 0, rate: 0, text: null, type: 'inclusive' as const };
+    }
+
+    const customerCountry = customerData.country.toUpperCase();
+    const isEu = EU_COUNTRY_CODES.includes(customerCountry);
+    const isSameCountry = tenantCountry === customerCountry;
+    const taxableAmount = subtotalAfterDiscount + shipping;
+
+    if (isSameCountry) {
+      return { amount: Math.round(taxableAmount * (tenantVatRate / 100) * 100) / 100, rate: tenantVatRate, text: null, type: 'standard' as const };
+    }
+    if (!isEu) {
+      return { amount: 0, rate: 0, text: 'Export - vrijgesteld van BTW', type: 'export' as const };
+    }
+    if (customerData.customerType === 'b2b' && vatValidation.status === 'valid') {
+      return { amount: 0, rate: 0, text: 'BTW verlegd (reverse charge)', type: 'reverse_charge' as const };
+    }
+    if (ossEnabled && ossThresholdReached) {
+      const rate = EU_VAT_RATES[customerCountry] || tenantVatRate;
+      return { amount: Math.round(taxableAmount * (rate / 100) * 100) / 100, rate, text: `BTW ${customerCountry} ${rate}%`, type: 'oss' as const };
+    }
+    return { amount: Math.round(taxableAmount * (tenantVatRate / 100) * 100) / 100, rate: tenantVatRate, text: null, type: 'standard' as const };
+  };
+
+  const vatInfo = calculateVat();
+  const total = subtotalAfterDiscount + shipping + vatInfo.amount;
 
   const handleInputChange = (field: keyof CustomerData, value: string) => {
     setCustomerData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handle address search query changes (separate from individual fields)
   const handleSearchQueryChange = (value: string) => {
     setAddressQuery(value);
-    if (value.length < 3) {
-      setShowSuggestions(false);
-    }
+    if (value.length < 3) setShowSuggestions(false);
   };
 
   const handleSelectSuggestion = (suggestion: any) => {
-    // Split street into street name and house number if possible
     const streetParts = suggestion.street || '';
     const streetMatch = streetParts.match(/^(.+?)\s+(\d+\S*)$/);
-    
     setCustomerData(prev => ({
       ...prev,
       street: streetMatch ? streetMatch[1] : streetParts,
@@ -185,6 +263,76 @@ export default function ShopCheckout() {
     setAddressQuery('');
   };
 
+  // VIES VAT validation
+  const handleVatValidation = async () => {
+    const vat = customerData.vatNumber.trim();
+    if (!vat || vat.length < 5) {
+      setVatValidation({ status: 'idle' });
+      return;
+    }
+    setVatValidation({ status: 'validating' });
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-vat', {
+        body: { vat_number: vat },
+      });
+      if (error) throw error;
+      if (data?.valid) {
+        setVatValidation({ status: 'valid', companyName: data.company_name });
+        if (!customerData.companyName && data.company_name) {
+          setCustomerData(prev => ({ ...prev, companyName: data.company_name }));
+        }
+        toast.success('BTW-nummer geverifieerd');
+      } else {
+        setVatValidation({ status: 'invalid' });
+        toast.error(data?.error || 'BTW-nummer niet geldig');
+      }
+    } catch {
+      setVatValidation({ status: 'invalid' });
+      toast.error('Fout bij valideren BTW-nummer');
+    }
+  };
+
+  // Discount code in checkout
+  const handleApplyDiscount = async () => {
+    const code = discountCode.trim();
+    if (!code || !tenant) return;
+    setApplyingDiscount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('storefront-api', {
+        body: {
+          action: 'validate_discount_code',
+          tenant_id: tenant.id,
+          params: { code, subtotal },
+        },
+      });
+      if (error) throw error;
+      if (data?.valid) {
+        let calcAmount = 0;
+        if (data.discount_type === 'percentage') {
+          calcAmount = Math.round(subtotal * (data.discount_value / 100) * 100) / 100;
+        } else {
+          calcAmount = Math.min(data.discount_value, subtotal);
+        }
+        applyDiscountCode({
+          code,
+          discount_type: data.discount_type,
+          discount_value: data.discount_value,
+          applies_to: data.applies_to,
+          description: data.description,
+          calculated_amount: calcAmount,
+        });
+        setDiscountCode('');
+        toast.success('Kortingscode toegepast!');
+      } else {
+        toast.error(data?.error || 'Ongeldige kortingscode');
+      }
+    } catch {
+      toast.error('Er ging iets mis bij het valideren van de kortingscode');
+    } finally {
+      setApplyingDiscount(false);
+    }
+  };
+
   const validateForm = (): boolean => {
     if (!customerData.email || !customerData.firstName || !customerData.lastName) {
       toast.error('Vul alle verplichte velden in');
@@ -194,7 +342,11 @@ export default function ShopCheckout() {
       toast.error('Telefoonnummer is verplicht');
       return false;
     }
-    if (companyField === 'required' && !customerData.companyName.trim()) {
+    if (customerData.customerType === 'b2b' && !customerData.companyName.trim()) {
+      toast.error('Bedrijfsnaam is verplicht voor zakelijke bestellingen');
+      return false;
+    }
+    if (companyField === 'required' && customerData.customerType === 'b2c' && !customerData.companyName.trim()) {
       toast.error('Bedrijfsnaam is verplicht');
       return false;
     }
@@ -202,12 +354,18 @@ export default function ShopCheckout() {
       toast.error('Vul je adresgegevens in');
       return false;
     }
+    // Block if B2B + VIES required + invalid
+    if (customerData.customerType === 'b2b' && requireViesValidation && blockInvalidVatOrders) {
+      if (customerData.vatNumber.trim() && vatValidation.status !== 'valid') {
+        toast.error('Een geldig BTW-nummer is vereist voor zakelijke bestellingen');
+        return false;
+      }
+    }
     return true;
   };
 
   const handleCustomerDetailsSubmit = () => {
     if (!validateForm()) return;
-    
     if (enabledPaymentMethods.length === 1) {
       setPaymentMethod(enabledPaymentMethods[0]);
       handlePayment(enabledPaymentMethods[0]);
@@ -218,7 +376,7 @@ export default function ShopCheckout() {
 
   const handlePayment = async (method: PaymentMethod) => {
     if (!tenant) return;
-    if (submittingRef.current) return; // Prevent double-click
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setIsProcessing(true);
     
@@ -240,8 +398,6 @@ export default function ShopCheckout() {
         } : undefined,
       }));
 
-      const hasGiftCards = cartItems.some(item => !!item.giftCard);
-
       const shippingAddress = {
         street: `${customerData.street} ${customerData.houseNumber}`.trim(),
         city: customerData.city,
@@ -249,24 +405,32 @@ export default function ShopCheckout() {
         country: customerData.country,
       };
 
+      const commonBody = {
+        tenant_id: tenant.id,
+        items: formattedItems,
+        customer_email: customerData.email,
+        customer_name: `${customerData.firstName} ${customerData.lastName}`,
+        customer_phone: customerData.phone,
+        company_name: customerData.companyName || undefined,
+        shipping_address: shippingAddress,
+        billing_address: shippingAddress,
+        shipping_cost: shipping,
+        // BTW data
+        customer_type: customerData.customerType,
+        vat_number: customerData.customerType === 'b2b' ? customerData.vatNumber || undefined : undefined,
+        vat_validated: customerData.customerType === 'b2b' ? vatValidation.status === 'valid' : undefined,
+        vat_type: vatInfo.type,
+        // Discount data
+        discount_code: appliedDiscount?.code || undefined,
+        discount_amount: discountAmount > 0 ? discountAmount : undefined,
+      };
+
       if (method === 'stripe') {
         const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
-          body: {
-            tenant_id: tenant.id,
-            items: formattedItems,
-            customer_email: customerData.email,
-            customer_name: `${customerData.firstName} ${customerData.lastName}`,
-            customer_phone: customerData.phone,
-            company_name: customerData.companyName || undefined,
-            shipping_address: shippingAddress,
-            billing_address: shippingAddress,
-            shipping_cost: shipping,
-          },
+          body: commonBody,
         });
-
         if (error) {
           const body = await error.context?.json?.().catch(() => null);
-          console.error('create-checkout-session error:', body?.error || error.message);
           throw new Error(body?.error || error.message);
         }
         if (sessionData?.url) {
@@ -275,25 +439,12 @@ export default function ShopCheckout() {
         }
       } else if (method === 'bank_transfer') {
         const { data: orderData, error } = await supabase.functions.invoke('create-bank-transfer-order', {
-          body: {
-            tenant_id: tenant.id,
-            items: formattedItems,
-            customer_email: customerData.email,
-            customer_name: `${customerData.firstName} ${customerData.lastName}`,
-            customer_phone: customerData.phone,
-            company_name: customerData.companyName || undefined,
-            shipping_address: shippingAddress,
-            billing_address: shippingAddress,
-            shipping_cost: shipping,
-          },
+          body: commonBody,
         });
-
         if (error) {
           const body = await error.context?.json?.().catch(() => null);
-          console.error('create-bank-transfer-order error:', body?.error || error.message);
           throw new Error(body?.error || error.message);
         }
-        
         clearCart();
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
       }
@@ -310,13 +461,99 @@ export default function ShopCheckout() {
     handlePayment(paymentMethod);
   };
 
-  // Empty cart redirect
+  // Order summary component (reused in sidebar + mobile)
+  const OrderSummaryContent = ({ compact = false }: { compact?: boolean }) => (
+    <>
+      {!compact && (
+        <div className="space-y-3 mb-4">
+          {cartItems.map(item => (
+            <div key={item.id} className="flex justify-between text-sm">
+              <span className="text-muted-foreground truncate mr-2">
+                {item.quantity}x {item.name}
+              </span>
+              <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Discount code input */}
+      {!compact && !appliedDiscount && (
+        <div className="flex gap-2 mb-4">
+          <Input
+            value={discountCode}
+            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+            placeholder="Kortingscode"
+            className="flex-1"
+            onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
+          />
+          <Button
+            variant="outline" size="sm"
+            onClick={handleApplyDiscount}
+            disabled={applyingDiscount || !discountCode.trim()}
+          >
+            {applyingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Toepassen'}
+          </Button>
+        </div>
+      )}
+
+      {!compact && appliedDiscount && (
+        <div className="flex items-center justify-between gap-2 mb-4 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-center gap-2 min-w-0">
+            <Tag className="h-4 w-4 text-green-600 shrink-0" />
+            <span className="text-sm font-medium text-green-700 dark:text-green-400 truncate">
+              {appliedDiscount.code}
+            </span>
+          </div>
+          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeDiscountCode()}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      {!compact && <Separator className="my-4" />}
+
+      <div className={`space-y-2 text-sm ${compact ? '' : ''}`}>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Subtotaal</span>
+          <span>{formatPrice(subtotal)}</span>
+        </div>
+        {appliedDiscount && discountAmount > 0 && (
+          <div className="flex justify-between text-green-600">
+            <span>Korting ({appliedDiscount.discount_type === 'percentage' ? `${appliedDiscount.discount_value}%` : formatPrice(appliedDiscount.discount_value)})</span>
+            <span>-{formatPrice(discountAmount)}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Verzending</span>
+          <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
+        </div>
+        {vatInfo.amount > 0 && defaultVatHandling !== 'inclusive' && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">
+              BTW {vatInfo.rate}%{vatInfo.text ? ` (${vatInfo.text})` : ''}
+            </span>
+            <span>{formatPrice(vatInfo.amount)}</span>
+          </div>
+        )}
+        {vatInfo.text && vatInfo.amount === 0 && defaultVatHandling !== 'inclusive' && (
+          <div className="text-xs text-muted-foreground italic">{vatInfo.text}</div>
+        )}
+      </div>
+
+      {!compact && <Separator className="my-4" />}
+
+      <div className={`flex justify-between font-semibold ${compact ? 'text-lg' : 'text-lg'}`}>
+        <span>Totaal</span>
+        <span>{formatPrice(total)}</span>
+      </div>
+    </>
+  );
+
   if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
       <ShopLayout>
-        <Helmet>
-          <title>Afrekenen | {tenant?.name || 'Shop'}</title>
-        </Helmet>
+        <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Je winkelwagen is leeg</h1>
           <p className="text-muted-foreground mb-6">Voeg eerst producten toe aan je winkelwagen.</p>
@@ -330,9 +567,7 @@ export default function ShopCheckout() {
 
   return (
     <ShopLayout>
-      <Helmet>
-        <title>Afrekenen | {tenant?.name || 'Shop'}</title>
-      </Helmet>
+      <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
 
       <div className="container mx-auto px-4 py-8 pb-28 lg:pb-8">
         {/* Guest checkout gate */}
@@ -351,21 +586,11 @@ export default function ShopCheckout() {
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label>E-mailadres</Label>
-                  <Input
-                    type="email"
-                    value={authEmail}
-                    onChange={e => setAuthEmail(e.target.value)}
-                    placeholder="je@email.com"
-                  />
+                  <Input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="je@email.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>Wachtwoord</Label>
-                  <Input
-                    type="password"
-                    value={authPassword}
-                    onChange={e => setAuthPassword(e.target.value)}
-                    placeholder="••••••••"
-                  />
+                  <Input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="••••••••" />
                 </div>
                 <Button
                   className="w-full"
@@ -392,11 +617,7 @@ export default function ShopCheckout() {
                   {authProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   {authMode === 'login' ? 'Inloggen' : 'Account aanmaken'}
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full text-sm"
-                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                >
+                <Button variant="ghost" className="w-full text-sm" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}>
                   {authMode === 'login' ? 'Nog geen account? Registreer' : 'Al een account? Log in'}
                 </Button>
               </div>
@@ -404,11 +625,9 @@ export default function ShopCheckout() {
           </Card>
         ) : (
         <>
-        {/* Back Button */}
         {step !== 'confirmation' && (
           <Button
-            variant="ghost"
-            className="mb-6"
+            variant="ghost" className="mb-6"
             onClick={() => step === 'payment' ? setStep('details') : navigate(`/shop/${tenantSlug}/cart`)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -417,7 +636,6 @@ export default function ShopCheckout() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2">
             {step === 'details' && (
               <Card>
@@ -425,59 +643,104 @@ export default function ShopCheckout() {
                   <CardTitle>Je gegevens</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Contact Info */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Contactgegevens</h3>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">E-mailadres *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={customerData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">
-                          Telefoonnummer {phoneRequired ? '*' : ''}
-                        </Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={customerData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          required={phoneRequired}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">Voornaam *</Label>
-                        <Input
-                          id="firstName"
-                          value={customerData.firstName}
-                          onChange={(e) => handleInputChange('firstName', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Achternaam *</Label>
-                        <Input
-                          id="lastName"
-                          value={customerData.lastName}
-                          onChange={(e) => handleInputChange('lastName', e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Company field - conditionally shown */}
-                  {companyField !== 'hidden' && (
+                  {/* B2B/B2C Toggle */}
+                  {enableB2bCheckout && (
                     <>
+                      <div className="space-y-3">
+                        <h3 className="font-medium">Klanttype</h3>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            type="button"
+                            variant={customerData.customerType === 'b2c' ? 'default' : 'outline'}
+                            onClick={() => {
+                              handleInputChange('customerType', 'b2c');
+                              setVatValidation({ status: 'idle' });
+                            }}
+                            className="flex-1"
+                          >
+                            <User className="h-4 w-4 mr-2" />
+                            Particulier
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={customerData.customerType === 'b2b' ? 'default' : 'outline'}
+                            onClick={() => handleInputChange('customerType', 'b2b')}
+                            className="flex-1"
+                          >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            Zakelijk
+                          </Button>
+                        </div>
+                      </div>
                       <Separator />
+                    </>
+                  )}
+
+                  {/* B2B: Company + VAT */}
+                  {customerData.customerType === 'b2b' && (
+                    <>
+                      <div className="space-y-4">
+                        <h3 className="font-medium flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Bedrijfsgegevens
+                        </h3>
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">Bedrijfsnaam *</Label>
+                          <Input
+                            id="companyName"
+                            value={customerData.companyName}
+                            onChange={(e) => handleInputChange('companyName', e.target.value)}
+                            placeholder="Naam van je bedrijf"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="vatNumber">BTW-nummer</Label>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Input
+                              id="vatNumber"
+                              value={customerData.vatNumber}
+                              onChange={(e) => {
+                                handleInputChange('vatNumber', e.target.value.toUpperCase());
+                                setVatValidation({ status: 'idle' });
+                              }}
+                              placeholder="BE0123456789"
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleVatValidation}
+                              disabled={vatValidation.status === 'validating' || !customerData.vatNumber.trim()}
+                            >
+                              {vatValidation.status === 'validating' ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                'Valideer'
+                              )}
+                            </Button>
+                          </div>
+                          {vatValidation.status === 'valid' && (
+                            <div className="flex items-center gap-2 text-sm text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>BTW-nummer geverifieerd{vatValidation.companyName ? `: ${vatValidation.companyName}` : ''}</span>
+                            </div>
+                          )}
+                          {vatValidation.status === 'invalid' && (
+                            <div className="flex items-center gap-2 text-sm text-destructive">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>BTW-nummer niet geldig of niet gevonden</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Separator />
+                    </>
+                  )}
+
+                  {/* B2C company field (if configured) */}
+                  {customerData.customerType === 'b2c' && companyField !== 'hidden' && (
+                    <>
                       <div className="space-y-4">
                         <h3 className="font-medium flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
@@ -496,8 +759,34 @@ export default function ShopCheckout() {
                           />
                         </div>
                       </div>
+                      <Separator />
                     </>
                   )}
+
+                  {/* Contact Info */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Contactgegevens</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-mailadres *</Label>
+                        <Input id="email" type="email" value={customerData.email} onChange={(e) => handleInputChange('email', e.target.value)} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefoonnummer {phoneRequired ? '*' : ''}</Label>
+                        <Input id="phone" type="tel" value={customerData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} required={phoneRequired} />
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Voornaam *</Label>
+                        <Input id="firstName" value={customerData.firstName} onChange={(e) => handleInputChange('firstName', e.target.value)} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Achternaam *</Label>
+                        <Input id="lastName" value={customerData.lastName} onChange={(e) => handleInputChange('lastName', e.target.value)} required />
+                      </div>
+                    </div>
+                  </div>
 
                   <Separator />
 
@@ -505,7 +794,6 @@ export default function ShopCheckout() {
                   <div className="space-y-4">
                     <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
                     
-                    {/* Separate address search bar */}
                     {addressAutocomplete && (
                       <div className="relative">
                         <div className="relative">
@@ -521,12 +809,7 @@ export default function ShopCheckout() {
                         {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
                             {suggestions.map((s, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                                onClick={() => handleSelectSuggestion(s)}
-                              >
+                              <button key={i} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors" onClick={() => handleSelectSuggestion(s)}>
                                 {s.full_address}
                               </button>
                             ))}
@@ -538,77 +821,44 @@ export default function ShopCheckout() {
                     <div className="grid sm:grid-cols-3 gap-4">
                       <div className="sm:col-span-2 space-y-2">
                         <Label htmlFor="street">Straat *</Label>
-                        <Input
-                          id="street"
-                          value={customerData.street}
-                          onChange={(e) => handleInputChange('street', e.target.value)}
-                          required
-                        />
+                        <Input id="street" value={customerData.street} onChange={(e) => handleInputChange('street', e.target.value)} required />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="houseNumber">Huisnummer</Label>
-                        <Input
-                          id="houseNumber"
-                          value={customerData.houseNumber}
-                          onChange={(e) => handleInputChange('houseNumber', e.target.value)}
-                        />
+                        <Input id="houseNumber" value={customerData.houseNumber} onChange={(e) => handleInputChange('houseNumber', e.target.value)} />
                       </div>
                     </div>
                     <div className="grid sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="postalCode">Postcode *</Label>
-                        <Input
-                          id="postalCode"
-                          value={customerData.postalCode}
-                          onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                          required
-                        />
+                        <Input id="postalCode" value={customerData.postalCode} onChange={(e) => handleInputChange('postalCode', e.target.value)} required />
                       </div>
                       <div className="sm:col-span-2 space-y-2">
                         <Label htmlFor="city">Stad *</Label>
-                        <Input
-                          id="city"
-                          value={customerData.city}
-                          onChange={(e) => handleInputChange('city', e.target.value)}
-                          required
-                        />
+                        <Input id="city" value={customerData.city} onChange={(e) => handleInputChange('city', e.target.value)} required />
                       </div>
                     </div>
-                    {/* Country selector */}
                     <div className="space-y-2">
                       <Label>{t('checkout.country')} *</Label>
-                      <Select
-                        value={customerData.country}
-                        onValueChange={(value) => handleInputChange('country', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={customerData.country} onValueChange={(value) => handleInputChange('country', value)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="BE">België</SelectItem>
-                          <SelectItem value="NL">Nederland</SelectItem>
-                          <SelectItem value="DE">Deutschland</SelectItem>
-                          <SelectItem value="FR">France</SelectItem>
-                          <SelectItem value="LU">Luxembourg</SelectItem>
+                          {COUNTRIES.map(c => (
+                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
                   <Button
-                    className="w-full"
-                    size="lg"
+                    className="w-full" size="lg"
                     onClick={handleCustomerDetailsSubmit}
                     disabled={isProcessing}
-                    style={{
-                      backgroundColor: themeSettings?.primary_color || undefined,
-                    }}
+                    style={{ backgroundColor: themeSettings?.primary_color || undefined }}
                   >
                     {isProcessing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Bezig...
-                      </>
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Bezig...</>
                     ) : enabledPaymentMethods.length === 1 ? 'Doorgaan naar betaling' : 'Kies betaalmethode'}
                   </Button>
                 </CardContent>
@@ -624,26 +874,15 @@ export default function ShopCheckout() {
                   showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
                   transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
                 />
-                
                 <Button
-                  className="w-full"
-                  size="lg"
+                  className="w-full" size="lg"
                   onClick={handlePaymentMethodConfirm}
                   disabled={isProcessing}
-                  style={{
-                    backgroundColor: themeSettings?.primary_color || undefined,
-                  }}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}
                 >
                   {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Bezig...
-                    </>
-                  ) : paymentMethod === 'stripe' ? (
-                    'Afrekenen met iDEAL / Card'
-                  ) : (
-                    'Bestelling plaatsen'
-                  )}
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Bezig...</>
+                  ) : paymentMethod === 'stripe' ? 'Afrekenen met iDEAL / Card' : 'Bestelling plaatsen'}
                 </Button>
               </div>
             )}
@@ -661,45 +900,14 @@ export default function ShopCheckout() {
             )}
           </div>
 
-          {/* Order Summary Sidebar - hidden on mobile, shown as sticky bar instead */}
+          {/* Order Summary Sidebar */}
           <div className="hidden lg:block">
             <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle className="text-lg">Besteloverzicht</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Items */}
-                <div className="space-y-3 mb-4">
-                  {cartItems.map(item => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground truncate mr-2">
-                        {item.quantity}x {item.name}
-                      </span>
-                      <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator className="my-4" />
-
-                {/* Totals */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotaal</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Verzending</span>
-                    <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="flex justify-between font-semibold text-lg">
-                  <span>Totaal</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
+                <OrderSummaryContent />
               </CardContent>
             </Card>
           </div>
@@ -710,8 +918,18 @@ export default function ShopCheckout() {
               <div>
                 <p className="text-xs text-muted-foreground">{cartItems.length} artikel(en)</p>
                 <p className="text-lg font-bold">{formatPrice(total)}</p>
+                {appliedDiscount && discountAmount > 0 && (
+                  <p className="text-xs text-green-600">-{formatPrice(discountAmount)} korting</p>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">Incl. {shipping > 0 ? formatPrice(shipping) : 'gratis'} verzending</p>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">
+                  Incl. {shipping > 0 ? formatPrice(shipping) : 'gratis'} verzending
+                </p>
+                {vatInfo.text && vatInfo.amount === 0 && defaultVatHandling !== 'inclusive' && (
+                  <p className="text-xs text-muted-foreground">{vatInfo.text}</p>
+                )}
+              </div>
             </div>
           </div>
         </div>

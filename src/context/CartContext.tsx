@@ -21,6 +21,15 @@ export interface CartItem {
   giftCard?: GiftCardMeta;
 }
 
+export interface AppliedDiscountCode {
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  applies_to: string;
+  description?: string;
+  calculated_amount: number;
+}
+
 interface CartContextType {
   items: CartItem[];
   tenantSlug: string | null;
@@ -34,16 +43,21 @@ interface CartContextType {
   isDrawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
+  appliedDiscount: AppliedDiscountCode | null;
+  applyDiscountCode: (discount: AppliedDiscountCode) => void;
+  removeDiscountCode: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const STORAGE_KEY_PREFIX = 'cart_';
+const DISCOUNT_KEY_PREFIX = 'cart_discount_';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [tenantSlug, setTenantSlugState] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscountCode | null>(null);
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
@@ -65,15 +79,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } else {
       setItems([]);
     }
+
+    // Load discount
+    const discountKey = `${DISCOUNT_KEY_PREFIX}${tenantSlug}`;
+    const storedDiscount = localStorage.getItem(discountKey);
+    if (storedDiscount) {
+      try {
+        setAppliedDiscount(JSON.parse(storedDiscount));
+      } catch {
+        setAppliedDiscount(null);
+      }
+    } else {
+      setAppliedDiscount(null);
+    }
   }, [tenantSlug]);
 
   // Save cart to localStorage whenever items change
   useEffect(() => {
     if (!tenantSlug) return;
-    
     const storageKey = `${STORAGE_KEY_PREFIX}${tenantSlug}`;
     localStorage.setItem(storageKey, JSON.stringify(items));
   }, [items, tenantSlug]);
+
+  // Save discount to localStorage
+  useEffect(() => {
+    if (!tenantSlug) return;
+    const discountKey = `${DISCOUNT_KEY_PREFIX}${tenantSlug}`;
+    if (appliedDiscount) {
+      localStorage.setItem(discountKey, JSON.stringify(appliedDiscount));
+    } else {
+      localStorage.removeItem(discountKey);
+    }
+  }, [appliedDiscount, tenantSlug]);
 
   const setTenantSlug = useCallback((slug: string) => {
     setTenantSlugState(slug);
@@ -118,6 +155,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
+    setAppliedDiscount(null);
   }, []);
 
   const getCartCount = useCallback(() => {
@@ -127,6 +165,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const getSubtotal = useCallback(() => {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [items]);
+
+  const applyDiscountCode = useCallback((discount: AppliedDiscountCode) => {
+    setAppliedDiscount(discount);
+  }, []);
+
+  const removeDiscountCode = useCallback(() => {
+    setAppliedDiscount(null);
+  }, []);
 
   return (
     <CartContext.Provider value={{
@@ -142,6 +188,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isDrawerOpen,
       openDrawer,
       closeDrawer,
+      appliedDiscount,
+      applyDiscountCode,
+      removeDiscountCode,
     }}>
       {children}
     </CartContext.Provider>
