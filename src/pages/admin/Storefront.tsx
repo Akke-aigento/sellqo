@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale, Star, Share2 } from 'lucide-react';
+import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Sliders, Scale, Star, Share2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,7 @@ const navItems = [
 
 export default function StorefrontPage() {
   const { currentTenant } = useTenant();
-  const { themeSettings, publishStorefront } = useStorefront();
+  const { themeSettings } = useStorefront();
   const [activeTab, setActiveTab] = useState('theme');
   const { canonicalDomain } = useTenantDomains();
 
@@ -80,7 +81,6 @@ export default function StorefrontPage() {
         <div className="flex items-center gap-3">
           {isPublished ? (
             <Badge variant="default" className="bg-green-500">
-              <Rocket className="h-3 w-3 mr-1" />
               Live
             </Badge>
           ) : (
@@ -91,13 +91,6 @@ export default function StorefrontPage() {
               <ExternalLink className="h-4 w-4 mr-2" />
               Preview
             </a>
-          </Button>
-          <Button
-            onClick={() => publishStorefront.mutate()}
-            disabled={publishStorefront.isPending || !themeSettings?.theme_id}
-          >
-            <Rocket className="h-4 w-4 mr-2" />
-            {isPublished ? 'Opnieuw Publiceren' : 'Publiceren'}
           </Button>
         </div>
       </div>
