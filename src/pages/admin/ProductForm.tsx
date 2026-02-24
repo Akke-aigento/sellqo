@@ -365,6 +365,8 @@ export default function ProductForm() {
     const submitData = {
       ...data,
       category_id: data.category_id || null,
+      sku: data.sku?.trim() || null,
+      barcode: data.barcode?.trim() || null,
     };
     if (isEditing && id) {
       await updateProduct.mutateAsync({ id, data: submitData });
