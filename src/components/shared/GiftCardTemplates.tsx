@@ -134,7 +134,7 @@ export function GiftCardTemplatePreview({
               src={logoUrl}
               alt=""
               className={cn(
-                'max-h-[45%] max-w-[60%] object-contain',
+                'max-h-[60%] max-w-[75%] object-contain',
                 ['elegant', 'festive', 'gradient'].includes(template.id) && 'drop-shadow-lg'
               )}
             />
@@ -225,7 +225,7 @@ export function GiftCardTemplateRenderer({
               src={logoUrl}
               alt=""
               className={cn(
-                'h-20 md:h-24 max-w-[70%] object-contain',
+                'h-40 md:h-48 max-w-[85%] object-contain',
                 ['elegant', 'festive', 'gradient'].includes(template.id) && 'drop-shadow-lg'
               )}
             />

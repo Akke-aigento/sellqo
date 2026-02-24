@@ -7919,6 +7919,48 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_categories_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_channel_warnings: {
         Row: {
           channel_type: string
