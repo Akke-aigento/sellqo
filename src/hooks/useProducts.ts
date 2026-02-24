@@ -4,6 +4,16 @@ import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import type { Product, ProductFormData } from '@/types/product';
 
+function translateProductError(message: string): string {
+  if (message.includes('products_tenant_sku_unique')) {
+    return 'Er bestaat al een product met deze SKU. Kies een unieke SKU of laat het veld leeg.';
+  }
+  if (message.includes('products_tenant_slug_key') || message.includes('products_slug_key')) {
+    return 'Er bestaat al een product met deze URL-slug. Pas de slug aan.';
+  }
+  return 'Er ging iets mis bij het opslaan. Probeer het opnieuw.';
+}
+
 export function useProducts() {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
@@ -50,7 +60,7 @@ export function useProducts() {
       toast({ title: 'Product aangemaakt', description: 'Het product is succesvol toegevoegd.' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: 'Fout', description: translateProductError(error.message), variant: 'destructive' });
     },
   });
 
@@ -71,7 +81,7 @@ export function useProducts() {
       toast({ title: 'Product bijgewerkt', description: 'De wijzigingen zijn opgeslagen.' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: 'Fout', description: translateProductError(error.message), variant: 'destructive' });
     },
   });
 
