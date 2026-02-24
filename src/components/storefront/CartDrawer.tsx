@@ -1,21 +1,70 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, Tag, X, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CartDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   basePath: string;
   currency?: string;
+  tenantId?: string;
 }
 
-export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: CartDrawerProps) {
-  const { items, updateQuantity, removeItem, getSubtotal } = useCart();
+export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR', tenantId }: CartDrawerProps) {
+  const { items, updateQuantity, removeItem, getSubtotal, appliedDiscount, applyDiscountCode, removeDiscountCode } = useCart();
   const subtotal = getSubtotal();
+  const discountAmount = appliedDiscount?.calculated_amount || 0;
+
+  const [discountCode, setDiscountCode] = useState('');
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  const handleApplyDiscount = async () => {
+    const code = discountCode.trim();
+    if (!code || !tenantId) return;
+    setApplyingDiscount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('storefront-api', {
+        body: {
+          action: 'validate_discount_code',
+          tenant_id: tenantId,
+          params: { code, subtotal },
+        },
+      });
+      if (error) throw error;
+      if (data?.valid) {
+        let calcAmount = 0;
+        if (data.discount_type === 'percentage') {
+          calcAmount = Math.round(subtotal * (data.discount_value / 100) * 100) / 100;
+        } else {
+          calcAmount = Math.min(data.discount_value, subtotal);
+        }
+        applyDiscountCode({
+          code,
+          discount_type: data.discount_type,
+          discount_value: data.discount_value,
+          applies_to: data.applies_to,
+          description: data.description,
+          calculated_amount: calcAmount,
+        });
+        setDiscountCode('');
+        toast.success('Kortingscode toegepast!');
+      } else {
+        toast.error(data?.error || 'Ongeldige kortingscode');
+      }
+    } catch {
+      toast.error('Er ging iets mis bij het valideren van de kortingscode');
+    } finally {
+      setApplyingDiscount(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -94,10 +143,56 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
             </ScrollArea>
 
             <SheetFooter className="!flex-col gap-3 px-6 py-4 border-t sm:flex-col">
-              <div className="flex justify-between items-center w-full">
-                <span className="font-medium">Subtotaal</span>
-                <span className="text-lg font-bold">{formatCurrency(subtotal, currency)}</span>
+              {/* Discount code */}
+              {!appliedDiscount ? (
+                <div className="flex gap-2 w-full">
+                  <Input
+                    value={discountCode}
+                    onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                    placeholder="Kortingscode"
+                    className="flex-1 h-9 text-sm"
+                    onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
+                  />
+                  <Button
+                    variant="outline" size="sm"
+                    onClick={handleApplyDiscount}
+                    disabled={applyingDiscount || !discountCode.trim()}
+                  >
+                    {applyingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Toepassen'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2 w-full p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Tag className="h-4 w-4 text-green-600 shrink-0" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400 truncate">
+                      {appliedDiscount.code}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeDiscountCode()}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Totals */}
+              <div className="w-full space-y-1">
+                <div className="flex justify-between items-center w-full text-sm">
+                  <span className="text-muted-foreground">Subtotaal</span>
+                  <span>{formatCurrency(subtotal, currency)}</span>
+                </div>
+                {appliedDiscount && discountAmount > 0 && (
+                  <div className="flex justify-between items-center w-full text-sm text-green-600">
+                    <span>Korting ({appliedDiscount.discount_type === 'percentage' ? `${appliedDiscount.discount_value}%` : formatCurrency(appliedDiscount.discount_value, currency)})</span>
+                    <span>-{formatCurrency(discountAmount, currency)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center w-full font-medium">
+                  <span>Totaal</span>
+                  <span className="text-lg font-bold">{formatCurrency(subtotal - discountAmount, currency)}</span>
+                </div>
               </div>
+
               <Button asChild className="w-full" size="lg" onClick={() => onOpenChange(false)}>
                 <Link to={`${basePath}/checkout`}>Afrekenen</Link>
               </Button>
