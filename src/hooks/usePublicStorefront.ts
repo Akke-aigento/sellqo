@@ -301,10 +301,14 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       const { data, error } = await supabase
         .from('products')
         .select(`
-          id, name, slug, description, price, compare_at_price, images, 
+          id, name, slug, description, short_description, price, compare_at_price, images, 
           track_inventory, stock, sku, weight,
           category_id, categories(id, name, slug),
-          meta_title, meta_description
+          meta_title, meta_description,
+          product_type, hide_from_storefront,
+          gift_card_denominations, gift_card_allow_custom,
+          gift_card_min_amount, gift_card_max_amount,
+          gift_card_design_id, gift_card_expiry_months
         `)
         .eq('tenant_id', tenantId!)
         .eq('slug', productSlug)
