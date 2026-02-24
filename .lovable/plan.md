@@ -1,43 +1,54 @@
 
 
-## Fix: CartDrawer prijzen + Add-to-cart positie op productpagina
+## Fix: CartDrawer prijzen afgeknipt + quantity bug bij varianten
 
-### Probleem 1: CartDrawer prijzen afgeknipt
+### Probleem 1: Quantity wijzigt ALLE items van hetzelfde product
 
-De `overflow-hidden` op de item-rij (regel 43) knipt de regeltotaal-prijs af aan de rechterkant. De prijs "€ 89,00" wordt weergegeven als "€ 89,0" omdat de laatste karakters buiten het zichtbare vlak vallen.
+`updateQuantity(productId, quantity)` en `removeItem(productId)` matchen op `productId`. Wanneer hetzelfde product met verschillende varianten (bijv. XS en L) in het mandje zit, delen ze dezelfde `productId`. Gevolg: het aanpassen van de hoeveelheid van 1 variant wijzigt ALLE varianten.
 
-**Oplossing**: Verwijder `overflow-hidden` van de item-rij en beperk de breedte via de middelste kolom (`min-w-0` op flex-1 is al aanwezig). Voeg `pr-1` toe aan de ScrollArea om extra ruimte rechts te geven voor de prijs.
+**Oplossing**: Gebruik het unieke `item.id` in plaats van `productId` als identifier voor updateQuantity en removeItem.
+
+**Bestand: `src/context/CartContext.tsx`**
+- `updateQuantity`: parameter hernoemen naar `itemId` en matchen op `item.id`
+- `removeItem`: parameter hernoemen naar `itemId` en matchen op `item.id`
 
 **Bestand: `src/components/storefront/CartDrawer.tsx`**
-- Regel 43: `overflow-hidden` verwijderen van item container
-- Regel 40: `pr-1` toevoegen aan ScrollArea padding
+- Alle aanroepen van `updateQuantity` en `removeItem` wijzigen van `item.productId` naar `item.id`
 
-### Probleem 2: Add-to-cart knop te ver naar beneden
+### Probleem 2: Prijs afgeknipt aan rechterkant
 
-Op de productdetailpagina staat de volgorde nu: varianten -> voorraadstatus -> beschrijving -> add-to-cart. De gebruiker wil de add-to-cart knop direct na de varianten, zodat je niet hoeft te scrollen.
+De regeltotaal ("€ 89,00") wordt afgeknipt. De 3-kolom layout (afbeelding 80px + info flex-1 + prijs) laat niet genoeg ruimte.
 
-**Oplossing**: Verplaats het add-to-cart blok (regels 317-345) naar direct na de variant selector (na regel 275), voor de stock status en beschrijving.
+**Oplossing**: Verplaats de regeltotaal naar binnen de info-kolom (onder de stukprijs en knoppen) zodat er geen aparte derde kolom nodig is. Dit voorkomt overflow volledig.
 
-**Bestand: `src/pages/storefront/ShopProductDetail.tsx`**
-
-Nieuwe volgorde:
-1. Categorie + titel + rating + prijs
-2. Viewers count
-3. Variant selector
-4. Add-to-cart (quantity + knop + wishlist) -- verplaatst omhoog
-5. Stock status
-6. Beschrijving
-7. SKU
+**Bestand: `src/components/storefront/CartDrawer.tsx`**
+- Verwijder de aparte prijs-paragraaf (regel 75-77)
+- Voeg de regeltotaal toe binnen de info-div, bovenaan naast de productnaam als een flex-row
 
 ### Technische details
 
 ```text
-CartDrawer.tsx:
-- Regel 40: className="flex-1 px-6" -> className="flex-1 px-6 pr-7"
-- Regel 43: className="py-4 flex gap-3 overflow-hidden" -> className="py-4 flex gap-3"
+CartContext.tsx:
 
-ShopProductDetail.tsx:
-- Regels 317-345 (add-to-cart blok) verplaatsen naar na regel 275 (na variant selector)
-- Regels 347-349 (opties hint) mee verplaatsen
+updateQuantity (regel 93-104):
+  Was:  updateQuantity(productId: string, quantity: number)
+        item.productId === productId
+  Wordt: updateQuantity(itemId: string, quantity: number)
+         item.id === itemId
+
+removeItem (regel 106-108):
+  Was:  removeItem(productId: string)
+        item.productId !== productId
+  Wordt: removeItem(itemId: string)
+         item.id !== itemId
+
+CartDrawer.tsx:
+
+- updateQuantity(item.productId, ...) -> updateQuantity(item.id, ...)
+- removeItem(item.productId) -> removeItem(item.id)
+- Regeltotaal verplaatsen van aparte kolom naar flex-row met productnaam
 ```
 
+### Resultaat
+- Quantity knoppen wijzigen alleen het specifieke item, niet alle varianten van hetzelfde product
+- Prijzen worden volledig weergegeven zonder afknippen
