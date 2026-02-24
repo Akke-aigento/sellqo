@@ -1,57 +1,65 @@
 
 
-## Webshop Zichtbaarheid Toggle: Online / Wachtwoord / Offline
+## Fix: Volledige publieke toegang voor de webshop
 
-### Wat wordt er gebouwd?
+### Probleem
 
-Een drievoudige status-toggle voor je webshop:
+Na het eerdere fix voor "Shop niet gevonden" (`tenants` tabel) zijn er nog steeds meerdere tabellen die **geen publieke leestoegang** hebben. Niet-ingelogde bezoekers kunnen daardoor:
 
-1. **Online** -- Webshop is publiek toegankelijk voor iedereen
-2. **Online met wachtwoord** -- Bezoekers moeten een wachtwoord invoeren om de shop te bezoeken (handig voor preview, soft-launch, of B2B)
-3. **Offline** -- Webshop toont een "Onderhoud" of "Binnenkort beschikbaar" pagina
+- Geen producten zien (lege productpagina)
+- Geen categorienavigatie gebruiken
+- Geen juridische pagina's (privacy, voorwaarden) lezen
 
-### Waar komt dit te staan?
+### Volledige audit -- welke tabellen zijn al goed?
 
-Bovenaan de **Storefront > Instellingen** pagina, als een prominente kaart met de huidige status en een duidelijke selector.
+| Tabel | Publiek leesbaar? | Hoe gebruikt? |
+|---|---|---|
+| `tenants` | Ja (zojuist gefixed) | Shopinfo ophalen |
+| `tenant_theme_settings` | Ja | Thema/kleuren/fonts |
+| `homepage_sections` | Ja | Homepage secties |
+| `storefront_pages` | Ja | CMS pagina's |
+| `themes` | Ja | Thema defaults |
+| `product_categories` | Ja | Product-categorie koppeling |
+| `external_reviews` | Ja | Reviews op homepage |
+| `product_variants` | Ja | Varianten op productpagina |
+| `product_variant_options` | Ja | Variant opties (maat, kleur) |
+| `orders` | Ja | Bevestigingspagina |
+| `order_items` | Ja | Bevestigingspagina |
+| `tenant_domains` | Ja | Custom domains |
 
-### Hoe werkt het?
+### Wat mist er?
 
-- Wanneer de status **"password"** is, moet de bezoeker een wachtwoord invoeren. Dit wachtwoord stel je in via de admin.
-- Wanneer de status **"offline"** is, ziet de bezoeker een onderhoudspagina met je logo en een korte melding.
-- De storefront checkt deze status bij het laden en blokkeert toegang indien nodig.
+| Tabel | Nodig voor | Voorgestelde filter |
+|---|---|---|
+| `products` | Productoverzicht + detailpagina | `is_active = true AND hide_from_storefront = false` |
+| `categories` | Categorienavigatie + filters | `is_active = true AND hide_from_storefront = false` |
+| `legal_pages` | Privacy, voorwaarden, etc. | `is_published = true` |
 
-### Technisch
+### Tabellen die NIET publiek hoeven (via edge function)
 
-**1. Database migratie** -- twee nieuwe kolommen op `tenant_theme_settings`:
+De winkelwagen, checkout, verzendmethodes, kortingscodes, cadeaubonnen en klantregistratie worden allemaal afgehandeld via de Storefront API edge function die `service_role` gebruikt. Die werken dus al correct zonder publieke RLS policies.
 
-| Kolom | Type | Default | Beschrijving |
-|---|---|---|---|
-| `storefront_status` | `text` | `'online'` | Waarden: `online`, `password`, `offline` |
-| `storefront_password` | `text` | `null` | Wachtwoord voor password-modus |
+### Technische wijziging
 
-**2. Admin UI** -- `StorefrontSettings.tsx`:
-- Nieuwe kaart bovenaan met drie opties (radio group of segmented control)
-- Bij keuze "Wachtwoord" verschijnt een invoerveld voor het wachtwoord
-- Status wordt opgeslagen samen met de andere instellingen
+Een database migratie met drie nieuwe SELECT policies:
 
-**3. Storefront guard** -- `ShopLayout.tsx`:
-- Leest `storefront_status` uit de theme settings
-- Bij **offline**: toont een onderhoudspagina (logo + "Binnenkort beschikbaar")
-- Bij **password**: toont een wachtwoord-invoerscherm. Na correct invoeren wordt dit opgeslagen in `sessionStorage` zodat de bezoeker niet steeds opnieuw moet invoeren
-- Bij **online**: normaal gedrag (zoals nu)
+```text
+products   -> FOR SELECT USING (is_active = true AND hide_from_storefront = false)
+categories -> FOR SELECT USING (is_active = true AND hide_from_storefront = false)
+legal_pages -> FOR SELECT USING (is_published = true)
+```
 
-**4. Hook update** -- `usePublicStorefront.ts`:
-- Haalt `storefront_status` en `storefront_password` op uit `tenant_theme_settings`
+### Waarom is dit veilig?
 
-### Bestanden die worden aangepast
+- Alleen **SELECT** -- geen INSERT/UPDATE/DELETE
+- Strenge filters: alleen actieve, niet-verborgen producten/categorieen en gepubliceerde juridische pagina's
+- Dezelfde aanpak als de bestaande policies op `homepage_sections`, `storefront_pages`, `external_reviews`
+- Gevoelige tabellen (klanten, bestellingen schrijven, kortingscodes beheren) blijven beschermd
 
-| Bestand | Wijziging |
+### Bestanden
+
+| Wijziging | Details |
 |---|---|
-| Database migratie | Nieuwe kolommen `storefront_status` en `storefront_password` |
-| `src/components/admin/storefront/StorefrontSettings.tsx` | Nieuwe "Webshop Status" kaart met 3 opties + wachtwoordveld |
-| `src/hooks/usePublicStorefront.ts` | Extra velden ophalen uit theme settings |
-| `src/hooks/useStorefront.ts` | Extra velden meenemen bij opslaan |
-| `src/components/storefront/ShopLayout.tsx` | Guard logica: offline-pagina of wachtwoord-scherm tonen |
-| Nieuw: `src/components/storefront/StorefrontPasswordGate.tsx` | Wachtwoord invoer component |
-| Nieuw: `src/components/storefront/StorefrontOfflinePage.tsx` | Offline / onderhoudspagina component |
+| Database migratie | 3 nieuwe RLS policies op `products`, `categories`, `legal_pages` |
 
+Geen code-wijzigingen nodig -- de queries in `usePublicStorefront.ts` filteren al correct op `is_active`, `hide_from_storefront`, en `is_published`.
