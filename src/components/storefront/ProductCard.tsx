@@ -43,14 +43,12 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
   return (
     <div 
       className="group relative"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Wishlist heart */}
       {onToggleWishlist && (
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(product); }}
-          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm rounded-full md:opacity-0 md:group-hover:opacity-100 transition-all hover:scale-110"
         >
           <Heart className={cn("h-4 w-4 transition-colors", isWishlisted ? "fill-red-500 text-red-500" : "text-foreground")} />
         </button>
@@ -117,12 +115,9 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
             </div>
           )}
 
-          {/* Hover overlay with actions */}
+          {/* Hover overlay with actions - hidden on mobile/touch */}
           {product.in_stock && (
-            <div className={cn(
-              "absolute bottom-0 left-0 right-0 p-3 flex gap-2 transition-all duration-300 z-[2]",
-              hovered ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-            )}>
+            <div className="absolute bottom-0 left-0 right-0 p-3 hidden md:flex gap-2 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-[2]">
               {onQuickView && (
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickView(product); }}
@@ -154,7 +149,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           )}
           
           <h3 className={cn(
-            "font-medium line-clamp-2 group-hover:text-primary transition-colors",
+            "font-medium line-clamp-2 break-words group-hover:text-primary transition-colors",
             cardStyle === 'minimal' ? 'text-xs' : 'text-sm'
           )}>
             {product.name}
