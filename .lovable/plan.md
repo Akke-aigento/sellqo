@@ -1,48 +1,79 @@
 
 
-## Fix: Product opslaan faalt + categorieën verdwijnen
+## Logo prominent maken op cadeaukaart-ontwerpen
 
-### Probleem 1: "invalid input syntax for type uuid: elegant"
+### Probleem
 
-De database kolom `gift_card_design_id` is van type **UUID**, maar we slaan nu strings op zoals `"elegant"`, `"modern"`, etc. Dit veroorzaakt een 400 Bad Request bij het opslaan.
+Het logo is nu een klein icoontje (h-5 w-5 = 20x20px in de preview, h-10 w-10 = 40x40px in de renderer) naast de winkelnaam. Het valt nauwelijks op.
 
-**Oplossing:** De kolom wijzigen van `uuid` naar `text` via een database migratie. Dit is de schoonste oplossing omdat de template-ID's nu strings zijn en geen verwijzing meer naar de `gift_card_designs` tabel.
+### Oplossing
+
+Het logo wordt het **centrale visuele element** van elke kaart -- groot, opvallend, en het eerste wat je ziet. De tekst-informatie (bedrag, code, winkelnaam) wordt compact onderaan geplaatst zodat het logo de meeste ruimte inneemt.
+
+### Nieuwe layout (beide componenten)
+
+**GiftCardTemplatePreview (compact kaart in admin/storefront selector):**
 
 ```text
-ALTER TABLE products 
-  ALTER COLUMN gift_card_design_id TYPE text;
++----------------------------------+
+|                                  |
+|         [LOGO - groot]           |
+|         (max ~50% hoogte)        |
+|          object-contain          |
+|                                  |
+|  CADEAUKAART                     |
+|  Winkelnaam            € 25,00   |
++----------------------------------+
 ```
 
-Als er een foreign key constraint bestaat naar `gift_card_designs`, moet die eerst verwijderd worden.
+- Logo: `max-h-[45%] max-w-[60%] object-contain` gecentreerd bovenaan
+- Tekst compacter onderaan: winkelnaam links, bedrag rechts
+- Op donkere templates krijgt het logo een subtiele `drop-shadow` of lichte achtergrondgloed
 
----
+**GiftCardTemplateRenderer (volledige kaart bij bevestiging/e-mail):**
 
-### Probleem 2: Categorieën verdwijnen nog steeds
+```text
++----------------------------------+
+|      CADEAUKAART                 |
+|                                  |
+|         [LOGO - groot]           |
+|       (max ~120px hoog)          |
+|          object-contain          |
+|                                  |
+|      Winkelnaam                  |
+|                                  |
+|      € 25,00                     |
+|      Voor: Jan                   |
+|      "Gefeliciteerd!"            |
+|      ────────────────            |
+|      Code: XXXX-XXXX            |
+|      Geldig t/m 24-02-2027      |
++----------------------------------+
+```
 
-Er zitten twee bugs in de category sync logica:
+- Logo: `h-24 max-w-[70%] object-contain` (96px hoog, schaalt mee)
+- Gecentreerd boven de winkelnaam
+- Voldoende witruimte rondom het logo
 
-**Bug A:** De `useEffect` vereist `savedCategoryIds.length > 0`. Als een product geen categorieën heeft, wordt `categoriesInitialized` nooit `true`. Als je vervolgens categorieën toevoegt en opslaat, worden ze niet gesynchroniseerd want de guard in `onSubmit` checkt `categoriesInitialized`.
+### Technische details
 
-**Bug B:** Bij het **aanmaken** van een nieuw product is `isEditing` false, dus de `useEffect` draait nooit, `categoriesInitialized` blijft `false`, en de category sync in `onSubmit` wordt overgeslagen.
+**Bestand: `src/components/shared/GiftCardTemplates.tsx`**
 
-**Oplossing:** De logica aanpassen zodat:
-- Bij **nieuw product** (`!isEditing`): `categoriesInitialized` direct op `true` zetten (er zijn geen bestaande categorieën om op te wachten)
-- Bij **bewerken**: de guard aanpassen om ook te initialiseren als de query klaar is met laden (zelfs als het resultaat leeg is), in plaats van te wachten op `length > 0`
+Wijzigingen in `GiftCardTemplatePreview`:
+- Logo verplaatsen van de kleine inline positie naar een gecentreerd blok dat het midden van de kaart inneemt
+- Logo sizing: `h-12 max-w-[60%]` (compact) -- veel groter dan de huidige `h-5 w-5`
+- Flex layout: `items-center justify-center flex-1` voor het logo-gedeelte
+- Tekst (cadeaukaart label + winkelnaam + bedrag) compact onderaan in een footer-achtige balk
+- Bij donkere templates: `drop-shadow-lg` of `bg-white/10 rounded-lg p-2` achter het logo voor contrast
 
-Concreet:
-1. `categoriesInitialized` standaard op `true` zetten als `!isEditing`
-2. In de `useEffect`: de conditie `savedCategoryIds.length > 0` vervangen door een check of de query klaar is met laden (bijv. `isCategoriesLoaded` of gewoon reageren op wanneer de data beschikbaar komt, ongeacht lengte)
+Wijzigingen in `GiftCardTemplateRenderer`:
+- Logo sizing: `h-20 md:h-24 max-w-[70%] object-contain` -- veel groter dan huidige `h-10 w-10`
+- Gecentreerd boven de winkelnaam met `mx-auto` en `text-center`
+- Extra verticale ruimte (`mb-4`) onder het logo
+- Bij donkere templates: subtiele achtergrondgloed
 
----
-
-### Samenvatting wijzigingen
+**Fallback**: als er geen logo is, blijft de huidige tekst-only layout intact (winkelnaam prominent als tekst).
 
 | Bestand | Wijziging |
 |---|---|
-| Database migratie | `gift_card_design_id` kolom wijzigen van `uuid` naar `text`, foreign key verwijderen indien aanwezig |
-| `src/pages/admin/ProductForm.tsx` | Category init fix: `categoriesInitialized` correct initialiseren voor zowel nieuwe als bestaande producten |
-
-### Resultaat
-- Product opslaan met een geselecteerd template-ontwerp werkt zonder fout
-- Categoriekoppelingen blijven behouden bij het bewerken van producten
-- Categorieën worden correct opgeslagen bij nieuwe producten
+| `src/components/shared/GiftCardTemplates.tsx` | Logo centraal en groot positioneren in zowel Preview als Renderer |
