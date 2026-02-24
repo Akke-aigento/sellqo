@@ -105,8 +105,11 @@ export function CategoriesGridSection({ section, tenantId }: CategoriesGridSecti
               )}
               <div className="p-4">
                 <h3 className="font-semibold text-lg">{cat.name}</h3>
-                {content.show_description && cat.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{cat.description}</p>
+{content.show_description && cat.description && (
+                  <div 
+                    className="text-sm text-muted-foreground mt-1 line-clamp-2 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: cat.description }}
+                  />
                 )}
                 {content.show_product_count && productCounts[cat.id] !== undefined && (
                   <p className="text-xs text-muted-foreground mt-1">
