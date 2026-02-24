@@ -37,10 +37,10 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 px-6">
+            <ScrollArea className="flex-1 px-6 pr-7">
               <div className="divide-y">
                 {items.map((item) => (
-                  <div key={item.id} className="py-4 flex gap-3 overflow-hidden">
+                  <div key={item.id} className="py-4 flex gap-3">
                     {item.image && (
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
