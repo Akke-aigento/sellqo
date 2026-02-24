@@ -189,9 +189,10 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
 
           {/* Short description - detailed only */}
           {cardStyle === 'detailed' && product.short_description && (
-            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
-              {product.short_description}
-            </p>
+            <div 
+              className="text-xs text-muted-foreground mt-1.5 line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: product.short_description }}
+            />
           )}
         </div>
       </Link>
