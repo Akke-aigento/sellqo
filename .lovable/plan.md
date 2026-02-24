@@ -1,74 +1,95 @@
 
 
-## Fix: SEPA Betaling "Bestelling niet gevonden" + Standaard betaalmethode
+## Mobile Banking Deep Link voor SEPA-betalingen
 
-### Gevonden problemen
+### Concept
 
-**1. Order items insertion faalt silently**
-De edge function `create-bank-transfer-order` probeert een `vat_rate` kolom in te voegen in de `order_items` tabel, maar die kolom bestaat niet. Hierdoor worden de bestelregels niet aangemaakt. De fout wordt niet doorgestuurd naar de frontend (bewust "non-blocking"), maar kan downstream problemen veroorzaken.
+Op mobiel heeft een QR-code geen zin — je kunt je eigen scherm niet scannen. De oplossing: het **`payto://` URI-scheme** (RFC 8905), een officieel internetstandaard die door de meeste Belgische en Nederlandse banking apps wordt ondersteund. 
 
-Foutmelding in de logs:
+Wanneer je op mobiel op een `payto://` link klikt, opent het besturingssysteem automatisch de banking app (of toont een keuzemenu als er meerdere zijn geinstalleerd). Alle betaalgegevens zijn dan al ingevuld — de klant hoeft alleen te bevestigen met Face ID, vingerafdruk of PIN.
+
 ```text
-Could not find the 'vat_rate' column of 'order_items' in the schema cache
+Desktop:                          Mobiel:
++------------------+              +------------------+
+| [EPC QR-code]    |              | [Open bank-app]  |  <-- grote knop
+|                  |              |   Face ID / PIN   |
+| Scan met je      |              |                   |
+| bank-app         |              | Of kopieer de     |
++------------------+              | gegevens hieronder|
+| IBAN: BE68...    |              +------------------+
+| Mededeling: +++  |              | IBAN: BE68...    |
++------------------+              | Mededeling: +++  |
+                                  +------------------+
 ```
 
-**2. "Bestelling niet gevonden" na SEPA betaling**
-De bestelling wordt wel correct aangemaakt in de database, en de redirect-URL is correct (`/shop/loveke/order/{uuid}`). De bevestigingspagina (`ShopOrderConfirmation.tsx`) haalt de bestelling op met de Supabase client (anon key), en er bestaat een RLS policy die dit toestaat.
+### Aanpak
 
-De meest waarschijnlijke oorzaak: de gepubliceerde site draait mogelijk een oudere versie van de code die het `payment_method` veld niet selecteert in de query, of de PostgREST schema-cache heeft de `payment_method` kolom nog niet opgepikt na een recente migratie. Door de `payment_method` query te laten falen geeft `.maybeSingle()` null terug, waardoor de "niet gevonden" melding verschijnt.
+**Responsive layout: QR op desktop, deep link op mobiel**
 
-**Fix:** Toevoegen van een extra veiligheidslaag in de ShopOrderConfirmation pagina met betere error handling en logging, plus het verwijderen van `vat_rate` uit de order_items insert in de edge function.
+De twee componenten die SEPA-betaalinstructies tonen worden aangepast:
 
-**3. Standaard betaalmethode is Stripe i.p.v. SEPA**
-De `payment_methods_enabled` array van de tenant is `['stripe', 'bank_transfer']`. De code pakt `methods[0]` als standaard, dus Stripe. De gewenste volgorde is dat SEPA (bank_transfer) standaard geselecteerd is wanneer beschikbaar.
+1. **`BankTransferPayment.tsx`** (bevestigingspagina na bestelling)
+2. **`PlatformBankPaymentDialog.tsx`** (platform AI credits/add-ons)
+3. **`POSBankTransferDialog.tsx`** (POS terminal - hier blijft QR, want het POS-scherm is altijd voor de handelaar, de klant scant)
 
----
+Op **desktop**: alles blijft zoals het is (QR-code + handmatige gegevens).
 
-### Oplossingen
-
-#### 1. Database migratie: `vat_rate` kolom toevoegen aan `order_items`
-
-Een `vat_rate` kolom (numeric, nullable) toevoegen aan de `order_items` tabel zodat de edge function correct kan inserten.
-
-#### 2. Edge function: `create-bank-transfer-order` fixen
-
-- De `vat_rate` kolom wordt nu ondersteund door de migratie, dus geen code-wijziging nodig in de edge function zelf.
-
-#### 3. `ShopCheckout.tsx`: Standaard betaalmethode naar `bank_transfer`
-
-De logica in het `useEffect` aanpassen zodat `bank_transfer` als standaard wordt geselecteerd wanneer deze in de lijst van beschikbare methodes staat. Alleen als `bank_transfer` niet beschikbaar is, valt het terug op `stripe`.
-
-Huidige code (regel 172-179):
-```typescript
-if (methods.length > 0 && !methods.includes(paymentMethod)) {
-  setPaymentMethod(methods[0]);
-}
-```
-
-Nieuwe logica:
-```typescript
-// Prefer bank_transfer as default
-if (methods.includes('bank_transfer')) {
-  setPaymentMethod('bank_transfer');
-} else {
-  setPaymentMethod(methods[0]);
-}
-```
-
-De initialisatie op regel 96 veranderen van `useState('stripe')` naar `useState('bank_transfer')`.
-
-#### 4. `ShopOrderConfirmation.tsx`: Betere error handling
-
-- Console logging toevoegen voor debugging
-- Een fallback toevoegen: als `maybeSingle()` null retourneert, kort wachten en opnieuw proberen (race condition bescherming)
-
----
+Op **mobiel**: 
+- QR-code wordt verborgen
+- Grote primaire knop "Open je bank-app" verschijnt bovenaan
+- Klikt de klant, dan opent `payto://iban/BE68539007547034?amount=EUR:49.95&message=+++090/9337/55493+++`
+- Daaronder: de handmatige betaalgegevens met kopieer-knoppen als fallback (voor het geval de banking app het niet ondersteunt)
+- Subtiele tekst: "Werkt met KBC, BNP Paribas Fortis, Belfius, ING, Argenta en meer"
 
 ### Technische details
 
+**`payto://` URI formaat:**
+```
+payto://iban/{IBAN}?amount=EUR:{bedrag}&message={OGM-referentie}&receiver-name={begunstigde}
+```
+
+Voorbeeld:
+```
+payto://iban/BE68539007547034?amount=EUR:49.95&message=+++090/9337/55493+++&receiver-name=Loveke
+```
+
+Als de BIC bekend is, kan die ook in het pad:
+```
+payto://iban/KREDBEBB/BE68539007547034?amount=EUR:49.95&message=...
+```
+
+**Bestanden die worden aangepast:**
+
 | Bestand | Wijziging |
 |---|---|
-| Database migratie | `ALTER TABLE order_items ADD COLUMN vat_rate numeric;` |
-| `src/pages/storefront/ShopCheckout.tsx` | Standaard betaalmethode naar `bank_transfer` (regels 96, 172-179) |
-| `src/pages/storefront/ShopOrderConfirmation.tsx` | Retry-logica + console logging toevoegen bij order ophalen |
+| `src/lib/epcQrCode.ts` | Nieuwe functie `generatePaytoURI()` toevoegen die een `payto://` URI genereert op basis van dezelfde `EPCData` interface |
+| `src/components/storefront/BankTransferPayment.tsx` | `useIsMobile()` hook gebruiken; op mobiel: QR verbergen, "Open je bank-app" knop tonen met `payto://` link; op desktop: bestaande QR layout behouden |
+| `src/components/platform/PlatformBankPaymentDialog.tsx` | Zelfde mobiele aanpassing: QR verbergen op mobiel, deep link knop tonen |
+
+**Nieuwe functie in `epcQrCode.ts`:**
+```typescript
+export function generatePaytoURI(data: EPCData): string {
+  const iban = data.iban.replace(/\s/g, '').toUpperCase();
+  const amount = `EUR:${data.amount.toFixed(2)}`;
+  const params = new URLSearchParams();
+  params.set('amount', amount);
+  if (data.reference) params.set('message', data.reference);
+  if (data.beneficiaryName) params.set('receiver-name', data.beneficiaryName);
+  
+  const bicPath = data.bic ? `${data.bic}/` : '';
+  return `payto://iban/${bicPath}${iban}?${params.toString()}`;
+}
+```
+
+**Mobiele layout in `BankTransferPayment.tsx`:**
+- Import `useIsMobile` hook
+- Genereer `paytoURI` via de nieuwe functie
+- Op mobiel (`isMobile === true`):
+  - Verberg het QR-code blok
+  - Toon een grote knop met bank-icoon: `<a href={paytoURI}>` met `target="_self"`
+  - Daaronder: fallback tekst "Opent niet? Kopieer de gegevens hieronder"
+- Op desktop: bestaande layout ongewijzigd
+
+**Fallback-strategie:**
+Als het `payto://` scheme niet wordt ondersteund door de geinstalleerde banking app, gebeurt er simpelweg niets (de browser negeert het). Daarom staan de handmatige betaalgegevens met kopieer-knoppen er altijd onder als fallback.
 
