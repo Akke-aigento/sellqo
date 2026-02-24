@@ -1,58 +1,76 @@
 
-## Fix: HTML-tags worden als tekst getoond op de publieke website
+
+## Nieuwe homepage secties: Categorieoverzicht + meer
 
 ### Probleem
 
-Op de gepubliceerde storefront worden HTML-tags (zoals `<p>`, `<strong>`) als platte tekst weergegeven in plaats van als opgemaakte content. Dit komt doordat React standaard HTML-strings escaped -- je moet `dangerouslySetInnerHTML` gebruiken om HTML correct te renderen.
+Op de homepage ontbreekt een sectie om **categorieën visueel** te tonen. De bestaande "Collectie"-sectie toont producten *uit* één categorie, maar er is geen manier om een overzicht van alle (of geselecteerde) categorieën als aantrekkelijke kaarten te tonen waarmee klanten snel naar de juiste productgroep navigeren.
 
-### Gevonden locaties
+Daarnaast missen er een paar veelgebruikte e-commerce secties die de homepage completer en professioneler maken.
 
-| Bestand | Regel | Probleem |
+### Nieuwe secties
+
+| Sectie | Beschrijving | Waarom |
 |---|---|---|
-| `src/pages/storefront/ShopProducts.tsx` | 125 | Categorie-beschrijving wordt als platte tekst gerenderd |
-| `src/components/storefront/ProductCard.tsx` | 192-194 | `short_description` wordt als platte tekst gerenderd (detailed card style) |
+| **Categorieën Grid** | Visueel raster van categorie-kaarten met afbeelding, naam en link | Klanten snel naar de juiste productgroep leiden |
+| **USP Balk** | Rij met vertrouwenspunten (gratis verzending, retourbeleid, etc.) met iconen | Vertrouwen wekken, conversie verhogen |
+| **CTA Banner** | Opvallend blok met achtergrondkleur/-afbeelding, tekst en actieknop | Promoties, seizoensacties, aanbiedingen |
 
-De volgende bestanden doen het al **correct** met `dangerouslySetInnerHTML`:
-- `ShopProductDetail.tsx` (product description)
-- `ShopPage.tsx` (page content)
-- `ShopLegalPage.tsx` (legal page content)
-- `QuickViewModal.tsx` (product description)
+### Technische aanpak
 
-### Oplossing
+**1. Types uitbreiden (`src/types/storefront.ts`)**
 
-**1. `src/pages/storefront/ShopProducts.tsx` -- regel 124-126**
+- Drie nieuwe types toevoegen aan `HomepageSectionType`: `categories_grid`, `usp_bar`, `cta_banner`
+- Nieuwe content interfaces:
+  - `CategoriesGridContent`: `category_ids?: string[]`, `columns?: number`, `show_description?: boolean`, `show_product_count?: boolean`
+  - `UspBarContent`: `items?: Array<{ icon: string, title: string, description?: string }>`
+  - `CtaBannerContent`: `background_image?: string`, `button_text?: string`, `button_link?: string`, `background_color?: string`
+- Toevoegen aan `HomepageSectionContent` union type
+- Toevoegen aan `SECTION_TYPES` array met label, icoon en beschrijving
 
-Vervang de `<p>` tag door een `<div>` met `dangerouslySetInnerHTML` en prose-styling:
+**2. Admin SectionEditor uitbreiden (`src/components/admin/storefront/SectionEditor.tsx`)**
 
-```tsx
-{selectedCategory?.description && (
-  <div 
-    className="text-muted-foreground mt-1 prose prose-sm max-w-none"
-    dangerouslySetInnerHTML={{ __html: selectedCategory.description }}
-  />
-)}
-```
+- Drie nieuwe case-blokken in `renderContentFields()`:
+  - **categories_grid**: Multi-select voor categorieën, kolom-keuze, toggles voor beschrijving/productaantal
+  - **usp_bar**: Dynamische lijst van USP items met icoon-keuze, titel en beschrijving
+  - **cta_banner**: Achtergrondafbeelding picker, knoptekst, link, achtergrondkleur
 
-**2. `src/components/storefront/ProductCard.tsx` -- regel 191-195**
+**3. Publieke sectie-componenten aanmaken (`src/components/storefront/sections/`)**
 
-Vervang de `<p>` tag door een `<div>` met `dangerouslySetInnerHTML`:
+- `CategoriesGridSection.tsx`: Haalt categorieën op via bestaande hooks, toont als kaarten in een responsive grid met afbeelding, naam en optioneel beschrijving/productaantal. Linkt naar `/shop/{slug}/products?category={id}`
+- `UspBarSection.tsx`: Horizontale balk met iconen en tekst, responsief (scrollbaar op mobiel)
+- `CtaBannerSection.tsx`: Volledige-breedte banner met achtergrond, overlay, titel/subtitel en CTA-knop
 
-```tsx
-{cardStyle === 'detailed' && product.short_description && (
-  <div 
-    className="text-xs text-muted-foreground mt-1.5 line-clamp-2"
-    dangerouslySetInnerHTML={{ __html: product.short_description }}
-  />
-)}
-```
+**4. Homepage rendering bijwerken (`src/pages/storefront/ShopHome.tsx`)**
 
-### Samenvatting
+- Imports toevoegen voor de drie nieuwe componenten
+- Cases toevoegen in de `renderSection` switch
 
-| Bestand | Wijziging |
+**5. Mini-previews toevoegen (`src/components/admin/storefront/preview/MiniSections.tsx`)**
+
+- `MiniCategoriesGrid`, `MiniUspBar`, `MiniCtaBanner` functies toevoegen
+- Registreren in `renderMiniSection`
+
+**6. Visuele editor secties (`src/components/admin/storefront/visual-editor/sections/`)**
+
+- `EditableCategoriesGridSection.tsx`, `EditableUspBarSection.tsx`, `EditableCtaBannerSection.tsx` aanmaken
+- Exporteren in `index.ts`
+
+**7. Database migratie**
+
+- De `homepage_sections.section_type` kolom moet de nieuwe waarden accepteren (als er een enum/check constraint is)
+
+### Bestanden overzicht
+
+| Bestand | Actie |
 |---|---|
-| `src/pages/storefront/ShopProducts.tsx` | Categorie-beschrijving: `dangerouslySetInnerHTML` + prose styling |
-| `src/components/storefront/ProductCard.tsx` | Short description: `dangerouslySetInnerHTML` |
-
-### Resultaat
-
-Alle teksten op de publieke website worden correct als opgemaakte HTML weergegeven in plaats van als raw tags.
+| `src/types/storefront.ts` | Types + SECTION_TYPES uitbreiden |
+| `src/components/admin/storefront/SectionEditor.tsx` | Editor velden voor 3 nieuwe secties |
+| `src/components/storefront/sections/CategoriesGridSection.tsx` | Nieuw: publieke categorie-grid |
+| `src/components/storefront/sections/UspBarSection.tsx` | Nieuw: publieke USP balk |
+| `src/components/storefront/sections/CtaBannerSection.tsx` | Nieuw: publieke CTA banner |
+| `src/pages/storefront/ShopHome.tsx` | Rendering uitbreiden |
+| `src/components/admin/storefront/preview/MiniSections.tsx` | Mini-previews toevoegen |
+| `src/components/admin/storefront/visual-editor/sections/` | Editable versies toevoegen |
+| `src/components/admin/storefront/visual-editor/VisualEditorCanvas.tsx` | Nieuwe secties registreren |
+| Database migratie | Section type constraint bijwerken (indien nodig) |
