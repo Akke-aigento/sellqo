@@ -36,9 +36,9 @@ export function UspBarSection({ section }: UspBarSectionProps) {
       }}
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-center gap-8 md:gap-12 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center justify-start md:justify-center gap-6 md:gap-12 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-2 md:px-0 -mx-2 md:mx-0 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] md:[mask-image:none]">
           {items.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2 shrink-0">
+            <div key={idx} className="flex items-center gap-2 shrink-0 snap-start">
               <div className="text-primary">
                 {ICON_MAP[item.icon] || <CheckCircle className="h-5 w-5" />}
               </div>

@@ -78,10 +78,7 @@ export function CategoriesGridSection({ section, tenantId }: CategoriesGridSecti
         )}
 
         <div
-          className="grid gap-4 md:gap-6"
-          style={{
-            gridTemplateColumns: `repeat(${Math.min(columns, 2)}, minmax(0, 1fr))`,
-          }}
+          className={`grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 ${columns >= 4 ? 'lg:grid-cols-4' : columns >= 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}
         >
           {categories.map((cat) => (
             <Link
@@ -122,13 +119,6 @@ export function CategoriesGridSection({ section, tenantId }: CategoriesGridSecti
         </div>
       </div>
 
-      <style>{`
-        @media (min-width: 768px) {
-          .grid[style*="grid-template-columns"] {
-            grid-template-columns: repeat(${columns}, minmax(0, 1fr)) !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }

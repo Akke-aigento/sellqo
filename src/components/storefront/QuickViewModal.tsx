@@ -88,11 +88,11 @@ export function QuickViewModal({ product, open, onOpenChange, basePath, currency
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSelectedAttributes({}); setQuantity(1); setSelectedImage(0); } }}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden">
+      <DialogContent className="max-w-3xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="grid md:grid-cols-2 gap-0">
           {/* Images */}
           <div className="bg-muted">
-            <div className="aspect-square overflow-hidden">
+            <div className="aspect-[4/3] md:aspect-square overflow-hidden">
               {product.images?.[selectedImage] ? (
                 <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
               ) : (
