@@ -1,63 +1,74 @@
 
-## Fix: BTW-nummer, Kortingscode en BTW-berekening in Storefront
 
-### Gevonden oorzaken
+## Fix: SEPA Betaling "Bestelling niet gevonden" + Standaard betaalmethode
 
-**Probleem 1: Geen B2B toggle / BTW-nummer veld zichtbaar**
-De `usePublicStorefront` hook (regel 67) haalt slechts een beperkt aantal velden op uit de `tenants` tabel. De velden `enable_b2b_checkout`, `require_vies_validation`, `block_invalid_vat_orders`, `default_vat_handling`, `tax_percentage`, `oss_enabled` en `oss_threshold_reached` worden **niet** opgehaald. Hierdoor leest `ShopCheckout.tsx` overal `undefined`, waardoor:
-- `enableB2bCheckout` = `false` (toggle wordt niet getoond)
-- `defaultVatHandling` = `'exclusive'` (BTW wordt bovenop de prijs berekend)
-- Alle andere BTW-instellingen niet werken
+### Gevonden problemen
 
-**Probleem 2: BTW wordt bijgerekend terwijl de shop op "inclusive" staat**
-De Loveke-tenant heeft `default_vat_handling: 'inclusive'` in de database, maar omdat dit veld niet wordt opgehaald door de hook, valt de code terug op `'exclusive'` en rekent BTW bovenop de prijs.
+**1. Order items insertion faalt silently**
+De edge function `create-bank-transfer-order` probeert een `vat_rate` kolom in te voegen in de `order_items` tabel, maar die kolom bestaat niet. Hierdoor worden de bestelregels niet aangemaakt. De fout wordt niet doorgestuurd naar de frontend (bewust "non-blocking"), maar kan downstream problemen veroorzaken.
 
-**Probleem 3: Geen kortingscode in de Cart Drawer**
-De kortigscode-input zit wel in de volledige winkelwagenpagina (`ShopCart.tsx`), maar **niet** in de `CartDrawer.tsx` (de slide-over die opent na "Toevoegen aan winkelwagen"). De screenshot toont deze drawer zonder kortingscode-veld.
+Foutmelding in de logs:
+```text
+Could not find the 'vat_rate' column of 'order_items' in the schema cache
+```
+
+**2. "Bestelling niet gevonden" na SEPA betaling**
+De bestelling wordt wel correct aangemaakt in de database, en de redirect-URL is correct (`/shop/loveke/order/{uuid}`). De bevestigingspagina (`ShopOrderConfirmation.tsx`) haalt de bestelling op met de Supabase client (anon key), en er bestaat een RLS policy die dit toestaat.
+
+De meest waarschijnlijke oorzaak: de gepubliceerde site draait mogelijk een oudere versie van de code die het `payment_method` veld niet selecteert in de query, of de PostgREST schema-cache heeft de `payment_method` kolom nog niet opgepikt na een recente migratie. Door de `payment_method` query te laten falen geeft `.maybeSingle()` null terug, waardoor de "niet gevonden" melding verschijnt.
+
+**Fix:** Toevoegen van een extra veiligheidslaag in de ShopOrderConfirmation pagina met betere error handling en logging, plus het verwijderen van `vat_rate` uit de order_items insert in de edge function.
+
+**3. Standaard betaalmethode is Stripe i.p.v. SEPA**
+De `payment_methods_enabled` array van de tenant is `['stripe', 'bank_transfer']`. De code pakt `methods[0]` als standaard, dus Stripe. De gewenste volgorde is dat SEPA (bank_transfer) standaard geselecteerd is wanneer beschikbaar.
 
 ---
 
 ### Oplossingen
 
-#### 1. `usePublicStorefront.ts` -- Ontbrekende tenant-velden toevoegen
+#### 1. Database migratie: `vat_rate` kolom toevoegen aan `order_items`
 
-De tenant query (regel 67) uitbreiden met de volgende velden:
-- `enable_b2b_checkout`
-- `require_vies_validation`
-- `block_invalid_vat_orders`
-- `default_vat_handling`
-- `tax_percentage`
-- `oss_enabled`
-- `oss_threshold_reached`
+Een `vat_rate` kolom (numeric, nullable) toevoegen aan de `order_items` tabel zodat de edge function correct kan inserten.
 
-Het `PublicTenant` interface (regel 13-27) uitbreiden met deze velden.
+#### 2. Edge function: `create-bank-transfer-order` fixen
 
-#### 2. `ShopCheckout.tsx` -- Type-safe velden gebruiken
+- De `vat_rate` kolom wordt nu ondersteund door de migratie, dus geen code-wijziging nodig in de edge function zelf.
 
-De `(tenant as any)?.` casts vervangen door directe property access, nu de velden in de tenant query zitten. Geen functionele wijzigingen nodig -- de logica is al correct, alleen de data ontbrak.
+#### 3. `ShopCheckout.tsx`: Standaard betaalmethode naar `bank_transfer`
 
-#### 3. `CartDrawer.tsx` -- Kortingscode-input toevoegen
+De logica in het `useEffect` aanpassen zodat `bank_transfer` als standaard wordt geselecteerd wanneer deze in de lijst van beschikbare methodes staat. Alleen als `bank_transfer` niet beschikbaar is, valt het terug op `stripe`.
 
-Een compact kortingscode-veld toevoegen in de footer van de CartDrawer, boven de subtotaal-regel:
-- Input + "Toepassen" knop (zelfde API-call als in ShopCart)
-- Bij toegepaste korting: groene badge met code + verwijder-knop (X)
-- Kortingsregel tonen in het subtotaal-overzicht
-- Mobile-first: compacte layout die past in de drawer
+Huidige code (regel 172-179):
+```typescript
+if (methods.length > 0 && !methods.includes(paymentMethod)) {
+  setPaymentMethod(methods[0]);
+}
+```
+
+Nieuwe logica:
+```typescript
+// Prefer bank_transfer as default
+if (methods.includes('bank_transfer')) {
+  setPaymentMethod('bank_transfer');
+} else {
+  setPaymentMethod(methods[0]);
+}
+```
+
+De initialisatie op regel 96 veranderen van `useState('stripe')` naar `useState('bank_transfer')`.
+
+#### 4. `ShopOrderConfirmation.tsx`: Betere error handling
+
+- Console logging toevoegen voor debugging
+- Een fallback toevoegen: als `maybeSingle()` null retourneert, kort wachten en opnieuw proberen (race condition bescherming)
 
 ---
 
 ### Technische details
 
-**Bestanden die worden aangepast:**
-
 | Bestand | Wijziging |
 |---|---|
-| `src/hooks/usePublicStorefront.ts` | Tenant query uitbreiden met 7 extra velden + PublicTenant interface updaten |
-| `src/pages/storefront/ShopCheckout.tsx` | `(tenant as any)?.` casts vervangen door directe property access |
-| `src/components/storefront/CartDrawer.tsx` | Kortingscode-input + kortingsregel toevoegen in de drawer footer |
+| Database migratie | `ALTER TABLE order_items ADD COLUMN vat_rate numeric;` |
+| `src/pages/storefront/ShopCheckout.tsx` | Standaard betaalmethode naar `bank_transfer` (regels 96, 172-179) |
+| `src/pages/storefront/ShopOrderConfirmation.tsx` | Retry-logica + console logging toevoegen bij order ophalen |
 
-**Impact:**
-- B2B/B2C toggle verschijnt automatisch (data was er al, werd alleen niet opgehaald)
-- BTW-nummer veld + VIES-validatie werkt automatisch
-- BTW-berekening respecteert `inclusive` instelling (geen BTW meer bovenop de prijs)
-- Kortingscode beschikbaar in alle 3 de locaties: CartDrawer, ShopCart, ShopCheckout
