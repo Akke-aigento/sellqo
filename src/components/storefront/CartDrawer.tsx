@@ -40,7 +40,7 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
             <ScrollArea className="flex-1 px-6">
               <div className="divide-y">
                 {items.map((item) => (
-                  <div key={item.id} className="py-4 flex gap-4">
+                  <div key={item.id} className="py-4 flex gap-3 overflow-hidden">
                     {item.image && (
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -72,7 +72,7 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
                         </Button>
                       </div>
                     </div>
-                    <p className="font-semibold text-sm flex-shrink-0">
+                    <p className="font-semibold text-sm flex-shrink-0 min-w-[70px] text-right whitespace-nowrap">
                       {formatCurrency(item.price * item.quantity, currency)}
                     </p>
                   </div>
@@ -80,7 +80,7 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
               </div>
             </ScrollArea>
 
-            <SheetFooter className="flex-col gap-3 px-6 py-4 border-t">
+            <SheetFooter className="!flex-col gap-3 px-6 py-4 border-t sm:flex-col">
               <div className="flex justify-between items-center w-full">
                 <span className="font-medium">Subtotaal</span>
                 <span className="text-lg font-bold">{formatCurrency(subtotal, currency)}</span>
