@@ -1,79 +1,104 @@
 
 
-## Logo prominent maken op cadeaukaart-ontwerpen
+## Fix: Categorieën verdwijnen + Logo 2x groter
 
-### Probleem
+### Oorzaak categorie-bug (GEVONDEN!)
 
-Het logo is nu een klein icoontje (h-5 w-5 = 20x20px in de preview, h-10 w-10 = 40x40px in de renderer) naast de winkelnaam. Het valt nauwelijks op.
+De `product_categories` tabel **bestaat niet** in de database. De code probeert via `(supabase as any).from('product_categories')` te lezen en schrijven, wat TypeScript-controles omzeilt. Hierdoor:
+
+1. De query in `useProductCategories` faalt stilletjes -- retourneert altijd een lege array
+2. Bij opslaan probeert `syncCategories` te schrijven naar een niet-bestaande tabel, wat een fout geeft
+3. De product-update zelf slaagt WEL (die schrijft `category_id` naar de `products` tabel), maar de multi-category koppeling gaat verloren
+
+Dit verklaart waarom de bug bleef terugkomen ondanks alle logica-fixes -- het probleem zat in de database, niet in de code.
 
 ### Oplossing
 
-Het logo wordt het **centrale visuele element** van elke kaart -- groot, opvallend, en het eerste wat je ziet. De tekst-informatie (bedrag, code, winkelnaam) wordt compact onderaan geplaatst zodat het logo de meeste ruimte inneemt.
+**1. Database migratie: `product_categories` tabel aanmaken**
 
-### Nieuwe layout (beide componenten)
+```sql
+CREATE TABLE public.product_categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
+  is_primary BOOLEAN NOT NULL DEFAULT false,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(product_id, category_id)
+);
 
-**GiftCardTemplatePreview (compact kaart in admin/storefront selector):**
+-- RLS policies
+ALTER TABLE public.product_categories ENABLE ROW LEVEL SECURITY;
 
-```text
-+----------------------------------+
-|                                  |
-|         [LOGO - groot]           |
-|         (max ~50% hoogte)        |
-|          object-contain          |
-|                                  |
-|  CADEAUKAART                     |
-|  Winkelnaam            € 25,00   |
-+----------------------------------+
+CREATE POLICY "Tenant users can manage product categories"
+  ON public.product_categories FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.products p
+      JOIN public.user_roles ur ON ur.tenant_id = p.tenant_id
+      WHERE p.id = product_categories.product_id
+      AND ur.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Public read for active products"
+  ON public.product_categories FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.products p
+      WHERE p.id = product_categories.product_id
+      AND p.is_active = true
+    )
+  );
+
+-- Trigger om primaire categorie te promoten bij verwijdering
+CREATE OR REPLACE FUNCTION public.promote_primary_category()
+RETURNS TRIGGER AS $$
+DECLARE v_next_id UUID;
+BEGIN
+  IF OLD.is_primary THEN
+    SELECT id INTO v_next_id FROM public.product_categories
+    WHERE product_id = OLD.product_id AND id != OLD.id
+    ORDER BY sort_order LIMIT 1;
+    IF v_next_id IS NOT NULL THEN
+      UPDATE public.product_categories SET is_primary = true WHERE id = v_next_id;
+    END IF;
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER promote_primary_on_delete
+  AFTER DELETE ON public.product_categories
+  FOR EACH ROW EXECUTE FUNCTION promote_primary_category();
+
+-- Migratie: bestaande category_id data overzetten
+INSERT INTO public.product_categories (product_id, category_id, is_primary, sort_order)
+SELECT id, category_id, true, 0
+FROM public.products
+WHERE category_id IS NOT NULL
+ON CONFLICT DO NOTHING;
 ```
 
-- Logo: `max-h-[45%] max-w-[60%] object-contain` gecentreerd bovenaan
-- Tekst compacter onderaan: winkelnaam links, bedrag rechts
-- Op donkere templates krijgt het logo een subtiele `drop-shadow` of lichte achtergrondgloed
+**2. Logo 2x groter op cadeaukaarten**
 
-**GiftCardTemplateRenderer (volledige kaart bij bevestiging/e-mail):**
+Bestand: `src/components/shared/GiftCardTemplates.tsx`
 
-```text
-+----------------------------------+
-|      CADEAUKAART                 |
-|                                  |
-|         [LOGO - groot]           |
-|       (max ~120px hoog)          |
-|          object-contain          |
-|                                  |
-|      Winkelnaam                  |
-|                                  |
-|      € 25,00                     |
-|      Voor: Jan                   |
-|      "Gefeliciteerd!"            |
-|      ────────────────            |
-|      Code: XXXX-XXXX            |
-|      Geldig t/m 24-02-2027      |
-+----------------------------------+
-```
+De huidige logo-afmetingen verdubbelen:
+- **Preview**: `max-h-[45%]` verhogen naar `max-h-[60%]` en `max-w-[60%]` naar `max-w-[75%]`
+- **Renderer**: `h-20 md:h-24` verhogen naar `h-40 md:h-48` en `max-w-[70%]` naar `max-w-[85%]`
 
-- Logo: `h-24 max-w-[70%] object-contain` (96px hoog, schaalt mee)
-- Gecentreerd boven de winkelnaam
-- Voldoende witruimte rondom het logo
+---
 
-### Technische details
+### Samenvatting
 
-**Bestand: `src/components/shared/GiftCardTemplates.tsx`**
-
-Wijzigingen in `GiftCardTemplatePreview`:
-- Logo verplaatsen van de kleine inline positie naar een gecentreerd blok dat het midden van de kaart inneemt
-- Logo sizing: `h-12 max-w-[60%]` (compact) -- veel groter dan de huidige `h-5 w-5`
-- Flex layout: `items-center justify-center flex-1` voor het logo-gedeelte
-- Tekst (cadeaukaart label + winkelnaam + bedrag) compact onderaan in een footer-achtige balk
-- Bij donkere templates: `drop-shadow-lg` of `bg-white/10 rounded-lg p-2` achter het logo voor contrast
-
-Wijzigingen in `GiftCardTemplateRenderer`:
-- Logo sizing: `h-20 md:h-24 max-w-[70%] object-contain` -- veel groter dan huidige `h-10 w-10`
-- Gecentreerd boven de winkelnaam met `mx-auto` en `text-center`
-- Extra verticale ruimte (`mb-4`) onder het logo
-- Bij donkere templates: subtiele achtergrondgloed
-
-**Fallback**: als er geen logo is, blijft de huidige tekst-only layout intact (winkelnaam prominent als tekst).
-
-| Bestand | Wijziging |
+| Wijziging | Bestand |
 |---|---|
-| `src/components/shared/GiftCardTemplates.tsx` | Logo centraal en groot positioneren in zowel Preview als Renderer |
+| `product_categories` tabel aanmaken + RLS + data migratie | Database migratie |
+| Logo afmetingen verdubbelen in preview en renderer | `src/components/shared/GiftCardTemplates.tsx` |
+
+### Resultaat
+- Categorieën worden correct opgeslagen en blijven behouden bij bewerken (de tabel bestaat nu daadwerkelijk)
+- Bestaande `category_id` data wordt automatisch gemigreerd naar de nieuwe tabel
+- Het logo is 2x zo groot en valt direct in het oog op alle cadeaukaart-ontwerpen
+
