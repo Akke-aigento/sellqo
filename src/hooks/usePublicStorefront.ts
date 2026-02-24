@@ -37,6 +37,9 @@ interface PublicProduct {
   in_stock: boolean;
   category: { id: string; name: string; slug: string } | null;
   has_variants?: boolean;
+  product_type?: string;
+  gift_card_denominations?: number[] | null;
+  gift_card_min_amount?: number | null;
 }
 
 interface PublicCategory {
@@ -228,6 +231,7 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
         .select(`
           id, name, slug, description, price, compare_at_price, images, 
           track_inventory, stock, category_id, 
+          product_type, gift_card_denominations, gift_card_min_amount,
           categories(id, name, slug)
         `)
         .eq('tenant_id', tenantId!)
@@ -288,6 +292,9 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
           slug: product.categories.slug,
         } : null,
         has_variants: variantProductIds.has(product.id),
+        product_type: (product as any).product_type || 'physical',
+        gift_card_denominations: (product as any).gift_card_denominations || null,
+        gift_card_min_amount: (product as any).gift_card_min_amount || null,
       })) as PublicProduct[];
     },
     enabled: !!tenantId,
