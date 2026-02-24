@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, Search, X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,8 @@ import { ExitIntentPopup } from '@/components/storefront/ExitIntentPopup';
 import { RecentPurchaseToast } from '@/components/storefront/RecentPurchaseToast';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { SearchModal } from '@/components/storefront/SearchModal';
+import { StorefrontOfflinePage } from '@/components/storefront/StorefrontOfflinePage';
+import { StorefrontPasswordGate } from '@/components/storefront/StorefrontPasswordGate';
 import { cn } from '@/lib/utils';
 import { relativeLuminance } from '@/lib/color-utils';
 import { generateThemePalette as genPalette, generateThemePaletteLegacy } from '@/lib/theme-palette';
@@ -233,6 +235,18 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     }
   };
 
+  // Storefront visibility guard
+  const storefrontStatus = (ts?.storefront_status as string) || 'online';
+  const storefrontPassword = (ts?.storefront_password as string) || '';
+  const [passwordGranted, setPasswordGranted] = useState(() => {
+    if (!tenantSlug) return false;
+    return sessionStorage.getItem(`storefront_access_${tenantSlug}`) === 'granted';
+  });
+
+  const handlePasswordSuccess = useCallback(() => {
+    setPasswordGranted(true);
+  }, []);
+
   if (isLoading || redirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -250,6 +264,24 @@ export function ShopLayout({ children }: ShopLayoutProps) {
           <Link to="/">Terug naar home</Link>
         </Button>
       </div>
+    );
+  }
+
+  // Storefront offline
+  if (storefrontStatus === 'offline') {
+    return <StorefrontOfflinePage logoUrl={ts?.logo_url || tenant.logo_url} shopName={tenant.name} />;
+  }
+
+  // Storefront password protected
+  if (storefrontStatus === 'password' && !passwordGranted) {
+    return (
+      <StorefrontPasswordGate
+        logoUrl={ts?.logo_url || tenant.logo_url}
+        shopName={tenant.name}
+        correctPassword={storefrontPassword}
+        tenantSlug={tenantSlug || ''}
+        onSuccess={handlePasswordSuccess}
+      />
     );
   }
 

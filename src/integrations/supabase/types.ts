@@ -12325,6 +12325,8 @@ export type Database = {
           storefront_language_selector_style: string | null
           storefront_languages: Json | null
           storefront_multilingual_enabled: boolean | null
+          storefront_password: string | null
+          storefront_status: string
           tenant_id: string
           text_color: string | null
           theme_id: string | null
@@ -12398,6 +12400,8 @@ export type Database = {
           storefront_language_selector_style?: string | null
           storefront_languages?: Json | null
           storefront_multilingual_enabled?: boolean | null
+          storefront_password?: string | null
+          storefront_status?: string
           tenant_id: string
           text_color?: string | null
           theme_id?: string | null
@@ -12471,6 +12475,8 @@ export type Database = {
           storefront_language_selector_style?: string | null
           storefront_languages?: Json | null
           storefront_multilingual_enabled?: boolean | null
+          storefront_password?: string | null
+          storefront_status?: string
           tenant_id?: string
           text_color?: string | null
           theme_id?: string | null
