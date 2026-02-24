@@ -1051,7 +1051,7 @@ export default function ProductForm() {
 
                           {/* Download as product image */}
                           <div className="pt-2">
-                            <div ref={downloadRef} className="absolute -left-[9999px] w-[800px]" aria-hidden>
+                            <div ref={downloadRef} className="fixed top-0 left-0 w-[800px] opacity-0 pointer-events-none -z-50" aria-hidden>
                               <GiftCardTemplateRenderer
                                 templateId={form.watch('gift_card_design_id') || 'elegant'}
                                 storeName={currentTenant?.name || 'Uw winkel'}
