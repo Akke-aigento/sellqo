@@ -1,38 +1,57 @@
 
-## Twee verbeteringen: Duidelijke foutmeldingen en optionele SKU/EAN
+## Fix: Variant-systeem volledig opschonen
 
-### Probleem 1: Onbegrijpelijke foutmeldingen
-De toasts tonen nu ruwe database-foutmeldingen zoals `duplicate key value violates unique constraint "products_tenant_sku_unique"`. Tenants snappen hier niks van.
+### Kernprobleem
 
-### Probleem 2: SKU/EAN verplicht door lege strings
-Het formulier stuurt `sku: ''` naar de database. De unique constraint op `(tenant_id, sku) WHERE sku IS NOT NULL` werkt correct met `NULL`, maar lege strings `''` zijn niet `NULL` -- dus twee producten met lege SKU botsen op de constraint.
+Het variant-systeem heeft een fundamenteel UX-probleem in de admin: de gebruiker voert elke maat/kleur als een **aparte optie** in (optienaam "XS" met waarde "Extra Small") in plaats van **een optie "Maat"** met meerdere waarden ("XS, S, M, L, XL").
 
----
+Dit veroorzaakt een kettingreactie van problemen:
+- De variant-generator maakt 1 variant met 5 attributen i.p.v. 5 varianten met elk 1 attribuut
+- De storefront toont 5 losse keuzegroepen (elk met 1 knop) i.p.v. 1 groep "Maat" met 5 knoppen
 
-### Oplossing
+### Oplossing: Admin UX verbeteren + voorbeelden duidelijker maken
 
-**Bestand 1: `src/hooks/useProducts.ts`** -- Foutvertalingen toevoegen
+**Bestand: `src/components/admin/products/ProductVariantsTab.tsx`**
 
-In de `onError` handlers van `createProduct` en `updateProduct`, de ruwe database-fout vertalen naar begrijpelijke Nederlandse tekst:
+1. **Betere placeholders en uitleg bij het toevoegen van opties**
+   - Placeholder optienaam: `"bijv. Maat"` (nu al correct maar nadruk verhogen)
+   - Placeholder waarden: `"bijv. XS, S, M, L, XL"` (duidelijker dat ALLE waarden in 1 regel)
+   - Toevoegen van een helptext onder de optie-invoervelden: *"Tip: Voeg alle waarden voor 1 eigenschap toe in een enkele optie. Voorbeeld: Optienaam 'Maat' met waarden 'XS, S, M, L, XL'. Voor kleuren: Optienaam 'Kleur' met waarden 'Rood, Blauw, Groen'."*
 
-- `products_tenant_sku_unique` -> "Er bestaat al een product met deze SKU. Kies een unieke SKU of laat het veld leeg."
-- `products_tenant_slug_key` / `products_slug_key` -> "Er bestaat al een product met deze URL-slug. Pas de slug aan."
-- Overige fouten -> "Er ging iets mis bij het opslaan. Probeer het opnieuw."
+2. **Visuele waarschuwing bij verdachte opties**
+   - Als een optie maar 1 waarde heeft, toon een waarschuwingsbadge: "Slechts 1 waarde -- bedoelde je dit als waarde van een andere optie?"
+   - Dit helpt toekomstige fouten voorkomen
 
-**Bestand 2: `src/pages/admin/ProductForm.tsx`** -- Lege strings omzetten naar `null`
+3. **Verbeterde optie-weergave in de lijst**
+   - Toon het aantal waarden bij elke optie: bijv. "Maat (5 waarden)"
 
-In de `onSubmit` functie, lege strings voor `sku` en `barcode` omzetten naar `null` zodat de database-constraint ze correct negeert:
+**Bestand: `src/components/storefront/VariantSelector.tsx`**
 
-```typescript
-const submitData = {
-  ...data,
-  category_id: data.category_id || null,
-  sku: data.sku?.trim() || null,
-  barcode: data.barcode?.trim() || null,
-};
+4. **MAX_TOGGLE_VALUES verhogen**
+   - Verhogen van 5 naar 8, zodat de meeste maat/kleur-opties als buttons getoond worden in plaats van een dropdown
+
+5. **Quantity reset bij variant-wissel** (al geimplementeerd in ShopProductDetail, bevestigen)
+
+### Huidige foutieve data opruimen
+
+De bestaande data voor het Loveke-product moet handmatig worden opgeschoond. Dit kan ik niet automatisch doen, maar ik kan de admin-interface zo verbeteren dat:
+- De huidige verkeerde opties makkelijk te verwijderen zijn
+- Nieuwe opties correct worden aangemaakt
+
+### Technische details
+
+```text
+Wijzigingen in ProductVariantsTab.tsx:
+- Regel ~225-247: Helptext toevoegen onder de invoervelden
+- Regel ~162-222: Waarschuwingsindicator bij opties met slechts 1 waarde
+- Optienaam-label aanpassen: "{option.name} ({option.values.length} waarden)"
+
+Wijzigingen in VariantSelector.tsx:
+- Regel 16: MAX_TOGGLE_VALUES van 5 naar 8
 ```
 
-### Resultaat
-- SKU en EAN zijn echt optioneel: leeg laten werkt zonder fout
-- Bij dubbele SKU krijgt de tenant een duidelijke melding: "Er bestaat al een product met deze SKU"
-- Overige fouten worden ook in normaal Nederlands getoond
+### Wat dit oplost
+- Nieuwe tenants begrijpen direct hoe ze opties correct moeten invoeren
+- Bestaande foutieve opties worden visueel gemarkeerd
+- Kleuren toevoegen werkt correct: optie "Kleur" met waarden "Rood, Blauw, Groen" genereert 3 varianten
+- Combinatie Maat + Kleur genereert correct het cartesisch product (bijv. 5 maten x 3 kleuren = 15 varianten)
