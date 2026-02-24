@@ -1,65 +1,64 @@
 
 
-## Fix: Volledige publieke toegang voor de webshop
+## Fix: Mobiele bugs in de storefront (scroll, afgekapte tekst, knoppen)
 
-### Probleem
+### Gevonden problemen
 
-Na het eerdere fix voor "Shop niet gevonden" (`tenants` tabel) zijn er nog steeds meerdere tabellen die **geen publieke leestoegang** hebben. Niet-ingelogde bezoekers kunnen daardoor:
+**Bug 1: Scrollen blokkeert na tikken op een product**
+In `ProductCard.tsx` wordt een hover-overlay met knoppen (Quick View, Toevoegen) getoond via `onMouseEnter`/`onMouseLeave`. Op mobiel triggert een touch-event `mouseenter` maar niet betrouwbaar `mouseleave`, waardoor de overlay "blijft hangen" en scroll-events blokkeert.
 
-- Geen producten zien (lege productpagina)
-- Geen categorienavigatie gebruiken
-- Geen juridische pagina's (privacy, voorwaarden) lezen
+**Bug 2: Afgekapte productnamen ("Loveke Cadeaukaa...")**
+De productgrid in `ShopProducts.tsx` (regel 238) gebruikt een inline `gridTemplateColumns` op basis van `products_per_row` (bv. 3) zonder responsieve breakpoints. Op mobiel worden 3 kolommen in een smal scherm geperst, waardoor kaarten te smal zijn en tekst hard wordt afgekapt.
 
-### Volledige audit -- welke tabellen zijn al goed?
+**Bug 3: Knoppen over de afbeelding (Quick View / Toevoegen)**
+De hover-overlay knoppen (Quick View + winkelwagen) verschijnen bij touch op de afbeelding en bedekken deze. Op mobiel is dit verwarrend en onbruikbaar, zoals te zien in de screenshot.
 
-| Tabel | Publiek leesbaar? | Hoe gebruikt? |
-|---|---|---|
-| `tenants` | Ja (zojuist gefixed) | Shopinfo ophalen |
-| `tenant_theme_settings` | Ja | Thema/kleuren/fonts |
-| `homepage_sections` | Ja | Homepage secties |
-| `storefront_pages` | Ja | CMS pagina's |
-| `themes` | Ja | Thema defaults |
-| `product_categories` | Ja | Product-categorie koppeling |
-| `external_reviews` | Ja | Reviews op homepage |
-| `product_variants` | Ja | Varianten op productpagina |
-| `product_variant_options` | Ja | Variant opties (maat, kleur) |
-| `orders` | Ja | Bevestigingspagina |
-| `order_items` | Ja | Bevestigingspagina |
-| `tenant_domains` | Ja | Custom domains |
+---
 
-### Wat mist er?
+### Oplossingen
 
-| Tabel | Nodig voor | Voorgestelde filter |
-|---|---|---|
-| `products` | Productoverzicht + detailpagina | `is_active = true AND hide_from_storefront = false` |
-| `categories` | Categorienavigatie + filters | `is_active = true AND hide_from_storefront = false` |
-| `legal_pages` | Privacy, voorwaarden, etc. | `is_published = true` |
+**1. ProductCard.tsx -- Hover overlay uitschakelen op mobiel**
+- De hover-overlay met knoppen (regels 120-146) wordt alleen getoond op apparaten die hover ondersteunen (desktop)
+- Op mobiel wordt de hele kaart klikbaar naar de productpagina (zoals nu), zonder overlay-knoppen
+- De wishlist-knop blijft altijd zichtbaar op mobiel (geen hover nodig)
+- Technisch: CSS `@media (hover: hover)` of een `touch-action` aanpak gebruiken, en de `onMouseEnter`/`onMouseLeave` alleen op non-touch apparaten activeren
 
-### Tabellen die NIET publiek hoeven (via edge function)
+**2. ShopProducts.tsx -- Responsieve grid**
+- De inline `gridTemplateColumns` (regel 238) wordt vervangen door Tailwind responsive classes
+- Mobiel: altijd 2 kolommen
+- Tablet (md): 3 kolommen
+- Desktop (lg): de geconfigureerde `products_per_row` waarde (standaard 3, max 4)
+- Dezelfde fix voor de skeleton loader (regel 219)
 
-De winkelwagen, checkout, verzendmethodes, kortingscodes, cadeaubonnen en klantregistratie worden allemaal afgehandeld via de Storefront API edge function die `service_role` gebruikt. Die werken dus al correct zonder publieke RLS policies.
+**3. ProductCard.tsx -- Betere tekst-afhandeling op smalle kaarten**
+- Productnaam: `line-clamp-2` behouden maar `break-words` toevoegen zodat lange woorden netjes afbreken
+- Wishlist-knop: altijd zichtbaar op mobiel (niet alleen bij hover)
 
-### Technische wijziging
+---
 
-Een database migratie met drie nieuwe SELECT policies:
+### Technische details
+
+**ProductCard.tsx wijzigingen:**
 
 ```text
-products   -> FOR SELECT USING (is_active = true AND hide_from_storefront = false)
-categories -> FOR SELECT USING (is_active = true AND hide_from_storefront = false)
-legal_pages -> FOR SELECT USING (is_published = true)
+- Verwijder onMouseEnter/onMouseLeave (of maak ze touch-aware)
+- Hover overlay: voeg "hidden md:flex" toe (verberg op mobiel, toon op desktop bij hover)
+- Wishlist knop: verander "opacity-0 group-hover:opacity-100" naar "md:opacity-0 md:group-hover:opacity-100" (altijd zichtbaar op mobiel)
+- Voeg "break-words" toe aan productnaam
 ```
 
-### Waarom is dit veilig?
+**ShopProducts.tsx wijzigingen:**
 
-- Alleen **SELECT** -- geen INSERT/UPDATE/DELETE
-- Strenge filters: alleen actieve, niet-verborgen producten/categorieen en gepubliceerde juridische pagina's
-- Dezelfde aanpak als de bestaande policies op `homepage_sections`, `storefront_pages`, `external_reviews`
-- Gevoelige tabellen (klanten, bestellingen schrijven, kortingscodes beheren) blijven beschermd
+```text
+- Vervang inline gridTemplateColumns door Tailwind classes:
+  "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-{products_per_row} gap-4 md:gap-6"
+- Zelfde aanpassing voor skeleton loader grid
+```
 
-### Bestanden
+### Bestanden die worden aangepast
 
-| Wijziging | Details |
+| Bestand | Wijziging |
 |---|---|
-| Database migratie | 3 nieuwe RLS policies op `products`, `categories`, `legal_pages` |
+| `src/components/storefront/ProductCard.tsx` | Hover overlay verbergen op mobiel, wishlist altijd zichtbaar, break-words |
+| `src/pages/storefront/ShopProducts.tsx` | Responsieve grid met Tailwind classes i.p.v. inline style |
 
-Geen code-wijzigingen nodig -- de queries in `usePublicStorefront.ts` filteren al correct op `is_active`, `hide_from_storefront`, en `is_published`.
