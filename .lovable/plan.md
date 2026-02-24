@@ -1,40 +1,57 @@
 
 
-## Fix: "Shop niet gevonden" voor niet-ingelogde bezoekers
+## Webshop Zichtbaarheid Toggle: Online / Wachtwoord / Offline
 
-### Oorzaak
+### Wat wordt er gebouwd?
 
-De `tenants` tabel heeft **geen publieke SELECT policy**. Alleen ingelogde gebruikers (tenant-leden of platform admins) kunnen tenant-data lezen. Wanneer een bezoeker (niet ingelogd) de shop bezoekt via `https://sellqo.app/shop/loveke`, faalt de query en wordt "Shop niet gevonden" getoond.
+Een drievoudige status-toggle voor je webshop:
 
-Dit is een Row Level Security (RLS) probleem: de storefront-code gebruikt de anonieme sleutel om tenant-informatie op te halen, maar de database staat dat niet toe.
+1. **Online** -- Webshop is publiek toegankelijk voor iedereen
+2. **Online met wachtwoord** -- Bezoekers moeten een wachtwoord invoeren om de shop te bezoeken (handig voor preview, soft-launch, of B2B)
+3. **Offline** -- Webshop toont een "Onderhoud" of "Binnenkort beschikbaar" pagina
 
-### Oplossing
+### Waar komt dit te staan?
 
-Een nieuwe RLS policy toevoegen op de `tenants` tabel die **beperkte publieke leestoegang** geeft -- alleen de velden die nodig zijn voor de storefront worden al gefilterd in de query, en de policy staat enkel SELECT toe.
+Bovenaan de **Storefront > Instellingen** pagina, als een prominente kaart met de huidige status en een duidelijke selector.
 
-### Technische wijziging
+### Hoe werkt het?
 
-**Database migratie** -- nieuwe RLS policy:
+- Wanneer de status **"password"** is, moet de bezoeker een wachtwoord invoeren. Dit wachtwoord stel je in via de admin.
+- Wanneer de status **"offline"** is, ziet de bezoeker een onderhoudspagina met je logo en een korte melding.
+- De storefront checkt deze status bij het laden en blokkeert toegang indien nodig.
 
-```sql
-CREATE POLICY "Public can view tenant basic info by slug"
-  ON public.tenants
-  FOR SELECT
-  USING (true);
-```
+### Technisch
 
-Dit staat anonieme gebruikers toe om tenant-rijen te lezen. De selectquery in `usePublicStorefront` haalt al alleen publieke velden op (naam, slug, logo, kleur, valuta, etc.) -- er zitten geen gevoelige gegevens in de geselecteerde kolommen.
+**1. Database migratie** -- twee nieuwe kolommen op `tenant_theme_settings`:
 
-### Waarom is dit veilig?
+| Kolom | Type | Default | Beschrijving |
+|---|---|---|---|
+| `storefront_status` | `text` | `'online'` | Waarden: `online`, `password`, `offline` |
+| `storefront_password` | `text` | `null` | Wachtwoord voor password-modus |
 
-- De query selecteert alleen: `id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label`
-- Dit zijn allemaal publieke storefront-gegevens
-- UPDATE/DELETE/INSERT blijven beschermd door de bestaande policies
-- Andere tabellen (zoals `tenant_theme_settings`) hebben al vergelijkbare publieke policies
+**2. Admin UI** -- `StorefrontSettings.tsx`:
+- Nieuwe kaart bovenaan met drie opties (radio group of segmented control)
+- Bij keuze "Wachtwoord" verschijnt een invoerveld voor het wachtwoord
+- Status wordt opgeslagen samen met de andere instellingen
 
-### Bestanden
+**3. Storefront guard** -- `ShopLayout.tsx`:
+- Leest `storefront_status` uit de theme settings
+- Bij **offline**: toont een onderhoudspagina (logo + "Binnenkort beschikbaar")
+- Bij **password**: toont een wachtwoord-invoerscherm. Na correct invoeren wordt dit opgeslagen in `sessionStorage` zodat de bezoeker niet steeds opnieuw moet invoeren
+- Bij **online**: normaal gedrag (zoals nu)
 
-| Wijziging | Details |
+**4. Hook update** -- `usePublicStorefront.ts`:
+- Haalt `storefront_status` en `storefront_password` op uit `tenant_theme_settings`
+
+### Bestanden die worden aangepast
+
+| Bestand | Wijziging |
 |---|---|
-| Database migratie | Nieuwe RLS policy op `tenants` voor publieke SELECT |
+| Database migratie | Nieuwe kolommen `storefront_status` en `storefront_password` |
+| `src/components/admin/storefront/StorefrontSettings.tsx` | Nieuwe "Webshop Status" kaart met 3 opties + wachtwoordveld |
+| `src/hooks/usePublicStorefront.ts` | Extra velden ophalen uit theme settings |
+| `src/hooks/useStorefront.ts` | Extra velden meenemen bij opslaan |
+| `src/components/storefront/ShopLayout.tsx` | Guard logica: offline-pagina of wachtwoord-scherm tonen |
+| Nieuw: `src/components/storefront/StorefrontPasswordGate.tsx` | Wachtwoord invoer component |
+| Nieuw: `src/components/storefront/StorefrontOfflinePage.tsx` | Offline / onderhoudspagina component |
 
