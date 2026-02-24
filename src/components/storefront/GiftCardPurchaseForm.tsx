@@ -17,9 +17,10 @@ interface GiftCardPurchaseFormProps {
   product: any;
   currency?: string;
   themeSettings?: any;
+  logoUrl?: string;
 }
 
-export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings }: GiftCardPurchaseFormProps) {
+export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings, logoUrl }: GiftCardPurchaseFormProps) {
   const { addToCart } = useCart();
   const [step, setStep] = useState(1);
   
@@ -197,6 +198,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
                   storeName={storeName}
                   compact
                   brandColor={brandColor}
+                  logoUrl={logoUrl}
                 />
               ))}
             </div>
@@ -338,6 +340,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
             recipientName={recipientName}
             personalMessage={personalMessage}
             brandColor={brandColor}
+            logoUrl={logoUrl}
           />
 
           <div className="rounded-lg border divide-y">

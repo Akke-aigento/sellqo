@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -42,7 +42,8 @@ import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
-import { giftCardTemplates, GiftCardTemplatePreview } from '@/components/shared/GiftCardTemplates';
+import { giftCardTemplates, GiftCardTemplatePreview, GiftCardTemplateRenderer } from '@/components/shared/GiftCardTemplates';
+import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -153,6 +154,8 @@ export default function ProductForm() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(null);
   const [categoriesInitialized, setCategoriesInitialized] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const downloadRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -409,6 +412,24 @@ export default function ProductForm() {
   };
 
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
+
+  const handleDownloadTemplate = async () => {
+    if (!downloadRef.current) return;
+    setDownloadingTemplate(true);
+    try {
+      const dataUrl = await toPng(downloadRef.current, { pixelRatio: 2, cacheBust: true });
+      const link = document.createElement('a');
+      link.download = `cadeaukaart-${form.getValues('gift_card_design_id') || 'elegant'}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success('Productfoto gedownload');
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast.error('Download mislukt');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return 'Onbekend';
@@ -1018,9 +1039,33 @@ export default function ProductForm() {
                                 onClick={() => form.setValue('gift_card_design_id', template.id)}
                                 amount={25}
                                 storeName={currentTenant?.name || 'Uw winkel'}
+                                logoUrl={currentTenant?.logo_url || undefined}
                                 compact
                               />
                             ))}
+                          </div>
+
+                          {/* Download as product image */}
+                          <div className="pt-2">
+                            <div ref={downloadRef} className="absolute -left-[9999px] w-[800px]" aria-hidden>
+                              <GiftCardTemplateRenderer
+                                templateId={form.watch('gift_card_design_id') || 'elegant'}
+                                storeName={currentTenant?.name || 'Uw winkel'}
+                                amount={25}
+                                logoUrl={currentTenant?.logo_url || undefined}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleDownloadTemplate}
+                              disabled={downloadingTemplate}
+                            >
+                              {downloadingTemplate ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                              Download als productfoto
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1">Download het ontwerp als PNG om als productfoto te gebruiken</p>
                           </div>
                         </div>
                       </CardContent>

@@ -80,6 +80,7 @@ interface GiftCardTemplatePreviewProps {
   storeName?: string;
   compact?: boolean;
   brandColor?: string;
+  logoUrl?: string;
 }
 
 export function GiftCardTemplatePreview({
@@ -90,6 +91,7 @@ export function GiftCardTemplatePreview({
   storeName = 'Uw winkel',
   compact = false,
   brandColor,
+  logoUrl,
 }: GiftCardTemplatePreviewProps) {
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(v);
@@ -129,9 +131,21 @@ export function GiftCardTemplatePreview({
           <p className={cn('text-[10px] uppercase tracking-widest opacity-70', template.textColor)}>
             Cadeaukaart
           </p>
-          <p className={cn('font-medium text-xs mt-0.5 opacity-80', template.textColor)}>
-            {storeName}
-          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt=""
+                className={cn(
+                  'h-5 w-5 object-contain rounded-sm',
+                  ['elegant', 'festive', 'gradient'].includes(template.id) && 'bg-white/20 p-0.5'
+                )}
+              />
+            )}
+            <p className={cn('font-medium text-xs opacity-80', template.textColor)}>
+              {storeName}
+            </p>
+          </div>
         </div>
         <div>
           <p
@@ -169,6 +183,7 @@ interface GiftCardTemplateRendererProps {
   code?: string;
   expiryDate?: string;
   brandColor?: string;
+  logoUrl?: string;
 }
 
 export function GiftCardTemplateRenderer({
@@ -180,6 +195,7 @@ export function GiftCardTemplateRenderer({
   code,
   expiryDate,
   brandColor,
+  logoUrl,
 }: GiftCardTemplateRendererProps) {
   const template = getTemplateById(templateId);
   const formatPrice = (v: number) =>
@@ -198,9 +214,21 @@ export function GiftCardTemplateRenderer({
         <p className={cn('text-xs uppercase tracking-[0.2em] opacity-70 mb-1', template.textColor)}>
           Cadeaukaart
         </p>
-        <p className={cn('text-lg font-semibold mb-6', template.textColor)}>
-          {storeName}
-        </p>
+        <div className="flex items-center gap-3 mb-6">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt=""
+              className={cn(
+                'h-10 w-10 object-contain rounded',
+                ['elegant', 'festive', 'gradient'].includes(template.id) && 'bg-white/20 p-1'
+              )}
+            />
+          )}
+          <p className={cn('text-lg font-semibold', template.textColor)}>
+            {storeName}
+          </p>
+        </div>
         <p className={cn('text-4xl font-bold mb-4', template.accentColor)}>
           {formatPrice(amount)}
         </p>

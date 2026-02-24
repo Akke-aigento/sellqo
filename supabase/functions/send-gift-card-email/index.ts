@@ -56,6 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const fromName = tenant.name || "Sellqo";
     const primaryColor = tenant.primary_color || "#2563eb";
+    const logoUrl = tenant.logo_url;
     const websiteUrl = tenant.website_url || "#";
     const recipientName = giftCard.recipient_name || "ontvanger";
     const personalMessage = giftCard.personal_message;
@@ -93,6 +94,11 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="background: ${templateId === 'gradient' ? `linear-gradient(135deg, ${style.bg}, ${style.cardBg})` : style.bg}; padding: 48px 32px; text-align: center;">
               <p style="color: ${style.text}; opacity: 0.7; font-size: 12px; text-transform: uppercase; letter-spacing: 3px; margin: 0 0 4px 0;">Cadeaukaart</p>
+              ${logoUrl ? `
+              <div style="margin: 0 0 12px 0;">
+                <img src="${logoUrl}" alt="${fromName}" style="max-height: 48px; max-width: 160px; object-fit: contain;${['elegant', 'festive', 'gradient'].includes(templateId) ? ' background: rgba(255,255,255,0.15); border-radius: 8px; padding: 6px;' : ''}" />
+              </div>
+              ` : ''}
               <h1 style="color: ${style.text}; font-size: 28px; margin: 0 0 16px 0;">${fromName}</h1>
               <div style="display: inline-block; color: ${style.accent}; font-size: 42px; font-weight: 700; margin: 0;">
                 €${Number(giftCard.current_balance).toFixed(2)}

@@ -264,6 +264,7 @@ export default function ShopProductDetail() {
                   product={product}
                   currency={tenant?.currency || 'EUR'}
                   themeSettings={themeSettings}
+                  logoUrl={(tenant as any)?.logo_url || undefined}
                 />
               </div>
             ) : (
