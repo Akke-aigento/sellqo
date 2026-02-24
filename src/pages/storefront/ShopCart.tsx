@@ -120,34 +120,36 @@ export default function ShopCart() {
             <div className="lg:col-span-2">
               <div className="space-y-4">
                 {cartItems.map(item => (
-                  <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
-                    {/* Image */}
-                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          <ShoppingBag className="h-8 w-8" />
-                        </div>
-                      )}
+                  <div key={item.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 border rounded-lg">
+                    <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
+                      {/* Image */}
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <ShoppingBag className="h-8 w-8" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <Link 
+                          to={`/shop/${tenantSlug}/product/${item.productId}`}
+                          className="font-medium hover:text-primary line-clamp-2 break-words"
+                        >
+                          {item.name}
+                        </Link>
+                        {item.variantTitle && (
+                          <p className="text-sm text-muted-foreground">{item.variantTitle}</p>
+                        )}
+                        <p className="text-lg font-semibold mt-1">{formatPrice(item.price)}</p>
+                      </div>
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <Link 
-                        to={`/shop/${tenantSlug}/product/${item.productId}`}
-                        className="font-medium hover:text-primary line-clamp-2"
-                      >
-                        {item.name}
-                      </Link>
-                      {item.variantTitle && (
-                        <p className="text-sm text-muted-foreground">{item.variantTitle}</p>
-                      )}
-                      <p className="text-lg font-semibold mt-1">{formatPrice(item.price)}</p>
-                    </div>
-
-                    {/* Quantity */}
-                    <div className="flex items-center gap-2">
+                    {/* Quantity + Remove */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 pl-0 sm:pl-2">
                       <div className="flex items-center border rounded-lg">
                         <Button 
                           variant="ghost" 

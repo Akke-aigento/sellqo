@@ -334,7 +334,7 @@ export default function ShopCheckout() {
         <title>Afrekenen | {tenant?.name || 'Shop'}</title>
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-28 lg:pb-8">
         {/* Guest checkout gate */}
         {!guestEnabled && !currentUser && !authLoading && step === 'details' ? (
           <Card className="max-w-md mx-auto">
@@ -661,8 +661,8 @@ export default function ShopCheckout() {
             )}
           </div>
 
-          {/* Order Summary Sidebar */}
-          <div>
+          {/* Order Summary Sidebar - hidden on mobile, shown as sticky bar instead */}
+          <div className="hidden lg:block">
             <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle className="text-lg">Besteloverzicht</CardTitle>
@@ -672,10 +672,10 @@ export default function ShopCheckout() {
                 <div className="space-y-3 mb-4">
                   {cartItems.map(item => (
                     <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground truncate mr-2">
                         {item.quantity}x {item.name}
                       </span>
-                      <span>{formatPrice(item.price * item.quantity)}</span>
+                      <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -702,6 +702,17 @@ export default function ShopCheckout() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Mobile sticky order summary */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] p-4">
+            <div className="container mx-auto flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">{cartItems.length} artikel(en)</p>
+                <p className="text-lg font-bold">{formatPrice(total)}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Incl. {shipping > 0 ? formatPrice(shipping) : 'gratis'} verzending</p>
+            </div>
           </div>
         </div>
         </>

@@ -132,7 +132,7 @@ export default function ShopProductDetail() {
     return (
       <ShopLayout>
         <div className="container mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-12">
             <div className="animate-pulse bg-muted aspect-square rounded-lg" />
             <div className="space-y-4">
               <div className="animate-pulse bg-muted h-8 rounded w-3/4" />
@@ -178,22 +178,22 @@ export default function ShopProductDetail() {
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
         {themeSettings?.show_breadcrumbs !== false && (
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-            <Link to={`/shop/${tenantSlug}`} className="hover:text-foreground">Home</Link>
-            <ChevronRight className="h-4 w-4" />
-            <Link to={`/shop/${tenantSlug}/products`} className="hover:text-foreground">Producten</Link>
+          <nav className="flex items-center gap-1.5 sm:gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
+            <Link to={`/shop/${tenantSlug}`} className="hover:text-foreground shrink-0">Home</Link>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            <Link to={`/shop/${tenantSlug}/products`} className="hover:text-foreground shrink-0">Producten</Link>
             {product.category && (
               <>
-                <ChevronRight className="h-4 w-4" />
-                <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="hover:text-foreground">{product.category.name}</Link>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="hover:text-foreground shrink-0">{product.category.name}</Link>
               </>
             )}
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-foreground">{product.name}</span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-foreground truncate max-w-[150px] sm:max-w-none">{product.name}</span>
           </nav>
         )}
 
-        <div className="grid md:grid-cols-2 gap-12">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-12">
           {/* Images */}
           <div>
             <div 
@@ -292,8 +292,8 @@ export default function ShopProductDetail() {
 
                 {/* Add to Cart */}
                 {inStock && (
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="flex items-center border rounded-lg">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6">
+                    <div className="flex items-center border rounded-lg self-start">
                       <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
                         <Minus className="h-4 w-4" />
                       </Button>
@@ -303,21 +303,23 @@ export default function ShopProductDetail() {
                       </Button>
                     </div>
 
-                    <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
-                      style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      Toevoegen aan winkelwagen
-                      {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
-                    </Button>
-
-                    {themeSettings?.show_wishlist && product && (
-                      <Button variant="outline" size="icon" onClick={() => toggleWishlist({
-                        productId: product.id, name: product.name, price: displayPrice,
-                        image: product.images?.[0], slug: product.slug,
-                      })}>
-                        <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                    <div className="flex items-center gap-3 flex-1">
+                      <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
+                        style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
+                        <ShoppingCart className="h-5 w-5 mr-2" />
+                        <span className="truncate">Toevoegen</span>
+                        {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
                       </Button>
-                    )}
+
+                      {themeSettings?.show_wishlist && product && (
+                        <Button variant="outline" size="icon" className="shrink-0 h-11 w-11" onClick={() => toggleWishlist({
+                          productId: product.id, name: product.name, price: displayPrice,
+                          image: product.images?.[0], slug: product.slug,
+                        })}>
+                          <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
 
