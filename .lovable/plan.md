@@ -1,79 +1,47 @@
 
-## Fix: Variant-selectie layout en data-structuur
+## Fix: Productbewerker layout op kleinere schermen
 
-### Het probleem (wat je ziet in de screenshot)
+### Probleem
+De huidige layout gebruikt `lg:grid-cols-[1fr_400px]` waardoor:
+- Op schermen rond 1024-1280px de rechterkolom (400px vast) de hoofdinhoud te veel samenperst
+- De afbeeldingen-sidebar nauwelijks zichtbaar is (afgesneden aan de rechterkant zoals in de screenshot)
 
-De variant-opties zijn **verkeerd opgeslagen** in de database. In plaats van:
+### Oplossing
 
-```text
-Option: "Maat" -> values: ["XS", "S", "M", "L", "XL"]
-```
+**Bestand: `src/pages/admin/ProductForm.tsx`**
 
-Staat er nu **5 losse opties**, elk met 1 waarde:
+1. **Breakpoint verhogen en sidebar flexibeler maken**: Wijzig de grid van `lg:grid-cols-[1fr_400px]` naar `xl:grid-cols-[1fr_380px]` zodat de 2-kolom layout pas activeert op schermen breder dan 1280px. Op kleinere schermen stacked alles netjes.
 
-```text
-Option: "XS" -> values: ["Extra Small"]
-Option: "S"  -> values: ["Small"]
-Option: "M"  -> values: ["Medium"]
-...
-```
+2. **Afbeeldingen-sectie naar boven op smalle schermen**: Op schermen waar de layout stacked (onder xl), de afbeeldingen-kaart boven de productdetails tonen met `order-first xl:order-none` op de rechterkolom. Zo ziet de gebruiker direct de productfoto's.
 
-En er is maar **1 variant** met alle maten tegelijk als attribute_values, in plaats van 5 aparte varianten (1 per maat). Daardoor:
-- Elk formaat krijgt zijn eigen label + knop (de kapotte layout die je ziet)
-- De "Add to Cart"-knop stuurt altijd dezelfde variant door, ongeacht welke "maat" je aanklikt
-- De voorraad is niet per maat bij te houden
-
-### De oplossing (2 onderdelen)
-
-**Deel 1 -- Data repareren (eenmalig, voor dit product)**
-
-Via een database-migratie de bestaande foutieve data corrigeren:
-- De 5 losse opties verwijderen
-- 1 nieuwe optie aanmaken: `name: "Maat"`, `values: ["XS", "S", "M", "L", "XL"]`
-- De 1 samengestelde variant verwijderen
-- 5 aparte varianten aanmaken: elk met `attribute_values: { "Maat": "XS" }` etc.
-
-**Deel 2 -- Voorraadlogica koppelen aan variant-selectie**
-
-In `ShopProductDetail.tsx`:
-- De `inStock`-check voor varianten correct berekenen: `!variant.track_inventory || variant.stock > 0`
-- De hoeveelheid-selector (quantity +/-) begrenzen op de geselecteerde variant-voorraad
-- De quantity resetten naar 1 wanneer een andere variant wordt geselecteerd
-- Uitverkochte variant-waarden visueel markeren (disabled/doorgestreept) in de VariantSelector
-
-In `VariantSelector.tsx`:
-- Een optioneel `variants`-prop toevoegen zodat de selector weet welke waarden uitverkocht zijn
-- Uitverkochte opties tonen met een visuele indicatie (bijv. doorgestreepte tekst, grijze knop) maar nog steeds klikbaar met een tooltip "Uitverkocht"
+3. **Afbeeldingen-grid aanpassen**: Op de gestackte weergave het afbeeldingen-grid veranderen van `grid-cols-2` naar `grid-cols-3 sm:grid-cols-4 xl:grid-cols-2` zodat foto's efficienter horizontaal worden getoond wanneer de volle breedte beschikbaar is.
 
 ### Technische details
 
-**Database migratie** -- Data corrigeren voor het specifieke product "Sweater Oversized - Loveke Classic":
-- DELETE de 5 foutieve `product_variant_options` records
-- INSERT 1 correcte optie met `name: 'Maat'` en `values: ['XS','S','M','L','XL']`
-- DELETE de 1 foutieve variant
-- INSERT 5 correcte varianten met individuele `attribute_values`
-
-**Bestand 1: `src/components/storefront/VariantSelector.tsx`**
-- `variants` prop toevoegen (optioneel, array van varianten)
-- Per optie-waarde checken of er een matching variant is en of die op voorraad is
-- Uitverkochte waarden visueel markeren maar niet uitschakelen (klant kan nog steeds kiezen)
-
-**Bestand 2: `src/pages/storefront/ShopProductDetail.tsx`**
-- `variants` doorgeven aan de VariantSelector component
-- `inStock` voor varianten berekenen met track_inventory logica: `!selectedVariant.track_inventory || selectedVariant.stock > 0`
-- Quantity resetten naar 1 bij variant-wissel
-- Quantity maximum begrenzen op basis van geselecteerde variant stock (al deels aanwezig, maar variant.stock wordt niet correct uitgelezen)
-
-### Resultaat
-
-```text
-Maat — XS
-[ XS ] [ S ] [ M ] [ L ] [ XL ]
-                                    (uitverkocht = doorgestreept/grijs)
-
-Aantal: [  -  ]  1  [  +  ]    [ Toevoegen aan winkelwagen ]
+Regel 448 wijzigen:
+```
+grid grid-cols-1 lg:grid-cols-[1fr_400px]
+```
+wordt:
+```
+grid grid-cols-1 xl:grid-cols-[1fr_380px]
 ```
 
-### Scope
-- 1 database migratie (data fix voor het betreffende product)
-- 2 bestanden aangepast (VariantSelector + ShopProductDetail)
+Regel 1018 (rechterkolom div) toevoegen:
+```
+order-first xl:order-none
+```
+
+Regel 1044 (afbeeldingen grid) wijzigen:
+```
+grid grid-cols-2
+```
+wordt:
+```
+grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-2
+```
+
+### Resultaat
+- Op schermen onder 1280px: afbeeldingen verschijnen bovenaan, full-width, in een 3-4 kolom grid
+- Op schermen boven 1280px: de bekende 2-kolom layout met sidebar rechts
+- Geen content meer afgesneden of onzichtbaar
