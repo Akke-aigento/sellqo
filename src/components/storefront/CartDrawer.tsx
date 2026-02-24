@@ -39,25 +39,26 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR', ten
         },
       });
       if (error) throw error;
-      if (data?.valid) {
+      const result = data?.data || data;
+      if (result?.valid) {
         let calcAmount = 0;
-        if (data.discount_type === 'percentage') {
-          calcAmount = Math.round(subtotal * (data.discount_value / 100) * 100) / 100;
+        if (result.discount_type === 'percentage') {
+          calcAmount = Math.round(subtotal * (result.discount_value / 100) * 100) / 100;
         } else {
-          calcAmount = Math.min(data.discount_value, subtotal);
+          calcAmount = Math.min(result.discount_value, subtotal);
         }
         applyDiscountCode({
           code,
-          discount_type: data.discount_type,
-          discount_value: data.discount_value,
-          applies_to: data.applies_to,
-          description: data.description,
+          discount_type: result.discount_type,
+          discount_value: result.discount_value,
+          applies_to: result.applies_to,
+          description: result.description,
           calculated_amount: calcAmount,
         });
         setDiscountCode('');
         toast.success('Kortingscode toegepast!');
       } else {
-        toast.error(data?.error || 'Ongeldige kortingscode');
+        toast.error(result?.error || 'Ongeldige kortingscode');
       }
     } catch {
       toast.error('Er ging iets mis bij het valideren van de kortingscode');
