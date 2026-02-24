@@ -228,12 +228,12 @@ export default function ShopProductDetail() {
           </div>
 
           {/* Product Info */}
-          <div>
+           <div className="min-w-0">
             {product.category && (
               <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="text-sm text-muted-foreground hover:text-primary">{product.category.name}</Link>
             )}
 
-            <h1 className="text-3xl font-bold mt-2 mb-2" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
+            <h1 className="text-2xl sm:text-3xl font-bold mt-2 mb-2 break-words" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
               {product.name}
             </h1>
 
@@ -359,7 +359,7 @@ export default function ShopProductDetail() {
             {/* Description */}
             {product.description && (
               <div 
-                className="prose prose-sm max-w-none mb-8 dark:prose-invert
+                className="prose prose-sm max-w-none mb-8 dark:prose-invert overflow-hidden break-words
                            prose-headings:font-bold prose-headings:text-foreground
                            prose-p:text-muted-foreground prose-a:text-primary prose-a:underline
                            prose-strong:text-foreground prose-li:text-muted-foreground
