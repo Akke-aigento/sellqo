@@ -66,7 +66,7 @@ export default function ShopProductDetail() {
   const hasDiscount = displayComparePrice && displayComparePrice > displayPrice;
   const discountPercentage = hasDiscount ? Math.round((1 - displayPrice / displayComparePrice!) * 100) : 0;
   const inStock = selectedVariant ? selectedVariant.in_stock : product?.in_stock;
-  const stockCount = selectedVariant?.stock ?? product?.stock;
+  const stockCount = product?.track_inventory ? (selectedVariant?.stock ?? product?.stock) : undefined;
 
   const displayImages = useMemo(() => {
     if (!product) return [];
