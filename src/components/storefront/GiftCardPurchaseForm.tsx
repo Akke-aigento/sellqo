@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { CalendarIcon, Gift, Mail, MessageSquare, ChevronRight, ShoppingCart, Check } from 'lucide-react';
+import { CalendarIcon, Gift, Mail, MessageSquare, ChevronRight, ShoppingCart, Check, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import { giftCardTemplates, GiftCardTemplatePreview, GiftCardTemplateRenderer } from '@/components/shared/GiftCardTemplates';
 
 interface GiftCardPurchaseFormProps {
   product: any;
@@ -22,7 +23,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
   const { addToCart } = useCart();
   const [step, setStep] = useState(1);
   
-  // Step 1: Amount
+  // Step 1: Amount & Design
   const denominations: number[] = product.gift_card_denominations || [];
   const allowCustom = product.gift_card_allow_custom || false;
   const minAmount = product.gift_card_min_amount || 10;
@@ -30,6 +31,8 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(denominations[0] || null);
   const [customAmount, setCustomAmount] = useState('');
   const [useCustom, setUseCustom] = useState(false);
+  const defaultDesign = product.gift_card_design_id || 'elegant';
+  const [selectedDesignId, setSelectedDesignId] = useState(defaultDesign);
 
   // Step 2: Recipient
   const [recipientName, setRecipientName] = useState('');
@@ -38,6 +41,8 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
   const [sendDate, setSendDate] = useState<Date | undefined>(undefined);
 
   const effectiveAmount = useCustom ? parseFloat(customAmount) || 0 : selectedAmount || 0;
+  const storeName = themeSettings?.store_name || themeSettings?.name || 'Cadeaukaart';
+  const brandColor = themeSettings?.primary_color || themeSettings?.brand_color;
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('nl-NL', { style: 'currency', currency }).format(price);
@@ -70,7 +75,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
         recipientEmail: recipientEmail.trim(),
         personalMessage: personalMessage.trim() || undefined,
         sendDate: sendDate ? sendDate.toISOString() : undefined,
-        designId: product.gift_card_design_id || undefined,
+        designId: selectedDesignId,
       },
     });
     toast.success('Cadeaukaart toegevoegd aan winkelwagen');
@@ -81,7 +86,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
       {/* Step indicators */}
       <div className="flex items-center gap-2 text-sm">
         {[
-          { num: 1, label: 'Bedrag' },
+          { num: 1, label: 'Bedrag & ontwerp' },
           { num: 2, label: 'Ontvanger' },
           { num: 3, label: 'Bevestiging' },
         ].map((s, i) => (
@@ -108,69 +113,94 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
         ))}
       </div>
 
-      {/* Step 1: Amount */}
+      {/* Step 1: Amount & Design */}
       {step === 1 && (
-        <div className="space-y-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Gift className="h-5 w-5 text-primary" />
-            Kies een bedrag
-          </h3>
+        <div className="space-y-6">
+          {/* Amount selection */}
+          <div className="space-y-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Gift className="h-5 w-5 text-primary" />
+              Kies een bedrag
+            </h3>
 
-          {denominations.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {denominations.map((amount) => (
+            {denominations.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {denominations.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => handleSelectDenomination(amount)}
+                    className={cn(
+                      'py-3 px-4 rounded-lg border-2 text-center font-semibold transition-all',
+                      selectedAmount === amount && !useCustom
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-input hover:border-primary/50'
+                    )}
+                  >
+                    {formatPrice(amount)}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {allowCustom && (
+              <div className="space-y-2">
                 <button
-                  key={amount}
                   type="button"
-                  onClick={() => handleSelectDenomination(amount)}
+                  onClick={handleCustomToggle}
                   className={cn(
-                    'py-3 px-4 rounded-lg border-2 text-center font-semibold transition-all',
-                    selectedAmount === amount && !useCustom
+                    'w-full py-3 px-4 rounded-lg border-2 text-center font-medium transition-all',
+                    useCustom
                       ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-input hover:border-primary/50'
+                      : 'border-dashed border-input hover:border-primary/50'
                   )}
                 >
-                  {formatPrice(amount)}
+                  Eigen bedrag kiezen
                 </button>
+                {useCustom && (
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">€</span>
+                    <Input
+                      type="number"
+                      min={minAmount}
+                      max={maxAmount}
+                      step="0.01"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      className="pl-7 text-lg font-semibold"
+                      placeholder={`${minAmount} - ${maxAmount}`}
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tussen {formatPrice(minAmount)} en {formatPrice(maxAmount)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Design selection */}
+          <div className="space-y-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Palette className="h-5 w-5 text-primary" />
+              Kies een ontwerp
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {giftCardTemplates.map((template) => (
+                <GiftCardTemplatePreview
+                  key={template.id}
+                  template={template}
+                  selected={selectedDesignId === template.id}
+                  onClick={() => setSelectedDesignId(template.id)}
+                  amount={effectiveAmount || undefined}
+                  storeName={storeName}
+                  compact
+                  brandColor={brandColor}
+                />
               ))}
             </div>
-          )}
-
-          {allowCustom && (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={handleCustomToggle}
-                className={cn(
-                  'w-full py-3 px-4 rounded-lg border-2 text-center font-medium transition-all',
-                  useCustom
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-dashed border-input hover:border-primary/50'
-                )}
-              >
-                Eigen bedrag kiezen
-              </button>
-              {useCustom && (
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">€</span>
-                  <Input
-                    type="number"
-                    min={minAmount}
-                    max={maxAmount}
-                    step="0.01"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    className="pl-7 text-lg font-semibold"
-                    placeholder={`${minAmount} - ${maxAmount}`}
-                    autoFocus
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Tussen {formatPrice(minAmount)} en {formatPrice(maxAmount)}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
 
           {effectiveAmount > 0 && (
             <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
@@ -184,7 +214,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
             size="lg"
             onClick={() => setStep(2)}
             disabled={!isStep1Valid}
-            style={{ backgroundColor: themeSettings?.primary_color || undefined }}
+            style={{ backgroundColor: brandColor || undefined }}
           >
             Volgende: Ontvanger
             <ChevronRight className="h-4 w-4 ml-2" />
@@ -283,7 +313,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
               size="lg"
               onClick={() => setStep(3)}
               disabled={!isStep2Valid}
-              style={{ backgroundColor: themeSettings?.primary_color || undefined }}
+              style={{ backgroundColor: brandColor || undefined }}
             >
               Volgende: Bevestiging
               <ChevronRight className="h-4 w-4 ml-2" />
@@ -299,6 +329,16 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
             <Check className="h-5 w-5 text-primary" />
             Bevestig je cadeaukaart
           </h3>
+
+          {/* Template preview */}
+          <GiftCardTemplateRenderer
+            templateId={selectedDesignId}
+            storeName={storeName}
+            amount={effectiveAmount}
+            recipientName={recipientName}
+            personalMessage={personalMessage}
+            brandColor={brandColor}
+          />
 
           <div className="rounded-lg border divide-y">
             <div className="flex justify-between items-center p-3">
@@ -335,7 +375,7 @@ export function GiftCardPurchaseForm({ product, currency = 'EUR', themeSettings 
               className="flex-1"
               size="lg"
               onClick={handleAddToCart}
-              style={{ backgroundColor: themeSettings?.primary_color || undefined }}
+              style={{ backgroundColor: brandColor || undefined }}
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
               Toevoegen aan winkelwagen
