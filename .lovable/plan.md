@@ -1,47 +1,38 @@
 
-## Fix: Productbewerker layout op kleinere schermen
+## Twee verbeteringen: Duidelijke foutmeldingen en optionele SKU/EAN
 
-### Probleem
-De huidige layout gebruikt `lg:grid-cols-[1fr_400px]` waardoor:
-- Op schermen rond 1024-1280px de rechterkolom (400px vast) de hoofdinhoud te veel samenperst
-- De afbeeldingen-sidebar nauwelijks zichtbaar is (afgesneden aan de rechterkant zoals in de screenshot)
+### Probleem 1: Onbegrijpelijke foutmeldingen
+De toasts tonen nu ruwe database-foutmeldingen zoals `duplicate key value violates unique constraint "products_tenant_sku_unique"`. Tenants snappen hier niks van.
+
+### Probleem 2: SKU/EAN verplicht door lege strings
+Het formulier stuurt `sku: ''` naar de database. De unique constraint op `(tenant_id, sku) WHERE sku IS NOT NULL` werkt correct met `NULL`, maar lege strings `''` zijn niet `NULL` -- dus twee producten met lege SKU botsen op de constraint.
+
+---
 
 ### Oplossing
 
-**Bestand: `src/pages/admin/ProductForm.tsx`**
+**Bestand 1: `src/hooks/useProducts.ts`** -- Foutvertalingen toevoegen
 
-1. **Breakpoint verhogen en sidebar flexibeler maken**: Wijzig de grid van `lg:grid-cols-[1fr_400px]` naar `xl:grid-cols-[1fr_380px]` zodat de 2-kolom layout pas activeert op schermen breder dan 1280px. Op kleinere schermen stacked alles netjes.
+In de `onError` handlers van `createProduct` en `updateProduct`, de ruwe database-fout vertalen naar begrijpelijke Nederlandse tekst:
 
-2. **Afbeeldingen-sectie naar boven op smalle schermen**: Op schermen waar de layout stacked (onder xl), de afbeeldingen-kaart boven de productdetails tonen met `order-first xl:order-none` op de rechterkolom. Zo ziet de gebruiker direct de productfoto's.
+- `products_tenant_sku_unique` -> "Er bestaat al een product met deze SKU. Kies een unieke SKU of laat het veld leeg."
+- `products_tenant_slug_key` / `products_slug_key` -> "Er bestaat al een product met deze URL-slug. Pas de slug aan."
+- Overige fouten -> "Er ging iets mis bij het opslaan. Probeer het opnieuw."
 
-3. **Afbeeldingen-grid aanpassen**: Op de gestackte weergave het afbeeldingen-grid veranderen van `grid-cols-2` naar `grid-cols-3 sm:grid-cols-4 xl:grid-cols-2` zodat foto's efficienter horizontaal worden getoond wanneer de volle breedte beschikbaar is.
+**Bestand 2: `src/pages/admin/ProductForm.tsx`** -- Lege strings omzetten naar `null`
 
-### Technische details
+In de `onSubmit` functie, lege strings voor `sku` en `barcode` omzetten naar `null` zodat de database-constraint ze correct negeert:
 
-Regel 448 wijzigen:
-```
-grid grid-cols-1 lg:grid-cols-[1fr_400px]
-```
-wordt:
-```
-grid grid-cols-1 xl:grid-cols-[1fr_380px]
-```
-
-Regel 1018 (rechterkolom div) toevoegen:
-```
-order-first xl:order-none
-```
-
-Regel 1044 (afbeeldingen grid) wijzigen:
-```
-grid grid-cols-2
-```
-wordt:
-```
-grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-2
+```typescript
+const submitData = {
+  ...data,
+  category_id: data.category_id || null,
+  sku: data.sku?.trim() || null,
+  barcode: data.barcode?.trim() || null,
+};
 ```
 
 ### Resultaat
-- Op schermen onder 1280px: afbeeldingen verschijnen bovenaan, full-width, in een 3-4 kolom grid
-- Op schermen boven 1280px: de bekende 2-kolom layout met sidebar rechts
-- Geen content meer afgesneden of onzichtbaar
+- SKU en EAN zijn echt optioneel: leeg laten werkt zonder fout
+- Bij dubbele SKU krijgt de tenant een duidelijke melding: "Er bestaat al een product met deze SKU"
+- Overige fouten worden ook in normaal Nederlands getoond
