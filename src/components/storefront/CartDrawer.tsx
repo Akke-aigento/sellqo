@@ -47,34 +47,36 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{item.name}</h4>
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-medium text-sm truncate">{item.name}</h4>
+                        <p className="font-semibold text-sm flex-shrink-0 whitespace-nowrap">
+                          {formatCurrency(item.price * item.quantity, currency)}
+                        </p>
+                      </div>
                       {item.variantTitle && (
                         <p className="text-xs text-muted-foreground mt-0.5">{item.variantTitle}</p>
                       )}
-                      <p className="font-semibold text-sm mt-1">
-                        {formatCurrency(item.price, currency)}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatCurrency(item.price, currency)} per stuk
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex items-center border rounded-md">
                           <Button variant="ghost" size="icon" className="h-7 w-7"
-                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                             <Minus className="h-3 w-3" />
                           </Button>
                           <span className="w-8 text-center text-sm">{item.quantity}</span>
                           <Button variant="ghost" size="icon" className="h-7 w-7"
-                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}>
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}>
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => removeItem(item.productId)}>
+                          onClick={() => removeItem(item.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
-                    <p className="font-semibold text-sm flex-shrink-0 min-w-[70px] text-right whitespace-nowrap">
-                      {formatCurrency(item.price * item.quantity, currency)}
-                    </p>
                   </div>
                 ))}
               </div>
