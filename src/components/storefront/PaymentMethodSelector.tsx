@@ -120,6 +120,42 @@ export function PaymentMethodSelector({
         
         <RadioGroup value={value} onValueChange={(v) => onChange(v as PaymentMethod)}>
           <div className="space-y-3">
+          {/* Bank Transfer Option */}
+            {hasBankTransfer && (
+              <Label
+                htmlFor="bank_transfer"
+                className={cn(
+                  "flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                  value === 'bank_transfer'
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-primary/50"
+                )}
+              >
+                <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                
+                <div className="flex-shrink-0 mt-0.5 text-muted-foreground">
+                  <QrCode className="h-5 w-5" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{t('checkout.bankTransfer')}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      0% {t('checkout.fees', 'kosten')}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {t('checkout.bankTransferSubtitle')}
+                  </p>
+                </div>
+                
+                <div className="flex-shrink-0 hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                  <Smartphone className="h-3.5 w-3.5" />
+                  <span>SEPA Instant</span>
+                </div>
+              </Label>
+            )}
+
             {/* Stripe / Online Payment Option */}
             {hasStripe && (
               <Label
@@ -157,42 +193,6 @@ export function PaymentMethodSelector({
                       + {formatCurrency(transactionFee)} {transactionFeeLabel.toLowerCase()}
                     </p>
                   )}
-                </div>
-              </Label>
-            )}
-
-            {/* Bank Transfer Option */}
-            {hasBankTransfer && (
-              <Label
-                htmlFor="bank_transfer"
-                className={cn(
-                  "flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                  value === 'bank_transfer'
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
-                
-                <div className="flex-shrink-0 mt-0.5 text-muted-foreground">
-                  <QrCode className="h-5 w-5" />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{t('checkout.bankTransfer')}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      0% {t('checkout.fees', 'kosten')}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('checkout.bankTransferSubtitle')}
-                  </p>
-                </div>
-                
-                <div className="flex-shrink-0 hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                  <Smartphone className="h-3.5 w-3.5" />
-                  <span>SEPA Instant</span>
                 </div>
               </Label>
             )}
