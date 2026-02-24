@@ -93,7 +93,7 @@ export default function ShopCheckout() {
     city: '',
     country: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank_transfer');
   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
   const [isProcessing, setIsProcessing] = useState(false);
   const submittingRef = useRef(false);
@@ -173,7 +173,10 @@ export default function ShopCheckout() {
     if (tenant?.payment_methods_enabled) {
       const methods = tenant.payment_methods_enabled as PaymentMethod[];
       setEnabledPaymentMethods(methods.length > 0 ? methods : ['stripe']);
-      if (methods.length > 0 && !methods.includes(paymentMethod)) {
+      // Prefer bank_transfer as default when available
+      if (methods.includes('bank_transfer')) {
+        setPaymentMethod('bank_transfer');
+      } else if (methods.length > 0) {
         setPaymentMethod(methods[0]);
       }
     }

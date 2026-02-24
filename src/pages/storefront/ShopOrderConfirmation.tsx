@@ -51,25 +51,36 @@ export default function ShopOrderConfirmation() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load order and set up realtime subscription
+  // Load order with retry logic for race conditions
   useEffect(() => {
+    const fetchOrder = async (retryCount = 0): Promise<Order | null> => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
+        .eq('id', orderId!)
+        .maybeSingle();
+
+      if (error) {
+        console.error(`[OrderConfirmation] Error loading order (attempt ${retryCount + 1}):`, error);
+        return null;
+      }
+
+      if (!data && retryCount < 3) {
+        console.warn(`[OrderConfirmation] Order not found, retrying in ${(retryCount + 1) * 1000}ms...`);
+        await new Promise(r => setTimeout(r, (retryCount + 1) * 1000));
+        return fetchOrder(retryCount + 1);
+      }
+
+      return data as unknown as Order | null;
+    };
+
     const loadOrder = async () => {
       if (!orderId) return;
 
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
-        .eq('id', orderId)
-        .maybeSingle();
-
-      if (orderError) {
-        console.error('Error loading order:', orderError);
-        setIsLoading(false);
-        return;
-      }
+      const orderData = await fetchOrder();
 
       if (orderData) {
-        setOrder(orderData as unknown as Order);
+        setOrder(orderData);
 
         const { data: itemsData } = await supabase
           .from('order_items')
@@ -79,6 +90,8 @@ export default function ShopOrderConfirmation() {
         if (itemsData) {
           setOrderItems(itemsData);
         }
+      } else {
+        console.error('[OrderConfirmation] Order not found after retries, orderId:', orderId);
       }
 
       setIsLoading(false);
