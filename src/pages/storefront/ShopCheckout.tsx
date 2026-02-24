@@ -230,7 +230,17 @@ export default function ShopCheckout() {
         product_image: item.image,
         quantity: item.quantity,
         unit_price: item.price,
+        gift_card_metadata: item.giftCard ? {
+          recipientName: item.giftCard.recipientName,
+          recipientEmail: item.giftCard.recipientEmail,
+          personalMessage: item.giftCard.personalMessage,
+          sendDate: item.giftCard.sendDate,
+          designId: item.giftCard.designId,
+          purchaser_email: customerData.email,
+        } : undefined,
       }));
+
+      const hasGiftCards = cartItems.some(item => !!item.giftCard);
 
       const shippingAddress = {
         street: `${customerData.street} ${customerData.houseNumber}`.trim(),

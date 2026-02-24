@@ -13,10 +13,12 @@ import { VariantSelector } from '@/components/storefront/VariantSelector';
 import { ImageLightbox } from '@/components/storefront/ImageLightbox';
 import { RelatedProducts } from '@/components/storefront/RelatedProducts';
 import { ProductReviewsSection, StarRating } from '@/components/storefront/ProductReviewsSection';
+import { GiftCardPurchaseForm } from '@/components/storefront/GiftCardPurchaseForm';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+
 
 export default function ShopProductDetail() {
   const { tenantSlug, productSlug } = useParams<{ tenantSlug: string; productSlug: string }>();
@@ -242,7 +244,8 @@ export default function ShopProductDetail() {
               </div>
             )}
 
-            {/* Price */}
+            {/* Price - hide for gift cards */}
+            {product.product_type !== 'gift_card' && (
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-bold">{formatPrice(displayPrice)}</span>
               {hasDiscount && (
@@ -252,88 +255,102 @@ export default function ShopProductDetail() {
                 </>
               )}
             </div>
-
-            {/* Viewers count */}
-            {showViewersCount && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <Eye className="h-4 w-4" />
-                <span>{viewerCount} mensen bekijken dit nu</span>
-              </div>
             )}
 
-            {/* Variant Selection - respects variant_style setting */}
-            {product.has_variants && product.options?.length > 0 && (
+            {/* Gift Card Purchase Form */}
+            {product.product_type === 'gift_card' ? (
               <div className="mb-6">
-                {variantStyle === 'dropdown' ? (
-                  <DropdownVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
-                ) : variantStyle === 'swatches' ? (
-                  <SwatchVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
-                ) : (
-                  <VariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                <GiftCardPurchaseForm
+                  product={product}
+                  currency={tenant?.currency || 'EUR'}
+                  themeSettings={themeSettings}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Viewers count */}
+                {showViewersCount && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <Eye className="h-4 w-4" />
+                    <span>{viewerCount} mensen bekijken dit nu</span>
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* Add to Cart */}
-            {inStock && (
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex items-center border rounded-lg">
-                  <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
-                  <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
-                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Toevoegen aan winkelwagen
-                  {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
-                </Button>
-
-                {themeSettings?.show_wishlist && product && (
-                  <Button variant="outline" size="icon" onClick={() => toggleWishlist({
-                    productId: product.id, name: product.name, price: displayPrice,
-                    image: product.images?.[0], slug: product.slug,
-                  })}>
-                    <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
+                {/* Variant Selection - respects variant_style setting */}
+                {product.has_variants && product.options?.length > 0 && (
+                  <div className="mb-6">
+                    {variantStyle === 'dropdown' ? (
+                      <DropdownVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                    ) : variantStyle === 'swatches' ? (
+                      <SwatchVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                    ) : (
+                      <VariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            {product.has_variants && !allOptionsSelected && (
-              <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
-            )}
+                {/* Add to Cart */}
+                {inStock && (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="flex items-center border rounded-lg">
+                      <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-12 text-center font-medium">{quantity}</span>
+                      <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
 
-            {/* Stock Status - respects stock_indicator setting */}
-            {stockIndicator && (
-              <div className="flex items-center gap-2 mb-6">
-                {inStock ? (
-                  <>
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span className="text-green-600 font-medium">
-                      Op voorraad
-                      {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
-                        <span className="ml-1">— Nog {stockCount} stuks</span>
-                      )}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-destructive font-medium">Uitverkocht</span>
+                    <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
+                      style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Toevoegen aan winkelwagen
+                      {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
+                    </Button>
+
+                    {themeSettings?.show_wishlist && product && (
+                      <Button variant="outline" size="icon" onClick={() => toggleWishlist({
+                        productId: product.id, name: product.name, price: displayPrice,
+                        image: product.images?.[0], slug: product.slug,
+                      })}>
+                        <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                      </Button>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* Low stock urgency */}
-            {stockIndicator && showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
-              <div className="flex items-center gap-2 text-sm text-orange-600 mb-4">
-                <Package className="h-4 w-4" />
-                <span className="font-medium">Bijna uitverkocht! Bestel snel.</span>
-              </div>
+                {product.has_variants && !allOptionsSelected && (
+                  <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
+                )}
+
+                {/* Stock Status - respects stock_indicator setting */}
+                {stockIndicator && (
+                  <div className="flex items-center gap-2 mb-6">
+                    {inStock ? (
+                      <>
+                        <Check className="h-5 w-5 text-green-600" />
+                        <span className="text-green-600 font-medium">
+                          Op voorraad
+                          {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
+                            <span className="ml-1">— Nog {stockCount} stuks</span>
+                          )}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-destructive font-medium">Uitverkocht</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Low stock urgency */}
+                {stockIndicator && showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
+                  <div className="flex items-center gap-2 text-sm text-orange-600 mb-4">
+                    <Package className="h-4 w-4" />
+                    <span className="font-medium">Bijna uitverkocht! Bestel snel.</span>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Description */}
@@ -348,7 +365,7 @@ export default function ShopProductDetail() {
               />
             )}
 
-            {(selectedVariant?.sku || product.sku) && (
+            {product.product_type !== 'gift_card' && (selectedVariant?.sku || product.sku) && (
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">SKU:</span> {selectedVariant?.sku || product.sku}
               </p>
