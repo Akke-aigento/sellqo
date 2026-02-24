@@ -309,25 +309,26 @@ export default function ShopCheckout() {
         },
       });
       if (error) throw error;
-      if (data?.valid) {
+      const result = data?.data || data;
+      if (result?.valid) {
         let calcAmount = 0;
-        if (data.discount_type === 'percentage') {
-          calcAmount = Math.round(subtotal * (data.discount_value / 100) * 100) / 100;
+        if (result.discount_type === 'percentage') {
+          calcAmount = Math.round(subtotal * (result.discount_value / 100) * 100) / 100;
         } else {
-          calcAmount = Math.min(data.discount_value, subtotal);
+          calcAmount = Math.min(result.discount_value, subtotal);
         }
         applyDiscountCode({
           code,
-          discount_type: data.discount_type,
-          discount_value: data.discount_value,
-          applies_to: data.applies_to,
-          description: data.description,
+          discount_type: result.discount_type,
+          discount_value: result.discount_value,
+          applies_to: result.applies_to,
+          description: result.description,
           calculated_amount: calcAmount,
         });
         setDiscountCode('');
         toast.success('Kortingscode toegepast!');
       } else {
-        toast.error(data?.error || 'Ongeldige kortingscode');
+        toast.error(result?.error || 'Ongeldige kortingscode');
       }
     } catch {
       toast.error('Er ging iets mis bij het valideren van de kortingscode');
@@ -464,24 +465,10 @@ export default function ShopCheckout() {
     handlePayment(paymentMethod);
   };
 
-  // Order summary component (reused in sidebar + mobile)
-  const OrderSummaryContent = ({ compact = false }: { compact?: boolean }) => (
+  // Discount code section (rendered outside OrderSummaryContent to prevent focus loss)
+  const DiscountCodeSection = () => (
     <>
-      {!compact && (
-        <div className="space-y-3 mb-4">
-          {cartItems.map(item => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span className="text-muted-foreground truncate mr-2">
-                {item.quantity}x {item.name}
-              </span>
-              <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Discount code input */}
-      {!compact && !appliedDiscount && (
+      {!appliedDiscount ? (
         <div className="flex gap-2 mb-4">
           <Input
             value={discountCode}
@@ -498,9 +485,7 @@ export default function ShopCheckout() {
             {applyingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Toepassen'}
           </Button>
         </div>
-      )}
-
-      {!compact && appliedDiscount && (
+      ) : (
         <div className="flex items-center justify-between gap-2 mb-4 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
           <div className="flex items-center gap-2 min-w-0">
             <Tag className="h-4 w-4 text-green-600 shrink-0" />
@@ -513,6 +498,26 @@ export default function ShopCheckout() {
           </Button>
         </div>
       )}
+    </>
+  );
+
+  // Order summary component (reused in sidebar + mobile)
+  const OrderSummaryContent = ({ compact = false }: { compact?: boolean }) => (
+    <>
+      {!compact && (
+        <div className="space-y-3 mb-4">
+          {cartItems.map(item => (
+            <div key={item.id} className="flex justify-between text-sm">
+              <span className="text-muted-foreground truncate mr-2">
+                {item.quantity}x {item.name}
+              </span>
+              <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!compact && <DiscountCodeSection />}
 
       {!compact && <Separator className="my-4" />}
 
