@@ -255,6 +255,9 @@ export default function ProductsPage() {
 
   // Stock badge color
   const getStockBadge = (product: Product) => {
+    if (!product.track_inventory) {
+      return <Badge variant="secondary">∞</Badge>;
+    }
     if (product.stock === 0) {
       return <Badge variant="destructive">Uitverkocht</Badge>;
     }
