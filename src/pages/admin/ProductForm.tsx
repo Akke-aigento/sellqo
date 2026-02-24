@@ -42,7 +42,7 @@ import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
-import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
+import { giftCardTemplates, GiftCardTemplatePreview } from '@/components/shared/GiftCardTemplates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -142,7 +142,7 @@ export default function ProductForm() {
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
-  const { data: giftCardDesigns = [] } = useGiftCardDesigns();
+  
   const { primaryKeywords: seoKeywords } = useSEOKeywords();
   
   const [tagsInput, setTagsInput] = useState('');
@@ -1006,37 +1006,23 @@ export default function ProductForm() {
                           </div>
                         )}
 
-                        <FormField control={form.control} name="gift_card_design_id" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Standaard ontwerp</FormLabel>
-                            <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Selecteer een ontwerp" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="none">Geen standaard ontwerp</SelectItem>
-                                {giftCardDesigns.filter(d => d.is_active).map((design) => (
-                                  <SelectItem key={design.id} value={design.id}>{design.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>Klanten kunnen bij aankoop ook een ander ontwerp kiezen</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="gift_card_expiry_months" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Geldigheid (maanden)</FormLabel>
-                            <FormControl><Input {...field} type="number" min="1" placeholder="Onbeperkt geldig" value={field.value ?? ''} /></FormControl>
-                            <FormDescription>Laat leeg voor onbeperkte geldigheid</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <Button type="button" variant="outline" size="sm" asChild className="mt-2">
-                          <Link to="/admin/promotions/gift-card-designs">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Ontwerpen beheren
-                          </Link>
-                        </Button>
+                        <div className="space-y-3">
+                          <Label>Standaard ontwerp</Label>
+                          <p className="text-sm text-muted-foreground">Kies een template die klanten standaard zien. Zij kunnen bij aankoop ook een ander ontwerp kiezen.</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {giftCardTemplates.map((template) => (
+                              <GiftCardTemplatePreview
+                                key={template.id}
+                                template={template}
+                                selected={form.watch('gift_card_design_id') === template.id}
+                                onClick={() => form.setValue('gift_card_design_id', template.id)}
+                                amount={25}
+                                storeName={currentTenant?.name || 'Uw winkel'}
+                                compact
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
