@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { 
   Plus, 
@@ -93,9 +94,27 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Filter products
+  // Fetch product_categories for category filtering
+  const [productCategoryMap, setProductCategoryMap] = useState<Record<string, string[]>>({});
+  
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('product_categories')
+        .select('product_id, category_id');
+      if (data) {
+        const map: Record<string, string[]> = {};
+        for (const row of data) {
+          if (!map[row.product_id]) map[row.product_id] = [];
+          map[row.product_id].push(row.category_id);
+        }
+        setProductCategoryMap(map);
+      }
+    })();
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
-      // Search filter
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesSearch = 
@@ -105,29 +124,30 @@ export default function ProductsPage() {
         if (!matchesSearch) return false;
       }
 
-      // Status filter
       if (statusFilter === 'active' && !product.is_active) return false;
       if (statusFilter === 'inactive' && product.is_active) return false;
 
-      // Visibility filter
       const hideFromStorefront = (product as any).hide_from_storefront || false;
       if (visibilityFilter === 'online' && (hideFromStorefront || !product.is_active)) return false;
       if (visibilityFilter === 'store_only' && (!hideFromStorefront || !product.is_active)) return false;
       if (visibilityFilter === 'hidden' && product.is_active) return false;
 
-      // Stock filter - products without inventory tracking are always "in stock"
       const trackInventory = (product as any).track_inventory !== false;
       const effectivelyInStock = !trackInventory || product.stock > 0;
       if (stockFilter === 'out_of_stock' && effectivelyInStock) return false;
       if (stockFilter === 'low_stock' && (!trackInventory || product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
       if (stockFilter === 'in_stock' && !effectivelyInStock) return false;
 
-      // Category filter
-      if (categoryFilter !== 'all' && product.category_id !== categoryFilter) return false;
+      // Category filter - check via product_categories map (multi-category aware)
+      if (categoryFilter !== 'all') {
+        const cats = productCategoryMap[product.id] || [];
+        // Fallback to product.category_id for products not yet in junction table
+        if (!cats.includes(categoryFilter) && product.category_id !== categoryFilter) return false;
+      }
 
       return true;
     });
-  }, [products, search, statusFilter, visibilityFilter, stockFilter, categoryFilter]);
+  }, [products, search, statusFilter, visibilityFilter, stockFilter, categoryFilter, productCategoryMap]);
 
   // Selection handlers
   const toggleSelectAll = () => {
@@ -226,9 +246,28 @@ export default function ProductsPage() {
       });
     }
     
+    // Bulk category add/remove via product_categories junction table
+    if (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) {
+      for (const productId of ids) {
+        for (const catId of state.category_ids_to_add) {
+          await (supabase as any)
+            .from('product_categories')
+            .upsert({ product_id: productId, category_id: catId, is_primary: false, sort_order: 0 }, { onConflict: 'product_id,category_id' });
+        }
+      }
+    }
+    if (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length) {
+      for (const productId of ids) {
+        await (supabase as any)
+          .from('product_categories')
+          .delete()
+          .eq('product_id', productId)
+          .in('category_id', state.category_ids_to_remove);
+      }
+    }
+
     // Simple field updates via bulkUpdateProducts
     const simpleUpdates: Record<string, any> = {};
-    if (enabledFields.has('category_id')) simpleUpdates.category_id = state.category_id;
     if (enabledFields.has('vat_rate_id')) simpleUpdates.vat_rate_id = state.vat_rate_id;
     if (enabledFields.has('product_type')) simpleUpdates.product_type = state.product_type;
     if (enabledFields.has('is_active')) simpleUpdates.is_active = state.is_active;

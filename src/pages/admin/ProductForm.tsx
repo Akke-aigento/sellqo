@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { useProductCategories } from '@/hooks/useProductCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
@@ -69,7 +70,9 @@ import {
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronRight } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
@@ -135,6 +138,7 @@ export default function ProductForm() {
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { createProduct, updateProduct } = useProducts();
   const { categories } = useCategories();
+  const { categoryIds: savedCategoryIds, primaryCategoryId: savedPrimaryCategoryId, syncCategories } = useProductCategories(id);
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
@@ -146,6 +150,9 @@ export default function ProductForm() {
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [denominationInput, setDenominationInput] = useState('');
   const [descOpen, setDescOpen] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(null);
+  const [categoriesInitialized, setCategoriesInitialized] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -232,11 +239,18 @@ export default function ProductForm() {
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
 
+  // Initialize selected categories from saved data
+  if (isEditing && savedCategoryIds.length > 0 && !categoriesInitialized) {
+    setSelectedCategoryIds(savedCategoryIds);
+    setPrimaryCategoryId(savedPrimaryCategoryId);
+    setCategoriesInitialized(true);
+  }
+
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
     short_description: form.watch('short_description'),
     description: form.watch('description'),
-    category_name: categories?.find(c => c.id === form.watch('category_id'))?.name,
+    category_name: categories?.find(c => c.id === (primaryCategoryId || selectedCategoryIds[0]))?.name,
     price: form.watch('price'),
     weight: form.watch('weight'),
     tags: form.watch('tags'),
@@ -362,16 +376,31 @@ export default function ProductForm() {
   };
 
   const onSubmit = async (data: FormValues) => {
+    // Set primary category_id for backward compatibility
+    const effectivePrimary = primaryCategoryId && selectedCategoryIds.includes(primaryCategoryId)
+      ? primaryCategoryId
+      : selectedCategoryIds[0] || null;
+
     const submitData = {
       ...data,
-      category_id: data.category_id || null,
+      category_id: effectivePrimary,
       sku: data.sku?.trim() || null,
       barcode: data.barcode?.trim() || null,
     };
+    let productId = id;
     if (isEditing && id) {
       await updateProduct.mutateAsync({ id, data: submitData });
     } else {
-      await createProduct.mutateAsync(submitData as any);
+      const created = await createProduct.mutateAsync(submitData as any);
+      productId = created.id;
+    }
+    // Sync multi-categories
+    if (productId) {
+      await syncCategories.mutateAsync({
+        productId,
+        categoryIds: selectedCategoryIds,
+        primaryCategoryId: effectivePrimary,
+      });
     }
     navigate('/admin/products');
   };
@@ -1077,21 +1106,94 @@ export default function ProductForm() {
                       <CardTitle>Organisatie</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <FormField control={form.control} name="category_id" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categorie</FormLabel>
-                          <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Selecteer categorie" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value="none">Geen categorie</SelectItem>
-                              {categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                      {/* Multi-category selector */}
+                      <div className="space-y-2">
+                        <Label>Categorieën</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-between font-normal">
+                              {selectedCategoryIds.length === 0
+                                ? 'Selecteer categorieën...'
+                                : `${selectedCategoryIds.length} ${selectedCategoryIds.length === 1 ? 'categorie' : 'categorieën'} geselecteerd`}
+                              <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                              {categories.map((cat) => {
+                                const isSelected = selectedCategoryIds.includes(cat.id);
+                                const isPrimary = primaryCategoryId === cat.id;
+                                return (
+                                  <div key={cat.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          const newIds = [...selectedCategoryIds, cat.id];
+                                          setSelectedCategoryIds(newIds);
+                                          if (newIds.length === 1) setPrimaryCategoryId(cat.id);
+                                        } else {
+                                          const newIds = selectedCategoryIds.filter(id => id !== cat.id);
+                                          setSelectedCategoryIds(newIds);
+                                          if (isPrimary) setPrimaryCategoryId(newIds[0] || null);
+                                        }
+                                      }}
+                                    />
+                                    <span className="flex-1 text-sm">{cat.name}</span>
+                                    {isSelected && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPrimaryCategoryId(cat.id);
+                                        }}
+                                        className={cn(
+                                          "text-xs px-1.5 py-0.5 rounded",
+                                          isPrimary
+                                            ? "bg-primary text-primary-foreground"
+                                            : "bg-muted text-muted-foreground hover:bg-accent"
+                                        )}
+                                      >
+                                        {isPrimary ? 'Primair' : 'Maak primair'}
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {categories.length === 0 && (
+                                <p className="text-sm text-muted-foreground p-2">Geen categorieën beschikbaar</p>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {/* Selected categories display */}
+                        {selectedCategoryIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {selectedCategoryIds.map(catId => {
+                              const cat = categories.find(c => c.id === catId);
+                              if (!cat) return null;
+                              const isPrimary = primaryCategoryId === catId;
+                              return (
+                                <Badge key={catId} variant={isPrimary ? "default" : "secondary"} className="gap-1">
+                                  {isPrimary && <Star className="h-3 w-3" />}
+                                  {cat.name}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newIds = selectedCategoryIds.filter(id => id !== catId);
+                                      setSelectedCategoryIds(newIds);
+                                      if (isPrimary) setPrimaryCategoryId(newIds[0] || null);
+                                    }}
+                                    className="ml-0.5 hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <div className="space-y-2">
                         <Label>Tags</Label>
                         <div className="flex gap-2">
