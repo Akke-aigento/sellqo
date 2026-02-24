@@ -1,115 +1,84 @@
 
-
-## Cadeaukaart ontwerpen: Ingebouwde templates met dynamische data
+## Logo integratie in cadeaukaart-ontwerpen + downloadbare productfoto
 
 ### Overzicht
 
-In plaats van een aparte pagina waar tenants ontwerpen uploaden (die nu 404 geeft), bouwen we een systeem van **ingebouwde SellQo-templates** die automatisch gevuld worden met de juiste gegevens (naam, bedrag, code, bericht, winkelnaam). Dit werkt op twee niveaus:
-
-1. **Admin** kiest een standaard template (visuele preview inline in het productformulier)
-2. **Klant** kan bij aankoop zelf een template kiezen uit de actieve ontwerpen (nieuw stap in de koopflow)
-
----
-
-### De templates
-
-Zes ingebouwde visuele templates, elk met een eigen kleurstijl en sfeer:
-
-| Template ID | Naam | Stijl |
-|---|---|---|
-| `elegant` | Elegant | Donkere achtergrond, goudkleurige accenten |
-| `modern` | Modern | Strak wit, primaire kleur van de winkel |
-| `festive` | Feestelijk | Warme kleuren, confetti-achtige accenten |
-| `botanical` | Botanisch | Zachte groentinten, organische vormen |
-| `minimal` | Minimalistisch | Zwart-wit, typografisch |
-| `gradient` | Kleurrijk | Gradient achtergrond op basis van merkkleur |
-
-Elke template is een React component (`GiftCardTemplatePreview`) die de volgende placeholders dynamisch rendert:
-- Winkelnaam (uit tenant settings)
-- Bedrag
-- Ontvangernaam
-- Persoonlijk bericht
-- Cadeaukaartcode
-- Geldigheidsdatum
+Twee verbeteringen:
+1. **Tenant logo** tonen op alle cadeaukaart-templates (zowel preview, storefront als e-mail)
+2. **Download-knop** in de admin om het gerenderde ontwerp als PNG op te slaan, zodat het als productfoto of categorie-afbeelding gebruikt kan worden
 
 ---
 
-### Wijzigingen
+### Deel 1: Logo toevoegen aan templates
 
-#### 1. Nieuw bestand: `src/components/shared/GiftCardTemplates.tsx`
+**Bestand: `src/components/shared/GiftCardTemplates.tsx`**
 
-Definieert de template-configuraties en een visuele preview-component:
+- Nieuwe prop `logoUrl?: string` toevoegen aan zowel `GiftCardTemplatePreview` als `GiftCardTemplateRenderer`
+- In de templates het logo renderen boven of naast de winkelnaam:
+  - Bij compact (preview): klein logo (24x24px) naast de winkelnaam
+  - Bij full renderer: groter logo (40-48px) boven de winkelnaam
+  - Logo krijgt `object-contain` styling en een lichte achtergrond/padding bij donkere templates (elegant, gradient, festive) voor contrast
+  - Als er geen logo is, wordt alleen de winkelnaam getoond (huidige gedrag)
 
-- Array `giftCardTemplates` met id, naam, beschrijving, kleuren
-- Component `GiftCardTemplatePreview` die een mini-kaartweergave rendert als visuele selector
-- Component `GiftCardTemplateRenderer` die de volledige kaart rendert met dynamische data (voor e-mail en storefront preview)
+**Bestand: `supabase/functions/send-gift-card-email/index.ts`**
 
-#### 2. Admin ProductForm (`src/pages/admin/ProductForm.tsx`)
-
-- **Verwijder** de broken link naar `/admin/promotions/gift-card-designs`
-- **Vervang** de `gift_card_design_id` dropdown door een visueel template-grid
-  - 3 kolommen met clickbare kaartpreviews
-  - Geselecteerde template met een duidelijke rand/check
-  - Het veld `gift_card_design_id` slaat nu een template-ID op (string zoals `elegant`, `modern`, etc.) in plaats van een UUID
-- De tenant kiest hier het **standaard** template; klanten kunnen een ander kiezen
-
-#### 3. Storefront GiftCardPurchaseForm (`src/components/storefront/GiftCardPurchaseForm.tsx`)
-
-Voeg een **ontwerpkeuze** toe aan stap 1 (samengevoegd met bedragkeuze), of als aparte substap:
-
-- Na het kiezen van het bedrag verschijnt een grid van beschikbare templates
-- Elke template toont een mini-preview met het gekozen bedrag erin
-- Standaard is het template dat de tenant in de admin heeft ingesteld voorgeselecteerd
-- De gekozen template-ID wordt meegestuurd als `designId` in de cart metadata
-
-De stap-indicator wordt:
-1. **Bedrag en ontwerp** (samengevoegd)
-2. **Ontvanger**
-3. **Bevestiging** (nu ook met een preview van de gekozen template)
-
-#### 4. Edge Function (`supabase/functions/process-gift-card-order/index.ts`)
-
-- Het `design_id` veld bevat nu een template-ID string (bijv. `elegant`)
-- Bij het genereren van de e-mail wordt de template-stijl gebruikt om een mooie HTML e-mail te renderen met de juiste kleuren, layout en dynamische data
-
-#### 5. Opruimen
-
-- De route naar `GiftCardDesigns` pagina hoeft niet aangemaakt te worden (die was nooit geregistreerd)
-- De `gift_card_designs` tabel en bijbehorende hooks (`useGiftCardDesigns`) blijven bestaan maar worden niet meer actief gebruikt voor de koopflow; ze kunnen later dienen voor custom tenant-uploads als premium feature
-- De `GiftCardDesignDialog` component wordt niet gewijzigd (blijft beschikbaar voor eventueel later gebruik)
+- Het tenant logo (`tenant.logo_url`) opnemen in de e-mail HTML als `<img>` tag in de header van de kaart, boven de winkelnaam
+- Fallback: als er geen logo is, alleen tekst tonen
 
 ---
 
-### Technische details
+### Deel 2: Logo doorlussen naar componenten
 
-**GiftCardTemplatePreview component:**
-- Puur CSS-gebaseerd (geen afbeeldingen nodig)
-- Gebruikt CSS gradients, borders en typografie om unieke stijlen te creeren
-- Schaalt mee met de merkkleur van de tenant via de `themeSettings.primary_color` of brand_color
-- Responsief: past zich aan in zowel admin als storefront contexten
+**Bestand: `src/pages/admin/ProductForm.tsx`**
 
-**Data flow:**
-```text
-Admin kiest template "elegant" 
-  -> product.gift_card_design_id = "elegant"
-Klant koopt cadeaukaart, kiest "festive"
-  -> cart.giftCard.designId = "festive" (override)
-Checkout -> order_items.gift_card_metadata.designId = "festive"
-Edge function -> rendert e-mail met "festive" template + dynamische data
-```
+- `currentTenant?.logo_url` doorsturen naar de `GiftCardTemplatePreview` componenten in het admin template-grid
 
-**Bestanden die gewijzigd/aangemaakt worden:**
+**Bestand: `src/components/storefront/GiftCardPurchaseForm.tsx`**
 
-| Bestand | Actie |
+- Nieuwe prop `logoUrl` accepteren (of uit themeSettings halen: `themeSettings?.logo_url`)
+- Doorsturen naar `GiftCardTemplatePreview` en `GiftCardTemplateRenderer`
+
+**Bestand: `src/pages/storefront/ShopProductDetail.tsx`**
+
+- `tenant?.logo_url` meegeven aan de `GiftCardPurchaseForm` (of via themeSettings)
+
+---
+
+### Deel 3: Downloadbaar als productfoto (admin)
+
+**Bestand: `src/pages/admin/ProductForm.tsx`**
+
+- Onder het template-grid een "Download als afbeelding" knop toevoegen
+- Deze knop rendert het geselecteerde template op een verborgen `<canvas>` via `html2canvas` (of een vergelijkbare aanpak met een hidden div + `html-to-image`)
+- De gegenereerde PNG kan als productfoto worden gedownload of direct geupload naar de product-images
+
+Technische aanpak (zonder extra dependency):
+- Een verborgen `div` (ref) renderen met de `GiftCardTemplateRenderer` op vaste afmetingen (bijv. 800x500px)
+- De bestaande `canvas-confetti` package bevat geen html-to-image logica, dus we gebruiken de **native** `html2canvas` aanpak:
+  - Installeer `html-to-image` (lichtgewicht, ~5KB) OF gebruik een pure Canvas API benadering
+  - `html-to-image` is het eenvoudigst: `toPng(element)` geeft een data-URL die als bestand opgeslagen kan worden
+
+**Flow:**
+1. Admin klikt "Download als productfoto"
+2. Hidden div wordt gerenderd met het volledige template (logo + winkelnaam + voorbeeld bedrag)
+3. `toPng()` converteert naar PNG data URL
+4. Bestand wordt gedownload via een `<a>` tag met `download` attribuut
+5. Optioneel: knop "Instellen als productfoto" uploadt de PNG direct naar de product-images bucket
+
+---
+
+### Samenvatting wijzigingen
+
+| Bestand | Wijziging |
 |---|---|
-| `src/components/shared/GiftCardTemplates.tsx` | Nieuw - template definities en preview components |
-| `src/pages/admin/ProductForm.tsx` | Wijzig - visueel template-grid i.p.v. dropdown + broken link verwijderen |
-| `src/components/storefront/GiftCardPurchaseForm.tsx` | Wijzig - ontwerpkeuze toevoegen aan stap 1 |
-| `supabase/functions/process-gift-card-order/index.ts` | Wijzig - template-gebaseerde e-mail rendering |
+| `src/components/shared/GiftCardTemplates.tsx` | `logoUrl` prop toevoegen aan Preview en Renderer, logo weergeven |
+| `src/pages/admin/ProductForm.tsx` | Logo doorsturen, download-knop + hidden render div toevoegen |
+| `src/components/storefront/GiftCardPurchaseForm.tsx` | Logo prop accepteren en doorsturen |
+| `src/pages/storefront/ShopProductDetail.tsx` | `tenant?.logo_url` meegeven |
+| `supabase/functions/send-gift-card-email/index.ts` | Logo in e-mail header opnemen |
+| `package.json` | `html-to-image` dependency toevoegen |
 
 ### Resultaat
-- Geen 404 meer: de broken link verdwijnt en wordt vervangen door een inline template picker
-- Tenants kiezen uit professionele, vooraf ontworpen templates zonder iets te hoeven uploaden
-- Klanten zien een visueel aantrekkelijke ontwerpkeuze bij aankoop met live preview van het bedrag
-- E-mails worden automatisch gegenereerd met het gekozen template en alle dynamische gegevens
-- Templates passen zich aan de merkkleur van de winkel aan voor een consistente uitstraling
+- Elk cadeaukaart-ontwerp toont het logo van de winkel, zowel in previews, storefront als in de e-mail
+- Admins kunnen het ontwerp downloaden als PNG om te gebruiken als productfoto of categorie-afbeelding
+- Het gedownloade ontwerp bevat het logo, de winkelnaam en een voorbeeldbedrag -- klaar om overal te gebruiken
