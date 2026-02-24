@@ -234,8 +234,15 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
         .eq('is_active', true)
         .eq('hide_from_storefront', false);
 
+      // If filtering by category, find product IDs via product_categories junction table
       if (options?.categoryId) {
-        query = query.eq('category_id', options.categoryId);
+        const { data: pcRows } = await (supabase as any)
+          .from('product_categories')
+          .select('product_id')
+          .eq('category_id', options.categoryId);
+        const productIdsForCategory = (pcRows || []).map((r: any) => r.product_id) as string[];
+        if (productIdsForCategory.length === 0) return [];
+        query = query.in('id', productIdsForCategory);
       }
       if (options?.search) {
         query = query.ilike('name', `%${options.search}%`);

@@ -3,6 +3,8 @@ import type { ProductType } from '@/types/product';
 export interface BulkEditState {
   // Basis
   category_id?: string | null;
+  category_ids_to_add?: string[];
+  category_ids_to_remove?: string[];
   vat_rate_id?: string | null;
   product_type?: ProductType;
   
