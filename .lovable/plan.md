@@ -1,35 +1,79 @@
 
+## Fix: Variant-selectie layout en data-structuur
 
-## Fix: Producten zonder voorraadregistratie tonen als "Uitverkocht"
+### Het probleem (wat je ziet in de screenshot)
 
-### Probleem
-Wanneer een product `track_inventory = false` heeft (voorraad wordt niet bijgehouden), wordt het toch als "Uitverkocht" getoond als `stock = 0`. Dit is fout -- zulke producten moeten altijd als "op voorraad" worden behandeld.
+De variant-opties zijn **verkeerd opgeslagen** in de database. In plaats van:
 
-### Wat al goed werkt
-De webshop-pagina's (productoverzicht, productdetail, quick view) berekenen `in_stock` al correct:
-```
-in_stock = !product.track_inventory || product.stock > 0
+```text
+Option: "Maat" -> values: ["XS", "S", "M", "L", "XL"]
 ```
 
-### Wat gerepareerd moet worden
+Staat er nu **5 losse opties**, elk met 1 waarde:
 
-**1. Google Product Feed** (`supabase/functions/generate-product-feed/index.ts`, regel 157)
-
-Nu:
-```
-product.stock > 0 ? 'in_stock' : 'out_of_stock'
-```
-Wordt:
-```
-(!product.track_inventory || product.stock > 0) ? 'in_stock' : 'out_of_stock'
+```text
+Option: "XS" -> values: ["Extra Small"]
+Option: "S"  -> values: ["Small"]
+Option: "M"  -> values: ["Medium"]
+...
 ```
 
-**2. Admin voorraadfilter** (`src/pages/admin/Products.tsx`, regels 119-121)
+En er is maar **1 variant** met alle maten tegelijk als attribute_values, in plaats van 5 aparte varianten (1 per maat). Daardoor:
+- Elk formaat krijgt zijn eigen label + knop (de kapotte layout die je ziet)
+- De "Add to Cart"-knop stuurt altijd dezelfde variant door, ongeacht welke "maat" je aanklikt
+- De voorraad is niet per maat bij te houden
 
-Nu filtert het puur op `stock`-waarde. Producten zonder voorraadregistratie moeten:
-- Altijd door het `in_stock` filter komen
-- Nooit verschijnen bij `out_of_stock` of `low_stock`
+### De oplossing (2 onderdelen)
+
+**Deel 1 -- Data repareren (eenmalig, voor dit product)**
+
+Via een database-migratie de bestaande foutieve data corrigeren:
+- De 5 losse opties verwijderen
+- 1 nieuwe optie aanmaken: `name: "Maat"`, `values: ["XS", "S", "M", "L", "XL"]`
+- De 1 samengestelde variant verwijderen
+- 5 aparte varianten aanmaken: elk met `attribute_values: { "Maat": "XS" }` etc.
+
+**Deel 2 -- Voorraadlogica koppelen aan variant-selectie**
+
+In `ShopProductDetail.tsx`:
+- De `inStock`-check voor varianten correct berekenen: `!variant.track_inventory || variant.stock > 0`
+- De hoeveelheid-selector (quantity +/-) begrenzen op de geselecteerde variant-voorraad
+- De quantity resetten naar 1 wanneer een andere variant wordt geselecteerd
+- Uitverkochte variant-waarden visueel markeren (disabled/doorgestreept) in de VariantSelector
+
+In `VariantSelector.tsx`:
+- Een optioneel `variants`-prop toevoegen zodat de selector weet welke waarden uitverkocht zijn
+- Uitverkochte opties tonen met een visuele indicatie (bijv. doorgestreepte tekst, grijze knop) maar nog steeds klikbaar met een tooltip "Uitverkocht"
+
+### Technische details
+
+**Database migratie** -- Data corrigeren voor het specifieke product "Sweater Oversized - Loveke Classic":
+- DELETE de 5 foutieve `product_variant_options` records
+- INSERT 1 correcte optie met `name: 'Maat'` en `values: ['XS','S','M','L','XL']`
+- DELETE de 1 foutieve variant
+- INSERT 5 correcte varianten met individuele `attribute_values`
+
+**Bestand 1: `src/components/storefront/VariantSelector.tsx`**
+- `variants` prop toevoegen (optioneel, array van varianten)
+- Per optie-waarde checken of er een matching variant is en of die op voorraad is
+- Uitverkochte waarden visueel markeren maar niet uitschakelen (klant kan nog steeds kiezen)
+
+**Bestand 2: `src/pages/storefront/ShopProductDetail.tsx`**
+- `variants` doorgeven aan de VariantSelector component
+- `inStock` voor varianten berekenen met track_inventory logica: `!selectedVariant.track_inventory || selectedVariant.stock > 0`
+- Quantity resetten naar 1 bij variant-wissel
+- Quantity maximum begrenzen op basis van geselecteerde variant stock (al deels aanwezig, maar variant.stock wordt niet correct uitgelezen)
+
+### Resultaat
+
+```text
+Maat — XS
+[ XS ] [ S ] [ M ] [ L ] [ XL ]
+                                    (uitverkocht = doorgestreept/grijs)
+
+Aantal: [  -  ]  1  [  +  ]    [ Toevoegen aan winkelwagen ]
+```
 
 ### Scope
-- 2 bestanden aangepast
-- Geen database-wijzigingen nodig
+- 1 database migratie (data fix voor het betreffende product)
+- 2 bestanden aangepast (VariantSelector + ShopProductDetail)
