@@ -12,6 +12,8 @@ import {
   Lock,
   EyeOff,
 } from 'lucide-react';
+import { CustomFrontendConfigPanel } from './CustomFrontendConfigPanel';
+import { CustomFrontendConfig, DEFAULT_CUSTOM_FRONTEND_CONFIG } from '@/types/custom-frontend-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +47,7 @@ export function StorefrontSettings() {
     custom_head_scripts: '',
     storefront_status: 'online' as string,
     storefront_password: '',
+    custom_frontend_config: DEFAULT_CUSTOM_FRONTEND_CONFIG as CustomFrontendConfig,
   });
 
   useEffect(() => {
@@ -56,6 +59,9 @@ export function StorefrontSettings() {
         custom_head_scripts: themeSettings.custom_head_scripts || '',
         storefront_status: ts.storefront_status || 'online',
         storefront_password: ts.storefront_password || '',
+        custom_frontend_config: ts.custom_frontend_config 
+          ? { ...DEFAULT_CUSTOM_FRONTEND_CONFIG, ...ts.custom_frontend_config }
+          : DEFAULT_CUSTOM_FRONTEND_CONFIG,
       });
     }
   }, [themeSettings]);
@@ -224,88 +230,16 @@ export function StorefrontSettings() {
               onCheckedChange={(checked) => setFormData({ ...formData, use_custom_frontend: checked })}
             />
           </div>
-
-          {formData.use_custom_frontend && (
-            <div className="space-y-4 pl-4 border-l-2">
-              <div className="space-y-2">
-                <Label>Custom Frontend URL</Label>
-                <Input
-                  value={formData.custom_frontend_url}
-                  onChange={(e) => setFormData({ ...formData, custom_frontend_url: e.target.value })}
-                  placeholder="https://mijn-custom-shop.lovable.app"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Je domeinen serveren deze URL — klanten zien alleen hun eigen domein
-                </p>
-              </div>
-
-              {activeDomains.length === 0 && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Koppel een eigen domein</AlertTitle>
-                  <AlertDescription>
-                    Zonder eigen domein zien klanten de technische URL. Koppel een domein zodat klanten altijd je eigen domeinnaam zien.
-                    <Button variant="link" size="sm" className="px-0 ml-1" asChild>
-                      <a href="/admin/settings?tab=domains">Domein toevoegen →</a>
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {verifiedDomains.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Domeinen die je custom frontend serveren:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {verifiedDomains.map(d => (
-                      <Badge key={d.id} variant="secondary" className="text-xs">
-                        {d.domain}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Alert>
-                <Code className="h-4 w-4" />
-                <AlertTitle>API Toegang</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p>Je custom frontend kan data ophalen via de SellQo API:</p>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs bg-muted px-2 py-1 rounded truncate">
-                        {`${window.location.origin}/api/storefront`}
-                      </code>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => copyToClipboard(`${window.location.origin}/api/storefront`, 'api')}
-                      >
-                        {copied === 'api' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Gebruik de <code className="bg-muted px-1 rounded">resolve_domain</code> actie om automatisch de tenant en locale te detecteren op basis van het domein.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Tenant ID:</span>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        {currentTenant?.id}
-                      </code>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => copyToClipboard(currentTenant?.id || '', 'tenant')}
-                      >
-                        {copied === 'tenant' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Custom Frontend Configuration Panel */}
+      {formData.use_custom_frontend && (
+        <CustomFrontendConfigPanel
+          config={formData.custom_frontend_config}
+          onChange={(newConfig) => setFormData({ ...formData, custom_frontend_config: newConfig })}
+        />
+      )}
 
       {/* Tracking & Scripts */}
       <Card>
