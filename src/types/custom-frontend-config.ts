@@ -1,6 +1,8 @@
 export interface CustomFrontendConfig {
   frontend_url: string;
   webhook_url: string;
+  api_key_hash: string;
+  api_key_prefix: string;
   products: {
     enabled: boolean;
     include_unpublished: boolean;
@@ -100,6 +102,8 @@ export interface CustomFrontendConfig {
 export const DEFAULT_CUSTOM_FRONTEND_CONFIG: CustomFrontendConfig = {
   frontend_url: '',
   webhook_url: '',
+  api_key_hash: '',
+  api_key_prefix: '',
   products: {
     enabled: true,
     include_unpublished: false,
