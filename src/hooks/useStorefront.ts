@@ -158,6 +158,8 @@ export function useStorefront() {
         'brand_color', 'theme_mode', 'theme_style',
         // Storefront visibility
         'storefront_status', 'storefront_password',
+        // Custom frontend config
+        'custom_frontend_config',
       ];
 
       for (const key of allowedFields) {

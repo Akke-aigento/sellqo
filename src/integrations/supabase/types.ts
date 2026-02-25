@@ -10649,6 +10649,47 @@ export type Database = {
           },
         ]
       }
+      storefront_api_keys: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storefront_cart_items: {
         Row: {
           cart_id: string
@@ -10903,6 +10944,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "storefront_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storefront_webhooks: {
+        Row: {
+          created_at: string | null
+          events: string[] | null
+          id: string
+          is_active: boolean | null
+          last_delivery_at: string | null
+          last_delivery_status: number | null
+          secret: string | null
+          tenant_id: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          events?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          last_delivery_at?: string | null
+          last_delivery_status?: number | null
+          secret?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          events?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          last_delivery_at?: string | null
+          last_delivery_status?: number | null
+          secret?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_webhooks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -12279,6 +12367,7 @@ export type Database = {
           cookie_banner_style: string | null
           created_at: string | null
           custom_css: string | null
+          custom_frontend_config: Json | null
           custom_frontend_url: string | null
           custom_head_scripts: string | null
           exit_intent_popup: boolean | null
@@ -12354,6 +12443,7 @@ export type Database = {
           cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
+          custom_frontend_config?: Json | null
           custom_frontend_url?: string | null
           custom_head_scripts?: string | null
           exit_intent_popup?: boolean | null
@@ -12429,6 +12519,7 @@ export type Database = {
           cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
+          custom_frontend_config?: Json | null
           custom_frontend_url?: string | null
           custom_head_scripts?: string | null
           exit_intent_popup?: boolean | null
@@ -13395,6 +13486,54 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_deliveries: {
+        Row: {
+          delivered_at: string | null
+          event: string
+          id: string
+          payload: Json | null
+          response_body: string | null
+          response_status: number | null
+          tenant_id: string
+          webhook_id: string
+        }
+        Insert: {
+          delivered_at?: string | null
+          event: string
+          id?: string
+          payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          tenant_id: string
+          webhook_id: string
+        }
+        Update: {
+          delivered_at?: string | null
+          event?: string
+          id?: string
+          payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          tenant_id?: string
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_webhooks"
             referencedColumns: ["id"]
           },
         ]
