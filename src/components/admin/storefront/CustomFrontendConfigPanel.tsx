@@ -499,7 +499,19 @@ ${endpoints.join('\n\n')}
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Het domein van je custom frontend. Wordt gebruikt voor CORS en webhook verificatie.</p>
+          <p className="text-xs text-muted-foreground">Het domein van je custom frontend. Wordt gebruikt voor CORS en webhook verificatie.</p>
+          </div>
+
+          {/* API Base URL */}
+          <div className="space-y-1.5">
+            <Label>API Base URL</Label>
+            <div className="flex gap-2">
+              <Input value={apiBaseUrl} readOnly className="font-mono text-sm" />
+              <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiBaseUrl, 'api-base-url')}>
+                {copied === 'api-base-url' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">De basis URL voor alle API requests. Gebruik als <code className="bg-muted px-1 rounded">VITE_SELLQO_API_URL</code></p>
           </div>
 
           {/* API Key */}
