@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-api-key, accept-language, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // ============== TYPES ==============
@@ -1458,6 +1458,225 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
   };
 }
 
+// ============== REST HELPERS ==============
+
+function jsonResponse(data: any, status = 200, cacheControl?: string) {
+  const headers: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+  if (cacheControl) headers['Cache-Control'] = cacheControl;
+  else if (status === 200) headers['Cache-Control'] = 'public, max-age=60';
+  else headers['Cache-Control'] = 'no-cache';
+  return new Response(JSON.stringify(data), { status, headers });
+}
+
+function errorResponse(error: string, status = 400, code?: string) {
+  return jsonResponse({ success: false, error, ...(code ? { code } : {}) }, status, 'no-cache');
+}
+
+// ============== API KEY VALIDATION ==============
+
+async function validateApiKey(supabase: any, tenantId: string, apiKey: string): Promise<boolean> {
+  if (!apiKey) return false;
+  const { data: themeSettings } = await supabase
+    .from('tenant_theme_settings')
+    .select('custom_frontend_config')
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  const config = themeSettings?.custom_frontend_config;
+  if (!config?.api_key_hash) return false;
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(apiKey));
+  const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex === config.api_key_hash;
+}
+
+// ============== MODULE CHECK ==============
+
+function isModuleEnabled(config: any, module: string): boolean {
+  if (!config) return true;
+  const moduleConfig = config[module];
+  if (!moduleConfig) return true;
+  if (typeof moduleConfig === 'object' && 'enabled' in moduleConfig) return moduleConfig.enabled;
+  return true;
+}
+
+// ============== NAVIGATION HANDLER ==============
+
+async function getNavigation(supabase: any, tenantId: string, locale?: string) {
+  const { data: ts } = await supabase
+    .from('tenant_theme_settings')
+    .select('show_announcement_bar, announcement_text, announcement_link, primary_color')
+    .eq('tenant_id', tenantId).maybeSingle();
+
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, slug, parent_id, sort_order, hide_from_storefront')
+    .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
+    .order('sort_order', { ascending: true });
+
+  const tMap = locale && categories?.length
+    ? await getTranslations(supabase, tenantId, 'category', categories.map((c: any) => c.id), locale) : {};
+
+  const topLevel = (categories || []).filter((c: any) => !c.parent_id);
+  const children = (categories || []).filter((c: any) => c.parent_id);
+
+  const mainMenu = [
+    { id: 'home', label: 'Home', url: '/', children: [] },
+    { id: 'shop', label: 'Shop', url: '/shop', children: topLevel.map((cat: any) => {
+      const t = tMap[cat.id] || {};
+      const catChildren = children.filter((c: any) => c.parent_id === cat.id).map((c: any) => {
+        const ct = tMap[c.id] || {};
+        return { id: c.id, label: ct.name || c.name, url: `/shop/${c.slug}`, children: [] };
+      });
+      return { id: cat.id, label: t.name || cat.name, url: `/shop/${cat.slug}`, children: catChildren };
+    })},
+  ];
+
+  const { data: pages } = await supabase
+    .from('pages').select('id, title, slug, show_in_nav')
+    .eq('tenant_id', tenantId).eq('is_published', true).order('nav_order', { ascending: true });
+
+  const footerMenu = (pages || []).map((p: any) => ({
+    id: p.id, label: p.title, url: `/${p.slug}`, children: [],
+  }));
+
+  const langField = locale && ['en', 'de', 'fr'].includes(locale) ? locale : 'nl';
+  const { data: legalPages } = await supabase
+    .from('legal_pages')
+    .select(`id, page_type, title_${langField}, is_published`)
+    .eq('tenant_id', tenantId).eq('is_published', true);
+
+  const legalMenuItems = (legalPages || []).map((p: any) => ({
+    id: p.id, label: p[`title_${langField}`] || p.page_type, url: `/legal/${p.page_type}`, children: [],
+  }));
+
+  return {
+    main: mainMenu,
+    footer: [...footerMenu, ...legalMenuItems],
+    announcement: ts?.show_announcement_bar && ts?.announcement_text ? {
+      text: ts.announcement_text, link: ts.announcement_link || null, is_visible: true,
+      background_color: ts.primary_color || '#FF6B35', text_color: '#FFFFFF',
+    } : null,
+  };
+}
+
+// ============== SETTINGS SUB-ENDPOINTS ==============
+
+async function getSettingsSocial(supabase: any, tenantId: string) {
+  const { data: tenant } = await supabase.from('tenants')
+    .select('social_facebook, social_instagram, social_twitter, social_linkedin, social_tiktok, social_youtube')
+    .eq('id', tenantId).single();
+  return {
+    facebook: tenant?.social_facebook || null, instagram: tenant?.social_instagram || null,
+    twitter: tenant?.social_twitter || null, linkedin: tenant?.social_linkedin || null,
+    tiktok: tenant?.social_tiktok || null, youtube: tenant?.social_youtube || null,
+  };
+}
+
+async function getSettingsTrust(supabase: any, tenantId: string) {
+  const { data: ts } = await supabase.from('tenant_theme_settings')
+    .select('cookie_banner_enabled, cookie_banner_style, trust_badges')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return {
+    cookie_banner: { enabled: ts?.cookie_banner_enabled ?? true, style: ts?.cookie_banner_style || 'minimal' },
+    badges: ts?.trust_badges || [], usps: [],
+  };
+}
+
+async function getSettingsConversion(supabase: any, tenantId: string) {
+  const { data: ts } = await supabase.from('tenant_theme_settings')
+    .select('show_stock_count, show_viewers_count, show_recent_purchases, exit_intent_popup')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return {
+    stock_urgency: { enabled: ts?.show_stock_count ?? false, threshold: 5 },
+    recent_purchases: { enabled: ts?.show_recent_purchases ?? false },
+    free_shipping_bar: { enabled: true, threshold: 50, currency: 'EUR' },
+  };
+}
+
+async function getSettingsCheckout(supabase: any, tenantId: string) {
+  const { data: ts } = await supabase.from('tenant_theme_settings')
+    .select('checkout_guest_enabled, checkout_phone_required, checkout_company_field, checkout_address_autocomplete')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return {
+    mode: 'hosted', guest_checkout: ts?.checkout_guest_enabled ?? true,
+    phone_required: ts?.checkout_phone_required ?? false,
+    company_field: ts?.checkout_company_field || 'optional',
+    address_autocomplete: ts?.checkout_address_autocomplete ?? true,
+  };
+}
+
+async function getSettingsLanguages(supabase: any, tenantId: string) {
+  const [{ data: tenant }, { data: domains }] = await Promise.all([
+    supabase.from('tenants').select('default_language').eq('id', tenantId).single(),
+    supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', tenantId).eq('is_active', true),
+  ]);
+  const languages = [...new Set((domains || []).map((d: any) => d.locale).filter(Boolean))];
+  const names: Record<string, string> = { nl: 'Nederlands', en: 'English', de: 'Deutsch', fr: 'Français', es: 'Español' };
+  return {
+    available: languages.map((code: string) => ({ code, name: names[code] || code })),
+    default: tenant?.default_language || 'nl',
+  };
+}
+
+// ============== PRODUCT REVIEWS BY SLUG ==============
+
+async function getProductReviews(supabase: any, tenantId: string, slug: string) {
+  const { data: product } = await supabase.from('products').select('id')
+    .eq('tenant_id', tenantId).eq('slug', slug).eq('is_active', true).maybeSingle();
+  if (!product) throw new Error('Product not found');
+
+  const { data: reviews } = await supabase.from('external_reviews')
+    .select('id, reviewer_name, rating, review_text, created_at, platform')
+    .eq('tenant_id', tenantId).eq('product_id', product.id).eq('is_visible', true)
+    .order('created_at', { ascending: false }).limit(50);
+
+  const items = reviews || [];
+  const avgRating = items.length ? items.reduce((s: number, r: any) => s + r.rating, 0) / items.length : null;
+  const distribution: Record<string, number> = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+  for (const r of items) { const key = String(Math.round(r.rating)); if (distribution[key] !== undefined) distribution[key]++; }
+
+  return { reviews: items, summary: { average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null, total_count: items.length, distribution } };
+}
+
+// ============== RELATED PRODUCTS BY SLUG ==============
+
+async function getRelatedProducts(supabase: any, tenantId: string, slug: string, limit: number, locale?: string) {
+  const { data: product } = await supabase.from('products').select('id, category_id')
+    .eq('tenant_id', tenantId).eq('slug', slug).eq('is_active', true).maybeSingle();
+  if (!product || !product.category_id) return [];
+
+  const { data: related } = await supabase.from('products')
+    .select('id, name, slug, price, compare_at_price, images')
+    .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
+    .eq('category_id', product.category_id).neq('id', product.id).limit(limit);
+
+  const tMap = locale && related?.length ? await getTranslations(supabase, tenantId, 'product', related.map((r: any) => r.id), locale) : {};
+  return (related || []).map((r: any) => {
+    const t = tMap[r.id] || {};
+    return { id: r.id, name: t.name || r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.images?.[0] || null };
+  });
+}
+
+// ============== GIFT CARD HANDLERS ==============
+
+async function getGiftCardDenominations(supabase: any, tenantId: string) {
+  const { data } = await supabase.from('gift_cards')
+    .select('initial_amount').eq('tenant_id', tenantId).eq('status', 'active');
+  const amounts = [...new Set((data || []).map((g: any) => g.initial_amount))].sort((a: number, b: number) => a - b);
+  return { denominations: amounts.length > 0 ? amounts : [10, 25, 50, 100], currency: 'EUR' };
+}
+
+async function checkGiftCardBalance(supabase: any, tenantId: string, code: string) {
+  if (!code) throw new Error('Gift card code is required');
+  const { data } = await supabase.from('gift_cards')
+    .select('current_balance, currency, status, expires_at')
+    .eq('tenant_id', tenantId).eq('code', code.toUpperCase().trim()).maybeSingle();
+  if (!data) throw new Error('Gift card not found');
+  if (data.status !== 'active') throw new Error('Gift card is not active');
+  if (data.expires_at && new Date(data.expires_at) < new Date()) throw new Error('Gift card has expired');
+  return { balance: data.current_balance, currency: data.currency || 'EUR' };
+}
+
 // ============== RATE LIMITING ==============
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -1473,6 +1692,15 @@ function checkRateLimit(tenantId: string, limit = 1000, windowMs = 60000): boole
   return entry.count <= limit;
 }
 
+// ============== MODULE MAP ==============
+
+const resourceModuleMap: Record<string, string> = {
+  products: 'products', collections: 'collections', categories: 'collections',
+  cart: 'cart', checkout: 'checkout', 'gift-cards': 'gift_cards',
+  pages: 'pages', navigation: 'navigation', reviews: 'reviews',
+  newsletter: 'newsletter', search: '', shipping: '', settings: '',
+};
+
 // ============== MAIN HANDLER ==============
 
 serve(async (req) => {
@@ -1480,68 +1708,300 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const body: StorefrontRequest = await req.json();
-    const { action, tenant_id, params = {} } = body;
+    const url = new URL(req.url);
+    // Strip everything up to and including 'storefront-api' from the path
+    const pathIdx = url.pathname.indexOf('storefront-api');
+    const restPath = pathIdx >= 0 ? url.pathname.substring(pathIdx + 'storefront-api'.length) : url.pathname;
+    const pathParts = restPath.split('/').filter(Boolean);
+    const resource = pathParts[0] || '';
+    const resourceId = pathParts[1] || '';
+    const subResource = pathParts[2] || '';
+    const subResourceId = pathParts[3] || '';
 
-    // Actions that don't need tenant_id
-    if (action === 'resolve_domain') {
-      return new Response(JSON.stringify({ success: true, data: await resolveDomain(supabase, params) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const tenantIdHeader = req.headers.get('x-tenant-id');
+    const apiKeyHeader = req.headers.get('x-api-key');
+    const locale = req.headers.get('accept-language')?.split(',')[0]?.split('-')[0]?.trim() || 'nl';
+
+    // ---- BACKWARD COMPATIBILITY: POST-body action approach ----
+    if (req.method === 'POST' && !resource) {
+      const body: StorefrontRequest = await req.json();
+      // If body has 'action' field, use legacy routing
+      if (body.action) {
+        const { action, tenant_id, params = {} } = body;
+
+        if (action === 'resolve_domain') {
+          return new Response(JSON.stringify({ success: true, data: await resolveDomain(supabase, params) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (!tenant_id) {
+          return new Response(JSON.stringify({ success: false, error: 'tenant_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (!checkRateLimit(tenant_id)) {
+          return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+        }
+
+        let result: unknown;
+        let cacheControl: string | null = null;
+
+        switch (action) {
+          case 'get_tenant': result = await getTenant(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+          case 'get_product': result = await getProduct(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+          case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+          case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
+          case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+          case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
+          case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
+          case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;
+          case 'search_products': result = await searchProducts(supabase, tenant_id, params); break;
+          case 'get_seo': result = await getSeo(supabase, tenant_id, params); cacheControl = 'public, max-age=600'; break;
+          case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
+          case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
+          case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
+          case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;
+          case 'cart_add_item': result = await cartAddItem(supabase, tenant_id, params); break;
+          case 'cart_update_item': result = await cartUpdateItem(supabase, tenant_id, params); break;
+          case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
+          case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
+          case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
+          case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
+          case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
+          case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
+          case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
+          case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
+          case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
+          default:
+            return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+        if (cacheControl) responseHeaders['Cache-Control'] = cacheControl;
+        return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
+      }
     }
 
-    if (!tenant_id) {
-      return new Response(JSON.stringify({ success: false, error: 'tenant_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // ---- RESTful URL ROUTING ----
+
+    if (!tenantIdHeader) return errorResponse('X-Tenant-ID header is required', 400, 'MISSING_TENANT_ID');
+
+    // Resolve tenant (by slug or UUID)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdHeader);
+    const tenantQuery = supabase.from('tenants').select('id, slug').limit(1);
+    if (isUuid) tenantQuery.eq('id', tenantIdHeader);
+    else tenantQuery.eq('slug', tenantIdHeader);
+    const { data: tenantRow } = await tenantQuery.maybeSingle();
+    if (!tenantRow) return errorResponse('Tenant not found', 404, 'TENANT_NOT_FOUND');
+    const tenantId = tenantRow.id;
+
+    // Rate limit
+    if (!checkRateLimit(tenantId)) return errorResponse('Too many requests', 429, 'RATE_LIMIT_EXCEEDED');
+
+    // Validate API key
+    if (apiKeyHeader) {
+      const valid = await validateApiKey(supabase, tenantId, apiKeyHeader);
+      if (!valid) return errorResponse('Invalid API key', 401, 'INVALID_API_KEY');
+    } else {
+      // API key required for RESTful mode
+      return errorResponse('X-API-Key header is required', 401, 'MISSING_API_KEY');
     }
 
-    // Rate limiting per tenant
-    if (!checkRateLimit(tenant_id)) {
-      return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    // Load custom_frontend_config for module checks
+    const { data: tsCfg } = await supabase.from('tenant_theme_settings')
+      .select('custom_frontend_config').eq('tenant_id', tenantId).maybeSingle();
+    const frontendConfig = tsCfg?.custom_frontend_config || null;
+
+    // Check module enabled
+    const requiredModule = resourceModuleMap[resource];
+    if (requiredModule && !isModuleEnabled(frontendConfig, requiredModule)) {
+      return errorResponse(`Module '${requiredModule}' is not enabled`, 403, 'MODULE_DISABLED');
     }
 
-    let result: unknown;
-    let cacheControl: string | null = null;
+    if (!resource) return errorResponse('Endpoint not found', 404, 'NOT_FOUND');
 
-    switch (action) {
-      case 'get_tenant': result = await getTenant(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
-      case 'get_product': result = await getProduct(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
-      case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
-      case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
-      case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
-      case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
-      case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
-      case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;
-      case 'search_products': result = await searchProducts(supabase, tenant_id, params); break;
-      case 'get_seo': result = await getSeo(supabase, tenant_id, params); cacheControl = 'public, max-age=600'; break;
-      case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
-      case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
-      // Cart actions
-      case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
-      case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;
-      case 'cart_add_item': result = await cartAddItem(supabase, tenant_id, params); break;
-      case 'cart_update_item': result = await cartUpdateItem(supabase, tenant_id, params); break;
-      case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
-      case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
-      case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
-      // Checkout actions
-      case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
-      case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
-      case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
-      case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
-      case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
-      case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
-      default:
-        return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const method = req.method;
+    const sp = url.searchParams;
+
+    // ---- PRODUCTS ----
+    if (resource === 'products') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId && subResource === 'related') {
+        const limit = Number(sp.get('limit')) || 4;
+        return jsonResponse({ success: true, data: await getRelatedProducts(supabase, tenantId, resourceId, limit, locale) }, 200, 'public, max-age=60');
+      }
+      if (resourceId && subResource === 'reviews') {
+        return jsonResponse({ success: true, data: await getProductReviews(supabase, tenantId, resourceId) }, 200, 'public, max-age=120');
+      }
+      if (resourceId) {
+        return jsonResponse({ success: true, data: await getProduct(supabase, tenantId, { slug: resourceId, locale }) }, 200, 'public, max-age=60');
+      }
+      // List products
+      const params: Record<string, unknown> = {
+        locale, page: sp.get('page') || 1, per_page: sp.get('per_page') || 24,
+        sort_by: sp.get('sort') || sp.get('sort_by') || 'newest',
+        category_slug: sp.get('collection') || sp.get('category') || undefined,
+        search: sp.get('search') || sp.get('q') || undefined,
+        min_price: sp.get('min_price') || undefined, max_price: sp.get('max_price') || undefined,
+        tags: sp.get('tags') ? (sp.get('tags') as string).split(',') : undefined,
+        in_stock_only: sp.get('in_stock') === 'true',
+        is_featured: sp.get('featured') === 'true',
+      };
+      return jsonResponse({ success: true, data: await getProducts(supabase, tenantId, params) }, 200, 'public, max-age=60');
     }
 
-    const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
-    if (cacheControl) responseHeaders['Cache-Control'] = cacheControl;
+    // ---- COLLECTIONS ----
+    if (resource === 'collections') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId && subResource === 'products') {
+        const params: Record<string, unknown> = {
+          locale, category_slug: resourceId,
+          page: sp.get('page') || 1, per_page: sp.get('per_page') || 24,
+          sort_by: sp.get('sort') || 'newest',
+        };
+        return jsonResponse({ success: true, data: await getProducts(supabase, tenantId, params) }, 200, 'public, max-age=60');
+      }
+      if (resourceId) {
+        const cats = await getCategories(supabase, tenantId, { locale });
+        const cat = (cats as any[]).find((c: any) => c.slug === resourceId);
+        if (!cat) return errorResponse('Collection not found', 404);
+        return jsonResponse({ success: true, data: cat }, 200, 'public, max-age=300');
+      }
+      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+    }
 
-    return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
+    // ---- CATEGORIES ----
+    if (resource === 'categories') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+    }
+
+    // ---- CART ----
+    if (resource === 'cart') {
+      if (method === 'POST' && !resourceId) {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartCreate(supabase, tenantId, { session_id: body.session_id, currency: body.currency }) }, 201, 'no-cache');
+      }
+      if (method === 'GET' && resourceId) {
+        return jsonResponse({ success: true, data: await cartGet(supabase, tenantId, { cart_id: resourceId }) }, 200, 'no-cache');
+      }
+      if (method === 'POST' && resourceId && subResource === 'items') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartAddItem(supabase, tenantId, { cart_id: resourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'PUT' && resourceId && subResource === 'items' && subResourceId) {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'DELETE' && resourceId && subResource === 'items' && subResourceId) {
+        return jsonResponse({ success: true, data: await cartRemoveItem(supabase, tenantId, { item_id: subResourceId }) }, 200, 'no-cache');
+      }
+      if (method === 'POST' && resourceId && subResource === 'discount') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartApplyDiscount(supabase, tenantId, { cart_id: resourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'DELETE' && resourceId && subResource === 'discount') {
+        return jsonResponse({ success: true, data: await cartRemoveDiscount(supabase, tenantId, { cart_id: resourceId }) }, 200, 'no-cache');
+      }
+      return errorResponse('Cart endpoint not found', 404);
+    }
+
+    // ---- CHECKOUT ----
+    if (resource === 'checkout') {
+      if (method !== 'POST') return errorResponse('Method not allowed', 405);
+      const body = await req.json();
+      return jsonResponse({ success: true, data: await checkoutPlaceOrder(supabase, tenantId, { ...body, origin: url.origin }) }, 200, 'no-cache');
+    }
+
+    // ---- GIFT CARDS ----
+    if (resource === 'gift-cards') {
+      if (method === 'GET' && !resourceId) {
+        return jsonResponse({ success: true, data: await getGiftCardDenominations(supabase, tenantId) }, 200, 'public, max-age=300');
+      }
+      if (method === 'POST' && resourceId === 'balance') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await checkGiftCardBalance(supabase, tenantId, body.code) }, 200, 'no-cache');
+      }
+      return errorResponse('Gift cards endpoint not found', 404);
+    }
+
+    // ---- PAGES ----
+    if (resource === 'pages') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId) {
+        return jsonResponse({ success: true, data: await getPages(supabase, tenantId, { slug: resourceId, locale }) }, 200, 'public, max-age=600');
+      }
+      return jsonResponse({ success: true, data: await getPages(supabase, tenantId, { locale, type: sp.get('type') || undefined }) }, 200, 'public, max-age=600');
+    }
+
+    // ---- NAVIGATION ----
+    if (resource === 'navigation') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      return jsonResponse({ success: true, data: await getNavigation(supabase, tenantId, locale) }, 200, 'public, max-age=300');
+    }
+
+    // ---- REVIEWS ----
+    if (resource === 'reviews') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId === 'summary') {
+        const result = await getReviews(supabase, tenantId, { limit: 0 });
+        return jsonResponse({ success: true, data: { average_rating: result.average_rating, total_count: result.total_count } }, 200, 'public, max-age=120');
+      }
+      const params: Record<string, unknown> = {
+        limit: sp.get('limit') || 20, page: sp.get('page') || 1,
+        featured_only: sp.get('featured') === 'true',
+      };
+      return jsonResponse({ success: true, data: await getReviews(supabase, tenantId, params) }, 200, 'public, max-age=120');
+    }
+
+    // ---- NEWSLETTER ----
+    if (resource === 'newsletter') {
+      if (method === 'POST' && resourceId === 'subscribe') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await newsletterSubscribe(supabase, tenantId, { ...body, locale }) }, 200, 'no-cache');
+      }
+      return errorResponse('Newsletter endpoint not found', 404);
+    }
+
+    // ---- SETTINGS ----
+    if (resource === 'settings') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      switch (resourceId) {
+        case 'social': return jsonResponse({ success: true, data: await getSettingsSocial(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'trust': return jsonResponse({ success: true, data: await getSettingsTrust(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'conversion': return jsonResponse({ success: true, data: await getSettingsConversion(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'checkout': return jsonResponse({ success: true, data: await getSettingsCheckout(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'languages': return jsonResponse({ success: true, data: await getSettingsLanguages(supabase, tenantId) }, 200, 'public, max-age=300');
+        case '': case undefined:
+          return jsonResponse({ success: true, data: await getConfig(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+        default: return errorResponse('Settings endpoint not found', 404);
+      }
+    }
+
+    // ---- SEARCH ----
+    if (resource === 'search') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      const params: Record<string, unknown> = {
+        query: sp.get('q') || '', locale, limit: sp.get('limit') || 20,
+        autocomplete: sp.get('autocomplete') === 'true',
+      };
+      return jsonResponse({ success: true, data: await searchProducts(supabase, tenantId, params) }, 200, 'public, max-age=30');
+    }
+
+    // ---- SHIPPING ----
+    if (resource === 'shipping') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      return jsonResponse({ success: true, data: await getShippingMethods(supabase, tenantId) }, 200, 'public, max-age=300');
+    }
+
+    return errorResponse('Endpoint not found', 404, 'NOT_FOUND');
+
   } catch (error) {
     console.error('Storefront API error:', error);
-    return new Response(JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message.includes('not found') ? 404 : message.includes('required') ? 400 : 500;
+    return new Response(JSON.stringify({ success: false, error: message }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
   }
 });
