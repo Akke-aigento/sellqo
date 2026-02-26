@@ -1,34 +1,89 @@
 
 
-## Fix: Kortingscode input focus verlies + validatie
+## Plan: Add RESTful URL Routing to Storefront API
 
-### Twee bugs gevonden
+The existing edge function (1547 lines) uses a POST-body `action` approach. All handler functions already exist. The task is to add a RESTful URL routing layer on top, with API key validation and module checks, while keeping the existing POST approach as fallback.
 
-**Bug 1: Input verliest focus na elk karakter**
+### Changes to `supabase/functions/storefront-api/index.ts`
 
-De `OrderSummaryContent` component is gedefinieerd als een functie **binnenin** de render van `ShopCheckout`. Elke keer dat je een letter typt, verandert de `discountCode` state, waardoor de hele pagina opnieuw rendert. React ziet `OrderSummaryContent` als een **nieuwe** component (want de functie wordt opnieuw aangemaakt), unmount de oude, mount een nieuwe -- en het input-veld verliest focus.
+**1. Update CORS headers** (line 6)
+Add `x-tenant-id, x-api-key, accept-language` to `Access-Control-Allow-Headers`.
 
-Oplossing: de discount-code logica (input + applied badge) uit `OrderSummaryContent` halen en als apart, stabiel blok renderen.
+**2. Add helper functions** (after line 8, before types)
+- `jsonResponse(data, status, cacheControl)` — standardized JSON response with CORS
+- `errorResponse(error, status, code)` — error wrapper
+- `validateApiKey(supabase, tenantId, apiKey)` — SHA-256 hash the provided key, compare against `tenant_theme_settings.custom_frontend_config.api_key_hash`
+- `isModuleEnabled(config, module)` — check if a module is enabled in `custom_frontend_config`
 
-**Bug 2: Kortingscode wordt niet herkend**
+**3. Add RESTful router in main handler** (replace lines 1478-1547)
 
-De edge function retourneert:
-```json
-{ "success": true, "data": { "valid": true, "discount_type": "percentage", "discount_value": 99 } }
-```
+The new `serve()` block:
+1. Handle OPTIONS (unchanged)
+2. Parse URL path: strip `/functions/v1/storefront-api/` prefix, extract `resource`, `resourceId`, `subResource`
+3. Read headers: `X-Tenant-ID`, `X-API-Key`, `Accept-Language`
+4. **If** request has a JSON body with `action` field AND no path segments → fall through to existing POST-body switch (backward compatibility)
+5. **Else** (RESTful mode):
+   - Resolve tenant from `X-Tenant-ID` (lookup `tenants` table by slug or id)
+   - Validate API key against stored hash
+   - Load `custom_frontend_config` from `tenant_theme_settings`
+   - Check module enabled for the requested resource
+   - Route based on `resource` + HTTP method:
 
-Maar de checkout-code controleert `data?.valid` in plaats van `data?.data?.valid`. Het resultaat zit een niveau dieper genest. Dezelfde bug zit ook in de CartDrawer.
+| Method | Path | Handler | Module |
+|--------|------|---------|--------|
+| GET | `/products` | `getProducts()` | products |
+| GET | `/products/:slug` | `getProduct()` | products |
+| GET | `/products/:slug/related` | uses `getProduct` related logic | products |
+| GET | `/products/:slug/reviews` | `getReviews({product_id})` after slug→id lookup | reviews |
+| GET | `/collections` | `getCategories()` | collections |
+| GET | `/collections/:slug` | `getCategories()` filtered | collections |
+| GET | `/collections/:slug/products` | `getProducts({category_slug})` | collections |
+| GET | `/categories` | `getCategories()` | collections |
+| POST | `/cart` | `cartCreate()` | cart |
+| GET | `/cart/:id` | `cartGet()` | cart |
+| POST | `/cart/:id/items` | `cartAddItem()` | cart |
+| PUT | `/cart/:id/items/:itemId` | `cartUpdateItem()` | cart |
+| DELETE | `/cart/:id/items/:itemId` | `cartRemoveItem()` | cart |
+| POST | `/cart/:id/discount` | `cartApplyDiscount()` | cart |
+| DELETE | `/cart/:id/discount` | `cartRemoveDiscount()` | cart |
+| POST | `/checkout` | `checkoutPlaceOrder()` | checkout |
+| GET | `/gift-cards` | stub returning gift card denominations | gift_cards |
+| POST | `/gift-cards/balance` | gift card balance check | gift_cards |
+| GET | `/pages` | `getPages()` | pages |
+| GET | `/pages/:slug` | `getPages({slug})` | pages |
+| GET | `/navigation` | builds nav from categories + pages | navigation |
+| GET | `/reviews` | `getReviews()` | reviews |
+| GET | `/reviews/summary` | reviews summary only | reviews |
+| POST | `/newsletter/subscribe` | `newsletterSubscribe()` | newsletter |
+| GET | `/settings` | `getConfig()` | — |
+| GET | `/settings/social` | social links from tenants | social_media |
+| GET | `/settings/trust` | trust config from theme settings | trust_compliance |
+| GET | `/settings/conversion` | conversion config | conversion_boosters |
+| GET | `/settings/checkout` | checkout config | checkout |
+| GET | `/settings/languages` | languages from domains | multilingual |
+| GET | `/search` | `searchProducts()` | — |
+| GET | `/shipping` | `getShippingMethods()` | — |
 
-Ik heb TEST99 handmatig getest via de backend -- het werkt perfect, 99% korting wordt correct berekend. Het probleem is puur de response-parsing in de frontend.
+**4. Add missing handler functions**
 
-### Aanpassingen
+- `getNavigation(supabase, tenantId, locale)` — build main menu from categories, footer from pages + legal pages, announcement bar from theme settings. Already partially exists in the user's pasted code but not in the current file.
+- `getSettingsSocial/Trust/Conversion/Checkout/Languages` — sub-endpoint handlers extracting specific config sections.
+- `getProductReviews(supabase, tenantId, slug)` — reviews for a specific product by slug.
+- `getRelatedProducts(supabase, tenantId, slug, limit, locale)` — related products endpoint.
 
-| Bestand | Wijziging |
-|---|---|
-| `src/pages/storefront/ShopCheckout.tsx` | (1) Discount input uit `OrderSummaryContent` halen naar een apart blok dat niet bij elke keystroke opnieuw gemount wordt. (2) Response-parsing fixen: `data?.data?.valid` i.p.v. `data?.valid`, en `data.data.discount_type` etc. |
-| `src/components/storefront/CartDrawer.tsx` | Zelfde response-parsing fix: `data?.data?.valid` i.p.v. `data?.valid` |
+**5. Body parsing for RESTful POST/PUT**
 
-### Technisch detail
+For POST/PUT requests in RESTful mode, parse JSON body and merge with URL params. Extract `session_id` from body for cart creation, `product_id`/`variant_id`/`quantity` for cart item addition, etc.
 
-De fix voor het focus-probleem verplaatst het discount input-veld naar buiten `OrderSummaryContent`, zodat het als stabiel element op de pagina blijft staan en niet opnieuw gemount wordt bij elke state-wijziging. De `OrderSummaryContent` functie wordt zo simpeler en herrendert alleen voor items en totalen.
+**6. Query parameter extraction**
+
+For GET requests, parse `url.searchParams` into the params object that existing handlers expect (page, per_page, sort, search, collection, category, q, limit, etc.).
+
+### What stays unchanged
+
+All existing handler functions (getProducts, getProduct, getCategories, getPages, cartCreate, cartAddItem, etc.) remain exactly as they are. The POST-body action switch also remains as a fallback for the existing SellQo storefront that uses it.
+
+### Summary
+
+One file changed: `supabase/functions/storefront-api/index.ts`. No new files, no database changes. Adds ~250 lines for the router, API key validation, module checks, and missing handlers. Preserves all 1547 existing lines.
 
