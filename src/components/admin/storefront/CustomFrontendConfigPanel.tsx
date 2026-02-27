@@ -74,7 +74,8 @@ export function CustomFrontendConfigPanel({ config, onChange }: CustomFrontendCo
 
   const tenantSlug = currentTenant?.slug || 'your-tenant';
   const tenantId = currentTenant?.id || '';
-  const apiBaseUrl = `https://${window.location.hostname.replace('id-preview--', '').replace('.lovable.app', '')}.supabase.co/functions/v1/storefront-api`;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const apiBaseUrl = `${supabaseUrl}/functions/v1/storefront-api`;
 
   // Displayed key value
   const getDisplayKey = (): string => {
