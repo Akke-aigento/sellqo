@@ -227,15 +227,102 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      const retryLabelId = existingLabel.external_id;
+      let retryLabelId = existingLabel.external_id;
+      
+      // If no external_id stored, try to find the label via Bol.com order API
       if (!retryLabelId) {
-        console.error("Label has no external_id, cannot fetch from Bol.com");
-        return new Response(
-          JSON.stringify({
-            error: "Label has no external_id (transporterLabelId). Try creating a new label with force_new: true",
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        console.log("No external_id stored, looking up existing label via Bol.com order API...");
+        try {
+          const orderLookupResponse = await fetchWithTimeout(
+            `https://api.bol.com/retailer/orders/${order.marketplace_order_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.retailer.v10+json",
+              },
+            },
+            15000,
+          );
+          
+          if (orderLookupResponse.ok) {
+            const orderData = await orderLookupResponse.json();
+            console.log("Bol.com order data received, checking for transport info...");
+            
+            // Extract transport info from order items
+            let foundTracking: string | null = null;
+            let foundCarrier: string | null = null;
+            let foundTransportId: string | null = null;
+            
+            for (const item of (orderData.orderItems || [])) {
+              const transport = item.fulfilment?.transport;
+              if (transport) {
+                if (transport.trackAndTrace) foundTracking = transport.trackAndTrace;
+                if (transport.transporterCode) foundCarrier = transport.transporterCode;
+                if (transport.transportId) foundTransportId = transport.transportId;
+                console.log("Found transport info:", JSON.stringify(transport));
+                break;
+              }
+            }
+            
+            // Update label record with any found info
+            const updateData: Record<string, unknown> = {};
+            if (foundTracking) updateData.tracking_number = foundTracking;
+            if (foundCarrier) updateData.carrier = foundCarrier;
+            if (foundTransportId) {
+              updateData.external_id = foundTransportId;
+              retryLabelId = foundTransportId;
+            }
+            
+            if (Object.keys(updateData).length > 0) {
+              await supabase.from("shipping_labels").update(updateData).eq("id", label_id);
+              console.log("Updated label with Bol.com data:", JSON.stringify(updateData));
+            }
+            
+            // Also update the order with tracking info
+            if (foundTracking) {
+              const orderUpdate: Record<string, unknown> = { tracking_number: foundTracking };
+              if (foundCarrier) orderUpdate.carrier = foundCarrier;
+              if (foundTracking) {
+                orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${foundTracking}`;
+              }
+              await supabase.from("orders").update(orderUpdate).eq("id", order.id);
+              console.log("Updated order with tracking:", foundTracking);
+            }
+            
+            // If we still don't have an external_id, we can't fetch the PDF
+            if (!retryLabelId) {
+              console.log("No transportId found in Bol.com order data");
+              return new Response(
+                JSON.stringify({
+                  error: "Label nog niet beschikbaar bij Bol.com. Probeer het over een paar minuten opnieuw.",
+                  status: "pending",
+                  message: "Het label wordt nog verwerkt door Bol.com. Probeer over een paar minuten opnieuw.",
+                  tracking_number: foundTracking,
+                }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+              );
+            }
+          } else {
+            console.error("Bol.com order lookup failed:", orderLookupResponse.status);
+            return new Response(
+              JSON.stringify({
+                error: "Kan label niet ophalen bij Bol.com. Probeer het later opnieuw.",
+                status: "pending",
+                message: "Label nog niet beschikbaar bij Bol.com.",
+              }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        } catch (lookupError) {
+          console.error("Bol.com order lookup error:", lookupError instanceof Error ? lookupError.message : lookupError);
+          return new Response(
+            JSON.stringify({
+              error: "Fout bij ophalen label informatie. Probeer het later opnieuw.",
+              status: "pending",
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
       }
 
       // Race condition guard: if label already has a URL, another instance already fetched it
@@ -375,6 +462,36 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
+      // If still no tracking, try fetching from order data (Bol.com may need time)
+      if (!retryTracking) {
+        try {
+          console.log("No tracking from HEAD, fetching from Bol.com order data...");
+          const orderTrackResponse = await fetchWithTimeout(
+            `https://api.bol.com/retailer/orders/${order.marketplace_order_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.retailer.v10+json",
+              },
+            },
+            15000,
+          );
+          if (orderTrackResponse.ok) {
+            const orderTrackData = await orderTrackResponse.json();
+            for (const item of (orderTrackData.orderItems || [])) {
+              const transport = item.fulfilment?.transport;
+              if (transport?.trackAndTrace) {
+                retryTracking = transport.trackAndTrace;
+                console.log("Got tracking from order data:", retryTracking);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Order tracking fetch failed (non-fatal):", e instanceof Error ? e.message : e);
+        }
+      }
+
       // Update the label record
       console.log("Updating label record in database...");
       const updateFields: Record<string, unknown> = {};
@@ -393,12 +510,14 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Update order if tracking found
       if (retryTracking) {
+        const orderUpdateFields: Record<string, unknown> = {
+          tracking_number: retryTracking,
+          carrier: existingLabel.carrier,
+          tracking_url: `https://jfrfracking.info/track/nl-NL/?B=${retryTracking}`,
+        };
         await supabase
           .from("orders")
-          .update({
-            tracking_number: retryTracking,
-            carrier: existingLabel.carrier,
-          })
+          .update(orderUpdateFields)
           .eq("id", order.id);
       }
 
@@ -726,6 +845,38 @@ const handler = async (req: Request): Promise<Response> => {
         }
       } catch (headError) {
         console.error("HEAD request for tracking failed:", headError instanceof Error ? headError.message : headError);
+      }
+
+      // If no tracking yet, wait 5 seconds and try fetching from order data
+      if (!trackingNumber) {
+        console.log("No tracking yet, waiting 5s for Bol.com to assign...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        try {
+          const orderTrackResponse = await fetchWithTimeout(
+            `https://api.bol.com/retailer/orders/${order.marketplace_order_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.retailer.v10+json",
+              },
+            },
+            15000,
+          );
+          if (orderTrackResponse.ok) {
+            const orderTrackData = await orderTrackResponse.json();
+            for (const item of (orderTrackData.orderItems || [])) {
+              const transport = item.fulfilment?.transport;
+              if (transport?.trackAndTrace) {
+                trackingNumber = transport.trackAndTrace;
+                console.log("Got delayed tracking from order data:", trackingNumber);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Delayed tracking fetch failed:", e instanceof Error ? e.message : e);
+        }
       }
     }
 
