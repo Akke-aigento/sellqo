@@ -32,12 +32,13 @@ async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
   const pages = pdfDoc.getPages();
   const page = pages[0];
 
-  const A6_WIDTH = 297.64;
-  const A6_HEIGHT = 419.53;
+  // Bol.com VVB labels span full A4 width but only use the top portion
+  const LABEL_WIDTH = 595.28;  // Full A4 width (210mm)
+  const LABEL_HEIGHT = 419.53; // Half A4 height (148mm)
   const { height } = page.getSize();
 
-  page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
-  page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  page.setCropBox(0, height - LABEL_HEIGHT, LABEL_WIDTH, LABEL_HEIGHT);
+  page.setMediaBox(0, height - LABEL_HEIGHT, LABEL_WIDTH, LABEL_HEIGHT);
 
   const newPdf = await PDFDoc.create();
   const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
