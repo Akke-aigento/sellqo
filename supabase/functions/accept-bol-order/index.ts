@@ -156,14 +156,16 @@ Deno.serve(async (req) => {
 
     console.log(`Accepting Bol order ${bolOrderId} with ${itemsToAccept.length} items`)
 
-    // Bol.com v10 API: FBR orders are auto-accepted by Bol.com.
-    // There is no explicit "accept" endpoint in v10. The retailer just needs to ship the order.
-    // We mark the order as accepted locally to reflect that we've acknowledged it.
-    console.log('Bol.com v10: FBR orders are auto-accepted. Marking order as accepted locally.')
+    // Bol.com v10 API: There is no explicit "accept" endpoint.
+    // The actual acceptance at Bol.com happens when a shipment/VVB label is created
+    // (POST /retailer/shipping-labels). This function only marks the order locally
+    // as "accept_pending". The sync-bol-orders function will mark it as "accepted"
+    // only after VVB label creation succeeds.
+    console.log('Bol.com v10: Marking order as accept_pending. Actual acceptance happens via VVB label creation.')
     
     if (order_id) {
       await supabase.from('orders').update({
-        sync_status: 'accepted',
+        sync_status: 'accept_pending',
         updated_at: new Date().toISOString()
       }).eq('id', order_id)
     }

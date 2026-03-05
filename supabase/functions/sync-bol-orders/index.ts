@@ -485,9 +485,12 @@ Deno.serve(async (req) => {
                 const acceptBody = await acceptRes.text()
                 
                 if (acceptRes.ok) {
-                  console.log(`Order ${bolOrder.orderId} auto-accepted successfully: ${acceptBody}`)
+                  console.log(`Order ${bolOrder.orderId} auto-accepted locally: ${acceptBody}`)
                   
                   // Auto-create VVB label if enabled
+                  // NOTE: VVB label creation (POST /retailer/shipping-labels) is what actually
+                  // "accepts" the order at Bol.com. Without a successful label, Bol.com still
+                  // shows the order as unaccepted.
                   const vvbEnabled = settings.vvbEnabled as boolean
                   if (vvbEnabled) {
                     try {
@@ -509,11 +512,28 @@ Deno.serve(async (req) => {
                       
                       if (vvbRes.ok) {
                         console.log(`VVB label created for order ${bolOrder.orderId}: ${vvbBody}`)
+                        // Only now mark as truly accepted — VVB label creation is the actual acceptance at Bol.com
+                        await supabase.from('orders').update({
+                          sync_status: 'accepted',
+                          updated_at: new Date().toISOString()
+                        }).eq('id', newOrder.id)
+                        console.log(`Order ${bolOrder.orderId} marked as accepted after successful VVB label creation`)
                       } else {
                         console.error(`VVB label creation failed for order ${bolOrder.orderId}: ${vvbRes.status} ${vvbBody}`)
+                        // Revert to pending so retry mechanism picks it up
+                        await supabase.from('orders').update({
+                          sync_status: 'pending',
+                          updated_at: new Date().toISOString()
+                        }).eq('id', newOrder.id)
+                        console.log(`Order ${bolOrder.orderId} reverted to pending (VVB label failed)`)
                       }
                     } catch (vvbError) {
                       console.error(`Failed to create VVB label for order ${bolOrder.orderId}:`, vvbError)
+                      // Revert to pending so retry mechanism picks it up
+                      await supabase.from('orders').update({
+                        sync_status: 'pending',
+                        updated_at: new Date().toISOString()
+                      }).eq('id', newOrder.id)
                     }
                   }
                 } else {
