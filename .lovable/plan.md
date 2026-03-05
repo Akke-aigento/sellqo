@@ -1,89 +1,118 @@
 
 
-## Plan: Add RESTful URL Routing to Storefront API
+## Plan: Fix Bol.com Auto-Accept, Auto-Label, and Manual VVB Label Issues
 
-The existing edge function (1547 lines) uses a POST-body `action` approach. All handler functions already exist. The task is to add a RESTful URL routing layer on top, with API key validation and module checks, while keeping the existing POST approach as fallback.
+### Root Cause Analysis
 
-### Changes to `supabase/functions/storefront-api/index.ts`
+From the edge function logs:
 
-**1. Update CORS headers** (line 6)
-Add `x-tenant-id, x-api-key, accept-language` to `Access-Control-Allow-Headers`.
+1. **Auto-accept 403 error**: Order C0001N2N2R gets `403 Unauthorized Request` from Bol.com. The retry mechanism in `sync-bol-orders` (line 621) logs the error but does NOT mark the order as `accept_failed` -- it stays `sync_status = 'synced'`, causing infinite retries every sync cycle.
 
-**2. Add helper functions** (after line 8, before types)
-- `jsonResponse(data, status, cacheControl)` — standardized JSON response with CORS
-- `errorResponse(error, status, code)` — error wrapper
-- `validateApiKey(supabase, tenantId, apiKey)` — SHA-256 hash the provided key, compare against `tenant_theme_settings.custom_frontend_config.api_key_hash`
-- `isModuleEnabled(config, module)` — check if a module is enabled in `custom_frontend_config`
+2. **VVB label 404 "already shipped"**: Order C00008690P (#1106) gets `404 - Request contains order item id(s) that are shipped already: [3871544182]`. The order was shipped externally (via Bol.com seller portal), but SellQo still shows "In afwachting" because `sync_status` was never updated.
 
-**3. Add RESTful router in main handler** (replace lines 1478-1547)
+3. **Manual VVB label button**: Same order #1106 -- the "VVB Label Aanmaken" button attempts to create a label for an already-shipped order, gets 400 error from `create-bol-vvb-label`, and shows a generic error toast.
 
-The new `serve()` block:
-1. Handle OPTIONS (unchanged)
-2. Parse URL path: strip `/functions/v1/storefront-api/` prefix, extract `resource`, `resourceId`, `subResource`
-3. Read headers: `X-Tenant-ID`, `X-API-Key`, `Accept-Language`
-4. **If** request has a JSON body with `action` field AND no path segments → fall through to existing POST-body switch (backward compatibility)
-5. **Else** (RESTful mode):
-   - Resolve tenant from `X-Tenant-ID` (lookup `tenants` table by slug or id)
-   - Validate API key against stored hash
-   - Load `custom_frontend_config` from `tenant_theme_settings`
-   - Check module enabled for the requested resource
-   - Route based on `resource` + HTTP method:
+### Fixes (3 files)
 
-| Method | Path | Handler | Module |
-|--------|------|---------|--------|
-| GET | `/products` | `getProducts()` | products |
-| GET | `/products/:slug` | `getProduct()` | products |
-| GET | `/products/:slug/related` | uses `getProduct` related logic | products |
-| GET | `/products/:slug/reviews` | `getReviews({product_id})` after slug→id lookup | reviews |
-| GET | `/collections` | `getCategories()` | collections |
-| GET | `/collections/:slug` | `getCategories()` filtered | collections |
-| GET | `/collections/:slug/products` | `getProducts({category_slug})` | collections |
-| GET | `/categories` | `getCategories()` | collections |
-| POST | `/cart` | `cartCreate()` | cart |
-| GET | `/cart/:id` | `cartGet()` | cart |
-| POST | `/cart/:id/items` | `cartAddItem()` | cart |
-| PUT | `/cart/:id/items/:itemId` | `cartUpdateItem()` | cart |
-| DELETE | `/cart/:id/items/:itemId` | `cartRemoveItem()` | cart |
-| POST | `/cart/:id/discount` | `cartApplyDiscount()` | cart |
-| DELETE | `/cart/:id/discount` | `cartRemoveDiscount()` | cart |
-| POST | `/checkout` | `checkoutPlaceOrder()` | checkout |
-| GET | `/gift-cards` | stub returning gift card denominations | gift_cards |
-| POST | `/gift-cards/balance` | gift card balance check | gift_cards |
-| GET | `/pages` | `getPages()` | pages |
-| GET | `/pages/:slug` | `getPages({slug})` | pages |
-| GET | `/navigation` | builds nav from categories + pages | navigation |
-| GET | `/reviews` | `getReviews()` | reviews |
-| GET | `/reviews/summary` | reviews summary only | reviews |
-| POST | `/newsletter/subscribe` | `newsletterSubscribe()` | newsletter |
-| GET | `/settings` | `getConfig()` | — |
-| GET | `/settings/social` | social links from tenants | social_media |
-| GET | `/settings/trust` | trust config from theme settings | trust_compliance |
-| GET | `/settings/conversion` | conversion config | conversion_boosters |
-| GET | `/settings/checkout` | checkout config | checkout |
-| GET | `/settings/languages` | languages from domains | multilingual |
-| GET | `/search` | `searchProducts()` | — |
-| GET | `/shipping` | `getShippingMethods()` | — |
+---
 
-**4. Add missing handler functions**
+**File 1: `supabase/functions/sync-bol-orders/index.ts`**
 
-- `getNavigation(supabase, tenantId, locale)` — build main menu from categories, footer from pages + legal pages, announcement bar from theme settings. Already partially exists in the user's pasted code but not in the current file.
-- `getSettingsSocial/Trust/Conversion/Checkout/Languages` — sub-endpoint handlers extracting specific config sections.
-- `getProductReviews(supabase, tenantId, slug)` — reviews for a specific product by slug.
-- `getRelatedProducts(supabase, tenantId, slug, limit, locale)` — related products endpoint.
+**Fix A** (line ~621): When retry accept fails with 403 or 400, mark order as `accept_failed` to stop infinite retries:
+```typescript
+} else {
+  console.error(`[RETRY] Accept failed for ${missed.marketplace_order_id}: HTTP ${acceptRes.status} - ${acceptBody}`)
+  // Mark as accept_failed on persistent errors (403 = unauthorized/expired, 400 = bad request)
+  if (acceptRes.status === 403 || acceptRes.status === 400) {
+    await supabase.from('orders').update({ 
+      sync_status: 'accept_failed', 
+      updated_at: new Date().toISOString() 
+    }).eq('id', missed.id)
+    console.log(`[RETRY] Marked ${missed.marketplace_order_id} as accept_failed to stop retries`)
+  }
+}
+```
 
-**5. Body parsing for RESTful POST/PUT**
+---
 
-For POST/PUT requests in RESTful mode, parse JSON body and merge with URL params. Extract `session_id` from body for cart creation, `product_id`/`variant_id`/`quantity` for cart item addition, etc.
+**File 2: `supabase/functions/create-bol-vvb-label/index.ts`**
 
-**6. Query parameter extraction**
+**Fix B** (line ~503-513): When Bol.com delivery-options returns 404 with "shipped already", update the order's sync_status to `shipped` and return a user-friendly error:
+```typescript
+if (!offersResponse.ok) {
+  const errorText = await offersResponse.text();
+  console.error("Bol.com delivery-options error:", offersResponse.status, errorText);
+  
+  // Detect "already shipped" scenario
+  const alreadyShipped = offersResponse.status === 404 && errorText.includes('shipped already');
+  if (alreadyShipped) {
+    // Update order status to reflect reality
+    await supabase.from('orders').update({ 
+      sync_status: 'shipped', 
+      status: 'shipped',
+      shipped_at: new Date().toISOString(),
+      updated_at: new Date().toISOString() 
+    }).eq('id', order_id);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.',
+      code: 'ALREADY_SHIPPED',
+      details: errorText,
+    }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  
+  return new Response(/* existing error response */);
+}
+```
 
-For GET requests, parse `url.searchParams` into the params object that existing handlers expect (page, per_page, sort, search, collection, category, q, limit, etc.).
+**Fix C** (line ~449-458): When auto-accept in VVB label creation fails with 403, don't block -- check if order is already shipped/accepted at Bol and allow label creation to continue if appropriate. Also update sync_status on persistent failure:
+```typescript
+if (!acceptRes.ok) {
+  console.error(`Failed to auto-accept: ${acceptRes.status} ${acceptBody}`);
+  
+  // On 403, the order may already be accepted at Bol.com -- allow VVB to continue
+  if (acceptRes.status === 403) {
+    console.log('403 from accept -- order may already be accepted, continuing with VVB label creation...');
+    // Don't return error, fall through to VVB creation
+  } else {
+    // Update order status for non-403 failures
+    await supabase.from('orders').update({ 
+      sync_status: 'accept_failed' 
+    }).eq('id', order_id);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: `Order accepteren mislukt: ${acceptRes.status}`,
+      details: acceptBody,
+    }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+}
+```
 
-### What stays unchanged
+---
 
-All existing handler functions (getProducts, getProduct, getCategories, getPages, cartCreate, cartAddItem, etc.) remain exactly as they are. The POST-body action switch also remains as a fallback for the existing SellQo storefront that uses it.
+**File 3: `src/components/admin/BolActionsCard.tsx`**
+
+**Fix D** (line ~110): Better error handling for VVB label creation -- detect "ALREADY_SHIPPED" code and show appropriate message + refresh order data:
+```typescript
+onError: (error: Error) => {
+  const msg = error.message || '';
+  if (msg.includes('al verzonden') || msg.includes('ALREADY_SHIPPED')) {
+    toast.info('Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.');
+  } else {
+    toast.error(`Fout bij label aanmaken: ${msg}`);
+  }
+  queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+},
+```
 
 ### Summary
 
-One file changed: `supabase/functions/storefront-api/index.ts`. No new files, no database changes. Adds ~250 lines for the router, API key validation, module checks, and missing handlers. Preserves all 1547 existing lines.
+| Fix | File | Problem | Solution |
+|-----|------|---------|----------|
+| A | sync-bol-orders | Infinite retry on 403 accept | Mark as `accept_failed` |
+| B | create-bol-vvb-label | "Already shipped" not detected | Update order to `shipped`, friendly error |
+| C | create-bol-vvb-label | Auto-accept 403 blocks VVB | Allow VVB to continue on 403 |
+| D | BolActionsCard.tsx | Generic error on shipped orders | User-friendly toast + status refresh |
 
