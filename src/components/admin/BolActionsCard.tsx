@@ -9,6 +9,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLabelPrinter } from '@/hooks/useLabelPrinter';
 import { FetchExternalLabelDialog } from '@/components/admin/FetchExternalLabelDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import type { Order } from '@/types/order';
 
 interface BolActionsCardProps {
@@ -147,9 +158,14 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       
       return data;
     },
-    onSuccess: () => {
-      toast.success('Order geaccepteerd');
+    onSuccess: (data) => {
+      if (data?.already_accepted) {
+        toast.info('Order was al geaccepteerd bij Bol.com. Status bijgewerkt.');
+      } else {
+        toast.success('Order geaccepteerd');
+      }
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
     onError: (error: Error) => {
       toast.error(`Fout bij accepteren: ${error.message}`);
@@ -276,16 +292,11 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                   onClick={async () => {
                     setIsRetrying(true);
                     try {
-                      // If no external_id, use force_new to create a fresh label
-                      const hasExternalId = latestLabel.status === 'created';
+                      // Always retry — NEVER create a new label (costs money!)
                       const response = await supabase.functions.invoke('create-bol-vvb-label', {
-                        body: hasExternalId ? {
+                        body: {
                           order_id: order.id,
                           retry: true,
-                          label_id: latestLabel.id,
-                        } : {
-                          order_id: order.id,
-                          force_new: true,
                           label_id: latestLabel.id,
                         },
                       });
@@ -321,47 +332,67 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                   Opnieuw ophalen
                 </Button>
               )}
-              {/* If label failed, offer to create new */}
+              {/* If label failed, offer to create new with cost warning */}
               {latestLabel.status === 'failed' && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full"
-                  onClick={async () => {
-                    setIsRetrying(true);
-                    try {
-                      const response = await supabase.functions.invoke('create-bol-vvb-label', {
-                        body: {
-                          order_id: order.id,
-                          force_new: true,
-                          label_id: latestLabel.id,
-                        },
-                      });
-                      
-                      if (response.error) throw response.error;
-                      if (!response.data?.success) throw new Error(response.data?.error || response.data?.details || 'Aanmaken mislukt');
-                      
-                      toast.success('Nieuw label aangemaakt!');
-                      queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
-                      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-                      if (response.data.label_url) {
-                        window.open(response.data.label_url, '_blank');
-                      }
-                    } catch (err: any) {
-                      toast.error(`Fout: ${err?.message || 'Onbekende fout'}`);
-                    } finally {
-                      setTimeout(() => setIsRetrying(false), 5000);
-                    }
-                  }}
-                  disabled={isRetrying}
-                >
-                  {isRetrying ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Truck className="h-4 w-4 mr-2" />
-                  )}
-                  Nieuw label aanmaken
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full"
+                      disabled={isRetrying}
+                    >
+                      {isRetrying ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Truck className="h-4 w-4 mr-2" />
+                      )}
+                      Nieuw label aanmaken
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Nieuw verzendlabel aanmaken?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Let op: er worden kosten in rekening gebracht door Bol.com voor elk nieuw verzendlabel. 
+                        Weet je zeker dat je een nieuw label wilt aanmaken?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          setIsRetrying(true);
+                          try {
+                            const response = await supabase.functions.invoke('create-bol-vvb-label', {
+                              body: {
+                                order_id: order.id,
+                                force_new: true,
+                                label_id: latestLabel.id,
+                              },
+                            });
+                            
+                            if (response.error) throw response.error;
+                            if (!response.data?.success) throw new Error(response.data?.error || response.data?.details || 'Aanmaken mislukt');
+                            
+                            toast.success('Nieuw label aangemaakt!');
+                            queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
+                            queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+                            if (response.data.label_url) {
+                              window.open(response.data.label_url, '_blank');
+                            }
+                          } catch (err: any) {
+                            toast.error(`Fout: ${err?.message || 'Onbekende fout'}`);
+                          } finally {
+                            setTimeout(() => setIsRetrying(false), 5000);
+                          }
+                        }}
+                      >
+                        Ja, nieuw label aanmaken
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
           )}
