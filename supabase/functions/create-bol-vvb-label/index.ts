@@ -447,15 +447,27 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`Order ${order.order_number} auto-accepted successfully`);
         } else {
           console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
-          // Do NOT mark as accepted on 403 - let retry logic handle verification
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: `Order accept failed: ${acceptRes.status}`,
-              details: acceptBody,
-            }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          
+          // On 403, the order may already be accepted at Bol.com -- allow VVB to continue
+          if (acceptRes.status === 403 || (acceptRes.status === 500 && acceptBody.includes('403'))) {
+            console.log('403 from accept -- order may already be accepted, continuing with VVB label creation...');
+            // Don't return error, fall through to VVB creation
+          } else {
+            // Update order status for non-403 failures
+            await supabase.from('orders').update({ 
+              sync_status: 'accept_failed',
+              updated_at: new Date().toISOString()
+            }).eq('id', order_id);
+            
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: `Order accepteren mislukt: ${acceptRes.status}`,
+                details: acceptBody,
+              }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (acceptError) {
@@ -503,6 +515,29 @@ const handler = async (req: Request): Promise<Response> => {
     if (!offersResponse.ok) {
       const errorText = await offersResponse.text();
       console.error("Bol.com delivery-options error:", offersResponse.status, errorText);
+      
+      // Detect "already shipped" scenario
+      const alreadyShipped = offersResponse.status === 404 && errorText.includes('shipped already');
+      if (alreadyShipped) {
+        // Update order status to reflect reality
+        await supabase.from('orders').update({ 
+          sync_status: 'shipped', 
+          status: 'shipped',
+          shipped_at: new Date().toISOString(),
+          updated_at: new Date().toISOString() 
+        }).eq('id', order_id);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.',
+            code: 'ALREADY_SHIPPED',
+            details: errorText,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      
       return new Response(
         JSON.stringify({
           success: false,
