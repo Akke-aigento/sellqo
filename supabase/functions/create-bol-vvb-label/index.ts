@@ -403,13 +403,22 @@ const handler = async (req: Request): Promise<Response> => {
         // Upload to storage
         console.log("Uploading PDF to Supabase Storage...");
         const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
-        const fileName = `bol-vvb-${order.order_number}${formatSuffix}-retry-${Date.now()}.pdf`;
+        const safeOrderNumber = (order.order_number || '').replace(/#/g, '');
+        const fileName = `bol-vvb-${safeOrderNumber}${formatSuffix}-retry-${Date.now()}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
-          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: "application/pdf" });
+          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: "application/pdf", upsert: true });
 
         if (uploadError) {
           console.error("PDF upload to storage failed:", uploadError);
+          // Fallback: try to get existing file URL on 409
+          if ((uploadError as any)?.statusCode === '409') {
+            const { data: urlData } = supabase.storage
+              .from("shipping-labels")
+              .getPublicUrl(`${order.tenant_id}/${fileName}`);
+            retryPdfUrl = urlData?.publicUrl || null;
+            console.log("409 fallback - using existing URL:", retryPdfUrl);
+          }
         } else if (uploadData) {
           const { data: urlData } = supabase.storage
             .from("shipping-labels")
@@ -800,11 +809,13 @@ const handler = async (req: Request): Promise<Response> => {
           }
 
           const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
-          const fileName = `bol-vvb-${order.order_number}${formatSuffix}-${Date.now()}.pdf`;
+          const safeOrderNumber = (order.order_number || '').replace(/#/g, '');
+          const fileName = `bol-vvb-${safeOrderNumber}${formatSuffix}-${Date.now()}.pdf`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("shipping-labels")
             .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
               contentType: "application/pdf",
+              upsert: true,
             });
 
           if (!uploadError && uploadData) {
@@ -815,6 +826,14 @@ const handler = async (req: Request): Promise<Response> => {
             console.log("PDF uploaded to storage:", labelPdfUrl);
           } else if (uploadError) {
             console.error("PDF upload error:", uploadError);
+            // Fallback: get existing file URL on 409
+            if ((uploadError as any)?.statusCode === '409') {
+              const { data: urlData } = supabase.storage
+                .from("shipping-labels")
+                .getPublicUrl(`${order.tenant_id}/${fileName}`);
+              labelPdfUrl = urlData?.publicUrl || null;
+              console.log("409 fallback - using existing URL:", labelPdfUrl);
+            }
           }
         } else {
           console.error("PDF fetch failed:", pdfResponse.status, await pdfResponse.text());
