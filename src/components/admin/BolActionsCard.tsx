@@ -147,8 +147,12 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       
       return data;
     },
-    onSuccess: () => {
-      toast.success('Order geaccepteerd op Bol.com');
+    onSuccess: (data) => {
+      if (data.already_accepted) {
+        toast.info('Order was al geaccepteerd bij Bol.com. Status bijgewerkt.');
+      } else {
+        toast.success('Order geaccepteerd op Bol.com');
+      }
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
     },
     onError: (error: Error) => {
@@ -265,7 +269,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
               </Button>
             </div>
           )}
-          {!latestLabel.label_url && latestLabel.status === 'created' && (
+          {!latestLabel.label_url && (
             <div className="flex gap-2">
               <Button
                 variant="outline"
