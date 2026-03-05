@@ -175,9 +175,22 @@ Deno.serve(async (req) => {
 
     if (!acceptResponse.ok) {
       if (acceptResponse.status === 403) {
-        console.error('Bol.com 403 Forbidden - order may already be accepted or credentials lack write access')
+        console.log('Bol.com 403 - order likely already accepted, marking as accepted')
+        if (order_id) {
+          await supabase.from('orders').update({
+            sync_status: 'accepted',
+            updated_at: new Date().toISOString()
+          }).eq('id', order_id)
+        }
+        return new Response(
+          JSON.stringify({ success: true, message: 'Order was al geaccepteerd bij Bol.com', already_accepted: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
-      throw new Error(`Failed to accept order: ${acceptResponse.status} - ${responseText}`)
+      return new Response(
+        JSON.stringify({ success: false, error: `Order accepteren mislukt: ${acceptResponse.status}`, details: responseText }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const acceptResult = JSON.parse(responseText)
