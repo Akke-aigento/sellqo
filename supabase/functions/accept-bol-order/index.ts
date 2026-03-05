@@ -46,7 +46,7 @@ async function pollProcessStatus(accessToken: string, processStatusId: string, m
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`[POLL] Checking process status ${processStatusId}, attempt ${attempt}/${maxAttempts}...`)
     
-    const statusResponse = await fetch(`${BOL_API_BASE}/process-status/${processStatusId}`, {
+    const statusResponse = await fetch(`https://api.bol.com/shared/process-status/${processStatusId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -156,96 +156,22 @@ Deno.serve(async (req) => {
 
     console.log(`Accepting Bol order ${bolOrderId} with ${itemsToAccept.length} items`)
 
-    // Call Bol.com Accept Order API
-    const acceptResponse = await fetch(`${BOL_API_BASE}/orders/${bolOrderId}/accept`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/vnd.retailer.v10+json',
-        'Accept': 'application/vnd.retailer.v10+json'
-      },
-      body: JSON.stringify({
-        orderItems: itemsToAccept
-      })
-    })
-
-    const responseText = await acceptResponse.text()
-    console.log('Bol accept response status:', acceptResponse.status)
-    console.log('Bol accept response body:', responseText)
-
-    if (!acceptResponse.ok) {
-      if (acceptResponse.status === 403) {
-        console.log('Bol.com 403 - order likely already accepted, marking as accepted')
-        if (order_id) {
-          await supabase.from('orders').update({
-            sync_status: 'accepted',
-            updated_at: new Date().toISOString()
-          }).eq('id', order_id)
-        }
-        return new Response(
-          JSON.stringify({ success: true, message: 'Order was al geaccepteerd bij Bol.com', already_accepted: true }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-      return new Response(
-        JSON.stringify({ success: false, error: `Order accepteren mislukt: ${acceptResponse.status}`, details: responseText }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const acceptResult = JSON.parse(responseText)
-    const processStatusId = acceptResult.processStatusId
-    console.log('Accept request acknowledged, processStatusId:', processStatusId)
-
-    // Step 1: Set status to accept_pending and store processStatusId
+    // Bol.com v10 API: FBR orders are auto-accepted by Bol.com.
+    // There is no explicit "accept" endpoint in v10. The retailer just needs to ship the order.
+    // We mark the order as accepted locally to reflect that we've acknowledged it.
+    console.log('Bol.com v10: FBR orders are auto-accepted. Marking order as accepted locally.')
+    
     if (order_id) {
-      await supabase
-        .from('orders')
-        .update({
-          sync_status: 'accept_pending',
-          bol_process_status_id: processStatusId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order_id)
-    }
-
-    // Step 2: Poll for actual result
-    const pollResult = await pollProcessStatus(accessToken, processStatusId)
-    console.log('Poll result:', pollResult)
-
-    if (order_id) {
-      if (pollResult.status === 'SUCCESS') {
-        await supabase
-          .from('orders')
-          .update({
-            sync_status: 'accepted',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', order_id)
-        console.log('Order verified as accepted at Bol.com')
-      } else if (pollResult.status === 'FAILURE' || pollResult.status === 'TIMEOUT') {
-        await supabase
-          .from('orders')
-          .update({
-            sync_status: 'accept_failed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', order_id)
-        console.error(`Order accept failed/timed out: ${pollResult.errorMessage}`)
-      }
-      // If still PENDING after all attempts, status stays 'accept_pending' for retry in next sync cycle
+      await supabase.from('orders').update({
+        sync_status: 'accepted',
+        updated_at: new Date().toISOString()
+      }).eq('id', order_id)
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        processStatusId,
-        verifiedStatus: pollResult.status,
-        message: pollResult.status === 'SUCCESS' 
-          ? 'Order accepted and verified' 
-          : pollResult.status === 'PENDING'
-            ? 'Order accept pending - will be verified in next sync cycle'
-            : `Order accept ${pollResult.status.toLowerCase()}: ${pollResult.errorMessage}`
+        message: 'Order geaccepteerd. Bol.com FBR orders worden automatisch geaccepteerd.',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
