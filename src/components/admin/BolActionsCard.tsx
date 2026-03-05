@@ -147,12 +147,8 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       
       return data;
     },
-    onSuccess: (data) => {
-      if (data.already_accepted) {
-        toast.info('Order was al geaccepteerd bij Bol.com. Status bijgewerkt.');
-      } else {
-        toast.success('Order geaccepteerd op Bol.com');
-      }
+    onSuccess: () => {
+      toast.success('Order geaccepteerd');
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
     },
     onError: (error: Error) => {
@@ -270,54 +266,103 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
             </div>
           )}
           {!latestLabel.label_url && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={async () => {
-                  setIsRetrying(true);
-                  try {
-                    const response = await supabase.functions.invoke('create-bol-vvb-label', {
-                      body: {
-                        order_id: order.id,
-                        retry: true,
-                        label_id: latestLabel.id,
-                      },
-                    });
-                    
-                    // Handle 202 pending status
-                    if (response.data?.status === 'pending') {
-                      toast.info(response.data.message || 'Label wordt nog verwerkt door Bol.com. Probeer over 30 seconden opnieuw.');
-                      return;
+            <div className="flex flex-col gap-2">
+              {/* If external_id exists, retry fetching PDF */}
+              {latestLabel.status !== 'failed' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    setIsRetrying(true);
+                    try {
+                      // If no external_id, use force_new to create a fresh label
+                      const hasExternalId = latestLabel.status === 'created';
+                      const response = await supabase.functions.invoke('create-bol-vvb-label', {
+                        body: hasExternalId ? {
+                          order_id: order.id,
+                          retry: true,
+                          label_id: latestLabel.id,
+                        } : {
+                          order_id: order.id,
+                          force_new: true,
+                          label_id: latestLabel.id,
+                        },
+                      });
+                      
+                      if (response.data?.status === 'pending') {
+                        toast.info(response.data.message || 'Label wordt nog verwerkt door Bol.com. Probeer over 30 seconden opnieuw.');
+                        return;
+                      }
+                      
+                      if (response.error) throw response.error;
+                      if (!response.data?.success) throw new Error(response.data?.error || response.data?.details || 'Ophalen mislukt');
+                      
+                      toast.success('Label opgehaald!');
+                      queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
+                      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+                      if (response.data.label_url) {
+                        window.open(response.data.label_url, '_blank');
+                      }
+                    } catch (err: any) {
+                      const msg = err?.message || err?.details || 'Onbekende fout';
+                      toast.error(`Fout bij ophalen: ${msg}`);
+                    } finally {
+                      setTimeout(() => setIsRetrying(false), 5000);
                     }
-                    
-                    if (response.error) throw response.error;
-                    if (!response.data?.success) throw new Error(response.data?.error || response.data?.details || 'Ophalen mislukt');
-                    
-                    toast.success('Label opnieuw opgehaald');
-                    queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
-                    queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-                    if (response.data.label_url) {
-                      window.open(response.data.label_url, '_blank');
+                  }}
+                  disabled={isRetrying}
+                >
+                  {isRetrying ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Opnieuw ophalen
+                </Button>
+              )}
+              {/* If label failed, offer to create new */}
+              {latestLabel.status === 'failed' && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    setIsRetrying(true);
+                    try {
+                      const response = await supabase.functions.invoke('create-bol-vvb-label', {
+                        body: {
+                          order_id: order.id,
+                          force_new: true,
+                          label_id: latestLabel.id,
+                        },
+                      });
+                      
+                      if (response.error) throw response.error;
+                      if (!response.data?.success) throw new Error(response.data?.error || response.data?.details || 'Aanmaken mislukt');
+                      
+                      toast.success('Nieuw label aangemaakt!');
+                      queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
+                      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+                      if (response.data.label_url) {
+                        window.open(response.data.label_url, '_blank');
+                      }
+                    } catch (err: any) {
+                      toast.error(`Fout: ${err?.message || 'Onbekende fout'}`);
+                    } finally {
+                      setTimeout(() => setIsRetrying(false), 5000);
                     }
-                  } catch (err: any) {
-                    const msg = err?.message || err?.details || 'Onbekende fout';
-                    toast.error(`Fout bij ophalen: ${msg}`);
-                  } finally {
-                    // Debounce: keep button disabled for 5 seconds
-                    setTimeout(() => setIsRetrying(false), 5000);
-                  }
-                }}
-                disabled={isRetrying}
-              >
-                {isRetrying ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Opnieuw ophalen
-              </Button>
+                  }}
+                  disabled={isRetrying}
+                >
+                  {isRetrying ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Truck className="h-4 w-4 mr-2" />
+                  )}
+                  Nieuw label aanmaken
+                </Button>
+              )}
             </div>
           )}
         </div>

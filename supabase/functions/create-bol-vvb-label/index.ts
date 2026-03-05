@@ -420,62 +420,17 @@ const handler = async (req: Request): Promise<Response> => {
       await supabase.from("shipping_labels").delete().eq("id", label_id);
     }
 
-    // ===== AUTO-ACCEPT: Accept order if not yet accepted =====
+    // ===== AUTO-ACCEPT: Mark order as accepted locally =====
+    // Bol.com v10 FBR orders are auto-accepted. No API call needed.
     const currentSyncStatus = order.sync_status;
     if (currentSyncStatus !== "accepted" && currentSyncStatus !== "shipped") {
       console.log(
-        `Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), auto-accepting first...`,
+        `Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), marking as accepted locally...`,
       );
-      try {
-        const acceptRes = await fetchWithTimeout(
-          `${supabaseUrl}/functions/v1/accept-bol-order`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${supabaseServiceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              order_id: order.id,
-              connection_id: order.marketplace_connection_id,
-            }),
-          },
-          30000,
-        );
-        const acceptBody = await acceptRes.text();
-        if (acceptRes.ok) {
-          console.log(`Order ${order.order_number} auto-accepted successfully`);
-        } else {
-          console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
-          
-          // On 403, the order may already be accepted at Bol.com -- allow VVB to continue
-          if (acceptRes.status === 403 || (acceptRes.status === 500 && acceptBody.includes('403'))) {
-            console.log('403 from accept -- order may already be accepted, continuing with VVB label creation...');
-            // Don't return error, fall through to VVB creation
-          } else {
-            // Update order status for non-403 failures
-            await supabase.from('orders').update({ 
-              sync_status: 'accept_failed',
-              updated_at: new Date().toISOString()
-            }).eq('id', order_id);
-            
-            return new Response(
-              JSON.stringify({
-                success: false,
-                error: `Order accepteren mislukt: ${acceptRes.status}`,
-                details: acceptBody,
-              }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
-          }
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (acceptError) {
-        console.error(
-          "Auto-accept error (non-blocking):",
-          acceptError instanceof Error ? acceptError.message : acceptError,
-        );
-      }
+      await supabase.from("orders").update({
+        sync_status: "accepted",
+        updated_at: new Date().toISOString(),
+      }).eq("id", order_id);
     }
 
     // Get order items with Bol.com IDs
@@ -641,7 +596,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Polling process-status attempt ${attempts + 1}/${maxAttempts}...`);
 
         const statusResponse = await fetchWithTimeout(
-          `https://api.bol.com/retailer/process-status/${processStatusId}`,
+          `https://api.bol.com/shared/process-status/${processStatusId}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
