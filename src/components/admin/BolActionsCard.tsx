@@ -122,7 +122,13 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       }
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij label aanmaken: ${error.message}`);
+      const msg = error.message || '';
+      if (msg.includes('al verzonden') || msg.includes('ALREADY_SHIPPED')) {
+        toast.info('Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.');
+      } else {
+        toast.error(`Fout bij label aanmaken: ${msg}`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
     },
   });
 

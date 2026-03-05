@@ -619,8 +619,14 @@ Deno.serve(async (req) => {
                     }
                   } else {
                     console.error(`[RETRY] Accept failed for ${missed.marketplace_order_id}: HTTP ${acceptRes.status} - ${acceptBody}`)
-                    // Do NOT blindly mark as accepted on 403 - the accept-bol-order function
-                    // now handles verification via process-status polling
+                    // Mark as accept_failed on persistent errors to stop infinite retries
+                    if (acceptRes.status === 403 || acceptRes.status === 400 || acceptRes.status === 500) {
+                      await supabase.from('orders').update({ 
+                        sync_status: 'accept_failed', 
+                        updated_at: new Date().toISOString() 
+                      }).eq('id', missed.id)
+                      console.log(`[RETRY] Marked ${missed.marketplace_order_id} as accept_failed to stop retries`)
+                    }
                   }
 
                   await rateLimitDelay(500)
