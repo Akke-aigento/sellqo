@@ -1,118 +1,80 @@
 
 
-## Plan: Fix Bol.com Auto-Accept, Auto-Label, and Manual VVB Label Issues
+## Plan: Fix VVB Label Download + Order Accept Issues
 
-### Root Cause Analysis
+### Problem Analysis
 
-From the edge function logs:
+From the screenshot and code:
 
-1. **Auto-accept 403 error**: Order C0001N2N2R gets `403 Unauthorized Request` from Bol.com. The retry mechanism in `sync-bol-orders` (line 621) logs the error but does NOT mark the order as `accept_failed` -- it stays `sync_status = 'synced'`, causing infinite retries every sync cycle.
+1. **VVB Label created but no download button**: The label record exists in `shipping_labels` (shows "VVB Label BPOST_BE"), but `label_url` is null. The UI has print/download buttons only when `label_url` is truthy (line 236). There IS a "Opnieuw ophalen" retry button for labels with `status === 'created'` and no `label_url` (line 268), but the screenshot shows neither set of buttons — meaning either `label_url` is falsy AND `status` is not `'created'`, or there's a rendering issue.
 
-2. **VVB label 404 "already shipped"**: Order C00008690P (#1106) gets `404 - Request contains order item id(s) that are shipped already: [3871544182]`. The order was shipped externally (via Bol.com seller portal), but SellQo still shows "In afwachting" because `sync_status` was never updated.
+2. **Order Accept returns 500**: The `accept-bol-order` function throws on 403 from Bol.com (line 180: `throw new Error(...)`) which is caught at line 240 and returned as a generic 500. The function should return a proper 400 with clear error info, and also handle the case where a 403 means the order is already accepted.
 
-3. **Manual VVB label button**: Same order #1106 -- the "VVB Label Aanmaken" button attempts to create a label for an already-shipped order, gets 400 error from `create-bol-vvb-label`, and shows a generic error toast.
-
-### Fixes (3 files)
+### Fixes
 
 ---
 
-**File 1: `supabase/functions/sync-bol-orders/index.ts`**
+**File 1: `supabase/functions/accept-bol-order/index.ts`**
 
-**Fix A** (line ~621): When retry accept fails with 403 or 400, mark order as `accept_failed` to stop infinite retries:
+The 403 from Bol.com likely means the order is already accepted. Instead of throwing a generic error:
+
+- On 403: Check if order might already be accepted. Attempt to verify via process-status or simply mark as `accepted` since Bol.com returns 403 when you try to accept an already-accepted order.
+- Return a structured error response (400, not 500) with a clear message.
+
+Change lines 176-181:
 ```typescript
-} else {
-  console.error(`[RETRY] Accept failed for ${missed.marketplace_order_id}: HTTP ${acceptRes.status} - ${acceptBody}`)
-  // Mark as accept_failed on persistent errors (403 = unauthorized/expired, 400 = bad request)
-  if (acceptRes.status === 403 || acceptRes.status === 400) {
-    await supabase.from('orders').update({ 
-      sync_status: 'accept_failed', 
-      updated_at: new Date().toISOString() 
-    }).eq('id', missed.id)
-    console.log(`[RETRY] Marked ${missed.marketplace_order_id} as accept_failed to stop retries`)
+if (!acceptResponse.ok) {
+  if (acceptResponse.status === 403) {
+    console.log('Bol.com 403 - order likely already accepted, marking as accepted')
+    if (order_id) {
+      await supabase.from('orders').update({
+        sync_status: 'accepted',
+        updated_at: new Date().toISOString()
+      }).eq('id', order_id)
+    }
+    return new Response(
+      JSON.stringify({ success: true, message: 'Order was al geaccepteerd bij Bol.com', already_accepted: true }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
+  return new Response(
+    JSON.stringify({ success: false, error: `Order accepteren mislukt: ${acceptResponse.status}`, details: responseText }),
+    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
 }
 ```
 
 ---
 
-**File 2: `supabase/functions/create-bol-vvb-label/index.ts`**
+**File 2: `src/components/admin/BolActionsCard.tsx`**
 
-**Fix B** (line ~503-513): When Bol.com delivery-options returns 404 with "shipped already", update the order's sync_status to `shipped` and return a user-friendly error:
-```typescript
-if (!offersResponse.ok) {
-  const errorText = await offersResponse.text();
-  console.error("Bol.com delivery-options error:", offersResponse.status, errorText);
-  
-  // Detect "already shipped" scenario
-  const alreadyShipped = offersResponse.status === 404 && errorText.includes('shipped already');
-  if (alreadyShipped) {
-    // Update order status to reflect reality
-    await supabase.from('orders').update({ 
-      sync_status: 'shipped', 
-      status: 'shipped',
-      shipped_at: new Date().toISOString(),
-      updated_at: new Date().toISOString() 
-    }).eq('id', order_id);
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: 'Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.',
-      code: 'ALREADY_SHIPPED',
-      details: errorText,
-    }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-  
-  return new Response(/* existing error response */);
-}
-```
+Two sub-fixes:
 
-**Fix C** (line ~449-458): When auto-accept in VVB label creation fails with 403, don't block -- check if order is already shipped/accepted at Bol and allow label creation to continue if appropriate. Also update sync_status on persistent failure:
+**2a**: Handle `already_accepted` response in accept mutation `onSuccess`:
 ```typescript
-if (!acceptRes.ok) {
-  console.error(`Failed to auto-accept: ${acceptRes.status} ${acceptBody}`);
-  
-  // On 403, the order may already be accepted at Bol.com -- allow VVB to continue
-  if (acceptRes.status === 403) {
-    console.log('403 from accept -- order may already be accepted, continuing with VVB label creation...');
-    // Don't return error, fall through to VVB creation
+onSuccess: (data) => {
+  if (data.already_accepted) {
+    toast.info('Order was al geaccepteerd bij Bol.com. Status bijgewerkt.');
   } else {
-    // Update order status for non-403 failures
-    await supabase.from('orders').update({ 
-      sync_status: 'accept_failed' 
-    }).eq('id', order_id);
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: `Order accepteren mislukt: ${acceptRes.status}`,
-      details: acceptBody,
-    }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-}
-```
-
----
-
-**File 3: `src/components/admin/BolActionsCard.tsx`**
-
-**Fix D** (line ~110): Better error handling for VVB label creation -- detect "ALREADY_SHIPPED" code and show appropriate message + refresh order data:
-```typescript
-onError: (error: Error) => {
-  const msg = error.message || '';
-  if (msg.includes('al verzonden') || msg.includes('ALREADY_SHIPPED')) {
-    toast.info('Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.');
-  } else {
-    toast.error(`Fout bij label aanmaken: ${msg}`);
+    toast.success('Order geaccepteerd op Bol.com');
   }
   queryClient.invalidateQueries({ queryKey: ['order', order.id] });
 },
 ```
 
+**2b**: Show a download/retry button even when `label_url` is missing regardless of `status`. Currently line 268 requires `status === 'created'`. Change to show retry for any label without a URL:
+```typescript
+{!latestLabel.label_url && (
+```
+This ensures the "Opnieuw ophalen" button always appears when the label exists but has no PDF URL.
+
+---
+
 ### Summary
 
 | Fix | File | Problem | Solution |
 |-----|------|---------|----------|
-| A | sync-bol-orders | Infinite retry on 403 accept | Mark as `accept_failed` |
-| B | create-bol-vvb-label | "Already shipped" not detected | Update order to `shipped`, friendly error |
-| C | create-bol-vvb-label | Auto-accept 403 blocks VVB | Allow VVB to continue on 403 |
-| D | BolActionsCard.tsx | Generic error on shipped orders | User-friendly toast + status refresh |
+| 1 | accept-bol-order | 403 throws → 500 | Treat 403 as "already accepted", mark order, return success |
+| 2a | BolActionsCard | Generic accept success toast | Show "already accepted" info when applicable |
+| 2b | BolActionsCard | No retry button visible | Show "Opnieuw ophalen" for any label without URL |
 
