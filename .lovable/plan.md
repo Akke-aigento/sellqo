@@ -1,63 +1,60 @@
 
 
-## Analysis: Label Download & Auto-Accept Issues
+## Analysis & Fixes
 
-### Root Cause 1: `#` in filename breaks storage (CRITICAL)
+### Issue 1: A6 Cropping Is Wrong
 
-The order number `#1121` is used directly in the storage filename: `bol-vvb-#1121-a6-{timestamp}.pdf`. The `#` character causes **two fatal issues**:
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-1. **Storage truncates the filename** — The `#` is interpreted as a URL fragment delimiter. Looking at storage, there's only ONE file across all labels: `54f6b480.../bol-vvb-` (truncated at `#`).
-2. **409 conflict on retry** — Every upload creates the same truncated filename `bol-vvb-`, so the second order (#1121) fails with "resource already exists" because #1120 already created that truncated file.
-3. **Broken download URLs** — Even for #1120 where `label_url` was set, the URL contains `#1120` which browsers interpret as a fragment, making the PDF inaccessible.
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-Evidence from logs:
-```
-PDF upload to storage failed: StorageApiError: The resource already exists (409)
-```
-
-Evidence from storage query: only 1 file exists with name `bol-vvb-` (truncated).
-
-### Root Cause 2: Auto-accept IS working
-
-Checking the database: order #1121 has `sync_status: 'accepted'`. The auto-accept flow ran successfully. The user perceives it as broken because the label download fails, making the whole flow feel broken. However, I'll add logging improvements.
-
----
-
-### Fixes
-
-**Fix 1: `supabase/functions/create-bol-vvb-label/index.ts` — Strip `#` from filenames**
-
-In ALL places where filenames are constructed (3 locations), replace `#` with empty string:
-
-- Line ~406 (retry upload): `bol-vvb-${order.order_number.replace('#', '')}${formatSuffix}-retry-${Date.now()}.pdf`
-- Line ~803 (initial creation upload): same pattern
-- Also add `upsert: true` to storage upload options as a safety net for any remaining conflicts
-
-**Fix 2: Same file — Handle 409 gracefully**
-
-When storage upload returns a 409, instead of logging and moving on (leaving `label_url` null), fetch the existing file's public URL:
-
-```typescript
-if (uploadError?.statusCode === '409') {
-  // File exists, get its URL instead
-  const { data: urlData } = supabase.storage
-    .from("shipping-labels")
-    .getPublicUrl(`${order.tenant_id}/${fileName}`);
-  retryPdfUrl = urlData?.publicUrl || null;
-}
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
 ```
 
-**Fix 3: Fix existing broken label_url for order #1120**
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-The label for #1120 has a stored `label_url` containing `#1120` which is unusable. The retry flow will fix this when clicked, but we should also ensure new URLs are always valid.
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
----
+### Issue 2: Auto-Accept Does Nothing at Bol.com
+
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
 
 ### Summary
 
 | Issue | Root Cause | Fix |
 |-------|-----------|-----|
-| Label not downloadable | `#` in filename truncates storage path & creates broken URLs | Strip `#` from all filenames |
-| Retry upload 409 | Truncated filenames collide | `upsert: true` + handle 409 fallback |
-| "Auto-accept broken" | Actually works; user confused because label flow is broken | Fix label flow (main fix) |
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 
