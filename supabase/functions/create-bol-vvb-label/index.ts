@@ -34,7 +34,7 @@ async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
 
   // Bol.com VVB labels span full A4 width but only use the top portion
   const LABEL_WIDTH = 595.28;  // Full A4 width (210mm)
-  const LABEL_HEIGHT = 419.53; // Half A4 height (148mm)
+  const LABEL_HEIGHT = 360; // Tighter crop for bpost VVB labels (~127mm)
   const { height } = page.getSize();
 
   page.setCropBox(0, height - LABEL_HEIGHT, LABEL_WIDTH, LABEL_HEIGHT);
