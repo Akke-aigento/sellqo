@@ -867,10 +867,10 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("HEAD request for tracking failed:", headError instanceof Error ? headError.message : headError);
       }
 
-      // If no tracking yet, wait 5 seconds and try fetching from order data
+      // If no tracking yet, wait 10 seconds and try fetching from order data
       if (!trackingNumber) {
-        console.log("No tracking yet, waiting 5s for Bol.com to assign...");
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log("No tracking yet, waiting 10s for Bol.com to assign...");
+        await new Promise(resolve => setTimeout(resolve, 10000));
         
         try {
           const orderTrackResponse = await fetchWithTimeout(
@@ -896,6 +896,37 @@ const handler = async (req: Request): Promise<Response> => {
           }
         } catch (e) {
           console.error("Delayed tracking fetch failed:", e instanceof Error ? e.message : e);
+        }
+      }
+
+      // Fallback 3: Try the shipments API (tracking is often available here first)
+      if (!trackingNumber) {
+        console.log("Still no tracking, trying shipments API...");
+        try {
+          const shipmentsRes = await fetchWithTimeout(
+            `https://api.bol.com/retailer/shipments?order-id=${order.marketplace_order_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.retailer.v10+json",
+              },
+            },
+            15000,
+          );
+          if (shipmentsRes.ok) {
+            const shipmentsData = await shipmentsRes.json();
+            const shipments = shipmentsData.shipments || [];
+            for (const shipment of shipments) {
+              const tt = shipment.transport?.trackAndTrace;
+              if (tt) {
+                trackingNumber = tt;
+                console.log("Got tracking from shipments API:", trackingNumber);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Shipments API tracking fetch failed:", e instanceof Error ? e.message : e);
         }
       }
     }
