@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// BUG 4 FIX: Extended CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -9,12 +8,12 @@ const corsHeaders = {
 
 interface ConfirmShipmentRequest {
   order_id: string;
-  tracking_number: string;
+  tracking_number?: string | null;
   carrier: string;
   tracking_url?: string;
+  marketplace_order_id?: string;
 }
 
-// Map common carrier names to Bol.com transporter codes
 const CARRIER_MAPPING: Record<string, string> = {
   'postnl': 'TNT',
   'dhl': 'DHL',
@@ -25,7 +24,6 @@ const CARRIER_MAPPING: Record<string, string> = {
   'fedex': 'FEDEX',
 };
 
-// BUG 3 FIX: Standardized token method (Content-Type + body)
 async function getBolAccessToken(credentials: { clientId: string; clientSecret: string }): Promise<string> {
   const authString = btoa(`${credentials.clientId}:${credentials.clientSecret}`);
   
@@ -48,6 +46,35 @@ async function getBolAccessToken(credentials: { clientId: string; clientSecret: 
   return data.access_token;
 }
 
+// Fetch tracking from shipments API if not provided
+async function fetchTrackingFromShipments(accessToken: string, marketplaceOrderId: string): Promise<string | null> {
+  try {
+    console.log("Fetching tracking from shipments API for order:", marketplaceOrderId);
+    const res = await fetch(
+      `https://api.bol.com/retailer/shipments?order-id=${marketplaceOrderId}`,
+      {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/vnd.retailer.v10+json",
+        },
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      for (const shipment of (data.shipments || [])) {
+        const tt = shipment.transport?.trackAndTrace;
+        if (tt) {
+          console.log("Found tracking from shipments API:", tt);
+          return tt;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Shipments API fetch failed:", e instanceof Error ? e.message : e);
+  }
+  return null;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -58,11 +85,11 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { order_id, tracking_number, carrier, tracking_url }: ConfirmShipmentRequest = await req.json();
+    const { order_id, tracking_number, carrier, tracking_url, marketplace_order_id }: ConfirmShipmentRequest = await req.json();
 
-    if (!order_id || !tracking_number || !carrier) {
+    if (!order_id || !carrier) {
       return new Response(
-        JSON.stringify({ error: "order_id, tracking_number, and carrier are required" }),
+        JSON.stringify({ error: "order_id and carrier are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -81,7 +108,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verify this is a Bol.com order
     if (order.marketplace_source !== 'bol_com' || !order.marketplace_connection_id) {
       return new Response(
         JSON.stringify({ error: "This is not a Bol.com order" }),
@@ -89,7 +115,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (!order.marketplace_order_id) {
+    const bolOrderId = order.marketplace_order_id || marketplace_order_id;
+    if (!bolOrderId) {
       return new Response(
         JSON.stringify({ error: "Order has no Bol.com order ID" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -121,6 +148,12 @@ const handler = async (req: Request): Promise<Response> => {
     // Get access token
     const accessToken = await getBolAccessToken(credentials);
 
+    // Resolve tracking number: use provided, or fetch from shipments API
+    let resolvedTracking = tracking_number || null;
+    if (!resolvedTracking) {
+      resolvedTracking = await fetchTrackingFromShipments(accessToken, bolOrderId);
+    }
+
     // Map carrier to Bol.com transporter code
     const transporterCode = CARRIER_MAPPING[carrier.toLowerCase()] || carrier.toUpperCase();
 
@@ -128,13 +161,19 @@ const handler = async (req: Request): Promise<Response> => {
     const orderItems = order.order_items || [];
     const shipmentItems = orderItems
       .filter((item: { marketplace_order_item_id?: string }) => item.marketplace_order_item_id)
-      .map((item: { marketplace_order_item_id: string }) => ({
-        orderItemId: item.marketplace_order_item_id,
-        transport: {
-          trackAndTrace: tracking_number,
-          transporterCode: transporterCode,
-        },
-      }));
+      .map((item: { marketplace_order_item_id: string }) => {
+        const shipmentItem: Record<string, unknown> = {
+          orderItemId: item.marketplace_order_item_id,
+        };
+        // Only include transport if we have tracking
+        if (resolvedTracking) {
+          shipmentItem.transport = {
+            trackAndTrace: resolvedTracking,
+            transporterCode: transporterCode,
+          };
+        }
+        return shipmentItem;
+      });
 
     if (shipmentItems.length === 0) {
       return new Response(
@@ -144,8 +183,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Call Bol.com shipment API
+    console.log(`Confirming shipment for Bol order ${bolOrderId}, tracking: ${resolvedTracking || 'none'}`);
     const shipmentResponse = await fetch(
-      `https://api.bol.com/retailer/orders/${order.marketplace_order_id}/shipment`,
+      `https://api.bol.com/retailer/orders/${bolOrderId}/shipment`,
       {
         method: "PUT",
         headers: {
@@ -163,7 +203,6 @@ const handler = async (req: Request): Promise<Response> => {
       const errorText = await shipmentResponse.text();
       console.error("Bol.com shipment error:", errorText);
       
-      // Update order with error
       await supabase
         .from("orders")
         .update({
@@ -183,17 +222,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     const shipmentData = await shipmentResponse.json();
 
-    // BUG 5 FIX: Use sync_status consistently
-    await supabase
-      .from("orders")
-      .update({
-        sync_status: 'shipped',
-        marketplace_sync_error: null,
-        tracking_number: tracking_number,
-        tracking_url: tracking_url,
-        carrier: carrier,
-      })
-      .eq("id", order_id);
+    // Update order with final state
+    const orderUpdate: Record<string, unknown> = {
+      sync_status: 'shipped',
+      marketplace_sync_error: null,
+      carrier: carrier,
+    };
+    if (resolvedTracking) {
+      orderUpdate.tracking_number = resolvedTracking;
+      orderUpdate.tracking_url = tracking_url || `https://jfrfracking.info/track/nl-NL/?B=${resolvedTracking}`;
+    }
+    await supabase.from("orders").update(orderUpdate).eq("id", order_id);
 
     console.log(`Successfully confirmed shipment to Bol.com for order ${order.order_number}`);
 
@@ -201,6 +240,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         message: "Shipment confirmed to Bol.com",
+        tracking_number: resolvedTracking,
         bol_response: shipmentData,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

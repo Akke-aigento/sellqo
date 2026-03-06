@@ -956,22 +956,23 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Label saved, id:", label?.id);
     }
 
-    // Update order status based on result
-    if (transporterLabelId && trackingNumber) {
-      console.log("Label complete with tracking, marking order as shipped...");
-      await supabase
-        .from("orders")
-        .update({
-          carrier: selectedOffer.transporterCode,
-          tracking_number: trackingNumber,
-          status: "shipped",
-          shipped_at: new Date().toISOString(),
-          fulfillment_status: "shipped",
-          sync_status: "shipped",
-        })
-        .eq("id", order.id);
+    // Update order status based on result — decouple from tracking number
+    if (transporterLabelId) {
+      console.log(`Label created (tracking: ${trackingNumber || 'pending'}), marking order as shipped...`);
+      const orderUpdate: Record<string, unknown> = {
+        carrier: selectedOffer.transporterCode,
+        status: "shipped",
+        shipped_at: new Date().toISOString(),
+        fulfillment_status: "shipped",
+        sync_status: "shipped",
+      };
+      if (trackingNumber) {
+        orderUpdate.tracking_number = trackingNumber;
+        orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${trackingNumber}`;
+      }
+      await supabase.from("orders").update(orderUpdate).eq("id", order.id);
 
-      // Confirm shipment at Bol.com
+      // Confirm shipment at Bol.com (works even without tracking — Bol already assigned it via VVB)
       try {
         console.log(`Confirming shipment to Bol.com for order ${order.order_number}...`);
         const confirmRes = await fetchWithTimeout(
@@ -984,8 +985,9 @@ const handler = async (req: Request): Promise<Response> => {
             },
             body: JSON.stringify({
               order_id: order.id,
-              tracking_number: trackingNumber,
+              tracking_number: trackingNumber || null,
               carrier: selectedOffer.transporterCode,
+              marketplace_order_id: order.marketplace_order_id,
             }),
           },
           30000,
