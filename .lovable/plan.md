@@ -1,50 +1,60 @@
 
 
-## Three Remaining Issues — Root Cause & Fix Plan
+## Analysis & Fixes
 
-### Issue 1: Tracking number not auto-filled
+### Issue 1: A6 Cropping Is Wrong
 
-**Root cause:** After VVB label creation, tracking is fetched via (1) HEAD request header, (2) 5s delayed order endpoint. Both return null. The tracking number `CD116065228BE` IS available via the **shipments API** (`GET /retailer/shipments?order-id=...`) but this endpoint is never called.
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-**Fix in `create-bol-vvb-label/index.ts`:**
-- After the existing 5s delay fallback (line ~900), add a third fallback: query `GET /retailer/shipments?order-id={bolOrderId}`
-- Increase delay from 5s to 10s to give Bol.com more time to assign tracking
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-### Issue 2: Order not accepted/processed on Bol.com portal
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
+```
 
-**Root cause:** Line 929 requires `transporterLabelId && trackingNumber` to call `confirm-bol-shipment`. Since tracking is null, the confirmation (which does `PUT /retailer/orders/{id}/shipment`) is **never called**. This is the API call that moves the order from "Verwerken" to "Verzonden" on Bol.com.
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-Additionally, `confirm-bol-shipment` itself (line 63) rejects requests without `tracking_number`.
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-**Fix in `create-bol-vvb-label/index.ts`:**
-- Change condition from `transporterLabelId && trackingNumber` to just `transporterLabelId`
-- If tracking is still null, try the shipments API one more time before confirming
-- If still null, use a placeholder or the `transporterLabelId` — Bol.com already has the tracking from VVB label creation
+### Issue 2: Auto-Accept Does Nothing at Bol.com
 
-**Fix in `confirm-bol-shipment/index.ts`:**
-- Make `tracking_number` optional in the validation (line 63)
-- If missing, fetch it from the shipments API before calling `PUT /retailer/orders/{id}/shipment`
-- The shipment PUT call should still work because Bol.com already assigned tracking during VVB label creation
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
 
-### Issue 3: Label has white space below content
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
 
-**Root cause:** `LABEL_HEIGHT = 419.53` (half A4 = 148mm) is too tall. The bpost VVB label content ends at roughly 127mm / ~360pt. The remaining ~60pt is empty white space.
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
 
-**Fix in `create-bol-vvb-label/index.ts`:**
-- Change `LABEL_HEIGHT` from `419.53` to `360` (line 37)
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
 
----
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
 
-### Files to modify
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
 
-1. **`supabase/functions/create-bol-vvb-label/index.ts`**
-   - Line 37: `LABEL_HEIGHT` → `360`
-   - After line 900: Add shipments API fallback with 10s delay
-   - Line 929: Change condition to just `transporterLabelId` (decouple from tracking)
-   - Always call confirm-bol-shipment when label exists, pass tracking if available
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
 
-2. **`supabase/functions/confirm-bol-shipment/index.ts`**
-   - Line 63: Make `tracking_number` optional
-   - Before building shipment items: if tracking missing, fetch from shipments API
-   - Build shipment items with tracking if available, or without `trackAndTrace` field
+### Summary
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 

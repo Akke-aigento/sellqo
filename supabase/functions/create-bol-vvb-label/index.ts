@@ -34,7 +34,7 @@ async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
 
   // Bol.com VVB labels span full A4 width but only use the top portion
   const LABEL_WIDTH = 595.28;  // Full A4 width (210mm)
-  const LABEL_HEIGHT = 419.53; // Half A4 height (148mm)
+  const LABEL_HEIGHT = 360; // Tighter crop for bpost VVB labels (~127mm)
   const { height } = page.getSize();
 
   page.setCropBox(0, height - LABEL_HEIGHT, LABEL_WIDTH, LABEL_HEIGHT);
@@ -867,10 +867,10 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("HEAD request for tracking failed:", headError instanceof Error ? headError.message : headError);
       }
 
-      // If no tracking yet, wait 5 seconds and try fetching from order data
+      // If no tracking yet, wait 10 seconds and try fetching from order data
       if (!trackingNumber) {
-        console.log("No tracking yet, waiting 5s for Bol.com to assign...");
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log("No tracking yet, waiting 10s for Bol.com to assign...");
+        await new Promise(resolve => setTimeout(resolve, 10000));
         
         try {
           const orderTrackResponse = await fetchWithTimeout(
@@ -896,6 +896,37 @@ const handler = async (req: Request): Promise<Response> => {
           }
         } catch (e) {
           console.error("Delayed tracking fetch failed:", e instanceof Error ? e.message : e);
+        }
+      }
+
+      // Fallback 3: Try the shipments API (tracking is often available here first)
+      if (!trackingNumber) {
+        console.log("Still no tracking, trying shipments API...");
+        try {
+          const shipmentsRes = await fetchWithTimeout(
+            `https://api.bol.com/retailer/shipments?order-id=${order.marketplace_order_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.retailer.v10+json",
+              },
+            },
+            15000,
+          );
+          if (shipmentsRes.ok) {
+            const shipmentsData = await shipmentsRes.json();
+            const shipments = shipmentsData.shipments || [];
+            for (const shipment of shipments) {
+              const tt = shipment.transport?.trackAndTrace;
+              if (tt) {
+                trackingNumber = tt;
+                console.log("Got tracking from shipments API:", trackingNumber);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Shipments API tracking fetch failed:", e instanceof Error ? e.message : e);
         }
       }
     }
@@ -925,22 +956,23 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Label saved, id:", label?.id);
     }
 
-    // Update order status based on result
-    if (transporterLabelId && trackingNumber) {
-      console.log("Label complete with tracking, marking order as shipped...");
-      await supabase
-        .from("orders")
-        .update({
-          carrier: selectedOffer.transporterCode,
-          tracking_number: trackingNumber,
-          status: "shipped",
-          shipped_at: new Date().toISOString(),
-          fulfillment_status: "shipped",
-          sync_status: "shipped",
-        })
-        .eq("id", order.id);
+    // Update order status based on result — decouple from tracking number
+    if (transporterLabelId) {
+      console.log(`Label created (tracking: ${trackingNumber || 'pending'}), marking order as shipped...`);
+      const orderUpdate: Record<string, unknown> = {
+        carrier: selectedOffer.transporterCode,
+        status: "shipped",
+        shipped_at: new Date().toISOString(),
+        fulfillment_status: "shipped",
+        sync_status: "shipped",
+      };
+      if (trackingNumber) {
+        orderUpdate.tracking_number = trackingNumber;
+        orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${trackingNumber}`;
+      }
+      await supabase.from("orders").update(orderUpdate).eq("id", order.id);
 
-      // Confirm shipment at Bol.com
+      // Confirm shipment at Bol.com (works even without tracking — Bol already assigned it via VVB)
       try {
         console.log(`Confirming shipment to Bol.com for order ${order.order_number}...`);
         const confirmRes = await fetchWithTimeout(
@@ -953,8 +985,9 @@ const handler = async (req: Request): Promise<Response> => {
             },
             body: JSON.stringify({
               order_id: order.id,
-              tracking_number: trackingNumber,
+              tracking_number: trackingNumber || null,
               carrier: selectedOffer.transporterCode,
+              marketplace_order_id: order.marketplace_order_id,
             }),
           },
           30000,
