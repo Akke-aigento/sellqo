@@ -44,8 +44,9 @@ import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
+import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
 import { useAuth } from '@/hooks/useAuth';
-import { Inbox } from 'lucide-react';
+import { Inbox, Truck } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
