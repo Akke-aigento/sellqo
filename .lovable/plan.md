@@ -1,59 +1,60 @@
 
 
-## Automatische Verzendstatus Updates
+## Analysis & Fixes
 
-### Wat ontbreekt
+### Issue 1: A6 Cropping Is Wrong
 
-De infrastructuur is er al grotendeels:
-- `tenant_tracking_settings` tabel met 17TRACK API key veld en polling interval
-- `tracking_status` en `last_tracking_check` kolommen op orders
-- `shipping_status_updates` tabel voor event history
-- UI in instellingen voor 17TRACK configuratie
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-Maar er is **geen edge function** die daadwerkelijk de tracking API pollt en statussen bijwerkt. Dat is het missende puzzelstuk.
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-### Plan
-
-**1. Nieuwe edge function: `poll-tracking-status`**
-
-Een cron-achtige functie die:
-- Alle tenants met `auto_poll_17track = true` en een API key ophaalt
-- Per tenant alle orders met status `shipped` + `tracking_number` die langer dan `poll_interval_hours` geleden (of nooit) gecheckt zijn
-- In batches de 17TRACK API aanroept (`POST https://api.17track.net/track/v2.2/gettrackinfo`)
-- De response mapt naar genormaliseerde statussen (shipped → in_transit → out_for_delivery → delivered / exception)
-- De order `tracking_status`, `last_tracking_check`, en eventueel `status` + `delivered_at` bijwerkt
-- Een record in `shipping_status_updates` toevoegt per statuswijziging
-- Klantnotificaties triggert op basis van de tenant notificatie-instellingen
-
-**2. Database cron job**
-
-SQL migration om een `pg_cron` job toe te voegen die `poll-tracking-status` elke 30 minuten aanroept (vergelijkbaar met de bestaande `marketplace-sync-scheduler`).
-
-**3. UI: Tracking status badge op order detail**
-
-In `TrackingInfoCard.tsx` een visuele status badge tonen (bijv. "Onderweg", "Bezorgd", "Probleem") op basis van `tracking_status`, plus de laatste check-tijd.
-
-### Technische details
-
-**17TRACK API call:**
-```typescript
-const response = await fetch('https://api.17track.net/track/v2.2/gettrackinfo', {
-  method: 'POST',
-  headers: { '17token': apiKey, 'Content-Type': 'application/json' },
-  body: JSON.stringify([{ number: trackingNumber, carrier: carrierCode }])
-});
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
 ```
 
-**Status mapping:**
-- 17TRACK statuscodes: 0=NotFound, 10=InTransit, 20=Expired, 30=PickedUp, 35=Undelivered, 40=Delivered, 50=Alert
-- → SellQo: `not_found`, `in_transit`, `out_for_delivery`, `delivered`, `exception`
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-### Bestanden
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-| Actie | Bestand |
-|-------|---------|
-| Nieuw | `supabase/functions/poll-tracking-status/index.ts` |
-| Migration | Cron job voor polling elke 30 min |
-| Edit | `src/components/admin/TrackingInfoCard.tsx` — status badge + laatste check |
-| Edit | `src/types/order.ts` — tracking_status toevoegen aan Order type |
+### Issue 2: Auto-Accept Does Nothing at Bol.com
+
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+
+### Summary
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 

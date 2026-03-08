@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Truck, ExternalLink, Send, X, Loader2 } from 'lucide-react';
+import { Truck, ExternalLink, Send, X, Loader2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CARRIER_PATTERNS, generateTrackingUrl, getCarrierById } from '@/lib/carrierPatterns';
 import { useOrderShipping } from '@/hooks/useOrderShipping';
 import type { Order, Address } from '@/types/order';
+import { formatDistanceToNow } from 'date-fns';
+import { nl } from 'date-fns/locale';
+
+const TRACKING_STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
+  not_found: { label: 'Niet gevonden', variant: 'outline' },
+  picked_up: { label: 'Opgehaald', variant: 'secondary' },
+  in_transit: { label: 'Onderweg', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
+  out_for_delivery: { label: 'In bezorging', variant: 'default', className: 'bg-orange-500 hover:bg-orange-500/80' },
+  delivered: { label: 'Bezorgd', variant: 'default', className: 'bg-green-600 hover:bg-green-600/80' },
+  exception: { label: 'Probleem', variant: 'destructive' },
+  expired: { label: 'Verlopen', variant: 'outline' },
+  undelivered: { label: 'Niet bezorgd', variant: 'destructive' },
+};
 
 interface TrackingInfoCardProps {
   order: Order;
@@ -65,11 +79,26 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
 
   const carrierInfo = getCarrierById(carrier);
   const hasTrackingInfo = order.tracking_number && order.carrier;
+  const trackingStatusConfig = order.tracking_status ? TRACKING_STATUS_CONFIG[order.tracking_status] : null;
 
   // Display mode - show existing tracking info
   if (!isEditing && hasTrackingInfo) {
     const displayContent = (
       <div className="space-y-4">
+        {/* Tracking status badge */}
+        {trackingStatusConfig && (
+          <div className="flex items-center justify-between">
+            <Badge variant={trackingStatusConfig.variant} className={trackingStatusConfig.className}>
+              {trackingStatusConfig.label}
+            </Badge>
+            {order.last_tracking_check && (
+              <span className="text-xs text-muted-foreground">
+                Gecheckt {formatDistanceToNow(new Date(order.last_tracking_check), { addSuffix: true, locale: nl })}
+              </span>
+            )}
+          </div>
+        )}
+        
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Carrier</span>
