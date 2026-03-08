@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Truck, ExternalLink, Send, X, Loader2 } from 'lucide-react';
+import { Truck, ExternalLink, Send, X, Loader2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CARRIER_PATTERNS, generateTrackingUrl, getCarrierById } from '@/lib/carrierPatterns';
 import { useOrderShipping } from '@/hooks/useOrderShipping';
 import type { Order, Address } from '@/types/order';
+import { formatDistanceToNow } from 'date-fns';
+import { nl } from 'date-fns/locale';
+
+const TRACKING_STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
+  not_found: { label: 'Niet gevonden', variant: 'outline' },
+  picked_up: { label: 'Opgehaald', variant: 'secondary' },
+  in_transit: { label: 'Onderweg', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
+  out_for_delivery: { label: 'In bezorging', variant: 'default', className: 'bg-orange-500 hover:bg-orange-500/80' },
+  delivered: { label: 'Bezorgd', variant: 'default', className: 'bg-green-600 hover:bg-green-600/80' },
+  exception: { label: 'Probleem', variant: 'destructive' },
+  expired: { label: 'Verlopen', variant: 'outline' },
+  undelivered: { label: 'Niet bezorgd', variant: 'destructive' },
+};
 
 interface TrackingInfoCardProps {
   order: Order;

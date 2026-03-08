@@ -121,6 +121,9 @@ export interface Order {
   // Import tracking
   import_source?: string | null;
   original_created_at?: string | null;
+  // Tracking status (auto-polling)
+  tracking_status?: string | null;
+  last_tracking_check?: string | null;
   // Joined data
   order_items?: OrderItem[];
   customer?: Customer;
