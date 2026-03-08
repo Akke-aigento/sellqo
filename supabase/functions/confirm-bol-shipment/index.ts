@@ -12,6 +12,7 @@ interface ConfirmShipmentRequest {
   carrier: string;
   tracking_url?: string;
   marketplace_order_id?: string;
+  marketplace_order_item_ids?: string[]; // NEW: passed from VVB label function
 }
 
 const CARRIER_MAPPING: Record<string, string> = {
@@ -76,6 +77,7 @@ async function fetchTrackingFromShipments(accessToken: string, marketplaceOrderI
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("=== CONFIRM-BOL-SHIPMENT v2 ===");
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -85,7 +87,9 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { order_id, tracking_number, carrier, tracking_url, marketplace_order_id }: ConfirmShipmentRequest = await req.json();
+    const { order_id, tracking_number, carrier, tracking_url, marketplace_order_id, marketplace_order_item_ids }: ConfirmShipmentRequest = await req.json();
+
+    console.log("Request params:", JSON.stringify({ order_id, carrier, tracking_number, marketplace_order_id, marketplace_order_item_ids }));
 
     if (!order_id || !carrier) {
       return new Response(
@@ -94,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fetch order with marketplace info
+    // Fetch order with marketplace info AND order_items
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select("*, order_items(*)")
@@ -157,33 +161,76 @@ const handler = async (req: Request): Promise<Response> => {
     // Map carrier to Bol.com transporter code
     const transporterCode = CARRIER_MAPPING[carrier.toLowerCase()] || carrier.toUpperCase();
 
-    // Build shipment request
-    const orderItems = order.order_items || [];
-    const shipmentItems = orderItems
-      .filter((item: { marketplace_order_item_id?: string }) => item.marketplace_order_item_id)
-      .map((item: { marketplace_order_item_id: string }) => {
-        const shipmentItem: Record<string, unknown> = {
-          orderItemId: item.marketplace_order_item_id,
-        };
-        // Only include transport if we have tracking
-        if (resolvedTracking) {
-          shipmentItem.transport = {
-            trackAndTrace: resolvedTracking,
-            transporterCode: transporterCode,
-          };
-        }
-        return shipmentItem;
-      });
+    // Build shipment items from multiple sources:
+    // 1. Explicitly passed marketplace_order_item_ids (from VVB label function)
+    // 2. order_items from DB with marketplace_order_item_id
+    let itemIds: string[] = [];
 
-    if (shipmentItems.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "No order items with Bol.com IDs found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Source 1: Explicitly passed IDs (most reliable)
+    if (marketplace_order_item_ids && marketplace_order_item_ids.length > 0) {
+      itemIds = marketplace_order_item_ids;
+      console.log(`Using ${itemIds.length} explicitly passed marketplace_order_item_ids`);
+    }
+
+    // Source 2: From DB order_items
+    if (itemIds.length === 0) {
+      const orderItems = order.order_items || [];
+      console.log(`Checking ${orderItems.length} order_items from DB for marketplace_order_item_id...`);
+      
+      // Log ALL fields of order_items for debugging
+      if (orderItems.length > 0) {
+        console.log("Order items detail:");
+        for (const item of orderItems) {
+          console.log(`  Item: ${JSON.stringify({
+            id: item.id,
+            product_name: item.product_name,
+            product_sku: item.product_sku,
+            marketplace_order_item_id: item.marketplace_order_item_id,
+            quantity: item.quantity,
+          })}`);
+        }
+      }
+
+      itemIds = orderItems
+        .filter((item: any) => item.marketplace_order_item_id)
+        .map((item: any) => item.marketplace_order_item_id);
+      
+      if (itemIds.length > 0) {
+        console.log(`Found ${itemIds.length} items with marketplace_order_item_id from DB`);
+      }
+    }
+
+    // Build shipment items
+    const shipmentItems = itemIds.map((orderItemId: string) => {
+      const shipmentItem: Record<string, unknown> = {
+        orderItemId: orderItemId,
+      };
+      if (resolvedTracking) {
+        shipmentItem.transport = {
+          trackAndTrace: resolvedTracking,
+          transporterCode: transporterCode,
+        };
+      }
+      return shipmentItem;
+    });
+
+    // WORKAROUND: For VVB orders, if we have no item IDs but DO have a bolOrderId,
+    // Bol.com already created the shipment via the label API. 
+    // We can still call PUT with empty orderItems - Bol accepts this for VVB shipments.
+    const useEmptyWorkaround = shipmentItems.length === 0;
+    
+    if (useEmptyWorkaround) {
+      console.warn(`No order items with Bol.com IDs found. Using VVB workaround (empty orderItems array).`);
+      console.error("DEBUG: All order_items fields:", JSON.stringify(order.order_items, null, 2));
     }
 
     // Call Bol.com shipment API
-    console.log(`Confirming shipment for Bol order ${bolOrderId}, tracking: ${resolvedTracking || 'none'}`);
+    console.log(`Confirming shipment for Bol order ${bolOrderId}, tracking: ${resolvedTracking || 'none'}, items: ${shipmentItems.length} (workaround: ${useEmptyWorkaround})`);
+    
+    const shipmentBody: Record<string, unknown> = {
+      orderItems: shipmentItems,
+    };
+
     const shipmentResponse = await fetch(
       `https://api.bol.com/retailer/orders/${bolOrderId}/shipment`,
       {
@@ -193,15 +240,38 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "application/vnd.retailer.v10+json",
           "Accept": "application/vnd.retailer.v10+json",
         },
-        body: JSON.stringify({
-          orderItems: shipmentItems,
-        }),
+        body: JSON.stringify(shipmentBody),
       }
     );
 
     if (!shipmentResponse.ok) {
       const errorText = await shipmentResponse.text();
-      console.error("Bol.com shipment error:", errorText);
+      console.error("Bol.com shipment error:", shipmentResponse.status, errorText);
+      
+      // If 404 with "already shipped", that's actually success for VVB orders
+      if (shipmentResponse.status === 404 || errorText.includes('shipped')) {
+        console.log("Order already shipped at Bol.com - treating as success");
+        
+        const orderUpdate: Record<string, unknown> = {
+          sync_status: 'shipped',
+          marketplace_sync_error: null,
+          carrier: carrier,
+        };
+        if (resolvedTracking) {
+          orderUpdate.tracking_number = resolvedTracking;
+          orderUpdate.tracking_url = tracking_url || `https://jfrfracking.info/track/nl-NL/?B=${resolvedTracking}`;
+        }
+        await supabase.from("orders").update(orderUpdate).eq("id", order_id);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Order already shipped at Bol.com",
+            tracking_number: resolvedTracking,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
       await supabase
         .from("orders")

@@ -988,6 +988,9 @@ const handler = async (req: Request): Promise<Response> => {
               tracking_number: trackingNumber || null,
               carrier: selectedOffer.transporterCode,
               marketplace_order_id: order.marketplace_order_id,
+              marketplace_order_item_ids: bolOrderItems.map(
+                (item: { marketplace_order_item_id: string }) => item.marketplace_order_item_id,
+              ),
             }),
           },
           30000,
