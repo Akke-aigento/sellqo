@@ -116,6 +116,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
+      { id: 'tracking', title: 'Verzending & Tracking', icon: Truck, component: TrackingNotificationSettings },
       { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
     ],
   },
