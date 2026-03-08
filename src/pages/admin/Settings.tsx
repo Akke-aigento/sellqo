@@ -44,8 +44,9 @@ import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
+import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
 import { useAuth } from '@/hooks/useAuth';
-import { Inbox } from 'lucide-react';
+import { Inbox, Truck } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
@@ -115,6 +116,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
+      { id: 'tracking', title: 'Verzending & Tracking', icon: Truck, component: TrackingNotificationSettings },
       { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
     ],
   },
