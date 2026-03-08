@@ -133,6 +133,7 @@ export function OrderBulkActions({
         phone: currentTenant.phone,
         email: currentTenant.owner_email,
         kvk_number: currentTenant.kvk_number,
+        logo_url: currentTenant.logo_url,
       };
 
       // Generate and merge PDFs

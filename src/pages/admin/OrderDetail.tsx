@@ -436,6 +436,7 @@ export default function OrderDetailPage() {
                       postal_code: currentTenant.postal_code,
                       country: currentTenant.country,
                       phone: currentTenant.phone,
+                      logo_url: currentTenant.logo_url,
                     });
                     const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
