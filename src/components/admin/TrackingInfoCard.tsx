@@ -79,11 +79,26 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
 
   const carrierInfo = getCarrierById(carrier);
   const hasTrackingInfo = order.tracking_number && order.carrier;
+  const trackingStatusConfig = order.tracking_status ? TRACKING_STATUS_CONFIG[order.tracking_status] : null;
 
   // Display mode - show existing tracking info
   if (!isEditing && hasTrackingInfo) {
     const displayContent = (
       <div className="space-y-4">
+        {/* Tracking status badge */}
+        {trackingStatusConfig && (
+          <div className="flex items-center justify-between">
+            <Badge variant={trackingStatusConfig.variant} className={trackingStatusConfig.className}>
+              {trackingStatusConfig.label}
+            </Badge>
+            {order.last_tracking_check && (
+              <span className="text-xs text-muted-foreground">
+                Gecheckt {formatDistanceToNow(new Date(order.last_tracking_check), { addSuffix: true, locale: nl })}
+              </span>
+            )}
+          </div>
+        )}
+        
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Carrier</span>
