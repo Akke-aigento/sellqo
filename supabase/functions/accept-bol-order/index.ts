@@ -5,88 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-const BOL_API_BASE = 'https://api.bol.com/retailer'
-const BOL_TOKEN_URL = 'https://login.bol.com/token'
-
-interface BolCredentials {
-  clientId: string
-  clientSecret: string
-  accessToken?: string
-  tokenExpiry?: string
-}
-
-async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
-  const { clientId, clientSecret } = credentials
-  console.log('Requesting Bol.com access token for accept-order, clientId starts with:', clientId.substring(0, 8) + '...')
-
-  const authString = btoa(`${clientId}:${clientSecret}`)
-  
-  const response = await fetch(BOL_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${authString}`,
-      'Accept': 'application/json'
-    },
-    body: 'grant_type=client_credentials'
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('Token request failed:', response.status, errorText)
-    throw new Error(`Token request failed: ${response.status} - ${errorText}`)
-  }
-
-  const tokenData = await response.json()
-  console.log('Got Bol.com access token, expires in:', tokenData.expires_in)
-  return tokenData.access_token
-}
-
-async function pollProcessStatus(accessToken: string, processStatusId: string, maxAttempts = 10, intervalMs = 2000): Promise<{ status: string; errorMessage?: string }> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    console.log(`[POLL] Checking process status ${processStatusId}, attempt ${attempt}/${maxAttempts}...`)
-    
-    const statusResponse = await fetch(`https://api.bol.com/shared/process-status/${processStatusId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/vnd.retailer.v10+json'
-      }
-    })
-
-    if (!statusResponse.ok) {
-      const errorText = await statusResponse.text()
-      console.error(`[POLL] Process status request failed: ${statusResponse.status} - ${errorText}`)
-      // Don't throw, just continue polling
-      if (attempt < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, intervalMs))
-        continue
-      }
-      return { status: 'TIMEOUT', errorMessage: `Failed to check process status: ${statusResponse.status}` }
-    }
-
-    const statusData = await statusResponse.json()
-    console.log(`[POLL] Process status: ${statusData.status}`)
-
-    if (statusData.status === 'SUCCESS') {
-      return { status: 'SUCCESS' }
-    } else if (statusData.status === 'FAILURE') {
-      return { status: 'FAILURE', errorMessage: statusData.errorMessage || 'Accept failed at Bol.com' }
-    } else if (statusData.status === 'TIMEOUT') {
-      return { status: 'TIMEOUT', errorMessage: 'Process timed out at Bol.com' }
-    }
-
-    // PENDING - wait and retry
-    if (attempt < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, intervalMs))
-    }
-  }
-
-  // Exhausted all attempts while still PENDING
-  console.log(`[POLL] Process status still PENDING after ${maxAttempts} attempts`)
-  return { status: 'PENDING' }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -114,9 +32,6 @@ Deno.serve(async (req) => {
     if (connError || !connection) {
       throw new Error(`Connection not found: ${connError?.message}`)
     }
-
-    const credentials = connection.credentials as BolCredentials
-    const accessToken = await getBolAccessToken(credentials)
 
     // Determine the Bol order ID and items
     let bolOrderId = bol_order_id
@@ -157,11 +72,13 @@ Deno.serve(async (req) => {
     console.log(`Accepting Bol order ${bolOrderId} with ${itemsToAccept.length} items`)
 
     // Bol.com v10 API: There is no explicit "accept" endpoint.
-    // The actual acceptance at Bol.com happens when a shipment/VVB label is created
-    // (POST /retailer/shipping-labels). This function only marks the order locally
-    // as "accept_pending". The sync-bol-orders function will mark it as "accepted"
-    // only after VVB label creation succeeds.
-    console.log('Bol.com v10: Marking order as accept_pending. Actual acceptance happens via VVB label creation.')
+    // Acceptance happens when a shipment is created (POST /retailer/shipments)
+    // or when a VVB label is created (POST /retailer/shipping-labels).
+    // This function marks the order locally as "accept_pending".
+    // The actual acceptance at Bol.com happens via:
+    // 1. VVB label creation (create-bol-vvb-label) → POST /retailer/shipping-labels
+    // 2. Shipment confirmation (confirm-bol-shipment) → POST /retailer/shipments
+    console.log('Bol.com v10: Marking order as accept_pending. Actual acceptance happens via VVB label + shipment creation.')
     
     if (order_id) {
       await supabase.from('orders').update({
@@ -173,7 +90,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Order geaccepteerd. Bol.com FBR orders worden automatisch geaccepteerd.',
+        message: 'Order gemarkeerd als accept_pending. Acceptatie bij Bol.com gebeurt via VVB label + verzendbevestiging.',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
