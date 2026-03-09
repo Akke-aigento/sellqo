@@ -434,30 +434,8 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Send marketplace order notification
-            try {
-              await supabase.functions.invoke('create-notification', {
-                body: {
-                  tenant_id: connection.tenant_id,
-                  category: 'orders',
-                  type: 'marketplace_order_new',
-                  title: `Bol.com bestelling: ${orderNumber}`,
-                  message: `Nieuwe Bol.com bestelling van €${safeSubtotal.toFixed(2)} ontvangen`,
-                  priority: 'medium',
-                  action_url: `/admin/orders/${newOrder.id}`,
-                  data: {
-                    order_id: newOrder.id,
-                    order_number: orderNumber,
-                    marketplace_order_id: bolOrder.orderId,
-                    marketplace: 'bol_com',
-                    total: safeSubtotal
-                  }
-                }
-              })
-            } catch (notificationError) {
-              console.error('Failed to send marketplace notification:', notificationError)
-              // Non-blocking - continue with sync
-            }
+            // Notification is handled automatically by DB trigger on orders table (handle_order_notification)
+            // No explicit create-notification call needed - prevents duplicate emails
 
             console.log(`Successfully imported order ${bolOrder.orderId} (${customerName}, €${safeSubtotal.toFixed(2)})`)
             totalImported++
