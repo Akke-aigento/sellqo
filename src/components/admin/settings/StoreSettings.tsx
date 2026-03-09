@@ -56,7 +56,8 @@ export function StoreSettings() {
           tax_percentage: formData.tax_percentage,
           currency: formData.currency,
           shipping_enabled: formData.shipping_enabled,
-        })
+          document_logo_url: formData.document_logo_url,
+        } as any)
         .eq('id', currentTenant.id);
 
       if (error) throw error;
