@@ -867,36 +867,10 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("HEAD request for tracking failed:", headError instanceof Error ? headError.message : headError);
       }
 
-      // If no tracking yet, wait 10 seconds and try fetching from order data
+      // Skip long tracking wait — tracking will be fetched later by poll-tracking-status
+      // The 10s wait was causing edge function timeouts, preventing confirm-bol-shipment from being called
       if (!trackingNumber) {
-        console.log("No tracking yet, waiting 10s for Bol.com to assign...");
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        
-        try {
-          const orderTrackResponse = await fetchWithTimeout(
-            `https://api.bol.com/retailer/orders/${order.marketplace_order_id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/vnd.retailer.v10+json",
-              },
-            },
-            15000,
-          );
-          if (orderTrackResponse.ok) {
-            const orderTrackData = await orderTrackResponse.json();
-            for (const item of (orderTrackData.orderItems || [])) {
-              const transport = item.fulfilment?.transport;
-              if (transport?.trackAndTrace) {
-                trackingNumber = transport.trackAndTrace;
-                console.log("Got delayed tracking from order data:", trackingNumber);
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Delayed tracking fetch failed:", e instanceof Error ? e.message : e);
-        }
+        console.log("No tracking yet — will be fetched later by poll-tracking-status. Proceeding with shipment confirmation...");
       }
 
       // Fallback 3: Try the shipments API (tracking is often available here first)

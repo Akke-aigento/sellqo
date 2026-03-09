@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -12,7 +11,7 @@ interface ConfirmShipmentRequest {
   carrier: string;
   tracking_url?: string;
   marketplace_order_id?: string;
-  marketplace_order_item_ids?: string[]; // NEW: passed from VVB label function
+  marketplace_order_item_ids?: string[];
 }
 
 const CARRIER_MAPPING: Record<string, string> = {
@@ -22,6 +21,7 @@ const CARRIER_MAPPING: Record<string, string> = {
   'ups': 'UPS',
   'gls': 'GLS',
   'bpost': 'BPOST_BE',
+  'bpost_be': 'BPOST_BE',
   'fedex': 'FEDEX',
 };
 
@@ -76,8 +76,8 @@ async function fetchTrackingFromShipments(accessToken: string, marketplaceOrderI
   return null;
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  console.log("=== CONFIRM-BOL-SHIPMENT v2 ===");
+Deno.serve(async (req) => {
+  console.log("=== CONFIRM-BOL-SHIPMENT v3 (v10 API) ===");
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -161,12 +161,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Map carrier to Bol.com transporter code
     const transporterCode = CARRIER_MAPPING[carrier.toLowerCase()] || carrier.toUpperCase();
 
-    // Build shipment items from multiple sources:
-    // 1. Explicitly passed marketplace_order_item_ids (from VVB label function)
-    // 2. order_items from DB with marketplace_order_item_id
+    // Build order items list from multiple sources
     let itemIds: string[] = [];
 
-    // Source 1: Explicitly passed IDs (most reliable)
+    // Source 1: Explicitly passed IDs (most reliable - from VVB label function)
     if (marketplace_order_item_ids && marketplace_order_item_ids.length > 0) {
       itemIds = marketplace_order_item_ids;
       console.log(`Using ${itemIds.length} explicitly passed marketplace_order_item_ids`);
@@ -175,22 +173,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Source 2: From DB order_items
     if (itemIds.length === 0) {
       const orderItems = order.order_items || [];
-      console.log(`Checking ${orderItems.length} order_items from DB for marketplace_order_item_id...`);
+      console.log(`Checking ${orderItems.length} order_items from DB...`);
       
-      // Log ALL fields of order_items for debugging
-      if (orderItems.length > 0) {
-        console.log("Order items detail:");
-        for (const item of orderItems) {
-          console.log(`  Item: ${JSON.stringify({
-            id: item.id,
-            product_name: item.product_name,
-            product_sku: item.product_sku,
-            marketplace_order_item_id: item.marketplace_order_item_id,
-            quantity: item.quantity,
-          })}`);
-        }
-      }
-
       itemIds = orderItems
         .filter((item: any) => item.marketplace_order_item_id)
         .map((item: any) => item.marketplace_order_item_id);
@@ -200,41 +184,47 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Build shipment items
-    const shipmentItems = itemIds.map((orderItemId: string) => {
-      const shipmentItem: Record<string, unknown> = {
-        orderItemId: orderItemId,
-      };
-      if (resolvedTracking) {
-        shipmentItem.transport = {
-          trackAndTrace: resolvedTracking,
-          transporterCode: transporterCode,
-        };
-      }
-      return shipmentItem;
-    });
-
-    // WORKAROUND: For VVB orders, if we have no item IDs but DO have a bolOrderId,
-    // Bol.com already created the shipment via the label API. 
-    // We can still call PUT with empty orderItems - Bol accepts this for VVB shipments.
-    const useEmptyWorkaround = shipmentItems.length === 0;
-    
-    if (useEmptyWorkaround) {
-      console.warn(`No order items with Bol.com IDs found. Using VVB workaround (empty orderItems array).`);
-      console.error("DEBUG: All order_items fields:", JSON.stringify(order.order_items, null, 2));
+    if (itemIds.length === 0) {
+      console.error("No order item IDs found - cannot create shipment");
+      console.error("DEBUG order_items:", JSON.stringify(order.order_items, null, 2));
+      return new Response(
+        JSON.stringify({ error: "No marketplace order item IDs found" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Call Bol.com shipment API
-    console.log(`Confirming shipment for Bol order ${bolOrderId}, tracking: ${resolvedTracking || 'none'}, items: ${shipmentItems.length} (workaround: ${useEmptyWorkaround})`);
-    
+    // ===== Bol.com v10 API: POST /retailer/shipments =====
+    // In v10, transport is at the TOP level (not per order item)
+    // and orderItems only contain orderItemId + quantity
     const shipmentBody: Record<string, unknown> = {
-      orderItems: shipmentItems,
+      orderItems: itemIds.map((orderItemId: string) => ({
+        orderItemId: orderItemId,
+        quantity: 1,  // Default to 1, as each orderItemId represents one unit
+      })),
     };
 
+    // Add transport info if we have tracking
+    if (resolvedTracking) {
+      shipmentBody.transport = {
+        transporterCode: transporterCode,
+        trackAndTrace: resolvedTracking,
+      };
+    } else {
+      // v10 allows creating shipment without tracking, track & trace can be added later
+      // via PUT /retailer/transports/{transportId}
+      console.log("No tracking available yet - creating shipment without track & trace");
+      shipmentBody.transport = {
+        transporterCode: transporterCode,
+      };
+    }
+
+    console.log(`Creating shipment at Bol.com (v10) for order ${bolOrderId}, carrier: ${transporterCode}, tracking: ${resolvedTracking || 'none'}, items: ${itemIds.length}`);
+    console.log("Shipment body:", JSON.stringify(shipmentBody));
+
     const shipmentResponse = await fetch(
-      `https://api.bol.com/retailer/orders/${bolOrderId}/shipment`,
+      `https://api.bol.com/retailer/shipments`,
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/vnd.retailer.v10+json",
@@ -244,12 +234,13 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
+    const responseText = await shipmentResponse.text();
+
     if (!shipmentResponse.ok) {
-      const errorText = await shipmentResponse.text();
-      console.error("Bol.com shipment error:", shipmentResponse.status, errorText);
+      console.error("Bol.com shipment error:", shipmentResponse.status, responseText);
       
-      // If 404 with "already shipped", that's actually success for VVB orders
-      if (shipmentResponse.status === 404 || errorText.includes('shipped')) {
+      // If 409 (conflict) or contains "already shipped", that's actually success for VVB orders
+      if (shipmentResponse.status === 409 || responseText.includes('shipped') || responseText.includes('already') || shipmentResponse.status === 404) {
         console.log("Order already shipped at Bol.com - treating as success");
         
         const orderUpdate: Record<string, unknown> = {
@@ -276,7 +267,7 @@ const handler = async (req: Request): Promise<Response> => {
       await supabase
         .from("orders")
         .update({
-          marketplace_sync_error: `Bol.com shipment confirmation failed: ${errorText}`,
+          marketplace_sync_error: `Bol.com shipment failed: ${shipmentResponse.status} - ${responseText}`,
         })
         .eq("id", order_id);
 
@@ -284,13 +275,20 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ 
           success: false, 
           error: `Bol.com API error: ${shipmentResponse.status}`,
-          details: errorText 
+          details: responseText 
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const shipmentData = await shipmentResponse.json();
+    let shipmentData;
+    try {
+      shipmentData = JSON.parse(responseText);
+    } catch {
+      shipmentData = { raw: responseText };
+    }
+
+    console.log("Bol.com shipment response:", JSON.stringify(shipmentData));
 
     // Update order with final state
     const orderUpdate: Record<string, unknown> = {
@@ -309,7 +307,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Shipment confirmed to Bol.com",
+        message: "Shipment confirmed to Bol.com (v10)",
         tracking_number: resolvedTracking,
         bol_response: shipmentData,
       }),
@@ -323,6 +321,4 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-};
-
-serve(handler);
+});
