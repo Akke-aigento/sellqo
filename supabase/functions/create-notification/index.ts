@@ -141,6 +141,24 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // 2. Check if email should be sent
+    // Only send email when called via DB trigger (skip_in_app=true)
+    // This prevents duplicate emails: the DB trigger path is the single source of truth for emails
+    if (!skipInApp) {
+      console.log('Direct call (skip_in_app=false) - skipping email, DB trigger will handle it');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          notification_id: notificationId,
+          email_sent: false,
+          reason: 'email_delegated_to_trigger'
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const { data: settings } = await supabase
       .from('tenant_notification_settings')
       .select('email_enabled, email_recipients')

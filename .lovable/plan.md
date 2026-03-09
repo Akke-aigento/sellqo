@@ -1,58 +1,60 @@
 
 
-## Analyse: 3x bestelbevestiging email
+## Analysis & Fixes
 
-### Het probleem
+### Issue 1: A6 Cropping Is Wrong
 
-Er zijn **3 email-bronnen** die afgaan bij elke Bol.com bestelling:
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
+
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
 ```text
-Bol.com order binnenkomt
-       │
-       ▼
-sync-bol-orders INSERT in orders (payment_status='paid')
-       │
-       ├──► DB trigger handle_order_notification()
-       │         │
-       │         ▼
-       │    send_notification() → INSERT in notifications (type: order_new)
-       │         │
-       │         ▼
-       │    trigger_notification_email → create-notification edge fn → EMAIL #1
-       │
-       └──► sync-bol-orders roept EXPLICIET create-notification aan (type: marketplace_order_new)
-                  │
-                  ├──► create-notification INSERT in notifications
-                  │         │
-                  │         ▼
-                  │    trigger_notification_email → create-notification → EMAIL #2
-                  │
-                  └──► create-notification zelf stuurt OOK email → EMAIL #3
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
 ```
 
-**Email #1**: `order_new` — via DB trigger op `orders` tabel → `notifications` insert → `trigger_notification_email`
-**Email #2**: `marketplace_order_new` — via de `trigger_notification_email` op de `notifications` tabel (recursief)
-**Email #3**: `marketplace_order_new` — via de expliciete `create-notification` call vanuit `sync-bol-orders` die zelf ook een email stuurt
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-### Oorzaak
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-Het probleem is **dubbele email-paden**: de `create-notification` edge function stuurt zelf een email EN de `trigger_notification_email` DB trigger roept diezelfde edge function nóg een keer aan na de INSERT.
+### Issue 2: Auto-Accept Does Nothing at Bol.com
 
-### Oplossing
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
 
-**Twee fixes:**
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
 
-1. **`sync-bol-orders/index.ts`**: Verwijder de expliciete `create-notification` aanroep voor `marketplace_order_new`. De `order_new` notificatie via de DB trigger is voldoende — dit is dezelfde bestelling. Als je het marketplace-type wilt behouden, verander dan de DB trigger om `marketplace_order_new` te gebruiken voor orders met `marketplace_source IS NOT NULL`.
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
 
-2. **`create-notification/index.ts`**: Voeg een guard toe zodat de edge function GEEN email stuurt als `skip_in_app = true` (want dan is hij al aangeroepen vanuit de DB trigger die de email al afhandelt). OF verwijder de `trigger_notification_email` DB trigger en laat het email-versturen volledig aan de edge function over.
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
 
-**Aanbevolen aanpak** (minste risico):
-- Verwijder de expliciete `create-notification` call uit `sync-bol-orders` (deze is overbodig want de DB trigger doet dit al)
-- In `create-notification`: als `skip_in_app = true`, sla alleen de email-logica uit (de aanroeper is de DB trigger, niet een "echte" caller)
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
 
-Dit reduceert het naar **1 email per bestelling** via het pad: `orders INSERT → handle_order_notification → send_notification → notifications INSERT → trigger_notification_email → create-notification (skip_in_app=true, stuurt email)`.
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
 
-### Bestanden die gewijzigd worden
-- `supabase/functions/sync-bol-orders/index.ts` — verwijder expliciete `create-notification` call
-- `supabase/functions/create-notification/index.ts` — email NIET versturen wanneer `skip_in_app = false` (de directe call), omdat de trigger dat al doet. Of omgekeerd: alleen email sturen bij de trigger-call.
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+
+### Summary
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 
