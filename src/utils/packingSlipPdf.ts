@@ -168,10 +168,15 @@ export async function generatePackingSlipPdf(
   y -= 30;
 
   // ─── TWO-COLUMN INFO BOXES ───
-  const boxHeight = 70;
   const boxWidth = (pageWidth - 20) / 2;
   const boxLeftX = margin;
   const boxRightX = margin + boxWidth + 20;
+
+  // Calculate dynamic box height based on content
+  const leftLineCount = 4; // header + nummer + datum + klant
+  const shipLines = formatAddress(order.shipping_address);
+  const rightLineCount = 2 + shipLines.length; // header + name + address lines
+  const boxHeight = Math.max(leftLineCount, rightLineCount) * 13 + 30;
 
   // Left box: Order info
   page.drawRectangle({ x: boxLeftX, y: y - boxHeight, width: boxWidth, height: boxHeight, color: ACCENT_LIGHT });
@@ -192,7 +197,6 @@ export async function generatePackingSlipPdf(
   bY -= 16;
   page.drawText(order.customer_name || 'Onbekend', { x: boxRightX + 12, y: bY, size: 9, font: fontBold, color: DARK });
   bY -= 13;
-  const shipLines = formatAddress(order.shipping_address);
   for (const line of shipLines) {
     page.drawText(line, { x: boxRightX + 12, y: bY, size: 9, font, color: DARK });
     bY -= 13;
