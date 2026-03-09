@@ -22,13 +22,16 @@ export function StoreSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const { uploadImage, uploading } = useImageUpload();
   const [isSaving, setIsSaving] = useState(false);
   const followSystemTheme = theme === 'system';
+  const docLogoInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     tax_percentage: 21,
     currency: 'EUR',
     shipping_enabled: true,
+    document_logo_url: null as string | null,
   });
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export function StoreSettings() {
         tax_percentage: currentTenant.tax_percentage || 21,
         currency: currentTenant.currency || 'EUR',
         shipping_enabled: currentTenant.shipping_enabled ?? true,
+        document_logo_url: (currentTenant as any).document_logo_url || null,
       });
     }
   }, [currentTenant]);
