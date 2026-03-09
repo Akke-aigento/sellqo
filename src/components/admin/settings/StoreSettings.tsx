@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Store, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Store, Save, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 const CURRENCIES = [
   { code: 'EUR', name: 'Euro (€)', symbol: '€' },
