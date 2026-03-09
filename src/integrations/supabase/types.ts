@@ -12716,6 +12716,7 @@ export type Database = {
           currency: string | null
           custom_domain: string | null
           default_vat_handling: string | null
+          document_logo_url: string | null
           domain_verification_token: string | null
           domain_verified: boolean | null
           enable_b2b_checkout: boolean | null
@@ -12812,6 +12813,7 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
+          document_logo_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
           enable_b2b_checkout?: boolean | null
@@ -12908,6 +12910,7 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
+          document_logo_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
           enable_b2b_checkout?: boolean | null

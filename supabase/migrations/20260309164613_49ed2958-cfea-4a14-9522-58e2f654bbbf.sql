@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN document_logo_url text;
