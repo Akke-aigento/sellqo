@@ -175,6 +175,75 @@ export function StoreSettings() {
         </CardContent>
       </Card>
 
+      {/* Document Logo */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <ImageIcon className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Document logo</CardTitle>
+              <CardDescription>
+                Logo voor pakbonnen en facturen (witte achtergrond). Valt terug op je standaard logo als dit niet is ingesteld.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-4">
+            <div className="relative h-24 w-48 rounded-lg border-2 border-dashed bg-muted/30 flex items-center justify-center overflow-hidden">
+              {formData.document_logo_url ? (
+                <>
+                  <img
+                    src={formData.document_logo_url}
+                    alt="Document logo preview"
+                    className="h-full w-full object-contain p-2"
+                  />
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, document_logo_url: null }))}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <ImageIcon className="h-8 w-8 mx-auto mb-1 opacity-50" />
+                  <span className="text-xs">Geen document logo</span>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <input
+                ref={docLogoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const url = await uploadImage(file, 'tenant-logos', `document-logo/${Date.now()}`);
+                  if (url) setFormData(prev => ({ ...prev, document_logo_url: url }));
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={() => docLogoInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? 'Uploaden...' : 'Upload Document Logo'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Aanbevolen: donker/gekleurd logo, zichtbaar op wit papier
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Button onClick={handleSave} disabled={isSaving}>
         <Save className="h-4 w-4 mr-2" />
         {isSaving ? 'Opslaan...' : 'Alle wijzigingen opslaan'}
