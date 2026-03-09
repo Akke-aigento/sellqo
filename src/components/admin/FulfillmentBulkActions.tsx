@@ -132,6 +132,7 @@ export function FulfillmentBulkActions({
         email: currentTenant.owner_email,
         kvk_number: currentTenant.kvk_number,
         logo_url: currentTenant.logo_url,
+        document_logo_url: (currentTenant as any).document_logo_url,
       };
 
       const mergedPdf = await PDFDocument.create();
