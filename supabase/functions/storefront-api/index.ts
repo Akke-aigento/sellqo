@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -229,6 +229,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
 
 async function getCategories(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
   const locale = params.locale as string | undefined;
+  const hideEmpty = params.hide_empty === true || params.hide_empty === 'true';
 
   const { data: categories, error } = await supabase
     .from('categories')
@@ -241,7 +242,7 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   if (error) throw error;
   if (!categories || categories.length === 0) return [];
 
-  // Get product counts per category
+  // Get REAL product counts per category (count active, visible products)
   const { data: productCounts } = await supabase
     .from('products')
     .select('category_id')
@@ -259,7 +260,7 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   // Translations
   const tMap = locale ? await getTranslations(supabase, tenantId, 'category', categories.map((c: any) => c.id), locale) : {};
 
-  return categories.map((cat: any) => {
+  const result = categories.map((cat: any) => {
     const t = tMap[cat.id] || {};
     return {
       id: cat.id,
@@ -271,6 +272,13 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
       product_count: countMap[cat.id] || 0,
     };
   });
+
+  // Filter out empty categories if requested
+  if (hideEmpty) {
+    return result.filter((cat: any) => cat.product_count > 0);
+  }
+
+  return result;
 }
 
 // ============== GET PRODUCT (SINGLE) ==============
@@ -1020,9 +1028,9 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
 // ============== CART ACTIONS ==============
 
 async function cartCreate(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const sessionId = params.session_id as string;
+  // Auto-generate session_id if not provided
+  const sessionId = (params.session_id as string) || crypto.randomUUID();
   const currency = (params.currency as string) || 'EUR';
-  if (!sessionId) throw new Error('session_id is required');
 
   // Check for existing cart
   const { data: existing } = await supabase
@@ -1031,14 +1039,22 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
     .gt('expires_at', new Date().toISOString())
     .maybeSingle();
 
-  if (existing) return { cart_id: existing.id };
+  if (existing) {
+    // Return full cart data instead of just id
+    const cart = await cartGet(supabase, tenantId, { cart_id: existing.id });
+    if (cart) return cart;
+    return { id: existing.id, items: [], item_count: 0, subtotal: 0, shipping: 0, discount: 0, tax: 0, total: 0, currency };
+  }
 
   const { data, error } = await supabase
     .from('storefront_carts')
     .insert({ tenant_id: tenantId, session_id: sessionId, currency })
     .select('id').single();
-  if (error) throw error;
-  return { cart_id: data.id };
+  if (error) {
+    console.error('Cart creation DB error:', error);
+    throw new Error('Failed to create cart: ' + (error.message || 'Unknown database error'));
+  }
+  return { id: data.id, session_id: sessionId, items: [], item_count: 0, subtotal: 0, shipping: 0, discount: 0, tax: 0, total: 0, currency };
 }
 
 async function cartGet(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -1892,12 +1908,12 @@ serve(async (req) => {
         return jsonResponse({ success: true, data: await getProducts(supabase, tenantId, params) }, 200, 'public, max-age=60');
       }
       if (resourceId) {
-        const cats = await getCategories(supabase, tenantId, { locale });
+        const cats = await getCategories(supabase, tenantId, { locale, hide_empty: sp.get('hide_empty') });
         const cat = (cats as any[]).find((c: any) => c.slug === resourceId);
         if (!cat) return errorResponse('Collection not found', 404);
         return jsonResponse({ success: true, data: cat }, 200, 'public, max-age=300');
       }
-      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale, hide_empty: sp.get('hide_empty') }) }, 200, 'public, max-age=300');
     }
 
     // ---- CATEGORIES ----
@@ -1909,7 +1925,8 @@ serve(async (req) => {
     // ---- CART ----
     if (resource === 'cart') {
       if (method === 'POST' && !resourceId) {
-        const body = await req.json();
+        let body: any = {};
+        try { body = await req.json(); } catch { body = {}; }
         return jsonResponse({ success: true, data: await cartCreate(supabase, tenantId, { session_id: body.session_id, currency: body.currency }) }, 201, 'no-cache');
       }
       if (method === 'GET' && resourceId) {
@@ -1939,8 +1956,39 @@ serve(async (req) => {
     // ---- CHECKOUT ----
     if (resource === 'checkout') {
       if (method !== 'POST') return errorResponse('Method not allowed', 405);
-      const body = await req.json();
-      return jsonResponse({ success: true, data: await checkoutPlaceOrder(supabase, tenantId, { ...body, origin: url.origin }) }, 200, 'no-cache');
+      let body: any = {};
+      try { body = await req.json(); } catch { throw new Error('Invalid JSON body'); }
+
+      // Simple flow: if only cart_id + success_url/cancel_url, return hosted checkout URL
+      if (body.cart_id && !body.shipping_address && !body.payment_method) {
+        const cart = await cartGet(supabase, tenantId, { cart_id: body.cart_id });
+        if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+
+        // Get tenant info for checkout URL
+        const { data: tenantInfo } = await supabase.from('tenants').select('slug').eq('id', tenantId).single();
+        const tenantSlug = tenantInfo?.slug || tenantId;
+
+        // Build hosted checkout URL with cart and redirect params
+        const checkoutBaseUrl = `https://sellqo.lovable.app/checkout/${tenantSlug}`;
+        const checkoutUrl = new URL(checkoutBaseUrl);
+        checkoutUrl.searchParams.set('cart_id', body.cart_id);
+        if (body.success_url) checkoutUrl.searchParams.set('success_url', body.success_url);
+        if (body.cancel_url) checkoutUrl.searchParams.set('cancel_url', body.cancel_url);
+
+        return jsonResponse({
+          success: true,
+          data: {
+            checkout_url: checkoutUrl.toString(),
+            cart_id: body.cart_id,
+            item_count: cart.item_count,
+            subtotal: cart.subtotal,
+            currency: cart.currency,
+          }
+        }, 200, 'no-cache');
+      }
+
+      // Full checkout flow: place order directly
+      return jsonResponse({ success: true, data: await checkoutPlaceOrder(supabase, tenantId, { ...body, origin: body.success_url ? new URL(body.success_url).origin : url.origin }) }, 200, 'no-cache');
     }
 
     // ---- GIFT CARDS ----
