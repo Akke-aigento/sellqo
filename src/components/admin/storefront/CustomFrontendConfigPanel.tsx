@@ -582,6 +582,7 @@ export async function sellqoFetch<T>(endpoint: string, options?: RequestInit): P
 ${endpoints.join('\n\n')}
 
 ${mappers.length > 0 ? '\n' + mappers.join('\n\n') : ''}
+${usageExamples.length > 0 ? `\n// === VOORBEELD GEBRUIK ===\n//\n${usageExamples.join('\n//\n')}` : ''}
 `;
     return baseCode;
   };
