@@ -31,6 +31,7 @@ const initialStatus: TrialStatus = {
 
 export function useTrialStatus() {
   const { currentTenant } = useTenant();
+  const { isPlatformAdmin } = useAuth();
   const [trialStatus, setTrialStatus] = useState<TrialStatus>(initialStatus);
 
   const checkTrialStatus = useCallback(async () => {

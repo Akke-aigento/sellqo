@@ -15,8 +15,8 @@ export function TrialExpiredBlocker() {
   const { isLoading, shouldBlockAccess, planName } = useTrialStatus();
   const { plans } = usePricingPlans();
 
-  // Don't render if still loading or shouldn't block
-  if (isLoading || !shouldBlockAccess()) {
+  // Don't render for platform admins or if still loading or shouldn't block
+  if (isLoading || isPlatformAdmin || !shouldBlockAccess()) {
     return null;
   }
 
