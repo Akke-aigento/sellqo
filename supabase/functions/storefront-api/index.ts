@@ -1028,9 +1028,9 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
 // ============== CART ACTIONS ==============
 
 async function cartCreate(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const sessionId = params.session_id as string;
+  // Auto-generate session_id if not provided
+  const sessionId = (params.session_id as string) || crypto.randomUUID();
   const currency = (params.currency as string) || 'EUR';
-  if (!sessionId) throw new Error('session_id is required');
 
   // Check for existing cart
   const { data: existing } = await supabase
@@ -1039,14 +1039,22 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
     .gt('expires_at', new Date().toISOString())
     .maybeSingle();
 
-  if (existing) return { cart_id: existing.id };
+  if (existing) {
+    // Return full cart data instead of just id
+    const cart = await cartGet(supabase, tenantId, { cart_id: existing.id });
+    if (cart) return cart;
+    return { id: existing.id, items: [], item_count: 0, subtotal: 0, shipping: 0, discount: 0, tax: 0, total: 0, currency };
+  }
 
   const { data, error } = await supabase
     .from('storefront_carts')
     .insert({ tenant_id: tenantId, session_id: sessionId, currency })
     .select('id').single();
-  if (error) throw error;
-  return { cart_id: data.id };
+  if (error) {
+    console.error('Cart creation DB error:', error);
+    throw new Error('Failed to create cart: ' + (error.message || 'Unknown database error'));
+  }
+  return { id: data.id, session_id: sessionId, items: [], item_count: 0, subtotal: 0, shipping: 0, discount: 0, tax: 0, total: 0, currency };
 }
 
 async function cartGet(supabase: any, tenantId: string, params: Record<string, unknown>) {
