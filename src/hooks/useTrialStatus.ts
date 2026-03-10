@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface TrialStatus {
   isLoading: boolean;
@@ -30,6 +31,7 @@ const initialStatus: TrialStatus = {
 
 export function useTrialStatus() {
   const { currentTenant } = useTenant();
+  const { isPlatformAdmin } = useAuth();
   const [trialStatus, setTrialStatus] = useState<TrialStatus>(initialStatus);
 
   const checkTrialStatus = useCallback(async () => {
@@ -51,6 +53,23 @@ export function useTrialStatus() {
         status: 'active',
         planId: 'enterprise',
         planName: 'Platform Owner',
+      });
+      return;
+    }
+
+    // Platform admins are never blocked - they manage all tenants
+    if (isPlatformAdmin) {
+      setTrialStatus({
+        isLoading: false,
+        isTrialing: false,
+        isTrialExpired: false,
+        isActive: true,
+        isPaid: true,
+        daysRemaining: 0,
+        trialEndDate: null,
+        status: 'active',
+        planId: 'enterprise',
+        planName: 'Platform Admin',
       });
       return;
     }
@@ -128,7 +147,7 @@ export function useTrialStatus() {
       console.error('Trial status check error:', err);
       setTrialStatus(prev => ({ ...prev, isLoading: false }));
     }
-  }, [currentTenant?.id]);
+  }, [currentTenant?.id, isPlatformAdmin]);
 
   useEffect(() => {
     checkTrialStatus();

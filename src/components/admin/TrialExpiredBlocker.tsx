@@ -11,11 +11,12 @@ import { cn } from '@/lib/utils';
 export function TrialExpiredBlocker() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { isPlatformAdmin } = useAuth();
   const { isLoading, shouldBlockAccess, planName } = useTrialStatus();
   const { plans } = usePricingPlans();
 
-  // Don't render if still loading or shouldn't block
-  if (isLoading || !shouldBlockAccess()) {
+  // Don't render for platform admins or if still loading or shouldn't block
+  if (isLoading || isPlatformAdmin || !shouldBlockAccess()) {
     return null;
   }
 
