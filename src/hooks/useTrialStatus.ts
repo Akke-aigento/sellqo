@@ -147,7 +147,7 @@ export function useTrialStatus() {
       console.error('Trial status check error:', err);
       setTrialStatus(prev => ({ ...prev, isLoading: false }));
     }
-  }, [currentTenant?.id]);
+  }, [currentTenant?.id, isPlatformAdmin]);
 
   useEffect(() => {
     checkTrialStatus();
