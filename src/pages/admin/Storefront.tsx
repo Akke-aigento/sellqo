@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Sliders, Scale, Star, Share2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Sliders, Scale, Star, Share2, BookOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { StorefrontFeaturesSettings } from '@/components/admin/storefront/Storef
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
 import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
 import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
+import { StorefrontApiDocs } from '@/components/admin/storefront/StorefrontApiDocs';
 import { Card, CardContent } from '@/components/ui/card';
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { id: 'legal', label: 'Juridisch', icon: Scale },
   { id: 'features', label: 'Functies', icon: Sliders },
   { id: 'settings', label: 'Instellingen', icon: Settings },
+  { id: 'api-docs', label: 'API Docs', icon: BookOpen },
 ];
 
 export default function StorefrontPage() {
@@ -33,6 +35,16 @@ export default function StorefrontPage() {
   const { themeSettings } = useStorefront();
   const [activeTab, setActiveTab] = useState('theme');
   const { canonicalDomain } = useTenantDomains();
+
+  // Listen for navigation events from child components (e.g., doc links in CustomFrontendConfigPanel)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setActiveTab(detail);
+    };
+    window.addEventListener('storefront-nav', handler);
+    return () => window.removeEventListener('storefront-nav', handler);
+  }, []);
 
   if (!currentTenant) {
     return (
@@ -61,6 +73,7 @@ export default function StorefrontPage() {
       case 'legal': return <LegalPagesManager />;
       case 'features': return <StorefrontFeaturesSettings />;
       case 'settings': return <StorefrontSettings />;
+      case 'api-docs': return <StorefrontApiDocs />;
       default: return null;
     }
   };
