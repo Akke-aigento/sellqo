@@ -1908,12 +1908,12 @@ serve(async (req) => {
         return jsonResponse({ success: true, data: await getProducts(supabase, tenantId, params) }, 200, 'public, max-age=60');
       }
       if (resourceId) {
-        const cats = await getCategories(supabase, tenantId, { locale });
+        const cats = await getCategories(supabase, tenantId, { locale, hide_empty: sp.get('hide_empty') });
         const cat = (cats as any[]).find((c: any) => c.slug === resourceId);
         if (!cat) return errorResponse('Collection not found', 404);
         return jsonResponse({ success: true, data: cat }, 200, 'public, max-age=300');
       }
-      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale, hide_empty: sp.get('hide_empty') }) }, 200, 'public, max-age=300');
     }
 
     // ---- CATEGORIES ----
