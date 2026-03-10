@@ -835,6 +835,12 @@ ${mappers.length > 0 ? '\n' + mappers.join('\n\n') : ''}
               </pre>
             </TabsContent>
           </Tabs>
+          <div className="mt-3 flex justify-center">
+            <a href="/admin/storefront" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('storefront-nav', { detail: 'api-docs' })); }} className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
+              <BookOpen className="h-4 w-4" />
+              📖 Volledige API referentie & troubleshooting
+            </a>
+          </div>
         </CardContent>
       </Card>
 
