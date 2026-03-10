@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 export function TrialExpiredBlocker() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { isPlatformAdmin } = useAuth();
   const { isLoading, shouldBlockAccess, planName } = useTrialStatus();
   const { plans } = usePricingPlans();
 
