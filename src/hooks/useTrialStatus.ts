@@ -57,6 +57,23 @@ export function useTrialStatus() {
       return;
     }
 
+    // Platform admins are never blocked - they manage all tenants
+    if (isPlatformAdmin) {
+      setTrialStatus({
+        isLoading: false,
+        isTrialing: false,
+        isTrialExpired: false,
+        isActive: true,
+        isPaid: true,
+        daysRemaining: 0,
+        trialEndDate: null,
+        status: 'active',
+        planId: 'enterprise',
+        planName: 'Platform Admin',
+      });
+      return;
+    }
+
     try {
       // Fetch subscription with plan details
       const { data: subscription, error } = await supabase
