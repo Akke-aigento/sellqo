@@ -1956,8 +1956,39 @@ serve(async (req) => {
     // ---- CHECKOUT ----
     if (resource === 'checkout') {
       if (method !== 'POST') return errorResponse('Method not allowed', 405);
-      const body = await req.json();
-      return jsonResponse({ success: true, data: await checkoutPlaceOrder(supabase, tenantId, { ...body, origin: url.origin }) }, 200, 'no-cache');
+      let body: any = {};
+      try { body = await req.json(); } catch { throw new Error('Invalid JSON body'); }
+
+      // Simple flow: if only cart_id + success_url/cancel_url, return hosted checkout URL
+      if (body.cart_id && !body.shipping_address && !body.payment_method) {
+        const cart = await cartGet(supabase, tenantId, { cart_id: body.cart_id });
+        if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+
+        // Get tenant info for checkout URL
+        const { data: tenantInfo } = await supabase.from('tenants').select('slug').eq('id', tenantId).single();
+        const tenantSlug = tenantInfo?.slug || tenantId;
+
+        // Build hosted checkout URL with cart and redirect params
+        const checkoutBaseUrl = `https://sellqo.lovable.app/checkout/${tenantSlug}`;
+        const checkoutUrl = new URL(checkoutBaseUrl);
+        checkoutUrl.searchParams.set('cart_id', body.cart_id);
+        if (body.success_url) checkoutUrl.searchParams.set('success_url', body.success_url);
+        if (body.cancel_url) checkoutUrl.searchParams.set('cancel_url', body.cancel_url);
+
+        return jsonResponse({
+          success: true,
+          data: {
+            checkout_url: checkoutUrl.toString(),
+            cart_id: body.cart_id,
+            item_count: cart.item_count,
+            subtotal: cart.subtotal,
+            currency: cart.currency,
+          }
+        }, 200, 'no-cache');
+      }
+
+      // Full checkout flow: place order directly
+      return jsonResponse({ success: true, data: await checkoutPlaceOrder(supabase, tenantId, { ...body, origin: body.success_url ? new URL(body.success_url).origin : url.origin }) }, 200, 'no-cache');
     }
 
     // ---- GIFT CARDS ----
