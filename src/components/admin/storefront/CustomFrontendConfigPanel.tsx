@@ -734,6 +734,12 @@ ${mappers.length > 0 ? '\n' + mappers.join('\n\n') : ''}
               {hasExistingKey ? 'Wacht op eerste API-verzoek' : config.frontend_url ? 'Klik op "Valideer & Activeer"' : 'Wacht op configuratie'}
             </span>
           </div>
+
+          {/* Link to API Docs */}
+          <a href="/admin/storefront" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('storefront-nav', { detail: 'api-docs' })); }} className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
+            <BookOpen className="h-4 w-4" />
+            📖 Bekijk API Documentatie
+          </a>
         </CardContent>
       </Card>
 
