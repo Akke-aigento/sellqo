@@ -63,6 +63,7 @@ export default function StorefrontPage() {
       case 'legal': return <LegalPagesManager />;
       case 'features': return <StorefrontFeaturesSettings />;
       case 'settings': return <StorefrontSettings />;
+      case 'api-docs': return <StorefrontApiDocs />;
       default: return null;
     }
   };
