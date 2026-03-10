@@ -36,6 +36,16 @@ export default function StorefrontPage() {
   const [activeTab, setActiveTab] = useState('theme');
   const { canonicalDomain } = useTenantDomains();
 
+  // Listen for navigation events from child components (e.g., doc links in CustomFrontendConfigPanel)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setActiveTab(detail);
+    };
+    window.addEventListener('storefront-nav', handler);
+    return () => window.removeEventListener('storefront-nav', handler);
+  }, []);
+
   if (!currentTenant) {
     return (
       <div className="p-6">
