@@ -1925,7 +1925,8 @@ serve(async (req) => {
     // ---- CART ----
     if (resource === 'cart') {
       if (method === 'POST' && !resourceId) {
-        const body = await req.json();
+        let body: any = {};
+        try { body = await req.json(); } catch { body = {}; }
         return jsonResponse({ success: true, data: await cartCreate(supabase, tenantId, { session_id: body.session_id, currency: body.currency }) }, 201, 'no-cache');
       }
       if (method === 'GET' && resourceId) {
