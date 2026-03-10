@@ -375,6 +375,23 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     if (selectedVariantIndex === -1) selectedVariantIndex = null;
   }
 
+  // Determine in_stock: if product-level track_inventory is off, always in stock
+  const productTrackInventory = !!product.track_inventory;
+  let inStock: boolean;
+  if (hasVariants) {
+    inStock = (variants || []).some((v: any) => {
+      // If product-level tracking is off, variant is always in stock
+      if (!productTrackInventory) return true;
+      // Otherwise check variant-level tracking
+      return !v.track_inventory || v.stock > 0;
+    });
+  } else {
+    inStock = !productTrackInventory || product.stock > 0;
+  }
+
+  // Determine product_type
+  const productType = product.product_type || 'physical';
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -387,8 +404,9 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
-    in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
-    stock: product.track_inventory ? product.stock : null,
+    product_type: productType,
+    in_stock: inStock,
+    stock: productTrackInventory ? product.stock : null,
     tags: product.tags || [],
     category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
     has_variants: hasVariants,
@@ -398,8 +416,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     variants: (variants || []).map((v: any) => ({
       id: v.id, title: v.title, sku: v.sku, barcode: v.barcode,
       price: v.price ?? product.price, compare_at_price: v.compare_at_price ?? product.compare_at_price,
-      stock: v.track_inventory ? v.stock : null,
-      in_stock: !v.track_inventory || v.stock > 0,
+      stock: (productTrackInventory && v.track_inventory) ? v.stock : null,
+      in_stock: !productTrackInventory || !v.track_inventory || v.stock > 0,
       image_url: v.image_url, attribute_values: v.attribute_values, weight: v.weight ?? product.weight,
       linked_product_id: v.linked_product_id || null,
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
@@ -444,7 +462,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, created_at, product_type, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
@@ -510,15 +528,25 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         const prices = pVariants.map((v: any) => v.price ?? product.price);
         priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
       }
+      const productTrackInventory = !!product.track_inventory;
+      const productType = product.product_type || 'physical';
+      let inStock: boolean;
+      if (hasVariants) {
+        inStock = pVariants.some((v: any) => {
+          if (!productTrackInventory) return true;
+          return !v.track_inventory || v.stock > 0;
+        });
+      } else {
+        inStock = !productTrackInventory || product.stock > 0;
+      }
       return {
         id: product.id, name: t.name || product.name, slug: product.slug,
         description: t.description || product.description,
         price: product.price, compare_at_price: product.compare_at_price,
         images: product.images || [],
-        in_stock: hasVariants
-          ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
-          : (!product.track_inventory || product.stock > 0),
-        stock: product.track_inventory ? product.stock : null, sku: product.sku,
+        product_type: productType,
+        in_stock: inStock,
+        stock: productTrackInventory ? product.stock : null, sku: product.sku,
         tags: product.tags || [], is_featured: product.is_featured || false,
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
         has_variants: hasVariants,
