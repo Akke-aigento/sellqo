@@ -229,6 +229,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
 
 async function getCategories(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
   const locale = params.locale as string | undefined;
+  const hideEmpty = params.hide_empty === true || params.hide_empty === 'true';
 
   const { data: categories, error } = await supabase
     .from('categories')
@@ -241,7 +242,7 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   if (error) throw error;
   if (!categories || categories.length === 0) return [];
 
-  // Get product counts per category
+  // Get REAL product counts per category (count active, visible products)
   const { data: productCounts } = await supabase
     .from('products')
     .select('category_id')
@@ -259,7 +260,7 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   // Translations
   const tMap = locale ? await getTranslations(supabase, tenantId, 'category', categories.map((c: any) => c.id), locale) : {};
 
-  return categories.map((cat: any) => {
+  const result = categories.map((cat: any) => {
     const t = tMap[cat.id] || {};
     return {
       id: cat.id,
@@ -271,6 +272,13 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
       product_count: countMap[cat.id] || 0,
     };
   });
+
+  // Filter out empty categories if requested
+  if (hideEmpty) {
+    return result.filter((cat: any) => cat.product_count > 0);
+  }
+
+  return result;
 }
 
 // ============== GET PRODUCT (SINGLE) ==============
