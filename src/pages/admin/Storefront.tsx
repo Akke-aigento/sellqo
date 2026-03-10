@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Sliders, Scale, Star, Share2, BookOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
