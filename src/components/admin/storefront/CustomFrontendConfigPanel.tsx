@@ -3,7 +3,7 @@ import {
   ShoppingBag, FolderOpen, ShoppingCart, CreditCard, Gift, User, Mail,
   Star, FileText, Navigation2, Share2, Shield, Rocket, Globe, BarChart3,
   Copy, Check, Eye, EyeOff, RefreshCw, AlertTriangle, Zap, Link as LinkIcon,
-  ExternalLink, Download, Code, Send, CheckCircle,
+  ExternalLink, Download, Code, Send, CheckCircle, BookOpen,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
