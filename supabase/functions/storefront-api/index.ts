@@ -528,15 +528,25 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         const prices = pVariants.map((v: any) => v.price ?? product.price);
         priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
       }
+      const productTrackInventory = !!product.track_inventory;
+      const productType = product.product_type || 'physical';
+      let inStock: boolean;
+      if (hasVariants) {
+        inStock = pVariants.some((v: any) => {
+          if (!productTrackInventory) return true;
+          return !v.track_inventory || v.stock > 0;
+        });
+      } else {
+        inStock = !productTrackInventory || product.stock > 0;
+      }
       return {
         id: product.id, name: t.name || product.name, slug: product.slug,
         description: t.description || product.description,
         price: product.price, compare_at_price: product.compare_at_price,
         images: product.images || [],
-        in_stock: hasVariants
-          ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
-          : (!product.track_inventory || product.stock > 0),
-        stock: product.track_inventory ? product.stock : null, sku: product.sku,
+        product_type: productType,
+        in_stock: inStock,
+        stock: productTrackInventory ? product.stock : null, sku: product.sku,
         tags: product.tags || [], is_featured: product.is_featured || false,
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
         has_variants: hasVariants,
