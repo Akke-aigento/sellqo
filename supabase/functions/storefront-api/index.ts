@@ -1129,7 +1129,10 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     stockSource = variant;
   }
 
-  if (stockSource.track_inventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
+  // Skip stock check if tracking is disabled on either product or variant level
+  const shouldTrackInventory = product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
+
+  if (shouldTrackInventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
 
   // Check if item already in cart (unique by product_id + variant_id)
   let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
@@ -1139,7 +1142,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
 
   if (existing) {
     const newQty = existing.quantity + quantity;
-    if (stockSource.track_inventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
+    if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
     const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
     if (error) throw error;
   } else {
@@ -1159,12 +1162,23 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
   if (!itemId) throw new Error('item_id is required');
   if (quantity < 1) throw new Error('quantity must be at least 1');
 
-  const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id').eq('id', itemId).single();
+  const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id, variant_id').eq('id', itemId).single();
   if (!item) throw new Error('Cart item not found');
 
-  // Stock check
+  // Stock check — respect track_inventory on both product and variant level
   const { data: product } = await supabase.from('products').select('track_inventory, stock').eq('id', item.product_id).single();
-  if (product?.track_inventory && product.stock < quantity) throw new Error('Insufficient stock');
+  let shouldTrackInventory = product?.track_inventory !== false;
+  let stockToCheck = product?.stock ?? 0;
+
+  if (item.variant_id && shouldTrackInventory) {
+    const { data: variant } = await supabase.from('product_variants').select('track_inventory, stock').eq('id', item.variant_id).single();
+    if (variant) {
+      if (variant.track_inventory === false) shouldTrackInventory = false;
+      else stockToCheck = variant.stock ?? 0;
+    }
+  }
+
+  if (shouldTrackInventory && stockToCheck < quantity) throw new Error('Insufficient stock');
 
   const { error } = await supabase.from('storefront_cart_items').update({ quantity }).eq('id', itemId);
   if (error) throw error;
