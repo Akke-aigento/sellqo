@@ -520,11 +520,22 @@ export default function ShopCheckout() {
       {!compact && (
         <div className="space-y-3 mb-4">
           {cartItems.map(item => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span className="text-muted-foreground truncate mr-2">
-                {item.quantity}x {item.name}
-              </span>
-              <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+            <div key={item.id} className="text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground truncate mr-2">
+                  {item.quantity}x {item.name}
+                  {item.giftCard && <span className="text-xs ml-1">(Cadeaukaart)</span>}
+                  {item.variantTitle && !item.giftCard && (
+                    <span className="text-xs ml-1">— {item.variantTitle}</span>
+                  )}
+                </span>
+                <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+              </div>
+              {item.giftCard?.recipientName && (
+                <p className="text-xs text-muted-foreground ml-4">
+                  Voor: {item.giftCard.recipientName}
+                </p>
+              )}
             </div>
           ))}
         </div>
