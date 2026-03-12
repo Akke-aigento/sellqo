@@ -637,6 +637,18 @@ export default function ShopCheckout() {
     </>
   );
 
+  if (serverCartLoading) {
+    return (
+      <ShopLayout hideChrome={isCustomFrontend}>
+        <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
+        <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground">Winkelwagen laden...</p>
+        </div>
+      </ShopLayout>
+    );
+  }
+
   if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
       <ShopLayout hideChrome={isCustomFrontend}>
