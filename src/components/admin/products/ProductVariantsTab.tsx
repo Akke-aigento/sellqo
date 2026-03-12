@@ -473,16 +473,16 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                         <div className="flex items-center gap-1">
                           {editingVariantId === variant.id ? (
                             <>
-                              <Button type="button" size="icon" variant="ghost" onClick={saveEditVariant}>
+                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveEditVariant(); }}>
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <Button type="button" size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
+                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingVariantId(null); }}>
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
                             <>
-                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); startEditVariant(variant); }}>
+                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditVariant(variant); }}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
