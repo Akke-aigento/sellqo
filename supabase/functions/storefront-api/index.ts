@@ -1254,7 +1254,7 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   if (!cartId) throw new Error('cart_id is required');
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: null, updated_at: new Date().toISOString() }).eq('id', cartId);
+  const { error } = await supabase.from('storefront_carts').update({ discount_code: null, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
