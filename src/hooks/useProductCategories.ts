@@ -33,13 +33,22 @@ export function useProductCategories(productId: string | undefined) {
       categoryIds: string[];
       primaryCategoryId: string | null;
     }) => {
-      // Delete all existing
-      await (supabase as any)
-        .from('product_categories')
-        .delete()
-        .eq('product_id', productId);
-
-      if (categoryIds.length === 0) return;
+      // Step 1: Remove categories no longer in the list
+      if (categoryIds.length > 0) {
+        const { error: delError } = await (supabase as any)
+          .from('product_categories')
+          .delete()
+          .eq('product_id', productId)
+          .not('category_id', 'in', `(${categoryIds.join(',')})`);
+        if (delError) throw delError;
+      } else {
+        const { error: delError } = await (supabase as any)
+          .from('product_categories')
+          .delete()
+          .eq('product_id', productId);
+        if (delError) throw delError;
+        return;
+      }
 
       // If no explicit primary, use first
       const primary = primaryCategoryId && categoryIds.includes(primaryCategoryId)
@@ -53,9 +62,10 @@ export function useProductCategories(productId: string | undefined) {
         sort_order: idx,
       }));
 
+      // Step 2: Upsert desired categories
       const { error } = await (supabase as any)
         .from('product_categories')
-        .insert(rows);
+        .upsert(rows, { onConflict: 'product_id,category_id' });
       if (error) throw error;
     },
     onSuccess: (_, vars) => {
