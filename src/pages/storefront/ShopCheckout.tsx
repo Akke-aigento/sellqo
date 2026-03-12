@@ -538,7 +538,9 @@ export default function ShopCheckout() {
           </div>
         )}
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Verzending</span>
+          <span className="text-muted-foreground">
+            Verzending{selectedMethod && shippingMethods.length > 1 ? ` (${selectedMethod.name})` : ''}
+          </span>
           <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
         </div>
         {vatInfo.amount > 0 && defaultVatHandling !== 'inclusive' && (
