@@ -1263,8 +1263,8 @@ export default function ProductForm() {
                                     type="button"
                                     onClick={() => {
                                       const newIds = selectedCategoryIds.filter(id => id !== catId);
-                                      setSelectedCategoryIds(newIds);
-                                      if (isPrimary) setPrimaryCategoryId(newIds[0] || null);
+                                      handleSetSelectedCategoryIds(newIds);
+                                      if (isPrimary) handleSetPrimaryCategoryId(newIds[0] || null);
                                     }}
                                     className="ml-0.5 hover:text-destructive"
                                   >
