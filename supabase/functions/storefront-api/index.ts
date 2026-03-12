@@ -476,7 +476,19 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  if (resolvedCategoryId) query = query.eq('category_id', resolvedCategoryId);
+  if (resolvedCategoryId) {
+    // Query junction table for multi-category support
+    const { data: pcRows } = await supabase
+      .from('product_categories')
+      .select('product_id')
+      .eq('category_id', resolvedCategoryId);
+    const junctionIds = (pcRows || []).map((r: any) => r.product_id);
+    if (junctionIds.length > 0) {
+      query = query.or(`category_id.eq.${resolvedCategoryId},id.in.(${junctionIds.join(',')})`);
+    } else {
+      query = query.eq('category_id', resolvedCategoryId);
+    }
+  }
   if (search) query = query.ilike('name', `%${search}%`);
   if (minPrice != null) query = query.gte('price', minPrice);
   if (maxPrice != null) query = query.lte('price', maxPrice);
