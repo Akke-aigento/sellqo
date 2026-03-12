@@ -1073,7 +1073,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, slug, images, price, track_inventory, stock)')
+    .select('id, product_id, variant_id, quantity, unit_price, gift_card_metadata, products(id, name, slug, images, price, track_inventory, stock, product_type)')
     .eq('cart_id', cart.id);
 
   // Fetch variant info for items that have variant_id
@@ -1086,9 +1086,12 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
+    const productType = item.products?.product_type || 'physical';
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
       quantity: item.quantity, unit_price: item.unit_price || variant?.price || item.products?.price || 0,
+      product_type: productType,
+      gift_card_metadata: item.gift_card_metadata || null,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url, price: variant.price } : null,
       line_total: item.quantity * (item.unit_price || variant?.price || item.products?.price || 0),
