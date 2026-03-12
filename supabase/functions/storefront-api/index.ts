@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-api-key, accept-language, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
 // ============== TYPES ==============
@@ -1087,10 +1088,10 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
-      quantity: item.quantity, unit_price: item.unit_price,
+      quantity: item.quantity, unit_price: item.unit_price || variant?.price || item.products?.price || 0,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
-      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
-      line_total: item.quantity * item.unit_price,
+      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url, price: variant.price } : null,
+      line_total: item.quantity * (item.unit_price || variant?.price || item.products?.price || 0),
     };
   });
 
@@ -1951,6 +1952,10 @@ serve(async (req) => {
         return jsonResponse({ success: true, data: await cartAddItem(supabase, tenantId, { cart_id: resourceId, ...body }) }, 200, 'no-cache');
       }
       if (method === 'PUT' && resourceId && subResource === 'items' && subResourceId) {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'PATCH' && resourceId && subResource === 'items' && subResourceId) {
         const body = await req.json();
         return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
       }
