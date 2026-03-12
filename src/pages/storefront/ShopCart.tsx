@@ -10,6 +10,7 @@ import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useStorefrontShipping } from '@/hooks/useStorefrontShipping';
 import {
   Breadcrumb,
   BreadcrumbItem,
