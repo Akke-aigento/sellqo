@@ -862,6 +862,54 @@ export default function ShopCheckout() {
                     </div>
                   </div>
 
+                  {/* Shipping method selector */}
+                  {shippingMethods.length > 1 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <h3 className="font-medium flex items-center gap-2">
+                          <Truck className="h-4 w-4" />
+                          Verzendmethode
+                        </h3>
+                        <RadioGroup
+                          value={selectedMethodId || ''}
+                          onValueChange={setSelectedMethodId}
+                        >
+                          {shippingMethods.map(method => {
+                            const isFree = method.free_above && subtotal >= method.free_above;
+                            return (
+                              <div key={method.id} className="flex items-center space-x-3 border rounded-lg p-3">
+                                <RadioGroupItem value={method.id} id={`shipping-${method.id}`} />
+                                <Label htmlFor={`shipping-${method.id}`} className="flex-1 cursor-pointer">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <span className="font-medium">{method.name}</span>
+                                      {method.estimated_days_min && method.estimated_days_max && (
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          ({method.estimated_days_min}-{method.estimated_days_max} werkdagen)
+                                        </span>
+                                      )}
+                                      {method.description && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">{method.description}</p>
+                                      )}
+                                    </div>
+                                    <span className="font-medium shrink-0 ml-4">
+                                      {isFree ? 'Gratis' : formatPrice(method.price)}
+                                    </span>
+                                  </div>
+                                  {method.free_above && !isFree && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Gratis vanaf {formatPrice(method.free_above)}
+                                    </p>
+                                  )}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </RadioGroup>
+                      </div>
+                    </>
+                  )}
                   <Button
                     className="w-full" size="lg"
                     onClick={handleCustomerDetailsSubmit}
