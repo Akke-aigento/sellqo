@@ -52,9 +52,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface ShopLayoutProps {
   children: ReactNode;
+  hideChrome?: boolean;
 }
 
-export function ShopLayout({ children }: ShopLayoutProps) {
+export function ShopLayout({ children, hideChrome }: ShopLayoutProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
   const { tenant, themeSettings, navPages, categories, legalPages, isLoading, error } = usePublicStorefront(tenantSlug || '');
