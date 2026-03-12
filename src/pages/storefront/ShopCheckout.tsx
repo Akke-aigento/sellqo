@@ -647,7 +647,15 @@ export default function ShopCheckout() {
         {step !== 'confirmation' && (
           <Button
             variant="ghost" className="mb-6"
-            onClick={() => step === 'payment' ? setStep('details') : navigate(`/shop/${tenantSlug}/cart`)}
+            onClick={() => {
+              if (step === 'payment') {
+                setStep('details');
+              } else if (isCustomFrontend && cancelUrl) {
+                window.location.href = cancelUrl;
+              } else {
+                navigate(`/shop/${tenantSlug}/cart`);
+              }
+            }}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             {step === 'payment' ? 'Terug naar gegevens' : 'Terug naar winkelwagen'}
