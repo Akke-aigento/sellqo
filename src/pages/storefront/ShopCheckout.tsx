@@ -190,12 +190,12 @@ export default function ShopCheckout() {
           const unitPrice = item.unit_price || (item.gift_card_metadata as any)?.amount || item.products?.price || 0;
           addToCart({
             productId: item.product_id,
-            name: item.products?.name || 'Product',
+            name: item.products?.name || item.product?.name || 'Product',
             price: unitPrice,
             quantity: item.quantity || 1,
-            image: Array.isArray(item.products?.images) ? item.products.images[0] : item.products?.images || undefined,
+            image: item.product?.image || (Array.isArray(item.products?.images) ? item.products.images[0] : item.products?.images) || undefined,
             variantId: item.variant_id || undefined,
-            variantTitle: item.product_variants?.name || undefined,
+            variantTitle: item.variant?.title || item.product_variants?.name || undefined,
             sku: item.product_variants?.sku || undefined,
             giftCard: item.gift_card_metadata ? {
               recipientName: (item.gift_card_metadata as any).recipientName || '',
@@ -206,6 +206,17 @@ export default function ShopCheckout() {
             } : undefined,
           });
         }
+      }
+      // Restore discount code from server cart
+      if (result.discount_code && result.discount_amount > 0 && result.discount_info) {
+        applyDiscountCode({
+          code: result.discount_code,
+          discount_type: result.discount_info.discount_type,
+          discount_value: result.discount_info.discount_value,
+          applies_to: result.discount_info.applies_to,
+          description: result.discount_info.description,
+          calculated_amount: result.discount_amount,
+        });
       }
       setServerCartLoading(false);
     });

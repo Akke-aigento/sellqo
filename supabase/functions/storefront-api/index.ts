@@ -1100,10 +1100,28 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
+  // Calculate discount if a discount_code is present
+  let discountAmount = 0;
+  let discountInfo: any = null;
+  if (cart.discount_code) {
+    const { data: dc } = await supabase.from('discount_codes')
+      .select('*').eq('tenant_id', tenantId).eq('code', cart.discount_code).eq('is_active', true).maybeSingle();
+    if (dc) {
+      if (dc.discount_type === 'percentage') {
+        discountAmount = Math.round(subtotal * (dc.discount_value / 100) * 100) / 100;
+      } else {
+        discountAmount = Math.min(dc.discount_value, subtotal);
+      }
+      if (dc.maximum_discount_amount) discountAmount = Math.min(discountAmount, dc.maximum_discount_amount);
+      discountInfo = { discount_type: dc.discount_type, discount_value: dc.discount_value, applies_to: dc.applies_to, description: dc.description };
+    }
+  }
+
   return {
     id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_code: cart.discount_code,
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
-    subtotal, expires_at: cart.expires_at,
+    subtotal, discount_amount: discountAmount, discount_info: discountInfo,
+    total: Math.max(0, subtotal - discountAmount), expires_at: cart.expires_at,
   };
 }
 
