@@ -216,7 +216,11 @@ export default function ShopCheckout() {
   const { methods: shippingMethods, selectedMethod, selectedMethodId, setSelectedMethodId, getShippingCost } = useStorefrontShipping(tenant?.id);
   const subtotal = getSubtotal();
   const discountAmount = appliedDiscount?.calculated_amount || 0;
-  const shipping = getShippingCost(subtotal);
+
+  // Gift card detection
+  const allGiftCards = cartItems.length > 0 && cartItems.every(item => !!item.giftCard);
+
+  const shipping = allGiftCards ? 0 : getShippingCost(subtotal);
   const subtotalAfterDiscount = subtotal - discountAmount;
 
   // VAT calculation
