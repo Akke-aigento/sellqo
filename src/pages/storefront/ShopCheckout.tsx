@@ -78,6 +78,10 @@ export default function ShopCheckout() {
     appliedDiscount, applyDiscountCode, removeDiscountCode,
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
+
+  // Detect custom frontend mode via cancel_url query param
+  const cancelUrl = new URLSearchParams(window.location.search).get('cancel_url');
+  const isCustomFrontend = !!(cancelUrl && !cancelUrl.includes('sellqo.app'));
   const { t } = useTranslation();
   
   const [step, setStep] = useState<CheckoutStep>('details');
@@ -567,7 +571,7 @@ export default function ShopCheckout() {
 
   if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
-      <ShopLayout>
+      <ShopLayout hideChrome={isCustomFrontend}>
         <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Je winkelwagen is leeg</h1>
@@ -581,7 +585,7 @@ export default function ShopCheckout() {
   }
 
   return (
-    <ShopLayout>
+    <ShopLayout hideChrome={isCustomFrontend}>
       <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
 
       <div className="container mx-auto px-4 py-8 pb-28 lg:pb-8">
@@ -643,7 +647,15 @@ export default function ShopCheckout() {
         {step !== 'confirmation' && (
           <Button
             variant="ghost" className="mb-6"
-            onClick={() => step === 'payment' ? setStep('details') : navigate(`/shop/${tenantSlug}/cart`)}
+            onClick={() => {
+              if (step === 'payment') {
+                setStep('details');
+              } else if (isCustomFrontend && cancelUrl) {
+                window.location.href = cancelUrl;
+              } else {
+                navigate(`/shop/${tenantSlug}/cart`);
+              }
+            }}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             {step === 'payment' ? 'Terug naar gegevens' : 'Terug naar winkelwagen'}
