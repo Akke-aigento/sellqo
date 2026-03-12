@@ -1303,25 +1303,41 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     shipping_method_id: string; payment_method: string; customer_note?: string;
   };
 
-  if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
-    throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
-  }
-
-  // 1. Get cart with items
+  // Check if all items are gift cards (digital-only order)
+  // We need cart first to determine this
   const cart = await cartGet(supabase, tenantId, { cart_id });
   if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
 
-  // 2. Validate stock for all items
-  for (const item of cart.items) {
-    if (item.product && !item.product.in_stock) throw new Error(`${item.product.name} is niet meer op voorraad`);
+  const allGiftCards = cart.items.every((item: any) => item.product_type === 'gift_card');
+
+  if (!allGiftCards && (!shipping_address || !shipping_method_id)) {
+    throw new Error('shipping_address and shipping_method_id are required for physical orders');
+  }
+  if (!cart_id || !email || !payment_method) {
+    throw new Error('cart_id, email, and payment_method are required');
   }
 
-  // 3. Get shipping method
-  const { data: shippingMethod } = await supabase
-    .from('shipping_methods').select('id, name, price, free_above')
-    .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
-  if (!shippingMethod) throw new Error('Shipping method not found');
-  const shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  // 2. Validate stock for all items (skip gift cards)
+  for (const item of cart.items) {
+    if (item.product_type !== 'gift_card' && item.product && !item.product.in_stock) {
+      throw new Error(`${item.product.name} is niet meer op voorraad`);
+    }
+  }
+
+  // 3. Get shipping method and cost
+  let shippingCost = 0;
+  let shippingMethod: any = null;
+  if (allGiftCards) {
+    // Digital-only order: no shipping needed
+    shippingCost = 0;
+  } else {
+    const { data: sm } = await supabase
+      .from('shipping_methods').select('id, name, price, free_above')
+      .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
+    if (!sm) throw new Error('Shipping method not found');
+    shippingMethod = sm;
+    shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  }
 
   // 4. Get tenant for VAT
   const { data: tenant } = await supabase
