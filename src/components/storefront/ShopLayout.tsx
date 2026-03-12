@@ -163,6 +163,8 @@ export function ShopLayout({ children, hideChrome }: ShopLayoutProps) {
     if (params.get('preview') === 'true') return;
 
     const checkRedirect = async () => {
+      // Skip redirect when hideChrome is active (e.g. checkout opened from custom frontend)
+      if (hideChrome) return;
       if (ts?.use_custom_frontend && ts?.custom_frontend_url) {
         setRedirecting(true);
         window.location.href = ts.custom_frontend_url;
