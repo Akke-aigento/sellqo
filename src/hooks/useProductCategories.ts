@@ -40,8 +40,8 @@ export function useProductCategories(productId: string | undefined) {
         .eq('product_id', productId);
       if (fetchError) throw fetchError;
 
-      const existingIds = new Set((existing || []).map((r: any) => r.category_id));
-      const desiredIds = new Set(categoryIds);
+      const existingIds = new Set<string>((existing || []).map((r: any) => r.category_id as string));
+      const desiredIds = new Set<string>(categoryIds);
 
       // Step 2: Calculate diff
       const toDelete = [...existingIds].filter(id => !desiredIds.has(id));
