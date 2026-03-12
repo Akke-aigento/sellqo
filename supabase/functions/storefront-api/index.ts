@@ -1994,7 +1994,7 @@ serve(async (req) => {
       const params: Record<string, unknown> = {
         locale, page: sp.get('page') || 1, per_page: sp.get('per_page') || 24,
         sort_by: sp.get('sort') || sp.get('sort_by') || 'newest',
-        category_slug: sp.get('collection') || sp.get('category') || undefined,
+        category_slug: sp.get('category_slug') || sp.get('collection') || sp.get('category') || undefined,
         search: sp.get('search') || sp.get('q') || undefined,
         min_price: sp.get('min_price') || undefined, max_price: sp.get('max_price') || undefined,
         tags: sp.get('tags') ? (sp.get('tags') as string).split(',') : undefined,
