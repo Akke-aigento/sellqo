@@ -894,7 +894,7 @@ export default function ShopCheckout() {
                   </div>
 
                   {/* Shipping method selector */}
-                  {shippingMethods.length > 1 && (
+                  {!allGiftCards && shippingMethods.length > 1 && (
                     <>
                       <Separator />
                       <div className="space-y-3">
