@@ -1121,7 +1121,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_code: cart.discount_code,
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
     subtotal, discount_amount: discountAmount, discount_info: discountInfo,
-    total: Math.max(0, subtotal - discountAmount), expires_at: cart.expires_at,
+    total: Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100, expires_at: cart.expires_at,
   };
 }
 
