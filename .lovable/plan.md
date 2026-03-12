@@ -1,60 +1,37 @@
 
 
-## Analysis & Fixes
+## Analyse: 4 fixes in storefront-api
 
-### Issue 1: A6 Cropping Is Wrong
+Er is geen `sellqo-proxy` edge function — alle cart logica zit in `storefront-api/index.ts`. De bugs zitten daar:
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+### Bevindingen
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+1. **CORS**: Geen `Access-Control-Allow-Methods` header aanwezig. Browsers blokkeren DELETE/PATCH/PUT preflight requests niet zolang de `Allow-Headers` correct zijn (die zijn dat), maar het toevoegen van `Allow-Methods` is best practice en voorkomt edge cases.
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
-```
+2. **DELETE en PATCH routes**: DELETE route **bestaat al** (line 1957). PATCH route **ontbreekt** — er is alleen PUT (line 1953). Dit betekent dat als de frontend PATCH stuurt, het een 404 krijgt.
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+3. **Prijs fallback**: In `cartGet` (line 1093) wordt `item.unit_price` gebruikt voor `line_total`. Dit is de prijs die bij het toevoegen werd opgeslagen. Als die 0 was (bv. cadeaukaart zonder variant-prijs), blijft het €0.00. De fix zit in `cartAddItem` (line 1128) — daar wordt al `variant.price ?? product.price` gedaan, dus het probleem is dat sommige items zijn toegevoegd vóór die fix, of dat `unit_price` nooit goed werd opgeslagen.
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+### Plan
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+**File: `supabase/functions/storefront-api/index.ts`**
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+1. **CORS headers uitbreiden** (line 4-7): Voeg `Access-Control-Allow-Methods` toe:
+   ```
+   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+   ```
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+2. **PATCH route toevoegen** (na line 1956): Voeg PATCH als alias voor de bestaande PUT cart item update toe:
+   ```typescript
+   if (method === 'PATCH' && resourceId && subResource === 'items' && subResourceId) {
+     const body = await req.json();
+     return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
+   }
+   ```
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
-
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+3. **Prijs fallback in cartGet normalizer** (line 1090): Pas `unit_price` aan zodat als het 0/null is, de product-level prijs als fallback wordt gebruikt:
+   ```typescript
+   const effectivePrice = item.unit_price || variant?.price || item.products?.price || 0;
+   ```
+   En gebruik `effectivePrice` voor zowel `unit_price` als `line_total`.
 
