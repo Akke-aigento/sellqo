@@ -154,6 +154,7 @@ export default function ProductForm() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(null);
   const [categoriesInitialized, setCategoriesInitialized] = useState(false);
+  const hasCategoryInteraction = useRef(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const downloadRef = useRef<HTMLDivElement>(null);
 
@@ -246,15 +247,27 @@ export default function ProductForm() {
   // to avoid race conditions when data is still loading
   useEffect(() => {
     if (!isEditing && !categoriesInitialized) {
-      // New product: no saved categories to wait for
       setCategoriesInitialized(true);
     } else if (isEditing && !categoriesInitialized && !isCategoriesLoading) {
-      // Editing: initialize once the query has finished loading (even if empty)
-      setSelectedCategoryIds(savedCategoryIds);
-      setPrimaryCategoryId(savedPrimaryCategoryId);
+      // Only hydrate if user hasn't already interacted with categories
+      if (!hasCategoryInteraction.current) {
+        setSelectedCategoryIds(savedCategoryIds);
+        setPrimaryCategoryId(savedPrimaryCategoryId);
+      }
       setCategoriesInitialized(true);
     }
   }, [isEditing, savedCategoryIds, savedPrimaryCategoryId, categoriesInitialized, isCategoriesLoading]);
+
+  // Wrapped setters that track user interaction
+  const handleSetSelectedCategoryIds = useCallback((ids: string[] | ((prev: string[]) => string[])) => {
+    hasCategoryInteraction.current = true;
+    setSelectedCategoryIds(ids);
+  }, []);
+
+  const handleSetPrimaryCategoryId = useCallback((id: string | null) => {
+    hasCategoryInteraction.current = true;
+    setPrimaryCategoryId(id);
+  }, []);
 
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
@@ -405,8 +418,8 @@ export default function ProductForm() {
         const created = await createProduct.mutateAsync(submitData as any);
         productId = created.id;
       }
-      // Sync multi-categories only if initialized (prevents wiping on race condition)
-      if (productId && categoriesInitialized) {
+      // Always sync multi-categories
+      if (productId) {
         await syncCategories.mutateAsync({
           productId,
           categoryIds: selectedCategoryIds,
@@ -1199,12 +1212,12 @@ export default function ProductForm() {
                                       onCheckedChange={(checked) => {
                                         if (checked) {
                                           const newIds = [...selectedCategoryIds, cat.id];
-                                          setSelectedCategoryIds(newIds);
-                                          if (newIds.length === 1) setPrimaryCategoryId(cat.id);
+                                          handleSetSelectedCategoryIds(newIds);
+                                          if (newIds.length === 1) handleSetPrimaryCategoryId(cat.id);
                                         } else {
                                           const newIds = selectedCategoryIds.filter(id => id !== cat.id);
-                                          setSelectedCategoryIds(newIds);
-                                          if (isPrimary) setPrimaryCategoryId(newIds[0] || null);
+                                          handleSetSelectedCategoryIds(newIds);
+                                          if (isPrimary) handleSetPrimaryCategoryId(newIds[0] || null);
                                         }
                                       }}
                                     />
@@ -1214,7 +1227,7 @@ export default function ProductForm() {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setPrimaryCategoryId(cat.id);
+                                          handleSetPrimaryCategoryId(cat.id);
                                         }}
                                         className={cn(
                                           "text-xs px-1.5 py-0.5 rounded",
@@ -1250,8 +1263,8 @@ export default function ProductForm() {
                                     type="button"
                                     onClick={() => {
                                       const newIds = selectedCategoryIds.filter(id => id !== catId);
-                                      setSelectedCategoryIds(newIds);
-                                      if (isPrimary) setPrimaryCategoryId(newIds[0] || null);
+                                      handleSetSelectedCategoryIds(newIds);
+                                      if (isPrimary) handleSetPrimaryCategoryId(newIds[0] || null);
                                     }}
                                     className="ml-0.5 hover:text-destructive"
                                   >
