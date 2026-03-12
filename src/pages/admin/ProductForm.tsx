@@ -1212,12 +1212,12 @@ export default function ProductForm() {
                                       onCheckedChange={(checked) => {
                                         if (checked) {
                                           const newIds = [...selectedCategoryIds, cat.id];
-                                          setSelectedCategoryIds(newIds);
-                                          if (newIds.length === 1) setPrimaryCategoryId(cat.id);
+                                          handleSetSelectedCategoryIds(newIds);
+                                          if (newIds.length === 1) handleSetPrimaryCategoryId(cat.id);
                                         } else {
                                           const newIds = selectedCategoryIds.filter(id => id !== cat.id);
-                                          setSelectedCategoryIds(newIds);
-                                          if (isPrimary) setPrimaryCategoryId(newIds[0] || null);
+                                          handleSetSelectedCategoryIds(newIds);
+                                          if (isPrimary) handleSetPrimaryCategoryId(newIds[0] || null);
                                         }
                                       }}
                                     />
