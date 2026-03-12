@@ -422,6 +422,8 @@ export default function ShopCheckout() {
         shipping_address: shippingAddress,
         billing_address: shippingAddress,
         shipping_cost: shipping,
+        shipping_method_id: selectedMethodId || undefined,
+        shipping_method_name: selectedMethod?.name || undefined,
         // BTW data
         customer_type: customerData.customerType,
         vat_number: customerData.customerType === 'b2b' ? customerData.vatNumber || undefined : undefined,
