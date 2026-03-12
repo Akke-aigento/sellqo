@@ -571,7 +571,7 @@ export default function ShopCheckout() {
 
   if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
-      <ShopLayout>
+      <ShopLayout hideChrome={isCustomFrontend}>
         <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Je winkelwagen is leeg</h1>
