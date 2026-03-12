@@ -893,6 +893,7 @@ export default function ShopCheckout() {
                       </Select>
                     </div>
                   </div>
+                  )}
 
                   {/* Shipping method selector */}
                   {!allGiftCards && shippingMethods.length > 1 && (
