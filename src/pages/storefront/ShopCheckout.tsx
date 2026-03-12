@@ -413,7 +413,12 @@ export default function ShopCheckout() {
         } : undefined,
       }));
 
-      const shippingAddress = {
+      const shippingAddress = allGiftCards ? {
+        street: '-',
+        city: '-',
+        postal_code: '-',
+        country: customerData.country || 'NL',
+      } : {
         street: `${customerData.street} ${customerData.houseNumber}`.trim(),
         city: customerData.city,
         postal_code: customerData.postalCode,
@@ -430,8 +435,8 @@ export default function ShopCheckout() {
         shipping_address: shippingAddress,
         billing_address: shippingAddress,
         shipping_cost: shipping,
-        shipping_method_id: selectedMethodId || undefined,
-        shipping_method_name: selectedMethod?.name || undefined,
+        shipping_method_id: allGiftCards ? undefined : (selectedMethodId || undefined),
+        shipping_method_name: allGiftCards ? undefined : (selectedMethod?.name || undefined),
         // BTW data
         customer_type: customerData.customerType,
         vat_number: customerData.customerType === 'b2b' ? customerData.vatNumber || undefined : undefined,
