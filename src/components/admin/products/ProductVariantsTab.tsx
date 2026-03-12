@@ -359,22 +359,24 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
                         {editingVariantId === variant.id ? (
                           <Input
                             value={editVariantData.sku ?? ''}
                             onChange={e => setEditVariantData(prev => ({ ...prev, sku: e.target.value }))}
+                            onClick={e => e.stopPropagation()}
                             className="w-24"
                           />
                         ) : (
                           <span className="text-sm text-muted-foreground">{variant.sku || '—'}</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
                         {editingVariantId === variant.id ? (
                           <Input
                             value={editVariantData.barcode ?? ''}
                             onChange={e => setEditVariantData(prev => ({ ...prev, barcode: e.target.value }))}
+                            onClick={e => e.stopPropagation()}
                             placeholder="EAN-13"
                             className="w-28"
                           />
@@ -382,11 +384,12 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                           <span className="text-sm text-muted-foreground">{variant.barcode || '—'}</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
                         {editingVariantId === variant.id ? (
                           <Input
                             value={editVariantData.internal_reference ?? ''}
                             onChange={e => setEditVariantData(prev => ({ ...prev, internal_reference: e.target.value }))}
+                            onClick={e => e.stopPropagation()}
                             placeholder="Ref."
                             className="w-24"
                           />
@@ -394,26 +397,28 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                           <span className="text-sm text-muted-foreground">{(variant as any).internal_reference || '—'}</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
                         {editingVariantId === variant.id ? (
                           <Input
                             type="number"
                             step="0.01"
                             value={editVariantData.price ?? ''}
                             onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))}
+                            onClick={e => e.stopPropagation()}
                             className="w-24"
                           />
                         ) : (
                           <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
                         {trackInventory ? (
                           editingVariantId === variant.id ? (
                             <Input
                               type="number"
                               value={editVariantData.stock ?? 0}
                               onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))}
+                              onClick={e => e.stopPropagation()}
                               className="w-20"
                             />
                           ) : (
@@ -423,7 +428,7 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                           <span className="text-muted-foreground" title="Voorraad wordt niet bijgehouden">∞</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
                         {editingVariantId === variant.id ? (
                           <Switch
                             checked={editVariantData.is_active ?? true}
@@ -468,16 +473,16 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                         <div className="flex items-center gap-1">
                           {editingVariantId === variant.id ? (
                             <>
-                              <Button type="button" size="icon" variant="ghost" onClick={saveEditVariant}>
+                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveEditVariant(); }}>
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <Button type="button" size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
+                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingVariantId(null); }}>
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
                             <>
-                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); startEditVariant(variant); }}>
+                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditVariant(variant); }}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
