@@ -418,8 +418,8 @@ export default function ProductForm() {
         const created = await createProduct.mutateAsync(submitData as any);
         productId = created.id;
       }
-      // Sync multi-categories only if initialized (prevents wiping on race condition)
-      if (productId && categoriesInitialized) {
+      // Always sync multi-categories
+      if (productId) {
         await syncCategories.mutateAsync({
           productId,
           categoryIds: selectedCategoryIds,
