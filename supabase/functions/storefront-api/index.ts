@@ -1129,7 +1129,10 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     stockSource = variant;
   }
 
-  if (stockSource.track_inventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
+  // Skip stock check if tracking is disabled on either product or variant level
+  const shouldTrackInventory = product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
+
+  if (shouldTrackInventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
 
   // Check if item already in cart (unique by product_id + variant_id)
   let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
@@ -1139,7 +1142,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
 
   if (existing) {
     const newQty = existing.quantity + quantity;
-    if (stockSource.track_inventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
+    if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
     const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
     if (error) throw error;
   } else {
