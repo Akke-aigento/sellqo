@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -17,6 +17,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useStorefrontShipping } from '@/hooks/useStorefrontShipping';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -207,9 +209,10 @@ export default function ShopCheckout() {
     }).format(price);
   };
 
+  const { methods: shippingMethods, selectedMethod, selectedMethodId, setSelectedMethodId, getShippingCost } = useStorefrontShipping(tenant?.id);
   const subtotal = getSubtotal();
   const discountAmount = appliedDiscount?.calculated_amount || 0;
-  const shipping = subtotal > 0 ? 5.95 : 0;
+  const shipping = getShippingCost(subtotal);
   const subtotalAfterDiscount = subtotal - discountAmount;
 
   // VAT calculation
@@ -419,6 +422,8 @@ export default function ShopCheckout() {
         shipping_address: shippingAddress,
         billing_address: shippingAddress,
         shipping_cost: shipping,
+        shipping_method_id: selectedMethodId || undefined,
+        shipping_method_name: selectedMethod?.name || undefined,
         // BTW data
         customer_type: customerData.customerType,
         vat_number: customerData.customerType === 'b2b' ? customerData.vatNumber || undefined : undefined,
@@ -533,7 +538,9 @@ export default function ShopCheckout() {
           </div>
         )}
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Verzending</span>
+          <span className="text-muted-foreground">
+            Verzending{selectedMethod && shippingMethods.length > 1 ? ` (${selectedMethod.name})` : ''}
+          </span>
           <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
         </div>
         {vatInfo.amount > 0 && defaultVatHandling !== 'inclusive' && (
@@ -859,6 +866,54 @@ export default function ShopCheckout() {
                     </div>
                   </div>
 
+                  {/* Shipping method selector */}
+                  {shippingMethods.length > 1 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <h3 className="font-medium flex items-center gap-2">
+                          <Truck className="h-4 w-4" />
+                          Verzendmethode
+                        </h3>
+                        <RadioGroup
+                          value={selectedMethodId || ''}
+                          onValueChange={setSelectedMethodId}
+                        >
+                          {shippingMethods.map(method => {
+                            const isFree = method.free_above && subtotal >= method.free_above;
+                            return (
+                              <div key={method.id} className="flex items-center space-x-3 border rounded-lg p-3">
+                                <RadioGroupItem value={method.id} id={`shipping-${method.id}`} />
+                                <Label htmlFor={`shipping-${method.id}`} className="flex-1 cursor-pointer">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <span className="font-medium">{method.name}</span>
+                                      {method.estimated_days_min && method.estimated_days_max && (
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          ({method.estimated_days_min}-{method.estimated_days_max} werkdagen)
+                                        </span>
+                                      )}
+                                      {method.description && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">{method.description}</p>
+                                      )}
+                                    </div>
+                                    <span className="font-medium shrink-0 ml-4">
+                                      {isFree ? 'Gratis' : formatPrice(method.price)}
+                                    </span>
+                                  </div>
+                                  {method.free_above && !isFree && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Gratis vanaf {formatPrice(method.free_above)}
+                                    </p>
+                                  )}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </RadioGroup>
+                      </div>
+                    </>
+                  )}
                   <Button
                     className="w-full" size="lg"
                     onClick={handleCustomerDetailsSubmit}
