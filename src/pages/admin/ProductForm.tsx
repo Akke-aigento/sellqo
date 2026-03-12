@@ -154,6 +154,7 @@ export default function ProductForm() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(null);
   const [categoriesInitialized, setCategoriesInitialized] = useState(false);
+  const hasCategoryInteraction = useRef(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const downloadRef = useRef<HTMLDivElement>(null);
 
