@@ -548,16 +548,17 @@ export default function ShopCheckout() {
       {!appliedDiscount ? (
         <div className="flex gap-2 mb-4">
           <Input
-            value={discountCode}
-            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+            ref={discountInputRef}
+            defaultValue=""
             placeholder="Kortingscode"
             className="flex-1"
+            onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
             onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
           />
           <Button
             variant="outline" size="sm"
             onClick={handleApplyDiscount}
-            disabled={applyingDiscount || !discountCode.trim()}
+            disabled={applyingDiscount}
           >
             {applyingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Toepassen'}
           </Button>
