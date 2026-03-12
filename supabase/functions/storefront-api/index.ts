@@ -1088,10 +1088,10 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
-      quantity: item.quantity, unit_price: item.unit_price,
+      quantity: item.quantity, unit_price: item.unit_price || variant?.price || item.products?.price || 0,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
-      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
-      line_total: item.quantity * item.unit_price,
+      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url, price: variant.price } : null,
+      line_total: item.quantity * (item.unit_price || variant?.price || item.products?.price || 0),
     };
   });
 
