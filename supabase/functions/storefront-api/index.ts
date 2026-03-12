@@ -1988,7 +1988,7 @@ serve(async (req) => {
         const tenantSlug = tenantInfo?.slug || tenantId;
 
         // Build hosted checkout URL with cart and redirect params
-        const checkoutBaseUrl = `https://sellqo.lovable.app/checkout/${tenantSlug}`;
+        const checkoutBaseUrl = `https://sellqo.lovable.app/shop/${tenantSlug}/checkout`;
         const checkoutUrl = new URL(checkoutBaseUrl);
         checkoutUrl.searchParams.set('cart_id', body.cart_id);
         if (body.success_url) checkoutUrl.searchParams.set('success_url', body.success_url);
