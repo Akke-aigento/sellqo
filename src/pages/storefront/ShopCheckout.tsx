@@ -78,6 +78,10 @@ export default function ShopCheckout() {
     appliedDiscount, applyDiscountCode, removeDiscountCode,
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
+
+  // Detect custom frontend mode via cancel_url query param
+  const cancelUrl = new URLSearchParams(window.location.search).get('cancel_url');
+  const isCustomFrontend = !!(cancelUrl && !cancelUrl.includes('sellqo.app'));
   const { t } = useTranslation();
   
   const [step, setStep] = useState<CheckoutStep>('details');
