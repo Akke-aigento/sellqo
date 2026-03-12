@@ -74,14 +74,19 @@ export default function ShopCheckout() {
   const navigate = useNavigate();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { 
-    items: cartItems, setTenantSlug, getSubtotal, clearCart,
+    items: cartItems, setTenantSlug, getSubtotal, clearCart, addToCart,
     appliedDiscount, applyDiscountCode, removeDiscountCode,
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
 
   // Detect custom frontend mode via cancel_url query param
-  const cancelUrl = new URLSearchParams(window.location.search).get('cancel_url');
+  const searchParams = new URLSearchParams(window.location.search);
+  const cancelUrl = searchParams.get('cancel_url');
+  const cartId = searchParams.get('cart_id');
   const isCustomFrontend = !!(cancelUrl && !cancelUrl.includes('sellqo.app'));
+  
+  const [serverCartLoading, setServerCartLoading] = useState(false);
+  const serverCartLoadedRef = useRef(false);
   const { t } = useTranslation();
   
   const [step, setStep] = useState<CheckoutStep>('details');
