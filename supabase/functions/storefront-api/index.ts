@@ -1388,24 +1388,52 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   if (orderError) throw orderError;
 
   // 8. Create order items (with variant support)
-  const orderItems = cart.items.map((item: any) => ({
-    order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
-    product_name: item.product?.name || '', quantity: item.quantity,
-    unit_price: item.unit_price, total: item.line_total,
-    sku: null, product_image: item.product?.image || null,
-    variant_id: item.variant_id || null,
-    variant_title: item.variant?.title || null,
-  }));
+  const orderItems = cart.items.map((item: any) => {
+    const oi: any = {
+      order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
+      product_name: item.product?.name || '', quantity: item.quantity,
+      unit_price: item.unit_price, total: item.line_total,
+      sku: null, product_image: item.product?.image || null,
+      variant_id: item.variant_id || null,
+      variant_title: item.variant?.title || null,
+    };
+    if (item.product_type === 'gift_card' && item.gift_card_metadata) {
+      oi.gift_card_metadata = item.gift_card_metadata;
+    }
+    return oi;
+  });
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
 
-  // 9. Decrement stock (variant-level if applicable)
+  // 9. Decrement stock (variant-level if applicable, skip gift cards)
   for (const item of cart.items) {
+    if (item.product_type === 'gift_card') continue;
     if (item.variant_id) {
       await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
     } else {
       await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+    }
+  }
+
+  // 9b. Process gift card items
+  const giftCardItems = cart.items.filter((item: any) => item.product_type === 'gift_card');
+  if (giftCardItems.length > 0) {
+    try {
+      await supabase.functions.invoke('process-gift-card-order', {
+        body: {
+          order_id: order.id,
+          tenant_id: tenantId,
+          items: giftCardItems.map((item: any) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            gift_card_metadata: item.gift_card_metadata,
+          })),
+        },
+      });
+    } catch (gcError) {
+      console.error('Gift card processing error (non-blocking):', gcError);
     }
   }
 
