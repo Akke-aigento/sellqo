@@ -1227,7 +1227,7 @@ export default function ProductForm() {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setPrimaryCategoryId(cat.id);
+                                          handleSetPrimaryCategoryId(cat.id);
                                         }}
                                         className={cn(
                                           "text-xs px-1.5 py-0.5 rounded",
