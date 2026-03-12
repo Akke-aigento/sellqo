@@ -1,60 +1,46 @@
 
 
-## Analysis & Fixes
+## Plan: Gift card support in storefront-api
 
-### Issue 1: A6 Cropping Is Wrong
+### Database migration
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+De `storefront_cart_items` tabel heeft momenteel geen `gift_card_metadata` kolom. We moeten er een toevoegen:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
-
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+```sql
+ALTER TABLE public.storefront_cart_items 
+ADD COLUMN gift_card_metadata jsonb DEFAULT NULL;
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+### Wijzigingen in `supabase/functions/storefront-api/index.ts`
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+**1. `cartAddItem` (regel ~1107-1158)**
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+- Haal `product_type` op bij het laden van het product (voeg `product_type` toe aan de select)
+- Als `product_type === 'gift_card'`:
+  - Gebruik `params.amount` als `unitPrice` i.p.v. product/variant prijs
+  - Negeer `variant_id` (zet op null)
+  - Skip voorraadcontrole (gift cards zijn digitaal)
+  - Gift card items worden NIET samengevoegd met bestaande items (elke gift card is uniek — altijd een nieuw cart item)
+  - Sla `gift_card_metadata` op in het cart item record
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+**2. `cartGet` (regel ~1061-1105)**
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+- Voeg `gift_card_metadata` toe aan de select van `storefront_cart_items`
+- Voeg `product_type` toe aan de product select
+- Geef `gift_card_metadata` en `product_type` mee in de cart item response
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+**3. `checkoutPlaceOrder` (regel ~1281-1426)**
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+- Na het aanmaken van order items: sla `gift_card_metadata` op in `order_items` voor gift card items
+- Na het plaatsen van de order: detecteer gift card items en roep `process-gift-card-order` aan via `supabase.functions.invoke`
+- Verzendkosten: als ALLE items in de cart `product_type === 'gift_card'` zijn, forceer `shippingCost = 0` (ongeacht geselecteerde verzendmethode). In dat geval is `shipping_method_id` optioneel.
 
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+**4. Order items insert (regel ~1356-1366)**
 
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+- Voeg `gift_card_metadata` toe aan de order items insert voor gift card producten
+- Dit vereist dat we `product_type` beschikbaar hebben per cart item (via de cart response)
 
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+### Bestanden
+- **Database**: 1 migratie — `gift_card_metadata` kolom toevoegen aan `storefront_cart_items`
+- **Edge Function**: `supabase/functions/storefront-api/index.ts` — 4 functies aanpassen (`cartAddItem`, `cartGet`, `checkoutPlaceOrder`, order items insert)
 
