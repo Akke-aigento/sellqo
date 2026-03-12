@@ -1112,19 +1112,28 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   const productId = params.product_id as string;
   const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
+  const giftCardMetadata = params.gift_card_metadata as Record<string, unknown> | undefined;
+  const requestedAmount = params.amount as number | undefined;
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
 
-  // Verify product exists and get price
+  // Verify product exists and get price + type
   const { data: product } = await supabase
-    .from('products').select('id, price, track_inventory, stock, is_active')
+    .from('products').select('id, price, track_inventory, stock, is_active, product_type')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
 
+  const isGiftCard = product.product_type === 'gift_card';
+
   let unitPrice = product.price;
   let stockSource = product;
+  let effectiveVariantId = variantId;
 
-  // If variant_id provided, validate and use variant pricing/stock
-  if (variantId) {
+  if (isGiftCard) {
+    // Gift cards: use requested amount, no variant, no stock check
+    unitPrice = requestedAmount || product.price;
+    effectiveVariantId = undefined;
+  } else if (variantId) {
+    // If variant_id provided, validate and use variant pricing/stock
     const { data: variant } = await supabase
       .from('product_variants').select('id, price, stock, track_inventory, is_active')
       .eq('id', variantId).eq('product_id', productId).eq('tenant_id', tenantId).single();
@@ -1133,28 +1142,35 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     stockSource = variant;
   }
 
-  // Skip stock check if tracking is disabled on either product or variant level
-  const shouldTrackInventory = product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
+  // Skip stock check for gift cards and when tracking is disabled
+  const shouldTrackInventory = !isGiftCard && product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
 
   if (shouldTrackInventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
 
-  // Check if item already in cart (unique by product_id + variant_id)
-  let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
-  if (variantId) existingQuery = existingQuery.eq('variant_id', variantId);
-  else existingQuery = existingQuery.is('variant_id', null);
-  const { data: existing } = await existingQuery.maybeSingle();
+  // Gift cards are always unique items — never merge
+  if (!isGiftCard) {
+    // Check if item already in cart (unique by product_id + variant_id)
+    let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
+    if (effectiveVariantId) existingQuery = existingQuery.eq('variant_id', effectiveVariantId);
+    else existingQuery = existingQuery.is('variant_id', null);
+    const { data: existing } = await existingQuery.maybeSingle();
 
-  if (existing) {
-    const newQty = existing.quantity + quantity;
-    if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
-    const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
-    if (error) throw error;
-  } else {
-    const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
-    if (variantId) insertData.variant_id = variantId;
-    const { error } = await supabase.from('storefront_cart_items').insert(insertData);
-    if (error) throw error;
+    if (existing) {
+      const newQty = existing.quantity + quantity;
+      if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
+      const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
+      if (error) throw error;
+      await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
+      return cartGet(supabase, tenantId, { cart_id: cartId });
+    }
   }
+
+  // Insert new cart item
+  const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
+  if (effectiveVariantId) insertData.variant_id = effectiveVariantId;
+  if (isGiftCard && giftCardMetadata) insertData.gift_card_metadata = giftCardMetadata;
+  const { error } = await supabase.from('storefront_cart_items').insert(insertData);
+  if (error) throw error;
 
   await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
   return cartGet(supabase, tenantId, { cart_id: cartId });
