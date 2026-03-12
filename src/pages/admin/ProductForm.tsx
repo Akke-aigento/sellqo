@@ -386,33 +386,38 @@ export default function ProductForm() {
   };
 
   const onSubmit = async (data: FormValues) => {
-    // Set primary category_id for backward compatibility
-    const effectivePrimary = primaryCategoryId && selectedCategoryIds.includes(primaryCategoryId)
-      ? primaryCategoryId
-      : selectedCategoryIds[0] || null;
+    try {
+      // Set primary category_id for backward compatibility
+      const effectivePrimary = primaryCategoryId && selectedCategoryIds.includes(primaryCategoryId)
+        ? primaryCategoryId
+        : selectedCategoryIds[0] || null;
 
-    const submitData = {
-      ...data,
-      category_id: effectivePrimary,
-      sku: data.sku?.trim() || null,
-      barcode: data.barcode?.trim() || null,
-    };
-    let productId = id;
-    if (isEditing && id) {
-      await updateProduct.mutateAsync({ id, data: submitData });
-    } else {
-      const created = await createProduct.mutateAsync(submitData as any);
-      productId = created.id;
+      const submitData = {
+        ...data,
+        category_id: effectivePrimary,
+        sku: data.sku?.trim() || null,
+        barcode: data.barcode?.trim() || null,
+      };
+      let productId = id;
+      if (isEditing && id) {
+        await updateProduct.mutateAsync({ id, data: submitData });
+      } else {
+        const created = await createProduct.mutateAsync(submitData as any);
+        productId = created.id;
+      }
+      // Sync multi-categories only if initialized (prevents wiping on race condition)
+      if (productId && categoriesInitialized) {
+        await syncCategories.mutateAsync({
+          productId,
+          categoryIds: selectedCategoryIds,
+          primaryCategoryId: effectivePrimary,
+        });
+      }
+      navigate('/admin/products');
+    } catch (err: any) {
+      console.error('Product save failed:', err);
+      toast.error(err?.message || 'Opslaan mislukt');
     }
-    // Sync multi-categories only if initialized (prevents wiping on race condition)
-    if (productId && categoriesInitialized) {
-      await syncCategories.mutateAsync({
-        productId,
-        categoryIds: selectedCategoryIds,
-        primaryCategoryId: effectivePrimary,
-      });
-    }
-    navigate('/admin/products');
   };
 
   const isSubmitting = createProduct.isPending || updateProduct.isPending;

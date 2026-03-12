@@ -1,66 +1,60 @@
 
 
-## Bugfix: Multi-categorie koppeling wordt niet opgeslagen
+## Analysis & Fixes
 
-### Root cause analyse
+### Issue 1: A6 Cropping Is Wrong
 
-In `src/hooks/useProductCategories.ts`, de `syncCategories` mutation:
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-1. **Delete error wordt niet gecheckt** (regel 37-40): Als de delete faalt door RLS, geeft Supabase `{ data: [], error: null }` terug maar worden er geen rijen verwijderd. De code gaat gewoon door.
-2. **Insert faalt dan op unique constraint**: De oude rij (Sweaters) bestaat nog, insert van dezelfde category_id faalt.
-3. **Error wordt ingeslikt**: De insert error wordt wel gegooid, maar `form.handleSubmit(onSubmit)` in react-hook-form vangt async errors op zonder feedback aan de gebruiker.
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-Bewijs: de `created_at` van de enige `product_categories` rij is `2026-02-24` (de migratie-seed datum), wat bevestigt dat syncCategories nooit succesvol heeft gedraaid.
-
-### Oplossing
-
-**1. `src/hooks/useProductCategories.ts` — Robuustere sync strategie**
-
-Vervang de delete-all + insert-all aanpak door:
-- **Check delete errors** en gooi ze
-- Gebruik een **twee-stappen benadering**:
-  - Verwijder rijen die niet meer in de lijst staan: `.delete().eq('product_id', productId).not('category_id', 'in', '(ids)')`
-  - Upsert de gewenste rijen met `onConflict: 'product_id,category_id'`
-- Dit is robuuster tegen race conditions en RLS-issues
-
-```typescript
-// Stap 1: Verwijder categorieën die niet meer gekoppeld zijn
-if (categoryIds.length > 0) {
-  const { error: delError } = await supabase
-    .from('product_categories')
-    .delete()
-    .eq('product_id', productId)
-    .not('category_id', 'in', `(${categoryIds.join(',')})`);
-  if (delError) throw delError;
-} else {
-  const { error: delError } = await supabase
-    .from('product_categories')
-    .delete()
-    .eq('product_id', productId);
-  if (delError) throw delError;
-}
-
-// Stap 2: Upsert de gewenste categorieën
-const { error } = await supabase
-  .from('product_categories')
-  .upsert(rows, { onConflict: 'product_id,category_id' });
-if (error) throw error;
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
 ```
 
-**2. `src/pages/admin/ProductForm.tsx` — Error feedback toevoegen**
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-Wrap de `onSubmit` in een try-catch met toast feedback:
-```typescript
-const onSubmit = async (data: FormValues) => {
-  try {
-    // ... existing logic
-  } catch (err: any) {
-    toast.error(err?.message || 'Opslaan mislukt');
-  }
-};
-```
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-### Bestanden
-- `src/hooks/useProductCategories.ts` — Robuustere sync met error checking + upsert
-- `src/pages/admin/ProductForm.tsx` — Try-catch met toast error feedback
+### Issue 2: Auto-Accept Does Nothing at Bol.com
+
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+
+### Summary
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 
