@@ -534,7 +534,7 @@ export default function ShopCheckout() {
                     <span className="text-xs ml-1">— {item.variantTitle}</span>
                   )}
                 </span>
-                <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+                <span className="shrink-0">{formatPrice((item.price || (item.giftCard as any)?.amount || 0) * item.quantity)}</span>
               </div>
               {item.giftCard?.recipientName && (
                 <p className="text-xs text-muted-foreground ml-4">

@@ -185,7 +185,7 @@ export default function ShopCart() {
                         {item.variantTitle && (
                           <p className="text-sm text-muted-foreground">{item.variantTitle}</p>
                         )}
-                        <p className="text-lg font-semibold mt-1">{formatPrice(item.price)}</p>
+                        <p className="text-lg font-semibold mt-1">{formatPrice(item.price || (item.giftCard as any)?.amount || 0)}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-2 pl-0 sm:pl-2">
