@@ -211,7 +211,7 @@ export default function ShopCheckout() {
     });
   }, [cartId, tenant?.id]);
 
-
+  useEffect(() => {
     if (tenantSlug) setTenantSlug(tenantSlug);
   }, [tenantSlug, setTenantSlug]);
 
