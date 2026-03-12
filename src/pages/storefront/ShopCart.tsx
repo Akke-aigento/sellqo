@@ -107,9 +107,10 @@ export default function ShopCart() {
     }
   };
 
+  const { getShippingCost } = useStorefrontShipping(tenant?.id);
   const subtotal = getSubtotal();
   const discountAmount = appliedDiscount?.calculated_amount || 0;
-  const shipping = subtotal > 0 ? 5.95 : 0;
+  const shipping = getShippingCost(subtotal);
   const total = subtotal - discountAmount + shipping;
 
   return (
