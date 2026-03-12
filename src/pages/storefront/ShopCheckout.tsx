@@ -129,8 +129,8 @@ export default function ShopCheckout() {
     companyName?: string;
   }>({ status: 'idle' });
 
-  // Discount code state for checkout
-  const [discountCode, setDiscountCode] = useState('');
+  // Discount code state for checkout (ref-based to prevent focus loss)
+  const discountInputRef = useRef<HTMLInputElement>(null);
   const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   // Read checkout config settings
@@ -190,12 +190,12 @@ export default function ShopCheckout() {
           const unitPrice = item.unit_price || (item.gift_card_metadata as any)?.amount || item.products?.price || 0;
           addToCart({
             productId: item.product_id,
-            name: item.products?.name || 'Product',
+            name: item.products?.name || item.product?.name || 'Product',
             price: unitPrice,
             quantity: item.quantity || 1,
-            image: Array.isArray(item.products?.images) ? item.products.images[0] : item.products?.images || undefined,
+            image: item.product?.image || (Array.isArray(item.products?.images) ? item.products.images[0] : item.products?.images) || undefined,
             variantId: item.variant_id || undefined,
-            variantTitle: item.product_variants?.name || undefined,
+            variantTitle: item.variant?.title || item.product_variants?.name || undefined,
             sku: item.product_variants?.sku || undefined,
             giftCard: item.gift_card_metadata ? {
               recipientName: (item.gift_card_metadata as any).recipientName || '',
@@ -206,6 +206,17 @@ export default function ShopCheckout() {
             } : undefined,
           });
         }
+      }
+      // Restore discount code from server cart
+      if (result.discount_code && result.discount_amount > 0 && result.discount_info) {
+        applyDiscountCode({
+          code: result.discount_code,
+          discount_type: result.discount_info.discount_type,
+          discount_value: result.discount_info.discount_value,
+          applies_to: result.discount_info.applies_to,
+          description: result.discount_info.description,
+          calculated_amount: result.discount_amount,
+        });
       }
       setServerCartLoading(false);
     });
@@ -356,7 +367,7 @@ export default function ShopCheckout() {
 
   // Discount code in checkout
   const handleApplyDiscount = async () => {
-    const code = discountCode.trim();
+    const code = (discountInputRef.current?.value || '').trim();
     if (!code || !tenant) return;
     setApplyingDiscount(true);
     try {
@@ -384,7 +395,7 @@ export default function ShopCheckout() {
           description: result.description,
           calculated_amount: calcAmount,
         });
-        setDiscountCode('');
+        if (discountInputRef.current) discountInputRef.current.value = '';
         toast.success('Kortingscode toegepast!');
       } else {
         toast.error(result?.error || 'Ongeldige kortingscode');
@@ -537,16 +548,17 @@ export default function ShopCheckout() {
       {!appliedDiscount ? (
         <div className="flex gap-2 mb-4">
           <Input
-            value={discountCode}
-            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+            ref={discountInputRef}
+            defaultValue=""
             placeholder="Kortingscode"
             className="flex-1"
+            onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
             onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
           />
           <Button
             variant="outline" size="sm"
             onClick={handleApplyDiscount}
-            disabled={applyingDiscount || !discountCode.trim()}
+            disabled={applyingDiscount}
           >
             {applyingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Toepassen'}
           </Button>
