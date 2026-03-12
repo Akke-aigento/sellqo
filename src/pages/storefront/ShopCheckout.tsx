@@ -74,14 +74,19 @@ export default function ShopCheckout() {
   const navigate = useNavigate();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { 
-    items: cartItems, setTenantSlug, getSubtotal, clearCart,
+    items: cartItems, setTenantSlug, getSubtotal, clearCart, addToCart,
     appliedDiscount, applyDiscountCode, removeDiscountCode,
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
 
   // Detect custom frontend mode via cancel_url query param
-  const cancelUrl = new URLSearchParams(window.location.search).get('cancel_url');
+  const searchParams = new URLSearchParams(window.location.search);
+  const cancelUrl = searchParams.get('cancel_url');
+  const cartId = searchParams.get('cart_id');
   const isCustomFrontend = !!(cancelUrl && !cancelUrl.includes('sellqo.app'));
+  
+  const [serverCartLoading, setServerCartLoading] = useState(false);
+  const serverCartLoadedRef = useRef(false);
   const { t } = useTranslation();
   
   const [step, setStep] = useState<CheckoutStep>('details');
@@ -162,6 +167,49 @@ export default function ShopCheckout() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load server-side cart when cart_id is present (headless/custom frontend)
+  useEffect(() => {
+    if (!cartId || !tenant?.id || serverCartLoadedRef.current) return;
+    serverCartLoadedRef.current = true;
+    setServerCartLoading(true);
+
+    supabase.functions.invoke('storefront-api', {
+      body: { action: 'cart_get', tenant_id: tenant.id, params: { cart_id: cartId } },
+    }).then(({ data, error }) => {
+      if (error) {
+        console.error('Failed to load server cart:', error);
+        setServerCartLoading(false);
+        return;
+      }
+      const result = data?.data || data;
+      const serverItems = result?.items || [];
+      if (serverItems.length > 0) {
+        clearCart();
+        for (const item of serverItems) {
+          const unitPrice = item.unit_price || (item.gift_card_metadata as any)?.amount || item.products?.price || 0;
+          addToCart({
+            productId: item.product_id,
+            name: item.products?.name || 'Product',
+            price: unitPrice,
+            quantity: item.quantity || 1,
+            image: Array.isArray(item.products?.images) ? item.products.images[0] : item.products?.images || undefined,
+            variantId: item.variant_id || undefined,
+            variantTitle: item.product_variants?.name || undefined,
+            sku: item.product_variants?.sku || undefined,
+            giftCard: item.gift_card_metadata ? {
+              recipientName: (item.gift_card_metadata as any).recipientName || '',
+              recipientEmail: (item.gift_card_metadata as any).recipientEmail || '',
+              personalMessage: (item.gift_card_metadata as any).personalMessage,
+              sendDate: (item.gift_card_metadata as any).sendDate,
+              designId: (item.gift_card_metadata as any).designId,
+            } : undefined,
+          });
+        }
+      }
+      setServerCartLoading(false);
+    });
+  }, [cartId, tenant?.id]);
 
   useEffect(() => {
     if (tenantSlug) setTenantSlug(tenantSlug);
@@ -588,6 +636,18 @@ export default function ShopCheckout() {
       </div>
     </>
   );
+
+  if (serverCartLoading) {
+    return (
+      <ShopLayout hideChrome={isCustomFrontend}>
+        <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
+        <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground">Winkelwagen laden...</p>
+        </div>
+      </ShopLayout>
+    );
+  }
 
   if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
