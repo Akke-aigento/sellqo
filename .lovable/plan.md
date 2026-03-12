@@ -1,60 +1,49 @@
 
 
-## Analysis & Fixes
+## Bugfix: Gift card niet zichtbaar in checkout (server-side cart laden)
 
-### Issue 1: A6 Cropping Is Wrong
+### Root cause
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+Wanneer een custom frontend (loveke.be) doorverwijst naar `sellqo.app/shop/{tenant}/checkout?cart_id=...`, laadt de checkout **alleen** items uit de client-side `CartContext` (localStorage). De server-side cart (met de gift card) wordt nooit opgehaald. Omdat sellqo.app en loveke.be verschillende domeinen zijn, is de localStorage van loveke.be niet beschikbaar op sellqo.app.
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+De sweater verschijnt wel omdat die apart op sellqo.app was toegevoegd (of eerder in localStorage zat). De gift card zit alleen in de server-side cart en wordt dus niet getoond.
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
-```
+### Oplossing
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+**In `src/pages/storefront/ShopCheckout.tsx`:**
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+1. **Lees `cart_id` uit de URL query parameters** (net als `cancel_url` al gelezen wordt)
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+2. **Voeg een useEffect toe die de server-side cart laadt** wanneer `cart_id` aanwezig is:
+   - Roep de storefront-api aan: `action: 'cart_get', params: { cart_id }`
+   - Map de server items naar het `CartItem` format van CartContext (met `giftCard` metadata)
+   - Vervang de client-side cart items met `clearCart()` + `addToCart()` per item
+   - Toon een loading state terwijl de cart geladen wordt
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+3. **Data mapping** van server cart item naar CartContext CartItem:
+   ```typescript
+   {
+     productId: item.product_id,
+     name: item.product?.name,
+     price: item.unit_price,
+     quantity: item.quantity,
+     image: item.product?.image,
+     variantId: item.variant_id,
+     variantTitle: item.variant?.title,
+     giftCard: item.gift_card_metadata ? {
+       recipientName: item.gift_card_metadata.recipientName,
+       recipientEmail: item.gift_card_metadata.recipientEmail,
+       personalMessage: item.gift_card_metadata.personalMessage,
+       sendDate: item.gift_card_metadata.sendDate,
+       designId: item.gift_card_metadata.designId,
+     } : undefined,
+   }
+   ```
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+4. **Voorkom dubbel laden**: gebruik een `ref` of state flag om te voorkomen dat de cart meerdere keren geladen wordt.
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+5. **Loading state**: toon een spinner terwijl de server-cart geladen wordt, zodat de gebruiker niet even een lege cart ziet.
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+### Bestanden
+- `src/pages/storefront/ShopCheckout.tsx` — server-side cart laden bij `cart_id` parameter
 
