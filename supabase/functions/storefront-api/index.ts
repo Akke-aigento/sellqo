@@ -1955,6 +1955,10 @@ serve(async (req) => {
         const body = await req.json();
         return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
       }
+      if (method === 'PATCH' && resourceId && subResource === 'items' && subResourceId) {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
+      }
       if (method === 'DELETE' && resourceId && subResource === 'items' && subResourceId) {
         return jsonResponse({ success: true, data: await cartRemoveItem(supabase, tenantId, { item_id: subResourceId }) }, 200, 'no-cache');
       }
