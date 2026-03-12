@@ -247,15 +247,27 @@ export default function ProductForm() {
   // to avoid race conditions when data is still loading
   useEffect(() => {
     if (!isEditing && !categoriesInitialized) {
-      // New product: no saved categories to wait for
       setCategoriesInitialized(true);
     } else if (isEditing && !categoriesInitialized && !isCategoriesLoading) {
-      // Editing: initialize once the query has finished loading (even if empty)
-      setSelectedCategoryIds(savedCategoryIds);
-      setPrimaryCategoryId(savedPrimaryCategoryId);
+      // Only hydrate if user hasn't already interacted with categories
+      if (!hasCategoryInteraction.current) {
+        setSelectedCategoryIds(savedCategoryIds);
+        setPrimaryCategoryId(savedPrimaryCategoryId);
+      }
       setCategoriesInitialized(true);
     }
   }, [isEditing, savedCategoryIds, savedPrimaryCategoryId, categoriesInitialized, isCategoriesLoading]);
+
+  // Wrapped setters that track user interaction
+  const handleSetSelectedCategoryIds = useCallback((ids: string[] | ((prev: string[]) => string[])) => {
+    hasCategoryInteraction.current = true;
+    setSelectedCategoryIds(ids);
+  }, []);
+
+  const handleSetPrimaryCategoryId = useCallback((id: string | null) => {
+    hasCategoryInteraction.current = true;
+    setPrimaryCategoryId(id);
+  }, []);
 
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
