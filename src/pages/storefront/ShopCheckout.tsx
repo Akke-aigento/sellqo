@@ -216,7 +216,11 @@ export default function ShopCheckout() {
   const { methods: shippingMethods, selectedMethod, selectedMethodId, setSelectedMethodId, getShippingCost } = useStorefrontShipping(tenant?.id);
   const subtotal = getSubtotal();
   const discountAmount = appliedDiscount?.calculated_amount || 0;
-  const shipping = getShippingCost(subtotal);
+
+  // Gift card detection
+  const allGiftCards = cartItems.length > 0 && cartItems.every(item => !!item.giftCard);
+
+  const shipping = allGiftCards ? 0 : getShippingCost(subtotal);
   const subtotalAfterDiscount = subtotal - discountAmount;
 
   // VAT calculation
@@ -361,7 +365,7 @@ export default function ShopCheckout() {
       toast.error('Bedrijfsnaam is verplicht');
       return false;
     }
-    if (!customerData.street || !customerData.postalCode || !customerData.city) {
+    if (!allGiftCards && (!customerData.street || !customerData.postalCode || !customerData.city)) {
       toast.error('Vul je adresgegevens in');
       return false;
     }
@@ -409,7 +413,12 @@ export default function ShopCheckout() {
         } : undefined,
       }));
 
-      const shippingAddress = {
+      const shippingAddress = allGiftCards ? {
+        street: '-',
+        city: '-',
+        postal_code: '-',
+        country: customerData.country || 'NL',
+      } : {
         street: `${customerData.street} ${customerData.houseNumber}`.trim(),
         city: customerData.city,
         postal_code: customerData.postalCode,
@@ -426,8 +435,8 @@ export default function ShopCheckout() {
         shipping_address: shippingAddress,
         billing_address: shippingAddress,
         shipping_cost: shipping,
-        shipping_method_id: selectedMethodId || undefined,
-        shipping_method_name: selectedMethod?.name || undefined,
+        shipping_method_id: allGiftCards ? undefined : (selectedMethodId || undefined),
+        shipping_method_name: allGiftCards ? undefined : (selectedMethod?.name || undefined),
         // BTW data
         customer_type: customerData.customerType,
         vat_number: customerData.customerType === 'b2b' ? customerData.vatNumber || undefined : undefined,
@@ -516,11 +525,22 @@ export default function ShopCheckout() {
       {!compact && (
         <div className="space-y-3 mb-4">
           {cartItems.map(item => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span className="text-muted-foreground truncate mr-2">
-                {item.quantity}x {item.name}
-              </span>
-              <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+            <div key={item.id} className="text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground truncate mr-2">
+                  {item.quantity}x {item.name}
+                  {item.giftCard && <span className="text-xs ml-1">(Cadeaukaart)</span>}
+                  {item.variantTitle && !item.giftCard && (
+                    <span className="text-xs ml-1">— {item.variantTitle}</span>
+                  )}
+                </span>
+                <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
+              </div>
+              {item.giftCard?.recipientName && (
+                <p className="text-xs text-muted-foreground ml-4">
+                  Voor: {item.giftCard.recipientName}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -817,7 +837,8 @@ export default function ShopCheckout() {
 
                   <Separator />
 
-                  {/* Address */}
+                  {/* Address — hidden for gift-card-only orders */}
+                  {!allGiftCards && (
                   <div className="space-y-4">
                     <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
                     
@@ -877,9 +898,10 @@ export default function ShopCheckout() {
                       </Select>
                     </div>
                   </div>
+                  )}
 
                   {/* Shipping method selector */}
-                  {shippingMethods.length > 1 && (
+                  {!allGiftCards && shippingMethods.length > 1 && (
                     <>
                       <Separator />
                       <div className="space-y-3">
