@@ -365,7 +365,7 @@ export default function ShopCheckout() {
       toast.error('Bedrijfsnaam is verplicht');
       return false;
     }
-    if (!customerData.street || !customerData.postalCode || !customerData.city) {
+    if (!allGiftCards && (!customerData.street || !customerData.postalCode || !customerData.city)) {
       toast.error('Vul je adresgegevens in');
       return false;
     }
