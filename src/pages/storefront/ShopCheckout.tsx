@@ -832,7 +832,8 @@ export default function ShopCheckout() {
 
                   <Separator />
 
-                  {/* Address */}
+                  {/* Address — hidden for gift-card-only orders */}
+                  {!allGiftCards && (
                   <div className="space-y-4">
                     <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
                     
