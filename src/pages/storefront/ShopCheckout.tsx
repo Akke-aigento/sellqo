@@ -129,8 +129,8 @@ export default function ShopCheckout() {
     companyName?: string;
   }>({ status: 'idle' });
 
-  // Discount code state for checkout
-  const [discountCode, setDiscountCode] = useState('');
+  // Discount code state for checkout (ref-based to prevent focus loss)
+  const discountInputRef = useRef<HTMLInputElement>(null);
   const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   // Read checkout config settings
