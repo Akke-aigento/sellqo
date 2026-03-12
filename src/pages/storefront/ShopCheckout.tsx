@@ -367,7 +367,7 @@ export default function ShopCheckout() {
 
   // Discount code in checkout
   const handleApplyDiscount = async () => {
-    const code = discountCode.trim();
+    const code = (discountInputRef.current?.value || '').trim();
     if (!code || !tenant) return;
     setApplyingDiscount(true);
     try {
@@ -395,7 +395,7 @@ export default function ShopCheckout() {
           description: result.description,
           calculated_amount: calcAmount,
         });
-        setDiscountCode('');
+        if (discountInputRef.current) discountInputRef.current.value = '';
         toast.success('Kortingscode toegepast!');
       } else {
         toast.error(result?.error || 'Ongeldige kortingscode');
