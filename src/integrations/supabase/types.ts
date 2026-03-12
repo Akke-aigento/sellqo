@@ -10694,6 +10694,7 @@ export type Database = {
         Row: {
           cart_id: string
           created_at: string
+          gift_card_metadata: Json | null
           id: string
           product_id: string
           quantity: number
@@ -10703,6 +10704,7 @@ export type Database = {
         Insert: {
           cart_id: string
           created_at?: string
+          gift_card_metadata?: Json | null
           id?: string
           product_id: string
           quantity?: number
@@ -10712,6 +10714,7 @@ export type Database = {
         Update: {
           cart_id?: string
           created_at?: string
+          gift_card_metadata?: Json | null
           id?: string
           product_id?: string
           quantity?: number

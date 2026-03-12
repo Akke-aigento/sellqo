@@ -1073,7 +1073,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, slug, images, price, track_inventory, stock)')
+    .select('id, product_id, variant_id, quantity, unit_price, gift_card_metadata, products(id, name, slug, images, price, track_inventory, stock, product_type)')
     .eq('cart_id', cart.id);
 
   // Fetch variant info for items that have variant_id
@@ -1086,9 +1086,12 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
+    const productType = item.products?.product_type || 'physical';
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
       quantity: item.quantity, unit_price: item.unit_price || variant?.price || item.products?.price || 0,
+      product_type: productType,
+      gift_card_metadata: item.gift_card_metadata || null,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url, price: variant.price } : null,
       line_total: item.quantity * (item.unit_price || variant?.price || item.products?.price || 0),
@@ -1109,19 +1112,28 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   const productId = params.product_id as string;
   const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
+  const giftCardMetadata = params.gift_card_metadata as Record<string, unknown> | undefined;
+  const requestedAmount = params.amount as number | undefined;
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
 
-  // Verify product exists and get price
+  // Verify product exists and get price + type
   const { data: product } = await supabase
-    .from('products').select('id, price, track_inventory, stock, is_active')
+    .from('products').select('id, price, track_inventory, stock, is_active, product_type')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
 
+  const isGiftCard = product.product_type === 'gift_card';
+
   let unitPrice = product.price;
   let stockSource = product;
+  let effectiveVariantId = variantId;
 
-  // If variant_id provided, validate and use variant pricing/stock
-  if (variantId) {
+  if (isGiftCard) {
+    // Gift cards: use requested amount, no variant, no stock check
+    unitPrice = requestedAmount || product.price;
+    effectiveVariantId = undefined;
+  } else if (variantId) {
+    // If variant_id provided, validate and use variant pricing/stock
     const { data: variant } = await supabase
       .from('product_variants').select('id, price, stock, track_inventory, is_active')
       .eq('id', variantId).eq('product_id', productId).eq('tenant_id', tenantId).single();
@@ -1130,28 +1142,35 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     stockSource = variant;
   }
 
-  // Skip stock check if tracking is disabled on either product or variant level
-  const shouldTrackInventory = product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
+  // Skip stock check for gift cards and when tracking is disabled
+  const shouldTrackInventory = !isGiftCard && product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
 
   if (shouldTrackInventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
 
-  // Check if item already in cart (unique by product_id + variant_id)
-  let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
-  if (variantId) existingQuery = existingQuery.eq('variant_id', variantId);
-  else existingQuery = existingQuery.is('variant_id', null);
-  const { data: existing } = await existingQuery.maybeSingle();
+  // Gift cards are always unique items — never merge
+  if (!isGiftCard) {
+    // Check if item already in cart (unique by product_id + variant_id)
+    let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
+    if (effectiveVariantId) existingQuery = existingQuery.eq('variant_id', effectiveVariantId);
+    else existingQuery = existingQuery.is('variant_id', null);
+    const { data: existing } = await existingQuery.maybeSingle();
 
-  if (existing) {
-    const newQty = existing.quantity + quantity;
-    if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
-    const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
-    if (error) throw error;
-  } else {
-    const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
-    if (variantId) insertData.variant_id = variantId;
-    const { error } = await supabase.from('storefront_cart_items').insert(insertData);
-    if (error) throw error;
+    if (existing) {
+      const newQty = existing.quantity + quantity;
+      if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
+      const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
+      if (error) throw error;
+      await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
+      return cartGet(supabase, tenantId, { cart_id: cartId });
+    }
   }
+
+  // Insert new cart item
+  const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
+  if (effectiveVariantId) insertData.variant_id = effectiveVariantId;
+  if (isGiftCard && giftCardMetadata) insertData.gift_card_metadata = giftCardMetadata;
+  const { error } = await supabase.from('storefront_cart_items').insert(insertData);
+  if (error) throw error;
 
   await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
   return cartGet(supabase, tenantId, { cart_id: cartId });
@@ -1284,25 +1303,41 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     shipping_method_id: string; payment_method: string; customer_note?: string;
   };
 
-  if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
-    throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
-  }
-
-  // 1. Get cart with items
+  // Check if all items are gift cards (digital-only order)
+  // We need cart first to determine this
   const cart = await cartGet(supabase, tenantId, { cart_id });
   if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
 
-  // 2. Validate stock for all items
-  for (const item of cart.items) {
-    if (item.product && !item.product.in_stock) throw new Error(`${item.product.name} is niet meer op voorraad`);
+  const allGiftCards = cart.items.every((item: any) => item.product_type === 'gift_card');
+
+  if (!allGiftCards && (!shipping_address || !shipping_method_id)) {
+    throw new Error('shipping_address and shipping_method_id are required for physical orders');
+  }
+  if (!cart_id || !email || !payment_method) {
+    throw new Error('cart_id, email, and payment_method are required');
   }
 
-  // 3. Get shipping method
-  const { data: shippingMethod } = await supabase
-    .from('shipping_methods').select('id, name, price, free_above')
-    .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
-  if (!shippingMethod) throw new Error('Shipping method not found');
-  const shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  // 2. Validate stock for all items (skip gift cards)
+  for (const item of cart.items) {
+    if (item.product_type !== 'gift_card' && item.product && !item.product.in_stock) {
+      throw new Error(`${item.product.name} is niet meer op voorraad`);
+    }
+  }
+
+  // 3. Get shipping method and cost
+  let shippingCost = 0;
+  let shippingMethod: any = null;
+  if (allGiftCards) {
+    // Digital-only order: no shipping needed
+    shippingCost = 0;
+  } else {
+    const { data: sm } = await supabase
+      .from('shipping_methods').select('id, name, price, free_above')
+      .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
+    if (!sm) throw new Error('Shipping method not found');
+    shippingMethod = sm;
+    shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  }
 
   // 4. Get tenant for VAT
   const { data: tenant } = await supabase
@@ -1353,24 +1388,52 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   if (orderError) throw orderError;
 
   // 8. Create order items (with variant support)
-  const orderItems = cart.items.map((item: any) => ({
-    order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
-    product_name: item.product?.name || '', quantity: item.quantity,
-    unit_price: item.unit_price, total: item.line_total,
-    sku: null, product_image: item.product?.image || null,
-    variant_id: item.variant_id || null,
-    variant_title: item.variant?.title || null,
-  }));
+  const orderItems = cart.items.map((item: any) => {
+    const oi: any = {
+      order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
+      product_name: item.product?.name || '', quantity: item.quantity,
+      unit_price: item.unit_price, total: item.line_total,
+      sku: null, product_image: item.product?.image || null,
+      variant_id: item.variant_id || null,
+      variant_title: item.variant?.title || null,
+    };
+    if (item.product_type === 'gift_card' && item.gift_card_metadata) {
+      oi.gift_card_metadata = item.gift_card_metadata;
+    }
+    return oi;
+  });
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
 
-  // 9. Decrement stock (variant-level if applicable)
+  // 9. Decrement stock (variant-level if applicable, skip gift cards)
   for (const item of cart.items) {
+    if (item.product_type === 'gift_card') continue;
     if (item.variant_id) {
       await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
     } else {
       await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+    }
+  }
+
+  // 9b. Process gift card items
+  const giftCardItems = cart.items.filter((item: any) => item.product_type === 'gift_card');
+  if (giftCardItems.length > 0) {
+    try {
+      await supabase.functions.invoke('process-gift-card-order', {
+        body: {
+          order_id: order.id,
+          tenant_id: tenantId,
+          items: giftCardItems.map((item: any) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            gift_card_metadata: item.gift_card_metadata,
+          })),
+        },
+      });
+    } catch (gcError) {
+      console.error('Gift card processing error (non-blocking):', gcError);
     }
   }
 
