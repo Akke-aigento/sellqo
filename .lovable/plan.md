@@ -1,60 +1,60 @@
 
 
-## Analysis & Fixes
+## Bugfix: Gift card toont €0 als prijs
 
-### Issue 1: A6 Cropping Is Wrong
+### Analyse
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+De storefront-api `cartAddItem` slaat `unit_price` correct op als `requestedAmount` (regel 1133 + 1169). Dit werkt goed voor nieuwe items. De echte problemen:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+1. **Oude items in de DB** met `unit_price = 0` — de fallback in `cartGet` (regel 1092) cascadeert `0 || variant?.price || product?.price || 0`, maar gift cards hebben geen variant en `product.price` kan ook 0 zijn
+2. **cartGet fallback** mist `gift_card_metadata.amount` als bron
+3. **ShopCheckout/ShopCart** hebben geen prijsfallback voor gift cards met ontbrekende/nul prijs
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+### Wijzigingen
+
+**1. `supabase/functions/storefront-api/index.ts` — cartGet (regel ~1092)**
+
+Voeg `gift_card_metadata` fallback toe aan de unit_price berekening:
+
+```
+unit_price: item.unit_price || item.gift_card_metadata?.amount || variant?.price || item.products?.price || 0,
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+Zelfde voor `line_total` op regel 1097.
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+**2. `src/pages/storefront/ShopCheckout.tsx` — order summary (regel ~537)**
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+Voeg prijs-fallback toe voor gift card items in de display:
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+```typescript
+const displayPrice = item.price || (item.giftCard as any)?.amount || 0;
+// Gebruik displayPrice * item.quantity i.p.v. item.price * item.quantity
+```
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+**3. `src/pages/storefront/ShopCart.tsx` — item prijs (regel ~188)**
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+Zelfde fallback voor de prijs-weergave in de winkelwagen:
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+```typescript
+const displayPrice = item.price || (item.giftCard as any)?.amount || 0;
+```
 
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+En het subtotaal in `CartContext.getSubtotal()` werkt al op `item.price` — als die correct is gezet door `GiftCardPurchaseForm` (dat is het geval: `price: effectiveAmount`), dan is het subtotaal correct. De fallback is alleen nodig voor edge cases waar `price = 0`.
 
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+**4. `src/context/CartContext.tsx` — getSubtotal (regel ~154)**
 
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+Fallback toevoegen:
 
-### Summary
+```typescript
+return items.reduce((sum, item) => {
+  const price = item.price || (item.giftCard as any)?.amount || 0;
+  return sum + (price * item.quantity);
+}, 0);
+```
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+### Bestanden
+- `supabase/functions/storefront-api/index.ts` — 2 regels (cartGet unit_price + line_total fallback)
+- `src/pages/storefront/ShopCheckout.tsx` — 1 plek (order summary prijs)
+- `src/pages/storefront/ShopCart.tsx` — 1 plek (item prijs display)
+- `src/context/CartContext.tsx` — 1 plek (getSubtotal fallback)
 
