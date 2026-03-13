@@ -2196,7 +2196,7 @@ serve(async (req) => {
     }
 
     // ---- CONTACT FORM ----
-    if (path === '/contact' && method === 'POST') {
+    if (resource === 'contact' && method === 'POST') {
       const body = await req.json().catch(() => ({}));
       const { name, email, subject, message } = body;
 
