@@ -1508,8 +1508,13 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   await supabase.from('storefront_carts').delete().eq('id', cart_id);
 
   // 11. Handle payment
+  // If total is 0 (100% discount), skip payment entirely
+  if (total <= 0) {
+    await supabase.from('orders').update({ payment_status: 'paid', status: 'processing' }).eq('id', order.id);
+    return { order_id: order.id, order_number: order.order_number, payment_method: 'free', total: 0 };
+  }
+
   if (payment_method === 'stripe' && tenant?.stripe_account_id) {
-    // Create Stripe checkout session via the existing create-checkout-session function pattern
     const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
 
@@ -1521,6 +1526,18 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
       },
       quantity: item.quantity,
     }));
+
+    // Add discount as negative line item
+    if (discountAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: (tenant?.currency || 'EUR').toLowerCase(),
+          product_data: { name: `Korting${cart.discount_code ? ` (${cart.discount_code})` : ''}` },
+          unit_amount: Math.round(discountAmount * 100),
+        },
+        quantity: 1,
+      });
+    }
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -1534,7 +1551,8 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     }
 
     const origin = params.origin as string || 'https://sellqo.lovable.app';
-    const session = await stripe.checkout.sessions.create({
+
+    const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
       success_url: `${origin}/order-confirmation?order_id=${order.id}`,
@@ -1542,10 +1560,27 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
       customer_email: email,
       metadata: { order_id: order.id, tenant_id: tenantId },
       payment_intent_data: {
-        application_fee_amount: Math.round(total * 0.05 * 100), // 5% platform fee
+        application_fee_amount: Math.round(total * 0.05 * 100),
         transfer_data: { destination: tenant.stripe_account_id },
       },
-    });
+    };
+
+    // Add Stripe coupon for the discount instead of negative line item
+    if (discountAmount > 0) {
+      // Remove the discount line item we added above - use Stripe discounts instead
+      const discountIdx = lineItems.findIndex((li: any) => li.price_data.product_data.name.startsWith('Korting'));
+      if (discountIdx >= 0) lineItems.splice(discountIdx, 1);
+      
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(discountAmount * 100),
+        currency: (tenant?.currency || 'EUR').toLowerCase(),
+        name: cart.discount_code || 'Korting',
+        duration: 'once',
+      });
+      sessionParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return { order_id: order.id, order_number: order.order_number, payment_url: session.url, payment_method: 'stripe' };
   }
