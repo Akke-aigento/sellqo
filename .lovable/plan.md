@@ -1,60 +1,46 @@
 
 
-## Analysis & Fixes
+## Tracking ophalen voor VVB orders — op basis van Bol.com documentatie
 
-### Issue 1: A6 Cropping Is Wrong
+### Wat zegt de Bol.com API documentatie?
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+Uit de officiele Bol.com v10 docs:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+1. **`GET /retailer/shipments?order-id={id}`** retourneert `transport.trackAndTrace` — maar bij VVB orders kan dit veld leeg zijn als de tracking nog niet is toegewezen aan het transport object.
+
+2. **`HEAD /retailer/shipping-labels/{shippingLabelId}`** retourneert tracking via **response headers**:
+   - `X-Track-And-Trace-Code: 3SBLCQ438474942`
+   - `X-Transporter-Code: TNT`
+
+   Dit is de aanbevolen methode om tracking op te halen voor VVB labels. Bol.com documentatie zegt letterlijk: *"If you only want to get the Track and Trace code and Transporter code we advise you to use a HTTP HEAD request"*
+
+### Wat gaat er mis?
+
+De `update-bol-tracking` functie vraagt alleen `GET /retailer/shipments` op. Als daar geen `trackAndTrace` in staat (wat bij VVB orders voorkomt), stopt hij. De HEAD fallback via `/retailer/shipping-labels/{labelId}` ontbreekt — terwijl de `create-bol-vvb-label` functie deze methode WEL al gebruikt (regels 848-860).
+
+### Oplossing
+
+**Bestand: `supabase/functions/update-bol-tracking/index.ts`**
+
+1. **Shipping label ID ophalen**: Als de shipments API geen tracking retourneert, haal het `external_id` (= `transporterLabelId`) op uit de `shipping_labels` tabel voor die order.
+
+2. **HEAD request als fallback**: Doe een `HEAD /retailer/shipping-labels/{labelId}` en lees `X-Track-And-Trace-Code` en `X-Transporter-Code` uit de headers.
+
+3. **Tracking opslaan**: Sla de opgehaalde tracking op in zowel de `orders` tabel als de `shipping_labels` tabel.
 
 ```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+Huidige flow:
+  GET /shipments?order-id=X → transport.trackAndTrace = null → ❌ "No tracking"
+
+Nieuwe flow:
+  GET /shipments?order-id=X → transport.trackAndTrace = null
+  → Lookup shipping_labels.external_id voor order
+  → HEAD /shipping-labels/{labelId}
+  → X-Track-And-Trace-Code header → ✅ Tracking gevonden!
+  → Opslaan in orders + shipping_labels
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
-
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
-
-### Issue 2: Auto-Accept Does Nothing at Bol.com
-
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
-
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
-
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
-
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+| Bestand | Wijziging |
+|---|---|
+| `supabase/functions/update-bol-tracking/index.ts` | HEAD fallback via `/shipping-labels/{labelId}` toevoegen voor VVB tracking |
 
