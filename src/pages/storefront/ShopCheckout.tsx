@@ -676,7 +676,7 @@ export default function ShopCheckout() {
   }
 
   return (
-    <ShopLayout hideChrome={isCustomFrontend}>
+    <ShopLayout>
       <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
 
       <div className="container mx-auto px-4 py-8 pb-28 lg:pb-8">
