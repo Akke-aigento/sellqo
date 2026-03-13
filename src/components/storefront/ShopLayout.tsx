@@ -55,9 +55,33 @@ interface ShopLayoutProps {
   hideChrome?: boolean;
 }
 
-export function ShopLayout({ children, hideChrome }: ShopLayoutProps) {
+export function ShopLayout({ children, hideChrome: hideChromeFromProp }: ShopLayoutProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
+
+  // Global hideChrome detection: from prop, query param, referrer, or sessionStorage
+  const hideChrome = (() => {
+    if (hideChromeFromProp) return true;
+
+    const persisted = sessionStorage.getItem('hide_chrome') === '1';
+
+    const params = new URLSearchParams(window.location.search);
+    const fromParam = params.get('from');
+    const cancelUrl = params.get('cancel_url');
+    const referrer = document.referrer;
+
+    const detected =
+      (fromParam && !fromParam.includes('sellqo.app')) ||
+      (cancelUrl && !cancelUrl.includes('sellqo.app')) ||
+      (referrer && referrer.length > 0 && !referrer.includes('sellqo.app') && !referrer.includes('sellqo.lovable.app') && !referrer.includes('lovable.app'));
+
+    if (detected) {
+      sessionStorage.setItem('hide_chrome', '1');
+      return true;
+    }
+
+    return persisted;
+  })();
   const { tenant, themeSettings, navPages, categories, legalPages, isLoading, error } = usePublicStorefront(tenantSlug || '');
   const { aggregate, reviews, connections } = usePublicReviews(tenant?.id);
   const { getCartCount, setTenantSlug, isDrawerOpen, closeDrawer } = useCart();

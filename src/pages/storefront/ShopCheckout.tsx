@@ -79,11 +79,10 @@ export default function ShopCheckout() {
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
 
-  // Detect custom frontend mode via cancel_url query param
+  // Read query params for headless cart and cancel URL
   const searchParams = new URLSearchParams(window.location.search);
   const cancelUrl = searchParams.get('cancel_url');
   const cartId = searchParams.get('cart_id');
-  const isCustomFrontend = !!(cancelUrl && !cancelUrl.includes('sellqo.app'));
   
   const [serverCartLoading, setServerCartLoading] = useState(false);
   const serverCartLoadedRef = useRef(false);
@@ -651,7 +650,7 @@ export default function ShopCheckout() {
 
   if (serverCartLoading) {
     return (
-      <ShopLayout hideChrome={isCustomFrontend}>
+      <ShopLayout>
         <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
         <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -663,7 +662,7 @@ export default function ShopCheckout() {
 
   if (cartItems.length === 0 && step === 'details' && !bankTransferOrder) {
     return (
-      <ShopLayout hideChrome={isCustomFrontend}>
+      <ShopLayout>
         <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Je winkelwagen is leeg</h1>
@@ -677,7 +676,7 @@ export default function ShopCheckout() {
   }
 
   return (
-    <ShopLayout hideChrome={isCustomFrontend}>
+    <ShopLayout>
       <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
 
       <div className="container mx-auto px-4 py-8 pb-28 lg:pb-8">
@@ -742,7 +741,7 @@ export default function ShopCheckout() {
             onClick={() => {
               if (step === 'payment') {
                 setStep('details');
-              } else if (isCustomFrontend && cancelUrl) {
+              } else if (cancelUrl) {
                 window.location.href = cancelUrl;
               } else {
                 navigate(`/shop/${tenantSlug}/cart`);
