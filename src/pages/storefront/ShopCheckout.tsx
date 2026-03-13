@@ -741,7 +741,7 @@ export default function ShopCheckout() {
             onClick={() => {
               if (step === 'payment') {
                 setStep('details');
-              } else if (isCustomFrontend && cancelUrl) {
+              } else if (cancelUrl) {
                 window.location.href = cancelUrl;
               } else {
                 navigate(`/shop/${tenantSlug}/cart`);
