@@ -79,6 +79,40 @@ async function getShipmentInfo(accessToken: string, bolOrderId: string): Promise
   }
 }
 
+async function getTrackingFromLabel(
+  accessToken: string,
+  shippingLabelId: string
+): Promise<{ trackingCode: string; transporterCode: string } | null> {
+  try {
+    console.log(`HEAD /retailer/shipping-labels/${shippingLabelId} for tracking...`);
+    const res = await fetch(
+      `https://api.bol.com/retailer/shipping-labels/${shippingLabelId}`,
+      {
+        method: "HEAD",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/vnd.retailer.v10+pdf",
+        },
+      }
+    );
+    if (!res.ok) {
+      console.error(`HEAD shipping-labels failed: ${res.status}`);
+      return null;
+    }
+    const trackingCode = res.headers.get("X-Track-And-Trace-Code");
+    const transporterCode = res.headers.get("X-Transporter-Code");
+    if (trackingCode) {
+      console.log(`Got tracking from label HEAD: ${trackingCode} / ${transporterCode}`);
+      return { trackingCode, transporterCode: transporterCode || "TNT" };
+    }
+    console.log("HEAD returned no X-Track-And-Trace-Code header");
+    return null;
+  } catch (e) {
+    console.error("Error in getTrackingFromLabel:", e);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
