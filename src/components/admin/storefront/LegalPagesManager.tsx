@@ -145,19 +145,55 @@ export function LegalPagesManager() {
                 Beheer je wettelijk verplichte pagina's. Deze worden automatisch in de footer van je webshop getoond.
               </CardDescription>
             </div>
-            {missingPages.length > 0 && (
+            <div className="flex items-center gap-2">
               <Button 
-                onClick={initializeLegalPages}
-                disabled={isCreating}
-                variant="outline"
+                onClick={handleGenerateWithAI}
+                disabled={isGenerating}
+                variant="default"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Ontbrekende pagina's aanmaken ({missingPages.length})
+                {isGenerating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                {isGenerating ? 'Genereren...' : 'Genereer met AI'}
               </Button>
-            )}
+              {missingPages.length > 0 && (
+                <Button 
+                  onClick={initializeLegalPages}
+                  disabled={isCreating}
+                  variant="outline"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ontbrekende aanmaken ({missingPages.length})
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {validationErrors && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Ontbrekende bedrijfsgegevens</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">Vul eerst de volgende gegevens in bij <a href="/admin/settings" className="underline font-medium">Instellingen</a>:</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  {validationErrors.missingFields.map(field => (
+                    <li key={field} className="text-sm">{field}</li>
+                  ))}
+                </ul>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-2 -ml-2"
+                  onClick={() => setValidationErrors(null)}
+                >
+                  Sluiten
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
           {legalPages.length === 0 ? (
             <div className="text-center py-8 bg-muted/30 rounded-lg">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
