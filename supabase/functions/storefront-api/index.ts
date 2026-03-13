@@ -1392,8 +1392,10 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     .eq('id', tenantId).single();
   const vatRate = tenant?.default_vat_rate || 21;
   const subtotal = cart.subtotal;
-  const vatAmount = Math.round(subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
-  const total = subtotal + shippingCost;
+  const discountAmount = cart.discount_amount || 0;
+  const discountedSubtotal = Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100;
+  const vatAmount = Math.round(discountedSubtotal * (vatRate / (100 + vatRate)) * 100) / 100;
+  const total = discountedSubtotal + shippingCost;
 
   // 5. Find or create customer
   let customerId: string | null = null;
@@ -1418,13 +1420,22 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   // 6. Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
 
+  // 6b. Look up discount_code_id if a discount code was applied
+  let discountCodeId: string | null = null;
+  if (cart.discount_code && discountAmount > 0) {
+    const { data: dcLookup } = await supabase.from('discount_codes')
+      .select('id').eq('tenant_id', tenantId).eq('code', cart.discount_code).maybeSingle();
+    discountCodeId = dcLookup?.id || null;
+  }
+
   // 7. Create order
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
       tenant_id: tenantId, customer_id: customerId, order_number: orderNumber,
-      status: 'pending', payment_status: 'pending', payment_method,
-      subtotal, shipping_cost: shippingCost, tax: vatAmount, total,
+      status: 'pending', payment_status: total <= 0 ? 'paid' : 'pending', payment_method,
+      subtotal, discount_amount: discountAmount, discount_code: cart.discount_code || null,
+      shipping_cost: shippingCost, tax: vatAmount, total,
       currency: tenant?.currency || 'EUR',
       shipping_address, billing_address: billing_address || shipping_address,
       customer_email: email, customer_phone: phone || null,
@@ -1433,6 +1444,14 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     })
     .select('id, order_number').single();
   if (orderError) throw orderError;
+
+  // 7b. Record discount code usage
+  if (discountCodeId && discountAmount > 0) {
+    await supabase.from('discount_code_usage').insert({
+      discount_code_id: discountCodeId, order_id: order.id, customer_email: email, discount_amount: discountAmount,
+    });
+    await supabase.from('discount_codes').update({ usage_count: (await supabase.from('discount_codes').select('usage_count').eq('id', discountCodeId).single()).data?.usage_count + 1 }).eq('id', discountCodeId);
+  }
 
   // 8. Create order items (with variant support)
   const orderItems = cart.items.map((item: any) => {
@@ -1489,8 +1508,13 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   await supabase.from('storefront_carts').delete().eq('id', cart_id);
 
   // 11. Handle payment
+  // If total is 0 (100% discount), skip payment entirely
+  if (total <= 0) {
+    await supabase.from('orders').update({ payment_status: 'paid', status: 'processing' }).eq('id', order.id);
+    return { order_id: order.id, order_number: order.order_number, payment_method: 'free', total: 0 };
+  }
+
   if (payment_method === 'stripe' && tenant?.stripe_account_id) {
-    // Create Stripe checkout session via the existing create-checkout-session function pattern
     const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
 
@@ -1502,6 +1526,18 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
       },
       quantity: item.quantity,
     }));
+
+    // Add discount as negative line item
+    if (discountAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: (tenant?.currency || 'EUR').toLowerCase(),
+          product_data: { name: `Korting${cart.discount_code ? ` (${cart.discount_code})` : ''}` },
+          unit_amount: Math.round(discountAmount * 100),
+        },
+        quantity: 1,
+      });
+    }
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -1515,7 +1551,8 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     }
 
     const origin = params.origin as string || 'https://sellqo.lovable.app';
-    const session = await stripe.checkout.sessions.create({
+
+    const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
       success_url: `${origin}/order-confirmation?order_id=${order.id}`,
@@ -1523,10 +1560,27 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
       customer_email: email,
       metadata: { order_id: order.id, tenant_id: tenantId },
       payment_intent_data: {
-        application_fee_amount: Math.round(total * 0.05 * 100), // 5% platform fee
+        application_fee_amount: Math.round(total * 0.05 * 100),
         transfer_data: { destination: tenant.stripe_account_id },
       },
-    });
+    };
+
+    // Add Stripe coupon for the discount instead of negative line item
+    if (discountAmount > 0) {
+      // Remove the discount line item we added above - use Stripe discounts instead
+      const discountIdx = lineItems.findIndex((li: any) => li.price_data.product_data.name.startsWith('Korting'));
+      if (discountIdx >= 0) lineItems.splice(discountIdx, 1);
+      
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(discountAmount * 100),
+        currency: (tenant?.currency || 'EUR').toLowerCase(),
+        name: cart.discount_code || 'Korting',
+        duration: 'once',
+      });
+      sessionParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return { order_id: order.id, order_number: order.order_number, payment_url: session.url, payment_method: 'stripe' };
   }
@@ -1541,7 +1595,7 @@ async function checkoutGetConfirmation(supabase: any, tenantId: string, params: 
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at')
+    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at, discount_amount, discount_code')
     .eq('id', orderId).eq('tenant_id', tenantId).single();
   if (error) throw error;
   if (!order) throw new Error('Order not found');

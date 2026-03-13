@@ -28,6 +28,8 @@ interface Order {
   subtotal: number;
   shipping_cost: number;
   tax_amount: number;
+  discount_amount: number;
+  discount_code: string | null;
   total: number;
   ogm_reference?: string | null;
   created_at: string;
@@ -56,7 +58,7 @@ export default function ShopOrderConfirmation() {
     const fetchOrder = async (retryCount = 0): Promise<Order | null> => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
+        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, discount_code, total, ogm_reference, created_at, shipping_address')
         .eq('id', orderId!)
         .maybeSingle();
 
@@ -329,6 +331,12 @@ export default function ShopOrderConfirmation() {
                     <span className="text-muted-foreground">Subtotaal</span>
                     <span>{formatPrice(order.subtotal)}</span>
                   </div>
+                  {order.discount_amount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Korting{order.discount_code ? ` (${order.discount_code})` : ''}</span>
+                      <span>-{formatPrice(order.discount_amount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
                     <span>{order.shipping_cost > 0 ? formatPrice(order.shipping_cost) : 'Gratis'}</span>
