@@ -305,3 +305,6 @@ verify_jwt = false
 
 [functions.generate-legal-pages]
 verify_jwt = false
+
+[functions.update-bol-tracking]
+verify_jwt = false
