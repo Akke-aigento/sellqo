@@ -1,60 +1,71 @@
 
 
-## Analysis & Fixes
+## Bol.com Track & Trace wordt niet gesyncht — Root Cause Analyse
 
-### Issue 1: A6 Cropping Is Wrong
+### Problemen gevonden
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+Er zijn **3 problemen** die samen ervoor zorgen dat tracking nooit bij Bol.com terechtkomt:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+#### Probleem 1: `sync-bol-orders` overschrijft sync_status
+Na het succesvol aanmaken van een VVB label zet `create-bol-vvb-label` de `sync_status` op `shipped` (of `shipped_awaiting_tracking` via `confirm-bol-shipment`). Maar **daarna** overschrijft `sync-bol-orders` (regel 494-497) dit met `sync_status: 'accepted'`. Hierdoor vindt `update-bol-tracking` de order nooit (die zoekt op `shipped_awaiting_tracking`).
 
 ```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+Timeline:
+  create-bol-vvb-label → sync_status = "shipped"
+  confirm-bol-shipment → sync_status = "shipped_awaiting_tracking"  
+  sync-bol-orders      → sync_status = "accepted"  ← OVERSCHRIJFT!
+  
+  update-bol-tracking zoekt: sync_status = "shipped_awaiting_tracking"
+  Vindt: niets → tracking wordt nooit gepusht
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+#### Probleem 2: Tracking nummer is nooit opgehaald
+De order heeft `tracking_number: null`. Bij VVB labels genereert Bol.com/bpost het tracking nummer, maar dit is vaak pas na enkele minuten beschikbaar. De huidige code probeert het eenmalig op te halen bij label creatie (via HEAD header + shipments API), maar als het er dan nog niet is, wordt het **nooit meer opnieuw geprobeerd**.
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+`poll-tracking-status` kan alleen orders met een bestaand tracking_number ophalen — het haalt geen tracking OP van Bol.com.
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+#### Probleem 3: Geen mechanisme om tracking van Bol.com op te halen
+Er ontbreekt een periodiek proces dat voor VVB-orders de tracking ophaalt van Bol.com wanneer die pas later beschikbaar komt.
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+### Oplossing
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+**3 wijzigingen:**
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+#### 1. Fix sync_status overwrite in `sync-bol-orders`
+**Bestand: `supabase/functions/sync-bol-orders/index.ts`** (regels 491-497)
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+Na succesvolle VVB label creatie: lees de huidige sync_status terug en overschrijf NIET als die al `shipped` of `shipped_awaiting_tracking` is.
 
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+```typescript
+// Na VVB label success: alleen naar 'accepted' als status nog lager is
+const { data: currentOrder } = await supabase.from('orders')
+  .select('sync_status').eq('id', newOrder.id).single();
+const currentStatus = currentOrder?.sync_status;
+if (!currentStatus || currentStatus === 'pending' || currentStatus === 'accept_pending') {
+  await supabase.from('orders').update({
+    sync_status: 'accepted',
+    updated_at: new Date().toISOString()
+  }).eq('id', newOrder.id);
+}
+```
 
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+#### 2. Tracking ophalen van Bol.com voor VVB orders
+**Bestand: `supabase/functions/update-bol-tracking/index.ts`**
 
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+Voeg een **derde modus** toe: naast single-order en batch-push, ook een batch-**pull** voor orders die `shipped` of `shipped_awaiting_tracking` zijn maar géén tracking_number hebben. Voor deze orders:
+1. Haal tracking op via `GET /retailer/shipments?order-id={bolOrderId}`
+2. Sla tracking lokaal op
+3. Push tracking naar Bol.com transport als dat nodig is
 
-### Summary
+#### 3. Batch mode verbreden
+**Bestand: `supabase/functions/update-bol-tracking/index.ts`**
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+De huidige batch query zoekt alleen op `sync_status = 'shipped_awaiting_tracking'`. Verbreed dit naar ook `sync_status IN ('accepted', 'shipped')` voor orders met status `shipped` maar zonder tracking.
+
+### Bestanden
+
+| Bestand | Wijziging |
+|---|---|
+| `supabase/functions/sync-bol-orders/index.ts` | Stop met overschrijven sync_status naar `accepted` na VVB |
+| `supabase/functions/update-bol-tracking/index.ts` | Pull tracking van Bol.com + verbreed batch query |
 
