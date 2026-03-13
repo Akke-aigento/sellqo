@@ -49,9 +49,60 @@ export function LegalPagesManager() {
     isCreating,
   } = useLegalPages();
   
+  const { currentTenant } = useTenant();
+  
   const [editingPageType, setEditingPageType] = useState<LegalPageType | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{ missingFields: string[]; missingFieldsByPage: Record<string, string[]> } | null>(null);
   
   const missingPages = getMissingPages();
+
+  const handleGenerateWithAI = async () => {
+    if (!currentTenant?.id) return;
+    setIsGenerating(true);
+    setValidationErrors(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-legal-pages', {
+        body: { tenant_id: currentTenant.id },
+      });
+
+      if (error) {
+        // Try to parse body for structured error
+        const body = typeof error === 'object' && 'message' in error ? error.message : String(error);
+        toast.error(`Fout: ${body}`);
+        return;
+      }
+
+      if (data?.error === 'missing_fields') {
+        setValidationErrors({
+          missingFields: data.missingFields || [],
+          missingFieldsByPage: data.missingFieldsByPage || {},
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      await refetch();
+      const msg = `${data.created || 0} aangemaakt, ${data.updated || 0} bijgewerkt`;
+      toast.success(`Pagina's gegenereerd! ${msg}`);
+
+      if (data.skipped && Object.keys(data.skipped).length > 0) {
+        setValidationErrors({
+          missingFields: [...new Set(Object.values(data.skipped as Record<string, string[]>).flat())],
+          missingFieldsByPage: data.skipped,
+        });
+      }
+    } catch (err: any) {
+      toast.error(`Fout bij genereren: ${err.message || 'Onbekende fout'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (isLoading) {
     return (
