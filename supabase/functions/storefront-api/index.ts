@@ -2231,7 +2231,7 @@ serve(async (req) => {
           type: p.page_type,
           title: p[`title_${langField}`] || p.title_nl || p.page_type,
           slug,
-          url: `https://sellqo.lovable.app/shop/${tenantSlug}/legal/${slug}`,
+          url: `https://sellqo.app/shop/${tenantSlug}/legal/${slug}`,
           enabled: true,
         };
       })}, 200, 'public, max-age=600');
