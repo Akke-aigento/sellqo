@@ -42,6 +42,7 @@ export function LegalPagesManager() {
   const { 
     legalPages, 
     isLoading, 
+    refetch,
     initializeLegalPages, 
     updateLegalPage,
     getMissingPages,
