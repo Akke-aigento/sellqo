@@ -79,11 +79,10 @@ export default function ShopCheckout() {
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
 
-  // Detect custom frontend mode via cancel_url query param
+  // Read query params for headless cart and cancel URL
   const searchParams = new URLSearchParams(window.location.search);
   const cancelUrl = searchParams.get('cancel_url');
   const cartId = searchParams.get('cart_id');
-  const isCustomFrontend = !!(cancelUrl && !cancelUrl.includes('sellqo.app'));
   
   const [serverCartLoading, setServerCartLoading] = useState(false);
   const serverCartLoadedRef = useRef(false);
