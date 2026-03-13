@@ -1,60 +1,57 @@
 
 
-## Analysis & Fixes
+## Bugfix: product_count in /collections telt alleen legacy category_id
 
-### Issue 1: A6 Cropping Is Wrong
+### Root Cause
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+`getCategories` (line 247-259) telt producten per categorie door `products.category_id` te tellen. Producten die via de `product_categories` junction table gekoppeld zijn worden genegeerd → `product_count: 0`.
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+### Fix
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+In `supabase/functions/storefront-api/index.ts`, vervang de product count logica (regels 246-259) door:
+
+1. **Haal junction-koppelingen op**: Query `product_categories` voor alle category_ids in de resultaten
+2. **Haal actieve product IDs op**: Filter op `is_active = true` en `hide_from_storefront = false`
+3. **Combineer legacy + junction**: Tel unieke producten per categorie uit beide bronnen
+
+```typescript
+// 1. Legacy counts (products.category_id)
+const { data: legacyProducts } = await supabase
+  .from('products')
+  .select('id, category_id')
+  .eq('tenant_id', tenantId)
+  .eq('is_active', true)
+  .eq('hide_from_storefront', false);
+
+// 2. Junction table counts
+const categoryIds = categories.map((c: any) => c.id);
+const { data: junctionRows } = await supabase
+  .from('product_categories')
+  .select('product_id, category_id')
+  .in('category_id', categoryIds);
+
+// 3. Filter junction to only active products
+const activeProductIds = new Set((legacyProducts || []).map((p: any) => p.id));
+
+const countMap: Record<string, Set<string>> = {};
+// Add legacy
+for (const p of (legacyProducts || [])) {
+  if (p.category_id) {
+    if (!countMap[p.category_id]) countMap[p.category_id] = new Set();
+    countMap[p.category_id].add(p.id);
+  }
+}
+// Add junction (only if product is active)
+for (const row of (junctionRows || [])) {
+  if (activeProductIds.has(row.product_id)) {
+    if (!countMap[row.category_id]) countMap[row.category_id] = new Set();
+    countMap[row.category_id].add(row.product_id);
+  }
+}
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+Dan in de map (regel 273): `product_count: countMap[cat.id]?.size || 0`
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
-
-### Issue 2: Auto-Accept Does Nothing at Bol.com
-
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
-
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
-
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
-
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+### Bestanden
+- `supabase/functions/storefront-api/index.ts` — `getCategories` functie, regels 246-273
 
