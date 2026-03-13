@@ -272,10 +272,45 @@ async function updateSingleOrder(
     return { success: true, message: "Tracking already present at Bol.com" };
   }
 
-  // No tracking available anywhere yet
+  // No tracking available anywhere yet — try HEAD fallback via shipping label
+  if (!finalTracking) {
+    console.log(`No tracking from shipments API for order ${orderId}, trying shipping-labels HEAD fallback...`);
+
+    // Look up the shipping label external_id for this order
+    const { data: label } = await supabase
+      .from("shipping_labels")
+      .select("id, external_id")
+      .eq("order_id", orderId)
+      .eq("label_type", "bol_vvb")
+      .not("external_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (label?.external_id) {
+      const labelTracking = await getTrackingFromLabel(accessToken, label.external_id);
+      if (labelTracking) {
+        finalTracking = labelTracking.trackingCode;
+        finalCarrier = labelTracking.transporterCode;
+        // Save to both orders and shipping_labels
+        await supabase.from("orders").update({
+          tracking_number: finalTracking,
+          carrier: finalCarrier,
+          updated_at: new Date().toISOString(),
+        }).eq("id", orderId);
+        await supabase.from("shipping_labels").update({
+          tracking_number: finalTracking,
+        }).eq("id", label.id);
+        console.log(`Saved tracking ${finalTracking} from label HEAD for order ${orderId}`);
+      }
+    } else {
+      console.log(`No shipping label found for order ${orderId}`);
+    }
+  }
+
+  // Still no tracking after all attempts
   if (!finalTracking) {
     console.log(`No tracking available yet for order ${orderId} — will retry later`);
-    // Ensure status is shipped_awaiting_tracking so we retry
     if (order.sync_status !== "shipped_awaiting_tracking") {
       await supabase.from("orders").update({
         sync_status: "shipped_awaiting_tracking",
