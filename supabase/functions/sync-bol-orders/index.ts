@@ -490,12 +490,19 @@ Deno.serve(async (req) => {
                       
                       if (vvbRes.ok) {
                         console.log(`VVB label created for order ${bolOrder.orderId}: ${vvbBody}`)
-                        // Only now mark as truly accepted — VVB label creation is the actual acceptance at Bol.com
-                        await supabase.from('orders').update({
-                          sync_status: 'accepted',
-                          updated_at: new Date().toISOString()
-                        }).eq('id', newOrder.id)
-                        console.log(`Order ${bolOrder.orderId} marked as accepted after successful VVB label creation`)
+                        // Check current sync_status — don't overwrite if already shipped/shipped_awaiting_tracking
+                        const { data: currentOrder } = await supabase.from('orders')
+                          .select('sync_status').eq('id', newOrder.id).single()
+                        const currentStatus = currentOrder?.sync_status
+                        if (!currentStatus || currentStatus === 'pending' || currentStatus === 'accept_pending') {
+                          await supabase.from('orders').update({
+                            sync_status: 'accepted',
+                            updated_at: new Date().toISOString()
+                          }).eq('id', newOrder.id)
+                          console.log(`Order ${bolOrder.orderId} marked as accepted after successful VVB label creation`)
+                        } else {
+                          console.log(`Order ${bolOrder.orderId} already has sync_status '${currentStatus}', not overwriting to accepted`)
+                        }
                       } else {
                         console.error(`VVB label creation failed for order ${bolOrder.orderId}: ${vvbRes.status} ${vvbBody}`)
                         // Revert to pending so retry mechanism picks it up
