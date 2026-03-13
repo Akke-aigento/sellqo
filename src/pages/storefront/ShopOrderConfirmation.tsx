@@ -331,6 +331,12 @@ export default function ShopOrderConfirmation() {
                     <span className="text-muted-foreground">Subtotaal</span>
                     <span>{formatPrice(order.subtotal)}</span>
                   </div>
+                  {order.discount_amount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Korting{order.discount_code ? ` (${order.discount_code})` : ''}</span>
+                      <span>-{formatPrice(order.discount_amount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
                     <span>{order.shipping_cost > 0 ? formatPrice(order.shipping_cost) : 'Gratis'}</span>

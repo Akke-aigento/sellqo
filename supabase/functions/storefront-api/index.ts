@@ -1595,7 +1595,7 @@ async function checkoutGetConfirmation(supabase: any, tenantId: string, params: 
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at')
+    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at, discount_amount, discount_code')
     .eq('id', orderId).eq('tenant_id', tenantId).single();
   if (error) throw error;
   if (!order) throw new Error('Order not found');
