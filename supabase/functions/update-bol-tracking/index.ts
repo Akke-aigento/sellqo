@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-console.log("=== UPDATE-BOL-TRACKING v1 DEPLOYED ===");
+console.log("=== UPDATE-BOL-TRACKING v2 DEPLOYED ===");
 
 const CARRIER_MAPPING: Record<string, string> = {
   'postnl': 'TNT',
@@ -35,7 +35,14 @@ async function getBolAccessToken(credentials: { clientId: string; clientSecret: 
   return (await response.json()).access_token;
 }
 
-async function getTransportId(accessToken: string, bolOrderId: string): Promise<{ transportId: number; shipmentId: number } | null> {
+interface ShipmentInfo {
+  transportId: number;
+  shipmentId: number;
+  trackingCode?: string;
+  transporterCode?: string;
+}
+
+async function getShipmentInfo(accessToken: string, bolOrderId: string): Promise<ShipmentInfo | null> {
   try {
     const res = await fetch(
       `https://api.bol.com/retailer/shipments?order-id=${bolOrderId}`,
@@ -54,14 +61,20 @@ async function getTransportId(accessToken: string, bolOrderId: string): Promise<
     const shipment = data?.shipments?.[0];
     if (!shipment) return null;
 
-    const transportId = shipment.transport?.transportId;
+    const transport = shipment.transport;
+    const transportId = transport?.transportId;
     if (!transportId) {
-      console.log("No transportId found in shipment:", JSON.stringify(shipment.transport));
+      console.log("No transportId found in shipment:", JSON.stringify(transport));
       return null;
     }
-    return { transportId, shipmentId: shipment.shipmentId };
+    return {
+      transportId,
+      shipmentId: shipment.shipmentId,
+      trackingCode: transport?.trackAndTrace || undefined,
+      transporterCode: transport?.transporterCode || undefined,
+    };
   } catch (e) {
-    console.error("Error fetching transport ID:", e);
+    console.error("Error fetching shipment info:", e);
     return null;
   }
 }
@@ -78,7 +91,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
-    // Mode 1: Single order update (called from tracking-webhook or poll-tracking-status)
+    // Mode 1: Single order update
     if (body.order_id) {
       const result = await updateSingleOrder(supabase, body.order_id, body.tracking_number, body.carrier);
       return new Response(JSON.stringify(result), {
@@ -87,28 +100,49 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Mode 2: Batch - find all orders awaiting tracking and update them
-    const { data: orders, error } = await supabase
+    // Mode 2: Batch — push tracking for orders that have tracking but haven't synced it
+    const { data: pushOrders, error: pushError } = await supabase
       .from("orders")
       .select("id, tracking_number, carrier, marketplace_order_id, marketplace_connection_id")
       .eq("marketplace_source", "bol_com")
-      .eq("sync_status", "shipped_awaiting_tracking")
+      .in("sync_status", ["shipped_awaiting_tracking", "accepted", "shipped"])
       .not("tracking_number", "is", null)
       .neq("tracking_number", "")
       .limit(20);
 
-    if (error) throw error;
-    if (!orders || orders.length === 0) {
-      return new Response(JSON.stringify({ message: "No orders awaiting tracking update", updated: 0 }), {
+    // Mode 3: Pull — fetch tracking from Bol.com for VVB orders missing tracking
+    const { data: pullOrders, error: pullError } = await supabase
+      .from("orders")
+      .select("id, tracking_number, carrier, marketplace_order_id, marketplace_connection_id")
+      .eq("marketplace_source", "bol_com")
+      .in("sync_status", ["shipped_awaiting_tracking", "accepted", "shipped"])
+      .or("tracking_number.is.null,tracking_number.eq.")
+      .not("marketplace_order_id", "is", null)
+      .limit(20);
+
+    if (pushError) throw pushError;
+    if (pullError) throw pullError;
+
+    const allOrders = [...(pushOrders || []), ...(pullOrders || [])];
+    // Deduplicate
+    const seen = new Set<string>();
+    const uniqueOrders = allOrders.filter(o => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
+
+    if (uniqueOrders.length === 0) {
+      return new Response(JSON.stringify({ message: "No orders need tracking update", updated: 0 }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Found ${orders.length} orders awaiting tracking update at Bol.com`);
+    console.log(`Found ${uniqueOrders.length} orders for tracking sync (${pushOrders?.length || 0} push, ${pullOrders?.length || 0} pull)`);
     let updated = 0;
 
-    for (const order of orders) {
+    for (const order of uniqueOrders) {
       try {
         const result = await updateSingleOrder(supabase, order.id, order.tracking_number, order.carrier);
         if (result.success) updated++;
@@ -117,7 +151,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, updated, total: orders.length }), {
+    return new Response(JSON.stringify({ success: true, updated, total: uniqueOrders.length }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -152,13 +186,6 @@ async function updateSingleOrder(
     return { success: false, message: "Not a Bol.com order" };
   }
 
-  const finalTracking = trackingNumber || order.tracking_number;
-  const finalCarrier = carrier || order.carrier;
-
-  if (!finalTracking) {
-    return { success: false, message: "No tracking number available" };
-  }
-
   if (!order.marketplace_order_id) {
     return { success: false, message: "No Bol.com order ID" };
   }
@@ -177,19 +204,60 @@ async function updateSingleOrder(
   const credentials = connection.credentials as { clientId: string; clientSecret: string };
   const accessToken = await getBolAccessToken(credentials);
 
-  // Get transport ID from Bol.com shipments API
-  const transportInfo = await getTransportId(accessToken, order.marketplace_order_id);
-  if (!transportInfo) {
-    return { success: false, message: "Could not find transportId at Bol.com" };
+  // Get shipment info from Bol.com (includes tracking if available)
+  const shipmentInfo = await getShipmentInfo(accessToken, order.marketplace_order_id);
+  if (!shipmentInfo) {
+    return { success: false, message: "Could not find shipment at Bol.com" };
   }
 
+  // Determine tracking: use provided > local > pulled from Bol.com
+  let finalTracking = trackingNumber || order.tracking_number || shipmentInfo.trackingCode;
+  let finalCarrier = carrier || order.carrier;
+
+  // If we pulled tracking from Bol.com that we didn't have locally, save it
+  if (!order.tracking_number && shipmentInfo.trackingCode) {
+    console.log(`Pulled tracking ${shipmentInfo.trackingCode} from Bol.com for order ${orderId}`);
+    await supabase.from("orders").update({
+      tracking_number: shipmentInfo.trackingCode,
+      carrier: shipmentInfo.transporterCode || finalCarrier,
+      updated_at: new Date().toISOString(),
+    }).eq("id", orderId);
+    finalTracking = shipmentInfo.trackingCode;
+    if (shipmentInfo.transporterCode) finalCarrier = shipmentInfo.transporterCode;
+  }
+
+  // If Bol.com already has tracking, we're done — just update local status
+  if (shipmentInfo.trackingCode) {
+    console.log(`Bol.com already has tracking ${shipmentInfo.trackingCode} for order ${orderId}, marking as shipped`);
+    await supabase.from("orders").update({
+      sync_status: "shipped",
+      tracking_number: finalTracking || shipmentInfo.trackingCode,
+      marketplace_sync_error: null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", orderId);
+    return { success: true, message: "Tracking already present at Bol.com" };
+  }
+
+  // No tracking available anywhere yet
+  if (!finalTracking) {
+    console.log(`No tracking available yet for order ${orderId} — will retry later`);
+    // Ensure status is shipped_awaiting_tracking so we retry
+    if (order.sync_status !== "shipped_awaiting_tracking") {
+      await supabase.from("orders").update({
+        sync_status: "shipped_awaiting_tracking",
+        updated_at: new Date().toISOString(),
+      }).eq("id", orderId);
+    }
+    return { success: false, message: "No tracking number available yet" };
+  }
+
+  // We have tracking locally but Bol.com doesn't — push it
   const transporterCode = CARRIER_MAPPING[(finalCarrier || "").toLowerCase()] || (finalCarrier || "").toUpperCase();
 
-  console.log(`Updating transport ${transportInfo.transportId} with tracking ${finalTracking}, carrier ${transporterCode}`);
+  console.log(`Pushing tracking ${finalTracking} (carrier: ${transporterCode}) to Bol.com transport ${shipmentInfo.transportId}`);
 
-  // PUT /retailer/transports/{transportId}
   const updateRes = await fetch(
-    `https://api.bol.com/retailer/transports/${transportInfo.transportId}`,
+    `https://api.bol.com/retailer/transports/${shipmentInfo.transportId}`,
     {
       method: "PUT",
       headers: {
@@ -208,21 +276,18 @@ async function updateSingleOrder(
 
   if (!updateRes.ok) {
     console.error(`Bol.com transport update failed: ${updateRes.status}`, responseText);
-    
-    // Store error but don't fail permanently
     await supabase.from("orders").update({
       marketplace_sync_error: `Tracking update failed: ${updateRes.status} - ${responseText}`,
     }).eq("id", orderId);
-
     return { success: false, message: `Bol.com API error: ${updateRes.status}` };
   }
 
-  console.log(`Successfully updated tracking at Bol.com for order ${orderId}`);
+  console.log(`Successfully pushed tracking to Bol.com for order ${orderId}`);
 
-  // Update order sync status
   await supabase.from("orders").update({
     sync_status: "shipped",
     marketplace_sync_error: null,
+    updated_at: new Date().toISOString(),
   }).eq("id", orderId);
 
   return { success: true, message: "Tracking updated at Bol.com" };
