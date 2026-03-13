@@ -2195,10 +2195,35 @@ serve(async (req) => {
       return jsonResponse({ success: true, data: await searchProducts(supabase, tenantId, params) }, 200, 'public, max-age=30');
     }
 
-    // ---- SHIPPING ----
-    if (resource === 'shipping') {
-      if (method !== 'GET') return errorResponse('Method not allowed', 405);
-      return jsonResponse({ success: true, data: await getShippingMethods(supabase, tenantId) }, 200, 'public, max-age=300');
+    // ---- CONTACT FORM ----
+    if (path === '/contact' && method === 'POST') {
+      const body = await req.json().catch(() => ({}));
+      const { name, email, subject, message } = body;
+
+      if (!name || !email || !message) {
+        return errorResponse('Missing required fields: name, email, message', 400);
+      }
+
+      // Send via send-customer-message to tenant inbox
+      const { error } = await supabase.functions.invoke('send-customer-message', {
+        body: {
+          tenant_id: tenantId,
+          customer_email: email,
+          customer_name: name,
+          subject: subject || 'Contactformulier',
+          body_html: `<p><strong>Naam:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Onderwerp:</strong> ${subject || 'Geen onderwerp'}</p><hr/><p>${message.replace(/\n/g, '<br/>')}</p>`,
+          body_text: `Naam: ${name}\nEmail: ${email}\nOnderwerp: ${subject || 'Geen onderwerp'}\n\n${message}`,
+          context_type: 'general',
+          context_data: { source: 'storefront_contact_form' }
+        }
+      });
+
+      if (error) {
+        console.error('send-customer-message error:', error);
+        return errorResponse('Failed to send message', 500);
+      }
+
+      return jsonResponse({ success: true, message: 'Message sent successfully' }, 200);
     }
 
     return errorResponse('Endpoint not found', 404, 'NOT_FOUND');
