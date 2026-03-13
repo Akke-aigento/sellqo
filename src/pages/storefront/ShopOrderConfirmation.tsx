@@ -28,6 +28,8 @@ interface Order {
   subtotal: number;
   shipping_cost: number;
   tax_amount: number;
+  discount_amount: number;
+  discount_code: string | null;
   total: number;
   ogm_reference?: string | null;
   created_at: string;
