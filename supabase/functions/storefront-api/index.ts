@@ -1472,40 +1472,46 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
 
-  // 9. Decrement stock (variant-level if applicable, skip gift cards)
-  for (const item of cart.items) {
-    if (item.product_type === 'gift_card') continue;
-    if (item.variant_id) {
-      await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
-    } else {
-      await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+  // 9. Decrement stock (skip for Stripe — webhook handles it after payment)
+  if (payment_method !== 'stripe') {
+    for (const item of cart.items) {
+      if (item.product_type === 'gift_card') continue;
+      if (item.variant_id) {
+        await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+      } else {
+        await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+      }
     }
   }
 
-  // 9b. Process gift card items
-  const giftCardItems = cart.items.filter((item: any) => item.product_type === 'gift_card');
-  if (giftCardItems.length > 0) {
-    try {
-      await supabase.functions.invoke('process-gift-card-order', {
-        body: {
-          order_id: order.id,
-          tenant_id: tenantId,
-          items: giftCardItems.map((item: any) => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            gift_card_metadata: item.gift_card_metadata,
-          })),
-        },
-      });
-    } catch (gcError) {
-      console.error('Gift card processing error (non-blocking):', gcError);
+  // 9b. Process gift card items (skip for Stripe — webhook handles it after payment)
+  if (payment_method !== 'stripe') {
+    const giftCardItems = cart.items.filter((item: any) => item.product_type === 'gift_card');
+    if (giftCardItems.length > 0) {
+      try {
+        await supabase.functions.invoke('process-gift-card-order', {
+          body: {
+            order_id: order.id,
+            tenant_id: tenantId,
+            items: giftCardItems.map((item: any) => ({
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              gift_card_metadata: item.gift_card_metadata,
+            })),
+          },
+        });
+      } catch (gcError) {
+        console.error('Gift card processing error (non-blocking):', gcError);
+      }
     }
   }
 
-  // 10. Clear cart
-  await supabase.from('storefront_cart_items').delete().eq('cart_id', cart_id);
-  await supabase.from('storefront_carts').delete().eq('id', cart_id);
+  // 10. Clear cart (skip for Stripe — webhook handles it after payment)
+  if (payment_method !== 'stripe') {
+    await supabase.from('storefront_cart_items').delete().eq('cart_id', cart_id);
+    await supabase.from('storefront_carts').delete().eq('id', cart_id);
+  }
 
   // 11. Handle payment
   // If total is 0 (100% discount), skip payment entirely
