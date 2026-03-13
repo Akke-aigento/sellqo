@@ -1392,8 +1392,10 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     .eq('id', tenantId).single();
   const vatRate = tenant?.default_vat_rate || 21;
   const subtotal = cart.subtotal;
-  const vatAmount = Math.round(subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
-  const total = subtotal + shippingCost;
+  const discountAmount = cart.discount_amount || 0;
+  const discountedSubtotal = Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100;
+  const vatAmount = Math.round(discountedSubtotal * (vatRate / (100 + vatRate)) * 100) / 100;
+  const total = discountedSubtotal + shippingCost;
 
   // 5. Find or create customer
   let customerId: string | null = null;
