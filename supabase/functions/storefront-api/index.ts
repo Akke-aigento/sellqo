@@ -287,7 +287,7 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
       description: t.description || cat.description,
       image_url: cat.image_url,
       parent_id: cat.parent_id,
-      product_count: countMap[cat.id] || 0,
+      product_count: countMap[cat.id]?.size || 0,
     };
   });
 
