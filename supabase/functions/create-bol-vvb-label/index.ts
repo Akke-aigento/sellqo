@@ -795,6 +795,17 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("PDF response status:", pdfResponse.status);
 
         if (pdfResponse.ok) {
+          // Extract tracking from PDF response headers
+          const trackingFromHeader = pdfResponse.headers.get("X-Track-And-Trace-Code");
+          const carrierFromHeader = pdfResponse.headers.get("X-Transporter-Code");
+          console.log(`PDF headers - tracking: ${trackingFromHeader}, carrier: ${carrierFromHeader}`);
+          if (trackingFromHeader && !trackingNumber) {
+            trackingNumber = trackingFromHeader;
+          }
+          if (carrierFromHeader && !carrier) {
+            carrier = carrierFromHeader;
+          }
+
           const pdfBlob = await pdfResponse.blob();
           let pdfBuffer = await pdfBlob.arrayBuffer();
           console.log("PDF downloaded, size:", pdfBuffer.byteLength);
