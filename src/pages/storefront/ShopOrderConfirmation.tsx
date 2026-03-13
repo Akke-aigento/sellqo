@@ -58,7 +58,7 @@ export default function ShopOrderConfirmation() {
     const fetchOrder = async (retryCount = 0): Promise<Order | null> => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
+        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, discount_code, total, ogm_reference, created_at, shipping_address')
         .eq('id', orderId!)
         .maybeSingle();
 
