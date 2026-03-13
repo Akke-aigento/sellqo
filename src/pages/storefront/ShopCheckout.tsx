@@ -650,7 +650,7 @@ export default function ShopCheckout() {
 
   if (serverCartLoading) {
     return (
-      <ShopLayout hideChrome={isCustomFrontend}>
+      <ShopLayout>
         <Helmet><title>Afrekenen | {tenant?.name || 'Shop'}</title></Helmet>
         <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
