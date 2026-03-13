@@ -1,60 +1,58 @@
 
 
-## Analysis & Fixes
+## Analyse & Plan
 
-### Issue 1: A6 Cropping Is Wrong
+### BUG 1: Track & Trace niet gelezen uit PDF GET response headers
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+**Analyse**: De HEAD request zit WEL al in de main flow (lijn 846-868). Maar de PDF GET request op lijn 784-793 retourneert OOK de tracking headers — die worden nu genegeerd. De PDF wordt gedownload als blob (lijn 798) maar de headers `X-Track-And-Trace-Code` en `X-Transporter-Code` worden niet uitgelezen. De HEAD request daarna doet hetzelfde, maar soms geeft de GET response ze al eerder terug.
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+**Fix**: Direct na `pdfResponse.status` check (lijn 797), voor de blob download, de tracking headers uitlezen:
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+```typescript
+// Extract tracking from PDF response headers (line ~797)
+const trackingFromHeader = pdfResponse.headers.get("X-Track-And-Trace-Code");
+const carrierFromHeader = pdfResponse.headers.get("X-Transporter-Code");
+console.log(`PDF headers - tracking: ${trackingFromHeader}, carrier: ${carrierFromHeader}`);
+if (trackingFromHeader && !trackingNumber) {
+  trackingNumber = trackingFromHeader;
+}
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+| Bestand | Wijziging |
+|---|---|
+| `supabase/functions/create-bol-vvb-label/index.ts` | Header-extractie toevoegen na PDF GET response (lijn ~797) |
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+---
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+### BUG 2: Voorraad sync
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+**Analyse**: De `sync-bol-inventory` functie ziet er correct uit:
+- Query filtert op `sync_inventory = true` en `bol_ean IS NOT NULL`
+- Offer ID lookup: eerst `marketplace_mappings.bol_com.offerId`, dan `bol_offer_id` kolom, dan EAN-based lookup
+- Endpoint is correct: `PUT /retailer/offers/{offerId}/stock` met `{ amount, managedByRetailer: true }`
+- v10 headers zijn correct
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+**Potentieel probleem**: De kolom `sync_inventory` staat default op `true`, maar producten moeten WEL een `bol_ean` hebben. Als producten geen EAN ingevuld hebben, worden ze overgeslagen. Dit is geen bug maar verwacht gedrag.
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+**Geen code-wijziging nodig** voor de inventory sync — de logica is correct. Als het niet werkt, ontbreken ofwel EAN's op producten, ofwel de `bol_offer_id` / `marketplace_mappings`.
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+---
 
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+### Aanvullende check: `marketplace_order_item_id` in sync-bol-orders
 
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+**Analyse**: Lijn 419 slaat `marketplace_order_item_id: item.orderItemId` correct op bij import. De `create-bol-vvb-label` functie leest dit correct uit (lijn 567-568) en stuurt het door naar `confirm-bol-shipment` (lijn 965-966).
 
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+**Geen probleem gevonden** — de mapping is correct.
 
-### Summary
+---
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+### Samenvatting
+
+| Item | Status | Actie |
+|---|---|---|
+| BUG 1: Tracking uit PDF headers | Bug bevestigd | Header-extractie toevoegen na PDF GET |
+| BUG 2: Voorraad sync | Code is correct | Geen wijziging nodig |
+| marketplace_order_item_id | Correct opgeslagen | Geen wijziging nodig |
+
+**1 bestand wordt gewijzigd**: `supabase/functions/create-bol-vvb-label/index.ts`
 
