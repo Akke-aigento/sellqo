@@ -94,6 +94,7 @@ export default function MarketplaceDetailPage() {
   });
 
   const [syncing, setSyncing] = useState(false);
+  const [syncingInventory, setSyncingInventory] = useState(false);
   const [importingHistorical, setImportingHistorical] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   
