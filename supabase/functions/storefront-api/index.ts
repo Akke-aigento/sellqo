@@ -1420,13 +1420,22 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   // 6. Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
 
+  // 6b. Look up discount_code_id if a discount code was applied
+  let discountCodeId: string | null = null;
+  if (cart.discount_code && discountAmount > 0) {
+    const { data: dcLookup } = await supabase.from('discount_codes')
+      .select('id').eq('tenant_id', tenantId).eq('code', cart.discount_code).maybeSingle();
+    discountCodeId = dcLookup?.id || null;
+  }
+
   // 7. Create order
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
       tenant_id: tenantId, customer_id: customerId, order_number: orderNumber,
-      status: 'pending', payment_status: 'pending', payment_method,
-      subtotal, shipping_cost: shippingCost, tax: vatAmount, total,
+      status: 'pending', payment_status: total <= 0 ? 'paid' : 'pending', payment_method,
+      subtotal, discount_amount: discountAmount, discount_code: cart.discount_code || null,
+      shipping_cost: shippingCost, tax: vatAmount, total,
       currency: tenant?.currency || 'EUR',
       shipping_address, billing_address: billing_address || shipping_address,
       customer_email: email, customer_phone: phone || null,
@@ -1435,6 +1444,14 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     })
     .select('id, order_number').single();
   if (orderError) throw orderError;
+
+  // 7b. Record discount code usage
+  if (discountCodeId && discountAmount > 0) {
+    await supabase.from('discount_code_usage').insert({
+      discount_code_id: discountCodeId, order_id: order.id, customer_email: email, discount_amount: discountAmount,
+    });
+    await supabase.from('discount_codes').update({ usage_count: (await supabase.from('discount_codes').select('usage_count').eq('id', discountCodeId).single()).data?.usage_count + 1 }).eq('id', discountCodeId);
+  }
 
   // 8. Create order items (with variant support)
   const orderItems = cart.items.map((item: any) => {
