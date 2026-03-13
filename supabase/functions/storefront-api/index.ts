@@ -1445,8 +1445,8 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     .select('id, order_number').single();
   if (orderError) throw orderError;
 
-  // 7b. Record discount code usage
-  if (discountCodeId && discountAmount > 0) {
+  // 7b. Record discount code usage (skip for Stripe — webhook handles it after payment)
+  if (discountCodeId && discountAmount > 0 && payment_method !== 'stripe') {
     await supabase.from('discount_code_usage').insert({
       discount_code_id: discountCodeId, order_id: order.id, customer_email: email, discount_amount: discountAmount,
     });
