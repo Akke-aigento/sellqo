@@ -1866,8 +1866,9 @@ function checkRateLimit(tenantId: string, limit = 1000, windowMs = 60000): boole
 const resourceModuleMap: Record<string, string> = {
   products: 'products', collections: 'collections', categories: 'collections',
   cart: 'cart', checkout: 'checkout', 'gift-cards': 'gift_cards',
-  pages: 'pages', navigation: 'navigation', reviews: 'reviews',
+  pages: 'pages', navigation: 'navigation', reviews: '',
   newsletter: 'newsletter', search: '', shipping: '', settings: '',
+  legal: '', contact: '',
 };
 
 // ============== MAIN HANDLER ==============
@@ -2223,12 +2224,17 @@ serve(async (req) => {
         privacy: 'privacy', terms: 'terms', refund: 'returns',
         shipping: 'shipping', contact: 'contact', legal_notice: 'legal-notice', cookie: 'cookies',
       };
-      return jsonResponse({ success: true, data: (legalPages || []).map((p: any) => ({
-        type: p.page_type,
-        title: p[`title_${langField}`] || p.title_nl || p.page_type,
-        slug: slugMap[p.page_type] || p.page_type,
-        enabled: true,
-      }))}, 200, 'public, max-age=600');
+      const tenantSlug = tenantRow.slug || tenantId;
+      return jsonResponse({ success: true, data: (legalPages || []).map((p: any) => {
+        const slug = slugMap[p.page_type] || p.page_type;
+        return {
+          type: p.page_type,
+          title: p[`title_${langField}`] || p.title_nl || p.page_type,
+          slug,
+          url: `https://sellqo.lovable.app/shop/${tenantSlug}/legal/${slug}`,
+          enabled: true,
+        };
+      })}, 200, 'public, max-age=600');
     }
 
     // ---- CONTACT FORM ----
