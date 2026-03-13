@@ -197,6 +197,27 @@ Deno.serve(async (req) => {
 
         console.log(`Found ${products?.length || 0} products to sync for connection ${connection.id}`)
 
+        // Diagnostic: if no products found, check why
+        if (!products || products.length === 0) {
+          const { count: syncEnabledNoEan } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', connection.tenant_id)
+            .eq('sync_inventory', true)
+            .is('bol_ean', null)
+
+          const { count: totalSyncEnabled } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', connection.tenant_id)
+            .eq('sync_inventory', true)
+
+          console.log(`DIAGNOSTIC: ${totalSyncEnabled || 0} products have sync_inventory=true, ${syncEnabledNoEan || 0} of those are missing bol_ean`)
+          if ((syncEnabledNoEan || 0) > 0) {
+            console.log(`HINT: ${syncEnabledNoEan} producten hebben sync_inventory=true maar geen bol_ean ingevuld — vul de EAN in om voorraad te synchroniseren`)
+          }
+        }
+
         for (const product of products || []) {
           try {
             let mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings

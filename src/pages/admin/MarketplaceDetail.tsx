@@ -950,6 +950,45 @@ export default function MarketplaceDetailPage() {
                     placeholder="5"
                   />
                 </div>
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={syncingInventory}
+                    onClick={async () => {
+                      if (!connection) return;
+                      setSyncingInventory(true);
+                      try {
+                        const syncFns = getSyncFunctions(connection.marketplace_type);
+                        const result = await supabase.functions.invoke(syncFns.inventory, {
+                          body: { connectionId: connection.id }
+                        });
+                        if (result.error) {
+                          toast.error('Voorraad sync mislukt: ' + result.error.message);
+                        } else {
+                          const synced = result.data?.productsSynced ?? result.data?.products_synced ?? 0;
+                          const errors = result.data?.errorsCount ?? result.data?.errors ?? 0;
+                          if (errors > 0) {
+                            toast.warning(`${synced} producten gesynchroniseerd, ${errors} fouten`);
+                          } else {
+                            toast.success(`${synced} producten gesynchroniseerd`);
+                          }
+                        }
+                      } catch (error) {
+                        toast.error('Voorraad sync mislukt');
+                      } finally {
+                        setSyncingInventory(false);
+                      }
+                    }}
+                  >
+                    {syncingInventory ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Voorraad synchroniseren
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
