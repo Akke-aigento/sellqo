@@ -2195,6 +2195,42 @@ serve(async (req) => {
       return jsonResponse({ success: true, data: await searchProducts(supabase, tenantId, params) }, 200, 'public, max-age=30');
     }
 
+    // ---- LEGAL PAGES ----
+    if (resource === 'legal') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      const langField = locale && ['en', 'de', 'fr'].includes(locale) ? locale : 'nl';
+      const { data: legalPages, error: legalErr } = await supabase
+        .from('legal_pages')
+        .select(`id, page_type, title_nl, title_en, title_de, title_fr, content_nl, content_en, content_de, content_fr, is_published`)
+        .eq('tenant_id', tenantId)
+        .eq('is_published', true);
+      if (legalErr) throw legalErr;
+
+      if (resourceId) {
+        // Single page by type: GET /legal/privacy
+        const page = (legalPages || []).find((p: any) => p.page_type === resourceId);
+        if (!page) return errorResponse('Legal page not found', 404);
+        return jsonResponse({ success: true, data: {
+          type: page.page_type,
+          title: page[`title_${langField}`] || page.title_nl || page.page_type,
+          slug: page.page_type,
+          content: page[`content_${langField}`] || page.content_nl || '',
+        }}, 200, 'public, max-age=600');
+      }
+
+      // List all published legal pages
+      const slugMap: Record<string, string> = {
+        privacy: 'privacy', terms: 'terms', refund: 'returns',
+        shipping: 'shipping', contact: 'contact', legal_notice: 'legal-notice', cookie: 'cookies',
+      };
+      return jsonResponse({ success: true, data: (legalPages || []).map((p: any) => ({
+        type: p.page_type,
+        title: p[`title_${langField}`] || p.title_nl || p.page_type,
+        slug: slugMap[p.page_type] || p.page_type,
+        enabled: true,
+      }))}, 200, 'public, max-age=600');
+    }
+
     // ---- CONTACT FORM ----
     if (resource === 'contact' && method === 'POST') {
       const body = await req.json().catch(() => ({}));
