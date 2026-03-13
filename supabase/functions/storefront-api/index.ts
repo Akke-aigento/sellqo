@@ -1564,7 +1564,7 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
       success_url: `${origin}/order-confirmation?order_id=${order.id}`,
       cancel_url: `${origin}/checkout?cancelled=true`,
       customer_email: email,
-      metadata: { order_id: order.id, tenant_id: tenantId },
+      metadata: { order_id: order.id, tenant_id: tenantId, cart_id: cart_id },
       payment_intent_data: {
         application_fee_amount: Math.round(total * 0.05 * 100),
         transfer_data: { destination: tenant.stripe_account_id },
