@@ -1866,8 +1866,9 @@ function checkRateLimit(tenantId: string, limit = 1000, windowMs = 60000): boole
 const resourceModuleMap: Record<string, string> = {
   products: 'products', collections: 'collections', categories: 'collections',
   cart: 'cart', checkout: 'checkout', 'gift-cards': 'gift_cards',
-  pages: 'pages', navigation: 'navigation', reviews: 'reviews',
+  pages: 'pages', navigation: 'navigation', reviews: '',
   newsletter: 'newsletter', search: '', shipping: '', settings: '',
+  legal: '', contact: '',
 };
 
 // ============== MAIN HANDLER ==============
