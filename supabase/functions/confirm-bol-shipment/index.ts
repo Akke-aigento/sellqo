@@ -292,7 +292,8 @@ Deno.serve(async (req) => {
 
     // Update order with final state
     const orderUpdate: Record<string, unknown> = {
-      sync_status: 'shipped',
+      // If no tracking available, mark as awaiting so update-bol-tracking can push it later
+      sync_status: resolvedTracking ? 'shipped' : 'shipped_awaiting_tracking',
       marketplace_sync_error: null,
       carrier: carrier,
     };
@@ -301,6 +302,11 @@ Deno.serve(async (req) => {
       orderUpdate.tracking_url = tracking_url || `https://jfrfracking.info/track/nl-NL/?B=${resolvedTracking}`;
     }
     await supabase.from("orders").update(orderUpdate).eq("id", order_id);
+
+    // If no tracking was available, log that it needs to be updated later
+    if (!resolvedTracking) {
+      console.log(`Order ${order.order_number}: shipped without tracking - marked as shipped_awaiting_tracking`);
+    }
 
     console.log(`Successfully confirmed shipment to Bol.com for order ${order.order_number}`);
 

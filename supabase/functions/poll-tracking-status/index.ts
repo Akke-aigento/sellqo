@@ -324,6 +324,31 @@ const handler = async (req: Request): Promise<Response> => {
 
         await supabase.from("orders").update(orderUpdate).eq("id", order.id);
 
+        // If this is a Bol.com order and tracking just became available, push it to Bol.com
+        if (statusChanged) {
+          const { data: orderMeta } = await supabase
+            .from("orders")
+            .select("marketplace_source, marketplace_connection_id, sync_status")
+            .eq("id", order.id)
+            .single();
+
+          if (orderMeta?.marketplace_source === 'bol_com' && orderMeta?.marketplace_connection_id &&
+              (orderMeta?.sync_status === 'shipped_awaiting_tracking' || orderMeta?.sync_status === 'shipped')) {
+            try {
+              await supabase.functions.invoke('update-bol-tracking', {
+                body: {
+                  order_id: order.id,
+                  tracking_number: order.tracking_number,
+                  carrier: carrier,
+                },
+              });
+              console.log(`Triggered Bol.com tracking update for order ${order.order_number}`);
+            } catch (bolErr) {
+              console.error(`Bol.com tracking update error (non-fatal) for ${order.id}:`, bolErr);
+            }
+          }
+        }
+
         if (statusChanged) {
           await supabase.from("shipping_status_updates").insert([{
             tenant_id: setting.tenant_id,
