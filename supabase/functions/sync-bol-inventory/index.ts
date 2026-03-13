@@ -202,7 +202,18 @@ Deno.serve(async (req) => {
             let mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings
             let bolMapping = mappings.bol_com
             
-            // NEW: If EAN exists but no Offer ID, try to look it up automatically
+            // Fallback: use bol_offer_id column if marketplace_mappings is empty
+            if (!bolMapping?.offerId && product.bol_offer_id) {
+              console.log(`Product ${product.id}: Using bol_offer_id column fallback: ${product.bol_offer_id}`)
+              bolMapping = {
+                offerId: product.bol_offer_id,
+                lastSync: (product as any).last_inventory_sync || undefined,
+                autoLinked: false
+              }
+              mappings = { ...mappings, bol_com: bolMapping }
+            }
+            
+            // If still no Offer ID but EAN exists, try to look it up automatically
             if (!bolMapping?.offerId && product.bol_ean) {
               console.log(`Product ${product.id} has EAN but no Offer ID, looking up...`)
               
