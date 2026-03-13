@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Shield, 
   FileText, 
@@ -18,10 +19,14 @@ import {
   RefreshCw,
   Sparkles,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useLegalPages } from "@/hooks/useLegalPages";
+import { useTenant } from "@/hooks/useTenant";
 import { LEGAL_PAGE_TYPES, LegalPageType, SUPPORTED_LANGUAGES } from "@/types/legal-pages";
 import { LegalPageEditor } from "./LegalPageEditor";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const iconMap: Record<string, React.ReactNode> = {
   Shield: <Shield className="h-5 w-5" />,
