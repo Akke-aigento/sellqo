@@ -7,7 +7,7 @@ const corsHeaders = {
 
 interface ManualSyncRequest {
   connectionId: string
-  dataType: 'orders' | 'products' | 'inventory' | 'customers'
+  dataType: 'orders' | 'products' | 'inventory' | 'customers' | 'shipments' | 'returns'
   direction?: 'import' | 'export'
 }
 
