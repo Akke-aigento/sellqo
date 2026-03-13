@@ -165,6 +165,29 @@ Deno.serve(async (req) => {
             result.error = (result.error ? result.error + "; " : "") + `Inventory sync failed: ${errorText}`;
           }
         }
+
+        // Sync tracking/shipments for Bol.com
+        if (conn.marketplace_type === 'bol_com') {
+          console.log(`[marketplace-sync-scheduler] Triggering update-bol-tracking for connection ${conn.id}`);
+          try {
+            const trackingResponse = await fetch(`${supabaseUrl}/functions/v1/update-bol-tracking`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseAnonKey}`,
+              },
+              body: JSON.stringify({ batch: true }),
+            });
+            if (trackingResponse.ok) {
+              const trackingData = await trackingResponse.json();
+              console.log(`[marketplace-sync-scheduler] Tracking synced for ${conn.id}: ${trackingData.updated ?? 0} updated`);
+            } else {
+              console.error(`[marketplace-sync-scheduler] Tracking sync failed for ${conn.id}:`, await trackingResponse.text());
+            }
+          } catch (trackErr) {
+            console.error(`[marketplace-sync-scheduler] Tracking sync error for ${conn.id}:`, trackErr);
+          }
+        }
       } catch (syncError) {
         console.error(`[marketplace-sync-scheduler] Error syncing connection ${conn.id}:`, syncError);
         result.error = syncError instanceof Error ? syncError.message : String(syncError);
