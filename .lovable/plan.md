@@ -1,60 +1,56 @@
 
 
-## Analysis & Fixes
+## Bug: Order wordt aangemaakt vóór betaling + dubbele stock decrement
 
-### Issue 1: A6 Cropping Is Wrong
+### Probleem
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+In `checkoutPlaceOrder` (storefront-api) worden bij Stripe-betalingen de volgende acties uitgevoerd **voordat** de klant betaalt:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+1. **Order aangemaakt** met `payment_status: 'pending'` — op zich OK
+2. **Stock verlaagd** — fout, want als de klant annuleert is de stock weg
+3. **Cart geleegd** — fout, klant kan niet opnieuw afrekenen
+4. **Kortingscode gebruik geregistreerd** — fout, code is "opgebruikt" zonder betaling
+5. **Gift cards verwerkt** — fout, gift cards geactiveerd zonder betaling
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
-```
+Daarnaast decrementeert de **Stripe webhook** (`stripe-connect-webhook`) de stock **nogmaals** bij `checkout.session.completed`, dus bij succesvolle betaling wordt stock dubbel afgetrokken.
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+### Oplossing
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+**Bestand: `supabase/functions/storefront-api/index.ts`** — `checkoutPlaceOrder`
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+Voor Stripe betalingen (wanneer `payment_method === 'stripe'`), verplaats de volgende acties naar **na** betaling (d.w.z. niet uitvoeren in `checkoutPlaceOrder`):
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+1. **Stock decrement** (regels 1476-1483): Skip als `payment_method === 'stripe'` — de webhook doet dit al
+2. **Cart clearing** (regels 1507-1508): Skip als `payment_method === 'stripe'` — verplaats naar webhook
+3. **Kortingscode usage** (regels 1449-1453): Skip als `payment_method === 'stripe'` — verplaats naar webhook
+4. **Gift card processing** (regels 1487-1504): Skip als `payment_method === 'stripe'` — verplaats naar webhook
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+De order + order_items mogen wel alvast aangemaakt worden (Stripe heeft de `order_id` nodig voor metadata).
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+**Bestand: `supabase/functions/stripe-connect-webhook/index.ts`** — `checkout.session.completed`
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+Voeg toe na succesvolle betaling:
 
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+1. **Cart opruimen**: Zoek de cart op via `order_id` metadata of `cart_id` (opslaan in order metadata) en verwijder items + cart
+2. **Kortingscode usage registreren**: Lees `discount_code` en `discount_amount` van de order, zoek de `discount_code_id` op, en insert in `discount_code_usage` + increment `usage_count`
+3. **Gift card processing**: Trigger `process-gift-card-order` voor orders met gift card items
+4. **Stock decrement**: Blijft zoals het is (al in webhook)
 
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+Om de cart_id beschikbaar te maken in de webhook, sla `cart_id` op in de Stripe session metadata (naast `order_id` en `tenant_id`).
 
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+**Voor bank_transfer en free (€0) betalingen**: deze acties blijven in `checkoutPlaceOrder` omdat daar geen webhook bij betrokken is.
 
-### Summary
+### Samenvatting wijzigingen
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+| Bestand | Wijziging |
+|---|---|
+| `supabase/functions/storefront-api/index.ts` | Stock/cart/korting/gift cards conditioneel skippen voor Stripe |
+| `supabase/functions/stripe-connect-webhook/index.ts` | Cart clearing, korting usage, gift card processing toevoegen |
+
+### Checkout session expired
+
+Een bijkomend voordeel: als de Stripe session verloopt (klant betaalt niet), blijft de order staan met `payment_status: pending` maar:
+- Stock is niet verlaagd → geen phantom voorraadverlies
+- Cart bestaat nog → klant kan opnieuw proberen
+- Kortingscode is niet opgebruikt → klant kan code hergebruiken
 
