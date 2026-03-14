@@ -1,60 +1,52 @@
 
 
-## Analysis & Fixes
+## Probleem: Categorieën worden niet volledig verwijderd
 
-### Issue 1: A6 Cropping Is Wrong
+### Analyse
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+De database heeft foreign key constraints die het verwijderen van categorieën **blokkeren** zonder foutmelding aan de gebruiker:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+1. **`products.category_id`** → `NO ACTION` — als een product nog de legacy `category_id` kolom naar deze categorie heeft, faalt de delete stilletjes
+2. **`categories.parent_id`** → `NO ACTION` — als subcategorieën bestaan, faalt de delete
+3. **`import_category_mappings`** → `NO ACTION` — oude importmappings blokkeren ook
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+De `product_categories` junction tabel en `seo_keywords` hebben al `CASCADE` — die zijn correct.
+
+**Resultaat**: de gebruiker klikt "verwijderen", krijgt geen duidelijke fout, maar de categorie blijft in de database staan. Daarna geeft het aanmaken van een nieuwe categorie met dezelfde slug de "duplicate key" fout.
+
+### Oplossing
+
+**1. Database migratie — FK constraints fixen**
+
+```sql
+-- products.category_id → SET NULL bij delete
+ALTER TABLE products DROP CONSTRAINT products_category_id_fkey;
+ALTER TABLE products ADD CONSTRAINT products_category_id_fkey 
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL;
+
+-- categories.parent_id → SET NULL bij delete (subcategorieën worden root)
+ALTER TABLE categories DROP CONSTRAINT categories_parent_id_fkey;
+ALTER TABLE categories ADD CONSTRAINT categories_parent_id_fkey 
+  FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL;
+
+-- import_category_mappings → SET NULL bij delete
+ALTER TABLE import_category_mappings DROP CONSTRAINT import_category_mappings_parent_category_id_fkey;
+ALTER TABLE import_category_mappings ADD CONSTRAINT import_category_mappings_parent_category_id_fkey 
+  FOREIGN KEY (parent_category_id) REFERENCES categories(id) ON DELETE SET NULL;
+-- (idem voor matched_existing_id, user_assigned_parent, created_category_id)
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+**2. Delete-logica verbeteren — `src/hooks/useCategories.ts`**
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+In de `deleteCategory` mutation en `bulkDelete` mutation: na het verwijderen, invalidate ook product-gerelateerde queries zodat de UI consistent blijft.
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+**3. Slug-conflict preventie — `src/components/admin/CategoryFormDialog.tsx`**
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+De slug wordt correct gegenereerd (spaties → streepjes). Het echte probleem is dat de oude categorie nog in de DB staat. Na de FK-fix verdwijnt dit probleem. Optioneel: bij een `23505` (unique violation) error, een duidelijker foutmelding tonen.
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+### Samenvatting
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
-
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+- 1 database migratie: 4 FK constraints aanpassen naar `ON DELETE SET NULL`
+- Kleine code-aanpassing in `useCategories.ts` voor betere error handling
+- Optioneel: slug-conflict melding verduidelijken in `CategoryFormDialog`
 
