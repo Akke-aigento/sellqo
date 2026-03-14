@@ -22,7 +22,7 @@ const defaultSettings: TrackingSettings = {
   notify_on_delivered: false,
   notify_on_exception: true,
   notify_on_out_for_delivery: false,
-  auto_poll_17track: false,
+  auto_poll_17track: true,
 };
 
 export function TrackingNotificationSettings() {
@@ -51,8 +51,16 @@ export function TrackingNotificationSettings() {
           notify_on_delivered: data.notify_on_delivered ?? false,
           notify_on_exception: data.notify_on_exception ?? true,
           notify_on_out_for_delivery: data.notify_on_out_for_delivery ?? false,
-          auto_poll_17track: data.auto_poll_17track ?? false,
+          auto_poll_17track: data.auto_poll_17track ?? true,
         });
+      } else {
+        // Auto-create default settings with polling enabled
+        await supabase
+          .from('tenant_tracking_settings')
+          .insert({
+            tenant_id: tenantId,
+            ...defaultSettings,
+          });
       }
       setIsLoading(false);
     };
