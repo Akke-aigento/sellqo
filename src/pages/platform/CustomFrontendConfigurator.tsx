@@ -29,7 +29,7 @@ MAAK AAN:
 
 1. src/integrations/sellqo/client.ts
 const SELLQO_PROXY_URL = 'https://${c.supabaseProjectId}.supabase.co/functions/v1/sellqo-proxy';
-const TENANT_ID = '${c.tenantSlug}';
+const TENANT_ID = '${c.tenantId}';
 
 export async function sellqoFetch(endpoint: string, options?: RequestInit) {
   return fetch(\`\${SELLQO_PROXY_URL}\${endpoint}\`, {
