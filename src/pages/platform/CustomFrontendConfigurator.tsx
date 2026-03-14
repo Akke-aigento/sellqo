@@ -196,10 +196,10 @@ export default function CustomFrontendConfigurator() {
     supabaseProjectId: '',
     lovableProjectName: '',
   });
-  const [generated, setGenerated] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
+  const prompts = allFilled ? generatePrompts(config) : [];
 
   const handleTenantSelect = (tenantId: string) => {
     const tenant = tenants.find((t) => t.id === tenantId);
@@ -211,7 +211,6 @@ export default function CustomFrontendConfigurator() {
         apiBaseUrl: API_BASE_URL,
         lovableProjectName: tenant.name || '',
       }));
-      setGenerated(false);
     }
   };
 
@@ -224,10 +223,7 @@ export default function CustomFrontendConfigurator() {
 
   const update = (key: keyof Config) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfig((prev) => ({ ...prev, [key]: e.target.value }));
-    setGenerated(false);
   };
-
-  const prompts = generated ? generatePrompts(config) : [];
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -298,20 +294,11 @@ export default function CustomFrontendConfigurator() {
               </div>
             </div>
           </div>
-
-          <Button
-            className="w-full sm:w-auto"
-            disabled={!allFilled}
-            onClick={() => setGenerated(true)}
-          >
-            <Wand2 className="mr-2 h-4 w-4" />
-            Genereer Prompts →
-          </Button>
         </CardContent>
       </Card>
 
       {/* Step 2: Generated Prompts */}
-      {generated && (
+      {allFilled && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Stap 2 — Kopieer de prompts</h2>
           {prompts.map((p, i) => (
