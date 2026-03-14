@@ -142,7 +142,7 @@ Juridische links:
 sellqoFetch('/legal').then(r => r.json()).then(d => setLegalPages(d?.data || []))
 
 Render elke pagina als:
-<a href={\`\${page.url}?from=${encodeURIComponent(c.customDomain)}\`} target="_blank" rel="noopener noreferrer">
+<a href={\`\${page.url}?from=${encodeURIComponent(c.frontendUrl)}\`} target="_blank" rel="noopener noreferrer">
   {page.title}
 </a>
 
