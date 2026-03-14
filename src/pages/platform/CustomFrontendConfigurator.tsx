@@ -205,16 +205,28 @@ export default function CustomFrontendConfigurator() {
   const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
   const prompts = allFilled ? generatePrompts(config) : [];
 
-  const handleTenantSelect = (tenantId: string) => {
+  const handleTenantSelect = async (tenantId: string) => {
     const tenant = tenants.find((t) => t.id === tenantId);
     if (tenant) {
+      // Fetch storefront API key prefix
+      const { data: apiKeyData } = await supabase
+        .from('storefront_api_keys')
+        .select('display_prefix')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       setConfig((prev) => ({
         ...prev,
         tenantId: tenant.slug || '',
         frontendUrl: tenant.custom_domain || '',
         apiBaseUrl: API_BASE_URL,
+        storefrontApiKey: apiKeyData?.display_prefix ? `${apiKeyData.display_prefix}••••••••••••` : '',
         lovableProjectName: tenant.name || '',
       }));
+      setShowApiKey(false);
     }
   };
 
