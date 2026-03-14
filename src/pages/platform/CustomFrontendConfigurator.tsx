@@ -238,7 +238,24 @@ export default function CustomFrontendConfigurator() {
           <CardTitle className="text-lg">Stap 1 — Project gegevens</CardTitle>
           <CardDescription>Vul alle velden in om de prompts te genereren.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Selecteer een tenant</Label>
+            <Select onValueChange={handleTenantSelect}>
+              <SelectTrigger>
+                <SelectValue placeholder={tenantsLoading ? 'Laden...' : 'Kies een tenant om velden in te vullen'} />
+              </SelectTrigger>
+              <SelectContent>
+                {tenants.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} ({t.slug})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Selecteer een tenant om slug, domein en naam automatisch in te vullen.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="tenantSlug">Tenant Slug</Label>
             <Input id="tenantSlug" placeholder="bv. loveke" value={config.tenantSlug} onChange={update('tenantSlug')} />
