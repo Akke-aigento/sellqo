@@ -259,36 +259,54 @@ export default function CustomFrontendConfigurator() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Selecteer een tenant om slug, domein en naam automatisch in te vullen.</p>
+            <p className="text-xs text-muted-foreground">Selecteer een tenant om de SellQo gegevens automatisch in te vullen.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="tenantSlug">Tenant Slug</Label>
-            <Input id="tenantSlug" placeholder="bv. loveke" value={config.tenantSlug} onChange={update('tenantSlug')} />
+
+          {/* Sectie A: SellQo gegevens */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">SellQo gegevens</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="tenantId">Tenant ID</Label>
+                <Input id="tenantId" placeholder="bv. loveke" value={config.tenantId} onChange={update('tenantId')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="frontendUrl">Frontend URL</Label>
+                <Input id="frontendUrl" placeholder="https://loveke.be" value={config.frontendUrl} onChange={update('frontendUrl')} />
+                <p className="text-xs text-muted-foreground">Optioneel — het custom domein van de webshop.</p>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="apiBaseUrl">API Base URL</Label>
+                <Input id="apiBaseUrl" value={config.apiBaseUrl} readOnly className="bg-muted cursor-not-allowed" />
+                <p className="text-xs text-muted-foreground">Altijd hetzelfde — wordt automatisch ingevuld.</p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="customDomain">Custom Domein</Label>
-            <Input id="customDomain" placeholder="https://loveke.be" value={config.customDomain} onChange={update('customDomain')} />
+
+          {/* Sectie B: Lovable project gegevens */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lovable project gegevens</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="supabaseProjectId">Lovable Cloud Project ID</Label>
+                <Input id="supabaseProjectId" placeholder="bv. jpnacppdutjnasmuikgp" value={config.supabaseProjectId} onChange={update('supabaseProjectId')} />
+                <p className="text-xs text-muted-foreground">Te vinden in je Lovable project → Instellingen. Voorbeeld: jpnacppdutjnasmuikgp</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lovableProjectName">Project Naam</Label>
+                <Input id="lovableProjectName" placeholder="bv. Loveke Streetwear" value={config.lovableProjectName} onChange={update('lovableProjectName')} />
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="supabaseProjectId">Supabase Project ID</Label>
-            <Input id="supabaseProjectId" placeholder="bv. ncumndxdxjscghiytxsl" value={config.supabaseProjectId} onChange={update('supabaseProjectId')} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lovableProjectName">Lovable Project Naam</Label>
-            <Input id="lovableProjectName" placeholder="bv. Loveke Streetwear" value={config.lovableProjectName} onChange={update('lovableProjectName')} />
-          </div>
-          <div className="sm:col-span-2">
-            <Button
-              className="w-full sm:w-auto"
-              disabled={!allFilled}
-              onClick={() => setGenerated(true)}
-            >
-              <Wand2 className="mr-2 h-4 w-4" />
-              Genereer Prompts →
-            </Button>
-          </div>
-          </div>
+
+          <Button
+            className="w-full sm:w-auto"
+            disabled={!allFilled}
+            onClick={() => setGenerated(true)}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Genereer Prompts →
+          </Button>
         </CardContent>
       </Card>
 
