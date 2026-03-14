@@ -27,13 +27,42 @@ export function useCategories() {
   });
 
   const createCategory = useMutation({
-    mutationFn: async (data: CategoryFormData) => {
+    mutationFn: async (formData: CategoryFormData) => {
       if (!currentTenant) throw new Error('No tenant selected');
+
+      let slug = formData.slug;
+
+      // Check if slug already exists for this tenant
+      const { data: existing } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (existing) {
+        // Find available slug with suffix
+        let suffix = 2;
+        let newSlug = `${slug}-${suffix}`;
+        while (suffix < 100) {
+          const { data: check } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('tenant_id', currentTenant.id)
+            .eq('slug', newSlug)
+            .maybeSingle();
+          if (!check) break;
+          suffix++;
+          newSlug = `${slug}-${suffix}`;
+        }
+        slug = newSlug;
+      }
 
       const { data: category, error } = await supabase
         .from('categories')
         .insert({
-          ...data,
+          ...formData,
+          slug,
           tenant_id: currentTenant.id,
         })
         .select()
@@ -47,7 +76,10 @@ export function useCategories() {
       toast({ title: 'Categorie aangemaakt', description: 'De categorie is succesvol toegevoegd.' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      const msg = error.message?.includes('23505')
+        ? 'Er bestaat al een categorie met deze slug. Kies een andere naam of slug.'
+        : error.message;
+      toast({ title: 'Fout', description: msg, variant: 'destructive' });
     },
   });
 
