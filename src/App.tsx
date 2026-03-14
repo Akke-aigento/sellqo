@@ -93,6 +93,7 @@ import SyncConflictsPage from "./pages/admin/SyncConflicts";
 import PaymentsPage from "./pages/admin/Payments";
 import HelpPage from "./pages/admin/Help";
 import PlatformDocs from "./pages/admin/PlatformDocs";
+import CustomFrontendConfigurator from "./pages/platform/CustomFrontendConfigurator";
 import ChannelFieldMappingAdmin from "./pages/admin/ChannelFieldMappingAdmin";
 
 import ShopHome from "./pages/storefront/ShopHome";
