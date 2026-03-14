@@ -291,8 +291,30 @@ export default function CustomFrontendConfigurator() {
                 <Label htmlFor="apiBaseUrl">API Base URL</Label>
                 <Input id="apiBaseUrl" value={config.apiBaseUrl} readOnly className="bg-muted cursor-not-allowed" />
                 <p className="text-xs text-muted-foreground">Altijd hetzelfde — wordt automatisch ingevuld.</p>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="storefrontApiKey">Storefront API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="storefrontApiKey"
+                    value={showApiKey ? config.storefrontApiKey : config.storefrontApiKey.replace(/[^(sk_live_)]/g, '•').substring(0, 20)}
+                    readOnly
+                    className="bg-muted cursor-not-allowed font-mono"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="shrink-0"
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gebruik in de <code className="bg-muted px-1 rounded text-xs">X-API-Key</code> header. Wordt opgehaald uit de database (alleen prefix zichtbaar).
+                </p>
               </div>
             </div>
+          </div>
           </div>
 
           {/* Sectie B: Lovable project gegevens */}
