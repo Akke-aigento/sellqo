@@ -3,8 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check, ClipboardCopy, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTenants } from '@/hooks/useTenants';
 
 interface Config {
   tenantSlug: string;
@@ -184,6 +186,7 @@ Route toevoegen in App.tsx:
 }
 
 export default function CustomFrontendConfigurator() {
+  const { tenants, isLoading: tenantsLoading } = useTenants();
   const [config, setConfig] = useState<Config>({
     tenantSlug: '',
     customDomain: '',
@@ -194,6 +197,19 @@ export default function CustomFrontendConfigurator() {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const allFilled = Object.values(config).every((v) => v.trim() !== '');
+
+  const handleTenantSelect = (tenantId: string) => {
+    const tenant = tenants.find((t) => t.id === tenantId);
+    if (tenant) {
+      setConfig((prev) => ({
+        ...prev,
+        tenantSlug: tenant.slug || '',
+        customDomain: tenant.custom_domain || '',
+        lovableProjectName: tenant.name || '',
+      }));
+      setGenerated(false);
+    }
+  };
 
   const handleCopy = async (text: string, idx: number) => {
     await navigator.clipboard.writeText(text);
@@ -222,7 +238,24 @@ export default function CustomFrontendConfigurator() {
           <CardTitle className="text-lg">Stap 1 — Project gegevens</CardTitle>
           <CardDescription>Vul alle velden in om de prompts te genereren.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Selecteer een tenant</Label>
+            <Select onValueChange={handleTenantSelect}>
+              <SelectTrigger>
+                <SelectValue placeholder={tenantsLoading ? 'Laden...' : 'Kies een tenant om velden in te vullen'} />
+              </SelectTrigger>
+              <SelectContent>
+                {tenants.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} ({t.slug})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Selecteer een tenant om slug, domein en naam automatisch in te vullen.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="tenantSlug">Tenant Slug</Label>
             <Input id="tenantSlug" placeholder="bv. loveke" value={config.tenantSlug} onChange={update('tenantSlug')} />
@@ -248,6 +281,7 @@ export default function CustomFrontendConfigurator() {
               <Wand2 className="mr-2 h-4 w-4" />
               Genereer Prompts →
             </Button>
+          </div>
           </div>
         </CardContent>
       </Card>
