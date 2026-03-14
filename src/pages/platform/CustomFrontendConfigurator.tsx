@@ -196,10 +196,10 @@ export default function CustomFrontendConfigurator() {
     supabaseProjectId: '',
     lovableProjectName: '',
   });
-  const [generated, setGenerated] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
+  const prompts = allFilled ? generatePrompts(config) : [];
 
   const handleTenantSelect = (tenantId: string) => {
     const tenant = tenants.find((t) => t.id === tenantId);
