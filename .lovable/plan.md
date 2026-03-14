@@ -1,67 +1,33 @@
 
 
-## SellQo Headless Commerce Integration
+## Custom Frontend Configurator — Plan
 
-### Overview
-Create a complete headless commerce SDK under `src/integrations/sellqo/` with a proxy edge function, typed API client, React Query hooks, and cart context.
+### What
+A new page at `/admin/platform/docs/custom-frontend` — a wizard where platform admins fill in project-specific details (tenant slug, domain, Supabase project ID, project name) and get 5 ready-to-copy prompts with all values pre-filled.
 
 ### Files to Create
 
-#### 1. Edge Function: `supabase/functions/sellqo-proxy/index.ts`
-Proxy middleware that forwards requests to the existing `storefront-api` edge function. Reads `X-Tenant-ID` header, passes it as query param or header to storefront-api. Handles CORS.
+**`src/pages/platform/CustomFrontendConfigurator.tsx`**
+- Step 1: Card with 4 input fields (tenantSlug, customDomain, supabaseProjectId, lovableProjectName) + "Genereer Prompts" button (disabled until all filled)
+- Step 2: 5 numbered prompt cards, each with title, full prompt text (placeholders replaced), and a copy button with "Gekopieerd!" feedback
+- Layout: scrollable single page with step 1 at top, step 2 below (visible after clicking generate)
+- Uses existing UI components (Card, Input, Button) + toast/sonner for copy feedback
 
-#### 2. `src/integrations/sellqo/client.ts`
-- `sellqoFetch(endpoint, options?)` — base fetch wrapper
-- Base URL: `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/sellqo-proxy`
-- Sends `X-Tenant-ID` header (from a configurable tenant slug)
-- Auto-parses JSON responses
+### Files to Edit
 
-#### 3. `src/integrations/sellqo/types.ts`
-TypeScript interfaces: `SellqoProduct`, `SellqoCartItem`, `SellqoCart`, `SellqoCollection`, `SellqoVariant`, `SellqoSettings`, `SellqoLegalPage`
+**`src/App.tsx`**
+- Import `CustomFrontendConfigurator`
+- Add route: `platform/docs/custom-frontend` under ProtectedRoute with `requirePlatformAdmin`
 
-#### 4. `src/integrations/sellqo/normalizer.ts`
-- `normalizeProduct(raw)` — maps API response fields to `SellqoProduct`
-- `normalizeCart(raw)` — maps API response to `SellqoCart`
+**`src/components/admin/sidebar/sidebarConfig.ts`**
+- Add child item under `platform-docs` or as separate item: `{ id: 'platform-custom-frontend', title: 'Custom Frontend', url: '/admin/platform/docs/custom-frontend', icon: Monitor }`
+- Convert `platform-docs` to have children array with the existing docs page + new configurator
 
-#### 5. `src/integrations/sellqo/api.ts`
-API modules using `sellqoFetch`:
-- `productsAPI.getAll(params?)`, `productsAPI.getOne(slug)`
-- `collectionsAPI.getAll()`
-- `cartAPI.get/create/addItem/updateItem/removeItem/applyDiscount/removeDiscount/checkout`
-- `settingsAPI.get()`, `legalAPI.get()`
-
-#### 6. `src/integrations/sellqo/hooks.ts`
-React Query hooks with proper cache keys:
-- `useProducts`, `useProduct`, `useCollections`, `useSettings`, `useLegalPages`
-- `useCart` (reads `cart_id` from localStorage)
-- `useAddToCart`, `useUpdateCartItem`, `useRemoveCartItem` (optimistic updates)
-- `useApplyDiscount`
-
-#### 7. `src/integrations/sellqo/CartContext.tsx`
-- `SellqoCartProvider` with `cart_id` persistence in localStorage
-- Validates cart_id is never "undefined"/"null"
-- Provides: `cart`, `addItem`, `updateItem`, `removeItem`, `clearCart`, `applyDiscount`, `removeDiscount`, `checkout`
-
-#### 8. `src/integrations/sellqo/index.ts`
-Barrel export for all modules.
-
-### File to Edit
-
-#### `src/App.tsx` (line 108)
-Update QueryClient config:
-```typescript
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
-  },
-});
-```
-
-### Edge Function Architecture
-The `sellqo-proxy` will internally call the existing `storefront-api` using `SUPABASE_URL` + service role key, forwarding the tenant context. This avoids CORS issues and keeps the storefront-api's auth model intact.
+### Prompt Templates
+The 5 prompts will be stored as template functions that accept the config object and return the full prompt string with all `{placeholders}` replaced. Each covers:
+1. SellQo integration SDK (client, types, api, hooks, CartContext)
+2. sellqo-proxy edge function
+3. Checkout flow + /bedankt page
+4. Footer with legal/social data
+5. Contact page
 
