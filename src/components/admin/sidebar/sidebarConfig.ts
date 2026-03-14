@@ -192,7 +192,16 @@ const platformItems: NavItem[] = [
   { id: 'platform-changelog', title: 'Changelog', url: '/admin/platform/changelog', icon: ChangelogIcon },
   { id: 'platform-health', title: 'Health Monitor', url: '/admin/platform/health', icon: Activity },
   { id: 'platform-legal', title: 'Juridisch', url: '/admin/platform/legal', icon: LegalIcon },
-  { id: 'platform-docs', title: 'Documentatie', url: '/admin/platform/docs', icon: BookOpen },
+  {
+    id: 'platform-docs',
+    title: 'Documentatie',
+    url: '/admin/platform/docs',
+    icon: BookOpen,
+    children: [
+      { id: 'platform-docs-overview', title: 'Overzicht', url: '/admin/platform/docs' },
+      { id: 'platform-custom-frontend', title: 'Custom Frontend', url: '/admin/platform/docs/custom-frontend' },
+    ],
+  },
 ];
 
 export const sidebarGroups: NavGroup[] = [

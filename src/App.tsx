@@ -261,6 +261,11 @@ const App = () => (
                   <PlatformDocs />
                 </ProtectedRoute>
               } />
+              <Route path="platform/docs/custom-frontend" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <CustomFrontendConfigurator />
+                </ProtectedRoute>
+              } />
               <Route path="platform/field-mappings" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <ChannelFieldMappingAdmin />
