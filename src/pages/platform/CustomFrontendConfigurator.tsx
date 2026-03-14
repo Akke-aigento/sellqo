@@ -4,14 +4,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ClipboardCopy, Wand2 } from 'lucide-react';
+import { Check, ClipboardCopy, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTenants } from '@/hooks/useTenants';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Config {
   tenantId: string;
   frontendUrl: string;
   apiBaseUrl: string;
+  storefrontApiKey: string;
   supabaseProjectId: string;
   lovableProjectName: string;
 }
@@ -193,24 +195,38 @@ export default function CustomFrontendConfigurator() {
     tenantId: '',
     frontendUrl: '',
     apiBaseUrl: API_BASE_URL,
+    storefrontApiKey: '',
     supabaseProjectId: '',
     lovableProjectName: '',
   });
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
   const prompts = allFilled ? generatePrompts(config) : [];
 
-  const handleTenantSelect = (tenantId: string) => {
+  const handleTenantSelect = async (tenantId: string) => {
     const tenant = tenants.find((t) => t.id === tenantId);
     if (tenant) {
+      // Fetch storefront API key prefix
+      const { data: apiKeyData } = await supabase
+        .from('storefront_api_keys')
+        .select('key_prefix')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       setConfig((prev) => ({
         ...prev,
         tenantId: tenant.slug || '',
         frontendUrl: tenant.custom_domain || '',
         apiBaseUrl: API_BASE_URL,
+        storefrontApiKey: apiKeyData?.key_prefix ? `${apiKeyData.key_prefix}••••••••••••` : '(geen key gevonden)',
         lovableProjectName: tenant.name || '',
       }));
+      setShowApiKey(false);
     }
   };
 
@@ -275,8 +291,30 @@ export default function CustomFrontendConfigurator() {
                 <Label htmlFor="apiBaseUrl">API Base URL</Label>
                 <Input id="apiBaseUrl" value={config.apiBaseUrl} readOnly className="bg-muted cursor-not-allowed" />
                 <p className="text-xs text-muted-foreground">Altijd hetzelfde — wordt automatisch ingevuld.</p>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="storefrontApiKey">Storefront API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="storefrontApiKey"
+                    value={showApiKey ? config.storefrontApiKey : config.storefrontApiKey.replace(/[^(sk_live_)]/g, '•').substring(0, 20)}
+                    readOnly
+                    className="bg-muted cursor-not-allowed font-mono"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="shrink-0"
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gebruik in de <code className="bg-muted px-1 rounded text-xs">X-API-Key</code> header. Wordt opgehaald uit de database (alleen prefix zichtbaar).
+                </p>
               </div>
             </div>
+          </div>
           </div>
 
           {/* Sectie B: Lovable project gegevens */}
