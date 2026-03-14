@@ -96,7 +96,7 @@ Deze fungeert als middleware tussen de frontend en de SellQo storefront-api.
 De proxy moet:
 1. CORS headers toevoegen (OPTIONS preflight + response headers)
 2. Het pad na /sellqo-proxy/ doorsturen naar de storefront-api edge function
-3. De X-Tenant-ID header doorsturen (standaard: '${c.tenantSlug}')
+3. De X-Tenant-ID header doorsturen (standaard: '${c.tenantId}')
 4. De Supabase service role key toevoegen als Authorization header
 5. De response van storefront-api ongewijzigd doorsturen naar de frontend
 
