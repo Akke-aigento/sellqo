@@ -211,7 +211,6 @@ export default function CustomFrontendConfigurator() {
         apiBaseUrl: API_BASE_URL,
         lovableProjectName: tenant.name || '',
       }));
-      setGenerated(false);
     }
   };
 
