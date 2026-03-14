@@ -116,8 +116,8 @@ const response = await sellqoFetch('/checkout', {
   method: 'POST',
   body: JSON.stringify({
     cart_id: cartId,
-    success_url: '${c.customDomain}/bedankt?cart_id=' + cartId,
-    cancel_url: '${c.customDomain}/shop',
+    success_url: '${c.frontendUrl}/bedankt?cart_id=' + cartId,
+    cancel_url: '${c.frontendUrl}/shop',
   }),
 }).then(r => r.json());
 
