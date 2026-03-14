@@ -223,10 +223,7 @@ export default function CustomFrontendConfigurator() {
 
   const update = (key: keyof Config) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfig((prev) => ({ ...prev, [key]: e.target.value }));
-    setGenerated(false);
   };
-
-  const prompts = generated ? generatePrompts(config) : [];
 
   return (
     <div className="space-y-8 max-w-4xl">
