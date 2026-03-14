@@ -281,7 +281,7 @@ async function updateSingleOrder(
       .from("shipping_labels")
       .select("id, external_id")
       .eq("order_id", orderId)
-      .eq("label_type", "bol_vvb")
+      .eq("provider", "bol_vvb")
       .not("external_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(1)
