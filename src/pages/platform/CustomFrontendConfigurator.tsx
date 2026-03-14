@@ -9,8 +9,9 @@ import { toast } from 'sonner';
 import { useTenants } from '@/hooks/useTenants';
 
 interface Config {
-  tenantSlug: string;
-  customDomain: string;
+  tenantId: string;
+  frontendUrl: string;
+  apiBaseUrl: string;
   supabaseProjectId: string;
   lovableProjectName: string;
 }
