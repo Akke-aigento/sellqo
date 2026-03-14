@@ -1,30 +1,60 @@
 
 
-## Velden afstemmen op SellQo "Verbinding & API" pagina
+## Analysis & Fixes
 
-### Probleem
-De huidige velden (Tenant Slug, Custom Domein, Supabase Project ID, Lovable Project Naam) komen niet overeen met wat de gebruiker ziet in de SellQo admin "Verbinding & API" pagina. Daar staan: **Frontend URL**, **API Base URL**, **Storefront API Key**, **Tenant ID**, **Webhook URL**.
+### Issue 1: A6 Cropping Is Wrong
 
-Het veld "Supabase Project ID" is verwarrend — dat refereert naar het *externe* Lovable project, niet naar iets in SellQo.
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-### Oplossing
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-Herstructureer de configurator in **twee secties**:
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
+```
 
-**Sectie A — SellQo gegevens** (auto-filled via tenant selector):
-- **Tenant ID** (was: Tenant Slug) — label matcht SellQo admin
-- **Frontend URL** (was: Custom Domein) — label matcht SellQo admin
-- **API Base URL** — nieuw veld, auto-filled als `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/storefront-api` (altijd hetzelfde, read-only)
-- **Storefront API Key** — nieuw optioneel veld, prefix zichtbaar uit `storefront_api_keys` tabel
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-**Sectie B — Lovable project gegevens** (handmatig):
-- **Lovable Cloud Project ID** (was: Supabase Project ID) — met hulptekst: "Te vinden in je Lovable project → instellingen. Voorbeeld: jpnacppdutjnasmuikgp"
-- **Project Naam** (was: Lovable Project Naam) — auto-filled met tenant naam maar bewerkbaar
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-### Wijziging: `src/pages/platform/CustomFrontendConfigurator.tsx`
-1. Config interface uitbreiden met `apiBaseUrl` (auto-filled, read-only)
-2. Labels en descriptions aanpassen naar SellQo terminologie
-3. Twee visuele groepen maken (SellQo gegevens + Lovable gegevens)
-4. `handleTenantSelect` vult ook `apiBaseUrl` automatisch in
-5. `allFilled` check aanpassen — `apiBaseUrl` altijd ingevuld, `storefrontApiKey` optioneel
+### Issue 2: Auto-Accept Does Nothing at Bol.com
+
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+
+### Summary
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 

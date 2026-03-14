@@ -9,8 +9,9 @@ import { toast } from 'sonner';
 import { useTenants } from '@/hooks/useTenants';
 
 interface Config {
-  tenantSlug: string;
-  customDomain: string;
+  tenantId: string;
+  frontendUrl: string;
+  apiBaseUrl: string;
   supabaseProjectId: string;
   lovableProjectName: string;
 }
@@ -28,7 +29,7 @@ MAAK AAN:
 
 1. src/integrations/sellqo/client.ts
 const SELLQO_PROXY_URL = 'https://${c.supabaseProjectId}.supabase.co/functions/v1/sellqo-proxy';
-const TENANT_ID = '${c.tenantSlug}';
+const TENANT_ID = '${c.tenantId}';
 
 export async function sellqoFetch(endpoint: string, options?: RequestInit) {
   return fetch(\`\${SELLQO_PROXY_URL}\${endpoint}\`, {
@@ -95,7 +96,7 @@ Deze fungeert als middleware tussen de frontend en de SellQo storefront-api.
 De proxy moet:
 1. CORS headers toevoegen (OPTIONS preflight + response headers)
 2. Het pad na /sellqo-proxy/ doorsturen naar de storefront-api edge function
-3. De X-Tenant-ID header doorsturen (standaard: '${c.tenantSlug}')
+3. De X-Tenant-ID header doorsturen (standaard: '${c.tenantId}')
 4. De Supabase service role key toevoegen als Authorization header
 5. De response van storefront-api ongewijzigd doorsturen naar de frontend
 
@@ -103,7 +104,7 @@ Base URL storefront-api: Deno.env.get('SUPABASE_URL') + '/functions/v1/storefron
 Authorization: Bearer \${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}
 
 Voorbeeld: Frontend stuurt GET naar /sellqo-proxy/products
-→ Proxy stuurt GET naar {SUPABASE_URL}/functions/v1/storefront-api/products?tenant_id=${c.tenantSlug}`,
+→ Proxy stuurt GET naar {SUPABASE_URL}/functions/v1/storefront-api/products?tenant_id=${c.tenantId}`,
     },
     {
       title: 'Prompt 3: Checkout Flow + /bedankt pagina',
@@ -115,8 +116,8 @@ const response = await sellqoFetch('/checkout', {
   method: 'POST',
   body: JSON.stringify({
     cart_id: cartId,
-    success_url: '${c.customDomain}/bedankt?cart_id=' + cartId,
-    cancel_url: '${c.customDomain}/shop',
+    success_url: '${c.frontendUrl}/bedankt?cart_id=' + cartId,
+    cancel_url: '${c.frontendUrl}/shop',
   }),
 }).then(r => r.json());
 
@@ -141,7 +142,7 @@ Juridische links:
 sellqoFetch('/legal').then(r => r.json()).then(d => setLegalPages(d?.data || []))
 
 Render elke pagina als:
-<a href={\`\${page.url}?from=${encodeURIComponent(c.customDomain)}\`} target="_blank" rel="noopener noreferrer">
+<a href={\`\${page.url}?from=${encodeURIComponent(c.frontendUrl)}\`} target="_blank" rel="noopener noreferrer">
   {page.title}
 </a>
 
@@ -187,24 +188,27 @@ Route toevoegen in App.tsx:
 
 export default function CustomFrontendConfigurator() {
   const { tenants, isLoading: tenantsLoading } = useTenants();
+  const API_BASE_URL = 'https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/storefront-api';
   const [config, setConfig] = useState<Config>({
-    tenantSlug: '',
-    customDomain: '',
+    tenantId: '',
+    frontendUrl: '',
+    apiBaseUrl: API_BASE_URL,
     supabaseProjectId: '',
     lovableProjectName: '',
   });
   const [generated, setGenerated] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
-  const allFilled = Object.values(config).every((v) => v.trim() !== '');
+  const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
 
   const handleTenantSelect = (tenantId: string) => {
     const tenant = tenants.find((t) => t.id === tenantId);
     if (tenant) {
       setConfig((prev) => ({
         ...prev,
-        tenantSlug: tenant.slug || '',
-        customDomain: tenant.custom_domain || '',
+        tenantId: tenant.slug || '',
+        frontendUrl: tenant.custom_domain || '',
+        apiBaseUrl: API_BASE_URL,
         lovableProjectName: tenant.name || '',
       }));
       setGenerated(false);
@@ -218,8 +222,10 @@ export default function CustomFrontendConfigurator() {
     setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  const update = (key: keyof Config) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (key: keyof Config) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfig((prev) => ({ ...prev, [key]: e.target.value }));
+    setGenerated(false);
+  };
 
   const prompts = generated ? generatePrompts(config) : [];
 
@@ -253,36 +259,54 @@ export default function CustomFrontendConfigurator() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Selecteer een tenant om slug, domein en naam automatisch in te vullen.</p>
+            <p className="text-xs text-muted-foreground">Selecteer een tenant om de SellQo gegevens automatisch in te vullen.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="tenantSlug">Tenant Slug</Label>
-            <Input id="tenantSlug" placeholder="bv. loveke" value={config.tenantSlug} onChange={update('tenantSlug')} />
+
+          {/* Sectie A: SellQo gegevens */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">SellQo gegevens</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="tenantId">Tenant ID</Label>
+                <Input id="tenantId" placeholder="bv. loveke" value={config.tenantId} onChange={update('tenantId')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="frontendUrl">Frontend URL</Label>
+                <Input id="frontendUrl" placeholder="https://loveke.be" value={config.frontendUrl} onChange={update('frontendUrl')} />
+                <p className="text-xs text-muted-foreground">Optioneel — het custom domein van de webshop.</p>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="apiBaseUrl">API Base URL</Label>
+                <Input id="apiBaseUrl" value={config.apiBaseUrl} readOnly className="bg-muted cursor-not-allowed" />
+                <p className="text-xs text-muted-foreground">Altijd hetzelfde — wordt automatisch ingevuld.</p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="customDomain">Custom Domein</Label>
-            <Input id="customDomain" placeholder="https://loveke.be" value={config.customDomain} onChange={update('customDomain')} />
+
+          {/* Sectie B: Lovable project gegevens */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lovable project gegevens</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="supabaseProjectId">Lovable Cloud Project ID</Label>
+                <Input id="supabaseProjectId" placeholder="bv. jpnacppdutjnasmuikgp" value={config.supabaseProjectId} onChange={update('supabaseProjectId')} />
+                <p className="text-xs text-muted-foreground">Te vinden in je Lovable project → Instellingen. Voorbeeld: jpnacppdutjnasmuikgp</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lovableProjectName">Project Naam</Label>
+                <Input id="lovableProjectName" placeholder="bv. Loveke Streetwear" value={config.lovableProjectName} onChange={update('lovableProjectName')} />
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="supabaseProjectId">Supabase Project ID</Label>
-            <Input id="supabaseProjectId" placeholder="bv. ncumndxdxjscghiytxsl" value={config.supabaseProjectId} onChange={update('supabaseProjectId')} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lovableProjectName">Lovable Project Naam</Label>
-            <Input id="lovableProjectName" placeholder="bv. Loveke Streetwear" value={config.lovableProjectName} onChange={update('lovableProjectName')} />
-          </div>
-          <div className="sm:col-span-2">
-            <Button
-              className="w-full sm:w-auto"
-              disabled={!allFilled}
-              onClick={() => setGenerated(true)}
-            >
-              <Wand2 className="mr-2 h-4 w-4" />
-              Genereer Prompts →
-            </Button>
-          </div>
-          </div>
+
+          <Button
+            className="w-full sm:w-auto"
+            disabled={!allFilled}
+            onClick={() => setGenerated(true)}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Genereer Prompts →
+          </Button>
         </CardContent>
       </Card>
 
