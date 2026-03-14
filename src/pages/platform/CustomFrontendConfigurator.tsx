@@ -104,7 +104,7 @@ Base URL storefront-api: Deno.env.get('SUPABASE_URL') + '/functions/v1/storefron
 Authorization: Bearer \${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}
 
 Voorbeeld: Frontend stuurt GET naar /sellqo-proxy/products
-→ Proxy stuurt GET naar {SUPABASE_URL}/functions/v1/storefront-api/products?tenant_id=${c.tenantId}\`,
+→ Proxy stuurt GET naar {SUPABASE_URL}/functions/v1/storefront-api/products?tenant_id=${c.tenantId}`,
     },
     {
       title: 'Prompt 3: Checkout Flow + /bedankt pagina',
