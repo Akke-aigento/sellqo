@@ -188,24 +188,27 @@ Route toevoegen in App.tsx:
 
 export default function CustomFrontendConfigurator() {
   const { tenants, isLoading: tenantsLoading } = useTenants();
+  const API_BASE_URL = 'https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/storefront-api';
   const [config, setConfig] = useState<Config>({
-    tenantSlug: '',
-    customDomain: '',
+    tenantId: '',
+    frontendUrl: '',
+    apiBaseUrl: API_BASE_URL,
     supabaseProjectId: '',
     lovableProjectName: '',
   });
   const [generated, setGenerated] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
-  const allFilled = Object.values(config).every((v) => v.trim() !== '');
+  const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
 
   const handleTenantSelect = (tenantId: string) => {
     const tenant = tenants.find((t) => t.id === tenantId);
     if (tenant) {
       setConfig((prev) => ({
         ...prev,
-        tenantSlug: tenant.slug || '',
-        customDomain: tenant.custom_domain || '',
+        tenantId: tenant.slug || '',
+        frontendUrl: tenant.custom_domain || '',
+        apiBaseUrl: API_BASE_URL,
         lovableProjectName: tenant.name || '',
       }));
       setGenerated(false);
