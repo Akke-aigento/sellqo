@@ -282,6 +282,7 @@ export default function CustomFrontendConfigurator() {
               Genereer Prompts →
             </Button>
           </div>
+          </div>
         </CardContent>
       </Card>
 
