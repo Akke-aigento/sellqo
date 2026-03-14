@@ -211,7 +211,7 @@ export default function CustomFrontendConfigurator() {
       // Fetch storefront API key prefix
       const { data: apiKeyData } = await supabase
         .from('storefront_api_keys')
-        .select('display_prefix')
+        .select('key_prefix')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
@@ -223,7 +223,7 @@ export default function CustomFrontendConfigurator() {
         tenantId: tenant.slug || '',
         frontendUrl: tenant.custom_domain || '',
         apiBaseUrl: API_BASE_URL,
-        storefrontApiKey: apiKeyData?.display_prefix ? `${apiKeyData.display_prefix}••••••••••••` : '',
+        storefrontApiKey: apiKeyData?.key_prefix ? `${apiKeyData.key_prefix}••••••••••••` : '(geen key gevonden)',
         lovableProjectName: tenant.name || '',
       }));
       setShowApiKey(false);
