@@ -13,6 +13,7 @@ interface Config {
   tenantId: string;
   frontendUrl: string;
   apiBaseUrl: string;
+  storefrontApiKey: string;
   supabaseProjectId: string;
   lovableProjectName: string;
 }
