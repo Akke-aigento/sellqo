@@ -222,8 +222,10 @@ export default function CustomFrontendConfigurator() {
     setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  const update = (key: keyof Config) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (key: keyof Config) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfig((prev) => ({ ...prev, [key]: e.target.value }));
+    setGenerated(false);
+  };
 
   const prompts = generated ? generatePrompts(config) : [];
 
