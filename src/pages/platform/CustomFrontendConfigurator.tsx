@@ -186,6 +186,7 @@ Route toevoegen in App.tsx:
 }
 
 export default function CustomFrontendConfigurator() {
+  const { tenants, isLoading: tenantsLoading } = useTenants();
   const [config, setConfig] = useState<Config>({
     tenantSlug: '',
     customDomain: '',
@@ -196,6 +197,19 @@ export default function CustomFrontendConfigurator() {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const allFilled = Object.values(config).every((v) => v.trim() !== '');
+
+  const handleTenantSelect = (tenantId: string) => {
+    const tenant = tenants.find((t) => t.id === tenantId);
+    if (tenant) {
+      setConfig((prev) => ({
+        ...prev,
+        tenantSlug: tenant.slug || '',
+        customDomain: tenant.custom_domain || '',
+        lovableProjectName: tenant.name || '',
+      }));
+      setGenerated(false);
+    }
+  };
 
   const handleCopy = async (text: string, idx: number) => {
     await navigator.clipboard.writeText(text);
