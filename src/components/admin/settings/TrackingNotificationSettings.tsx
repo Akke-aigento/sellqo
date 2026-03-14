@@ -22,7 +22,7 @@ const defaultSettings: TrackingSettings = {
   notify_on_delivered: false,
   notify_on_exception: true,
   notify_on_out_for_delivery: false,
-  auto_poll_17track: false,
+  auto_poll_17track: true,
 };
 
 export function TrackingNotificationSettings() {
