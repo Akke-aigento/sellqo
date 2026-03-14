@@ -83,10 +83,15 @@ export function useCategories() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-categories'] });
       toast({ title: 'Categorie verwijderd' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      const msg = error.message?.includes('23505')
+        ? 'Kan niet verwijderen: er bestaat al een categorie met dezelfde slug.'
+        : error.message;
+      toast({ title: 'Fout', description: msg, variant: 'destructive' });
     },
   });
 
@@ -164,6 +169,8 @@ export function useCategories() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-categories'] });
       toast({ title: 'Categorieën verwijderd' });
     },
     onError: (error: Error) => {
