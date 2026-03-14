@@ -294,20 +294,11 @@ export default function CustomFrontendConfigurator() {
               </div>
             </div>
           </div>
-
-          <Button
-            className="w-full sm:w-auto"
-            disabled={!allFilled}
-            onClick={() => setGenerated(true)}
-          >
-            <Wand2 className="mr-2 h-4 w-4" />
-            Genereer Prompts →
-          </Button>
         </CardContent>
       </Card>
 
       {/* Step 2: Generated Prompts */}
-      {generated && (
+      {allFilled && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Stap 2 — Kopieer de prompts</h2>
           {prompts.map((p, i) => (
