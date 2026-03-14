@@ -195,10 +195,12 @@ export default function CustomFrontendConfigurator() {
     tenantId: '',
     frontendUrl: '',
     apiBaseUrl: API_BASE_URL,
+    storefrontApiKey: '',
     supabaseProjectId: '',
     lovableProjectName: '',
   });
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const allFilled = config.tenantId.trim() !== '' && config.supabaseProjectId.trim() !== '' && config.lovableProjectName.trim() !== '';
   const prompts = allFilled ? generatePrompts(config) : [];
