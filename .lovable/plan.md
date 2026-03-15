@@ -1,55 +1,60 @@
 
 
-## Twee problemen gevonden
+## Analysis & Fixes
 
-### Probleem 1: Dubbele e-mail bij nieuwe bestelling
+### Issue 1: A6 Cropping Is Wrong
 
-Er zijn **twee database triggers** op de `orders` tabel die allebei afgaan wanneer `payment_status` naar `'paid'` verandert:
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-1. **`handle_order_notification`** — stuurt een `order_new` notificatie (bij INSERT met paid, of UPDATE naar paid)
-2. **`handle_payment_notification`** — stuurt een `order_paid` notificatie (bij UPDATE van payment_status)
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-Beide inserts in de `notifications` tabel triggeren vervolgens `notify_email_on_notification`, die het `create-notification` edge function aanroept voor e-mailverzending. Resultaat: **2 e-mails** ("Nieuwe bestelling" + "Betaling ontvangen") voor dezelfde bestelling.
-
-**Oplossing**: De `handle_payment_notification` trigger moet de `'paid'` case overslaan, aangezien `handle_order_notification` dit al afhandelt. Alleen `'failed'` en `'refunded'` blijven relevant.
-
-```sql
--- In handle_payment_notification: verwijder de WHEN 'paid' case
--- Alleen 'failed' en 'refunded' behouden
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
 ```
 
-### Probleem 2: Klanten krijgen GEEN automatische Track & Trace e-mail
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-De huidige flow:
-- Tracking wordt ingevuld (handmatig of via Bol.com sync)
-- De **merchant** krijgt een in-app notificatie (`order_shipped`)
-- Maar er is **geen automatische klant-e-mail** met de trackingcode
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-Klant-e-mails worden alleen verstuurd als een admin handmatig "Klant informeren" aanvinkt in het tracking-formulier (`useOrderShipping` hook met `notifyCustomer=true`). Er is geen trigger die automatisch een e-mail naar de klant stuurt wanneer tracking wordt toegevoegd.
+### Issue 2: Auto-Accept Does Nothing at Bol.com
 
-**Oplossing**: Een nieuwe database trigger aanmaken die detecteert wanneer `tracking_number` wordt ingevuld op een order, en dan automatisch een klant-e-mail verstuurt via `send-customer-message`.
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
 
-### Technische wijzigingen
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
 
-**1. Database migratie — Fix dubbele notificatie**
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
 
-Pas `handle_payment_notification` aan: verwijder de `WHEN 'paid'` case zodat alleen `failed` en `refunded` notificaties overblijven.
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
 
-**2. Database migratie — Auto Track & Trace e-mail naar klant**
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
 
-Nieuwe trigger functie `auto_send_tracking_email`:
-- Triggered op UPDATE van `orders` tabel
-- Conditie: `tracking_number` verandert van NULL naar een waarde, EN `customer_email` is ingevuld
-- Roept `send-customer-message` edge function aan via `pg_net` met een tracking e-mail template
-- Bevat carrier naam, tracknummer, en tracking URL
-- Respecteert de `customer_communication_settings` tabel (als die bestaat) voor opt-out
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
 
-**3. Edge function update niet nodig** — `send-customer-message` bestaat al en ondersteunt de benodigde functionaliteit.
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
 
-### Samenvatting
+### Summary
 
-| Wijziging | Doel |
-|-----------|------|
-| `handle_payment_notification`: verwijder `'paid'` case | Fix dubbele e-mail bij nieuwe bestelling |
-| Nieuwe trigger `auto_send_tracking_email` | Automatische klant-e-mail bij tracking update |
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
 
