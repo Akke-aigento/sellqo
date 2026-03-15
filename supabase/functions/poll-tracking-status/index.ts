@@ -31,14 +31,25 @@ function detectCarrier(trackingNumber: string, existingCarrier?: string | null):
   // bpost: starts with CD or LX
   if (/^(CD|LX)/.test(tn)) return "bpost";
 
+  // bpost barcode: 24+ digits starting with 3232
+  if (/^3232\d{20,}$/.test(tn)) return "bpost";
+
   // DPD: starts with 00340 or is exactly 14-15 digits
   if (/^00340/.test(tn) || /^\d{14,15}$/.test(tn)) return "dpd";
 
   // GLS: starts with GLS or 8-11 pure digits (but not caught by DPD)
   if (/^GLS/.test(tn) || /^\d{8,11}$/.test(tn)) return "gls";
 
-  // Fall back to existing carrier if set
-  if (existingCarrier) return existingCarrier.toLowerCase();
+  // Normalize existing carrier as fallback
+  if (existingCarrier) {
+    const norm = existingCarrier.toLowerCase().replace(/[_-]/g, '');
+    if (norm.includes('bpost')) return 'bpost';
+    if (norm.includes('postnl') || norm === 'tnt') return 'postnl';
+    if (norm.includes('dhl')) return 'dhl';
+    if (norm.includes('dpd')) return 'dpd';
+    if (norm.includes('gls')) return 'gls';
+    return existingCarrier.toLowerCase().replace(/[_-]/g, '');
+  }
 
   return null;
 }
