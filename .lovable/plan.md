@@ -1,60 +1,78 @@
 
 
-## Analysis & Fixes
+## Probleem: Track & Trace status wordt NIET automatisch bijgewerkt
 
-### Issue 1: A6 Cropping Is Wrong
+### Bewijs uit de database
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+Alle 8 shipped orders hebben:
+- `tracking_status`: **NULL** (nooit gepolled)
+- `last_tracking_check`: **NULL** (nooit gecheckt)
+- Carrier opgeslagen als `BPOST_BE` (uppercase) — maar de polling functie zoekt `bpost` (lowercase)
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+De `shipping_status_updates` tabel is **volledig leeg** — er is nog nooit een tracking update binnengekomen.
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+### Twee oorzaken
+
+**1. Carrier mismatch (hoofdoorzaak)**
+
+De Bol.com import slaat carriers op als `BPOST_BE`, maar de `detectCarrier()` functie in `poll-tracking-status` verwacht lowercase `bpost`. De `normalizeCarrier()` in de webhook kent `bpost` maar niet `BPOST_BE`. Het resultaat: carrier wordt niet herkend → polling wordt overgeslagen.
+
+**2. De cron job draait mogelijk niet correct**
+
+De cron job bestaat (`poll-tracking-status-every-30min`), maar er zijn **geen logs** en **geen resultaten**. De functie lijkt óf niet aangeroepen te worden, óf direct te falen zonder output.
+
+### Oplossing
+
+**1. Carrier normalisatie fixen in `poll-tracking-status/index.ts`**
+
+De `detectCarrier()` functie moet carrier-aliassen normaliseren vóór matching:
+
+```typescript
+function detectCarrier(trackingNumber: string, existingCarrier?: string | null): string | null {
+  const tn = (trackingNumber || "").trim().toUpperCase();
+  
+  // Pattern-based detection first
+  if (/^3S/.test(tn)) return "postnl";
+  if (/^JD\d{16,}$/.test(tn) || /^JVGL/.test(tn)) return "dhl";
+  if (/^(CD|LX)/.test(tn)) return "bpost";  // ← dit matcht CD-nummers correct
+  if (/^00340/.test(tn) || /^\d{14,15}$/.test(tn)) return "dpd";
+  if (/^GLS/.test(tn) || /^\d{8,11}$/.test(tn)) return "gls";
+  
+  // Normalize existing carrier as fallback
+  if (existingCarrier) {
+    const norm = existingCarrier.toLowerCase().replace(/[_-]/g, '');
+    if (norm.includes('bpost')) return 'bpost';
+    if (norm.includes('postnl') || norm === 'tnt') return 'postnl';
+    if (norm.includes('dhl')) return 'dhl';
+    if (norm.includes('dpd')) return 'dpd';
+    if (norm.includes('gls')) return 'gls';
+    return existingCarrier.toLowerCase();
+  }
+  
+  return null;
+}
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+Dit lost het probleem op voor tracking nummers die al met `CD` beginnen (dat matched het `bpost` patroon). Maar voor nummers als `323211629159997110533030` (pure cijfers, 24 lang) die door Bol.com als `BPOST_BE` worden aangeleverd, is de fallback-normalisatie essentieel.
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+**2. Tracking nummers met pure cijfers: bpost 24-digit patroon toevoegen**
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+bpost barcode-nummers zijn 24+ cijfers. Toevoegen aan pattern detection:
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+```typescript
+// bpost barcode: 24+ digits starting with 3232
+if (/^3232\d{20,}$/.test(tn)) return "bpost";
+```
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+**3. Edge function herdeploy triggeren**
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+De edge function moet opnieuw gedeployed worden met de carrier-fixes. Dit gebeurt automatisch bij code-wijziging.
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
+### Samenvatting wijzigingen
 
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+| Bestand | Wijziging |
+|---------|-----------|
+| `supabase/functions/poll-tracking-status/index.ts` | Carrier normalisatie uitbreiden: `BPOST_BE` → `bpost`, bpost 24-digit barcode patroon, betere fallback matching |
 
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+Na deze fix zullen alle bestaande shipped orders bij de volgende poll-cyclus (elke 30 min) automatisch hun tracking status ophalen en bijwerken naar `in_transit`, `delivered`, etc.
 
