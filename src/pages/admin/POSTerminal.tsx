@@ -185,6 +185,30 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
   const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Fullscreen API
+  useEffect(() => {
+    const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleChange);
+    return () => document.removeEventListener('fullscreenchange', handleChange);
+  }, []);
+
+  // Auto-fullscreen via URL param
+  useEffect(() => {
+    if (searchParams.get('fullscreen') === '1' && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, [searchParams]);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
 
   // Stripe reader init
   useEffect(() => { listReaders(); }, [listReaders]);
