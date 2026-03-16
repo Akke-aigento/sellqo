@@ -308,3 +308,6 @@ verify_jwt = false
 
 [functions.update-bol-tracking]
 verify_jwt = false
+
+[functions.poll-tracking-status]
+verify_jwt = false

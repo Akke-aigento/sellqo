@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-console.log("POLL-TRACKING-STATUS v4 CARRIER-NORMALIZATION DEPLOYED");
+console.log("POLL-TRACKING-STATUS v5 PARALLEL-BATCH DEPLOYED");
 
 // ── Status labels (Dutch) ──
 const STATUS_LABELS: Record<string, string> = {
@@ -22,25 +21,13 @@ const STATUS_LABELS: Record<string, string> = {
 function detectCarrier(trackingNumber: string, existingCarrier?: string | null): string | null {
   const tn = (trackingNumber || "").trim().toUpperCase();
 
-  // PostNL: starts with 3S
   if (/^3S/.test(tn)) return "postnl";
-
-  // DHL: starts with JD + 18 digits total, or JVGL
   if (/^JD\d{16,}$/.test(tn) || /^JVGL/.test(tn)) return "dhl";
-
-  // bpost: starts with CD or LX
   if (/^(CD|LX)/.test(tn)) return "bpost";
-
-  // bpost barcode: 24+ digits starting with 3232
   if (/^3232\d{20,}$/.test(tn)) return "bpost";
-
-  // DPD: starts with 00340 or is exactly 14-15 digits
   if (/^00340/.test(tn) || /^\d{14,15}$/.test(tn)) return "dpd";
-
-  // GLS: starts with GLS or 8-11 pure digits (but not caught by DPD)
   if (/^GLS/.test(tn) || /^\d{8,11}$/.test(tn)) return "gls";
 
-  // Normalize existing carrier as fallback
   if (existingCarrier) {
     const norm = existingCarrier.toLowerCase().replace(/[_-]/g, '');
     if (norm.includes('bpost')) return 'bpost';
@@ -57,14 +44,12 @@ function detectCarrier(trackingNumber: string, existingCarrier?: string | null):
 // ── Normalize status from various carrier responses ──
 function normalizeStatus(raw: string): string {
   const s = (raw || "").toLowerCase();
-
   if (/deliver|bezorgd|zugestellt|afgeleverd/.test(s)) return "delivered";
   if (/out.for.delivery|in.bezorging|onderweg.naar/.test(s)) return "out_for_delivery";
   if (/transit|onderweg|vervoer|sorting|gesorteerd|hub|depot|transport/.test(s)) return "in_transit";
   if (/exception|problem|retour|return|damage|schade|refused|geweigerd|mislukt|failed/.test(s)) return "exception";
   if (/picked.up|opgehaald|aangemeld|registered|accepted|aangenomen|collected/.test(s)) return "in_transit";
   if (/not.found|geen.info|unknown/.test(s)) return "not_found";
-
   return "in_transit";
 }
 
@@ -78,22 +63,16 @@ async function fetchPostNL(trackingNumber: string): Promise<{ status: string; de
     );
     if (!res.ok) return null;
     const data = await res.json();
-
-    // PostNL returns colli array
     const colli = data?.colli?.[trackingNumber] || data?.colli?.[0];
     if (!colli) return null;
-
     const lastEvent = colli.statusPhase?.toString() || "";
     const status = colli.status?.toString() || "";
-
-    // PostNL statusPhase: 1=Aangemeld, 2=Gesorteerd, 3=In bezorging, 4=Bezorgd, 99=Probleem
     let normalized = "in_transit";
     const phase = parseInt(lastEvent);
     if (phase === 4) normalized = "delivered";
     else if (phase === 3) normalized = "out_for_delivery";
     else if (phase === 99) normalized = "exception";
     else if (phase >= 1) normalized = "in_transit";
-
     return {
       status: normalized,
       description: status || STATUS_LABELS[normalized] || normalized,
@@ -108,13 +87,11 @@ async function fetchPostNL(trackingNumber: string): Promise<{ status: string; de
 
 async function fetchDHL(trackingNumber: string): Promise<{ status: string; description: string; location?: string; timestamp?: string } | null> {
   try {
-    // DHL public tracking API (no key required for basic tracking)
     const res = await fetch(
       `https://api-eu.dhl.com/track/shipments?trackingNumber=${trackingNumber}`,
       { headers: { "Accept": "application/json" } }
     );
     if (!res.ok) {
-      // Try alternative DHL endpoint
       const altRes = await fetch(
         `https://www.dhl.com/utapi?trackingNumber=${trackingNumber}&language=nl&requesterCountryCode=NL`,
         { headers: { "Accept": "application/json" } }
@@ -123,7 +100,6 @@ async function fetchDHL(trackingNumber: string): Promise<{ status: string; descr
       const altData = await altRes.json();
       const shipment = altData?.sendungen?.[0];
       if (!shipment) return null;
-
       const lastEvent = shipment.sendungsdetails?.sendungsverlauf?.events?.[0];
       return {
         status: normalizeStatus(lastEvent?.status || shipment.sendungsdetails?.sendungsstatus?.statusText || ""),
@@ -132,14 +108,11 @@ async function fetchDHL(trackingNumber: string): Promise<{ status: string; descr
         timestamp: lastEvent?.datum || new Date().toISOString(),
       };
     }
-
     const data = await res.json();
     const shipment = data?.shipments?.[0];
     if (!shipment) return null;
-
     const lastEvent = shipment.events?.[0];
     const statusText = shipment.status?.statusCode || lastEvent?.description || "";
-
     return {
       status: normalizeStatus(statusText),
       description: lastEvent?.description || shipment.status?.status || statusText,
@@ -160,13 +133,10 @@ async function fetchBpost(trackingNumber: string): Promise<{ status: string; des
     );
     if (!res.ok) return null;
     const data = await res.json();
-
     const item = data?.items?.[0];
     if (!item) return null;
-
     const lastEvent = item.events?.[0];
     const statusKey = item.stateInfo?.stateDescription || lastEvent?.key || "";
-
     return {
       status: normalizeStatus(statusKey),
       description: lastEvent?.description || statusKey,
@@ -187,13 +157,10 @@ async function fetchDPD(trackingNumber: string): Promise<{ status: string; descr
     );
     if (!res.ok) return null;
     const data = await res.json();
-
     const parcel = data?.parcellifecycleResponse?.parcelLifeCycleData?.shipmentInfo?.[0];
     if (!parcel) return null;
-
     const statusInfo = parcel.statusInfo;
     const lastScan = parcel.scanInfo?.scan?.[0];
-
     return {
       status: normalizeStatus(statusInfo?.status || lastScan?.scanDescription?.content || ""),
       description: statusInfo?.label?.content || lastScan?.scanDescription?.content || "",
@@ -214,13 +181,10 @@ async function fetchGLS(trackingNumber: string): Promise<{ status: string; descr
     );
     if (!res.ok) return null;
     const data = await res.json();
-
     const tuStatus = data?.tuStatus?.[0];
     if (!tuStatus) return null;
-
     const lastEvent = tuStatus.history?.[0];
     const overallStatus = tuStatus.progressBar?.statusInfo || "";
-
     return {
       status: normalizeStatus(overallStatus || lastEvent?.evtDscr || ""),
       description: lastEvent?.evtDscr || overallStatus || "",
@@ -252,8 +216,122 @@ async function fetchTrackingStatus(
   }
 }
 
+// ── Process a single order ──
+async function processOrder(
+  supabase: ReturnType<typeof createClient>,
+  order: Record<string, unknown>,
+  setting: Record<string, unknown>,
+): Promise<boolean> {
+  const carrier = detectCarrier(order.tracking_number as string, order.carrier as string | null);
+  if (!carrier) {
+    console.log(`Cannot detect carrier for ${order.tracking_number}`);
+    return false;
+  }
+
+  const result = await fetchTrackingStatus(carrier, order.tracking_number as string);
+  if (!result) return false;
+
+  const newStatus = result.status;
+  const statusChanged = order.tracking_status !== newStatus;
+
+  const orderUpdate: Record<string, unknown> = {
+    tracking_status: newStatus,
+    last_tracking_check: new Date().toISOString(),
+    carrier: carrier,
+  };
+
+  if (newStatus === "delivered" && order.tracking_status !== "delivered") {
+    orderUpdate.status = "delivered";
+    orderUpdate.delivered_at = new Date().toISOString();
+    orderUpdate.fulfillment_status = "delivered";
+  }
+
+  await supabase.from("orders").update(orderUpdate).eq("id", order.id);
+
+  if (statusChanged) {
+    // Check Bol.com sync
+    const { data: orderMeta } = await supabase
+      .from("orders")
+      .select("marketplace_source, marketplace_connection_id, sync_status")
+      .eq("id", order.id)
+      .single();
+
+    if (orderMeta?.marketplace_source === 'bol_com' && orderMeta?.marketplace_connection_id &&
+        (orderMeta?.sync_status === 'shipped_awaiting_tracking' || orderMeta?.sync_status === 'shipped')) {
+      try {
+        await supabase.functions.invoke('update-bol-tracking', {
+          body: { order_id: order.id, tracking_number: order.tracking_number, carrier },
+        });
+        console.log(`Triggered Bol.com tracking update for order ${order.order_number}`);
+      } catch (bolErr) {
+        console.error(`Bol.com tracking update error (non-fatal) for ${order.id}:`, bolErr);
+      }
+    }
+
+    // Log status update
+    await supabase.from("shipping_status_updates").insert([{
+      tenant_id: setting.tenant_id,
+      order_id: order.id,
+      provider: carrier,
+      external_event_id: `${carrier}-${order.tracking_number}-${newStatus}-${Date.now()}`,
+      status: newStatus,
+      status_message: result.description || STATUS_LABELS[newStatus] || newStatus,
+      location: result.location,
+      event_timestamp: result.timestamp || new Date().toISOString(),
+      raw_payload: result,
+    }]);
+
+    // Trigger merchant notifications
+    if (
+      (newStatus === "delivered" && setting.notify_on_delivered) ||
+      (newStatus === "exception" && setting.notify_on_exception) ||
+      (newStatus === "out_for_delivery" && setting.notify_on_out_for_delivery) ||
+      (newStatus === "in_transit" && setting.notify_on_shipped)
+    ) {
+      try {
+        await supabase.from("notifications").insert([{
+          tenant_id: setting.tenant_id,
+          category: "shipping",
+          type: `tracking_${newStatus}`,
+          title: `Verzending ${STATUS_LABELS[newStatus] || newStatus}: ${order.order_number}`,
+          message: `Bestelling ${order.order_number} (${order.customer_name || order.customer_email}) is nu "${STATUS_LABELS[newStatus] || newStatus}"`,
+          priority: newStatus === "exception" ? "high" : "low",
+          action_url: `/admin/orders/${order.id}`,
+          data: {
+            order_id: order.id,
+            tracking_number: order.tracking_number,
+            tracking_status: newStatus,
+            carrier,
+          },
+        }]);
+      } catch (notifErr) {
+        console.error("Error creating notification:", notifErr);
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+// ── Parallel batch processor (max concurrency) ──
+async function processInBatches<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 // ── Main handler ──
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -263,7 +341,6 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all tenants with auto-poll enabled (no API key needed anymore)
     const { data: settings, error: settingsError } = await supabase
       .from("tenant_tracking_settings")
       .select("*")
@@ -297,7 +374,7 @@ const handler = async (req: Request): Promise<Response> => {
         .neq("tracking_number", "")
         .or(`last_tracking_check.is.null,last_tracking_check.lt.${cutoff}`)
         .neq("tracking_status", "delivered")
-        .limit(40);
+        .limit(10);
 
       if (ordersError) {
         console.error(`Error fetching orders for tenant ${setting.tenant_id}:`, ordersError);
@@ -308,101 +385,14 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`Polling ${orders.length} orders for tenant ${setting.tenant_id}`);
 
-      for (const order of orders) {
-        const carrier = detectCarrier(order.tracking_number!, order.carrier);
-        if (!carrier) {
-          console.log(`Cannot detect carrier for ${order.tracking_number}`);
-          continue;
-        }
+      // Process up to 5 orders in parallel
+      const results = await processInBatches(orders, 5, (order) =>
+        processOrder(supabase, order, setting)
+      );
 
-        const result = await fetchTrackingStatus(carrier, order.tracking_number!);
-        if (!result) continue;
-
-        const newStatus = result.status;
-        const statusChanged = order.tracking_status !== newStatus;
-
-        const orderUpdate: Record<string, unknown> = {
-          tracking_status: newStatus,
-          last_tracking_check: new Date().toISOString(),
-          carrier: carrier, // auto-fill detected carrier
-        };
-
-        if (newStatus === "delivered" && order.tracking_status !== "delivered") {
-          orderUpdate.status = "delivered";
-          orderUpdate.delivered_at = new Date().toISOString();
-          orderUpdate.fulfillment_status = "delivered";
-        }
-
-        await supabase.from("orders").update(orderUpdate).eq("id", order.id);
-
-        // If this is a Bol.com order and tracking just became available, push it to Bol.com
-        if (statusChanged) {
-          const { data: orderMeta } = await supabase
-            .from("orders")
-            .select("marketplace_source, marketplace_connection_id, sync_status")
-            .eq("id", order.id)
-            .single();
-
-          if (orderMeta?.marketplace_source === 'bol_com' && orderMeta?.marketplace_connection_id &&
-              (orderMeta?.sync_status === 'shipped_awaiting_tracking' || orderMeta?.sync_status === 'shipped')) {
-            try {
-              await supabase.functions.invoke('update-bol-tracking', {
-                body: {
-                  order_id: order.id,
-                  tracking_number: order.tracking_number,
-                  carrier: carrier,
-                },
-              });
-              console.log(`Triggered Bol.com tracking update for order ${order.order_number}`);
-            } catch (bolErr) {
-              console.error(`Bol.com tracking update error (non-fatal) for ${order.id}:`, bolErr);
-            }
-          }
-        }
-
-        if (statusChanged) {
-          await supabase.from("shipping_status_updates").insert([{
-            tenant_id: setting.tenant_id,
-            order_id: order.id,
-            provider: carrier,
-            external_event_id: `${carrier}-${order.tracking_number}-${newStatus}-${Date.now()}`,
-            status: newStatus,
-            status_message: result.description || STATUS_LABELS[newStatus] || newStatus,
-            location: result.location,
-            event_timestamp: result.timestamp || new Date().toISOString(),
-            raw_payload: result,
-          }]);
-
-          // Trigger notifications based on tenant settings
-          if (
-            (newStatus === "delivered" && setting.notify_on_delivered) ||
-            (newStatus === "exception" && setting.notify_on_exception) ||
-            (newStatus === "out_for_delivery" && setting.notify_on_out_for_delivery) ||
-            (newStatus === "in_transit" && setting.notify_on_shipped)
-          ) {
-            try {
-              await supabase.from("notifications").insert([{
-                tenant_id: setting.tenant_id,
-                category: "shipping",
-                type: `tracking_${newStatus}`,
-                title: `Verzending ${STATUS_LABELS[newStatus] || newStatus}: ${order.order_number}`,
-                message: `Bestelling ${order.order_number} (${order.customer_name || order.customer_email}) is nu "${STATUS_LABELS[newStatus] || newStatus}"`,
-                priority: newStatus === "exception" ? "high" : "low",
-                action_url: `/admin/orders/${order.id}`,
-                data: {
-                  order_id: order.id,
-                  tracking_number: order.tracking_number,
-                  tracking_status: newStatus,
-                  carrier: carrier,
-                },
-              }]);
-            } catch (notifErr) {
-              console.error("Error creating notification:", notifErr);
-            }
-          }
-
-          totalUpdated++;
-        }
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value) totalUpdated++;
+        if (r.status === "rejected") console.error("Order processing failed:", r.reason);
       }
     }
 
@@ -418,6 +408,4 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-};
-
-serve(handler);
+});
