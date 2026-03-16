@@ -291,10 +291,12 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         customerId: selectedCustomer?.id,
       });
 
-      if (selectedCustomer?.id && cartTotals.total > 0) {
+      // Earn loyalty points on net amount (subtotal - discount, excl. VAT)
+      const netSpent = cartTotals.subtotal - cartTotals.discount;
+      if (selectedCustomer?.id && netSpent > 0) {
         earnPoints.mutate({
           customerId: selectedCustomer.id,
-          orderTotal: cartTotals.total,
+          orderTotal: netSpent,
           description: `POS transactie #${transaction?.receipt_number || 'onbekend'}`,
         });
       }
