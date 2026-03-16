@@ -451,7 +451,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative pb-[52px] lg:pb-0">
         {/* Products Panel - always visible, full width on mobile */}
         <POSProductPanel
           products={products}
