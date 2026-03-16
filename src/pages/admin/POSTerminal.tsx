@@ -495,7 +495,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       <button
         onClick={() => setShowMobileCartDrawer(true)}
         className={cn(
-          "lg:hidden sticky bottom-0 z-30 flex items-center justify-between w-full px-4 py-3 shadow-lg border-t bg-primary text-primary-foreground"
+          "lg:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between w-full px-4 py-3 shadow-lg border-t bg-primary text-primary-foreground"
         )}
       >
         <div className="flex items-center gap-3">
