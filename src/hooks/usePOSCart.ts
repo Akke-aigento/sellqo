@@ -15,10 +15,12 @@ export interface POSCartTotals {
 
 interface UsePOSCartOptions {
   defaultTaxRate?: number;
+  vatHandling?: 'inclusive' | 'exclusive';
 }
 
 export function usePOSCart(options: UsePOSCartOptions = {}) {
-  const { defaultTaxRate = 21 } = options;
+  const { defaultTaxRate = 21, vatHandling = 'exclusive' } = options;
+  const isInclusive = vatHandling === 'inclusive';
 
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
