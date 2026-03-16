@@ -1,60 +1,67 @@
 
 
-## Analysis & Fixes
+## Probleem: Geen Track & Trace link bij recente bestellingen
 
-### Issue 1: A6 Cropping Is Wrong
+### Oorzaak
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+De laatste 4 bestellingen (#1123-#1126) zijn via de Bol.com sync binnengekomen. De Bol.com functies slaan de carrier op als `BPOST_BE` (Bol.com formaat) in plaats van `bpost`. Hierdoor:
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+1. `tracking_url` wordt **niet ingevuld** (3 van de 4 orders) of krijgt een generieke URL (`jfrfracking.info`)
+2. De `TrackingInfoCard` toont de "Track & Trace" knop alleen als `order.tracking_url` een waarde heeft
+3. `getCarrierById('BPOST_BE')` vindt geen match in `carrierPatterns.ts` (die kent alleen `bpost`)
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+**Bewijs uit de database:**
+
+| Order | Carrier | tracking_url | Link zichtbaar? |
+|-------|---------|-------------|----------------|
+| #1122 en ouder | `bpost` | `https://track.bpost.cloud/...` | ✅ Ja |
+| #1123-#1125 | `BPOST_BE` | NULL | ❌ Nee |
+| #1126 | `BPOST_BE` | `https://jfrfracking.info/...` | ⚠️ Verkeerde URL |
+
+### Oplossing: Twee wijzigingen
+
+**1. `TrackingInfoCard.tsx` — Carrier normalisatie + URL fallback**
+
+Bij het laden van de component: normaliseer de carrier (`BPOST_BE` → `bpost`) en genereer automatisch een tracking URL als die ontbreekt.
+
+```typescript
+// Normaliseer carrier bij initialisatie
+function normalizeCarrierId(raw: string): string {
+  const norm = raw.toLowerCase().replace(/[_-]/g, '');
+  if (norm.includes('bpost')) return 'bpost';
+  if (norm.includes('postnl') || norm === 'tnt') return 'postnl';
+  if (norm.includes('dhl')) return 'dhl';
+  // etc.
+  return raw;
+}
+
+// In component: gebruik genormaliseerde carrier
+const normalizedCarrier = normalizeCarrierId(order.carrier || '');
+
+// Genereer tracking URL als die ontbreekt
+const effectiveTrackingUrl = order.tracking_url || 
+  generateTrackingUrl(normalizedCarrier, order.tracking_number, postalCode);
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+**2. Database migratie — Fix bestaande orders**
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+Eenmalige migratie om de 4 kapotte orders te repareren: carrier normaliseren naar `bpost` en correcte tracking URLs invullen.
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+```sql
+UPDATE orders
+SET 
+  carrier = 'bpost',
+  tracking_url = 'https://track.bpost.cloud/btr/web/#/search?itemCode=' || tracking_number
+WHERE carrier = 'BPOST_BE' 
+  AND tracking_number IS NOT NULL;
+```
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+### Samenvatting
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+| Wijziging | Doel |
+|-----------|------|
+| `TrackingInfoCard.tsx`: carrier normalisatie + URL fallback | Toekomstige orders altijd correct tonen |
+| SQL migratie: fix bestaande `BPOST_BE` orders | Bestaande orders repareren |
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
-
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+Na deze fix hebben alle orders een werkende Track & Trace link naar de bpost tracking pagina.
 
