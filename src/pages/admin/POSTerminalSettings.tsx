@@ -371,7 +371,6 @@ export default function POSTerminalSettingsPage() {
                     size="sm"
                     className="h-8"
                     onClick={() => {
-                      const { openCashDrawer } = usePOSPrinter();
                       openCashDrawer();
                       toast.success('Kaslade-commando verzonden');
                     }}
