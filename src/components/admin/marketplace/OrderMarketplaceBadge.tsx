@@ -1,15 +1,21 @@
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Package, Store, ShoppingCart, FileEdit } from 'lucide-react';
+import { ShoppingBag, Package, Store, ShoppingCart, FileEdit, Monitor } from 'lucide-react';
 
 type MarketplaceSource = 'bol_com' | 'amazon' | 'sellqo_webshop' | 'woocommerce' | 'shopify' | 'manual' | string | null;
 
 interface OrderMarketplaceBadgeProps {
   source: MarketplaceSource;
+  salesChannel?: string | null;
   className?: string;
-  showEmpty?: boolean; // Show "SellQo" badge for null/webshop orders
+  showEmpty?: boolean;
 }
 
 const config: Record<string, { icon: typeof ShoppingBag; label: string; className: string }> = {
+  pos: {
+    icon: Monitor,
+    label: 'POS',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+  },
   sellqo_webshop: {
     icon: Store,
     label: 'SellQo',
@@ -42,18 +48,19 @@ const config: Record<string, { icon: typeof ShoppingBag; label: string; classNam
   },
 };
 
-export function OrderMarketplaceBadge({ source, className, showEmpty = true }: OrderMarketplaceBadgeProps) {
-  // Determine the effective source - treat null/undefined as SellQo webshop
-  const effectiveSource = source || 'sellqo_webshop';
+export function OrderMarketplaceBadge({ source, salesChannel, className, showEmpty = true }: OrderMarketplaceBadgeProps) {
+  // Prefer sales_channel over marketplace_source
+  const effectiveSource = salesChannel === 'pos' ? 'pos' : (source || salesChannel || 'sellqo_webshop');
   
-  // If showEmpty is false and it's a webshop order, don't show badge
-  if (!showEmpty && (!source || source === 'sellqo_webshop')) {
+  if (!showEmpty && (!source && !salesChannel || effectiveSource === 'sellqo_webshop' || effectiveSource === 'webshop')) {
     return null;
   }
 
-  const { icon: Icon, label, className: badgeClass } = config[effectiveSource] || {
+  const resolvedSource = effectiveSource === 'webshop' ? 'sellqo_webshop' : effectiveSource;
+
+  const { icon: Icon, label, className: badgeClass } = config[resolvedSource] || {
     icon: Store,
-    label: effectiveSource,
+    label: resolvedSource,
     className: 'bg-gray-50 text-gray-700 border-gray-200',
   };
 

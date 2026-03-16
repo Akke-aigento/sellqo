@@ -29,20 +29,21 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
         />
       </div>
 
-      {/* Marketplace Source Filter */}
+      {/* Sales Channel Filter */}
       <Select
-        value={filters.marketplace_source || 'all'}
+        value={filters.sales_channel || 'all'}
         onValueChange={(value) => onFiltersChange({ 
           ...filters, 
-          marketplace_source: value === 'all' ? undefined : value as MarketplaceSource 
+          sales_channel: value === 'all' ? undefined : value as SalesChannel 
         })}
       >
-        <SelectTrigger className="w-full sm:w-[140px]">
-          <SelectValue placeholder="Bron" />
+        <SelectTrigger className="w-full sm:w-[160px]">
+          <SelectValue placeholder="Verkoopkanaal" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Alle bronnen</SelectItem>
-          <SelectItem value="sellqo_webshop">SellQo Webshop</SelectItem>
+          <SelectItem value="all">Alle kanalen</SelectItem>
+          <SelectItem value="webshop">Webshop</SelectItem>
+          <SelectItem value="pos">POS / Kassa</SelectItem>
           <SelectItem value="bol_com">Bol.com</SelectItem>
           <SelectItem value="amazon">Amazon</SelectItem>
         </SelectContent>

@@ -239,7 +239,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <div className="text-sm text-muted-foreground truncate">{order.customer_email}</div>
       </TableCell>
       <TableCell className="hidden lg:table-cell" onClick={onView}>
-        <OrderMarketplaceBadge source={order.marketplace_source} />
+        <OrderMarketplaceBadge source={order.marketplace_source} salesChannel={order.sales_channel} />
       </TableCell>
       <TableCell onClick={onView}>
         <OrderStatusBadge status={order.status} />
