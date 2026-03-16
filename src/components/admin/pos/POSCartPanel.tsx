@@ -24,6 +24,7 @@ import type { POSDiscount } from '@/components/admin/pos/POSDiscountPanel';
 import type { POSCartTotals } from '@/hooks/usePOSCart';
 
 interface POSCartPanelProps {
+  vatHandling?: 'inclusive' | 'exclusive';
   cart: POSCartItem[];
   cartTotals: POSCartTotals;
   selectedCustomer: Customer | null;
