@@ -181,9 +181,9 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
                           >
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">{product.name}</p>
-                              <p className="text-sm text-muted-foreground">{product.sku}</p>
+                              <p className="text-sm text-muted-foreground truncate">{product.sku}</p>
                             </div>
-                            <p className="font-semibold">{formatCurrency(product.price)}</p>
+                            <p className="font-semibold shrink-0 whitespace-nowrap">{formatCurrency(product.price)}</p>
                           </button>
                         ))}
                       </div>
