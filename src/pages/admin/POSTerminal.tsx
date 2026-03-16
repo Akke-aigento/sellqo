@@ -383,9 +383,11 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       if (selectedCustomer?.id && paymentData.loyaltyPoints > 0) {
         await redeemPoints.mutateAsync({ customerId: selectedCustomer.id, points: paymentData.loyaltyPoints, euroValue: paymentData.loyaltyEuroValue, description: `POS inwisseling transactie #${transaction?.receipt_number || 'onbekend'}` });
       }
-      const actualSpent = cartTotals.total - paymentData.loyaltyEuroValue;
-      if (selectedCustomer?.id && actualSpent > 0) {
-        earnPoints.mutate({ customerId: selectedCustomer.id, orderTotal: actualSpent, description: `POS transactie #${transaction?.receipt_number || 'onbekend'}` });
+      // Earn points on net amount minus gift cards and loyalty redemptions
+      const giftCardTotal = paymentData.giftCards.reduce((sum, gc) => sum + gc.amountToUse, 0);
+      const netSpent = (cartTotals.subtotal - cartTotals.discount) - paymentData.loyaltyEuroValue - giftCardTotal;
+      if (selectedCustomer?.id && netSpent > 0) {
+        earnPoints.mutate({ customerId: selectedCustomer.id, orderTotal: netSpent, description: `POS transactie #${transaction?.receipt_number || 'onbekend'}` });
       }
       toast.success(paymentData.cashChange > 0 ? `Betaling succesvol! Wisselgeld: ${formatCurrency(paymentData.cashChange)}` : 'Betaling succesvol!');
       clearCart();
