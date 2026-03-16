@@ -46,15 +46,23 @@ interface TrackingInfoCardProps {
 export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardProps) {
   const { updateTracking, clearTracking, isUpdating, isClearing } = useOrderShipping();
   
-  const [carrier, setCarrier] = useState(order.carrier || '');
-  const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
-  const [trackingUrl, setTrackingUrl] = useState(order.tracking_url || '');
-  const [notifyCustomer, setNotifyCustomer] = useState(true);
-  const [isEditing, setIsEditing] = useState(!order.tracking_number);
-
+  // Normalize carrier from external sources
+  const normalizedOrderCarrier = normalizeCarrierId(order.carrier || '');
+  
   // Get postal code from shipping address for PostNL
   const shippingAddress = order.shipping_address as unknown as Address | null;
   const postalCode = shippingAddress?.postal_code || '';
+
+  // Generate fallback tracking URL if missing
+  const effectiveTrackingUrl = order.tracking_url || 
+    (order.tracking_number && normalizedOrderCarrier ? 
+      generateTrackingUrl(normalizedOrderCarrier, order.tracking_number, postalCode) || '' : '');
+
+  const [carrier, setCarrier] = useState(normalizedOrderCarrier);
+  const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
+  const [trackingUrl, setTrackingUrl] = useState(effectiveTrackingUrl);
+  const [notifyCustomer, setNotifyCustomer] = useState(true);
+  const [isEditing, setIsEditing] = useState(!order.tracking_number);
 
   // Auto-generate tracking URL when carrier or tracking number changes
   useEffect(() => {
