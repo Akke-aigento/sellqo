@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye, KeyRound, Plus, Edit2, Power, PowerOff, ChevronDown } from 'lucide-react';
+import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye, KeyRound, Plus, Edit2, Power, PowerOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,8 +27,8 @@ import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
 import { useTeamInvitations } from '@/hooks/useTeamInvitations';
 import { usePOSCashiers, type POSCashier } from '@/hooks/usePOSCashiers';
 import { useAuth } from '@/hooks/useAuth';
-import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
-import { CashierCreateDialog, CashierEditDialog, CashierPinDialog } from './CashierManagement';
+import { AddTeamMemberDialog } from './AddTeamMemberDialog';
+import { CashierEditDialog, CashierPinDialog } from './CashierManagement';
 import { format, isPast } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -78,8 +78,8 @@ export function TeamSettings() {
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Cashier dialog state
-  const [showCreateCashier, setShowCreateCashier] = useState(false);
+  // Dialog state
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [editCashier, setEditCashier] = useState<POSCashier | null>(null);
   const [pinCashier, setPinCashier] = useState<POSCashier | null>(null);
 
@@ -120,30 +120,10 @@ export function TeamSettings() {
               </div>
             </div>
 
-            {/* Split add button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Toevoegen
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <InviteTeamMemberDialog
-                  trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Users className="h-4 w-4 mr-2" />
-                      Teamlid uitnodigen
-                    </DropdownMenuItem>
-                  }
-                />
-                <DropdownMenuItem onSelect={() => setShowCreateCashier(true)}>
-                  <KeyRound className="h-4 w-4 mr-2" />
-                  Kassamedewerker toevoegen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Medewerker toevoegen
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -450,8 +430,8 @@ export function TeamSettings() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Cashier dialogs */}
-      <CashierCreateDialog open={showCreateCashier} onOpenChange={setShowCreateCashier} />
+      {/* Dialogs */}
+      <AddTeamMemberDialog open={showAddDialog} onOpenChange={setShowAddDialog} />
       <CashierEditDialog cashier={editCashier} onOpenChange={(o) => { if (!o) setEditCashier(null); }} />
       <CashierPinDialog cashier={pinCashier} onOpenChange={(o) => { if (!o) setPinCashier(null); }} />
     </div>
