@@ -530,6 +530,9 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
             cartDiscount={cartDiscount}
             isStripeProcessing={isStripeProcessing}
             hasIban={!!currentTenant?.iban}
+            activeCashierName={activeCashier?.display_name}
+            activeCashierColor={activeCashier?.avatar_color}
+            onSwitchCashier={() => setShowCashierSelect(true)}
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             onClearCart={clearCart}
