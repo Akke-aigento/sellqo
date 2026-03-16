@@ -1,30 +1,44 @@
-## POS Systeem: Grondige Refactor ✅
 
-### Wat is gewijzigd
 
-1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
-2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
-3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
-4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
-5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
-6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
-7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
+## Plan: Klant aanmaken in POS + Loyalty points flow fixen
 
-## POS → Orders Integratie ✅
+### 1. Klant rechtstreeks aanmaken in POS
 
-### Wat is gewijzigd
+**Probleem**: De `POSCustomerDialog` laat alleen bestaande klanten zoeken en selecteren. Er is geen optie om een nieuwe klant aan te maken — de `Plus` icon is zelfs al geïmporteerd maar niet gebruikt.
 
-1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
-2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
-3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
-4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
-5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
+**Oplossing**: Een inline "Nieuwe klant" formulier toevoegen aan de `POSCustomerDialog`:
 
-### Bestanden gewijzigd
-- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
-- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
-- `src/hooks/useOrders.ts` – Filter op `sales_channel`
-- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
-- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
-- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
-- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
+- Een "Nieuwe klant" knop onderaan de zoekresultaten (of als er geen resultaten zijn)
+- Bij klik: toon een compact formulier met de belangrijkste velden: voornaam, achternaam, email, telefoon (optioneel)
+- Gebruik de bestaande `createCustomer` uit `useCustomers` hook
+- Na aanmaken: selecteer de klant automatisch en sluit het formulier
+
+**Bestand**: `src/components/admin/pos/POSCustomerDialog.tsx`
+
+---
+
+### 2. Loyalty points flow — gevonden problemen
+
+Na analyse van de code zijn er twee issues:
+
+#### Issue A: Reguliere betalingen verdienen punten op het totaal inclusief BTW
+In `completeTransaction` (lijn 294-300 in POSTerminal.tsx) worden punten verdiend op `cartTotals.total` — dit is het totaalbedrag inclusief BTW. Normaal gesproken worden loyalty punten berekend over het **subtotaal exclusief BTW**, niet het brutobedrag. Dit kan worden gecorrigeerd door `cartTotals.subtotal - cartTotals.discount` te gebruiken.
+
+#### Issue B: Gift card betalingen — punten worden verdiend over het volle bedrag
+Bij een multi-payment met gift cards (lijn 384-386) wordt `actualSpent = cartTotals.total - paymentData.loyaltyEuroValue` berekend, maar gift card bedragen worden **niet** afgetrokken. Een klant die €50 betaalt waarvan €30 cadeaukaart, verdient punten over €50 i.p.v. €20.
+
+**Oplossing**: In POSTerminal.tsx:
+- `completeTransaction`: verander `cartTotals.total` naar netto besteed bedrag (subtotaal - korting)
+- `handleMultiPaymentComplete`: trek ook `giftCardTotal` af bij het berekenen van `actualSpent`
+
+**Bestand**: `src/pages/admin/POSTerminal.tsx`
+
+---
+
+### Samenvatting bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/admin/pos/POSCustomerDialog.tsx` | "Nieuwe klant" formulier + aanmaak flow |
+| `src/pages/admin/POSTerminal.tsx` | Fix loyalty points berekening: netto bedrag i.p.v. bruto, gift cards aftrekken |
+
