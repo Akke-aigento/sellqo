@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye, KeyRound, Plus, Edit2, Power, PowerOff, ChevronDown } from 'lucide-react';
+import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye, KeyRound, Plus, Edit2, Power, PowerOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,8 +27,8 @@ import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
 import { useTeamInvitations } from '@/hooks/useTeamInvitations';
 import { usePOSCashiers, type POSCashier } from '@/hooks/usePOSCashiers';
 import { useAuth } from '@/hooks/useAuth';
-import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
-import { CashierCreateDialog, CashierEditDialog, CashierPinDialog } from './CashierManagement';
+import { AddTeamMemberDialog } from './AddTeamMemberDialog';
+import { CashierEditDialog, CashierPinDialog } from './CashierManagement';
 import { format, isPast } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
