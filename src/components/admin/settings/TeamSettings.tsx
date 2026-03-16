@@ -78,8 +78,8 @@ export function TeamSettings() {
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Cashier dialog state
-  const [showCreateCashier, setShowCreateCashier] = useState(false);
+  // Dialog state
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [editCashier, setEditCashier] = useState<POSCashier | null>(null);
   const [pinCashier, setPinCashier] = useState<POSCashier | null>(null);
 
