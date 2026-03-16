@@ -275,11 +275,25 @@ async function processOrder(
   const carrier = detectCarrier(order.tracking_number as string, order.carrier as string | null);
   if (!carrier) {
     console.log(`Cannot detect carrier for ${order.tracking_number}`);
+    // Still update last_tracking_check so we don't retry every run
+    await supabase.from("orders").update({ last_tracking_check: new Date().toISOString() }).eq("id", order.id);
     return false;
   }
 
-  const result = await fetchTrackingStatus(carrier, order.tracking_number as string);
-  if (!result) return false;
+  // Extract postal code from shipping address for bpost
+  let postalCode: string | undefined;
+  const shippingAddr = order.shipping_address as Record<string, unknown> | null;
+  const billingAddr = order.billing_address as Record<string, unknown> | null;
+  postalCode = (shippingAddr?.postal_code as string) || (shippingAddr?.postalCode as string) ||
+               (shippingAddr?.zip as string) || (billingAddr?.postal_code as string) ||
+               (billingAddr?.postalCode as string) || (billingAddr?.zip as string) || undefined;
+
+  const result = await fetchTrackingStatus(carrier, order.tracking_number as string, postalCode);
+  if (!result) {
+    // Update last_tracking_check even on failure to avoid hammering
+    await supabase.from("orders").update({ last_tracking_check: new Date().toISOString() }).eq("id", order.id);
+    return false;
+  }
 
   const newStatus = result.status;
   const statusChanged = order.tracking_status !== newStatus;
