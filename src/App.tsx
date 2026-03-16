@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { TenantProvider } from "@/hooks/useTenant";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -144,6 +145,15 @@ const App = () => (
             <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><ShopLegalPage /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><ShopWishlist /></WishlistProvider></CartProvider>} />
             
+            {/* Dedicated kassa route - outside AdminLayout for tablet kiosk mode */}
+            <Route path="/kassa/:terminalId" element={
+              <ProtectedRoute>
+                <TenantProvider>
+                  <POSTerminalPage standalone />
+                </TenantProvider>
+              </ProtectedRoute>
+            } />
+
             {/* Admin routes */}
             <Route path="/admin" element={
               <ProtectedRoute>

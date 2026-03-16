@@ -69,7 +69,7 @@ import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
 import type { Product } from '@/types/product';
 
-export default function POSTerminalPage() {
+export default function POSTerminalPage({ standalone = false }: { standalone?: boolean }) {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
 
@@ -399,9 +399,11 @@ export default function POSTerminalPage() {
       {/* Header */}
       <header className="border-b bg-card px-3 lg:px-4 py-2 lg:py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 lg:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          {!standalone && (
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <div>
             <h1 className="font-semibold text-sm lg:text-base">{terminal.name}</h1>
             {activeSession && (
@@ -449,7 +451,7 @@ export default function POSTerminalPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative pb-[52px] lg:pb-0">
         {/* Products Panel - always visible, full width on mobile */}
         <POSProductPanel
           products={products}
@@ -493,7 +495,7 @@ export default function POSTerminalPage() {
       <button
         onClick={() => setShowMobileCartDrawer(true)}
         className={cn(
-          "lg:hidden sticky bottom-0 z-30 flex items-center justify-between w-full px-4 py-3 shadow-lg border-t bg-primary text-primary-foreground"
+          "lg:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between w-full px-4 py-3 shadow-lg border-t bg-primary text-primary-foreground"
         )}
       >
         <div className="flex items-center gap-3">
@@ -546,7 +548,7 @@ export default function POSTerminalPage() {
             <Input id="openingCash" type="number" step="0.01" placeholder="0.00" value={openingCash} onChange={(e) => setOpeningCash(e.target.value)} className="mt-2" />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => navigate('/admin/pos')}>Annuleren</Button>
+            <Button variant="outline" onClick={() => standalone ? setShowOpenSessionDialog(false) : navigate('/admin/pos')}>Annuleren</Button>
             <Button onClick={handleOpenSession} disabled={openSession.isPending}>{openSession.isPending ? 'Openen...' : 'Dag Starten'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -637,7 +639,7 @@ export default function POSTerminalPage() {
       <StripeReaderDialog open={showReaderDialog} onOpenChange={setShowReaderDialog} onReaderSelect={handleReaderSelect} />
       <QuickButtonDialog open={showQuickButtonDialog} onOpenChange={setShowQuickButtonDialog} terminalId={terminalId} />
       <ReceiptDialog open={showReceiptDialog} onOpenChange={(open) => { setShowReceiptDialog(open); if (!open) setLastPaymentWasCash(false); }} transaction={lastTransaction} autoPrint={terminal?.settings?.auto_print === true} openCashDrawer={lastPaymentWasCash} />
-      <SessionReportDialog open={showSessionReportDialog} onOpenChange={setShowSessionReportDialog} session={activeSession} transactions={transactions} cashMovements={cashMovements} onClose={() => { if (activeSession?.status !== 'open') navigate('/admin/pos'); }} />
+      <SessionReportDialog open={showSessionReportDialog} onOpenChange={setShowSessionReportDialog} session={activeSession} transactions={transactions} cashMovements={cashMovements} onClose={() => { if (activeSession?.status !== 'open' && !standalone) navigate('/admin/pos'); }} />
       <CashMovementDialog open={showCashMovementDialog} onOpenChange={setShowCashMovementDialog} onSubmit={handleCashMovement} isPending={createMovement.isPending} />
       <POSCustomerDialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog} selectedCustomer={selectedCustomer} onSelectCustomer={setSelectedCustomer} />
       <POSDiscountPanel open={showDiscountPanel} onOpenChange={setShowDiscountPanel} currentDiscount={cartDiscount} cartSubtotal={cartTotals.subtotal} onApplyDiscount={setCartDiscount} />
