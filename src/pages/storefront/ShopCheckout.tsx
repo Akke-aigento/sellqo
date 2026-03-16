@@ -274,13 +274,20 @@ export default function ShopCheckout() {
 
   const { methods: shippingMethods, selectedMethod, selectedMethodId, setSelectedMethodId, getShippingCost } = useStorefrontShipping(tenant?.id);
   const subtotal = getSubtotal();
-  const discountAmount = appliedDiscount?.calculated_amount || 0;
+  const promoResult = useCartPromotions(tenant?.id);
+
+  // Use promotion engine for total discount (covers discount codes + auto discounts)
+  const totalPromotionDiscount = promoResult.total_discount;
+  const autoDiscounts = promoResult.applied_discounts.filter(d => d.type !== 'discount_code');
+  const discountCodeEntry = promoResult.applied_discounts.find(d => d.type === 'discount_code');
+  // Fallback for manual discount display
+  const discountAmount = totalPromotionDiscount;
 
   // Gift card detection
   const allGiftCards = cartItems.length > 0 && cartItems.every(item => !!item.giftCard);
 
-  const shipping = allGiftCards ? 0 : getShippingCost(subtotal);
-  const subtotalAfterDiscount = subtotal - discountAmount;
+  const shipping = allGiftCards ? 0 : (promoResult.free_shipping ? 0 : getShippingCost(subtotal));
+  const subtotalAfterDiscount = Math.max(0, subtotal - totalPromotionDiscount);
 
   // VAT calculation
   const calculateVat = () => {
