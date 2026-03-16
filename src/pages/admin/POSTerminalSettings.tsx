@@ -48,6 +48,7 @@ export default function POSTerminalSettingsPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   const { terminals, updateTerminal, deleteTerminal, isLoading } = usePOSTerminals();
+  const { printReceipt, openCashDrawer } = usePOSPrinter();
   
   const terminal = terminals.find(t => t.id === terminalId);
   
