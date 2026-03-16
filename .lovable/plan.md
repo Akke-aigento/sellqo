@@ -1,35 +1,64 @@
 
 
-## Probleem: Tracking fix is gedeployed maar nog niet uitgevoerd
+## Analyse: Alle Korting-formulieren missen productselectors
 
-### Wat er aan de hand is
+Na grondig bekijken van alle 7 promotie-formulieren is het probleem duidelijk: **geen enkel formulier heeft een productselector**. Ze slaan alleen metadata op (naam, type, korting%) maar je kunt nergens producten aanduiden.
 
-De bpost API geeft **duidelijk "Zending geleverd"** terug voor orders als #1122 (geleverd op 11 maart!), maar de database toont nog `tracking_status = in_transit`.
+### Wat er ontbreekt per formuliertype
 
-**Root cause**: De `normalizeStatus` fix (met `geleverd` regex) is pas **na** de laatste poll (11:46) gedeployed. Door het 4-uurs poll-interval worden deze orders pas om ~15:46 opnieuw gecheckt. De oude code die om 11:46 draaide herkende "Zending geleverd" niet.
+| Formulier | Wat ontbreekt |
+|-----------|---------------|
+| **BundleFormDialog** | Producten toevoegen, kwantiteit per product, verplicht-toggle, klant-kwantiteit-aanpasbaar toggle |
+| **BogoPromotionFormDialog** | "Koop"-producten selecteren, "Krijg"-producten selecteren (buy_product_ids, get_product_ids) |
+| **VolumeDiscountFormDialog** | Productselector wanneer "Specifieke producten" gekozen, categorieselector voor "Categorie" |
+| **AutoDiscountFormDialog** | Product/categorie selector bij "Specifieke producten" trigger en "Toepassen op" |
+| **GiftPromotionFormDialog** | Trigger-producten selector bij "Specifieke producten" trigger (trigger_product_ids) |
 
-### Bewijs
-- bpost API voor #1122 (`CD116065228BE`): `events[0].key.NL.description = "Zending geleverd"`, `actualDeliveryTime = 2026-03-11 18:29`
-- DB: `tracking_status = in_transit`, `last_tracking_check = 11:46`
-- Handmatige trigger net: `0 orders updated` (interval-filter blokkeert hercheck)
+### Implementatieplan
 
-### Oplossing
+**1. Herbruikbare ProductMultiSelect component bouwen**
+- Nieuwe component `src/components/admin/promotions/ProductMultiSelect.tsx`
+- Zoekbaar dropdown met checkbox-selectie (Combobox/Command pattern)
+- Toont productafbeelding, naam en prijs
+- Props: `selectedIds`, `onChange`, `label`, `placeholder`
+- Gebruikt bestaande `useProducts()` hook
 
-**1. Database migratie**: Reset `last_tracking_check` op alle shipped orders zodat ze direct opnieuw gepolled worden. Verlaag ook het poll-interval van 4 naar 1 uur.
+**2. BundleFormDialog volledig herbouwen** (grootste wijziging)
+- Producten-sectie toevoegen met "Product toevoegen" knop
+- Per product in de bundel:
+  - Product selecteren via ProductMultiSelect
+  - Kwantiteit instellen (number input)
+  - Verplicht toggle (Switch)
+  - Klant mag kwantiteit aanpassen toggle (Switch) -- nieuw veld `allow_quantity_change` op `bundle_products`
+  - Groepnaam (optioneel, voor mix & match)
+  - Verwijder-knop
+- `useFieldArray` voor dynamische productenlijst
+- Formulierdata correct doorsluizen naar `useCreateBundle` / `useUpdateBundle`
+- Bij bewerken: bestaande producten laden
 
-```sql
--- Reset timer zodat orders direct opnieuw gecheckt worden
-UPDATE orders SET last_tracking_check = NULL
-WHERE status = 'shipped' AND tracking_number IS NOT NULL;
+**3. BogoPromotionFormDialog uitbreiden**
+- ProductMultiSelect voor "Koop producten" (`buy_product_ids`)
+- ProductMultiSelect voor "Krijg producten" (`get_product_ids`)
+- Tonen wanneer relevant (niet bij "alle producten")
 
--- Poll-interval naar 1 uur (4 uur is te traag)
-UPDATE tenant_tracking_settings SET poll_interval_hours = 1;
-```
+**4. VolumeDiscountFormDialog uitbreiden**
+- ProductMultiSelect tonen wanneer `applies_to === 'product'`
+- Categorieselector tonen wanneer `applies_to === 'category'`
+- `product_ids` en `category_ids` meesturen in formData
 
-**2. Na deployment**: Handmatig de poll-functie triggeren om direct resultaat te zien. De volgende cron-run (elke 30 min) pakt het daarna automatisch op.
+**5. AutoDiscountFormDialog uitbreiden**
+- ProductMultiSelect bij trigger "Specifieke producten" (`trigger_product_ids`)
+- ProductMultiSelect bij "Toepassen op specifieke producten" (`product_ids`)
 
-| Wijziging | Doel |
-|-----------|------|
-| Reset `last_tracking_check` | Orders direct opnieuw laten pollen |
-| Poll-interval 4→1 uur | Snellere status-updates voortaan |
+**6. GiftPromotionFormDialog uitbreiden**
+- ProductMultiSelect bij trigger "Specifieke producten" (`trigger_product_ids`)
+
+**7. Database migratie**
+- Kolom `allow_quantity_change` (boolean, default false) toevoegen aan `bundle_products` tabel
+- Type `BundleProduct` updaten in `src/types/promotions.ts`
+
+### Technische aanpak
+- ProductMultiSelect gebaseerd op bestaande Shadcn Command/Popover pattern
+- Formulieren worden breder (`max-w-2xl`) om ruimte te maken voor productsecties
+- Alle hooks (useBundles, useBogoPromotions, etc.) sluizen de product_ids al correct door -- het zijn alleen de formulieren die ze niet invullen
 
