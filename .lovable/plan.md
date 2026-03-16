@@ -1,30 +1,41 @@
-## POS Systeem: Grondige Refactor ✅
 
-### Wat is gewijzigd
 
-1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
-2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
-3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
-4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
-5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
-6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
-7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
+## Plan: Dedicated Kassaweergave + Mobiele Checkout Fix
 
-## POS → Orders Integratie ✅
+### Probleem 1: Geen dedicated kassaweergave
+Het POS-scherm draait nu binnen `AdminLayout` (sidebar, header, trial banner, AI widget). Op een tablet aan de kassa is dat allemaal overbodige rompslomp. Kassabedienden willen alleen de kassa zien.
 
-### Wat is gewijzigd
+### Probleem 2: Bestelling afwerken onmogelijk op mobiel/tablet
+De floating cart bar gebruikt `sticky bottom-0` maar zit genest in een `overflow-hidden` flex-container met `AdminLayout`'s `<main>` padding eromheen. Hierdoor wordt de bar niet correct gepositioneerd of is deze niet zichtbaar/bereikbaar.
 
-1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
-2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
-3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
-4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
-5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
+---
 
-### Bestanden gewijzigd
-- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
-- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
-- `src/hooks/useOrders.ts` – Filter op `sales_channel`
-- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
-- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
-- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
-- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
+### Oplossing
+
+#### 1. Dedicated kassa-route (buiten AdminLayout)
+- Nieuwe route: `/kassa/:terminalId` — **buiten** de `<AdminLayout>` wrapper, maar **binnen** `<ProtectedRoute>` + `<TenantProvider>`
+- Hergebruikt exact dezelfde `POSTerminalPage` component, maar zonder sidebar/header/banner
+- De bestaande `/admin/pos/:terminalId` route blijft bestaan voor admin-toegang
+- Op de POS-pagina (`/admin/pos`) een "Open kassaweergave" knop toevoegen die naar `/kassa/:terminalId` navigeert (opent in een nieuw tabblad, of fullscreen)
+
+#### 2. POSTerminal.tsx aanpassen voor standalone modus
+- Detecteer of de pagina binnen AdminLayout draait (via route-prefix check of een prop)
+- Wanneer standalone (`/kassa/...`):
+  - Header toont een vergrendelicoon i.p.v. terug-knop (of terug naar kassa-selectie)
+  - Geen navigatie naar admin-pagina's
+  - Optioneel: fullscreen API activeren
+- Wanneer admin (`/admin/pos/...`): huidige gedrag behouden
+
+#### 3. Fix floating cart bar op mobiel
+- Verander `sticky bottom-0` naar `fixed bottom-0 left-0 right-0` op de cart bar
+- Voeg `pb-[60px]` padding-bottom toe aan de product panel container zodat content niet achter de bar verdwijnt
+- Zorg dat de `POSMobileCartDrawer` correct opent boven de fixed bar
+
+### Bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/App.tsx` | Nieuwe route `/kassa/:terminalId` buiten AdminLayout |
+| `src/pages/admin/POSTerminal.tsx` | Standalone modus detectie, fix floating cart `fixed` ipv `sticky` |
+| `src/pages/admin/POS.tsx` | "Open kassaweergave" knop per terminal |
+
