@@ -80,13 +80,13 @@ export function CashierCreateDialog({ open, onOpenChange }: { open: boolean; onO
 /* ─── Edit Dialog ─── */
 export function CashierEditDialog({ cashier, onOpenChange }: { cashier: POSCashier | null; onOpenChange: (o: boolean) => void }) {
   const { updateCashier } = usePOSCashiers();
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(AVATAR_COLORS[0]);
+  const [name, setName] = useState(cashier?.display_name || '');
+  const [color, setColor] = useState(cashier?.avatar_color || AVATAR_COLORS[0]);
+  const [prevId, setPrevId] = useState<string | null>(null);
 
   // Sync state when cashier changes
-  const prevId = useState<string | null>(null);
-  if (cashier && cashier.id !== prevId[0]) {
-    prevId[1](cashier.id);
+  if (cashier && cashier.id !== prevId) {
+    setPrevId(cashier.id);
     setName(cashier.display_name);
     setColor(cashier.avatar_color || AVATAR_COLORS[0]);
   }
