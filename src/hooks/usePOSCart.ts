@@ -78,7 +78,7 @@ export function usePOSCart(options: UsePOSCartOptions = {}) {
       : itemSubtotal - totalDiscount + taxTotal;
 
     return { subtotal: itemSubtotal, discount: totalDiscount, cartDiscountAmount, taxTotal, total, taxBreakdown };
-  }, [cart, cartDiscount]);
+  }, [cart, cartDiscount, isInclusive]);
 
   const addToCart = useCallback((product: Product, vatRate?: number) => {
     setCart(prev => {
