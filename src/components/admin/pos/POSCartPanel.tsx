@@ -46,6 +46,7 @@ interface POSCartPanelProps {
 }
 
 export function POSCartPanel({
+  vatHandling = 'exclusive',
   cart,
   cartTotals,
   selectedCustomer,
