@@ -431,7 +431,7 @@ Deno.serve(async (req) => {
 
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
-        .select("id, tracking_number, carrier, tracking_status, order_number, customer_email, customer_name")
+        .select("id, tracking_number, carrier, tracking_status, order_number, customer_email, customer_name, shipping_address, billing_address")
         .eq("tenant_id", setting.tenant_id)
         .in("status", ["shipped", "processing"])
         .not("tracking_number", "is", null)
