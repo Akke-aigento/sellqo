@@ -160,13 +160,17 @@ export function POSMobileCartDrawer({
             )}
             {cartTotals.taxBreakdown.length <= 1 ? (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">BTW ({cartTotals.taxBreakdown[0]?.rate ?? 21}%)</span>
+                <span className="text-muted-foreground">
+                  BTW ({cartTotals.taxBreakdown[0]?.rate ?? 21}%){vatHandling === 'inclusive' ? ' incl.' : ''}
+                </span>
                 <span>{formatCurrency(cartTotals.taxTotal)}</span>
               </div>
             ) : (
               cartTotals.taxBreakdown.map((tb) => (
                 <div key={tb.rate} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">BTW {tb.rate}%</span>
+                  <span className="text-muted-foreground">
+                    BTW {tb.rate}%{vatHandling === 'inclusive' ? ' incl.' : ''}
+                  </span>
                   <span>{formatCurrency(tb.tax)}</span>
                 </div>
               ))
