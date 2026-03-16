@@ -713,6 +713,18 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         }} />
       )}
       <POSBankTransferDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog} amount={cartTotals.total} tenantName={currentTenant?.name || ''} tenantIBAN={currentTenant?.iban || undefined} tenantBIC={currentTenant?.bic || undefined} onConfirmPayment={handleBankTransferPayment} isProcessing={createTransaction.isPending} />
+
+      {/* Cashier PIN Select */}
+      {cashiers.length > 0 && (
+        <POSCashierSelect
+          open={showCashierSelect}
+          onOpenChange={setShowCashierSelect}
+          cashiers={cashiers}
+          onVerifyPin={verifyPin}
+          onCashierSelected={setActiveCashier}
+          dismissable={!!activeCashier}
+        />
+      )}
     </div>
   );
 }
