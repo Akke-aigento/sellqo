@@ -125,23 +125,72 @@ async function fetchDHL(trackingNumber: string): Promise<{ status: string; descr
   }
 }
 
-async function fetchBpost(trackingNumber: string): Promise<{ status: string; description: string; location?: string; timestamp?: string } | null> {
+async function fetchBpost(trackingNumber: string, postalCode?: string): Promise<{ status: string; description: string; location?: string; timestamp?: string } | null> {
   try {
-    const res = await fetch(
-      `https://track.bpost.cloud/btr/web/api/items?itemIdentifier=${trackingNumber}&language=nl`,
-      { headers: { "Accept": "application/json" } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const item = data?.items?.[0];
-    if (!item) return null;
-    const lastEvent = item.events?.[0];
-    const statusKey = item.stateInfo?.stateDescription || lastEvent?.key || "";
+    let url = `https://track.bpost.cloud/track/items?itemIdentifier=${trackingNumber}`;
+    if (postalCode) {
+      const normalizedPostal = postalCode.replace(/\s+/g, '').toUpperCase();
+      url += `&postalCode=${normalizedPostal}`;
+    }
+    console.log(`bpost fetch: ${url}`);
+
+    const res = await fetch(url, {
+      headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" },
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`bpost HTTP ${res.status}: ${body.substring(0, 200)}`);
+      return null;
+    }
+
+    const text = await res.text();
+    if (!text || text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+      console.error(`bpost returned HTML instead of JSON: ${text.substring(0, 100)}`);
+      return null;
+    }
+
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error(`bpost JSON parse error: ${text.substring(0, 200)}`);
+      return null;
+    }
+
+    const items = data?.items as Array<Record<string, unknown>> | undefined;
+    const item = items?.[0];
+    if (!item) {
+      console.log(`bpost: no items found for ${trackingNumber}`);
+      return null;
+    }
+
+    const events = item.events as Array<Record<string, unknown>> | undefined;
+    const lastEvent = events?.[0];
+
+    // Extract description from nested key structure (NL > EN > FR > DE fallback)
+    let description = '';
+    if (lastEvent?.key && typeof lastEvent.key === 'object') {
+      const keyObj = lastEvent.key as Record<string, Record<string, string>>;
+      description = keyObj?.NL?.description || keyObj?.EN?.description ||
+                    keyObj?.FR?.description || keyObj?.DE?.description || '';
+    }
+    if (!description && typeof lastEvent?.key === 'string') {
+      description = lastEvent.key as string;
+    }
+
+    // Also check stateInfo for status
+    const stateInfo = item.stateInfo as Record<string, unknown> | undefined;
+    const stateDescription = stateInfo?.stateDescription as string || '';
+
+    const statusKey = description || stateDescription || '';
+    console.log(`bpost status for ${trackingNumber}: "${statusKey}"`);
+
     return {
       status: normalizeStatus(statusKey),
-      description: lastEvent?.description || statusKey,
-      location: lastEvent?.location?.name,
-      timestamp: lastEvent?.date || new Date().toISOString(),
+      description: description || stateDescription || 'Status onbekend',
+      location: lastEvent?.location ? (lastEvent.location as Record<string, string>)?.name : undefined,
+      timestamp: (lastEvent?.date as string) || new Date().toISOString(),
     };
   } catch (e) {
     console.error("bpost fetch error:", e);
