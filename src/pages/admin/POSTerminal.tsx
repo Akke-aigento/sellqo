@@ -18,6 +18,8 @@ import {
   Loader2,
   ShoppingCart,
   ChevronUp,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
