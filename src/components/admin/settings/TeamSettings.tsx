@@ -430,8 +430,8 @@ export function TeamSettings() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Cashier dialogs */}
-      <CashierCreateDialog open={showCreateCashier} onOpenChange={setShowCreateCashier} />
+      {/* Dialogs */}
+      <AddTeamMemberDialog open={showAddDialog} onOpenChange={setShowAddDialog} />
       <CashierEditDialog cashier={editCashier} onOpenChange={(o) => { if (!o) setEditCashier(null); }} />
       <CashierPinDialog cashier={pinCashier} onOpenChange={(o) => { if (!o) setPinCashier(null); }} />
     </div>
