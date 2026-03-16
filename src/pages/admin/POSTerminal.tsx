@@ -548,7 +548,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
             <Input id="openingCash" type="number" step="0.01" placeholder="0.00" value={openingCash} onChange={(e) => setOpeningCash(e.target.value)} className="mt-2" />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => navigate('/admin/pos')}>Annuleren</Button>
+            <Button variant="outline" onClick={() => standalone ? setShowOpenSessionDialog(false) : navigate('/admin/pos')}>Annuleren</Button>
             <Button onClick={handleOpenSession} disabled={openSession.isPending}>{openSession.isPending ? 'Openen...' : 'Dag Starten'}</Button>
           </DialogFooter>
         </DialogContent>
