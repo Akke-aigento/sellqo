@@ -24,6 +24,20 @@ const TRACKING_STATUS_CONFIG: Record<string, { label: string; variant: 'default'
   undelivered: { label: 'Niet bezorgd', variant: 'destructive' },
 };
 
+// Normalize carrier IDs from various sources (e.g. Bol.com uses BPOST_BE)
+function normalizeCarrierId(raw: string): string {
+  const norm = raw.toLowerCase().replace(/[_\-\s]+/g, '');
+  if (norm.includes('bpost')) return 'bpost';
+  if (norm.includes('postnl') || norm === 'tnt') return 'postnl';
+  if (norm.includes('dhl') && norm.includes('ecommerce')) return 'dhl_ecommerce';
+  if (norm.includes('dhl')) return 'dhl';
+  if (norm.includes('dpd')) return 'dpd';
+  if (norm.includes('ups')) return 'ups';
+  if (norm.includes('gls')) return 'gls';
+  if (norm.includes('fedex')) return 'fedex';
+  return raw;
+}
+
 interface TrackingInfoCardProps {
   order: Order;
   embedded?: boolean;
