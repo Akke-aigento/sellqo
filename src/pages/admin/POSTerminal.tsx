@@ -507,6 +507,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         {/* Cart Panel - desktop only */}
         <div className="hidden lg:block">
           <POSCartPanel
+            vatHandling={currentTenant?.default_vat_handling as 'inclusive' | 'exclusive' | undefined}
             cart={cart}
             cartTotals={cartTotals}
             selectedCustomer={selectedCustomer}
