@@ -91,6 +91,11 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
   const { currentTenant } = useTenant();
   const { user } = useAuth();
   const { vatRates } = useVatRates();
+  const { cashiers, verifyPin } = usePOSCashiers();
+
+  // Active cashier state (PIN-based cashier)
+  const [activeCashier, setActiveCashier] = useState<POSCashier | null>(null);
+  const [showCashierSelect, setShowCashierSelect] = useState(false);
 
   const terminal = terminals.find(t => t.id === terminalId);
   const defaultTaxRate = terminal?.settings?.default_tax_rate ?? 21;

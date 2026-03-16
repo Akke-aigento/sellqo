@@ -388,6 +388,9 @@ export function TeamSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Kassa medewerkers (PIN-based) */}
+      <CashierManagement />
     </div>
   );
 }
