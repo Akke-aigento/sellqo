@@ -110,7 +110,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
     lastPaymentWasCash, setLastPaymentWasCash,
     addToCart: addToCartRaw,
     updateQuantity, removeItem, clearCart,
-  } = usePOSCart({ defaultTaxRate });
+  } = usePOSCart({ defaultTaxRate, vatHandling: currentTenant?.default_vat_handling as 'inclusive' | 'exclusive' | undefined });
 
   // Wrap addToCart to inject product vat_rate
   const addToCart = useCallback((product: Product) => {
@@ -507,6 +507,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         {/* Cart Panel - desktop only */}
         <div className="hidden lg:block">
           <POSCartPanel
+            vatHandling={currentTenant?.default_vat_handling as 'inclusive' | 'exclusive' | undefined}
             cart={cart}
             cartTotals={cartTotals}
             selectedCustomer={selectedCustomer}
@@ -552,6 +553,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       <POSMobileCartDrawer
         open={showMobileCartDrawer}
         onOpenChange={setShowMobileCartDrawer}
+        vatHandling={currentTenant?.default_vat_handling as 'inclusive' | 'exclusive' | undefined}
         cart={cart}
         cartTotals={cartTotals}
         selectedCustomer={selectedCustomer}
