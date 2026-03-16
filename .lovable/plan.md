@@ -1,60 +1,57 @@
 
 
-## Analysis & Fixes
+## Probleem: Tracking status wordt nooit bijgewerkt
 
-### Issue 1: A6 Cropping Is Wrong
+### Root cause gevonden
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+De cron job `poll-tracking-status-every-30min` draait elke 30 minuten, maar de `pg_net.http_post` call heeft een **standaard timeout van 5 seconden**. De `poll-tracking-status` functie moet voor elke order een externe carrier API aanroepen (bpost, PostNL, etc.), wat veel langer duurt dan 5 seconden.
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+Bewijs uit `net._http_response`:
+- Elke 5 minuten verschijnen er 2 timeouts: `"Timeout of 5000 ms reached"`
+- `tracking_status` en `last_tracking_check` zijn **NULL** op alle orders
+- Er zijn **geen logs** voor de `poll-tracking-status` functie (request wordt afgebroken voordat de functie kan antwoorden)
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
+Daarnaast ontbreekt `poll-tracking-status` in `config.toml` (`verify_jwt` defaults to `true`), wat een extra faalreden kan zijn als de anon key niet geaccepteerd wordt.
+
+### Oplossing
+
+**1. Config.toml — `verify_jwt = false` toevoegen**
+
+Voeg `[functions.poll-tracking-status]` toe met `verify_jwt = false` zodat de cron job correct kan authenticeren.
+
+**2. Cron job updaten met langere timeout**
+
+Verwijder de oude cron job en maak een nieuwe aan met `timeout_milliseconds := 25000` (25 seconden) in de `net.http_post` call.
+
+```sql
+SELECT cron.unschedule('poll-tracking-status-every-30min');
+
+SELECT cron.schedule(
+  'poll-tracking-status-every-30min',
+  '*/30 * * * *',
+  $$
+  SELECT net.http_post(
+    url := '...',
+    headers := '...'::jsonb,
+    body := '...'::jsonb,
+    timeout_milliseconds := 25000
+  ) AS request_id;
+  $$
+);
 ```
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+**3. Edge function optimaliseren — paralleliseren en batch-limiet verlagen**
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+De functie pollt nu tot 40 orders sequentieel. Verander naar:
+- Batch-limiet van 10 orders per run (minder kans op timeout)
+- `Promise.allSettled()` voor parallelle carrier API calls (max 5 tegelijk)
+- Early response pattern: stuur direct een 200 terug en verwerk op de achtergrond (niet nodig bij langere timeout, maar als optimalisatie)
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+### Samenvatting wijzigingen
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
-
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
-
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
-
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+| Bestand / Actie | Wijziging |
+|-----------------|-----------|
+| `supabase/config.toml` | `[functions.poll-tracking-status]` met `verify_jwt = false` toevoegen |
+| SQL (direct uitvoeren) | Cron job opnieuw aanmaken met `timeout_milliseconds := 25000` |
+| `supabase/functions/poll-tracking-status/index.ts` | Batch-limiet verlagen naar 10, carrier calls paralleliseren |
 
