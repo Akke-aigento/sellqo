@@ -67,6 +67,9 @@ import { POSTransactionHistory } from '@/components/admin/pos/POSTransactionHist
 import { POSGiftCardSellDialog } from '@/components/admin/pos/POSGiftCardSellDialog';
 import { POSBankTransferDialog } from '@/components/admin/pos/POSBankTransferDialog';
 
+import { POSCashierSelect } from '@/components/admin/pos/POSCashierSelect';
+import { usePOSCashiers, type POSCashier } from '@/hooks/usePOSCashiers';
+
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
 import type { Product } from '@/types/product';
