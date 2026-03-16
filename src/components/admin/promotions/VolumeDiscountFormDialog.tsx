@@ -29,6 +29,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2 } from 'lucide-react';
 import { useCreateVolumeDiscount, useUpdateVolumeDiscount } from '@/hooks/useVolumeDiscounts';
+import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { VolumeDiscount, VolumeDiscountFormData } from '@/types/promotions';
 
 const tierSchema = z.object({
@@ -42,6 +44,8 @@ const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   description: z.string().optional(),
   applies_to: z.enum(['all', 'product', 'category']),
+  product_ids: z.array(z.string()).optional(),
+  category_ids: z.array(z.string()).optional(),
   is_active: z.boolean(),
   valid_from: z.string().optional(),
   valid_until: z.string().optional(),
@@ -71,6 +75,8 @@ export function VolumeDiscountFormDialog({
       name: '',
       description: '',
       applies_to: 'all',
+      product_ids: [],
+      category_ids: [],
       is_active: true,
       valid_from: '',
       valid_until: '',
@@ -89,6 +95,8 @@ export function VolumeDiscountFormDialog({
         name: discount.name,
         description: discount.description || '',
         applies_to: discount.applies_to,
+        product_ids: discount.product_ids || [],
+        category_ids: discount.category_ids || [],
         is_active: discount.is_active,
         valid_from: discount.valid_from || '',
         valid_until: discount.valid_until || '',
@@ -104,6 +112,8 @@ export function VolumeDiscountFormDialog({
         name: '',
         description: '',
         applies_to: 'all',
+        product_ids: [],
+        category_ids: [],
         is_active: true,
         valid_from: '',
         valid_until: '',
@@ -117,6 +127,8 @@ export function VolumeDiscountFormDialog({
       name: data.name,
       description: data.description,
       applies_to: data.applies_to,
+      product_ids: data.applies_to === 'product' && data.product_ids?.length ? data.product_ids : undefined,
+      category_ids: data.applies_to === 'category' && data.category_ids?.length ? data.category_ids : undefined,
       is_active: data.is_active,
       valid_from: data.valid_from || undefined,
       valid_until: data.valid_until || undefined,
@@ -139,6 +151,8 @@ export function VolumeDiscountFormDialog({
       });
     }
   };
+
+  const appliesTo = form.watch('applies_to');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,6 +215,41 @@ export function VolumeDiscountFormDialog({
                 </FormItem>
               )}
             />
+
+            {appliesTo === 'product' && (
+              <FormField
+                control={form.control}
+                name="product_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Producten</FormLabel>
+                    <ProductMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Selecteer producten..."
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {appliesTo === 'category' && (
+              <FormField
+                control={form.control}
+                name="category_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categorieën</FormLabel>
+                    <CategoryMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">

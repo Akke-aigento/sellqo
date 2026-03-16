@@ -96,6 +96,7 @@ export function useCreateBundle() {
           product_id: p.product_id,
           quantity: p.quantity,
           is_required: p.is_required,
+          allow_quantity_change: p.allow_quantity_change ?? false,
           group_name: p.group_name || null,
           sort_order: index,
         }));
@@ -152,6 +153,7 @@ export function useUpdateBundle() {
             product_id: p.product_id,
             quantity: p.quantity,
             is_required: p.is_required,
+            allow_quantity_change: p.allow_quantity_change ?? false,
             group_name: p.group_name || null,
             sort_order: index,
           }));

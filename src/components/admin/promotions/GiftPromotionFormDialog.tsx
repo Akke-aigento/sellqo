@@ -30,6 +30,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateGiftPromotion, useUpdateGiftPromotion } from '@/hooks/useGiftPromotions';
 import { useProducts } from '@/hooks/useProducts';
+import { ProductMultiSelect } from './ProductMultiSelect';
 import type { GiftPromotion, GiftPromotionFormData } from '@/types/promotions';
 
 const formSchema = z.object({
@@ -37,6 +38,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
+  trigger_product_ids: z.array(z.string()).optional(),
   gift_product_id: z.string().min(1, 'Cadeau product is verplicht'),
   gift_quantity: z.coerce.number().min(1).default(1),
   max_per_order: z.coerce.number().min(1).optional(),
@@ -72,6 +74,7 @@ export function GiftPromotionFormDialog({
       description: '',
       trigger_type: 'cart_total',
       trigger_value: 50,
+      trigger_product_ids: [],
       gift_product_id: '',
       gift_quantity: 1,
       max_per_order: 1,
@@ -90,6 +93,7 @@ export function GiftPromotionFormDialog({
         description: promotion.description || '',
         trigger_type: promotion.trigger_type,
         trigger_value: promotion.trigger_value || undefined,
+        trigger_product_ids: promotion.trigger_product_ids || [],
         gift_product_id: promotion.gift_product_id,
         gift_quantity: promotion.gift_quantity,
         max_per_order: promotion.max_per_order || undefined,
@@ -105,6 +109,7 @@ export function GiftPromotionFormDialog({
         description: '',
         trigger_type: 'cart_total',
         trigger_value: 50,
+        trigger_product_ids: [],
         gift_product_id: '',
         gift_quantity: 1,
         max_per_order: 1,
@@ -123,6 +128,7 @@ export function GiftPromotionFormDialog({
       description: data.description,
       trigger_type: data.trigger_type,
       trigger_value: data.trigger_value,
+      trigger_product_ids: data.trigger_type === 'specific_products' && data.trigger_product_ids?.length ? data.trigger_product_ids : undefined,
       gift_product_id: data.gift_product_id,
       gift_quantity: data.gift_quantity,
       max_per_order: data.max_per_order,
@@ -149,7 +155,7 @@ export function GiftPromotionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Gift Actie Bewerken' : 'Nieuwe Gift Actie'}
@@ -210,22 +216,43 @@ export function GiftPromotionFormDialog({
                 )}
               />
 
+              {watchTriggerType !== 'specific_products' && (
+                <FormField
+                  control={form.control}
+                  name="trigger_value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {watchTriggerType === 'cart_total' ? 'Min. bedrag (€)' : 'Min. aantal'}
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {watchTriggerType === 'specific_products' && (
               <FormField
                 control={form.control}
-                name="trigger_value"
+                name="trigger_product_ids"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      {watchTriggerType === 'cart_total' ? 'Min. bedrag (€)' : 'Min. aantal'}
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
+                    <FormLabel>Trigger-producten</FormLabel>
+                    <FormDescription>Gift wordt toegevoegd als deze producten in de winkelwagen zitten</FormDescription>
+                    <ProductMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Selecteer trigger-producten..."
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
             <FormField
               control={form.control}
