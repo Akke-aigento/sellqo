@@ -1,60 +1,49 @@
 
+Diagnose (grondig nagekeken)
 
-## Analysis & Fixes
+1) De cron draait wél en pakt orders op  
+- Job `poll-tracking-status-every-30min` staat actief.  
+- Logs tonen: `Polling 8 orders...` gevolgd door `Polling complete. 0 orders updated`.
 
-### Issue 1: A6 Cropping Is Wrong
+2) Kernfout in de bpost-fetcher (echte blocker)  
+- `poll-tracking-status` gebruikt nu:  
+  `https://track.bpost.cloud/btr/web/api/items?...`  
+- Deze URL geeft HTML terug (doctype), geen JSON → parse error (`Unexpected token '<'`), exact zoals in logs.
 
-From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
-- Left side: tiny squished label (the left half of the A4 content)
-- Right side: full label visible when scrolling, but cut off at the right edge
+3) Tweede blocker: voor sommige bpost-codes is postcode nodig  
+- Voor 24-cijferige `3232...` codes geeft endpoint zonder postcode vaak `NO_DATA_FOUND`.  
+- Met postcode uit afleveradres geeft dezelfde code wel geldige tracking-events terug.
 
-**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
+4) Waarom “blijft hangen” zichtbaar in UI  
+- Bij fetch-fail wordt geen status geüpdatet → `tracking_status` blijft `NULL`.  
+- Daardoor blijft de badge leeg en lijkt auto-update “kapot”.
 
-```text
-Current crop (WRONG):          Correct crop:
-┌──────┬──────┐               ┌─────────────┐
-│ CROP │      │               │    CROP      │
-│105mm │      │               │  210mm wide  │
-│      │      │               │  148mm tall  │
-├──────┤      │               ├─────────────┤
-│      │      │               │             │
-│      │      │               │             │
-└──────┴──────┘               └─────────────┘
-  A6 quadrant                  Full width, half height
-```
+Implementatieplan
 
-**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
+1. bpost endpoint vervangen in `supabase/functions/poll-tracking-status/index.ts`  
+- Van `/btr/web/api/items` naar `/track/items`.  
+- Robuuste parsing: eerst JSON, fallback op tekst-parsing als response niet proper JSON is.
 
-Change `cropToA6`:
-- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
-- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
-- This preserves the label at full width and crops away the empty bottom half
+2. Postcode meenemen in polling-query en bpost-call  
+- In order-select ook `shipping_address` (en fallback `billing_address`) ophalen.  
+- `fetchBpost(trackingNumber, postalCode?)` maken en postcode normaliseren (spaties eruit, uppercase).
 
-### Issue 2: Auto-Accept Does Nothing at Bol.com
+3. Statusmapping verbeteren voor nieuwe bpost payload  
+- Beschrijving halen uit `events[0].key.NL.description` (fallback EN/FR/DE).  
+- `DELIVERED`/`DELIVERED_TO_SAFEPLACE` en “geleverd” correct mappen naar `delivered`.  
+- `NO_DATA_FOUND` mappen naar `not_found` (i.p.v. silent failure).
 
-The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
+4. Retry-gedrag stabiel maken  
+- Bij mislukte fetch toch `last_tracking_check` updaten (zodat niet elke run direct opnieuw blijft hameren).  
+- Alleen `tracking_status` aanpassen wanneer er een betrouwbare status is.
 
-However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
+5. Validatie na implementatie  
+- Handmatige run van `poll-tracking-status` en logs controleren: geen JSON parse errors meer.  
+- Verifiëren dat orders zoals #1123–#1126 een `tracking_status` krijgen en dat delivered-orders automatisch op `delivered` springen.  
+- UI-check: badge + “Gecheckt x geleden” zichtbaar en automatisch bijgewerkt.
 
-1. New order synced → `sync_status: 'pending'`
-2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
-3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
+Technische impact
 
-**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
-
-**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
-
-**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
-- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
-- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
-
-**File:** `supabase/functions/accept-bol-order/index.ts`
-- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
-
-### Summary
-
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
-| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
-
+- Geen database migratie nodig.  
+- Alleen edge function aanpassing (polling logic + bpost fetch).  
+- Bestaande cron kan ongewijzigd blijven.
