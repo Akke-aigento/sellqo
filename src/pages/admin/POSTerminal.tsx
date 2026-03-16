@@ -16,6 +16,8 @@ import {
   CloudOff,
   RefreshCw,
   Loader2,
+  ShoppingCart,
+  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,12 +42,15 @@ import { useVatRates } from '@/hooks/useVatRates';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 // POS Components
 import { POSProductPanel } from '@/components/admin/pos/POSProductPanel';
 import { POSCartPanel } from '@/components/admin/pos/POSCartPanel';
+import { POSMobileCartDrawer } from '@/components/admin/pos/POSMobileCartDrawer';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
@@ -169,12 +174,15 @@ export default function POSTerminalPage() {
   const [showGiftCardSellDialog, setShowGiftCardSellDialog] = useState(false);
   const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
   const [showParkedCartsDialog, setShowParkedCartsDialog] = useState(false);
+  const [showMobileCartDrawer, setShowMobileCartDrawer] = useState(false);
   const [pendingGiftCard, setPendingGiftCard] = useState<{ giftCard: GiftCard; amount: number } | null>(null);
   const [refundTxn, setRefundTxn] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
   const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
+
+  const isMobile = useIsMobile();
 
   // Stripe reader init
   useEffect(() => { listReaders(); }, [listReaders]);
@@ -384,34 +392,37 @@ export default function POSTerminalPage() {
     return <div className="flex items-center justify-center min-h-screen"><p>Terminal niet gevonden</p></div>;
   }
 
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="border-b bg-card px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="border-b bg-card px-3 lg:px-4 py-2 lg:py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2 lg:gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="font-semibold">{terminal.name}</h1>
+            <h1 className="font-semibold text-sm lg:text-base">{terminal.name}</h1>
             {activeSession && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <p className="text-xs lg:text-sm text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                Dag gestart om {new Date(activeSession.opened_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                <span className="hidden sm:inline">Dag gestart om </span>
+                {new Date(activeSession.opened_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {!isOnline && <Badge variant="destructive" className="gap-1"><CloudOff className="h-3 w-3" />Offline</Badge>}
+        <div className="flex items-center gap-1 lg:gap-2">
+          {!isOnline && <Badge variant="destructive" className="gap-1"><CloudOff className="h-3 w-3" /><span className="hidden sm:inline">Offline</span></Badge>}
           {pendingCount > 0 && (
             <Button variant={isOnline ? 'outline' : 'secondary'} size="sm" onClick={() => isOnline && syncAll()} disabled={isSyncing || !isOnline}>
-              {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              {pendingCount} wachtend
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              <span className="hidden sm:ml-2 sm:inline">{pendingCount} wachtend</span>
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setShowReaderDialog(true)} className={connectedReader?.status === 'online' ? 'border-green-500' : ''}>
+          <Button variant="outline" size="sm" onClick={() => setShowReaderDialog(true)} className={cn("hidden sm:flex", connectedReader?.status === 'online' && 'border-green-500')}>
             {connectedReader ? (
               <>{connectedReader.status === 'online' ? <Wifi className="mr-2 h-4 w-4 text-green-500" /> : <WifiOff className="mr-2 h-4 w-4 text-muted-foreground" />}{connectedReader.label}</>
             ) : (
@@ -420,26 +431,26 @@ export default function POSTerminalPage() {
           </Button>
           {parkedCarts.length > 0 && (
             <Button variant="outline" size="sm" onClick={() => setShowParkedCartsDialog(true)}>
-              <PauseCircle className="mr-2 h-4 w-4" />Geparkeerd ({parkedCarts.length})
+              <PauseCircle className="h-4 w-4" /><span className="hidden sm:ml-2 sm:inline">Geparkeerd ({parkedCarts.length})</span>
             </Button>
           )}
           {activeSession && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setShowCashMovementDialog(true)}><TrendingUp className="mr-2 h-4 w-4" />Kas +/-</Button>
-              <Button variant="outline" size="sm" onClick={() => setShowSessionReportDialog(true)}><BarChart3 className="mr-2 h-4 w-4" />Rapport</Button>
-              <Button variant="outline" size="sm" onClick={() => setShowTransactionHistory(true)}><ListOrdered className="mr-2 h-4 w-4" />Retouren</Button>
+              <Button variant="outline" size="sm" className="hidden md:flex" onClick={() => setShowCashMovementDialog(true)}><TrendingUp className="mr-2 h-4 w-4" />Kas +/-</Button>
+              <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => setShowSessionReportDialog(true)}><BarChart3 className="mr-2 h-4 w-4" />Rapport</Button>
+              <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => setShowTransactionHistory(true)}><ListOrdered className="mr-2 h-4 w-4" />Retouren</Button>
             </>
           )}
           <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}><Settings className="h-4 w-4" /></Button>
           {activeSession && (
-            <Button variant="outline" size="sm" onClick={() => setShowCloseSessionDialog(true)}><LogOut className="mr-2 h-4 w-4" />Dag Sluiten</Button>
+            <Button variant="outline" size="sm" onClick={() => setShowCloseSessionDialog(true)}><LogOut className="h-4 w-4" /><span className="hidden sm:ml-2 sm:inline">Dag Sluiten</span></Button>
           )}
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Products */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Products Panel - always visible, full width on mobile */}
         <POSProductPanel
           products={products}
           quickButtons={quickButtons}
@@ -449,30 +460,77 @@ export default function POSTerminalPage() {
           onConfigureQuickButtons={() => setShowQuickButtonDialog(true)}
           onSellGiftCard={() => setShowGiftCardSellDialog(true)}
           activeSession={!!activeSession}
+          cart={cart}
+          onUpdateQuantity={updateQuantity}
         />
 
-        {/* Right Panel - Cart */}
-        <POSCartPanel
-          cart={cart}
-          cartTotals={cartTotals}
-          selectedCustomer={selectedCustomer}
-          cartDiscount={cartDiscount}
-          isStripeProcessing={isStripeProcessing}
-          hasIban={!!currentTenant?.iban}
-          onUpdateQuantity={updateQuantity}
-          onRemoveItem={removeItem}
-          onClearCart={clearCart}
-          onParkCart={handleParkCart}
-          onSelectCustomer={() => setShowCustomerDialog(true)}
-          onClearCustomer={() => setSelectedCustomer(null)}
-          onApplyDiscount={() => setShowDiscountPanel(true)}
-          onClearDiscount={() => setCartDiscount(null)}
-          onCashPayment={() => setShowPaymentDialog(true)}
-          onCardPayment={() => cart.length > 0 && setShowCardPaymentDialog(true)}
-          onBankTransfer={() => setShowBankTransferDialog(true)}
-          onMultiPayment={() => setShowMultiPaymentDialog(true)}
-        />
+        {/* Cart Panel - desktop only */}
+        <div className="hidden lg:block">
+          <POSCartPanel
+            cart={cart}
+            cartTotals={cartTotals}
+            selectedCustomer={selectedCustomer}
+            cartDiscount={cartDiscount}
+            isStripeProcessing={isStripeProcessing}
+            hasIban={!!currentTenant?.iban}
+            onUpdateQuantity={updateQuantity}
+            onRemoveItem={removeItem}
+            onClearCart={clearCart}
+            onParkCart={handleParkCart}
+            onSelectCustomer={() => setShowCustomerDialog(true)}
+            onClearCustomer={() => setSelectedCustomer(null)}
+            onApplyDiscount={() => setShowDiscountPanel(true)}
+            onClearDiscount={() => setCartDiscount(null)}
+            onCashPayment={() => setShowPaymentDialog(true)}
+            onCardPayment={() => cart.length > 0 && setShowCardPaymentDialog(true)}
+            onBankTransfer={() => setShowBankTransferDialog(true)}
+            onMultiPayment={() => setShowMultiPaymentDialog(true)}
+          />
+        </div>
       </div>
+
+      {/* Mobile floating cart bar */}
+      <button
+        onClick={() => setShowMobileCartDrawer(true)}
+        className={cn(
+          "lg:hidden sticky bottom-0 z-30 flex items-center justify-between w-full px-4 py-3 shadow-lg border-t bg-primary text-primary-foreground"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <ShoppingCart className="w-5 h-5" />
+          <span className="font-semibold">
+            {totalItems > 0 ? `${totalItems} items` : 'Winkelwagen'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-lg">{formatCurrency(cartTotals.total)}</span>
+          <ChevronUp className="w-5 h-5" />
+        </div>
+      </button>
+
+      {/* Mobile Cart Drawer */}
+      <POSMobileCartDrawer
+        open={showMobileCartDrawer}
+        onOpenChange={setShowMobileCartDrawer}
+        cart={cart}
+        cartTotals={cartTotals}
+        selectedCustomer={selectedCustomer}
+        cartDiscount={cartDiscount}
+        isStripeProcessing={isStripeProcessing}
+        hasIban={!!currentTenant?.iban}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={removeItem}
+        onClearCart={clearCart}
+        onParkCart={handleParkCart}
+        onSelectCustomer={() => setShowCustomerDialog(true)}
+        onClearCustomer={() => setSelectedCustomer(null)}
+        onApplyDiscount={() => setShowDiscountPanel(true)}
+        onClearDiscount={() => setCartDiscount(null)}
+        onCashPayment={() => setShowPaymentDialog(true)}
+        onCardPayment={() => cart.length > 0 && setShowCardPaymentDialog(true)}
+        onBankTransfer={() => setShowBankTransferDialog(true)}
+        onMultiPayment={() => setShowMultiPaymentDialog(true)}
+      />
 
       {/* =================== DIALOGS =================== */}
 
