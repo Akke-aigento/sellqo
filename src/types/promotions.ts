@@ -23,6 +23,7 @@ export interface BundleProduct {
   product_id: string;
   quantity: number;
   is_required: boolean;
+  allow_quantity_change: boolean;
   group_name: string | null;
   sort_order: number;
   created_at: string;
