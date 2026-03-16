@@ -261,6 +261,13 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
     enabled: !!activeSession,
   });
 
+  // Show cashier select after session opens (if cashiers exist)
+  useEffect(() => {
+    if (activeSession && cashiers.length > 0 && !activeCashier) {
+      setShowCashierSelect(true);
+    }
+  }, [activeSession, cashiers.length, activeCashier]);
+
   // --- Payment handlers ---
   const handleOpenSession = async () => {
     if (!terminalId) return;
