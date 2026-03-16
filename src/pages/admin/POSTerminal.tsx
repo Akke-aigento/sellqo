@@ -553,6 +553,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       <POSMobileCartDrawer
         open={showMobileCartDrawer}
         onOpenChange={setShowMobileCartDrawer}
+        vatHandling={currentTenant?.default_vat_handling as 'inclusive' | 'exclusive' | undefined}
         cart={cart}
         cartTotals={cartTotals}
         selectedCustomer={selectedCustomer}
