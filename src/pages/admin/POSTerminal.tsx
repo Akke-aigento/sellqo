@@ -304,6 +304,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         cardBrand: opts.cardBrand,
         cardLast4: opts.cardLast4,
         customerId: selectedCustomer?.id,
+        posCashierId: activeCashier?.id,
       });
 
       // Earn loyalty points on net amount (subtotal - discount, excl. VAT)
