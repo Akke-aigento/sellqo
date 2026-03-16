@@ -29,6 +29,9 @@ export function useOrders(filters?: OrderFilters) {
       if (filters?.payment_status) {
         query = query.eq('payment_status', filters.payment_status);
       }
+      if (filters?.sales_channel) {
+        query = query.eq('sales_channel', filters.sales_channel);
+      }
       if (filters?.search) {
         query = query.or(`order_number.ilike.%${filters.search}%,customer_email.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%`);
       }

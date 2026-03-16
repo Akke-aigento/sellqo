@@ -121,6 +121,8 @@ export interface Order {
   // Import tracking
   import_source?: string | null;
   original_created_at?: string | null;
+  // Sales channel
+  sales_channel?: string | null;
   // Tracking status (auto-polling)
   tracking_status?: string | null;
   last_tracking_check?: string | null;
@@ -129,10 +131,13 @@ export interface Order {
   customer?: Customer;
 }
 
+export type SalesChannel = 'webshop' | 'pos' | 'bol_com' | 'amazon' | 'sellqo_webshop' | string;
+
 export interface OrderFilters {
   status?: OrderStatus;
   payment_status?: PaymentStatus;
   marketplace_source?: MarketplaceSource;
+  sales_channel?: SalesChannel;
   search?: string;
   dateFrom?: Date;
   dateTo?: Date;
