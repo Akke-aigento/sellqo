@@ -34,6 +34,7 @@ interface POSMobileCartDrawerProps {
 }
 
 export function POSMobileCartDrawer({
+  vatHandling = 'exclusive',
   open,
   onOpenChange,
   cart,
