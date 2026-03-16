@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
         .not("tracking_number", "is", null)
         .neq("tracking_number", "")
         .or(`last_tracking_check.is.null,last_tracking_check.lt.${cutoff}`)
-        .neq("tracking_status", "delivered")
+        .or("tracking_status.is.null,tracking_status.neq.delivered")
         .limit(10);
 
       if (ordersError) {
