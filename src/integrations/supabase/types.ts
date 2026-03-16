@@ -6348,6 +6348,7 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data: Json | null
           risk_level: string | null
+          sales_channel: string | null
           service_point_data: Json | null
           service_point_id: string | null
           shipped_at: string | null
@@ -6414,6 +6415,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
           risk_level?: string | null
+          sales_channel?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
           shipped_at?: string | null
@@ -6480,6 +6482,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
           risk_level?: string | null
+          sales_channel?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
           shipped_at?: string | null
