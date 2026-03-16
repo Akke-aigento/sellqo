@@ -1,70 +1,60 @@
 
-Diagnose (grondig nagekeken)
 
-1) Polling draait nu wel  
-- Logs tonen: `Polling 8 orders...` en `Polling complete. 8 orders updated.`  
-- Dus de cron + functie lopen.
+## Analysis & Fixes
 
-2) Waarom pakketstatus toch “niet goed” lijkt  
-- In `supabase/functions/poll-tracking-status/index.ts` mapt `normalizeStatus()` **“Zending geleverd”** niet naar `delivered` (regex mist `geleverd`).  
-- Gevolg: bpost events met “geleverd” landen fout als `in_transit`.  
-- Dit zie je in DB: meerdere orders met bpost-event “geleverd” maar `tracking_status = in_transit`.
+### Issue 1: A6 Cropping Is Wrong
 
-3) Waarom Fulfillment “alles te verzenden” toont  
-- `src/pages/admin/Fulfillment.tsx` toont badge op basis van `fulfillment_status`, niet `status`.  
-- In DB staat veel data inconsistent: `status='shipped'` maar `fulfillment_status='unfulfilled'` (grote bulk).  
-- Daardoor toont Fulfillment “Te verzenden” terwijl Orders-pagina “Verzonden” toont.
+From the screenshot: the label uses the **full A4 width** (210mm) but occupies only the **top portion** of the page. The current `cropToA6` function crops to A6 dimensions (105mm × 148mm) — taking only the **left half** of the page width. That's why:
+- Left side: tiny squished label (the left half of the A4 content)
+- Right side: full label visible when scrolling, but cut off at the right edge
 
-4) Bron van inconsistentie  
-- Meerdere write-paths zetten `status` zonder `fulfillment_status` (of gebruiken `fulfilled` i.p.v. `shipped`) in o.a.:  
-  - `supabase/functions/create-bol-vvb-label/index.ts` (already-shipped branch)  
-  - `supabase/functions/confirm-bol-shipment/index.ts` (already-shipped branch)  
-  - `supabase/functions/import-bol-csv/index.ts` (insert shipped zonder fulfillment_status)  
-  - `src/hooks/useOrders.ts` (status update zonder fulfillment sync)
+**Fix:** Change the crop to take the **full A4 width** but only the **top half height**. This matches how Bol.com actually positions their VVB labels on A4.
 
-Do I know what the issue is?  
-Ja: het is nu vooral een **status-normalisatie bug + dataconsistentie bug tussen `status` en `fulfillment_status`**.
+```text
+Current crop (WRONG):          Correct crop:
+┌──────┬──────┐               ┌─────────────┐
+│ CROP │      │               │    CROP      │
+│105mm │      │               │  210mm wide  │
+│      │      │               │  148mm tall  │
+├──────┤      │               ├─────────────┤
+│      │      │               │             │
+│      │      │               │             │
+└──────┴──────┘               └─────────────┘
+  A6 quadrant                  Full width, half height
+```
 
-Implementatieplan
+**File:** `supabase/functions/create-bol-vvb-label/index.ts`, lines 28-47
 
-1) Fix statusmapping in polling (directe kernfix)
-- Bestand: `supabase/functions/poll-tracking-status/index.ts`
-- `normalizeStatus()` uitbreiden zodat o.a. `geleverd`, `geleverd in brievenbus`, `veilige plaats`, `DELIVERED*` altijd `delivered` worden.
-- `NO_DATA_FOUND` expliciet als `not_found` behandelen.
+Change `cropToA6`:
+- `A6_WIDTH` from `297.64` (105mm) → `595.28` (full A4 width, 210mm)
+- `A6_HEIGHT` stays `419.53` (148mm, half A4 height)
+- This preserves the label at full width and crops away the empty bottom half
 
-2) Canonicalisatie op databaseniveau (structurele fix)
-- SQL migratie toevoegen:
-  - `BEFORE INSERT OR UPDATE` trigger op `orders` die `fulfillment_status` automatisch normaliseert op basis van `status`.
-  - Regels:
-    - `status='delivered'` => `fulfillment_status='delivered'`
-    - `status='shipped'` + fulfillment in (`null`,`unfulfilled`,`pending`,`fulfilled`) => `fulfillment_status='shipped'`
-    - alias `fulfilled` normaliseren naar `shipped`
-- Zo blijft data consistent, ongeacht welke frontend/edge-function schrijft.
+### Issue 2: Auto-Accept Does Nothing at Bol.com
 
-3) Backfill bestaande foutieve orders
-- In dezelfde migratie een eenmalige update:
-  - `status='shipped'` + `fulfillment_status in ('unfulfilled','pending',null,'fulfilled')` => `fulfillment_status='shipped'`
-  - `status='delivered'` + `fulfillment_status!='delivered'` => `fulfillment_status='delivered'`
-- Dit lost direct de huidige “alles te verzenden” in Fulfillment op.
+The `accept-bol-order` function has this comment: *"FBR orders are auto-accepted by Bol.com"* — and then only updates the local database. **This is incorrect.** The user confirms they had to manually accept orders on the Bol.com portal.
 
-4) Hardening van bekende write-paths (voorkomt regressie)
-- Bijwerken:
-  - `create-bol-vvb-label` already-shipped path: ook `fulfillment_status='shipped'`
-  - `confirm-bol-shipment` already-shipped path: `status/fulfillment_status/shipped_at` consistent zetten
-  - `import-bol-csv`: bij shipped insert ook `fulfillment_status='shipped'`
-  - `useOrders.ts` statusmutatie: bij shipped/delivered ook fulfillment_status mee updaten
-- Eventuele `fulfilled`-waarde overal vervangen door `shipped`.
+However, looking deeper: in Bol.com API v10, there is no separate "accept" endpoint. The acceptance happens implicitly when you create a shipment (`POST /retailer/shipping-labels`). The VVB label creation already does this. So the actual flow should be:
 
-5) Fulfillment UI defensief maken
-- `Fulfillment.tsx` badge/render defensief laten omgaan met legacy waarde `fulfilled` als `shipped`.
-- (Kleine UX-verduidelijking) tonen dat defaultfilter “Te verzenden” actief is, zodat dit minder verwarrend is.
+1. New order synced → `sync_status: 'pending'`
+2. Auto-accept called → marks `sync_status: 'accepted'` locally (NO API call)
+3. VVB label created → calls `POST /retailer/shipping-labels` → this IS the acceptance at Bol.com
 
-Validatie na implementatie
+**The problem:** If VVB label creation fails (which was happening due to the `#` filename bug causing 409 errors), the order appears accepted locally but Bol.com still shows it as unaccepted because no shipment was created.
 
-- Edge logs: check dat “Zending geleverd” nu naar `delivered` mapped (geen `in_transit` meer voor die teksten).
-- DB checks:
-  - geen mismatch meer: `status='shipped'` + `fulfillment_status='unfulfilled'`
-  - recente bpost-orders krijgen `tracking_status='delivered'` waar van toepassing
-- UI checks:
-  - Orders-pagina en Fulfillment-pagina tonen consistente status
-  - Fulfillment “Te verzenden” bevat alleen echte unfulfilled/pending orders
+**Fix:** In `accept-bol-order/index.ts`, instead of just marking locally, actually call the Bol.com order endpoint to verify the order status. And update `sync-bol-orders` to set status to `accepted` only AFTER VVB label creation succeeds (not before).
+
+**File:** `supabase/functions/sync-bol-orders/index.ts`, lines ~467-526
+- Move the `sync_status: 'accepted'` update to AFTER VVB label creation succeeds
+- If VVB label creation fails, keep status as `pending` so the retry mechanism picks it up
+
+**File:** `supabase/functions/accept-bol-order/index.ts`
+- Keep the local-only behavior (since v10 has no accept endpoint), but add a clear log that actual acceptance happens via shipment creation
+
+### Summary
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Label not cropped correctly | Crop takes left-half A6 quadrant; label uses full A4 width | Use full width (595.28pt), half height (419.53pt) |
+| Auto-accept not working at Bol.com | Order marked "accepted" locally before VVB label succeeds | Only mark accepted after successful VVB label creation |
+

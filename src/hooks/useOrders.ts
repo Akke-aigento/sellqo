@@ -57,13 +57,15 @@ export function useOrders(filters?: OrderFilters) {
 
   const updateOrderStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      const updateData: Partial<Order> = { status };
+      const updateData: Partial<Order> & { fulfillment_status?: string } = { status };
       
-      // Set timestamps based on status
+      // Set timestamps and sync fulfillment_status based on status
       if (status === 'shipped') {
         updateData.shipped_at = new Date().toISOString();
+        updateData.fulfillment_status = 'shipped';
       } else if (status === 'delivered') {
         updateData.delivered_at = new Date().toISOString();
+        updateData.fulfillment_status = 'delivered';
       } else if (status === 'cancelled') {
         updateData.cancelled_at = new Date().toISOString();
       }

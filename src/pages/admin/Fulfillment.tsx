@@ -114,6 +114,9 @@ export default function Fulfillment() {
       // Filter by status
       if (statusFilter === 'unfulfilled') {
         query = query.or('fulfillment_status.is.null,fulfillment_status.eq.unfulfilled,fulfillment_status.eq.pending');
+      } else if (statusFilter === 'shipped') {
+        // Include legacy 'fulfilled' value as 'shipped'
+        query = query.or('fulfillment_status.eq.shipped,fulfillment_status.eq.fulfilled');
       } else if (statusFilter !== 'all') {
         query = query.eq('fulfillment_status', statusFilter);
       }

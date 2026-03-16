@@ -247,6 +247,9 @@ Deno.serve(async (req) => {
           sync_status: 'shipped',
           marketplace_sync_error: null,
           carrier: carrier,
+          status: 'shipped',
+          fulfillment_status: 'shipped',
+          shipped_at: new Date().toISOString(),
         };
         if (resolvedTracking) {
           orderUpdate.tracking_number = resolvedTracking;
@@ -296,6 +299,9 @@ Deno.serve(async (req) => {
       sync_status: resolvedTracking ? 'shipped' : 'shipped_awaiting_tracking',
       marketplace_sync_error: null,
       carrier: carrier,
+      status: 'shipped',
+      fulfillment_status: 'shipped',
+      shipped_at: new Date().toISOString(),
     };
     if (resolvedTracking) {
       orderUpdate.tracking_number = resolvedTracking;
