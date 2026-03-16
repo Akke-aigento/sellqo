@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useStorefrontShipping } from '@/hooks/useStorefrontShipping';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useCartPromotions } from '@/hooks/useCartPromotions';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
