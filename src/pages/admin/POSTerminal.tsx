@@ -469,6 +469,9 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
               <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => setShowTransactionHistory(true)}><ListOrdered className="mr-2 h-4 w-4" />Retouren</Button>
             </>
           )}
+          <Button variant="outline" size="icon" onClick={toggleFullscreen} title={isFullscreen ? 'Fullscreen verlaten' : 'Fullscreen'}>
+            {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}><Settings className="h-4 w-4" /></Button>
           {activeSession && (
             <Button variant="outline" size="sm" onClick={() => setShowCloseSessionDialog(true)}><LogOut className="h-4 w-4" /><span className="hidden sm:ml-2 sm:inline">Dag Sluiten</span></Button>
