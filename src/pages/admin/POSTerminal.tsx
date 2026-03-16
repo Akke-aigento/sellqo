@@ -399,9 +399,11 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       {/* Header */}
       <header className="border-b bg-card px-3 lg:px-4 py-2 lg:py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 lg:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          {!standalone && (
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <div>
             <h1 className="font-semibold text-sm lg:text-base">{terminal.name}</h1>
             {activeSession && (
