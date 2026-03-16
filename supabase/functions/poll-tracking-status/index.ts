@@ -44,12 +44,13 @@ function detectCarrier(trackingNumber: string, existingCarrier?: string | null):
 // ── Normalize status from various carrier responses ──
 function normalizeStatus(raw: string): string {
   const s = (raw || "").toLowerCase();
-  if (/deliver|bezorgd|zugestellt|afgeleverd/.test(s)) return "delivered";
+  // Delivered variants (NL: geleverd, bezorgd, afgeleverd; DE: zugestellt; bpost: veilige plaats, brievenbus, safeplace)
+  if (/deliver|bezorgd|zugestellt|afgeleverd|geleverd|veilige.?plaats|safe.?place|brievenbus|mailbox|pakjesautomaat|parcel.?locker/.test(s)) return "delivered";
   if (/out.for.delivery|in.bezorging|onderweg.naar/.test(s)) return "out_for_delivery";
   if (/transit|onderweg|vervoer|sorting|gesorteerd|hub|depot|transport/.test(s)) return "in_transit";
   if (/exception|problem|retour|return|damage|schade|refused|geweigerd|mislukt|failed/.test(s)) return "exception";
   if (/picked.up|opgehaald|aangemeld|registered|accepted|aangenomen|collected/.test(s)) return "in_transit";
-  if (/not.found|geen.info|unknown/.test(s)) return "not_found";
+  if (/not.found|geen.info|unknown|no.data/.test(s)) return "not_found";
   return "in_transit";
 }
 
