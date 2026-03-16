@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { OrderStatus, PaymentStatus, MarketplaceSource, OrderFilters as OrderFiltersType } from '@/types/order';
+import type { OrderStatus, PaymentStatus, MarketplaceSource, SalesChannel, OrderFilters as OrderFiltersType } from '@/types/order';
 
 interface OrderFiltersProps {
   filters: OrderFiltersType;
