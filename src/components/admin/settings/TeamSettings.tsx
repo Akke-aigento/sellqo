@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye } from 'lucide-react';
+import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye, KeyRound, Plus, Edit2, Power, PowerOff, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,11 +25,12 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
 import { useTeamInvitations } from '@/hooks/useTeamInvitations';
+import { usePOSCashiers, type POSCashier } from '@/hooks/usePOSCashiers';
 import { useAuth } from '@/hooks/useAuth';
 import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
+import { CashierCreateDialog, CashierEditDialog, CashierPinDialog } from './CashierManagement';
 import { format, isPast } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { CashierManagement } from './CashierManagement';
 
 const getRoleBadge = (role: string) => {
   switch (role) {
@@ -45,25 +46,42 @@ const getRoleBadge = (role: string) => {
       return <Badge className="bg-orange-500">Magazijn</Badge>;
     case 'viewer':
       return <Badge variant="outline">Kijker</Badge>;
+    case 'cashier':
+      return <Badge className="bg-cyan-500">Kassa</Badge>;
     default:
       return <Badge variant="outline">{role}</Badge>;
   }
 };
 
-const getInitials = (name: string | null, email: string | null) => {
+const getInitials = (name: string | null, email?: string | null) => {
   if (name) {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   }
   return email?.charAt(0).toUpperCase() || 'U';
 };
 
+const ROLE_EXPLANATIONS = [
+  { badge: 'tenant_admin', description: 'Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.' },
+  { badge: 'staff', description: 'Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.' },
+  { badge: 'accountant', description: 'Toegang tot facturen, creditnota\'s, rapporten en BTW-gegevens. Geen toegang tot producten of klanten.' },
+  { badge: 'warehouse', description: 'Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.' },
+  { badge: 'viewer', description: 'Alleen lezen. Kan alles bekijken maar niets wijzigen.' },
+  { badge: 'cashier', description: 'Gebruikt de kassa met een PIN-code. Geen account of e-mailadres nodig.' },
+];
+
 export function TeamSettings() {
   const { members, isLoading, updateMemberRole, removeMember } = useTeamMembers();
   const { invitations, isLoading: invitationsLoading, cancelInvitation, resendInvitation } = useTeamInvitations();
+  const { allCashiers, isLoading: cashiersLoading, updateCashier } = usePOSCashiers();
   const { user } = useAuth();
   
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+
+  // Cashier dialog state
+  const [showCreateCashier, setShowCreateCashier] = useState(false);
+  const [editCashier, setEditCashier] = useState<POSCashier | null>(null);
+  const [pinCashier, setPinCashier] = useState<POSCashier | null>(null);
 
   const handleRoleChange = async (member: TeamMember, newRole: AppRole) => {
     await updateMemberRole(member.id, newRole);
@@ -77,7 +95,13 @@ export function TeamSettings() {
     setMemberToRemove(null);
   };
 
+  const toggleCashierActive = async (cashier: POSCashier) => {
+    await updateCashier.mutateAsync({ id: cashier.id, isActive: !cashier.is_active });
+  };
+
   const pendingInvitations = invitations.filter(i => !i.accepted_at);
+  const dataLoading = isLoading || cashiersLoading;
+  const hasAnyMembers = members.length > 0 || allCashiers.length > 0;
 
   return (
     <div className="space-y-6">
@@ -95,11 +119,35 @@ export function TeamSettings() {
                 </CardDescription>
               </div>
             </div>
-            <InviteTeamMemberDialog />
+
+            {/* Split add button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Toevoegen
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <InviteTeamMemberDialog
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Teamlid uitnodigen
+                    </DropdownMenuItem>
+                  }
+                />
+                <DropdownMenuItem onSelect={() => setShowCreateCashier(true)}>
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  Kassamedewerker toevoegen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {dataLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="flex items-center gap-4">
@@ -112,38 +160,32 @@ export function TeamSettings() {
                 </div>
               ))}
             </div>
-          ) : members.length === 0 ? (
+          ) : !hasAnyMembers ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Geen teamleden</h3>
               <p className="text-muted-foreground mb-4">
                 Voeg teamleden toe om samen te werken aan je winkel.
               </p>
-              <InviteTeamMemberDialog
-                trigger={
-                  <Button>
-                    Eerste teamlid uitnodigen
-                  </Button>
-                }
-              />
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Gebruiker</TableHead>
+                  <TableHead>Naam</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Toegevoegd op</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {/* Regular team members */}
                 {members.map((member) => {
                   const isCurrentUser = member.user_id === user?.id;
                   const isPlatformAdmin = member.role === 'platform_admin';
                   
                   return (
-                    <TableRow key={member.id}>
+                    <TableRow key={`member-${member.id}`}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
@@ -228,6 +270,62 @@ export function TeamSettings() {
                     </TableRow>
                   );
                 })}
+
+                {/* POS Cashiers (PIN-based) */}
+                {allCashiers.map((cashier) => (
+                  <TableRow key={`cashier-${cashier.id}`} className={!cashier.is_active ? 'opacity-50' : ''}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="h-9 w-9 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
+                          style={{ backgroundColor: cashier.avatar_color || '#06b6d4' }}
+                        >
+                          {getInitials(cashier.display_name)}
+                        </div>
+                        <div>
+                          <p className="font-medium">{cashier.display_name}</p>
+                          <p className="text-sm text-muted-foreground">PIN-toegang</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getRoleBadge('cashier')}
+                        {!cashier.is_active && <Badge variant="outline">Inactief</Badge>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(cashier.created_at), 'd MMM yyyy', { locale: nl })}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setEditCashier(cashier)}>
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Bewerken
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setPinCashier(cashier)}>
+                            <KeyRound className="h-4 w-4 mr-2" />
+                            PIN wijzigen
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => toggleCashierActive(cashier)}>
+                            {cashier.is_active ? (
+                              <><PowerOff className="h-4 w-4 mr-2" />Deactiveren</>
+                            ) : (
+                              <><Power className="h-4 w-4 mr-2" />Activeren</>
+                            )}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
@@ -308,56 +406,19 @@ export function TeamSettings() {
         </Card>
       )}
 
-      {/* Role explanations */}
+      {/* Role explanations — clean grid */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Rollen uitleg</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-3">
-            <Badge className="bg-blue-500 mt-0.5">Admin</Badge>
-            <div>
-              <p className="font-medium">Tenant Admin</p>
-              <p className="text-sm text-muted-foreground">
-                Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge variant="secondary" className="mt-0.5">Medewerker</Badge>
-            <div>
-              <p className="font-medium">Staff</p>
-              <p className="text-sm text-muted-foreground">
-                Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge className="bg-green-500 mt-0.5">Boekhouder</Badge>
-            <div>
-              <p className="font-medium">Accountant</p>
-              <p className="text-sm text-muted-foreground">
-                Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge className="bg-orange-500 mt-0.5">Magazijn</Badge>
-            <div>
-              <p className="font-medium">Warehouse</p>
-              <p className="text-sm text-muted-foreground">
-                Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge variant="outline" className="mt-0.5">Kijker</Badge>
-            <div>
-              <p className="font-medium">Viewer</p>
-              <p className="text-sm text-muted-foreground">
-                Alleen lezen. Kan alles bekijken maar niets wijzigen.
-              </p>
-            </div>
+        <CardContent>
+          <div className="grid gap-3">
+            {ROLE_EXPLANATIONS.map((r) => (
+              <div key={r.badge} className="grid grid-cols-[7rem_1fr] items-start gap-3">
+                <div>{getRoleBadge(r.badge)}</div>
+                <p className="text-sm text-muted-foreground">{r.description}</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -389,8 +450,10 @@ export function TeamSettings() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Kassa medewerkers (PIN-based) */}
-      <CashierManagement />
+      {/* Cashier dialogs */}
+      <CashierCreateDialog open={showCreateCashier} onOpenChange={setShowCreateCashier} />
+      <CashierEditDialog cashier={editCashier} onOpenChange={(o) => { if (!o) setEditCashier(null); }} />
+      <CashierPinDialog cashier={pinCashier} onOpenChange={(o) => { if (!o) setPinCashier(null); }} />
     </div>
   );
 }
