@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-console.log("POLL-TRACKING-STATUS v6 BPOST-FIX DEPLOYED");
+console.log("POLL-TRACKING-STATUS v7 STATUS-MAPPING-FIX DEPLOYED");
 
 // ── Status labels (Dutch) ──
 const STATUS_LABELS: Record<string, string> = {
