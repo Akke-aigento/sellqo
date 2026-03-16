@@ -1941,6 +1941,7 @@ export type Database = {
       }
       bundle_products: {
         Row: {
+          allow_quantity_change: boolean
           bundle_id: string
           created_at: string
           group_name: string | null
@@ -1951,6 +1952,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          allow_quantity_change?: boolean
           bundle_id: string
           created_at?: string
           group_name?: string | null
@@ -1961,6 +1963,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          allow_quantity_change?: boolean
           bundle_id?: string
           created_at?: string
           group_name?: string | null
