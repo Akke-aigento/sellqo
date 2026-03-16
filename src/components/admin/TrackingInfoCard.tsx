@@ -133,12 +133,12 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
         </div>
         
         <div className="flex gap-2">
-          {order.tracking_url && (
+          {effectiveTrackingUrl && (
             <Button
               variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => window.open(order.tracking_url!, '_blank')}
+              onClick={() => window.open(effectiveTrackingUrl, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Track & Trace
