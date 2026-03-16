@@ -10,6 +10,7 @@ import type { POSDiscount } from '@/components/admin/pos/POSDiscountPanel';
 import type { POSCartTotals } from '@/hooks/usePOSCart';
 
 interface POSMobileCartDrawerProps {
+  vatHandling?: 'inclusive' | 'exclusive';
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cart: POSCartItem[];
