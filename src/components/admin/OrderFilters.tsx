@@ -10,7 +10,7 @@ interface OrderFiltersProps {
 }
 
 export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
-  const hasFilters = filters.status || filters.payment_status || filters.search || filters.marketplace_source;
+  const hasFilters = filters.status || filters.payment_status || filters.search || filters.marketplace_source || filters.sales_channel;
 
   const clearFilters = () => {
     onFiltersChange({});
