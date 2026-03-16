@@ -251,12 +251,13 @@ async function fetchGLS(trackingNumber: string): Promise<{ status: string; descr
 // ── Main fetch dispatcher ──
 async function fetchTrackingStatus(
   carrier: string,
-  trackingNumber: string
+  trackingNumber: string,
+  postalCode?: string,
 ): Promise<{ status: string; description: string; location?: string; timestamp?: string } | null> {
   switch (carrier) {
     case "postnl": return fetchPostNL(trackingNumber);
     case "dhl": return fetchDHL(trackingNumber);
-    case "bpost": return fetchBpost(trackingNumber);
+    case "bpost": return fetchBpost(trackingNumber, postalCode);
     case "dpd": return fetchDPD(trackingNumber);
     case "gls": return fetchGLS(trackingNumber);
     default:
