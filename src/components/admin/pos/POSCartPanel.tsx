@@ -31,6 +31,9 @@ interface POSCartPanelProps {
   cartDiscount: POSDiscount | null;
   isStripeProcessing: boolean;
   hasIban: boolean;
+  activeCashierName?: string | null;
+  activeCashierColor?: string | null;
+  onSwitchCashier?: () => void;
   onUpdateQuantity: (itemId: string, delta: number) => void;
   onRemoveItem: (itemId: string) => void;
   onClearCart: () => void;
