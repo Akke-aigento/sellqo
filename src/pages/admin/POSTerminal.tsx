@@ -531,8 +531,6 @@ export default function POSTerminalPage() {
         onBankTransfer={() => setShowBankTransferDialog(true)}
         onMultiPayment={() => setShowMultiPaymentDialog(true)}
       />
-        />
-      </div>
 
       {/* =================== DIALOGS =================== */}
 
