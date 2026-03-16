@@ -69,7 +69,7 @@ import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
 import type { Product } from '@/types/product';
 
-export default function POSTerminalPage() {
+export default function POSTerminalPage({ standalone = false }: { standalone?: boolean }) {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
 
