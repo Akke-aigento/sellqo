@@ -28,3 +28,23 @@
 - `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
 - `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
 - Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
+
+## Kassa-medewerkers met PIN-code ✅
+
+### Wat is gewijzigd
+
+1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
+2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
+3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
+4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
+5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
+6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
+
+### Bestanden
+- `src/hooks/usePOSCashiers.ts` (nieuw)
+- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
+- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
+- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
+- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
+- `src/hooks/usePOS.ts` (gewijzigd)
+- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
