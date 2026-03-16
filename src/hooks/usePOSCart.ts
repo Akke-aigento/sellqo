@@ -62,13 +62,20 @@ export function usePOSCart(options: UsePOSCartOptions = {}) {
     let taxTotal = 0;
     const taxBreakdown: { rate: number; taxable: number; tax: number }[] = [];
     for (const [rate, group] of taxGroups) {
-      const tax = group.taxable * (rate / 100);
+      // Inclusive: extract VAT from price; Exclusive: add VAT on top
+      const tax = isInclusive
+        ? group.taxable - group.taxable / (1 + rate / 100)
+        : group.taxable * (rate / 100);
       taxTotal += tax;
       taxBreakdown.push({ rate, taxable: group.taxable, tax });
     }
     taxBreakdown.sort((a, b) => b.rate - a.rate);
 
-    const total = itemSubtotal - totalDiscount + taxTotal;
+    // Inclusive: total = subtotal - discount (VAT already in price)
+    // Exclusive: total = subtotal - discount + tax
+    const total = isInclusive
+      ? itemSubtotal - totalDiscount
+      : itemSubtotal - totalDiscount + taxTotal;
 
     return { subtotal: itemSubtotal, discount: totalDiscount, cartDiscountAmount, taxTotal, total, taxBreakdown };
   }, [cart, cartDiscount]);
