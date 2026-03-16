@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Clock,
@@ -18,6 +18,8 @@ import {
   Loader2,
   ShoppingCart,
   ChevronUp,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -183,6 +185,30 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
   const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Fullscreen API
+  useEffect(() => {
+    const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleChange);
+    return () => document.removeEventListener('fullscreenchange', handleChange);
+  }, []);
+
+  // Auto-fullscreen via URL param
+  useEffect(() => {
+    if (searchParams.get('fullscreen') === '1' && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, [searchParams]);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
 
   // Stripe reader init
   useEffect(() => { listReaders(); }, [listReaders]);
@@ -443,6 +469,9 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
               <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => setShowTransactionHistory(true)}><ListOrdered className="mr-2 h-4 w-4" />Retouren</Button>
             </>
           )}
+          <Button variant="outline" size="icon" onClick={toggleFullscreen} title={isFullscreen ? 'Fullscreen verlaten' : 'Fullscreen'}>
+            {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}><Settings className="h-4 w-4" /></Button>
           {activeSession && (
             <Button variant="outline" size="sm" onClick={() => setShowCloseSessionDialog(true)}><LogOut className="h-4 w-4" /><span className="hidden sm:ml-2 sm:inline">Dag Sluiten</span></Button>

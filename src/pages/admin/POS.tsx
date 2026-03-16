@@ -11,7 +11,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
+  Maximize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -202,10 +202,10 @@ export default function POSPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => window.open(`/kassa/${terminal.id}`, '_blank')}
-                      title="Open kassaweergave (tablet)"
+                      onClick={() => navigate(`/admin/pos/${terminal.id}?fullscreen=1`)}
+                      title="Fullscreen kassaweergave"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <Maximize className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
