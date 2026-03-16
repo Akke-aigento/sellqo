@@ -99,8 +99,8 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
     setIsEditing(true);
   };
 
-  const carrierInfo = getCarrierById(carrier);
-  const hasTrackingInfo = order.tracking_number && order.carrier;
+  const carrierInfo = getCarrierById(normalizedOrderCarrier);
+  const hasTrackingInfo = order.tracking_number && (order.carrier || normalizedOrderCarrier);
   const trackingStatusConfig = order.tracking_status ? TRACKING_STATUS_CONFIG[order.tracking_status] : null;
 
   // Display mode - show existing tracking info
