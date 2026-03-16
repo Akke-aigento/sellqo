@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingBag, Tag, X, Loader2 } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, Tag, X, Loader2, Gift, Sparkles } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCartPromotions } from '@/hooks/useCartPromotions';
 
 interface CartDrawerProps {
   open: boolean;
@@ -21,7 +22,12 @@ interface CartDrawerProps {
 export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR', tenantId }: CartDrawerProps) {
   const { items, updateQuantity, removeItem, getSubtotal, appliedDiscount, applyDiscountCode, removeDiscountCode } = useCart();
   const subtotal = getSubtotal();
-  const discountAmount = appliedDiscount?.calculated_amount || 0;
+  const promoResult = useCartPromotions(tenantId);
+
+  // Use promotion engine's total discount (includes discount code + auto discounts)
+  const totalDiscount = promoResult.total_discount;
+  const autoDiscounts = promoResult.applied_discounts.filter(d => d.type !== 'discount_code');
+  const hasAutoDiscounts = autoDiscounts.length > 0;
 
   const [discountCode, setDiscountCode] = useState('');
   const [applyingDiscount, setApplyingDiscount] = useState(false);
@@ -141,6 +147,20 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR', ten
                   </div>
                 ))}
               </div>
+
+              {/* Gift promotions */}
+              {promoResult.gifts.length > 0 && (
+                <div className="py-3 border-t">
+                  <p className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1">
+                    <Gift className="h-3.5 w-3.5" /> Gratis cadeau(s)
+                  </p>
+                  {promoResult.gifts.map((gift, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                      <span>{gift.quantity}x {gift.product_name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
 
             <SheetFooter className="!flex-col gap-3 px-6 py-4 border-t sm:flex-col">
@@ -182,15 +202,45 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR', ten
                   <span className="text-muted-foreground">Subtotaal</span>
                   <span>{formatCurrency(subtotal, currency)}</span>
                 </div>
-                {appliedDiscount && discountAmount > 0 && (
+
+                {/* Auto-applied discounts (volume, bogo, bundle, etc.) */}
+                {hasAutoDiscounts && autoDiscounts.map((d, i) => (
+                  <div key={i} className="flex justify-between items-center w-full text-sm text-green-600">
+                    <span className="flex items-center gap-1 truncate">
+                      <Sparkles className="h-3 w-3 shrink-0" />
+                      {d.name}
+                    </span>
+                    <span>-{formatCurrency(d.value, currency)}</span>
+                  </div>
+                ))}
+
+                {/* Manual discount code */}
+                {appliedDiscount && promoResult.applied_discounts.some(d => d.type === 'discount_code') && (
                   <div className="flex justify-between items-center w-full text-sm text-green-600">
-                    <span>Korting ({appliedDiscount.discount_type === 'percentage' ? `${appliedDiscount.discount_value}%` : formatCurrency(appliedDiscount.discount_value, currency)})</span>
-                    <span>-{formatCurrency(discountAmount, currency)}</span>
+                    <span>Korting ({appliedDiscount.code})</span>
+                    <span>-{formatCurrency(
+                      promoResult.applied_discounts.find(d => d.type === 'discount_code')?.value || appliedDiscount.calculated_amount,
+                      currency
+                    )}</span>
                   </div>
                 )}
+
+                {/* Free shipping badge */}
+                {promoResult.free_shipping && (
+                  <div className="flex justify-between items-center w-full text-sm text-green-600">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      {promoResult.free_shipping_reason || 'Gratis verzending'}
+                    </span>
+                    <span>Gratis</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center w-full font-medium">
                   <span>Totaal</span>
-                  <span className="text-lg font-bold">{formatCurrency(subtotal - discountAmount, currency)}</span>
+                  <span className="text-lg font-bold">
+                    {formatCurrency(Math.max(0, subtotal - totalDiscount), currency)}
+                  </span>
                 </div>
               </div>
 
