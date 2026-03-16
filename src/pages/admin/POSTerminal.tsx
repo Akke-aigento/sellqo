@@ -639,7 +639,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
       <StripeReaderDialog open={showReaderDialog} onOpenChange={setShowReaderDialog} onReaderSelect={handleReaderSelect} />
       <QuickButtonDialog open={showQuickButtonDialog} onOpenChange={setShowQuickButtonDialog} terminalId={terminalId} />
       <ReceiptDialog open={showReceiptDialog} onOpenChange={(open) => { setShowReceiptDialog(open); if (!open) setLastPaymentWasCash(false); }} transaction={lastTransaction} autoPrint={terminal?.settings?.auto_print === true} openCashDrawer={lastPaymentWasCash} />
-      <SessionReportDialog open={showSessionReportDialog} onOpenChange={setShowSessionReportDialog} session={activeSession} transactions={transactions} cashMovements={cashMovements} onClose={() => { if (activeSession?.status !== 'open') navigate('/admin/pos'); }} />
+      <SessionReportDialog open={showSessionReportDialog} onOpenChange={setShowSessionReportDialog} session={activeSession} transactions={transactions} cashMovements={cashMovements} onClose={() => { if (activeSession?.status !== 'open' && !standalone) navigate('/admin/pos'); }} />
       <CashMovementDialog open={showCashMovementDialog} onOpenChange={setShowCashMovementDialog} onSubmit={handleCashMovement} isPending={createMovement.isPending} />
       <POSCustomerDialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog} selectedCustomer={selectedCustomer} onSelectCustomer={setSelectedCustomer} />
       <POSDiscountPanel open={showDiscountPanel} onOpenChange={setShowDiscountPanel} currentDiscount={cartDiscount} cartSubtotal={cartTotals.subtotal} onApplyDiscount={setCartDiscount} />

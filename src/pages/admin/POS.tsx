@@ -189,24 +189,25 @@ export default function POSPage() {
                     )}
                   </div>
 
-                  {/* Action Button */}
-                  <Button 
-                    className="w-full" 
-                    onClick={() => handleOpenPOS(terminal)}
-                    variant={activeSession ? "default" : "outline"}
-                  >
-                    {activeSession ? (
-                      <>
-                        <Play className="mr-2 h-4 w-4" />
-                        Kassa Openen
-                      </>
-                    ) : (
-                      <>
-                        <Play className="mr-2 h-4 w-4" />
-                        Dag Starten
-                      </>
-                    )}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => handleOpenPOS(terminal)}
+                      variant={activeSession ? "default" : "outline"}
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      {activeSession ? 'Kassa Openen' : 'Dag Starten'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => window.open(`/kassa/${terminal.id}`, '_blank')}
+                      title="Open kassaweergave (tablet)"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
