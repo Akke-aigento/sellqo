@@ -7314,6 +7314,47 @@ export type Database = {
           },
         ]
       }
+      pos_cashiers: {
+        Row: {
+          avatar_color: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          pin_hash: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_color?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          pin_hash: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_color?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          pin_hash?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_cashiers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_offline_queue: {
         Row: {
           created_at: string
@@ -7651,6 +7692,7 @@ export type Database = {
           items: Json
           order_id: string | null
           payments: Json
+          pos_cashier_id: string | null
           receipt_number: string | null
           receipt_printed_at: string | null
           refunded_at: string | null
@@ -7683,6 +7725,7 @@ export type Database = {
           items?: Json
           order_id?: string | null
           payments?: Json
+          pos_cashier_id?: string | null
           receipt_number?: string | null
           receipt_printed_at?: string | null
           refunded_at?: string | null
@@ -7715,6 +7758,7 @@ export type Database = {
           items?: Json
           order_id?: string | null
           payments?: Json
+          pos_cashier_id?: string | null
           receipt_number?: string | null
           receipt_printed_at?: string | null
           refunded_at?: string | null
@@ -7754,6 +7798,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_pos_cashier_id_fkey"
+            columns: ["pos_cashier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_cashiers"
             referencedColumns: ["id"]
           },
           {
@@ -13889,6 +13940,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_pos_cashier: {
+        Args: {
+          p_avatar_color?: string
+          p_display_name: string
+          p_pin: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_sync_conflict: {
         Args: {
           p_conflict_fields?: string[]
@@ -13954,6 +14014,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      hash_cashier_pin: { Args: { p_pin: string }; Returns: string }
       increment_campaign_bounced: {
         Args: { p_campaign_id: string }
         Returns: undefined
@@ -14067,6 +14128,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_cashier_pin: {
+        Args: { p_cashier_id: string; p_new_pin: string }
+        Returns: undefined
+      }
       update_user_learning_pattern: {
         Args: {
           p_learned_value: Json
@@ -14093,6 +14158,10 @@ export type Database = {
             Returns: boolean
           }
       use_ai_help_credit: { Args: { p_tenant_id: string }; Returns: boolean }
+      verify_cashier_pin: {
+        Args: { p_cashier_id: string; p_pin: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:

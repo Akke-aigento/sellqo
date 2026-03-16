@@ -29,6 +29,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
 import { format, isPast } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { CashierManagement } from './CashierManagement';
 
 const getRoleBadge = (role: string) => {
   switch (role) {
@@ -387,6 +388,9 @@ export function TeamSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Kassa medewerkers (PIN-based) */}
+      <CashierManagement />
     </div>
   );
 }

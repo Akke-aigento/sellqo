@@ -31,6 +31,9 @@ interface POSCartPanelProps {
   cartDiscount: POSDiscount | null;
   isStripeProcessing: boolean;
   hasIban: boolean;
+  activeCashierName?: string | null;
+  activeCashierColor?: string | null;
+  onSwitchCashier?: () => void;
   onUpdateQuantity: (itemId: string, delta: number) => void;
   onRemoveItem: (itemId: string) => void;
   onClearCart: () => void;
@@ -53,6 +56,9 @@ export function POSCartPanel({
   cartDiscount,
   isStripeProcessing,
   hasIban,
+  activeCashierName,
+  activeCashierColor,
+  onSwitchCashier,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
@@ -77,11 +83,28 @@ export function POSCartPanel({
             <Badge variant="secondary">{cart.length}</Badge>
           )}
         </div>
-        {cart.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={onClearCart}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {activeCashierName && (
+            <button
+              onClick={onSwitchCashier}
+              className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full hover:bg-accent transition-colors"
+              title="Wissel medewerker"
+            >
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                style={{ backgroundColor: activeCashierColor || '#3b82f6' }}
+              >
+                {activeCashierName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+              </div>
+              <span className="text-muted-foreground">{activeCashierName}</span>
+            </button>
+          )}
+          {cart.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClearCart}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Customer & Discount Bar */}

@@ -67,6 +67,9 @@ import { POSTransactionHistory } from '@/components/admin/pos/POSTransactionHist
 import { POSGiftCardSellDialog } from '@/components/admin/pos/POSGiftCardSellDialog';
 import { POSBankTransferDialog } from '@/components/admin/pos/POSBankTransferDialog';
 
+import { POSCashierSelect } from '@/components/admin/pos/POSCashierSelect';
+import { usePOSCashiers, type POSCashier } from '@/hooks/usePOSCashiers';
+
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
 import type { Product } from '@/types/product';
@@ -88,6 +91,11 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
   const { currentTenant } = useTenant();
   const { user } = useAuth();
   const { vatRates } = useVatRates();
+  const { cashiers, verifyPin } = usePOSCashiers();
+
+  // Active cashier state (PIN-based cashier)
+  const [activeCashier, setActiveCashier] = useState<POSCashier | null>(null);
+  const [showCashierSelect, setShowCashierSelect] = useState(false);
 
   const terminal = terminals.find(t => t.id === terminalId);
   const defaultTaxRate = terminal?.settings?.default_tax_rate ?? 21;
@@ -253,6 +261,13 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
     enabled: !!activeSession,
   });
 
+  // Show cashier select after session opens (if cashiers exist)
+  useEffect(() => {
+    if (activeSession && cashiers.length > 0 && !activeCashier) {
+      setShowCashierSelect(true);
+    }
+  }, [activeSession, cashiers.length, activeCashier]);
+
   // --- Payment handlers ---
   const handleOpenSession = async () => {
     if (!terminalId) return;
@@ -289,6 +304,7 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         cardBrand: opts.cardBrand,
         cardLast4: opts.cardLast4,
         customerId: selectedCustomer?.id,
+        posCashierId: activeCashier?.id,
       });
 
       // Earn loyalty points on net amount (subtotal - discount, excl. VAT)
@@ -514,6 +530,9 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
             cartDiscount={cartDiscount}
             isStripeProcessing={isStripeProcessing}
             hasIban={!!currentTenant?.iban}
+            activeCashierName={activeCashier?.display_name}
+            activeCashierColor={activeCashier?.avatar_color}
+            onSwitchCashier={() => setShowCashierSelect(true)}
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             onClearCart={clearCart}
@@ -694,6 +713,18 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
         }} />
       )}
       <POSBankTransferDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog} amount={cartTotals.total} tenantName={currentTenant?.name || ''} tenantIBAN={currentTenant?.iban || undefined} tenantBIC={currentTenant?.bic || undefined} onConfirmPayment={handleBankTransferPayment} isProcessing={createTransaction.isPending} />
+
+      {/* Cashier PIN Select */}
+      {cashiers.length > 0 && (
+        <POSCashierSelect
+          open={showCashierSelect}
+          onOpenChange={setShowCashierSelect}
+          cashiers={cashiers}
+          onVerifyPin={verifyPin}
+          onCashierSelected={setActiveCashier}
+          dismissable={!!activeCashier}
+        />
+      )}
     </div>
   );
 }
