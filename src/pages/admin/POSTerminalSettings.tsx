@@ -349,7 +349,6 @@ export default function POSTerminalSettingsPage() {
                           <p style="font-size:14px;font-weight:bold;margin-top:8px;">✓ Printer OK</p>
                         </div>
                       `;
-                      const { printReceipt } = usePOSPrinter();
                       printReceipt(testEl);
                       toast.success('Testprint verzonden naar printer');
                     }}
