@@ -50,6 +50,7 @@ export interface ProductBundleFormData {
     product_id: string;
     quantity: number;
     is_required: boolean;
+    allow_quantity_change: boolean;
     group_name?: string;
   }[];
 }
