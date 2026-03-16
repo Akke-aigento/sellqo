@@ -97,7 +97,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Snelknoppen Configureren</DialogTitle>
           <DialogDescription>
