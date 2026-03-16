@@ -174,12 +174,15 @@ export default function POSTerminalPage() {
   const [showGiftCardSellDialog, setShowGiftCardSellDialog] = useState(false);
   const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
   const [showParkedCartsDialog, setShowParkedCartsDialog] = useState(false);
+  const [showMobileCartDrawer, setShowMobileCartDrawer] = useState(false);
   const [pendingGiftCard, setPendingGiftCard] = useState<{ giftCard: GiftCard; amount: number } | null>(null);
   const [refundTxn, setRefundTxn] = useState<POSTransaction | null>(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [cashReceived, setCashReceived] = useState('');
   const [selectedReaderId, setSelectedReaderId] = useState<string | null>(null);
+
+  const isMobile = useIsMobile();
 
   // Stripe reader init
   useEffect(() => { listReaders(); }, [listReaders]);
