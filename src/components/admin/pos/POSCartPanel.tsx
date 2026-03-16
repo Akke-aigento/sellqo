@@ -220,20 +220,20 @@ export function POSCartPanel({
         </div>
 
         <div className="grid grid-cols-4 gap-2">
-          <Button className="h-14 text-base" disabled={cart.length === 0} onClick={onCashPayment}>
-            <Banknote className="mr-2 h-5 w-5" />
+          <Button className="h-14 flex-col gap-1 text-xs" disabled={cart.length === 0} onClick={onCashPayment}>
+            <Banknote className="h-5 w-5" />
             Contant
           </Button>
-          <Button className="h-14 text-base" disabled={cart.length === 0 || isStripeProcessing} onClick={onCardPayment}>
-            <CreditCard className="mr-2 h-5 w-5" />
+          <Button className="h-14 flex-col gap-1 text-xs" disabled={cart.length === 0 || isStripeProcessing} onClick={onCardPayment}>
+            <CreditCard className="h-5 w-5" />
             PIN
           </Button>
-          <Button variant="outline" className="h-14 text-base" disabled={cart.length === 0 || !hasIban} onClick={onBankTransfer}>
-            <QrCode className="mr-2 h-5 w-5" />
+          <Button variant="outline" className="h-14 flex-col gap-1 text-xs" disabled={cart.length === 0 || !hasIban} onClick={onBankTransfer}>
+            <QrCode className="h-5 w-5" />
             Bank
           </Button>
-          <Button variant="secondary" className="h-14 text-base" disabled={cart.length === 0} onClick={onMultiPayment}>
-            <Gift className="mr-2 h-4 w-4" />
+          <Button variant="secondary" className="h-14 flex-col gap-1 text-xs" disabled={cart.length === 0} onClick={onMultiPayment}>
+            <Gift className="h-4 w-4" />
             Meer
           </Button>
         </div>
