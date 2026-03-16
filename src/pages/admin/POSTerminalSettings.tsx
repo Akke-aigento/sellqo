@@ -10,6 +10,8 @@ import {
   Settings2,
   Trash2,
   CreditCard,
+  HelpCircle,
+  TestTube,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
