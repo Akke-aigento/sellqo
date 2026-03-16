@@ -202,7 +202,7 @@ export default function POSPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => navigate(`/admin/pos/${terminal.id}?fullscreen=1`)}
+                      onClick={() => navigate(`/kassa/${terminal.id}?fullscreen=1`)}
                       title="Fullscreen kassaweergave"
                     >
                       <Maximize className="h-4 w-4" />

@@ -1,33 +1,30 @@
+## POS Systeem: Grondige Refactor ✅
 
+### Wat is gewijzigd
 
-## Plan: AI Help Widget verbergen in POS + Fullscreen als dedicated POS modus
+1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
+2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
+3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
+4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
+5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
+6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
+7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
 
-### Probleem 1: AI Help Widget in de weg
-De floating AI-assistent knop overlapt met de POS-interface (zichtbaar in de screenshot rechtsonder). Dit moet weg op POS-pagina's.
+## POS → Orders Integratie ✅
 
-### Probleem 2: Fullscreen toont nog steeds sidebar
-De fullscreen-modus activeert alleen de browser Fullscreen API, maar de pagina draait nog binnen `AdminLayout` — dus de sidebar, header, trial banner en AI widget blijven zichtbaar. Dat is geen dedicated POS.
+### Wat is gewijzigd
 
-### Oplossing
+1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
+2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
+3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
+4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
+5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
 
-#### 1. AI Help Widget verbergen op POS-pagina's
-In `AIHelpWidget.tsx`: check de huidige route via `useLocation()`. Als het pad begint met `/admin/pos/` of `/kassa/`, render niets (`return null`).
-
-#### 2. Fullscreen = standalone modus
-Wanneer fullscreen actief is in `POSTerminal.tsx`, gedraag je als standalone:
-- Verberg de terug-knop (net als standalone modus)
-- Het component draait al in `h-screen flex flex-col` dus het vult het hele scherm
-
-**Maar het echte probleem**: vanuit `/admin/pos/:terminalId` zit de pagina binnen `AdminLayout` (sidebar + header + main padding). Fullscreen API maakt het browservenster fullscreen, maar de AdminLayout DOM-structuur blijft.
-
-**Oplossing**: Bij fullscreen, navigeer automatisch naar `/kassa/:terminalId` (de standalone route zonder AdminLayout). Bij exit fullscreen, navigeer terug naar `/admin/pos/:terminalId`. Dit geeft een écht dedicated POS-scherm.
-
-Alternatief (eenvoudiger): de fullscreen-knop op de POS admin-pagina opent gewoon `/kassa/:terminalId?fullscreen=1` — combineert standalone route + fullscreen API. Geen heen-en-weer navigatie nodig.
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/admin/help/AIHelpWidget.tsx` | Route-check: verberg op `/admin/pos/` en `/kassa/` |
-| `src/pages/admin/POSTerminal.tsx` | Fullscreen-knop navigeert naar `/kassa/:terminalId?fullscreen=1` vanuit admin-route. In standalone modus blijft de toggle lokaal. |
-
+### Bestanden gewijzigd
+- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
+- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
+- `src/hooks/useOrders.ts` – Filter op `sales_channel`
+- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
+- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
+- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
+- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`

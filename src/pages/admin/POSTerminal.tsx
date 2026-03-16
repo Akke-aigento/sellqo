@@ -203,12 +203,17 @@ export default function POSTerminalPage({ standalone = false }: { standalone?: b
   }, [searchParams]);
 
   const toggleFullscreen = useCallback(() => {
+    if (!standalone && !document.fullscreenElement) {
+      // From admin route, navigate to standalone kassa route with fullscreen
+      navigate(`/kassa/${terminalId}?fullscreen=1`);
+      return;
+    }
     if (document.fullscreenElement) {
       document.exitFullscreen?.();
     } else {
       document.documentElement.requestFullscreen?.().catch(() => {});
     }
-  }, []);
+  }, [standalone, navigate, terminalId]);
 
   // Stripe reader init
   useEffect(() => { listReaders(); }, [listReaders]);

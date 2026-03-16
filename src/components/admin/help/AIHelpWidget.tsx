@@ -1,10 +1,16 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageCircleQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AIHelpChatWindow } from './AIHelpChatWindow';
 
 export function AIHelpWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  // Hide on POS pages — the floating button gets in the way of the terminal UI
+  const isPOS = location.pathname.startsWith('/admin/pos/') || location.pathname.startsWith('/kassa/');
+  if (isPOS) return null;
 
   return (
     <>
