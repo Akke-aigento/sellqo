@@ -120,30 +120,10 @@ export function TeamSettings() {
               </div>
             </div>
 
-            {/* Split add button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Toevoegen
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <InviteTeamMemberDialog
-                  trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Users className="h-4 w-4 mr-2" />
-                      Teamlid uitnodigen
-                    </DropdownMenuItem>
-                  }
-                />
-                <DropdownMenuItem onSelect={() => setShowCreateCashier(true)}>
-                  <KeyRound className="h-4 w-4 mr-2" />
-                  Kassamedewerker toevoegen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Medewerker toevoegen
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
