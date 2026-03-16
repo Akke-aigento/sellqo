@@ -16,6 +16,8 @@ import {
   CloudOff,
   RefreshCw,
   Loader2,
+  ShoppingCart,
+  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,12 +42,15 @@ import { useVatRates } from '@/hooks/useVatRates';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 // POS Components
 import { POSProductPanel } from '@/components/admin/pos/POSProductPanel';
 import { POSCartPanel } from '@/components/admin/pos/POSCartPanel';
+import { POSMobileCartDrawer } from '@/components/admin/pos/POSMobileCartDrawer';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
