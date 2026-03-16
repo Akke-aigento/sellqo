@@ -194,20 +194,20 @@ export function POSMobileCartDrawer({
 
           {/* Payment buttons */}
           <div className="grid grid-cols-4 gap-2">
-            <Button className="h-12" disabled={cart.length === 0} onClick={() => { onCashPayment(); onOpenChange(false); }}>
-              <Banknote className="mr-1 h-4 w-4" />
+            <Button className="h-12 flex-col gap-1 text-xs" disabled={cart.length === 0} onClick={() => { onCashPayment(); onOpenChange(false); }}>
+              <Banknote className="h-4 w-4" />
               Cash
             </Button>
-            <Button className="h-12" disabled={cart.length === 0 || isStripeProcessing} onClick={() => { onCardPayment(); onOpenChange(false); }}>
-              <CreditCard className="mr-1 h-4 w-4" />
+            <Button className="h-12 flex-col gap-1 text-xs" disabled={cart.length === 0 || isStripeProcessing} onClick={() => { onCardPayment(); onOpenChange(false); }}>
+              <CreditCard className="h-4 w-4" />
               PIN
             </Button>
-            <Button variant="outline" className="h-12" disabled={cart.length === 0 || !hasIban} onClick={() => { onBankTransfer(); onOpenChange(false); }}>
-              <QrCode className="mr-1 h-4 w-4" />
+            <Button variant="outline" className="h-12 flex-col gap-1 text-xs" disabled={cart.length === 0 || !hasIban} onClick={() => { onBankTransfer(); onOpenChange(false); }}>
+              <QrCode className="h-4 w-4" />
               Bank
             </Button>
-            <Button variant="secondary" className="h-12" disabled={cart.length === 0} onClick={() => { onMultiPayment(); onOpenChange(false); }}>
-              <Gift className="mr-1 h-3 w-3" />
+            <Button variant="secondary" className="h-12 flex-col gap-1 text-xs" disabled={cart.length === 0} onClick={() => { onMultiPayment(); onOpenChange(false); }}>
+              <Gift className="h-3 w-3" />
               Meer
             </Button>
           </div>
