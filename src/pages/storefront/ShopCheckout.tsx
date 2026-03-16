@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck, Sparkles, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useStorefrontShipping } from '@/hooks/useStorefrontShipping';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useCartPromotions } from '@/hooks/useCartPromotions';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -273,13 +274,20 @@ export default function ShopCheckout() {
 
   const { methods: shippingMethods, selectedMethod, selectedMethodId, setSelectedMethodId, getShippingCost } = useStorefrontShipping(tenant?.id);
   const subtotal = getSubtotal();
-  const discountAmount = appliedDiscount?.calculated_amount || 0;
+  const promoResult = useCartPromotions(tenant?.id);
+
+  // Use promotion engine for total discount (covers discount codes + auto discounts)
+  const totalPromotionDiscount = promoResult.total_discount;
+  const autoDiscounts = promoResult.applied_discounts.filter(d => d.type !== 'discount_code');
+  const discountCodeEntry = promoResult.applied_discounts.find(d => d.type === 'discount_code');
+  // Fallback for manual discount display
+  const discountAmount = totalPromotionDiscount;
 
   // Gift card detection
   const allGiftCards = cartItems.length > 0 && cartItems.every(item => !!item.giftCard);
 
-  const shipping = allGiftCards ? 0 : getShippingCost(subtotal);
-  const subtotalAfterDiscount = subtotal - discountAmount;
+  const shipping = allGiftCards ? 0 : (promoResult.free_shipping ? 0 : getShippingCost(subtotal));
+  const subtotalAfterDiscount = Math.max(0, subtotal - totalPromotionDiscount);
 
   // VAT calculation
   const calculateVat = () => {
@@ -614,12 +622,37 @@ export default function ShopCheckout() {
           <span className="text-muted-foreground">Subtotaal</span>
           <span>{formatPrice(subtotal)}</span>
         </div>
-        {appliedDiscount && discountAmount > 0 && (
+
+        {/* Auto-applied promotions (volume, bogo, bundle, etc.) */}
+        {autoDiscounts.map((d, i) => (
+          <div key={i} className="flex justify-between text-green-600">
+            <span className="flex items-center gap-1 truncate">
+              <Sparkles className="h-3 w-3 shrink-0" />
+              {d.name}
+            </span>
+            <span>-{formatPrice(d.value)}</span>
+          </div>
+        ))}
+
+        {/* Discount code */}
+        {discountCodeEntry && (
           <div className="flex justify-between text-green-600">
-            <span>Korting ({appliedDiscount.discount_type === 'percentage' ? `${appliedDiscount.discount_value}%` : formatPrice(appliedDiscount.discount_value)})</span>
-            <span>-{formatPrice(discountAmount)}</span>
+            <span>Korting ({appliedDiscount?.code})</span>
+            <span>-{formatPrice(discountCodeEntry.value)}</span>
           </div>
         )}
+
+        {/* Free shipping from promotion */}
+        {promoResult.free_shipping && (
+          <div className="flex justify-between text-green-600">
+            <span className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              {promoResult.free_shipping_reason || 'Gratis verzending'}
+            </span>
+            <span>Gratis</span>
+          </div>
+        )}
+
         <div className="flex justify-between">
           <span className="text-muted-foreground">
             Verzending{selectedMethod && shippingMethods.length > 1 ? ` (${selectedMethod.name})` : ''}
@@ -638,6 +671,20 @@ export default function ShopCheckout() {
           <div className="text-xs text-muted-foreground italic">{vatInfo.text}</div>
         )}
       </div>
+
+      {/* Gift promotions */}
+      {promoResult.gifts.length > 0 && !compact && (
+        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/30 rounded-lg">
+          <p className="text-xs font-medium text-green-600 mb-1 flex items-center gap-1">
+            <Gift className="h-3.5 w-3.5" /> Gratis cadeau(s)
+          </p>
+          {promoResult.gifts.map((gift, i) => (
+            <p key={i} className="text-xs text-green-700 dark:text-green-400">
+              {gift.quantity}x {gift.product_name}
+            </p>
+          ))}
+        </div>
+      )}
 
       {!compact && <Separator className="my-4" />}
 
