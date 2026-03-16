@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { usePOSTerminals } from '@/hooks/usePOS';
+import { usePOSPrinter } from '@/hooks/usePOSPrinter';
 import { toast } from 'sonner';
 import type { POSTerminalStatus } from '@/types/pos';
 
