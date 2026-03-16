@@ -24,6 +24,20 @@ const TRACKING_STATUS_CONFIG: Record<string, { label: string; variant: 'default'
   undelivered: { label: 'Niet bezorgd', variant: 'destructive' },
 };
 
+// Normalize carrier IDs from various sources (e.g. Bol.com uses BPOST_BE)
+function normalizeCarrierId(raw: string): string {
+  const norm = raw.toLowerCase().replace(/[_\-\s]+/g, '');
+  if (norm.includes('bpost')) return 'bpost';
+  if (norm.includes('postnl') || norm === 'tnt') return 'postnl';
+  if (norm.includes('dhl') && norm.includes('ecommerce')) return 'dhl_ecommerce';
+  if (norm.includes('dhl')) return 'dhl';
+  if (norm.includes('dpd')) return 'dpd';
+  if (norm.includes('ups')) return 'ups';
+  if (norm.includes('gls')) return 'gls';
+  if (norm.includes('fedex')) return 'fedex';
+  return raw;
+}
+
 interface TrackingInfoCardProps {
   order: Order;
   embedded?: boolean;
@@ -32,15 +46,23 @@ interface TrackingInfoCardProps {
 export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardProps) {
   const { updateTracking, clearTracking, isUpdating, isClearing } = useOrderShipping();
   
-  const [carrier, setCarrier] = useState(order.carrier || '');
-  const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
-  const [trackingUrl, setTrackingUrl] = useState(order.tracking_url || '');
-  const [notifyCustomer, setNotifyCustomer] = useState(true);
-  const [isEditing, setIsEditing] = useState(!order.tracking_number);
-
+  // Normalize carrier from external sources
+  const normalizedOrderCarrier = normalizeCarrierId(order.carrier || '');
+  
   // Get postal code from shipping address for PostNL
   const shippingAddress = order.shipping_address as unknown as Address | null;
   const postalCode = shippingAddress?.postal_code || '';
+
+  // Generate fallback tracking URL if missing
+  const effectiveTrackingUrl = order.tracking_url || 
+    (order.tracking_number && normalizedOrderCarrier ? 
+      generateTrackingUrl(normalizedOrderCarrier, order.tracking_number, postalCode) || '' : '');
+
+  const [carrier, setCarrier] = useState(normalizedOrderCarrier);
+  const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
+  const [trackingUrl, setTrackingUrl] = useState(effectiveTrackingUrl);
+  const [notifyCustomer, setNotifyCustomer] = useState(true);
+  const [isEditing, setIsEditing] = useState(!order.tracking_number);
 
   // Auto-generate tracking URL when carrier or tracking number changes
   useEffect(() => {
@@ -77,8 +99,8 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
     setIsEditing(true);
   };
 
-  const carrierInfo = getCarrierById(carrier);
-  const hasTrackingInfo = order.tracking_number && order.carrier;
+  const carrierInfo = getCarrierById(normalizedOrderCarrier);
+  const hasTrackingInfo = order.tracking_number && (order.carrier || normalizedOrderCarrier);
   const trackingStatusConfig = order.tracking_status ? TRACKING_STATUS_CONFIG[order.tracking_status] : null;
 
   // Display mode - show existing tracking info
@@ -111,12 +133,12 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
         </div>
         
         <div className="flex gap-2">
-          {order.tracking_url && (
+          {effectiveTrackingUrl && (
             <Button
               variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => window.open(order.tracking_url!, '_blank')}
+              onClick={() => window.open(effectiveTrackingUrl, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Track & Trace
