@@ -1,11 +1,14 @@
-import { MessageSquare } from 'lucide-react';
+import { useState } from 'react';
+import { MessageSquare, Archive, Inbox, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SelectableConversationItem } from './SelectableConversationItem';
 import { SwipeableConversationItem } from './SwipeableConversationItem';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
+import { ConversationActionSheet } from './ConversationActionSheet';
 import { useIsCompact } from '@/hooks/use-mobile';
 import type { Conversation } from '@/hooks/useInbox';
+import type { InboxFolder } from '@/hooks/useInboxFolders';
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -26,6 +29,9 @@ interface ConversationListProps {
   // Single-item actions for swipe
   onArchiveConversation?: (id: string) => void;
   onDeleteConversation?: (id: string) => void;
+  onMarkAsUnread?: (id: string) => void;
+  onMoveToFolder?: (id: string, folderId: string | null) => void;
+  folders?: InboxFolder[];
 }
 
 export function ConversationList({
@@ -45,9 +51,23 @@ export function ConversationList({
   isBulkLoading,
   onArchiveConversation,
   onDeleteConversation,
+  onMarkAsUnread,
+  onMoveToFolder,
+  folders = [],
 }: ConversationListProps) {
   const isCompact = useIsCompact();
   const showCheckboxes = selectedIds.size > 0;
+  const [actionSheetConversation, setActionSheetConversation] = useState<Conversation | null>(null);
+
+  const getEmptyState = () => {
+    if (currentFolder === 'archived') {
+      return { icon: Archive, title: 'Geen gearchiveerde gesprekken', desc: 'Gearchiveerde gesprekken verschijnen hier.' };
+    }
+    if (currentFolder === 'deleted') {
+      return { icon: Trash2, title: 'Prullenbak is leeg', desc: 'Verwijderde gesprekken verschijnen hier.' };
+    }
+    return { icon: MessageSquare, title: 'Geen gesprekken', desc: 'Wanneer klanten contact opnemen, verschijnen hun berichten hier.' };
+  };
 
   if (isLoading) {
     return (
@@ -66,15 +86,15 @@ export function ConversationList({
   }
 
   if (conversations.length === 0) {
+    const empty = getEmptyState();
+    const Icon = empty.icon;
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-6">
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <MessageSquare className="h-6 w-6 text-muted-foreground" />
+          <Icon className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 className="font-medium">Geen gesprekken</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Wanneer klanten contact opnemen, verschijnen hun berichten hier.
-        </p>
+        <h3 className="font-medium">{empty.title}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{empty.desc}</p>
       </div>
     );
   }
@@ -108,6 +128,7 @@ export function ConversationList({
               onToggleCheck={() => onToggleSelection(conversation.id)}
               onSwipeArchive={() => onArchiveConversation?.(conversation.id)}
               onSwipeDelete={() => onDeleteConversation?.(conversation.id)}
+              onLongPress={() => setActionSheetConversation(conversation)}
             />
           ) : (
             <SelectableConversationItem
@@ -125,6 +146,18 @@ export function ConversationList({
           )
         ))}
       </ScrollArea>
+
+      {/* Action sheet for long-press on mobile */}
+      <ConversationActionSheet
+        conversation={actionSheetConversation}
+        open={!!actionSheetConversation}
+        onOpenChange={(open) => { if (!open) setActionSheetConversation(null); }}
+        onArchive={(id) => onArchiveConversation?.(id)}
+        onDelete={(id) => onDeleteConversation?.(id)}
+        onMarkAsUnread={(id) => onMarkAsUnread?.(id)}
+        onMoveToFolder={(id, folderId) => onMoveToFolder?.(id, folderId)}
+        folders={folders}
+      />
     </div>
   );
 }
