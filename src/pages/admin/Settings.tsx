@@ -166,57 +166,113 @@ export default function SettingsPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Navigation */}
         <aside className="lg:w-64 flex-shrink-0">
-          <Card>
-            <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
-              <CardContent className="p-2">
-                <nav className="space-y-4">
-                  {settingsGroups.map((group) => {
-                    const visibleSections = group.sections.filter(
-                      s => !s.adminOnly || isTenantAdmin
-                    );
-                    if (visibleSections.length === 0) return null;
-
-                    return (
-                      <div key={group.id}>
-                        <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          {group.title}
-                        </h3>
-                        <div className="space-y-1">
-                          {visibleSections.map((section) => {
-                            const Icon = section.icon;
-                            const isActive = activeSection === section.id;
-                            
-                            return (
-                              <button
-                                key={section.id}
-                                onClick={() => handleSectionChange(section.id)}
-                                className={cn(
-                                  'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors',
-                                  isActive
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'hover:bg-muted text-foreground'
-                                )}
-                              >
-                                <Icon className="h-4 w-4 flex-shrink-0" />
-                                <span className="flex-1 text-left">{section.title}</span>
-                                {isActive && (
-                                  <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                                )}
-                              </button>
-                            );
-                          })}
+          {isMobile ? (
+            <Collapsible open={menuOpen} onOpenChange={setMenuOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="w-full flex items-center gap-3 px-4 py-3 bg-card border rounded-lg text-sm font-medium">
+                  {activeInfo && (
+                    <>
+                      <activeInfo.icon className="h-4 w-4 flex-shrink-0 text-primary" />
+                      <span className="flex-1 text-left">{activeInfo.title}</span>
+                    </>
+                  )}
+                  <ChevronRight className={cn('h-4 w-4 flex-shrink-0 transition-transform', menuOpen && 'rotate-90')} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card className="mt-2">
+                  <CardContent className="p-2">
+                    <nav className="space-y-4">
+                      {settingsGroups.map((group) => {
+                        const visibleSections = group.sections.filter(
+                          s => !s.adminOnly || isTenantAdmin
+                        );
+                        if (visibleSections.length === 0) return null;
+                        return (
+                          <div key={group.id}>
+                            <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {group.title}
+                            </h3>
+                            <div className="space-y-1">
+                              {visibleSections.map((section) => {
+                                const Icon = section.icon;
+                                const isActive = activeSection === section.id;
+                                return (
+                                  <button
+                                    key={section.id}
+                                    onClick={() => handleSectionChange(section.id)}
+                                    className={cn(
+                                      'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors',
+                                      isActive
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'hover:bg-muted text-foreground'
+                                    )}
+                                  >
+                                    <Icon className="h-4 w-4 flex-shrink-0" />
+                                    <span className="flex-1 text-left">{section.title}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </nav>
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <Card>
+              <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
+                <CardContent className="p-2">
+                  <nav className="space-y-4">
+                    {settingsGroups.map((group) => {
+                      const visibleSections = group.sections.filter(
+                        s => !s.adminOnly || isTenantAdmin
+                      );
+                      if (visibleSections.length === 0) return null;
+                      return (
+                        <div key={group.id}>
+                          <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            {group.title}
+                          </h3>
+                          <div className="space-y-1">
+                            {visibleSections.map((section) => {
+                              const Icon = section.icon;
+                              const isActive = activeSection === section.id;
+                              return (
+                                <button
+                                  key={section.id}
+                                  onClick={() => handleSectionChange(section.id)}
+                                  className={cn(
+                                    'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors',
+                                    isActive
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'hover:bg-muted text-foreground'
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 flex-shrink-0" />
+                                  <span className="flex-1 text-left">{section.title}</span>
+                                  {isActive && (
+                                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </nav>
-              </CardContent>
-            </ScrollArea>
-          </Card>
+                      );
+                    })}
+                  </nav>
+                </CardContent>
+              </ScrollArea>
+            </Card>
+          )}
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0">
+        <main ref={contentRef} className="flex-1 min-w-0">
           {ActiveComponent && <ActiveComponent />}
         </main>
       </div>
