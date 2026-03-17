@@ -300,7 +300,7 @@ export const usePaymentReconciliationExport = () => {
       // Get paid invoices  
       const { data: invoices, error: iErr } = await supabase
         .from('invoices')
-        .select('invoice_number, created_at, total, payment_method, paid_at, ogm_number')
+        .select('invoice_number, created_at, total, paid_at, ogm_number')
         .eq('tenant_id', currentTenant.id)
         .eq('status', 'paid')
         .gte('created_at', dateRange.from.toISOString())
