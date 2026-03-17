@@ -12,7 +12,9 @@ interface SwipeableConversationItemProps {
   onToggleCheck: () => void;
   onSwipeArchive: () => void;
   onSwipeDelete: () => void;
+  onSwipeRestore?: () => void;
   onLongPress?: () => void;
+  currentFolder?: string | null;
 }
 
 const SWIPE_THRESHOLD = 80;
