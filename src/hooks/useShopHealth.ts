@@ -161,8 +161,8 @@ export function useShopHealth(): ShopHealthData {
     };
   }, [
     orders, stats, products, messages, 
-    invoices, tenantScore, legalPages, stripeStatus, dailyStats,
-    summary, onboarding.currentStep, onboarding.totalSteps, currentTenant, getMissingPages
+    invoices, tenantScore, legalPages, dailyStats,
+    summary, onboarding.currentStep, onboarding.totalSteps, currentTenant
   ]);
   
   // Calculate all health categories
