@@ -661,6 +661,22 @@ const Reports = () => {
           <div className="flex flex-wrap gap-3">
             <Button 
               variant="outline" 
+              onClick={() => exportYearEndPackage(dateRange)}
+              disabled={isExportingYearEnd}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              {isExportingYearEnd ? 'Bezig...' : 'Jaarafsluiting Pakket'}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => exportQuarterlyVat()}
+              disabled={isExportingQuarterlyVat}
+            >
+              <PieChart className="h-4 w-4 mr-2" />
+              {isExportingQuarterlyVat ? 'Bezig...' : 'BTW Kwartaal Pakket'}
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={() => {
                 exportInvoices(dateRange, 'xlsx');
                 exportCreditNotes(dateRange, 'xlsx');
