@@ -1,8 +1,45 @@
-import { ReactNode } from 'react';
+import { Component, ReactNode, ErrorInfo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+
+// Error Boundary class component
+class WidgetErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[WidgetErrorBoundary] Widget crashed:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 py-6">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Widget kon niet geladen worden</p>
+              <p className="text-xs text-muted-foreground">Probeer de pagina te vernieuwen</p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface DashboardWidgetWrapperProps {
   id: string;
@@ -55,7 +92,9 @@ export function DashboardWidgetWrapper({
           isEditMode && 'ring-2 ring-primary/20 ring-offset-2 rounded-lg'
         )}
       >
-        {children}
+        <WidgetErrorBoundary>
+          {children}
+        </WidgetErrorBoundary>
       </div>
     </div>
   );
