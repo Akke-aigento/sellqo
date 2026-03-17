@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ import {
 } from "lucide-react";
 
 export default function PurchaseOrders() {
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -151,6 +153,40 @@ export default function PurchaseOrders() {
         {/* Orders Table */}
         <Card>
           <CardContent className="p-0 sm:p-6">
+            {isMobile ? (
+              <div className="space-y-2 p-3">
+                {isLoading ? (
+                  <p className="text-center py-8 text-muted-foreground">Laden...</p>
+                ) : orders && orders.length > 0 ? (
+                  orders.map((order) => (
+                    <Link
+                      key={order.id}
+                      to={`/admin/purchase-orders/${order.id}`}
+                      className="block rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{order.order_number}</span>
+                        <PurchaseOrderStatusBadge status={order.status} />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 truncate">{order.supplier?.name}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(order.order_date), "d MMM yyyy", { locale: nl })}
+                        </span>
+                        <span className="font-medium">
+                          €{order.total.toLocaleString("nl-NL", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Geen inkooporders gevonden</p>
+                  </div>
+                )}
+              </div>
+            ) : (
             <div>
             <Table>
               <TableHeader>
@@ -257,6 +293,7 @@ export default function PurchaseOrders() {
               </TableBody>
             </Table>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

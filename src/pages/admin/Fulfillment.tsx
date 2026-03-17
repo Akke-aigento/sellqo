@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -70,6 +71,7 @@ interface FulfillmentOrder {
 }
 
 export default function Fulfillment() {
+  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const { isWarehouse, hasFinancialAccess } = useAuth();
   const { toast } = useToast();
@@ -353,6 +355,38 @@ export default function Fulfillment() {
             <div className="text-center py-12 text-muted-foreground">
               <PackageCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Geen orders gevonden</p>
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2 px-3">
+              {orders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                  onClick={() => navigate(`/admin/orders/${order.id}`)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{order.order_number}</span>
+                    {getStatusBadge(order.fulfillment_status)}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground truncate">{order.customer_name || 'Onbekend'}</span>
+                    {getMarketplaceBadge(order.marketplace_source)}
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      {order.item_count} items · {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
+                    </span>
+                    {!order.tracking_number ? (
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openTrackingDialog(order); }}>
+                        <Truck className="h-3 w-3 mr-1" />
+                        Track
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-mono text-muted-foreground">{order.tracking_number}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div>

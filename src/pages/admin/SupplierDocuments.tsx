@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,6 +60,7 @@ import {
 } from "lucide-react";
 
 export default function SupplierDocuments() {
+  const isMobile = useIsMobile();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -192,6 +194,53 @@ export default function SupplierDocuments() {
         {/* Documents Table */}
         <Card>
           <CardContent className="overflow-x-auto p-0">
+            {isMobile ? (
+              <div className="space-y-2 p-3">
+                {isLoading ? (
+                  <p className="text-center py-8 text-muted-foreground">Laden...</p>
+                ) : documents && documents.length > 0 ? (
+                  documents.map((doc) => (
+                    <a
+                      key={doc.id}
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium truncate">{doc.document_number || doc.file_name}</span>
+                        {doc.document_type === "invoice" && (
+                          <Badge className={paymentStatusInfo[doc.payment_status].color}>
+                            {paymentStatusInfo[doc.payment_status].label}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm text-muted-foreground truncate">{doc.supplier?.name}</span>
+                        <Badge variant="outline" className="text-xs">{documentTypeInfo[doc.document_type].label}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground">
+                          {doc.document_date
+                            ? format(new Date(doc.document_date), "d MMM yyyy", { locale: nl })
+                            : "-"}
+                        </span>
+                        <span className="font-medium">
+                          {doc.total_amount
+                            ? `€${doc.total_amount.toLocaleString("nl-NL", { minimumFractionDigits: 2 })}`
+                            : "-"}
+                        </span>
+                      </div>
+                    </a>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Geen documenten gevonden</p>
+                  </div>
+                )}
+              </div>
+            ) : (
             <div className="min-w-[750px]">
             <Table>
               <TableHeader>
@@ -328,6 +377,7 @@ export default function SupplierDocuments() {
               </TableBody>
             </Table>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>
