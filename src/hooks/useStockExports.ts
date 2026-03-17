@@ -185,7 +185,7 @@ export const useStockTurnoverExport = () => {
       if (error) throw error;
 
       const { data: salesData } = await supabase
-        .from('order_items')
+        .from('order_items' as any)
         .select('product_id, quantity')
         .eq('tenant_id', currentTenant.id)
         .gte('created_at', dateRange.from.toISOString())
