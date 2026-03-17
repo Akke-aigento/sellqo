@@ -38,7 +38,8 @@ import type { POSTerminal } from '@/types/pos';
 export default function POSPage() {
   const navigate = useNavigate();
   const { terminals, isLoading, createTerminal, deleteTerminal } = usePOSTerminals();
-  const { sessions } = usePOSSessions();
+  const sessions_hook = usePOSSessions();
+  const { sessions } = sessions_hook;
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTerminalName, setNewTerminalName] = useState('');
   const [newTerminalLocation, setNewTerminalLocation] = useState('');
