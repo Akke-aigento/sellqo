@@ -29,6 +29,7 @@ interface ConversationListProps {
   // Single-item actions for swipe
   onArchiveConversation?: (id: string) => void;
   onDeleteConversation?: (id: string) => void;
+  onRestoreConversation?: (id: string) => void;
   onMarkAsUnread?: (id: string) => void;
   onMoveToFolder?: (id: string, folderId: string | null) => void;
   folders?: InboxFolder[];
@@ -51,6 +52,7 @@ export function ConversationList({
   isBulkLoading,
   onArchiveConversation,
   onDeleteConversation,
+  onRestoreConversation,
   onMarkAsUnread,
   onMoveToFolder,
   folders = [],
@@ -128,7 +130,9 @@ export function ConversationList({
               onToggleCheck={() => onToggleSelection(conversation.id)}
               onSwipeArchive={() => onArchiveConversation?.(conversation.id)}
               onSwipeDelete={() => onDeleteConversation?.(conversation.id)}
+              onSwipeRestore={() => onRestoreConversation?.(conversation.id)}
               onLongPress={() => setActionSheetConversation(conversation)}
+              currentFolder={currentFolder}
             />
           ) : (
             <SelectableConversationItem
@@ -154,9 +158,11 @@ export function ConversationList({
         onOpenChange={(open) => { if (!open) setActionSheetConversation(null); }}
         onArchive={(id) => onArchiveConversation?.(id)}
         onDelete={(id) => onDeleteConversation?.(id)}
+        onRestore={(id) => onRestoreConversation?.(id)}
         onMarkAsUnread={(id) => onMarkAsUnread?.(id)}
         onMoveToFolder={(id, folderId) => onMoveToFolder?.(id, folderId)}
         folders={folders}
+        currentFolder={currentFolder}
       />
     </div>
   );

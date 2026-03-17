@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { Archive, Trash2, CheckCircle2 } from 'lucide-react';
+import { Archive, Trash2, CheckCircle2, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationItem } from './ConversationItem';
 import type { Conversation } from '@/hooks/useInbox';
@@ -12,7 +12,9 @@ interface SwipeableConversationItemProps {
   onToggleCheck: () => void;
   onSwipeArchive: () => void;
   onSwipeDelete: () => void;
+  onSwipeRestore?: () => void;
   onLongPress?: () => void;
+  currentFolder?: string | null;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -27,8 +29,11 @@ export function SwipeableConversationItem({
   onToggleCheck,
   onSwipeArchive,
   onSwipeDelete,
+  onSwipeRestore,
   onLongPress,
+  currentFolder,
 }: SwipeableConversationItemProps) {
+  const isTrashOrArchive = currentFolder === 'deleted' || currentFolder === 'archived';
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const startX = useRef(0);
@@ -102,8 +107,12 @@ export function SwipeableConversationItem({
 
     if (isSwiping.current) {
       if (translateX > SWIPE_THRESHOLD) {
-        // Swiped right → archive
-        onSwipeArchive();
+        // Swiped right → restore (in trash/archive) or archive
+        if (isTrashOrArchive && onSwipeRestore) {
+          onSwipeRestore();
+        } else {
+          onSwipeArchive();
+        }
       } else if (translateX < -SWIPE_THRESHOLD) {
         // Swiped left → delete
         onSwipeDelete();
@@ -127,17 +136,26 @@ export function SwipeableConversationItem({
     <div className="relative overflow-hidden border-b border-border">
       {/* Background actions */}
       <div className="absolute inset-0 flex">
-        {/* Right-swipe: archive (blue) */}
+        {/* Right-swipe: restore (green) or archive (blue) */}
         <div
           className={cn(
             'flex items-center justify-start pl-5 flex-1 transition-colors',
-            translateX > SWIPE_THRESHOLD ? 'bg-blue-500' : 'bg-blue-500/70'
+            isTrashOrArchive
+              ? (translateX > SWIPE_THRESHOLD ? 'bg-green-500' : 'bg-green-500/70')
+              : (translateX > SWIPE_THRESHOLD ? 'bg-blue-500' : 'bg-blue-500/70')
           )}
         >
-          <Archive className={cn(
-            'h-5 w-5 text-white transition-transform',
-            pastThreshold && translateX > 0 && 'scale-125'
-          )} />
+          {isTrashOrArchive ? (
+            <Inbox className={cn(
+              'h-5 w-5 text-white transition-transform',
+              pastThreshold && translateX > 0 && 'scale-125'
+            )} />
+          ) : (
+            <Archive className={cn(
+              'h-5 w-5 text-white transition-transform',
+              pastThreshold && translateX > 0 && 'scale-125'
+            )} />
+          )}
         </div>
         {/* Left-swipe: delete (red) */}
         <div
@@ -156,14 +174,19 @@ export function SwipeableConversationItem({
       {/* Foreground: the actual conversation item */}
       <div
         className={cn(
-          'relative bg-background',
+          'relative bg-background select-none',
           isTransitioning && 'transition-transform duration-300 ease-out',
           isChecked && 'bg-primary/10'
         )}
-        style={{ transform: `translateX(${translateX}px)` }}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+        } as React.CSSProperties}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {/* Selection indicator */}
         {isChecked && (

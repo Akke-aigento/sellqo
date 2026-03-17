@@ -1,4 +1,4 @@
-import { Archive, Trash2, FolderOpen, MailOpen, MailX, X } from 'lucide-react';
+import { Archive, Trash2, FolderOpen, MailOpen, MailX, Inbox, RotateCcw } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -16,9 +16,11 @@ interface ConversationActionSheetProps {
   onOpenChange: (open: boolean) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
+  onRestore?: (id: string) => void;
   onMarkAsUnread: (id: string) => void;
   onMoveToFolder: (id: string, folderId: string | null) => void;
   folders: InboxFolder[];
+  currentFolder?: string | null;
 }
 
 export function ConversationActionSheet({
@@ -27,9 +29,11 @@ export function ConversationActionSheet({
   onOpenChange,
   onArchive,
   onDelete,
+  onRestore,
   onMarkAsUnread,
   onMoveToFolder,
   folders,
+  currentFolder,
 }: ConversationActionSheetProps) {
   if (!conversation) return null;
 
@@ -37,6 +41,7 @@ export function ConversationActionSheet({
   const subject = conversation.lastMessage?.subject || '(Geen onderwerp)';
   const isUnread = conversation.unreadCount > 0;
   const customFolders = folders.filter(f => !f.is_system);
+  const isInTrashOrArchive = currentFolder === 'deleted' || currentFolder === 'archived';
 
   const handleAction = (action: () => void) => {
     action();
@@ -56,6 +61,17 @@ export function ConversationActionSheet({
         <Separator />
 
         <div className="py-1">
+          {/* Restore to inbox (only in trash/archive) */}
+          {isInTrashOrArchive && onRestore && (
+            <button
+              onClick={() => handleAction(() => onRestore(conversation.id))}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-foreground hover:bg-muted active:bg-muted transition-colors"
+            >
+              <RotateCcw className="h-5 w-5 text-green-500" />
+              Terugzetten naar inbox
+            </button>
+          )}
+
           {/* Mark as unread/read */}
           {!isUnread && (
             <button
@@ -68,7 +84,7 @@ export function ConversationActionSheet({
           )}
 
           {/* Move to folder */}
-          {customFolders.length > 0 && (
+          {customFolders.length > 0 && !isInTrashOrArchive && (
             <>
               <div className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Verplaatsen naar map
@@ -97,23 +113,27 @@ export function ConversationActionSheet({
 
           <Separator className="my-1" />
 
-          {/* Archive */}
-          <button
-            onClick={() => handleAction(() => onArchive(conversation.id))}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-foreground hover:bg-muted active:bg-muted transition-colors"
-          >
-            <Archive className="h-5 w-5 text-blue-500" />
-            Archiveren
-          </button>
+          {/* Archive (hide in archive/trash) */}
+          {!isInTrashOrArchive && (
+            <button
+              onClick={() => handleAction(() => onArchive(conversation.id))}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-foreground hover:bg-muted active:bg-muted transition-colors"
+            >
+              <Archive className="h-5 w-5 text-blue-500" />
+              Archiveren
+            </button>
+          )}
 
-          {/* Delete */}
-          <button
-            onClick={() => handleAction(() => onDelete(conversation.id))}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover:bg-muted active:bg-muted transition-colors"
-          >
-            <Trash2 className="h-5 w-5" />
-            Verwijderen
-          </button>
+          {/* Delete (hide in trash) */}
+          {currentFolder !== 'deleted' && (
+            <button
+              onClick={() => handleAction(() => onDelete(conversation.id))}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover:bg-muted active:bg-muted transition-colors"
+            >
+              <Trash2 className="h-5 w-5" />
+              Verwijderen
+            </button>
+          )}
         </div>
 
         <Separator />

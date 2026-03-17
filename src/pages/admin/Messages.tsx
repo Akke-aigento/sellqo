@@ -222,11 +222,12 @@ export default function MessagesPage() {
                       onBulkMoveToFolder={bulkMoveToFolder}
                       currentFolder={filters.folderId}
                       isBulkLoading={isBulkLoading}
-                      onArchiveConversation={archiveConversation}
-                      onDeleteConversation={deleteConversation}
-                      onMarkAsUnread={markConversationAsUnread}
-                      onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
-                      folders={folders}
+                       onArchiveConversation={archiveConversation}
+                       onDeleteConversation={deleteConversation}
+                       onRestoreConversation={restoreConversation}
+                       onMarkAsUnread={markConversationAsUnread}
+                       onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                       folders={folders}
                     />
                   </div>
                 </div>
@@ -335,6 +336,10 @@ export default function MessagesPage() {
                     isBulkLoading={isBulkLoading}
                     onArchiveConversation={archiveConversation}
                     onDeleteConversation={deleteConversation}
+                    onRestoreConversation={restoreConversation}
+                    onMarkAsUnread={markConversationAsUnread}
+                    onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                    folders={folders}
                   />
                 </div>
               </div>
