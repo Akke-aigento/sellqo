@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram } from 'lucide-react';
+import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram, Pin, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Conversation, ConversationChannel } from '@/hooks/useInbox';
