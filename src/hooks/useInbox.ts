@@ -285,6 +285,8 @@ export function useInbox() {
       // Determine conversation status from last message
       const messageStatus = (lastMessage.message_status as MessageStatus) || 'active';
       const folderId = lastMessage.folder_id || null;
+      const isPinned = msgs.some(m => m.is_pinned);
+      const snoozedUntil = lastMessage.snoozed_until || null;
 
       convos.push({
         id: key,
@@ -309,6 +311,8 @@ export function useInbox() {
         replyToEmail,
         messageStatus,
         folderId,
+        isPinned,
+        snoozedUntil,
       });
     }
 
