@@ -52,6 +52,7 @@ const COUNTRIES = [
 export function VatRatesSettings() {
   const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
+  const isMobile = useIsMobile();
   const [selectedCountry, setSelectedCountry] = useState<string>(
     currentTenant?.country || "BE"
   );
