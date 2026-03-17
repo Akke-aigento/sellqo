@@ -39,10 +39,7 @@ export function ConversationDetail({
   onBack,
 }: ConversationDetailProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { createCustomer } = useCustomers();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
 
   // Mark as read when viewing
