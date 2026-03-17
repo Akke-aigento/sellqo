@@ -171,6 +171,30 @@ export function usePOSSessions(terminalId?: string) {
     mutationFn: async (data: POSSessionOpenData) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
+      // Close any existing open sessions for this terminal first
+      const { data: openSessions, error: fetchError } = await supabase
+        .from('pos_sessions')
+        .select('id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('terminal_id', data.terminal_id)
+        .eq('status', 'open');
+
+      if (fetchError) throw fetchError;
+
+      if (openSessions && openSessions.length > 0) {
+        const { error: closeError } = await supabase
+          .from('pos_sessions')
+          .update({
+            status: 'closed',
+            closed_by: user.id,
+            closed_at: new Date().toISOString(),
+            notes: 'Automatisch gesloten bij openen nieuwe sessie',
+          })
+          .in('id', openSessions.map(s => s.id));
+
+        if (closeError) throw closeError;
+      }
+
       const { data: session, error } = await supabase
         .from('pos_sessions')
         .insert({
