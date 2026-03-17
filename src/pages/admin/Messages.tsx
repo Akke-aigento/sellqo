@@ -41,6 +41,8 @@ export default function MessagesPage() {
     deleteConversation,
     restoreConversation,
     moveToFolder,
+    pinConversation,
+    snoozeConversation,
   } = useInbox();
 
   const { folders, archiveFolder, trashFolder, createFolder } = useInboxFolders();
