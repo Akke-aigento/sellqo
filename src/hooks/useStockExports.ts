@@ -35,35 +35,44 @@ export const useStockMovementExport = () => {
       if (salesRes.error) throw salesRes.error;
       if (purchasesRes.error) throw purchasesRes.error;
 
-      const rows: any[] = [];
+      const rows: Record<string, any>[] = [];
 
       (salesRes.data || []).forEach((item: any) => {
         rows.push({
-          Datum: format(new Date(item.created_at), 'dd-MM-yyyy'),
-          Product: item.products?.name || '-',
-          SKU: item.products?.sku || '-',
-          Type: 'Verkoop',
-          Hoeveelheid: -(item.quantity || 0),
-          Referentie: item.order_id || '-',
+          datum: item.created_at,
+          product: item.products?.name || '-',
+          sku: item.products?.sku || '-',
+          type: 'Verkoop',
+          hoeveelheid: -(item.quantity || 0),
+          referentie: item.order_id || '-',
         });
       });
 
       (purchasesRes.data || []).forEach((item: any) => {
         rows.push({
-          Datum: format(new Date(item.created_at), 'dd-MM-yyyy'),
-          Product: item.products?.name || '-',
-          SKU: item.products?.sku || '-',
-          Type: 'Inkoop',
-          Hoeveelheid: item.quantity || 0,
-          Referentie: item.purchase_order_id || '-',
+          datum: item.created_at,
+          product: item.products?.name || '-',
+          sku: item.products?.sku || '-',
+          type: 'Inkoop',
+          hoeveelheid: item.quantity || 0,
+          referentie: item.purchase_order_id || '-',
         });
       });
 
-      rows.sort((a, b) => a.Datum.localeCompare(b.Datum));
+      rows.sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
 
-      const filename = generateFilename('voorraadmutaties', format_);
-      if (format_ === 'csv') generateCSV(rows, filename);
-      else generateExcel(rows, filename, 'Voorraadmutaties');
+      const columns = [
+        { key: 'datum', header: 'Datum', format: 'date' as const },
+        { key: 'product', header: 'Product' },
+        { key: 'sku', header: 'SKU' },
+        { key: 'type', header: 'Type' },
+        { key: 'hoeveelheid', header: 'Hoeveelheid', format: 'number' as const },
+        { key: 'referentie', header: 'Referentie' },
+      ];
+
+      const filename = generateFilename('voorraadmutaties', dateRange.from, dateRange.to);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Voorraadmutaties');
 
       toast.success(`Voorraadmutaties geëxporteerd (${rows.length} regels)`);
     } catch (e: any) {
@@ -96,7 +105,6 @@ export const useDeadStockExport = () => {
 
       const cutoff = subDays(new Date(), 90);
 
-      // Get last sale date per product
       const { data: salesData } = await supabase
         .from('order_items')
         .select('product_id, created_at')
@@ -116,23 +124,33 @@ export const useDeadStockExport = () => {
           return !lastSale || new Date(lastSale) < cutoff;
         })
         .map(p => {
-          const lastSaleDate = lastSaleMap[p.id] ? new Date(lastSaleMap[p.id]) : null;
-          const daysSince = lastSaleDate ? differenceInDays(new Date(), lastSaleDate) : 999;
+          const lastSaleDate = lastSaleMap[p.id] || null;
+          const daysSince = lastSaleDate ? differenceInDays(new Date(), new Date(lastSaleDate)) : 999;
           return {
-            Product: p.name,
-            SKU: p.sku || '-',
-            Voorraad: p.stock,
-            Kostprijs: p.cost_price || 0,
-            'Waarde (€)': (p.stock || 0) * (p.cost_price || 0),
-            'Laatste verkoop': lastSaleDate ? format(lastSaleDate, 'dd-MM-yyyy') : 'Nooit',
-            'Dagen sinds verkoop': daysSince === 999 ? 'N/A' : daysSince,
+            product: p.name,
+            sku: p.sku || '-',
+            voorraad: p.stock,
+            kostprijs: p.cost_price || 0,
+            waarde: (p.stock || 0) * (p.cost_price || 0),
+            laatste_verkoop: lastSaleDate || '',
+            dagen_sinds: daysSince === 999 ? 9999 : daysSince,
           };
         })
-        .sort((a, b) => (b['Waarde (€)'] as number) - (a['Waarde (€)'] as number));
+        .sort((a, b) => b.waarde - a.waarde);
 
-      const filename = generateFilename('dode-voorraad', format_);
-      if (format_ === 'csv') generateCSV(rows, filename);
-      else generateExcel(rows, filename, 'Dode Voorraad');
+      const columns = [
+        { key: 'product', header: 'Product' },
+        { key: 'sku', header: 'SKU' },
+        { key: 'voorraad', header: 'Voorraad', format: 'number' as const },
+        { key: 'kostprijs', header: 'Kostprijs', format: 'currency' as const },
+        { key: 'waarde', header: 'Waarde (€)', format: 'currency' as const },
+        { key: 'laatste_verkoop', header: 'Laatste verkoop', format: 'date' as const },
+        { key: 'dagen_sinds', header: 'Dagen sinds verkoop', format: 'number' as const },
+      ];
+
+      const filename = generateFilename('dode_voorraad');
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Dode Voorraad');
 
       toast.success(`Dode voorraad geëxporteerd (${rows.length} producten)`);
     } catch (e: any) {
@@ -184,19 +202,29 @@ export const useStockTurnoverExport = () => {
         const turnover = (p.stock || 0) > 0 ? +(sold / p.stock).toFixed(2) : 0;
 
         return {
-          Product: p.name,
-          SKU: p.sku || '-',
-          'Huidige voorraad': p.stock || 0,
-          'Verkocht (periode)': sold,
-          'Gem. verkoop/dag': +avgDailySales.toFixed(1),
-          Omloopsnelheid: turnover,
-          'Dagen voorraad resterend': daysRemaining > 9000 ? 'N/A' : daysRemaining,
+          product: p.name,
+          sku: p.sku || '-',
+          voorraad: p.stock || 0,
+          verkocht: sold,
+          gem_per_dag: +avgDailySales.toFixed(1),
+          omloopsnelheid: turnover,
+          dagen_resterend: daysRemaining,
         };
-      }).sort((a, b) => (b['Verkocht (periode)'] as number) - (a['Verkocht (periode)'] as number));
+      }).sort((a, b) => b.verkocht - a.verkocht);
 
-      const filename = generateFilename('omloopsnelheid', format_);
-      if (format_ === 'csv') generateCSV(rows, filename);
-      else generateExcel(rows, filename, 'Omloopsnelheid');
+      const columns = [
+        { key: 'product', header: 'Product' },
+        { key: 'sku', header: 'SKU' },
+        { key: 'voorraad', header: 'Huidige voorraad', format: 'number' as const },
+        { key: 'verkocht', header: 'Verkocht (periode)', format: 'number' as const },
+        { key: 'gem_per_dag', header: 'Gem. verkoop/dag', format: 'number' as const },
+        { key: 'omloopsnelheid', header: 'Omloopsnelheid', format: 'number' as const },
+        { key: 'dagen_resterend', header: 'Dagen voorraad resterend', format: 'number' as const },
+      ];
+
+      const filename = generateFilename('omloopsnelheid', dateRange.from, dateRange.to);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Omloopsnelheid');
 
       toast.success(`Omloopsnelheid geëxporteerd (${rows.length} producten)`);
     } catch (e: any) {
@@ -227,7 +255,6 @@ export const useReorderAdviceExport = () => {
 
       if (error) throw error;
 
-      // Sales last 90 days for avg calculation
       const since = subDays(new Date(), 90).toISOString();
       const { data: salesData } = await supabase
         .from('order_items')
@@ -249,22 +276,33 @@ export const useReorderAdviceExport = () => {
           const adviceQty = stockIn30 < 0 ? Math.abs(stockIn30) : 0;
 
           return {
-            Product: p.name,
-            SKU: p.sku || '-',
-            'Huidige voorraad': p.stock || 0,
-            'Min. drempel': p.low_stock_threshold || 5,
-            'Gem. verkoop/maand': avgPerMonth,
-            'Verwacht over 30d': stockIn30,
-            'Advies inkoop': adviceQty,
-            'Geschatte kost (€)': +(adviceQty * (p.cost_price || 0)).toFixed(2),
+            product: p.name,
+            sku: p.sku || '-',
+            voorraad: p.stock || 0,
+            drempel: p.low_stock_threshold || 5,
+            gem_per_maand: avgPerMonth,
+            verwacht_30d: stockIn30,
+            advies: adviceQty,
+            geschatte_kost: +(adviceQty * (p.cost_price || 0)).toFixed(2),
           };
         })
-        .filter(r => r['Advies inkoop'] > 0 || r['Huidige voorraad'] <= r['Min. drempel'])
-        .sort((a, b) => (b['Advies inkoop'] as number) - (a['Advies inkoop'] as number));
+        .filter(r => r.advies > 0 || r.voorraad <= r.drempel)
+        .sort((a, b) => b.advies - a.advies);
 
-      const filename = generateFilename('inkoopadvies', format_);
-      if (format_ === 'csv') generateCSV(rows, filename);
-      else generateExcel(rows, filename, 'Inkoopadvies');
+      const columns = [
+        { key: 'product', header: 'Product' },
+        { key: 'sku', header: 'SKU' },
+        { key: 'voorraad', header: 'Huidige voorraad', format: 'number' as const },
+        { key: 'drempel', header: 'Min. drempel', format: 'number' as const },
+        { key: 'gem_per_maand', header: 'Gem. verkoop/maand', format: 'number' as const },
+        { key: 'verwacht_30d', header: 'Verwacht over 30d', format: 'number' as const },
+        { key: 'advies', header: 'Advies inkoop', format: 'number' as const },
+        { key: 'geschatte_kost', header: 'Geschatte kost (€)', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('inkoopadvies');
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Inkoopadvies');
 
       toast.success(`Inkoopadvies geëxporteerd (${rows.length} producten)`);
     } catch (e: any) {
