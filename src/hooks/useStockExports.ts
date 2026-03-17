@@ -38,13 +38,19 @@ export const useStockMovementExport = () => {
       if (salesRes.error) throw salesRes.error;
       if (purchasesRes.error) throw purchasesRes.error;
 
+      const productMap: Record<string, { name: string; sku: string }> = {};
+      (productsRes.data || []).forEach((p: any) => {
+        productMap[p.id] = { name: p.name, sku: p.sku || '-' };
+      });
+
       const rows: Record<string, any>[] = [];
 
       (salesRes.data || []).forEach((item: any) => {
+        const prod = productMap[item.product_id];
         rows.push({
           datum: item.created_at,
-          product: item.products?.name || '-',
-          sku: item.products?.sku || '-',
+          product: item.product_name || prod?.name || '-',
+          sku: item.product_sku || prod?.sku || '-',
           type: 'Verkoop',
           hoeveelheid: -(item.quantity || 0),
           referentie: item.order_id || '-',
@@ -52,10 +58,11 @@ export const useStockMovementExport = () => {
       });
 
       (purchasesRes.data || []).forEach((item: any) => {
+        const prod = productMap[item.product_id];
         rows.push({
           datum: item.created_at,
-          product: item.products?.name || '-',
-          sku: item.products?.sku || '-',
+          product: prod?.name || '-',
+          sku: prod?.sku || '-',
           type: 'Inkoop',
           hoeveelheid: item.quantity || 0,
           referentie: item.purchase_order_id || '-',
