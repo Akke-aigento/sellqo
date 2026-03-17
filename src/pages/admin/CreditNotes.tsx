@@ -19,6 +19,7 @@ import type { CreditNoteStatus } from '@/types/creditNote';
 
 export default function CreditNotesPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
