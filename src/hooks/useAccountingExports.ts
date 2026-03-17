@@ -823,3 +823,685 @@ export const useQuarterlyVatExport = () => {
 
   return { exportQuarterlyVat, isExporting };
 };
+
+// ── Grootboekjournaal (General Ledger) ───────────────────────────
+export const useGeneralLedgerExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportGeneralLedger = async (dateRange: DateRange, format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const [invoicesRes, supplierDocsRes, posRes] = await Promise.all([
+        supabase.from('invoices')
+          .select('invoice_number, created_at, subtotal, tax_amount, total, paid_at, customers(company_name, first_name, last_name)')
+          .eq('tenant_id', currentTenant.id).eq('status', 'paid')
+          .gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString())
+          .order('created_at'),
+        supabase.from('supplier_documents')
+          .select('document_number, document_date, amount, tax_amount, total_amount, suppliers(name)')
+          .eq('tenant_id', currentTenant.id).eq('document_type', 'invoice').eq('payment_status', 'paid')
+          .gte('document_date', dateRange.from.toISOString()).lte('document_date', dateRange.to.toISOString())
+          .order('document_date'),
+        supabase.from('pos_transactions')
+          .select('receipt_number, created_at, subtotal, tax_total, total')
+          .eq('tenant_id', currentTenant.id).eq('status', 'completed')
+          .gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString())
+          .order('created_at'),
+      ]);
+
+      if (invoicesRes.error) throw invoicesRes.error;
+      if (supplierDocsRes.error) throw supplierDocsRes.error;
+      if (posRes.error) throw posRes.error;
+
+      const rows: any[] = [];
+      let bookingNr = 1;
+
+      // Verkoopfacturen: Debet 400000 (Klanten) / Credit 700000 (Omzet) + 451000 (BTW)
+      invoicesRes.data.forEach(inv => {
+        const custName = inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim() || 'Onbekend';
+        const desc = `Factuur ${inv.invoice_number} - ${custName}`;
+        rows.push({ date: inv.paid_at || inv.created_at, booking_nr: bookingNr, description: desc, account: '400000', account_name: 'Handelsvorderingen', debit: inv.total, credit: 0, vat_code: '', counter_account: '700000' });
+        rows.push({ date: inv.paid_at || inv.created_at, booking_nr: bookingNr, description: desc, account: '700000', account_name: 'Omzet', debit: 0, credit: inv.subtotal || 0, vat_code: '21', counter_account: '400000' });
+        if ((inv.tax_amount || 0) > 0) {
+          rows.push({ date: inv.paid_at || inv.created_at, booking_nr: bookingNr, description: desc, account: '451000', account_name: 'Te betalen BTW', debit: 0, credit: inv.tax_amount, vat_code: '', counter_account: '400000' });
+        }
+        bookingNr++;
+      });
+
+      // Inkoopfacturen: Debet 604000 (Inkoop) + 411000 (BTW aftrekbaar) / Credit 440000 (Leveranciers)
+      supplierDocsRes.data.forEach(doc => {
+        const supplierName = doc.suppliers?.name || 'Onbekend';
+        const desc = `Inkoop ${doc.document_number || 'z.n.'} - ${supplierName}`;
+        rows.push({ date: doc.document_date, booking_nr: bookingNr, description: desc, account: '604000', account_name: 'Aankoop handelsgoederen', debit: doc.amount || 0, credit: 0, vat_code: '21', counter_account: '440000' });
+        if ((doc.tax_amount || 0) > 0) {
+          rows.push({ date: doc.document_date, booking_nr: bookingNr, description: desc, account: '411000', account_name: 'Terug te vorderen BTW', debit: doc.tax_amount || 0, credit: 0, vat_code: '', counter_account: '440000' });
+        }
+        rows.push({ date: doc.document_date, booking_nr: bookingNr, description: desc, account: '440000', account_name: 'Leveranciers', debit: 0, credit: doc.total_amount || 0, vat_code: '', counter_account: '604000' });
+        bookingNr++;
+      });
+
+      // POS transacties: Debet 570000 (Kassa) / Credit 700000 (Omzet) + 451000 (BTW)
+      posRes.data.forEach(tx => {
+        const desc = `POS ${tx.receipt_number || ''}`;
+        rows.push({ date: tx.created_at, booking_nr: bookingNr, description: desc, account: '570000', account_name: 'Kassa', debit: tx.total || 0, credit: 0, vat_code: '', counter_account: '700000' });
+        rows.push({ date: tx.created_at, booking_nr: bookingNr, description: desc, account: '700000', account_name: 'Omzet', debit: 0, credit: tx.subtotal || 0, vat_code: '21', counter_account: '570000' });
+        if ((tx.tax_total || 0) > 0) {
+          rows.push({ date: tx.created_at, booking_nr: bookingNr, description: desc, account: '451000', account_name: 'Te betalen BTW', debit: 0, credit: tx.tax_total, vat_code: '', counter_account: '570000' });
+        }
+        bookingNr++;
+      });
+
+      rows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      const columns = [
+        { key: 'date', header: 'Datum', format: 'date' as const },
+        { key: 'booking_nr', header: 'Boekingsnr', format: 'number' as const },
+        { key: 'description', header: 'Omschrijving' },
+        { key: 'account', header: 'Grootboekrekening' },
+        { key: 'account_name', header: 'Rekeningnaam' },
+        { key: 'debit', header: 'Debet', format: 'currency' as const },
+        { key: 'credit', header: 'Credit', format: 'currency' as const },
+        { key: 'vat_code', header: 'BTW-code' },
+        { key: 'counter_account', header: 'Tegenrekening' },
+      ];
+
+      const filename = generateFilename('grootboekjournaal', dateRange.from, dateRange.to);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Grootboekjournaal');
+
+      toast.success(`${rows.length} journaalposten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportGeneralLedger, isExporting };
+};
+
+// ── Debiteuren Subledger ─────────────────────────────────────────
+export const useDebtorBalanceExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportDebtorBalance = async (format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const [invoicesRes, creditNotesRes] = await Promise.all([
+        supabase.from('invoices')
+          .select('invoice_number, created_at, total, status, paid_at, customer_id, customers(company_name, first_name, last_name, email)')
+          .eq('tenant_id', currentTenant.id).in('status', ['sent', 'paid']),
+        supabase.from('credit_notes')
+          .select('credit_note_number, total, customer_id, status')
+          .eq('tenant_id', currentTenant.id).neq('status', 'draft'),
+      ]);
+
+      if (invoicesRes.error) throw invoicesRes.error;
+      if (creditNotesRes.error) throw creditNotesRes.error;
+
+      const now = new Date();
+      const customerMap = new Map<string, {
+        name: string; email: string; invoiced: number; paid: number; credited: number;
+        bucket_0_30: number; bucket_31_60: number; bucket_61_90: number; bucket_90_plus: number;
+      }>();
+
+      invoicesRes.data.forEach(inv => {
+        const custId = inv.customer_id || 'unknown';
+        const custName = inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim() || 'Onbekend';
+        const existing = customerMap.get(custId) || { name: custName, email: inv.customers?.email || '', invoiced: 0, paid: 0, credited: 0, bucket_0_30: 0, bucket_31_60: 0, bucket_61_90: 0, bucket_90_plus: 0 };
+        existing.invoiced += inv.total || 0;
+        if (inv.status === 'paid') {
+          existing.paid += inv.total || 0;
+        } else {
+          const daysDiff = Math.floor((now.getTime() - new Date(inv.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          if (daysDiff <= 30) existing.bucket_0_30 += inv.total || 0;
+          else if (daysDiff <= 60) existing.bucket_31_60 += inv.total || 0;
+          else if (daysDiff <= 90) existing.bucket_61_90 += inv.total || 0;
+          else existing.bucket_90_plus += inv.total || 0;
+        }
+        customerMap.set(custId, existing);
+      });
+
+      creditNotesRes.data?.forEach(cn => {
+        const custId = cn.customer_id || 'unknown';
+        const existing = customerMap.get(custId);
+        if (existing) existing.credited += cn.total || 0;
+      });
+
+      const rows = Array.from(customerMap.values()).map(c => ({
+        ...c,
+        open_balance: c.invoiced - c.paid - c.credited,
+      })).filter(c => Math.abs(c.open_balance) > 0.01)
+        .sort((a, b) => b.open_balance - a.open_balance);
+
+      const totals = rows.reduce((acc, r) => ({
+        name: 'TOTAAL', email: '', invoiced: acc.invoiced + r.invoiced, paid: acc.paid + r.paid, credited: acc.credited + r.credited,
+        bucket_0_30: acc.bucket_0_30 + r.bucket_0_30, bucket_31_60: acc.bucket_31_60 + r.bucket_31_60,
+        bucket_61_90: acc.bucket_61_90 + r.bucket_61_90, bucket_90_plus: acc.bucket_90_plus + r.bucket_90_plus,
+        open_balance: acc.open_balance + r.open_balance,
+      }), { name: 'TOTAAL', email: '', invoiced: 0, paid: 0, credited: 0, bucket_0_30: 0, bucket_31_60: 0, bucket_61_90: 0, bucket_90_plus: 0, open_balance: 0 });
+      rows.push(totals);
+
+      const columns = [
+        { key: 'name', header: 'Klant' },
+        { key: 'email', header: 'Email' },
+        { key: 'invoiced', header: 'Gefactureerd', format: 'currency' as const },
+        { key: 'paid', header: 'Betaald', format: 'currency' as const },
+        { key: 'credited', header: 'Gecrediteerd', format: 'currency' as const },
+        { key: 'open_balance', header: 'Openstaand Saldo', format: 'currency' as const },
+        { key: 'bucket_0_30', header: '0-30 dagen', format: 'currency' as const },
+        { key: 'bucket_31_60', header: '31-60 dagen', format: 'currency' as const },
+        { key: 'bucket_61_90', header: '61-90 dagen', format: 'currency' as const },
+        { key: 'bucket_90_plus', header: '90+ dagen', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('debiteuren_saldo');
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Debiteuren');
+
+      toast.success(`${rows.length - 1} klanten met openstaand saldo`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportDebtorBalance, isExporting };
+};
+
+// ── Crediteuren Subledger ────────────────────────────────────────
+export const useCreditorBalanceExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportCreditorBalance = async (format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase
+        .from('supplier_documents')
+        .select('document_number, document_date, amount, tax_amount, total_amount, payment_status, paid_amount, supplier_id, suppliers(name)')
+        .eq('tenant_id', currentTenant.id).eq('document_type', 'invoice');
+
+      if (error) throw error;
+
+      const now = new Date();
+      const supplierMap = new Map<string, {
+        name: string; invoiced: number; paid: number;
+        bucket_0_30: number; bucket_31_60: number; bucket_61_90: number; bucket_90_plus: number;
+      }>();
+
+      data.forEach(doc => {
+        const suppId = doc.supplier_id;
+        const suppName = doc.suppliers?.name || 'Onbekend';
+        const existing = supplierMap.get(suppId) || { name: suppName, invoiced: 0, paid: 0, bucket_0_30: 0, bucket_31_60: 0, bucket_61_90: 0, bucket_90_plus: 0 };
+        existing.invoiced += doc.total_amount || 0;
+        existing.paid += doc.paid_amount || 0;
+        if (doc.payment_status !== 'paid') {
+          const open = (doc.total_amount || 0) - (doc.paid_amount || 0);
+          const daysDiff = Math.floor((now.getTime() - new Date(doc.document_date).getTime()) / (1000 * 60 * 60 * 24));
+          if (daysDiff <= 30) existing.bucket_0_30 += open;
+          else if (daysDiff <= 60) existing.bucket_31_60 += open;
+          else if (daysDiff <= 90) existing.bucket_61_90 += open;
+          else existing.bucket_90_plus += open;
+        }
+        supplierMap.set(suppId, existing);
+      });
+
+      const rows = Array.from(supplierMap.values()).map(s => ({
+        ...s, open_balance: s.invoiced - s.paid,
+      })).filter(s => Math.abs(s.open_balance) > 0.01)
+        .sort((a, b) => b.open_balance - a.open_balance);
+
+      const totals = rows.reduce((acc, r) => ({
+        name: 'TOTAAL', invoiced: acc.invoiced + r.invoiced, paid: acc.paid + r.paid,
+        bucket_0_30: acc.bucket_0_30 + r.bucket_0_30, bucket_31_60: acc.bucket_31_60 + r.bucket_31_60,
+        bucket_61_90: acc.bucket_61_90 + r.bucket_61_90, bucket_90_plus: acc.bucket_90_plus + r.bucket_90_plus,
+        open_balance: acc.open_balance + r.open_balance,
+      }), { name: 'TOTAAL', invoiced: 0, paid: 0, bucket_0_30: 0, bucket_31_60: 0, bucket_61_90: 0, bucket_90_plus: 0, open_balance: 0 });
+      rows.push(totals);
+
+      const columns = [
+        { key: 'name', header: 'Leverancier' },
+        { key: 'invoiced', header: 'Gefactureerd', format: 'currency' as const },
+        { key: 'paid', header: 'Betaald', format: 'currency' as const },
+        { key: 'open_balance', header: 'Openstaand Saldo', format: 'currency' as const },
+        { key: 'bucket_0_30', header: '0-30 dagen', format: 'currency' as const },
+        { key: 'bucket_31_60', header: '31-60 dagen', format: 'currency' as const },
+        { key: 'bucket_61_90', header: '61-90 dagen', format: 'currency' as const },
+        { key: 'bucket_90_plus', header: '90+ dagen', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('crediteuren_saldo');
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Crediteuren');
+
+      toast.success(`${rows.length - 1} leveranciers met openstaand saldo`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportCreditorBalance, isExporting };
+};
+
+// ── Belgische Jaarlijkse Klantenlisting ──────────────────────────
+export const useBelgianCustomerListingExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportBelgianCustomerListing = async (year: number, format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const yearStart = new Date(year, 0, 1).toISOString();
+      const yearEnd = new Date(year, 11, 31, 23, 59, 59).toISOString();
+
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('subtotal, tax_amount, total, customer_id, customers(company_name, vat_number, billing_country)')
+        .eq('tenant_id', currentTenant.id).eq('status', 'paid')
+        .gte('created_at', yearStart).lte('created_at', yearEnd);
+
+      if (error) throw error;
+
+      const customerMap = new Map<string, { vat_number: string; company_name: string; revenue_ex_vat: number; vat_amount: number; invoice_count: number }>();
+
+      invoices.forEach(inv => {
+        const vatNr = inv.customers?.vat_number;
+        if (!vatNr) return; // Only B2B with VAT number
+        const existing = customerMap.get(vatNr) || { vat_number: vatNr, company_name: inv.customers?.company_name || '', revenue_ex_vat: 0, vat_amount: 0, invoice_count: 0 };
+        existing.revenue_ex_vat += inv.subtotal || 0;
+        existing.vat_amount += inv.tax_amount || 0;
+        existing.invoice_count += 1;
+        customerMap.set(vatNr, existing);
+      });
+
+      // Only customers with revenue >= €250 (Belgian threshold)
+      const rows = Array.from(customerMap.values())
+        .filter(c => c.revenue_ex_vat >= 250)
+        .sort((a, b) => b.revenue_ex_vat - a.revenue_ex_vat)
+        .map((c, i) => ({ volgnummer: i + 1, ...c, total_incl_vat: c.revenue_ex_vat + c.vat_amount }));
+
+      const totalRow = {
+        volgnummer: 'TOTAAL' as any,
+        vat_number: '', company_name: '',
+        revenue_ex_vat: rows.reduce((s, r) => s + r.revenue_ex_vat, 0),
+        vat_amount: rows.reduce((s, r) => s + r.vat_amount, 0),
+        invoice_count: rows.reduce((s, r) => s + r.invoice_count, 0),
+        total_incl_vat: rows.reduce((s, r) => s + r.total_incl_vat, 0),
+      };
+      rows.push(totalRow as any);
+
+      const columns = [
+        { key: 'volgnummer', header: 'Volgnr.' },
+        { key: 'vat_number', header: 'BTW-nummer Klant' },
+        { key: 'company_name', header: 'Bedrijfsnaam' },
+        { key: 'revenue_ex_vat', header: 'Omzet (ex BTW)', format: 'currency' as const },
+        { key: 'vat_amount', header: 'BTW Bedrag', format: 'currency' as const },
+        { key: 'total_incl_vat', header: 'Totaal (incl BTW)', format: 'currency' as const },
+        { key: 'invoice_count', header: 'Aantal Facturen', format: 'number' as const },
+      ];
+
+      const filename = generateFilename(`klantenlisting_${year}`);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, `Klantenlisting ${year}`);
+
+      toast.success(`Klantenlisting ${year}: ${rows.length - 1} B2B klanten`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportBelgianCustomerListing, isExporting };
+};
+
+// ── Dagboek Verkopen ─────────────────────────────────────────────
+export const useSalesJournalExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportSalesJournal = async (dateRange: DateRange, format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('invoice_number, created_at, subtotal, tax_amount, total, status, paid_at, ogm_reference, customers(company_name, first_name, last_name, vat_number)')
+        .eq('tenant_id', currentTenant.id)
+        .gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString())
+        .order('created_at');
+
+      if (error) throw error;
+
+      const rows = data.map((inv, i) => ({
+        volgnummer: i + 1,
+        date: inv.created_at,
+        invoice_number: inv.invoice_number,
+        customer: inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim() || 'Onbekend',
+        vat_number: inv.customers?.vat_number || '',
+        subtotal: inv.subtotal || 0,
+        vat: inv.tax_amount || 0,
+        total: inv.total || 0,
+        status: inv.status === 'paid' ? 'Betaald' : inv.status === 'sent' ? 'Verzonden' : inv.status === 'draft' ? 'Concept' : inv.status,
+        paid_at: inv.paid_at,
+        ogm: inv.ogm_reference || '',
+      }));
+
+      const columns = [
+        { key: 'volgnummer', header: 'Nr.', format: 'number' as const },
+        { key: 'date', header: 'Factuurdatum', format: 'date' as const },
+        { key: 'invoice_number', header: 'Factuurnummer' },
+        { key: 'customer', header: 'Klant' },
+        { key: 'vat_number', header: 'BTW-nr Klant' },
+        { key: 'subtotal', header: 'Maatstaf (ex BTW)', format: 'currency' as const },
+        { key: 'vat', header: 'BTW', format: 'currency' as const },
+        { key: 'total', header: 'Totaal (incl BTW)', format: 'currency' as const },
+        { key: 'status', header: 'Status' },
+        { key: 'paid_at', header: 'Betaaldatum', format: 'date' as const },
+        { key: 'ogm', header: 'OGM' },
+      ];
+
+      const filename = generateFilename('dagboek_verkopen', dateRange.from, dateRange.to);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Dagboek Verkopen');
+
+      toast.success(`${rows.length} verkoopfacturen geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportSalesJournal, isExporting };
+};
+
+// ── Dagboek Aankopen ─────────────────────────────────────────────
+export const usePurchaseJournalExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportPurchaseJournal = async (dateRange: DateRange, format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase
+        .from('supplier_documents')
+        .select('document_number, document_date, document_type, amount, tax_amount, total_amount, payment_status, paid_at, due_date, suppliers(name, vat_number)')
+        .eq('tenant_id', currentTenant.id)
+        .gte('document_date', dateRange.from.toISOString()).lte('document_date', dateRange.to.toISOString())
+        .order('document_date');
+
+      if (error) throw error;
+
+      const typeLabels: Record<string, string> = { invoice: 'Factuur', quote: 'Offerte', delivery_note: 'Pakbon', credit_note: 'Creditnota', contract: 'Contract', other: 'Overig' };
+      const statusLabels: Record<string, string> = { pending: 'Openstaand', partial: 'Deels betaald', paid: 'Betaald', overdue: 'Achterstallig', cancelled: 'Geannuleerd' };
+
+      const rows = data.map((doc, i) => ({
+        volgnummer: i + 1,
+        date: doc.document_date,
+        document_number: doc.document_number || '',
+        type: typeLabels[doc.document_type] || doc.document_type,
+        supplier: doc.suppliers?.name || 'Onbekend',
+        vat_number: doc.suppliers?.vat_number || '',
+        subtotal: doc.amount || 0,
+        vat: doc.tax_amount || 0,
+        total: doc.total_amount || 0,
+        due_date: doc.due_date,
+        status: statusLabels[doc.payment_status] || doc.payment_status,
+        paid_at: doc.paid_at,
+      }));
+
+      const columns = [
+        { key: 'volgnummer', header: 'Nr.', format: 'number' as const },
+        { key: 'date', header: 'Documentdatum', format: 'date' as const },
+        { key: 'document_number', header: 'Documentnr.' },
+        { key: 'type', header: 'Type' },
+        { key: 'supplier', header: 'Leverancier' },
+        { key: 'vat_number', header: 'BTW-nr Leverancier' },
+        { key: 'subtotal', header: 'Netto (ex BTW)', format: 'currency' as const },
+        { key: 'vat', header: 'BTW', format: 'currency' as const },
+        { key: 'total', header: 'Totaal (incl BTW)', format: 'currency' as const },
+        { key: 'due_date', header: 'Vervaldatum', format: 'date' as const },
+        { key: 'status', header: 'Betaalstatus' },
+        { key: 'paid_at', header: 'Betaaldatum', format: 'date' as const },
+      ];
+
+      const filename = generateFilename('dagboek_aankopen', dateRange.from, dateRange.to);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Dagboek Aankopen');
+
+      toast.success(`${rows.length} inkoopdocumenten geëxporteerd`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportPurchaseJournal, isExporting };
+};
+
+// ── Cashflow Overzicht ───────────────────────────────────────────
+export const useCashflowExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportCashflow = async (dateRange: DateRange, format_: ExportFormat) => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const [invoicesRes, supplierDocsRes, posRes] = await Promise.all([
+        supabase.from('invoices')
+          .select('paid_at, total')
+          .eq('tenant_id', currentTenant.id).eq('status', 'paid')
+          .gte('paid_at', dateRange.from.toISOString()).lte('paid_at', dateRange.to.toISOString()),
+        supabase.from('supplier_documents')
+          .select('paid_at, total_amount')
+          .eq('tenant_id', currentTenant.id).eq('payment_status', 'paid')
+          .gte('paid_at', dateRange.from.toISOString()).lte('paid_at', dateRange.to.toISOString()),
+        supabase.from('pos_transactions')
+          .select('created_at, total')
+          .eq('tenant_id', currentTenant.id).eq('status', 'completed')
+          .gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString()),
+      ]);
+
+      if (invoicesRes.error) throw invoicesRes.error;
+      if (supplierDocsRes.error) throw supplierDocsRes.error;
+      if (posRes.error) throw posRes.error;
+
+      // Group by week
+      const weekMap = new Map<string, { week: string; incoming: number; outgoing: number; invoice_income: number; pos_income: number }>();
+
+      const getWeekKey = (dateStr: string) => {
+        const d = new Date(dateStr);
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay() + 1); // Monday
+        return format(weekStart, 'yyyy-MM-dd');
+      };
+
+      invoicesRes.data.forEach(inv => {
+        if (!inv.paid_at) return;
+        const key = getWeekKey(inv.paid_at);
+        const e = weekMap.get(key) || { week: key, incoming: 0, outgoing: 0, invoice_income: 0, pos_income: 0 };
+        e.incoming += inv.total || 0;
+        e.invoice_income += inv.total || 0;
+        weekMap.set(key, e);
+      });
+
+      posRes.data.forEach(tx => {
+        const key = getWeekKey(tx.created_at);
+        const e = weekMap.get(key) || { week: key, incoming: 0, outgoing: 0, invoice_income: 0, pos_income: 0 };
+        e.incoming += tx.total || 0;
+        e.pos_income += tx.total || 0;
+        weekMap.set(key, e);
+      });
+
+      supplierDocsRes.data.forEach(doc => {
+        if (!doc.paid_at) return;
+        const key = getWeekKey(doc.paid_at);
+        const e = weekMap.get(key) || { week: key, incoming: 0, outgoing: 0, invoice_income: 0, pos_income: 0 };
+        e.outgoing += doc.total_amount || 0;
+        weekMap.set(key, e);
+      });
+
+      let runningBalance = 0;
+      const rows = Array.from(weekMap.values())
+        .sort((a, b) => a.week.localeCompare(b.week))
+        .map(w => {
+          const netCashflow = w.incoming - w.outgoing;
+          runningBalance += netCashflow;
+          return { ...w, net_cashflow: netCashflow, running_balance: runningBalance };
+        });
+
+      const columns = [
+        { key: 'week', header: 'Week (start)', format: 'date' as const },
+        { key: 'invoice_income', header: 'Factuurbetalingen', format: 'currency' as const },
+        { key: 'pos_income', header: 'POS Omzet', format: 'currency' as const },
+        { key: 'incoming', header: 'Totaal Inkomend', format: 'currency' as const },
+        { key: 'outgoing', header: 'Totaal Uitgaand', format: 'currency' as const },
+        { key: 'net_cashflow', header: 'Netto Cashflow', format: 'currency' as const },
+        { key: 'running_balance', header: 'Cumulatief Saldo', format: 'currency' as const },
+      ];
+
+      const filename = generateFilename('cashflow', dateRange.from, dateRange.to);
+      if (format_ === 'csv') generateCSV(rows, columns, filename);
+      else generateExcel(rows, columns, filename, 'Cashflow');
+
+      toast.success(`Cashflow overzicht: ${rows.length} weken`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportCashflow, isExporting };
+};
+
+// ── Export naar Boekhoudpakket (Exact/Octopus CSV) ───────────────
+export const useAccountingSoftwareExport = () => {
+  const { currentTenant } = useTenant();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportForAccountingSoftware = async (dateRange: DateRange, softwareType: 'exact' | 'octopus') => {
+    if (!currentTenant) return;
+    setIsExporting(true);
+    try {
+      const [invoicesRes, supplierDocsRes] = await Promise.all([
+        supabase.from('invoices')
+          .select('invoice_number, created_at, subtotal, tax_amount, total, paid_at, customers(company_name, first_name, last_name, vat_number)')
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString())
+          .order('created_at'),
+        supabase.from('supplier_documents')
+          .select('document_number, document_date, amount, tax_amount, total_amount, suppliers(name, vat_number)')
+          .eq('tenant_id', currentTenant.id).eq('document_type', 'invoice')
+          .gte('document_date', dateRange.from.toISOString()).lte('document_date', dateRange.to.toISOString())
+          .order('document_date'),
+      ]);
+
+      if (invoicesRes.error) throw invoicesRes.error;
+      if (supplierDocsRes.error) throw supplierDocsRes.error;
+
+      if (softwareType === 'exact') {
+        // Exact Online CSV format
+        const rows = [
+          ...invoicesRes.data.map(inv => ({
+            Dagboek: 'VK', Datum: format(new Date(inv.created_at), 'dd/MM/yyyy'),
+            Boekstuknummer: inv.invoice_number,
+            Relatienaam: inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim(),
+            BTWNummer: inv.customers?.vat_number || '',
+            Grootboekrekening: '700000', Omschrijving: `Factuur ${inv.invoice_number}`,
+            BedragExcl: inv.subtotal || 0, BTWBedrag: inv.tax_amount || 0, BedragIncl: inv.total || 0, BTWCode: '1',
+          })),
+          ...supplierDocsRes.data.map(doc => ({
+            Dagboek: 'IK', Datum: format(new Date(doc.document_date), 'dd/MM/yyyy'),
+            Boekstuknummer: doc.document_number || '',
+            Relatienaam: doc.suppliers?.name || '',
+            BTWNummer: doc.suppliers?.vat_number || '',
+            Grootboekrekening: '604000', Omschrijving: `Inkoop ${doc.document_number || ''}`,
+            BedragExcl: doc.amount || 0, BTWBedrag: doc.tax_amount || 0, BedragIncl: doc.total_amount || 0, BTWCode: '1',
+          })),
+        ];
+
+        const columns = [
+          { key: 'Dagboek', header: 'Dagboek' },
+          { key: 'Datum', header: 'Datum' },
+          { key: 'Boekstuknummer', header: 'Boekstuknummer' },
+          { key: 'Relatienaam', header: 'Relatienaam' },
+          { key: 'BTWNummer', header: 'BTW-nummer' },
+          { key: 'Grootboekrekening', header: 'Grootboekrekening' },
+          { key: 'Omschrijving', header: 'Omschrijving' },
+          { key: 'BedragExcl', header: 'Bedrag excl. BTW', format: 'currency' as const },
+          { key: 'BTWBedrag', header: 'BTW bedrag', format: 'currency' as const },
+          { key: 'BedragIncl', header: 'Bedrag incl. BTW', format: 'currency' as const },
+          { key: 'BTWCode', header: 'BTW-code' },
+        ];
+
+        generateCSV(rows, columns, generateFilename('exact_import', dateRange.from, dateRange.to));
+      } else {
+        // Octopus CSV format
+        const rows = [
+          ...invoicesRes.data.map(inv => ({
+            Type: 'V', Documentnr: inv.invoice_number,
+            Datum: format(new Date(inv.created_at), 'dd/MM/yyyy'),
+            Relatie: inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim(),
+            BTWNr: inv.customers?.vat_number || '',
+            Rekening: '700000', BedragExcl: inv.subtotal || 0,
+            BTW: inv.tax_amount || 0, Totaal: inv.total || 0, BTWRooster: '03',
+          })),
+          ...supplierDocsRes.data.map(doc => ({
+            Type: 'A', Documentnr: doc.document_number || '',
+            Datum: format(new Date(doc.document_date), 'dd/MM/yyyy'),
+            Relatie: doc.suppliers?.name || '',
+            BTWNr: doc.suppliers?.vat_number || '',
+            Rekening: '604000', BedragExcl: doc.amount || 0,
+            BTW: doc.tax_amount || 0, Totaal: doc.total_amount || 0, BTWRooster: '81',
+          })),
+        ];
+
+        const columns = [
+          { key: 'Type', header: 'Type (V/A)' },
+          { key: 'Documentnr', header: 'Documentnr.' },
+          { key: 'Datum', header: 'Datum' },
+          { key: 'Relatie', header: 'Relatie' },
+          { key: 'BTWNr', header: 'BTW-nummer' },
+          { key: 'Rekening', header: 'Rekening' },
+          { key: 'BedragExcl', header: 'Bedrag excl.', format: 'currency' as const },
+          { key: 'BTW', header: 'BTW', format: 'currency' as const },
+          { key: 'Totaal', header: 'Totaal', format: 'currency' as const },
+          { key: 'BTWRooster', header: 'BTW-rooster' },
+        ];
+
+        generateCSV(rows, columns, generateFilename('octopus_import', dateRange.from, dateRange.to));
+      }
+
+      toast.success(`${softwareType === 'exact' ? 'Exact' : 'Octopus'} importbestand aangemaakt`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export mislukt');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportForAccountingSoftware, isExporting };
+};

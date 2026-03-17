@@ -69,6 +69,14 @@ import {
   useEnrichedPOSSessionExport,
   useYearEndExport,
   useQuarterlyVatExport,
+  useGeneralLedgerExport,
+  useDebtorBalanceExport,
+  useCreditorBalanceExport,
+  useBelgianCustomerListingExport,
+  useSalesJournalExport,
+  usePurchaseJournalExport,
+  useCashflowExport,
+  useAccountingSoftwareExport,
 } from '@/hooks/useAccountingExports';
 
 const Reports = () => {
@@ -112,6 +120,14 @@ const Reports = () => {
   const { exportEnrichedSessions, isExporting: isExportingEnrichedSessions } = useEnrichedPOSSessionExport();
   const { exportYearEndPackage, isExporting: isExportingYearEnd } = useYearEndExport();
   const { exportQuarterlyVat, isExporting: isExportingQuarterlyVat } = useQuarterlyVatExport();
+  const { exportGeneralLedger, isExporting: isExportingLedger } = useGeneralLedgerExport();
+  const { exportDebtorBalance, isExporting: isExportingDebtors } = useDebtorBalanceExport();
+  const { exportCreditorBalance, isExporting: isExportingCreditors } = useCreditorBalanceExport();
+  const { exportBelgianCustomerListing, isExporting: isExportingBelgianListing } = useBelgianCustomerListingExport();
+  const { exportSalesJournal, isExporting: isExportingSalesJournal } = useSalesJournalExport();
+  const { exportPurchaseJournal, isExporting: isExportingPurchaseJournal } = usePurchaseJournalExport();
+  const { exportCashflow, isExporting: isExportingCashflow } = useCashflowExport();
+  const { exportForAccountingSoftware, isExporting: isExportingSoftware } = useAccountingSoftwareExport();
 
   // Fetch counts for display
   const { data: counts } = useQuery({
@@ -281,10 +297,14 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
           <TabsTrigger value="financial" className="gap-2">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
+          </TabsTrigger>
+          <TabsTrigger value="accounting" className="gap-2">
+            <BookOpen className="h-4 w-4 hidden sm:block" />
+            Boekhouding
           </TabsTrigger>
           <TabsTrigger value="invoices" className="gap-2">
             <FileText className="h-4 w-4 hidden sm:block" />
@@ -386,7 +406,87 @@ const Reports = () => {
           </div>
         </TabsContent>
 
-        {/* Invoice Reports */}
+        {/* Accounting / Boekhouding Reports */}
+        <TabsContent value="accounting" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ReportCard
+              title="Grootboekjournaal"
+              description="Debet/credit journaalposten — direct importeerbaar in uw boekhoudpakket"
+              icon={<BookOpen className="h-5 w-5" />}
+              onExport={(format) => exportGeneralLedger(dateRange, format)}
+              isLoading={isExportingLedger}
+            />
+            <ReportCard
+              title="Dagboek Verkopen"
+              description="Chronologisch verkoopfactuurjournaal met BTW-details"
+              icon={<FileText className="h-5 w-5" />}
+              onExport={(format) => exportSalesJournal(dateRange, format)}
+              isLoading={isExportingSalesJournal}
+            />
+            <ReportCard
+              title="Dagboek Aankopen"
+              description="Chronologisch inkoopfactuurjournaal met vervaldatum en betaalstatus"
+              icon={<FileText className="h-5 w-5" />}
+              onExport={(format) => exportPurchaseJournal(dateRange, format)}
+              isLoading={isExportingPurchaseJournal}
+            />
+            <ReportCard
+              title="Debiteuren Subledger"
+              description="Openstaande posten per klant met verouderingsanalyse (0-30, 31-60, 61-90, 90+ dagen)"
+              icon={<Users className="h-5 w-5" />}
+              onExport={(format) => exportDebtorBalance(format)}
+              isLoading={isExportingDebtors}
+            />
+            <ReportCard
+              title="Crediteuren Subledger"
+              description="Openstaande posten per leverancier met verouderingsanalyse"
+              icon={<Factory className="h-5 w-5" />}
+              onExport={(format) => exportCreditorBalance(format)}
+              isLoading={isExportingCreditors}
+            />
+            <ReportCard
+              title="Cashflow Overzicht"
+              description="Inkomend vs uitgaand geld per week — liquiditeitsrapport"
+              icon={<Wallet className="h-5 w-5" />}
+              onExport={(format) => exportCashflow(dateRange, format)}
+              isLoading={isExportingCashflow}
+            />
+            <ReportCard
+              title="Klantenlisting (België)"
+              description="Jaarlijkse B2B klantenlisting — wettelijk verplicht voor de FOD Financiën"
+              icon={<Building2 className="h-5 w-5" />}
+              formats={['csv', 'xlsx']}
+              onExport={(format) => exportBelgianCustomerListing(new Date().getFullYear() - 1, format)}
+              isLoading={isExportingBelgianListing}
+            />
+          </div>
+
+          <Separator />
+
+          <h3 className="text-lg font-medium">Export naar Boekhoudpakket</h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Geformatteerde CSV die u direct kunt importeren — geen handmatig overtypen meer
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => exportForAccountingSoftware(dateRange, 'exact')}
+              disabled={isExportingSoftware}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {isExportingSoftware ? 'Bezig...' : 'Exact Online Import'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportForAccountingSoftware(dateRange, 'octopus')}
+              disabled={isExportingSoftware}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {isExportingSoftware ? 'Bezig...' : 'Octopus Import'}
+            </Button>
+          </div>
+        </TabsContent>
+
         <TabsContent value="invoices" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <ReportCard
