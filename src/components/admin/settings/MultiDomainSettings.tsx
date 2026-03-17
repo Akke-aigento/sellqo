@@ -27,6 +27,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 export function MultiDomainSettings() {
   const { domains, isLoading, addDomain, updateDomain, removeDomain } = useTenantDomains();
   const { themeSettings } = useStorefront();
+  const isMobile = useIsMobile();
   const useCustomFrontend = (themeSettings as any)?.use_custom_frontend;
   const customFrontendUrl = (themeSettings as any)?.custom_frontend_url;
   const [showAddForm, setShowAddForm] = useState(false);
