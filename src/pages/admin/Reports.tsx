@@ -28,6 +28,10 @@ import {
   Wallet,
   Warehouse,
   BookOpen,
+  ArrowDownUp,
+  PackageX,
+  Gauge,
+  ShoppingBag,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
