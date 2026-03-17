@@ -32,6 +32,7 @@ const getChannelIcon = (channel: MessageChannel) => {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isOutbound = message.direction === 'outbound';
+  const isInternal = message.direction === 'internal';
   const ChannelIcon = getChannelIcon(message.channel);
   
   // Extract marketplace info from context_data
