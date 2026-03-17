@@ -243,6 +243,15 @@ export function InboxFilters({
                     )}
                   </DropdownMenuItem>
                 ))}
+                {onCreateFolder && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setCreateDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2 text-primary" />
+                      <span className="text-primary font-medium">Nieuwe map</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
