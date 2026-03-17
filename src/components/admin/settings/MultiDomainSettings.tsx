@@ -75,8 +75,8 @@ export function MultiDomainSettings() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
@@ -86,7 +86,7 @@ export function MultiDomainSettings() {
               Koppel meerdere domeinen aan je webshop, elk met een eigen taalinstelling
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddForm(true)} size="sm" disabled={showAddForm}>
+          <Button onClick={() => setShowAddForm(true)} size="sm" disabled={showAddForm} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-1" />
             Domein toevoegen
           </Button>
