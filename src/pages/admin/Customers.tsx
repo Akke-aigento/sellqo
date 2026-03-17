@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Users, Search, Mail, Phone, ShoppingBag, MoreHorizontal, Eye, Trash2, Building2, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';

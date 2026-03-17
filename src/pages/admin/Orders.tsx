@@ -143,11 +143,70 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
-            <MobileOrderList 
-              orders={orders} 
-              onView={(id) => navigate(`/admin/orders/${id}`)} 
-              formatCurrency={formatCurrency} 
-            />
+            isMobile ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {orders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50 transition-colors"
+                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm">{order.order_number}</span>
+                      <OrderStatusBadge status={order.status} />
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground truncate">
+                      {order.customer_name || order.customer_email || '-'}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(order.original_created_at || order.created_at), 'd MMM yyyy', { locale: nl })}
+                      </span>
+                      <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+            <div className="overflow-x-auto">
+            <Table className="min-w-[600px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Selecteer alle orders"
+                      className={isSomeSelected ? 'data-[state=checked]:bg-primary/50' : ''}
+                    />
+                  </TableHead>
+                  <TableHead>Bestelling</TableHead>
+                  <TableHead>Klant</TableHead>
+                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Betaling</TableHead>
+                  <TableHead className="text-right">Totaal</TableHead>
+                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <OrderRow
+                    key={order.id}
+                    order={order}
+                    isSelected={selectedOrderIds.includes(order.id)}
+                    onSelect={(checked) => handleSelectOrder(order.id, checked)}
+                    onView={() => navigate(`/admin/orders/${order.id}`)}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDeleteOrder}
+                    formatCurrency={formatCurrency}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+            </div>
+            )
           )}
         </CardContent>
       </Card>
