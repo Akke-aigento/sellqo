@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, MessageSquare, Search, Facebook, Instagram, Users, X, ChevronDown, Filter, Inbox, Archive, Trash2, FolderOpen } from 'lucide-react';
+import { Mail, MessageSquare, Search, Facebook, Instagram, Users, X, ChevronDown, Filter, Inbox, Archive, Trash2, FolderOpen, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { AdvancedSearchFilters } from './AdvancedSearchFilters';
 import type { InboxFilters as FiltersType, FilterChannel, SearchOptions } from '@/hooks/useInbox';
 import type { InboxFolder } from '@/hooks/useInboxFolders';
@@ -27,6 +35,7 @@ interface InboxFiltersProps {
   selectedFolderId?: string | null;
   onFolderSelect?: (folderId: string | null) => void;
   folderCounts?: Record<string, number>;
+  onCreateFolder?: (name: string) => void;
 }
 
 export function InboxFilters({
