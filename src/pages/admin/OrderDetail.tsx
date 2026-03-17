@@ -98,7 +98,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -124,9 +124,9 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 min-w-0 overflow-hidden">
         {/* Left Column - Order Items */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0 overflow-hidden">
           {/* Order Items */}
           <Card>
             <CardHeader>
@@ -148,7 +148,7 @@ export default function OrderDetailPage() {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm truncate">{item.product_name}</div>
+                        <div className="font-medium text-sm break-words line-clamp-2">{item.product_name}</div>
                         {item.product_sku && <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>}
                         <div className="text-sm text-muted-foreground mt-0.5">
                           {item.quantity} × {formatCurrency(Number(item.unit_price))} = <span className="font-medium text-foreground">{formatCurrency(Number(item.total_price))}</span>
@@ -288,7 +288,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Right Column - Consolidated */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 overflow-hidden">
           {/* Card 1: Acties & Status */}
           <Card>
             <CardHeader className="pb-3">
@@ -356,7 +356,7 @@ export default function OrderDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                 <div className="text-sm">
                   <div className="font-medium">{order.customer_name || 'Onbekend'}</div>
-                  <div className="text-muted-foreground">{order.customer_email}</div>
+                  <div className="text-muted-foreground break-all">{order.customer_email}</div>
                   {order.customer_phone && (
                     <div className="text-muted-foreground">{order.customer_phone}</div>
                   )}

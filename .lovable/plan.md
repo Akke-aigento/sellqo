@@ -1,25 +1,50 @@
+## POS Systeem: Grondige Refactor ✅
 
+### Wat is gewijzigd
 
-## Fix: Order Detail content wordt rechts afgeknipt op mobiel
+1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
+2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
+3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
+4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
+5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
+6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
+7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
 
-### Probleem
-Op 390px viewport wordt de rechterkant van alle content afgeknipt. Prijzen bij totalen, lange productnamen en e-mailadressen vallen buiten het scherm. Dit is een overflow-probleem: de kaarten en hun inhoud zijn breder dan het scherm.
+## POS → Orders Integratie ✅
 
-### Oorzaak
-De hoofd-container (`div.space-y-6`) en de grid missen `overflow-hidden` en `min-w-0` constraints. Op mobiel stackt de `lg:grid-cols-3` grid correct, maar de child-elementen (Cards) groeien breder dan de viewport omdat er geen overflow-beperking is.
+### Wat is gewijzigd
 
-Specifiek:
-- Lange productnamen pushen de kaart breder
-- Lange e-mailadressen (bijv. bol.com relay-emails) breken niet af
-- Totaalbedragen aan de rechterkant worden afgekapt
+1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
+2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
+3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
+4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
+5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
 
-### Wijzigingen in `src/pages/admin/OrderDetail.tsx`
+### Bestanden gewijzigd
+- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
+- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
+- `src/hooks/useOrders.ts` – Filter op `sales_channel`
+- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
+- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
+- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
+- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
 
-1. **Hoofd-wrapper** (regel 101): voeg `min-w-0 overflow-hidden` toe
-2. **Grid container** (regel 127): voeg `min-w-0 overflow-hidden` toe  
-3. **Beide grid-kolommen** (regel 129, 291): voeg `min-w-0 overflow-hidden` toe
-4. **Lange e-mailadres** (regel 359): voeg `break-all` toe zodat lange adressen wrappen
-5. **Productnaam in compact mode** (regel 151): verander `truncate` → `break-words line-clamp-2` zodat je de volledige naam ziet
+## Kassa-medewerkers met PIN-code ✅
 
-Eén bestand, puur CSS-class toevoegingen. Geen functionele wijzigingen.
+### Wat is gewijzigd
 
+1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
+2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
+3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
+4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
+5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
+6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
+
+### Bestanden
+- `src/hooks/usePOSCashiers.ts` (nieuw)
+- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
+- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
+- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
+- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
+- `src/hooks/usePOS.ts` (gewijzigd)
+- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
