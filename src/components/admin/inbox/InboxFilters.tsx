@@ -51,6 +51,8 @@ export function InboxFilters({
   onFolderSelect,
   folderCounts,
 }: InboxFiltersProps) {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const socialCount = whatsappCount + facebookCount + instagramCount;
   const totalCount = emailCount + socialCount;
 
