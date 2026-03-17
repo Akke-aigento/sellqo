@@ -20,12 +20,12 @@ export const useStockMovementExport = () => {
     setIsExporting(true);
     try {
       const [salesRes, purchasesRes, productsRes] = await Promise.all([
-        supabase.from('order_items')
+        supabase.from('order_items' as any)
           .select('quantity, product_id, product_name, product_sku, created_at, order_id')
           .eq('tenant_id', currentTenant.id)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString()),
-        supabase.from('purchase_order_items')
+        supabase.from('purchase_order_items' as any)
           .select('quantity, product_id, created_at, purchase_order_id')
           .eq('tenant_id', currentTenant.id)
           .gte('created_at', dateRange.from.toISOString())
