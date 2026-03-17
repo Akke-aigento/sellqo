@@ -115,6 +115,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },
       { id: 'inbound-email', title: 'Email Inbox', icon: Inbox, component: InboundEmailSettings },
+      { id: 'email-signatures', title: 'E-mail Handtekeningen', icon: PenLine, component: SignatureSettings },
       { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings },
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
