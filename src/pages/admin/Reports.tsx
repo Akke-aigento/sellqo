@@ -120,6 +120,14 @@ const Reports = () => {
   const { exportEnrichedSessions, isExporting: isExportingEnrichedSessions } = useEnrichedPOSSessionExport();
   const { exportYearEndPackage, isExporting: isExportingYearEnd } = useYearEndExport();
   const { exportQuarterlyVat, isExporting: isExportingQuarterlyVat } = useQuarterlyVatExport();
+  const { exportGeneralLedger, isExporting: isExportingLedger } = useGeneralLedgerExport();
+  const { exportDebtorBalance, isExporting: isExportingDebtors } = useDebtorBalanceExport();
+  const { exportCreditorBalance, isExporting: isExportingCreditors } = useCreditorBalanceExport();
+  const { exportBelgianCustomerListing, isExporting: isExportingBelgianListing } = useBelgianCustomerListingExport();
+  const { exportSalesJournal, isExporting: isExportingSalesJournal } = useSalesJournalExport();
+  const { exportPurchaseJournal, isExporting: isExportingPurchaseJournal } = usePurchaseJournalExport();
+  const { exportCashflow, isExporting: isExportingCashflow } = useCashflowExport();
+  const { exportForAccountingSoftware, isExporting: isExportingSoftware } = useAccountingSoftwareExport();
 
   // Fetch counts for display
   const { data: counts } = useQuery({
