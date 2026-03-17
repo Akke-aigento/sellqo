@@ -41,6 +41,7 @@ export function ConversationActionSheet({
   const subject = conversation.lastMessage?.subject || '(Geen onderwerp)';
   const isUnread = conversation.unreadCount > 0;
   const customFolders = folders.filter(f => !f.is_system);
+  const isInTrashOrArchive = currentFolder === 'deleted' || currentFolder === 'archived';
 
   const handleAction = (action: () => void) => {
     action();
