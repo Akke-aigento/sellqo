@@ -1,52 +1,50 @@
+## POS Systeem: Grondige Refactor ✅
 
+### Wat is gewijzigd
 
-## Fix Order Detail Pagina - Mobiel + Print Label
+1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
+2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
+3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
+4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
+5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
+6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
+7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
 
-### Twee problemen
+## POS → Orders Integratie ✅
 
-**1. Print Label knop doet niets op mobiel**
-De `printViaBrowser` functie in `useLabelPrinter.ts` maakt een verborgen iframe met de PDF URL en probeert `iframe.contentWindow.print()`. Dit faalt op mobiele browsers (vooral iOS Safari) omdat:
-- Cross-origin PDF's in iframes worden geblokkeerd
-- `contentWindow.print()` wordt niet ondersteund op mobiel
+### Wat is gewijzigd
 
-De fallback (`window.open`) wordt alleen getriggerd bij een exception, maar het stille falen triggert geen exception.
+1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
+2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
+3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
+4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
+5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
 
-**Oplossing**: Wijzig `printViaBrowser` zodat het op mobiel direct `window.open(pdfUrl, '_blank')` doet in plaats van de iframe-truc. Detectie via `navigator.maxTouchPoints > 0` of viewport-breedte.
+### Bestanden gewijzigd
+- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
+- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
+- `src/hooks/useOrders.ts` – Filter op `sales_channel`
+- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
+- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
+- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
+- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
 
-**2. Layout OrderDetail niet goed op mobiel**
-Op 390px viewport is de layout krap. Specifieke verbeteringen:
-- De header met order nummer + 3 badges wrappen slecht
-- De grid `lg:grid-cols-3` is correct (stacks op mobiel), maar de rechterkolom kaarten hebben te veel padding/nesting
-- Status dropdowns in "Acties & Status" card: `grid-cols-2` is krap op 390px
-- Klant & Adressen card: buttons "Email" + "Profiel" overlappen
+## Kassa-medewerkers met PIN-code ✅
 
-### Wijzigingen
+### Wat is gewijzigd
 
-| Bestand | Wat |
-|---------|-----|
-| `src/hooks/useLabelPrinter.ts` | `printViaBrowser`: op mobiel/touch direct `window.open()`, geen iframe |
-| `src/pages/admin/OrderDetail.tsx` | Compactere header badges, betere spacing acties, responsive button layout |
+1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
+2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
+3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
+4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
+5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
+6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
 
-### Detail per bestand
-
-**useLabelPrinter.ts** - `printViaBrowser` functie:
-```typescript
-const printViaBrowser = useCallback((pdfUrl: string): boolean => {
-  // Mobile browsers can't print from hidden iframes
-  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) 
-    || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
-  
-  if (isMobileDevice) {
-    window.open(pdfUrl, '_blank');
-    return true;
-  }
-  // ... bestaande iframe logica voor desktop
-}, []);
-```
-
-**OrderDetail.tsx** - Layout fixes:
-- Header badges: wrap beter met `gap-1.5` en kleinere badges op mobiel
-- "Acties & Status" card: stack dropdowns verticaal op heel kleine schermen (`grid-cols-1 sm:grid-cols-2`)
-- Klant buttons: `flex-wrap` toevoegen zodat ze netjes wrappen
-- Verzending kaart: minder padding, compactere knoppen
-
+### Bestanden
+- `src/hooks/usePOSCashiers.ts` (nieuw)
+- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
+- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
+- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
+- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
+- `src/hooks/usePOS.ts` (gewijzigd)
+- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)

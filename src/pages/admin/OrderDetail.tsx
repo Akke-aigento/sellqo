@@ -303,7 +303,7 @@ export default function OrderDetailPage() {
                   onConfirm={handleMarkAsPaid}
                 />
               )}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Orderstatus</label>
                   <Select
@@ -361,7 +361,7 @@ export default function OrderDetailPage() {
                     <div className="text-muted-foreground">{order.customer_phone}</div>
                   )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm"
