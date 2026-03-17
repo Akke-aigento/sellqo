@@ -18,7 +18,7 @@ export interface InboxMessage {
   customer_id: string | null;
   order_id: string | null;
   quote_id: string | null;
-  direction: 'outbound' | 'inbound';
+  direction: 'outbound' | 'inbound' | 'internal';
   subject: string;
   body_html: string;
   body_text: string | null;
