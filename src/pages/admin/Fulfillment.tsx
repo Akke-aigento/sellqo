@@ -34,6 +34,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { 
   PackageCheck, 
@@ -48,6 +55,7 @@ import {
   Eye,
   Clock,
   FileText,
+  MoreVertical,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -504,11 +512,10 @@ export default function Fulfillment() {
               ))}
             </div>
           ) : (
-            <div>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">
+                  <TableHead className="w-10">
                     <Checkbox
                       checked={selectedOrders.size === orders.length}
                       onCheckedChange={handleSelectAll}
@@ -516,16 +523,20 @@ export default function Fulfillment() {
                   </TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead className="hidden sm:table-cell">Items</TableHead>
+                  <TableHead className="hidden lg:table-cell">Items</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Tracking</TableHead>
-                  <TableHead className="text-right">Acties</TableHead>
+                  <TableHead className="hidden lg:table-cell">Tracking</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer"
+                    onClick={() => openSheet(order.id)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedOrders.has(order.id)}
                         onCheckedChange={() => handleSelectOrder(order.id)}
@@ -547,13 +558,13 @@ export default function Fulfillment() {
                         {parseAddress(order.shipping_address)}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell className="hidden lg:table-cell">
                       <Badge variant="secondary">{order.item_count} items</Badge>
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(order.fulfillment_status)}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden lg:table-cell">
                       {order.tracking_number ? (
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-mono">{order.tracking_number}</span>
@@ -563,6 +574,7 @@ export default function Fulfillment() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-primary hover:underline"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <ExternalLink className="h-3 w-3" />
                             </a>
@@ -572,72 +584,41 @@ export default function Fulfillment() {
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Quick status toggle */}
-                        {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Markeer als verzonden"
-                            onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}
-                          >
-                            <Truck className="h-4 w-4" />
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
-                        )}
-                        {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Markeer als afgeleverd"
-                            onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {/* Pakbon */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title="Pakbon"
-                          onClick={() => handleSinglePackingSlip(order)}
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                        {/* Tracking */}
-                        {!order.tracking_number ? (
-                          <Button
-                            size="sm"
-                            onClick={() => openTrackingDialog(order)}
-                          >
-                            <Truck className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Tracking</span>
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openTrackingDialog(order)}
-                          >
-                            <span className="hidden sm:inline">Bewerken</span>
-                            <span className="sm:hidden">Edit</span>
-                          </Button>
-                        )}
-                        {/* Details sheet */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openSheet(order.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => openSheet(order.id)}>
+                            <Eye className="h-4 w-4 mr-2" /> Details bekijken
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
+                            <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}>
+                              <Truck className="h-4 w-4 mr-2" /> Markeer als verzonden
+                            </DropdownMenuItem>
+                          )}
+                          {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
+                            <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}>
+                              <CheckCircle2 className="h-4 w-4 mr-2" /> Markeer als afgeleverd
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => handleSinglePackingSlip(order)}>
+                            <Printer className="h-4 w-4 mr-2" /> Pakbon
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openTrackingDialog(order)}>
+                            <Truck className="h-4 w-4 mr-2" /> {order.tracking_number ? 'Tracking bewerken' : 'Tracking toevoegen'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            </div>
           )}
         </CardContent>
       </Card>
