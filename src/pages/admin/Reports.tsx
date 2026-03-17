@@ -501,6 +501,13 @@ const Reports = () => {
               onExport={(format) => exportLowStock(format)}
               isLoading={isExportingProducts}
             />
+            <ReportCard
+              title="Voorraadwaardering"
+              description="Voorraad × kostprijs per product — balanspost voor de boekhouder"
+              icon={<Warehouse className="h-5 w-5" />}
+              onExport={(format) => exportInventoryValuation(format)}
+              isLoading={isExportingInventory}
+            />
           </div>
         </TabsContent>
 
