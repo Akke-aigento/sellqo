@@ -27,6 +27,7 @@ import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
 import { useTeamInvitations } from '@/hooks/useTeamInvitations';
 import { usePOSCashiers, type POSCashier } from '@/hooks/usePOSCashiers';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AddTeamMemberDialog } from './AddTeamMemberDialog';
 import { CashierEditDialog, CashierPinDialog } from './CashierManagement';
 import { format, isPast } from 'date-fns';
