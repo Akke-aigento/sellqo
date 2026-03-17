@@ -6,13 +6,14 @@ import { AIHelpChatWindow } from './AIHelpChatWindow';
 
 export function AIHelpWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(() => sessionStorage.getItem('ai-help-minimized') === '1');
   const location = useLocation();
 
-  // Reset minimized state on route change
-  useEffect(() => {
-    setIsMinimized(false);
-  }, [location.pathname]);
+  const handleMinimize = (val: boolean) => {
+    setIsMinimized(val);
+    if (val) sessionStorage.setItem('ai-help-minimized', '1');
+    else sessionStorage.removeItem('ai-help-minimized');
+  };
 
   // Hide on POS pages
   const isPOS = location.pathname.startsWith('/admin/pos/') || location.pathname.startsWith('/kassa/');
