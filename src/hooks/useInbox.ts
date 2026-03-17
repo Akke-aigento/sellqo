@@ -389,6 +389,32 @@ export function useInbox() {
     },
   });
 
+  // Mark conversation as unread (clear read_at on last inbound message)
+  const markConversationAsUnread = useMutation({
+    mutationFn: async (conversationId: string) => {
+      if (!currentTenant?.id) throw new Error('Not authenticated');
+
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) return;
+
+      // Find the last inbound message that was read
+      const lastReadInbound = conversation.messages.find(
+        (m) => m.direction === 'inbound' && m.read_at
+      );
+      if (!lastReadInbound) return;
+
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ read_at: null, read_by: null })
+        .eq('id', lastReadInbound.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+    },
+  });
+
   // Archive conversation
   const archiveConversation = useMutation({
     mutationFn: async (conversationId: string) => {
