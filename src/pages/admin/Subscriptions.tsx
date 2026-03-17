@@ -150,6 +150,39 @@ export default function SubscriptionsPage() {
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
+          {isMobile ? (
+            <div className="space-y-2 px-3">
+              {subscriptions.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">{t('common.noResults')}</p>
+              ) : (
+                subscriptions.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                    onClick={() => handleEdit(sub.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium truncate">{sub.name}</span>
+                      <Badge variant={getStatusBadgeVariant(sub.status)}>
+                        {t(`subscriptions.status.${sub.status}`)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1 truncate">
+                      {sub.customer?.company_name || 
+                        `${sub.customer?.first_name || ''} ${sub.customer?.last_name || ''}`.trim() ||
+                        sub.customer?.email}
+                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm text-muted-foreground">
+                        {getIntervalLabel(sub.interval, sub.interval_count, t)}
+                      </span>
+                      <span className="font-medium">{formatCurrency(sub.total)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
           <div>
           <Table>
             <TableHeader>
@@ -244,6 +277,7 @@ export default function SubscriptionsPage() {
             </TableBody>
           </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 

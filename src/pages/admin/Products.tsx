@@ -462,6 +462,45 @@ export default function ProductsPage() {
         <div className="min-h-[400px]">
           <ProductGridView products={filteredProducts} />
         </div>
+      ) : isMobile ? (
+        <div className="space-y-2">
+          {isLoading ? (
+            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-12">
+              <Package className="h-8 w-8 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                {products.length === 0 ? 'Nog geen producten' : 'Geen producten gevonden'}
+              </p>
+            </div>
+          ) : (
+            filteredProducts.map((product) => (
+              <Link
+                key={product.id}
+                to={`/admin/products/${product.id}/edit`}
+                className="flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+              >
+                {product.featured_image ? (
+                  <img src={product.featured_image} alt={product.name} className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded bg-muted flex-shrink-0">
+                    <Package className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium truncate">{product.name}</span>
+                    {getStockBadge(product)}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-sm text-muted-foreground">{product.sku || 'Geen SKU'}</span>
+                    <span className="font-medium">{formatPrice(product.price)}</span>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
       ) : (
         <div className="rounded-md border overflow-x-auto">
           <div className="min-w-[700px]">

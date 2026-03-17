@@ -142,6 +142,28 @@ export default function QuotesPage() {
                 </Button>
               )}
             </div>
+          ) : isMobile ? (
+            <div className="space-y-2">
+              {quotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                  onClick={() => navigate(`/admin/orders/quotes/${quote.id}`)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{quote.quote_number}</span>
+                    <QuoteStatusBadge status={quote.status} />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 truncate">{getCustomerName(quote)}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(quote.created_at), 'd MMM yyyy', { locale: nl })}
+                    </span>
+                    <span className="font-medium">€{Number(quote.total).toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div>
             <Table>
@@ -196,7 +218,6 @@ export default function QuotesPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Implement copy
                           }}>
                             <Copy className="mr-2 h-4 w-4" />
                             Kopiëren

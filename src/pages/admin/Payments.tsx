@@ -337,6 +337,21 @@ export default function PaymentsPage() {
                   <ArrowDownToLine className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nog geen uitbetalingen</p>
                 </div>
+              ) : isMobile ? (
+                <div className="space-y-2 px-3">
+                  {payoutsData?.payouts?.map((payout) => (
+                    <div key={payout.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{formatDate(payout.arrival_date)}</span>
+                        {getPayoutStatusBadge(payout.status)}
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground capitalize">{payout.method}</span>
+                        <span className="font-medium">{formatCurrency(payout.amount, payout.currency)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div>
                 <Table>
