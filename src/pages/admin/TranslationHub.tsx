@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Globe, 
@@ -15,7 +15,9 @@ import {
   Play,
   Loader2,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
+import { useAICredits } from '@/hooks/useAICredits';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useTenant } from '@/hooks/useTenant';
 import { useProducts } from '@/hooks/useProducts';
