@@ -130,7 +130,9 @@ export function ConversationList({
               onToggleCheck={() => onToggleSelection(conversation.id)}
               onSwipeArchive={() => onArchiveConversation?.(conversation.id)}
               onSwipeDelete={() => onDeleteConversation?.(conversation.id)}
+              onSwipeRestore={() => onRestoreConversation?.(conversation.id)}
               onLongPress={() => setActionSheetConversation(conversation)}
+              currentFolder={currentFolder}
             />
           ) : (
             <SelectableConversationItem
