@@ -19,14 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -479,146 +471,119 @@ export default function Fulfillment() {
               <PackageCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Geen orders gevonden</p>
             </div>
-          ) : isMobile ? (
-            <div className="space-y-2 px-3">
+          ) : (
+            <div className="space-y-2 px-3 sm:px-0">
+              {/* Select all */}
+              {!isMobile && (
+                <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground">
+                  <Checkbox
+                    checked={orders.length > 0 && selectedOrders.size === orders.length}
+                    onCheckedChange={handleSelectAll}
+                  />
+                  <span>Alles selecteren</span>
+                </div>
+              )}
               {orders.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                  className="rounded-lg border bg-card p-3 sm:p-4 cursor-pointer transition-all hover:border-primary/50 hover:shadow-sm active:bg-muted/50"
                   onClick={() => openSheet(order.id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{order.order_number}</span>
-                    {getStatusBadge(order.fulfillment_status)}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground truncate">{order.customer_name || 'Onbekend'}</span>
-                    {getMarketplaceBadge(order.marketplace_source)}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-muted-foreground">
-                      {order.item_count} items · {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
-                    </span>
-                    {!order.tracking_number ? (
-                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openTrackingDialog(order); }}>
-                        <Truck className="h-3 w-3 mr-1" />
-                        Track
-                      </Button>
-                    ) : (
-                      <span className="text-xs font-mono text-muted-foreground">{order.tracking_number}</span>
+                  {/* Row 1: checkbox + order number + status + actions */}
+                  <div className="flex items-center gap-3">
+                    {!isMobile && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedOrders.has(order.id)}
+                          onCheckedChange={() => handleSelectOrder(order.id)}
+                        />
+                      </div>
                     )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{order.order_number}</span>
+                        {getMarketplaceBadge(order.marketplace_source)}
+                        {getStatusBadge(order.fulfillment_status)}
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-4 mt-1 flex-wrap">
+                        <span className="text-sm text-muted-foreground truncate">
+                          {order.customer_name || 'Onbekend'}
+                        </span>
+                        <span className="hidden sm:inline text-xs text-muted-foreground truncate max-w-[250px]">
+                          {parseAddress(order.shipping_address)}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Right side: meta + actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="hidden sm:flex flex-col items-end gap-0.5 text-right mr-1">
+                        <span className="text-xs text-muted-foreground">
+                          {order.item_count} items
+                        </span>
+                        {order.tracking_number ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-mono text-muted-foreground">{order.tracking_number}</span>
+                            {order.tracking_url && (
+                              <a
+                                href={order.tracking_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
+                          </span>
+                        )}
+                      </div>
+                      {/* Mobile: compact info */}
+                      <div className="sm:hidden text-right mr-1">
+                        <span className="text-xs text-muted-foreground">
+                          {order.item_count} items · {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
+                        </span>
+                      </div>
+                      {/* Actions dropdown */}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => openSheet(order.id)}>
+                              <Eye className="h-4 w-4 mr-2" /> Details bekijken
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
+                              <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}>
+                                <Truck className="h-4 w-4 mr-2" /> Markeer als verzonden
+                              </DropdownMenuItem>
+                            )}
+                            {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
+                              <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}>
+                                <CheckCircle2 className="h-4 w-4 mr-2" /> Markeer als afgeleverd
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleSinglePackingSlip(order)}>
+                              <Printer className="h-4 w-4 mr-2" /> Pakbon
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openTrackingDialog(order)}>
+                              <Truck className="h-4 w-4 mr-2" /> {order.tracking_number ? 'Tracking bewerken' : 'Tracking toevoegen'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={selectedOrders.size === orders.length}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden lg:table-cell">Items</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Tracking</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow
-                    key={order.id}
-                    className="cursor-pointer"
-                    onClick={() => openSheet(order.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedOrders.has(order.id)}
-                        onCheckedChange={() => handleSelectOrder(order.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{order.order_number}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-2">
-                        {formatDistanceToNow(new Date(order.created_at), {
-                          addSuffix: true,
-                          locale: nl,
-                        })}
-                        {getMarketplaceBadge(order.marketplace_source)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>{order.customer_name || 'Onbekend'}</div>
-                      <div className="text-xs text-muted-foreground max-w-[200px] truncate">
-                        {parseAddress(order.shipping_address)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Badge variant="secondary">{order.item_count} items</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(order.fulfillment_status)}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {order.tracking_number ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono">{order.tracking_number}</span>
-                          {order.tracking_url && (
-                            <a
-                              href={order.tracking_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => openSheet(order.id)}>
-                            <Eye className="h-4 w-4 mr-2" /> Details bekijken
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
-                            <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}>
-                              <Truck className="h-4 w-4 mr-2" /> Markeer als verzonden
-                            </DropdownMenuItem>
-                          )}
-                          {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
-                            <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}>
-                              <CheckCircle2 className="h-4 w-4 mr-2" /> Markeer als afgeleverd
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleSinglePackingSlip(order)}>
-                            <Printer className="h-4 w-4 mr-2" /> Pakbon
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openTrackingDialog(order)}>
-                            <Truck className="h-4 w-4 mr-2" /> {order.tracking_number ? 'Tracking bewerken' : 'Tracking toevoegen'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           )}
         </CardContent>
       </Card>
