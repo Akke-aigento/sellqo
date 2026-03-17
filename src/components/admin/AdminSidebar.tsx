@@ -152,7 +152,7 @@ export function AdminSidebar() {
     return (
       <SidebarMenuItem key={item.id}>
         <SidebarMenuButton asChild isActive={isActive(item.url)}>
-          <NavLink to={item.url} className="flex items-center justify-between">
+          <NavLink to={item.url} onClick={closeMobile} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               {item.icon && <item.icon className="h-4 w-4" />}
               <span>{item.title}</span>
