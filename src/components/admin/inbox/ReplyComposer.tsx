@@ -462,7 +462,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       </div>
 
       <p className="text-xs text-muted-foreground mt-2">
-        Druk op Cmd+Enter om te verzenden
+        {isNoteMode ? '📝 Notitie modus — alleen zichtbaar voor het team' : 'Druk op Cmd+Enter om te verzenden'}
       </p>
     </div>
   );
