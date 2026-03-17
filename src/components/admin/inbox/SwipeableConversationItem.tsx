@@ -174,14 +174,19 @@ export function SwipeableConversationItem({
       {/* Foreground: the actual conversation item */}
       <div
         className={cn(
-          'relative bg-background',
+          'relative bg-background select-none',
           isTransitioning && 'transition-transform duration-300 ease-out',
           isChecked && 'bg-primary/10'
         )}
-        style={{ transform: `translateX(${translateX}px)` }}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+        } as React.CSSProperties}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {/* Selection indicator */}
         {isChecked && (
