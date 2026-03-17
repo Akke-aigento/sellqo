@@ -422,7 +422,25 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           </Button>
         </div>
         <div className="flex flex-col gap-1 self-end">
-          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && (
+          {/* Template picker */}
+          {!isNoteMode && (
+            <TemplatePicker onSelect={(body) => setMessage(prev => prev ? prev + '\n' + body : body)} />
+          )}
+          {/* Internal note toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isNoteMode ? 'default' : 'outline'}
+                size="icon"
+                className={cn('h-8 w-8', isNoteMode && 'bg-amber-500 hover:bg-amber-600')}
+                onClick={() => setIsNoteMode(!isNoteMode)}
+              >
+                <StickyNote className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isNoteMode ? 'Terug naar antwoord' : 'Interne notitie'}</TooltipContent>
+          </Tooltip>
+          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && !isNoteMode && (
             <Button
               variant="outline"
               size="icon"
@@ -436,9 +454,9 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           <Button
             onClick={handleSend}
             disabled={!message.trim() || isSending}
-            className="h-auto"
+            className={cn('h-auto', isNoteMode && 'bg-amber-500 hover:bg-amber-600')}
           >
-            <Send className="h-4 w-4" />
+            {isNoteMode ? <StickyNote className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>
