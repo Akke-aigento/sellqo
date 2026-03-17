@@ -255,6 +255,8 @@ export default function MessagesPage() {
                     onDelete={() => deleteConversation(selectedConversation.id)}
                     onRestore={() => restoreConversation(selectedConversation.id)}
                     onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
+                    onPin={(pinned) => pinConversation({ conversationId: selectedConversation.id, pinned })}
+                    onSnooze={(until) => snoozeConversation({ conversationId: selectedConversation.id, until })}
                     onBack={handleBack}
                   />
                 ) : (
