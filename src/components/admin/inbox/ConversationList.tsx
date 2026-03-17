@@ -29,6 +29,7 @@ interface ConversationListProps {
   // Single-item actions for swipe
   onArchiveConversation?: (id: string) => void;
   onDeleteConversation?: (id: string) => void;
+  onRestoreConversation?: (id: string) => void;
   onMarkAsUnread?: (id: string) => void;
   onMoveToFolder?: (id: string, folderId: string | null) => void;
   folders?: InboxFolder[];
