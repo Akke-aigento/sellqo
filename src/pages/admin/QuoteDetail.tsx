@@ -169,7 +169,29 @@ export default function QuoteDetailPage() {
             <CardHeader>
               <CardTitle>Items</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto px-0 sm:px-6">
+            <CardContent className="px-0 sm:px-6">
+              {isCompact ? (
+                <div className="space-y-2 px-3 sm:px-0">
+                  {quote.quote_items?.map((item) => (
+                    <div key={item.id} className="rounded-lg border bg-card p-3">
+                      <div className="font-medium text-sm">{item.product_name}</div>
+                      {item.product_sku && (
+                        <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
+                      )}
+                      {item.description && (
+                        <div className="text-xs text-muted-foreground mt-0.5">{item.description}</div>
+                      )}
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {item.quantity} × €{Number(item.unit_price).toFixed(2)}
+                        {Number(item.discount_percent) > 0 && ` (-${item.discount_percent}%)`}
+                        {' = '}
+                        <span className="font-medium text-foreground">€{Number(item.total_price).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+              <div className="overflow-x-auto">
               <div className="min-w-[550px]">
               <Table>
                 <TableHeader>
@@ -206,6 +228,8 @@ export default function QuoteDetailPage() {
                 </TableBody>
               </Table>
               </div>
+              </div>
+              )}
 
               <div className="border-t mt-4 pt-4">
                 <div className="flex justify-end">
