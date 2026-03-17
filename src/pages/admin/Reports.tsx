@@ -102,6 +102,17 @@ const Reports = () => {
   const { exportTransactions, exportDailySummary, isExporting: isExportingTransactions } = usePOSTransactionExport();
   const { exportCashMovements, isExporting: isExportingCashMovements } = usePOSCashMovementExport();
 
+  // New accounting export hooks
+  const { exportProfitLoss, isExporting: isExportingPL } = useProfitLossExport();
+  const { exportVatBreakdown, isExporting: isExportingVatBreakdown } = useVatBreakdownExport();
+  const { exportChannelRevenue, isExporting: isExportingChannel } = useChannelRevenueExport();
+  const { exportPaymentReconciliation, isExporting: isExportingPayments } = usePaymentReconciliationExport();
+  const { exportProductMargin, isExporting: isExportingMargin } = useProductMarginExport();
+  const { exportInventoryValuation, isExporting: isExportingInventory } = useInventoryValuationExport();
+  const { exportEnrichedSessions, isExporting: isExportingEnrichedSessions } = useEnrichedPOSSessionExport();
+  const { exportYearEndPackage, isExporting: isExportingYearEnd } = useYearEndExport();
+  const { exportQuarterlyVat, isExporting: isExportingQuarterlyVat } = useQuarterlyVatExport();
+
   // Fetch counts for display
   const { data: counts } = useQuery({
     queryKey: ['report-counts', currentTenant?.id, dateRange],
