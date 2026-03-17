@@ -1,68 +1,48 @@
-## POS Systeem: Grondige Refactor ✅
 
-### Wat is gewijzigd
 
-1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
-2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
-3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
-4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
-5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
-6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
-7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
+## Rapportage: De boekhouder van z'n sokken blazen -- Fase 2
 
-## POS → Orders Integratie ✅
+### Wat er al is (30+ rapporten)
+P&L, BTW-uitsplitsing, kanaalomzet, betalingsoverzicht, marge-analyse, voorraadwaardering, verrijkte POS sessies, jaarafsluiting pakket, BTW kwartaalpakket. Goed fundament.
 
-### Wat is gewijzigd
+### Wat er nog mist om een boekhouder echt "WTF" te laten zeggen
 
-1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
-2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
-3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
-4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
-5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
+#### 1. Grootboekjournaal (General Ledger Journal)
+Elke betaalde factuur, POS-transactie en inkoopfactuur als debet/credit boeking. Dit is het absolute kernrapport -- hiermee kan de boekhouder alles direct importeren in zijn boekhoudpakket (Exact, Octopus, Bob50, Yuki) zonder handmatig overtypen.
 
-### Bestanden gewijzigd
-- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
-- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
-- `src/hooks/useOrders.ts` – Filter op `sales_channel`
-- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
-- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
-- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
-- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
+Kolommen: Datum | Boekingsnr | Omschrijving | Grootboekrekening | Debet | Credit | BTW-code | Tegenrekening
 
-## Kassa-medewerkers met PIN-code ✅
+#### 2. Klantensaldo / Openstaande Posten per Klant (Debiteuren Subledger)
+Per klant: alle facturen, creditnota's, betalingen, openstaand saldo. Met verouderingsanalyse (0-30d, 31-60d, 61-90d, 90d+). Dit is wat de boekhouder nodig heeft voor de balans onder "Handelsvorderingen".
 
-### Wat is gewijzigd
+#### 3. Leverancierssaldo / Openstaande Posten per Leverancier (Crediteuren Subledger)
+Zelfde maar dan inkoop: per leverancier alle inkoopfacturen, betalingen, openstaand saldo + veroudering. Balanspost "Handelsschulden".
 
-1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
-2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
-3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
-4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
-5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
-6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
+#### 4. Belgische Jaarlijkse Klantenlisting
+Wettelijk verplicht in België: alle B2B-klanten met BTW-nummer, totale omzet en BTW per klant voor het volledige jaar. Export in het juiste formaat. De boekhouder moet dit elk jaar indienen bij de FOD Financiën.
 
-### Bestanden
-- `src/hooks/usePOSCashiers.ts` (nieuw)
-- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
-- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
-- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
-- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
-- `src/hooks/usePOS.ts` (gewijzigd)
-- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
+#### 5. Dagboek Verkopen + Dagboek Aankopen
+Chronologisch journaal van alle verkoopfacturen resp. inkoopfacturen. Niet gegroepeerd, maar regel per regel. Dit is hoe Belgische boekhouders denken: per dagboek.
 
-## Rapportage Uitbreiding: Boekhoudersdroomland ✅
+#### 6. Cashflow Overzicht
+Inkomend geld (betaalde facturen + POS) minus uitgaand geld (betaalde leveranciersfacturen) per week/maand. De boekhouder ziet in één oogopslag of er liquiditeitsproblemen aankomen.
 
-### Wat is gewijzigd
+#### 7. Export naar Boekhoudpakket (Exact/Octopus CSV)
+Geformatteerd exportbestand dat de boekhouder direct kan importeren in populaire Belgische/Nederlandse boekhoudpakketten. Geen handmatig overtypen meer. DIT is de "no way" factor.
 
-1. **Winst & Verlies overzicht** – Omzet (facturen paid) minus inkoop (supplier docs) minus verzendkosten = bruto marge per maand met totaalrij
-2. **Omzet per BTW-tarief** – Uitsplitsing per tarief (21%, 12%, 6%, 0%) met maatstaf, BTW bedrag en aantal orders
-3. **Omzet per Verkoopkanaal** – Webshop vs POS vs Marketplace: omzet, orders, gem. orderbedrag, % van totaal
-4. **Betalingsoverzicht** – Alle ontvangen betalingen (facturen + POS) met datum, methode, referentie — reconciliatie-rapport voor bankafschriften
-5. **Marge-analyse per Product** – Per product: verkoopprijs, kostprijs, marge (€ + %), aantal verkocht, totale marge, gesorteerd op marge%
-6. **Voorraadwaardering** – Voorraad × kostprijs per product met totaalrij — balanspost voor elk kwartaal
-7. **Kassasessies (verrijkt)** – Sessies met omzet per sessie, aantal transacties, medewerker, sessieduur, contant/PIN split
-8. **Jaarafsluiting Pakket** – Multi-sheet Excel: W&V, BTW per kwartaal, voorraadwaardering, klantenbestand — alles in één bestand
-9. **BTW Kwartaal Pakket** – Automatisch huidig kwartaal: BTW-overzicht + IC-listing + betalingen
+### Technische aanpak
 
-### Bestanden
-- `src/hooks/useAccountingExports.ts` (nieuw — 9 hooks)
-- `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe ReportCards + imports)
+**`src/hooks/useAccountingExports.ts`** -- 7 nieuwe export hooks toevoegen:
+- `useGeneralLedgerExport` -- journaalposten met grootboekrekeningnummers (701000 Omzet, 400000 Klanten, 440000 Leveranciers, 604000 Inkoop, etc.)
+- `useDebtorBalanceExport` -- facturen per klant met aging buckets
+- `useCreditorBalanceExport` -- inkoopfacturen per leverancier met aging buckets  
+- `useBelgianCustomerListingExport` -- B2B klanten + omzet + BTW, volledig jaar
+- `useSalesJournalExport` -- chronologisch verkoopfactuurjournaal
+- `usePurchaseJournalExport` -- chronologisch inkoopfactuurjournaal
+- `useCashflowExport` -- inkomend vs uitgaand per week/maand
+
+**`src/pages/admin/Reports.tsx`** -- Nieuwe ReportCards in "Financieel" tab + een nieuwe "Boekhouding" tab voor de journalen en subledgers. Nieuwe snelle actie "Export naar Boekhoudpakket".
+
+### Geen database wijzigingen nodig
+Alle data komt uit bestaande tabellen (invoices, orders, customers, supplier_documents, suppliers, pos_transactions, credit_notes).
+
