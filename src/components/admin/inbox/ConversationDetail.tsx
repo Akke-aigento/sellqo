@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Mail, MessageSquare, Facebook, Instagram, ArrowLeft, PanelRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
