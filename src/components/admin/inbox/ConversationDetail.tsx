@@ -11,8 +11,6 @@ import { MessageBubble } from './MessageBubble';
 import { ReplyComposer } from './ReplyComposer';
 import { ConversationActions } from './ConversationActions';
 import { CustomerInfoPanel } from './CustomerInfoPanel';
-import { useCustomers } from '@/hooks/useCustomers';
-import { useToast } from '@/hooks/use-toast';
 import type { Conversation, MessageStatus } from '@/hooks/useInbox';
 
 interface ConversationDetailProps {
