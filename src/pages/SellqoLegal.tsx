@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { usePublicLegalPage } from "@/hooks/useSellqoLegal";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
