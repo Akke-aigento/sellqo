@@ -341,7 +341,31 @@ export function PendingPlatformPaymentsPage() {
             <CardTitle>Geschiedenis</CardTitle>
             <CardDescription>Eerder verwerkte betalingen</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto px-0 sm:px-6">
+          <CardContent className="px-0 sm:px-6">
+            {isCompact ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {processedPayments.slice(0, 20).map((payment) => (
+                  <div key={payment.id} className="rounded-lg border bg-card p-3 opacity-70">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm">{payment.tenants?.name || 'Onbekend'}</span>
+                      {getStatusBadge(payment.status)}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-1">
+                        {getPaymentTypeIcon(payment.payment_type)}
+                        <span className="text-xs">{getPaymentTypeLabel(payment)}</span>
+                      </div>
+                      <span>{formatCurrency(payment.amount)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {payment.confirmed_at
+                        ? format(new Date(payment.confirmed_at), 'd MMM yyyy', { locale: nl })
+                        : '-'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="min-w-[600px]">
             <Table>
               <TableHeader>
@@ -349,9 +373,9 @@ export function PendingPlatformPaymentsPage() {
                   <TableHead>Tenant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bedrag</TableHead>
-                  <TableHead className="hidden md:table-cell">OGM</TableHead>
+                  <TableHead>OGM</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden sm:table-cell">Verwerkt</TableHead>
+                  <TableHead>Verwerkt</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -365,11 +389,11 @@ export function PendingPlatformPaymentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                       <code className="text-xs">{payment.ogm_reference}</code>
                     </TableCell>
                     <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">
                       {payment.confirmed_at 
                         ? format(new Date(payment.confirmed_at), 'd MMM yyyy', { locale: nl })
                         : '-'}
@@ -379,6 +403,7 @@ export function PendingPlatformPaymentsPage() {
               </TableBody>
             </Table>
             </div>
+            )}
           </CardContent>
         </Card>
       )}
