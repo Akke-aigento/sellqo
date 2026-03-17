@@ -19,17 +19,20 @@ export const useStockMovementExport = () => {
     if (!currentTenant) return;
     setIsExporting(true);
     try {
-      const [salesRes, purchasesRes] = await Promise.all([
+      const [salesRes, purchasesRes, productsRes] = await Promise.all([
         supabase.from('order_items')
-          .select('quantity, product_id, created_at, order_id, products(name, sku)')
+          .select('quantity, product_id, product_name, product_sku, created_at, order_id')
           .eq('tenant_id', currentTenant.id)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString()),
         supabase.from('purchase_order_items')
-          .select('quantity, product_id, created_at, purchase_order_id, products(name, sku)')
+          .select('quantity, product_id, created_at, purchase_order_id')
           .eq('tenant_id', currentTenant.id)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString()),
+        supabase.from('products')
+          .select('id, name, sku')
+          .eq('tenant_id', currentTenant.id),
       ]);
 
       if (salesRes.error) throw salesRes.error;
