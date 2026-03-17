@@ -297,10 +297,14 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
           <TabsTrigger value="financial" className="gap-2">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
+          </TabsTrigger>
+          <TabsTrigger value="accounting" className="gap-2">
+            <BookOpen className="h-4 w-4 hidden sm:block" />
+            Boekhouding
           </TabsTrigger>
           <TabsTrigger value="invoices" className="gap-2">
             <FileText className="h-4 w-4 hidden sm:block" />
