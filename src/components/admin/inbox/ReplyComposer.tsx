@@ -321,7 +321,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   };
 
   return (
-    <div className="border-t p-4 bg-background">
+    <div className={cn('border-t p-4', isNoteMode ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-background')}>
       {/* Channel selector */}
       {hasMultipleChannels && (
         <Tabs value={channel} onValueChange={(v) => setChannel(v as ReplyChannel)} className="mb-3">
