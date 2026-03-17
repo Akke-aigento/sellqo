@@ -35,6 +35,7 @@ export default function MessagesPage() {
     filters,
     setFilters,
     markConversationAsRead,
+    markConversationAsUnread,
     unreadTotal,
     archiveConversation,
     deleteConversation,
