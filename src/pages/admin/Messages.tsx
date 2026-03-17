@@ -204,6 +204,7 @@ export default function MessagesPage() {
                     }
                     onFolderSelect={handleFolderSelect}
                     folderCounts={folderCounts}
+                    onCreateFolder={(name) => createFolder.mutate({ name })}
                   />
                   <div className="flex-1 overflow-hidden">
                     <ConversationList
@@ -223,6 +224,9 @@ export default function MessagesPage() {
                       isBulkLoading={isBulkLoading}
                       onArchiveConversation={archiveConversation}
                       onDeleteConversation={deleteConversation}
+                      onMarkAsUnread={markConversationAsUnread}
+                      onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                      folders={folders}
                     />
                   </div>
                 </div>
