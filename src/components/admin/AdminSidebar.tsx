@@ -135,7 +135,7 @@ export function AdminSidebar() {
                 {visibleChildren.map((child) => (
                   <SidebarMenuSubItem key={child.id}>
                     <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
-                      <NavLink to={child.url}>
+                      <NavLink to={child.url} onClick={closeMobile}>
                         {child.title}
                       </NavLink>
                     </SidebarMenuSubButton>
