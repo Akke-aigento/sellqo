@@ -148,7 +148,7 @@ export default function OrderDetailPage() {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm truncate">{item.product_name}</div>
+                        <div className="font-medium text-sm break-words line-clamp-2">{item.product_name}</div>
                         {item.product_sku && <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>}
                         <div className="text-sm text-muted-foreground mt-0.5">
                           {item.quantity} × {formatCurrency(Number(item.unit_price))} = <span className="font-medium text-foreground">{formatCurrency(Number(item.total_price))}</span>
