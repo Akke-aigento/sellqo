@@ -1,4 +1,4 @@
-import { Archive, Trash2, FolderOpen, MailOpen, MailX, X } from 'lucide-react';
+import { Archive, Trash2, FolderOpen, MailOpen, MailX, Inbox, RotateCcw } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -16,9 +16,11 @@ interface ConversationActionSheetProps {
   onOpenChange: (open: boolean) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
+  onRestore?: (id: string) => void;
   onMarkAsUnread: (id: string) => void;
   onMoveToFolder: (id: string, folderId: string | null) => void;
   folders: InboxFolder[];
+  currentFolder?: string | null;
 }
 
 export function ConversationActionSheet({
