@@ -45,7 +45,9 @@ import {
   Printer,
   CheckCircle2,
   Upload,
-  Eye
+  Eye,
+  Clock,
+  FileText,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -53,6 +55,8 @@ import { CARRIER_PATTERNS, generateTrackingUrl } from '@/lib/carrierPatterns';
 import { useNavigate } from 'react-router-dom';
 import { TrackingImportDialog } from '@/components/admin/fulfillment/TrackingImportDialog';
 import { FulfillmentBulkActions } from '@/components/admin/FulfillmentBulkActions';
+import { FulfillmentOrderSheet } from '@/components/admin/FulfillmentOrderSheet';
+import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 
 type FulfillmentStatus = 'unfulfilled' | 'partial' | 'shipped' | 'delivered';
 
@@ -87,6 +91,78 @@ export default function Fulfillment() {
   const [trackingCarrier, setTrackingCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [customTrackingUrl, setCustomTrackingUrl] = useState('');
+  const [sheetOrderId, setSheetOrderId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Stats query
+  const { data: stats } = useQuery({
+    queryKey: ['fulfillment-stats', currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant?.id) return null;
+      const { data, error } = await supabase
+        .from('orders')
+        .select('fulfillment_status, shipped_at')
+        .eq('tenant_id', currentTenant.id);
+      if (error) throw error;
+
+      const today = new Date().toISOString().split('T')[0];
+      const toShip = (data || []).filter(o => !o.fulfillment_status || o.fulfillment_status === 'unfulfilled' || o.fulfillment_status === 'pending').length;
+      const shippedToday = (data || []).filter(o => o.shipped_at && o.shipped_at.startsWith(today)).length;
+      const shipped = (data || []).filter(o => o.fulfillment_status === 'shipped' || o.fulfillment_status === 'fulfilled').length;
+      return { toShip, shippedToday, shipped };
+    },
+    enabled: !!currentTenant?.id,
+  });
+
+  // Quick status update per row
+  const quickStatusUpdate = useMutation({
+    mutationFn: async ({ orderId, newStatus }: { orderId: string; newStatus: string }) => {
+      const updateData: Record<string, unknown> = { fulfillment_status: newStatus };
+      if (newStatus === 'shipped') { updateData.status = 'shipped'; updateData.shipped_at = new Date().toISOString(); }
+      else if (newStatus === 'delivered') { updateData.status = 'delivered'; updateData.delivered_at = new Date().toISOString(); }
+      const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['fulfillment-stats'] });
+      toast({ title: 'Status bijgewerkt' });
+    },
+  });
+
+  const openSheet = (orderId: string) => {
+    setSheetOrderId(orderId);
+    setSheetOpen(true);
+  };
+
+  const handleSinglePackingSlip = async (order: FulfillmentOrder) => {
+    if (!currentTenant) return;
+    try {
+      // fetch items for this order
+      const { data: items } = await supabase.from('order_items').select('product_name, product_sku, quantity').eq('order_id', order.id);
+      const pdfBytes = await generatePackingSlipPdf(
+        {
+          order_number: order.order_number,
+          created_at: order.created_at,
+          customer_name: order.customer_name,
+          customer_email: '',
+          shipping_address: order.shipping_address,
+          order_items: items?.map(i => ({ product_name: i.product_name, product_sku: i.product_sku, quantity: i.quantity })),
+        },
+        {
+          name: currentTenant.name, address: currentTenant.address, city: currentTenant.city,
+          postal_code: currentTenant.postal_code, country: currentTenant.country,
+          phone: currentTenant.phone, email: currentTenant.owner_email,
+          kvk_number: currentTenant.kvk_number, logo_url: currentTenant.logo_url,
+          document_logo_url: (currentTenant as any).document_logo_url,
+        },
+      );
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    } catch (err: any) {
+      toast({ title: 'Fout bij pakbon', description: err.message, variant: 'destructive' });
+    }
+  };
 
   // Fetch orders for fulfillment
   const { data: orders, isLoading, refetch } = useQuery({
@@ -295,6 +371,45 @@ export default function Fulfillment() {
         </div>
       </div>
 
+      {/* Stats Header */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-orange-500" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.toShip}</p>
+                  <p className="text-xs text-muted-foreground">Te verzenden</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.shippedToday}</p>
+                  <p className="text-xs text-muted-foreground">Vandaag verzonden</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.shipped}</p>
+                  <p className="text-xs text-muted-foreground">Onderweg</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
@@ -362,7 +477,7 @@ export default function Fulfillment() {
                 <div
                   key={order.id}
                   className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
-                  onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  onClick={() => openSheet(order.id)}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{order.order_number}</span>
@@ -458,7 +573,38 @@ export default function Fulfillment() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 sm:gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Quick status toggle */}
+                        {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Markeer als verzonden"
+                            onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}
+                          >
+                            <Truck className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Markeer als afgeleverd"
+                            onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {/* Pakbon */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Pakbon"
+                          onClick={() => handleSinglePackingSlip(order)}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        {/* Tracking */}
                         {!order.tracking_number ? (
                           <Button
                             size="sm"
@@ -477,16 +623,14 @@ export default function Fulfillment() {
                             <span className="sm:hidden">Edit</span>
                           </Button>
                         )}
-                        {!isWarehouse && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
-                          >
-                            <span className="hidden sm:inline">Details</span>
-                            <Eye className="h-4 w-4 sm:hidden" />
-                          </Button>
-                        )}
+                        {/* Details sheet */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openSheet(order.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -562,6 +706,14 @@ export default function Fulfillment() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onImportComplete={() => refetch()}
+      />
+
+      {/* Order Detail Sheet */}
+      <FulfillmentOrderSheet
+        orderId={sheetOrderId}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onStatusChange={() => refetch()}
       />
     </div>
   );
