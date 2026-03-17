@@ -66,3 +66,21 @@
 ### Bestanden
 - `src/hooks/useAccountingExports.ts` (nieuw — 9 hooks)
 - `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe ReportCards + imports)
+
+## Rapportage Fase 2: Boekhoudersdroomland Pro ✅
+
+### Wat is gewijzigd
+
+1. **Grootboekjournaal** – Debet/credit journaalposten voor facturen, POS-transacties en inkoopfacturen met MAR-rekeningnummers (400000, 700000, 451000, 604000, 440000, 570000)
+2. **Dagboek Verkopen** – Chronologisch verkoopfactuurjournaal met klant, BTW-nr, OGM, betaalstatus
+3. **Dagboek Aankopen** – Chronologisch inkoopjournaal met leverancier, BTW-nr, vervaldatum, betaalstatus
+4. **Debiteuren Subledger** – Openstaande posten per klant met verouderingsanalyse (0-30, 31-60, 61-90, 90+ dagen)
+5. **Crediteuren Subledger** – Openstaande posten per leverancier met verouderingsanalyse
+6. **Cashflow Overzicht** – Inkomend vs uitgaand geld per week met cumulatief saldo
+7. **Belgische Klantenlisting** – Jaarlijkse B2B klantenlisting (≥€250) voor FOD Financiën
+8. **Export naar Boekhoudpakket** – Exact Online en Octopus CSV importbestanden met juiste dagboekcodes en rekeningnummers
+9. **Nieuwe "Boekhouding" tab** – Alle journalen en subledgers in eigen tab + software-exportknoppen
+
+### Bestanden
+- `src/hooks/useAccountingExports.ts` (uitgebreid — 8 nieuwe hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe tab + ReportCards)
