@@ -442,39 +442,81 @@ export default function OrderDetailPage() {
 
               <Separator />
 
-              {/* Pakbon */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={async () => {
-                  if (!order || !currentTenant) return;
-                  try {
-                    const pdfBytes = await generatePackingSlipPdf(order, {
-                      name: currentTenant.name,
-                      address: currentTenant.address,
-                      city: currentTenant.city,
-                      postal_code: currentTenant.postal_code,
-                      country: currentTenant.country,
-                      phone: currentTenant.phone,
-                      logo_url: currentTenant.logo_url,
-                      document_logo_url: (currentTenant as any).document_logo_url,
-                    });
-                    const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Pakbon-${order.order_number}.pdf`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  } catch (err) {
-                    toast.error('Fout bij genereren pakbon');
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download pakbon
-              </Button>
+              {/* Pakbon - Download + Print */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={async () => {
+                    if (!order || !currentTenant) return;
+                    try {
+                      const pdfBytes = await generatePackingSlipPdf(order, {
+                        name: currentTenant.name,
+                        address: currentTenant.address,
+                        city: currentTenant.city,
+                        postal_code: currentTenant.postal_code,
+                        country: currentTenant.country,
+                        phone: currentTenant.phone,
+                        logo_url: currentTenant.logo_url,
+                        document_logo_url: (currentTenant as any).document_logo_url,
+                      });
+                      const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
+                      const url = URL.createObjectURL(blob);
+                      // Use window.open for mobile compatibility (a.click() fails on iOS Safari)
+                      const newWindow = window.open(url, '_blank');
+                      if (!newWindow) {
+                        // Fallback: direct location change
+                        window.location.href = url;
+                      }
+                      setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    } catch (err) {
+                      toast.error('Fout bij genereren pakbon');
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Pakbon
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={async () => {
+                    if (!order || !currentTenant) return;
+                    try {
+                      const pdfBytes = await generatePackingSlipPdf(order, {
+                        name: currentTenant.name,
+                        address: currentTenant.address,
+                        city: currentTenant.city,
+                        postal_code: currentTenant.postal_code,
+                        country: currentTenant.country,
+                        phone: currentTenant.phone,
+                        logo_url: currentTenant.logo_url,
+                        document_logo_url: (currentTenant as any).document_logo_url,
+                      });
+                      const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
+                      const url = URL.createObjectURL(blob);
+                      // Open in iframe for printing (works on mobile)
+                      const printWindow = window.open(url, '_blank');
+                      if (printWindow) {
+                        printWindow.addEventListener('load', () => {
+                          printWindow.print();
+                        });
+                      } else {
+                        // Fallback: just open the PDF
+                        window.location.href = url;
+                      }
+                      setTimeout(() => URL.revokeObjectURL(url), 30000);
+                    } catch (err) {
+                      toast.error('Fout bij printen pakbon');
+                    }
+                  }}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </Button>
+              </div>
 
               {/* Bol.com acties */}
               <BolActionsCard order={order} embedded />
