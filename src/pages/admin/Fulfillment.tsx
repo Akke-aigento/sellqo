@@ -477,7 +477,7 @@ export default function Fulfillment() {
                 <div
                   key={order.id}
                   className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
-                  onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  onClick={() => openSheet(order.id)}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{order.order_number}</span>
