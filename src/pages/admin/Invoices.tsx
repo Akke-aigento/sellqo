@@ -24,6 +24,7 @@ import type { InvoiceStatus } from '@/types/invoice';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
