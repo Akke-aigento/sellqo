@@ -288,7 +288,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Right Column - Consolidated */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 overflow-hidden">
           {/* Card 1: Acties & Status */}
           <Card>
             <CardHeader className="pb-3">
