@@ -12,8 +12,9 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({ conversation, isSelected, onClick }: ConversationItemProps) {
-  const { customer, lastMessage, unreadCount, channel } = conversation;
+  const { customer, lastMessage, unreadCount, channel, isPinned, snoozedUntil } = conversation;
   const isUnread = unreadCount > 0;
+  const isSnoozed = snoozedUntil && new Date(snoozedUntil) > new Date();
   const isReplied = lastMessage.direction === 'inbound' && lastMessage.replied_at;
   
   // Check for marketplace source
