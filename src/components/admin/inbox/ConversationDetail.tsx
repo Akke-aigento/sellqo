@@ -109,41 +109,7 @@ export function ConversationDetail({
   const isArchived = conversationStatus === 'archived';
   const isDeleted = conversationStatus === 'deleted';
 
-  // Handle creating a customer from conversation
-  const handleCreateCustomer = async () => {
-    if (!customer?.email) return;
-    
-    setIsCreatingCustomer(true);
-    try {
-      const nameParts = (customer.name || '').split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-      
-      await createCustomer.mutateAsync({
-        email: customer.email,
-        first_name: firstName,
-        last_name: lastName,
-        phone: customer.phone || undefined,
-        customer_type: 'prospect',
-      });
-      
-      toast({
-        title: 'Klant aangemaakt',
-        description: `${customer.name || customer.email} is toegevoegd als prospect.`,
-      });
-      
-      onMessageSent();
-    } catch (error) {
-      console.error('Failed to create customer:', error);
-      toast({
-        title: 'Fout',
-        description: 'Kon klant niet aanmaken.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCreatingCustomer(false);
-    }
-  };
+  
   
   return (
     <div className="flex h-full">
