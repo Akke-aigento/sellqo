@@ -195,6 +195,14 @@ export default function MessagesPage() {
                     facebookCount={counts.facebook}
                     instagramCount={counts.instagram}
                     unreadCount={unreadTotal}
+                    folders={folders}
+                    selectedFolderId={
+                      filters.folderId === 'archived' ? archiveFolder?.id || null :
+                      filters.folderId === 'deleted' ? trashFolder?.id || null :
+                      filters.folderId
+                    }
+                    onFolderSelect={handleFolderSelect}
+                    folderCounts={folderCounts}
                   />
                   <div className="flex-1 overflow-hidden">
                     <ConversationList
