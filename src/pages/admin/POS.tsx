@@ -5,7 +5,6 @@ import {
   Plus, 
   Settings, 
   Play, 
-  Pause, 
   MoreHorizontal,
   MapPin,
   Clock,
