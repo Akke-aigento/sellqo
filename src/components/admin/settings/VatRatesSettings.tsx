@@ -38,6 +38,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVatRates } from "@/hooks/useVatRates";
 import { useTenant } from "@/hooks/useTenant";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { VatRateDialog } from "@/components/admin/VatRateDialog";
 import type { VatRate, VatRateFormData } from "@/types/vatRate";
 

@@ -22,6 +22,7 @@ import { DomainVerificationPanel } from './DomainVerificationPanel';
 import { useStorefront } from '@/hooks/useStorefront';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function MultiDomainSettings() {
   const { domains, isLoading, addDomain, updateDomain, removeDomain } = useTenantDomains();
