@@ -316,8 +316,9 @@ export function useInbox() {
       });
     }
 
-    // Sort by unread first, then by date
+    // Sort: pinned first, then unread, then by date
     return convos.sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
       if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
       return new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime();
