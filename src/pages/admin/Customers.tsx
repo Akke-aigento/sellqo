@@ -20,6 +20,7 @@ import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import type { Customer } from '@/types/order';
 
 export default function CustomersPage() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
