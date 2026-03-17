@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare } from 'lucide-react';
