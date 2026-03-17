@@ -13,6 +13,9 @@ export function AdminBottomNav() {
   const location = useLocation();
   const { toggleSidebar } = useSidebar();
 
+  const isPOS = location.pathname.startsWith('/admin/pos/') || location.pathname.startsWith('/kassa/');
+  if (isPOS) return null;
+
   const isActive = (path: string) => {
     if (path === '/admin') return location.pathname === '/admin';
     return location.pathname.startsWith(path);
