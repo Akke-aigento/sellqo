@@ -75,6 +75,7 @@ export function TeamSettings() {
   const { invitations, isLoading: invitationsLoading, cancelInvitation, resendInvitation } = useTeamInvitations();
   const { allCashiers, isLoading: cashiersLoading, updateCashier } = usePOSCashiers();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
