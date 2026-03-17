@@ -43,7 +43,10 @@ export function ConversationList({
   onBulkMoveToFolder,
   currentFolder,
   isBulkLoading,
+  onArchiveConversation,
+  onDeleteConversation,
 }: ConversationListProps) {
+  const isCompact = useIsCompact();
   const showCheckboxes = selectedIds.size > 0;
 
   if (isLoading) {
