@@ -29,8 +29,11 @@ export function SwipeableConversationItem({
   onToggleCheck,
   onSwipeArchive,
   onSwipeDelete,
+  onSwipeRestore,
   onLongPress,
+  currentFolder,
 }: SwipeableConversationItemProps) {
+  const isTrashOrArchive = currentFolder === 'deleted' || currentFolder === 'archived';
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const startX = useRef(0);
