@@ -43,7 +43,7 @@ export default function MessagesPage() {
     moveToFolder,
   } = useInbox();
 
-  const { folders, archiveFolder, trashFolder } = useInboxFolders();
+  const { folders, archiveFolder, trashFolder, createFolder } = useInboxFolders();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
