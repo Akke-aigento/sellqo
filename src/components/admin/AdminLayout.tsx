@@ -9,6 +9,7 @@ import { TrialBanner } from './TrialBanner';
 import { TrialExpiredBlocker } from './TrialExpiredBlocker';
 import { useGlobalNotificationListener } from '@/hooks/useGlobalNotificationListener';
 import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
+import { AdminBottomNav } from './AdminBottomNav';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -22,11 +23,13 @@ function AdminLayoutContent() {
           <AdminHeader />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
-          <main className="flex-1 p-4 lg:p-6 min-w-0 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 p-3 lg:p-6 pb-20 lg:pb-6 min-w-0 overflow-y-auto overflow-x-hidden">
             <Outlet />
           </main>
         </SidebarInset>
       </div>
+      {/* Mobile bottom navigation */}
+      <AdminBottomNav />
       {/* Onboarding wizard for new users */}
       <OnboardingWizard />
       {/* Trial expired blocker - blocks access when trial ends */}
