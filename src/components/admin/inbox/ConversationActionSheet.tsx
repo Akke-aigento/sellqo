@@ -29,9 +29,11 @@ export function ConversationActionSheet({
   onOpenChange,
   onArchive,
   onDelete,
+  onRestore,
   onMarkAsUnread,
   onMoveToFolder,
   folders,
+  currentFolder,
 }: ConversationActionSheetProps) {
   if (!conversation) return null;
 
