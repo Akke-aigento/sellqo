@@ -128,21 +128,31 @@ export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'profile';
   const [activeSection, setActiveSection] = useState(initialSection);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { roles } = useAuth();
+  const isMobile = useIsMobile();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const isTenantAdmin = roles.some(
     r => r.role === 'tenant_admin' || r.role === 'platform_admin'
   );
 
+  const allSections = settingsGroups.flatMap(g => g.sections);
+  const activeInfo = allSections.find(s => s.id === activeSection);
+
   const handleSectionChange = (sectionId: string) => {
     setActiveSection(sectionId);
     setSearchParams({ section: sectionId });
+    if (isMobile) {
+      setMenuOpen(false);
+      setTimeout(() => {
+        contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   // Find the active section's component
-  const ActiveComponent = settingsGroups
-    .flatMap(g => g.sections)
-    .find(s => s.id === activeSection)?.component;
+  const ActiveComponent = activeInfo?.component;
 
   return (
     <div className="space-y-6">
