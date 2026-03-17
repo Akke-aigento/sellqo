@@ -109,7 +109,7 @@ export const useDeadStockExport = () => {
       const cutoff = subDays(new Date(), 90);
 
       const { data: salesData } = await supabase
-        .from('order_items')
+        .from('order_items' as any)
         .select('product_id, created_at')
         .eq('tenant_id', currentTenant.id)
         .in('product_id', (products || []).map(p => p.id));
