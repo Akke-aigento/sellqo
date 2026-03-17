@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2 } from 'lucide-react';
+import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2, ChevronRight } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
@@ -20,6 +21,7 @@ import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
@@ -141,6 +143,31 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
+            isMobile ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {orders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50 transition-colors"
+                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm">{order.order_number}</span>
+                      <OrderStatusBadge status={order.status} />
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground truncate">
+                      {order.customer_name || order.customer_email || '-'}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(order.original_created_at || order.created_at), 'd MMM yyyy', { locale: nl })}
+                      </span>
+                      <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
               <TableHeader>
@@ -179,6 +206,7 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
             </div>
+            )
           )}
         </CardContent>
       </Card>

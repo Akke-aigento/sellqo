@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { FileText, Download, Search, FileCode, ExternalLink } from 'lucide-react';
@@ -18,6 +19,7 @@ import type { CreditNoteStatus } from '@/types/creditNote';
 
 export default function CreditNotesPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
@@ -131,6 +133,46 @@ export default function CreditNotesPage() {
               </p>
             </div>
           ) : (
+            isMobile ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {creditNotes.map((creditNote) => (
+                  <div
+                    key={creditNote.id}
+                    className="rounded-lg border bg-card p-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm">{creditNote.credit_note_number}</span>
+                      {getStatusBadge(creditNote.status)}
+                    </div>
+                    <div className="text-sm text-muted-foreground truncate">
+                      {getCustomerName(creditNote)}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(creditNote.issue_date), 'd MMM yyyy', { locale: nl })}
+                      </span>
+                      <span className="font-semibold text-sm text-destructive">
+                        -{formatCurrency(creditNote.total)}
+                      </span>
+                    </div>
+                    {(creditNote.pdf_url || creditNote.ubl_url) && (
+                      <div className="flex items-center gap-1 pt-1 border-t">
+                        {creditNote.pdf_url && (
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.open(creditNote.pdf_url!, '_blank')}>
+                            <Download className="h-3 w-3 mr-1" /> PDF
+                          </Button>
+                        )}
+                        {creditNote.ubl_url && (
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.open(creditNote.ubl_url!, '_blank')}>
+                            <FileCode className="h-3 w-3 mr-1" /> UBL
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div>
             <Table>
               <TableHeader>
@@ -213,6 +255,7 @@ export default function CreditNotesPage() {
               </TableBody>
             </Table>
             </div>
+            )
           )}
         </CardContent>
       </Card>
