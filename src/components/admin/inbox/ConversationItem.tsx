@@ -106,6 +106,15 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
             )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            {isPinned && <Pin className="h-3 w-3 text-primary" />}
+            {isSnoozed && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Clock className="h-3 w-3 text-amber-500" />
+                </TooltipTrigger>
+                <TooltipContent>Gesnoozed</TooltipContent>
+              </Tooltip>
+            )}
             <span>
               {formatDistanceToNow(new Date(lastMessage.created_at), {
                 addSuffix: false,

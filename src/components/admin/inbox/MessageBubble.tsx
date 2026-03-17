@@ -98,17 +98,25 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     <div
       className={cn(
         'flex gap-2 max-w-[80%]',
-        isOutbound ? 'ml-auto flex-row-reverse' : 'mr-auto'
+        isInternal ? 'mx-auto max-w-[90%]' : isOutbound ? 'ml-auto flex-row-reverse' : 'mr-auto'
       )}
     >
       <div
         className={cn(
           'rounded-2xl px-4 py-2.5',
-          isOutbound
+          isInternal
+            ? 'bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg w-full'
+            : isOutbound
             ? 'bg-primary text-primary-foreground rounded-tr-sm'
             : 'bg-muted rounded-tl-sm'
         )}
       >
+        {/* Internal note badge */}
+        {isInternal && (
+          <div className="flex items-center gap-1 mb-1">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">📝 Interne notitie</span>
+          </div>
+        )}
         {/* Marketplace badge */}
         {marketplace && (
           <div className={cn(
