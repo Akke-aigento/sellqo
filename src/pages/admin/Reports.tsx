@@ -313,40 +313,44 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
-          <TabsTrigger value="financial" className="gap-2">
+        <TabsList className="flex w-full overflow-x-auto h-auto p-1 gap-1">
+          <TabsTrigger value="financial" className="gap-2 flex-shrink-0">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
           </TabsTrigger>
-          <TabsTrigger value="accounting" className="gap-2">
+          <TabsTrigger value="accounting" className="gap-2 flex-shrink-0">
             <BookOpen className="h-4 w-4 hidden sm:block" />
             Boekhouding
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="gap-2">
+          <TabsTrigger value="invoices" className="gap-2 flex-shrink-0">
             <FileText className="h-4 w-4 hidden sm:block" />
             Facturen
           </TabsTrigger>
-          <TabsTrigger value="orders" className="gap-2">
+          <TabsTrigger value="orders" className="gap-2 flex-shrink-0">
             <ShoppingCart className="h-4 w-4 hidden sm:block" />
             Orders
           </TabsTrigger>
-          <TabsTrigger value="customers" className="gap-2">
+          <TabsTrigger value="customers" className="gap-2 flex-shrink-0">
             <Users className="h-4 w-4 hidden sm:block" />
             Klanten
           </TabsTrigger>
-          <TabsTrigger value="products" className="gap-2">
+          <TabsTrigger value="products" className="gap-2 flex-shrink-0">
             <Package className="h-4 w-4 hidden sm:block" />
             Producten
           </TabsTrigger>
-          <TabsTrigger value="subscriptions" className="gap-2">
+          <TabsTrigger value="stock" className="gap-2 flex-shrink-0">
+            <Warehouse className="h-4 w-4 hidden sm:block" />
+            Voorraad
+          </TabsTrigger>
+          <TabsTrigger value="subscriptions" className="gap-2 flex-shrink-0">
             <RefreshCw className="h-4 w-4 hidden sm:block" />
             Abonnementen
           </TabsTrigger>
-          <TabsTrigger value="purchasing" className="gap-2">
+          <TabsTrigger value="purchasing" className="gap-2 flex-shrink-0">
             <Factory className="h-4 w-4 hidden sm:block" />
             Inkoop
           </TabsTrigger>
-          <TabsTrigger value="pos" className="gap-2">
+          <TabsTrigger value="pos" className="gap-2 flex-shrink-0">
             <Monitor className="h-4 w-4 hidden sm:block" />
             Kassa
           </TabsTrigger>
