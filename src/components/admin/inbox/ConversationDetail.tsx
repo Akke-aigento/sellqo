@@ -1,9 +1,8 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram, UserPlus, ArrowLeft, PanelRight } from 'lucide-react';
+import { Mail, MessageSquare, Facebook, Instagram, ArrowLeft, PanelRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -12,8 +11,6 @@ import { MessageBubble } from './MessageBubble';
 import { ReplyComposer } from './ReplyComposer';
 import { ConversationActions } from './ConversationActions';
 import { CustomerInfoPanel } from './CustomerInfoPanel';
-import { useCustomers } from '@/hooks/useCustomers';
-import { useToast } from '@/hooks/use-toast';
 import type { Conversation, MessageStatus } from '@/hooks/useInbox';
 
 interface ConversationDetailProps {
@@ -42,10 +39,7 @@ export function ConversationDetail({
   onBack,
 }: ConversationDetailProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { createCustomer } = useCustomers();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
 
   // Mark as read when viewing
@@ -115,41 +109,7 @@ export function ConversationDetail({
   const isArchived = conversationStatus === 'archived';
   const isDeleted = conversationStatus === 'deleted';
 
-  // Handle creating a customer from conversation
-  const handleCreateCustomer = async () => {
-    if (!customer?.email) return;
-    
-    setIsCreatingCustomer(true);
-    try {
-      const nameParts = (customer.name || '').split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-      
-      await createCustomer.mutateAsync({
-        email: customer.email,
-        first_name: firstName,
-        last_name: lastName,
-        phone: customer.phone || undefined,
-        customer_type: 'prospect',
-      });
-      
-      toast({
-        title: 'Klant aangemaakt',
-        description: `${customer.name || customer.email} is toegevoegd als prospect.`,
-      });
-      
-      onMessageSent();
-    } catch (error) {
-      console.error('Failed to create customer:', error);
-      toast({
-        title: 'Fout',
-        description: 'Kon klant niet aanmaken.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCreatingCustomer(false);
-    }
-  };
+  
   
   return (
     <div className="flex h-full">
@@ -188,44 +148,14 @@ export function ConversationDetail({
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            {linkedOrderId && !isMobile && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/orders/${linkedOrderId}`}>
-                  <Package className="h-4 w-4 mr-1" />
-                  Bestelling
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Link>
-              </Button>
-            )}
-            {!isMobile && (customer?.id ? (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/customers/${customer.id}`}>
-                  <User className="h-4 w-4 mr-1" />
-                  Klantprofiel
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Link>
-              </Button>
-            ) : customer?.email && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleCreateCustomer}
-                disabled={isCreatingCustomer}
-              >
-                <UserPlus className="h-4 w-4 mr-1" />
-                {isCreatingCustomer ? 'Aanmaken...' : 'Maak klant aan'}
-              </Button>
-            ))}
             {/* Customer info sidebar toggle */}
-            {customer?.id && (
-              <Button
-                variant={showCustomerInfo ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowCustomerInfo(!showCustomerInfo)}
-              >
-                <PanelRight className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              variant={showCustomerInfo ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowCustomerInfo(!showCustomerInfo)}
+            >
+              <PanelRight className="h-4 w-4" />
+            </Button>
             {/* Conversation actions dropdown */}
             <ConversationActions
               conversationStatus={conversationStatus}
@@ -293,6 +223,8 @@ export function ConversationDetail({
         conversation={conversation}
         open={showCustomerInfo}
         onOpenChange={setShowCustomerInfo}
+        linkedOrderId={linkedOrderId}
+        onCustomerCreated={onMessageSent}
       />
     </div>
   );
