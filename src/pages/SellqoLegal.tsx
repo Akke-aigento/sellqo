@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { ForcedLightMode } from "@/components/ForcedLightMode";
 
 export default function SellqoLegal() {
-  const { slug } = useParams<{ slug: string }>();
-  const { page, isLoading, error } = usePublicLegalPage(slug || '');
+  const location = useLocation();
+  const slug = location.pathname.replace(/^\//, '');
+  const { page, isLoading, error } = usePublicLegalPage(slug);
 
   if (isLoading) {
     return (
