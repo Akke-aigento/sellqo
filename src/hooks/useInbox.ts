@@ -604,6 +604,7 @@ export function useInbox() {
     setFilters,
     markAsRead: markAsRead.mutate,
     markConversationAsRead: markConversationAsRead.mutate,
+    markConversationAsUnread: markConversationAsUnread.mutate,
     archiveConversation: archiveConversation.mutate,
     deleteConversation: deleteConversation.mutate,
     restoreConversation: restoreConversation.mutate,
