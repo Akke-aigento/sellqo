@@ -58,12 +58,10 @@ export function useShopHealth(): ShopHealthData {
   const { invoices, isLoading: invoicesLoading } = useInvoices();
   const { tenantScore, isLoading: seoLoading } = useSEO();
   const { legalPages, isLoading: legalLoading, getMissingPages } = useLegalPages();
-  const { status: stripeStatus, isLoading: stripeLoading } = useStripeConnect(currentTenant?.id);
   const { dailyStats, summary, isLoading: analyticsLoading } = useAnalytics(7);
   
   const isLoading = ordersLoading || statsLoading || productsLoading || messagesLoading || 
-                    invoicesLoading || seoLoading || legalLoading || 
-                    stripeLoading || analyticsLoading;
+                    invoicesLoading || seoLoading || legalLoading || analyticsLoading;
   
   const healthData = useMemo<HealthData>(() => {
     const now = new Date();
