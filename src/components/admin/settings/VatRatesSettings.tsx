@@ -140,17 +140,17 @@ export function VatRatesSettings() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <div>
             <CardTitle>{t("vat_rates.title")}</CardTitle>
             <CardDescription>
               {t("vat_rates.description", "Beheer BTW-tarieven per land voor correcte facturatie")}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="flex-1 sm:w-[180px]">
                 <SelectValue placeholder={t("vat_rates.country")} />
               </SelectTrigger>
               <SelectContent>
@@ -161,7 +161,7 @@ export function VatRatesSettings() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleCreate} size="sm">
+            <Button onClick={handleCreate} size="sm" className="shrink-0">
               <Plus className="mr-2 h-4 w-4" />
               {t("vat_rates.add")}
             </Button>
@@ -185,7 +185,50 @@ export function VatRatesSettings() {
               {t("vat_rates.add")}
             </Button>
           </div>
+        ) : isMobile ? (
+          /* Mobile: Card-based list */
+          <div className="space-y-3">
+            {vatRates.map((rate) => (
+              <div key={rate.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-sm">{getLocalizedName(rate)}</p>
+                    {!rate.tenant_id && (
+                      <Badge variant="outline" className="text-xs">Standaard</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm font-semibold">{rate.rate}%</span>
+                    {getCategoryBadge(rate.category)}
+                    {rate.is_default && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                </div>
+                {rate.tenant_id && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(rate)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        {t("common.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(rate)} className="text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t("common.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
+          /* Desktop: Table */
           <Table>
             <TableHeader>
               <TableRow>
