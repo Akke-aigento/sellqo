@@ -28,6 +28,10 @@ import {
   Wallet,
   Warehouse,
   BookOpen,
+  ArrowDownUp,
+  PackageX,
+  Gauge,
+  ShoppingBag,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -78,6 +82,12 @@ import {
   useCashflowExport,
   useAccountingSoftwareExport,
 } from '@/hooks/useAccountingExports';
+import {
+  useStockMovementExport,
+  useDeadStockExport,
+  useStockTurnoverExport,
+  useReorderAdviceExport,
+} from '@/hooks/useStockExports';
 
 const Reports = () => {
   const { currentTenant } = useTenant();
@@ -128,6 +138,12 @@ const Reports = () => {
   const { exportPurchaseJournal, isExporting: isExportingPurchaseJournal } = usePurchaseJournalExport();
   const { exportCashflow, isExporting: isExportingCashflow } = useCashflowExport();
   const { exportForAccountingSoftware, isExporting: isExportingSoftware } = useAccountingSoftwareExport();
+
+  // Stock export hooks
+  const { exportStockMovements, isExporting: isExportingStockMovements } = useStockMovementExport();
+  const { exportDeadStock, isExporting: isExportingDeadStock } = useDeadStockExport();
+  const { exportStockTurnover, isExporting: isExportingTurnover } = useStockTurnoverExport();
+  const { exportReorderAdvice, isExporting: isExportingReorder } = useReorderAdviceExport();
 
   // Fetch counts for display
   const { data: counts } = useQuery({
@@ -297,40 +313,44 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
-          <TabsTrigger value="financial" className="gap-2">
+        <TabsList className="flex w-full overflow-x-auto h-auto p-1 gap-1">
+          <TabsTrigger value="financial" className="gap-2 flex-shrink-0">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
           </TabsTrigger>
-          <TabsTrigger value="accounting" className="gap-2">
+          <TabsTrigger value="accounting" className="gap-2 flex-shrink-0">
             <BookOpen className="h-4 w-4 hidden sm:block" />
             Boekhouding
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="gap-2">
+          <TabsTrigger value="invoices" className="gap-2 flex-shrink-0">
             <FileText className="h-4 w-4 hidden sm:block" />
             Facturen
           </TabsTrigger>
-          <TabsTrigger value="orders" className="gap-2">
+          <TabsTrigger value="orders" className="gap-2 flex-shrink-0">
             <ShoppingCart className="h-4 w-4 hidden sm:block" />
             Orders
           </TabsTrigger>
-          <TabsTrigger value="customers" className="gap-2">
+          <TabsTrigger value="customers" className="gap-2 flex-shrink-0">
             <Users className="h-4 w-4 hidden sm:block" />
             Klanten
           </TabsTrigger>
-          <TabsTrigger value="products" className="gap-2">
+          <TabsTrigger value="products" className="gap-2 flex-shrink-0">
             <Package className="h-4 w-4 hidden sm:block" />
             Producten
           </TabsTrigger>
-          <TabsTrigger value="subscriptions" className="gap-2">
+          <TabsTrigger value="stock" className="gap-2 flex-shrink-0">
+            <Warehouse className="h-4 w-4 hidden sm:block" />
+            Voorraad
+          </TabsTrigger>
+          <TabsTrigger value="subscriptions" className="gap-2 flex-shrink-0">
             <RefreshCw className="h-4 w-4 hidden sm:block" />
             Abonnementen
           </TabsTrigger>
-          <TabsTrigger value="purchasing" className="gap-2">
+          <TabsTrigger value="purchasing" className="gap-2 flex-shrink-0">
             <Factory className="h-4 w-4 hidden sm:block" />
             Inkoop
           </TabsTrigger>
-          <TabsTrigger value="pos" className="gap-2">
+          <TabsTrigger value="pos" className="gap-2 flex-shrink-0">
             <Monitor className="h-4 w-4 hidden sm:block" />
             Kassa
           </TabsTrigger>
@@ -600,6 +620,47 @@ const Reports = () => {
               icon={<AlertTriangle className="h-5 w-5" />}
               onExport={(format) => exportLowStock(format)}
               isLoading={isExportingProducts}
+            />
+            <ReportCard
+              title="Voorraadwaardering"
+              description="Voorraad × kostprijs per product — balanspost voor de boekhouder"
+              icon={<Warehouse className="h-5 w-5" />}
+              onExport={(format) => exportInventoryValuation(format)}
+              isLoading={isExportingInventory}
+            />
+          </div>
+        </TabsContent>
+
+        {/* Stock / Voorraad Reports */}
+        <TabsContent value="stock" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ReportCard
+              title="Voorraadmutaties"
+              description="In/uit bewegingen per product — verkopen, inkopen, correcties"
+              icon={<ArrowDownUp className="h-5 w-5" />}
+              onExport={(format) => exportStockMovements(dateRange, format)}
+              isLoading={isExportingStockMovements}
+            />
+            <ReportCard
+              title="Dode Voorraad"
+              description="Producten met voorraad die >90 dagen niet verkocht zijn"
+              icon={<PackageX className="h-5 w-5" />}
+              onExport={(format) => exportDeadStock(format)}
+              isLoading={isExportingDeadStock}
+            />
+            <ReportCard
+              title="Omloopsnelheid"
+              description="Verkopen vs voorraad per product — welke items draaien goed?"
+              icon={<Gauge className="h-5 w-5" />}
+              onExport={(format) => exportStockTurnover(dateRange, format)}
+              isLoading={isExportingTurnover}
+            />
+            <ReportCard
+              title="Inkoopadvies"
+              description="Producten die bijbesteld moeten worden op basis van verkoopsnelheid"
+              icon={<ShoppingBag className="h-5 w-5" />}
+              onExport={(format) => exportReorderAdvice(format)}
+              isLoading={isExportingReorder}
             />
             <ReportCard
               title="Voorraadwaardering"
