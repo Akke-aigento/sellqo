@@ -52,6 +52,7 @@ export function ConversationList({
   isBulkLoading,
   onArchiveConversation,
   onDeleteConversation,
+  onRestoreConversation,
   onMarkAsUnread,
   onMoveToFolder,
   folders = [],
