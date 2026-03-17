@@ -371,6 +371,45 @@ export default function Fulfillment() {
         </div>
       </div>
 
+      {/* Stats Header */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-orange-500" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.toShip}</p>
+                  <p className="text-xs text-muted-foreground">Te verzenden</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.shippedToday}</p>
+                  <p className="text-xs text-muted-foreground">Vandaag verzonden</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{stats.shipped}</p>
+                  <p className="text-xs text-muted-foreground">Onderweg</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
