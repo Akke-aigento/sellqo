@@ -98,18 +98,31 @@ export function ConversationList({
       {/* Conversation list */}
       <ScrollArea className="flex-1">
         {conversations.map((conversation) => (
-          <SelectableConversationItem
-            key={conversation.id}
-            conversation={conversation}
-            isSelected={selectedId === conversation.id}
-            isChecked={selectedIds.has(conversation.id)}
-            showCheckboxes={showCheckboxes}
-            onClick={() => onSelect(conversation.id)}
-            onToggleCheck={(e) => {
-              e.stopPropagation();
-              onToggleSelection(conversation.id);
-            }}
-          />
+          isCompact ? (
+            <SwipeableConversationItem
+              key={conversation.id}
+              conversation={conversation}
+              isSelected={selectedId === conversation.id}
+              isChecked={selectedIds.has(conversation.id)}
+              onClick={() => onSelect(conversation.id)}
+              onToggleCheck={() => onToggleSelection(conversation.id)}
+              onSwipeArchive={() => onArchiveConversation?.(conversation.id)}
+              onSwipeDelete={() => onDeleteConversation?.(conversation.id)}
+            />
+          ) : (
+            <SelectableConversationItem
+              key={conversation.id}
+              conversation={conversation}
+              isSelected={selectedId === conversation.id}
+              isChecked={selectedIds.has(conversation.id)}
+              showCheckboxes={showCheckboxes}
+              onClick={() => onSelect(conversation.id)}
+              onToggleCheck={(e) => {
+                e.stopPropagation();
+                onToggleSelection(conversation.id);
+              }}
+            />
+          )
         ))}
       </ScrollArea>
     </div>
