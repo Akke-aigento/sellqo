@@ -2813,6 +2813,7 @@ export type Database = {
           folder_id: string | null
           from_email: string
           id: string
+          is_pinned: boolean
           message_status: string | null
           meta_message_id: string | null
           meta_page_id: string | null
@@ -2827,6 +2828,7 @@ export type Database = {
           reply_to_email: string | null
           resend_id: string | null
           sent_at: string | null
+          snoozed_until: string | null
           subject: string
           tenant_id: string
           to_email: string
@@ -2850,6 +2852,7 @@ export type Database = {
           folder_id?: string | null
           from_email: string
           id?: string
+          is_pinned?: boolean
           message_status?: string | null
           meta_message_id?: string | null
           meta_page_id?: string | null
@@ -2864,6 +2867,7 @@ export type Database = {
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
+          snoozed_until?: string | null
           subject: string
           tenant_id: string
           to_email: string
@@ -2887,6 +2891,7 @@ export type Database = {
           folder_id?: string | null
           from_email?: string
           id?: string
+          is_pinned?: boolean
           message_status?: string | null
           meta_message_id?: string | null
           meta_page_id?: string | null
@@ -2901,6 +2906,7 @@ export type Database = {
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
+          snoozed_until?: string | null
           subject?: string
           tenant_id?: string
           to_email?: string
@@ -5756,6 +5762,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "media_assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          body: string
+          category: string | null
+          channel: string | null
+          created_at: string
+          id: string
+          name: string
+          shortcut: string | null
+          tenant_id: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          channel?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          shortcut?: string | null
+          tenant_id: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          channel?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          shortcut?: string | null
+          tenant_id?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
