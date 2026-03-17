@@ -8,8 +8,6 @@ import {
   MoreHorizontal,
   MapPin,
   Clock,
-  CheckCircle2,
-  AlertCircle,
   Maximize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
