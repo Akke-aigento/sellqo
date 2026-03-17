@@ -356,7 +356,7 @@ export default function OrderDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                 <div className="text-sm">
                   <div className="font-medium">{order.customer_name || 'Onbekend'}</div>
-                  <div className="text-muted-foreground">{order.customer_email}</div>
+                  <div className="text-muted-foreground break-all">{order.customer_email}</div>
                   {order.customer_phone && (
                     <div className="text-muted-foreground">{order.customer_phone}</div>
                   )}
