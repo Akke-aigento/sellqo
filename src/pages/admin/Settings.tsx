@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { 
   User, 
   Building2, 
