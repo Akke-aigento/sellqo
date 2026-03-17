@@ -5,7 +5,6 @@ import { useCustomerMessages } from './useCustomerMessages';
 import { useInvoices } from './useInvoices';
 import { useSEO } from './useSEO';
 import { useLegalPages } from './useLegalPages';
-import { useStripeConnect } from './useStripeConnect';
 import { useAnalytics } from './useAnalytics';
 import { useTenant } from './useTenant';
 import { useOnboarding } from './useOnboarding';
