@@ -35,6 +35,7 @@ export default function MessagesPage() {
     filters,
     setFilters,
     markConversationAsRead,
+    markConversationAsUnread,
     unreadTotal,
     archiveConversation,
     deleteConversation,
@@ -42,7 +43,7 @@ export default function MessagesPage() {
     moveToFolder,
   } = useInbox();
 
-  const { folders, archiveFolder, trashFolder } = useInboxFolders();
+  const { folders, archiveFolder, trashFolder, createFolder } = useInboxFolders();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -203,6 +204,7 @@ export default function MessagesPage() {
                     }
                     onFolderSelect={handleFolderSelect}
                     folderCounts={folderCounts}
+                    onCreateFolder={(name) => createFolder.mutate({ name })}
                   />
                   <div className="flex-1 overflow-hidden">
                     <ConversationList
@@ -222,6 +224,9 @@ export default function MessagesPage() {
                       isBulkLoading={isBulkLoading}
                       onArchiveConversation={archiveConversation}
                       onDeleteConversation={deleteConversation}
+                      onMarkAsUnread={markConversationAsUnread}
+                      onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                      folders={folders}
                     />
                   </div>
                 </div>

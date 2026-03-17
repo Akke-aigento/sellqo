@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, MessageSquare, Search, Facebook, Instagram, Users, X, ChevronDown, Filter, Inbox, Archive, Trash2, FolderOpen } from 'lucide-react';
+import { Mail, MessageSquare, Search, Facebook, Instagram, Users, X, ChevronDown, Filter, Inbox, Archive, Trash2, FolderOpen, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { AdvancedSearchFilters } from './AdvancedSearchFilters';
 import type { InboxFilters as FiltersType, FilterChannel, SearchOptions } from '@/hooks/useInbox';
 import type { InboxFolder } from '@/hooks/useInboxFolders';
@@ -27,6 +35,7 @@ interface InboxFiltersProps {
   selectedFolderId?: string | null;
   onFolderSelect?: (folderId: string | null) => void;
   folderCounts?: Record<string, number>;
+  onCreateFolder?: (name: string) => void;
 }
 
 export function InboxFilters({
@@ -41,7 +50,10 @@ export function InboxFilters({
   selectedFolderId,
   onFolderSelect,
   folderCounts,
+  onCreateFolder,
 }: InboxFiltersProps) {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const socialCount = whatsappCount + facebookCount + instagramCount;
   const totalCount = emailCount + socialCount;
 
@@ -112,6 +124,7 @@ export function InboxFilters({
   const trashFolder = systemFolders.find(f => f.name === 'Prullenbak');
 
   return (
+    <>
     <div className="space-y-2 p-3 border-b">
       {/* Search row with status dropdown */}
       <div className="flex gap-2">
@@ -231,6 +244,15 @@ export function InboxFilters({
                     )}
                   </DropdownMenuItem>
                 ))}
+                {onCreateFolder && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setCreateDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2 text-primary" />
+                      <span className="text-primary font-medium">Nieuwe map</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -316,5 +338,46 @@ export function InboxFilters({
         </div>
       )}
     </div>
+
+      {/* Create folder dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nieuwe map</DialogTitle>
+            <DialogDescription>Maak een nieuwe map aan om gesprekken te organiseren.</DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Mapnaam..."
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newFolderName.trim()) {
+                onCreateFolder?.(newFolderName.trim());
+                setNewFolderName('');
+                setCreateDialogOpen(false);
+              }
+            }}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Annuleren
+            </Button>
+            <Button
+              onClick={() => {
+                if (newFolderName.trim()) {
+                  onCreateFolder?.(newFolderName.trim());
+                  setNewFolderName('');
+                  setCreateDialogOpen(false);
+                }
+              }}
+              disabled={!newFolderName.trim()}
+            >
+              Aanmaken
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

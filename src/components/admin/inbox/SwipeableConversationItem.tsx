@@ -12,6 +12,7 @@ interface SwipeableConversationItemProps {
   onToggleCheck: () => void;
   onSwipeArchive: () => void;
   onSwipeDelete: () => void;
+  onLongPress?: () => void;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -26,6 +27,7 @@ export function SwipeableConversationItem({
   onToggleCheck,
   onSwipeArchive,
   onSwipeDelete,
+  onLongPress,
 }: SwipeableConversationItemProps) {
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -60,7 +62,11 @@ export function SwipeableConversationItem({
 
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
-      onToggleCheck();
+      if (onLongPress) {
+        onLongPress();
+      } else {
+        onToggleCheck();
+      }
     }, LONG_PRESS_MS);
   }, [onToggleCheck]);
 
