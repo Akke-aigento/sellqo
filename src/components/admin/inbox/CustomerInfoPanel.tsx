@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Package, Mail, Phone, Tag, Calendar, ShoppingCart, X } from 'lucide-react';
+import { ChevronRight, Package, Mail, Phone, Tag, Calendar, X, ExternalLink, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -11,17 +11,25 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useToast } from '@/hooks/use-toast';
+import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import type { Conversation } from '@/hooks/useInbox';
 
 interface CustomerInfoPanelProps {
   conversation: Conversation;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  linkedOrderId?: string | null;
+  onCustomerCreated?: () => void;
 }
 
-export function CustomerInfoPanel({ conversation, open, onOpenChange }: CustomerInfoPanelProps) {
+export function CustomerInfoPanel({ conversation, open, onOpenChange, linkedOrderId, onCustomerCreated }: CustomerInfoPanelProps) {
   const isMobile = useIsMobile();
   const customer = conversation.customer;
+  const { createCustomer } = useCustomers();
+  const { toast } = useToast();
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   // Fetch customer details + recent orders
   const { data: customerDetails } = useQuery({
@@ -39,9 +47,46 @@ export function CustomerInfoPanel({ conversation, open, onOpenChange }: Customer
     enabled: open && !!customer?.id,
   });
 
+  // Fetch linked order details with items
+  const { data: linkedOrder } = useQuery({
+    queryKey: ['linked-order-detail', linkedOrderId],
+    queryFn: async () => {
+      if (!linkedOrderId) return null;
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(id, product_name, quantity, unit_price, total_price)')
+        .eq('id', linkedOrderId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!linkedOrderId,
+  });
+
   const orders = (customerDetails?.orders || [])
     .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
+
+  const handleCreateCustomer = async () => {
+    if (!customer?.email) return;
+    setIsCreatingCustomer(true);
+    try {
+      const nameParts = (customer.name || '').split(' ');
+      await createCustomer.mutateAsync({
+        email: customer.email,
+        first_name: nameParts[0] || '',
+        last_name: nameParts.slice(1).join(' ') || '',
+        phone: customer.phone || undefined,
+        customer_type: 'prospect',
+      });
+      toast({ title: 'Klant aangemaakt', description: `${customer.name || customer.email} is toegevoegd als prospect.` });
+      onCustomerCreated?.();
+    } catch {
+      toast({ title: 'Fout', description: 'Kon klant niet aanmaken.', variant: 'destructive' });
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  };
 
   const content = (
     <div className="flex flex-col h-full">
@@ -62,6 +107,70 @@ export function CustomerInfoPanel({ conversation, open, onOpenChange }: Customer
             </div>
           )}
         </div>
+
+        {/* Quick actions */}
+        <div className="flex flex-col gap-1.5">
+          {customer?.id && (
+            <Button variant="outline" size="sm" className="w-full justify-start" asChild>
+              <Link to={`/admin/customers/${customer.id}`}>
+                <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                Klantprofiel bekijken
+              </Link>
+            </Button>
+          )}
+          {linkedOrderId && (
+            <Button variant="outline" size="sm" className="w-full justify-start" asChild>
+              <Link to={`/admin/orders/${linkedOrderId}`}>
+                <Package className="h-3.5 w-3.5 mr-2" />
+                Bestelling bekijken
+              </Link>
+            </Button>
+          )}
+          {!customer?.id && customer?.email && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start"
+              onClick={handleCreateCustomer}
+              disabled={isCreatingCustomer}
+            >
+              <UserPlus className="h-3.5 w-3.5 mr-2" />
+              {isCreatingCustomer ? 'Aanmaken...' : 'Maak klant aan'}
+            </Button>
+          )}
+        </div>
+
+        {/* Linked order detail */}
+        {linkedOrder && (
+          <>
+            <Separator />
+            <div>
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Gekoppelde bestelling
+              </h4>
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{linkedOrder.order_number}</span>
+                  <span className="text-sm font-semibold">€{(linkedOrder.total || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <OrderStatusBadge status={linkedOrder.status} />
+                  <PaymentStatusBadge status={linkedOrder.payment_status} />
+                </div>
+                {linkedOrder.order_items && linkedOrder.order_items.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    {linkedOrder.order_items.map((item: any) => (
+                      <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="truncate mr-2">{item.quantity}× {item.product_name}</span>
+                        <span className="shrink-0">€{(item.total_price || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {customerDetails && (
           <>
@@ -127,19 +236,6 @@ export function CustomerInfoPanel({ conversation, open, onOpenChange }: Customer
                     ))}
                   </div>
                 </div>
-              </>
-            )}
-
-            {/* Link to full profile */}
-            {customer?.id && (
-              <>
-                <Separator />
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link to={`/admin/customers/${customer.id}`}>
-                    Volledig klantprofiel bekijken
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Link>
-                </Button>
               </>
             )}
           </>

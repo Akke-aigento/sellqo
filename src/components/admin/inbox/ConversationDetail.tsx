@@ -223,6 +223,8 @@ export function ConversationDetail({
         conversation={conversation}
         open={showCustomerInfo}
         onOpenChange={setShowCustomerInfo}
+        linkedOrderId={linkedOrderId}
+        onCustomerCreated={onMessageSent}
       />
     </div>
   );
