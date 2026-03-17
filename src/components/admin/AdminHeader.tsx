@@ -35,8 +35,8 @@ export function AdminHeader() {
         </Button>
       )}
 
-      {/* Logo + shop name as home link - only on mobile/tablet */}
-      <Link to="/admin" className="lg:hidden flex items-center gap-2 hover:opacity-80 active:scale-95 transition-all">
+      {/* Logo + shop name as home link - centered on mobile/tablet */}
+      <Link to="/admin" className="lg:hidden absolute left-1/2 -translate-x-1/2 flex items-center gap-2 hover:opacity-80 active:scale-95 transition-all">
         <SellqoLogo variant="icon" width={28} className="h-auto" />
         {currentTenant && (
           <span className="text-sm font-semibold text-foreground truncate max-w-[120px]">

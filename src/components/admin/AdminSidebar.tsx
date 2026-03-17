@@ -194,6 +194,7 @@ export function AdminSidebar() {
         <SidebarHeader className="border-b">
           <Link 
             to="/admin" 
+            onClick={closeMobile}
             className="px-4 py-3 flex items-center justify-center hover:opacity-80 transition-opacity"
           >
             <SellqoLogo variant="full" width={140} className="h-auto" />
