@@ -30,7 +30,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
-  
+  const [isNoteMode, setIsNoteMode] = useState(false);
   // Determine initial channel based on conversation
   const getInitialChannel = (): ReplyChannel => {
     const ch = conversation.channel;
