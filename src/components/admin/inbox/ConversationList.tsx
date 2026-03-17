@@ -158,9 +158,11 @@ export function ConversationList({
         onOpenChange={(open) => { if (!open) setActionSheetConversation(null); }}
         onArchive={(id) => onArchiveConversation?.(id)}
         onDelete={(id) => onDeleteConversation?.(id)}
+        onRestore={(id) => onRestoreConversation?.(id)}
         onMarkAsUnread={(id) => onMarkAsUnread?.(id)}
         onMoveToFolder={(id, folderId) => onMoveToFolder?.(id, folderId)}
         folders={folders}
+        currentFolder={currentFolder}
       />
     </div>
   );

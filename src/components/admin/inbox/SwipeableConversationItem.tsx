@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { Archive, Trash2, CheckCircle2 } from 'lucide-react';
+import { Archive, Trash2, CheckCircle2, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationItem } from './ConversationItem';
 import type { Conversation } from '@/hooks/useInbox';

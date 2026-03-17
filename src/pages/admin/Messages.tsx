@@ -336,6 +336,10 @@ export default function MessagesPage() {
                     isBulkLoading={isBulkLoading}
                     onArchiveConversation={archiveConversation}
                     onDeleteConversation={deleteConversation}
+                    onRestoreConversation={restoreConversation}
+                    onMarkAsUnread={markConversationAsUnread}
+                    onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                    folders={folders}
                   />
                 </div>
               </div>
