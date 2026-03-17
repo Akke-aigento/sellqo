@@ -313,7 +313,7 @@ const Reports = () => {
 
       {/* Report Categories */}
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="flex w-full overflow-x-auto h-auto p-1 gap-1">
+        <TabsList className="flex flex-wrap w-full h-auto p-1 gap-1">
           <TabsTrigger value="financial" className="gap-2 flex-shrink-0">
             <TrendingUp className="h-4 w-4 hidden sm:block" />
             Financieel
