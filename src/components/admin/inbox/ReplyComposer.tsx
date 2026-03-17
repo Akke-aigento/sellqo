@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram } from 'lucide-react';
+import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +10,7 @@ import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionBox } from './AISuggestionBox';
 import { AttachmentUploader } from './AttachmentUploader';
+import { TemplatePicker } from './TemplatePicker';
 import type { Conversation, MessageChannel, isSocialChannel } from '@/hooks/useInbox';
 
 type ReplyChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
