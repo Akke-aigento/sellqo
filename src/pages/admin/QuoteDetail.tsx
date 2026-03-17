@@ -35,6 +35,7 @@ export default function QuoteDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
+  const isCompact = useIsCompact();
 
   const { quote, isLoading } = useQuote(id);
   const { sendQuote, generatePaymentLink, deleteQuote, convertToOrder } = useQuotes();
