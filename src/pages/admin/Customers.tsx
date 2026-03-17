@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Users, Search, Mail, Phone, ShoppingBag, MoreHorizontal, Eye, Trash2, Building2, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -20,7 +20,7 @@ import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import type { Customer } from '@/types/order';
 
 export default function CustomersPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
@@ -124,7 +124,7 @@ export default function CustomersPage() {
               </p>
             </div>
           ) : (
-            isMobile ? (
+            isCompact ? (
               <div className="space-y-2 px-3 sm:px-0">
                 {filteredCustomers.map((customer) => {
                   const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';

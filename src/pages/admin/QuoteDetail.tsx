@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { ArrowLeft, Edit, Send, Link2, Copy, Trash2, Loader2, User, Calendar, Clock, Mail, Phone, ExternalLink, MessageSquare, ShoppingCart, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,7 @@ export default function QuoteDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
+  const isCompact = useIsCompact();
 
   const { quote, isLoading } = useQuote(id);
   const { sendQuote, generatePaymentLink, deleteQuote, convertToOrder } = useQuotes();
@@ -167,7 +169,29 @@ export default function QuoteDetailPage() {
             <CardHeader>
               <CardTitle>Items</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto px-0 sm:px-6">
+            <CardContent className="px-0 sm:px-6">
+              {isCompact ? (
+                <div className="space-y-2 px-3 sm:px-0">
+                  {quote.quote_items?.map((item) => (
+                    <div key={item.id} className="rounded-lg border bg-card p-3">
+                      <div className="font-medium text-sm">{item.product_name}</div>
+                      {item.product_sku && (
+                        <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
+                      )}
+                      {item.description && (
+                        <div className="text-xs text-muted-foreground mt-0.5">{item.description}</div>
+                      )}
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {item.quantity} × €{Number(item.unit_price).toFixed(2)}
+                        {Number(item.discount_percent) > 0 && ` (-${item.discount_percent}%)`}
+                        {' = '}
+                        <span className="font-medium text-foreground">€{Number(item.total_price).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+              <div className="overflow-x-auto">
               <div className="min-w-[550px]">
               <Table>
                 <TableHeader>
@@ -204,6 +228,8 @@ export default function QuoteDetailPage() {
                 </TableBody>
               </Table>
               </div>
+              </div>
+              )}
 
               <div className="border-t mt-4 pt-4">
                 <div className="flex justify-end">

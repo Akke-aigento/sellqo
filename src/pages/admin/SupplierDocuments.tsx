@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,7 +60,7 @@ import {
 } from "lucide-react";
 
 export default function SupplierDocuments() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -194,7 +194,7 @@ export default function SupplierDocuments() {
         {/* Documents Table */}
         <Card>
           <CardContent className="overflow-x-auto p-0">
-            {isMobile ? (
+            {isCompact ? (
               <div className="space-y-2 p-3">
                 {isLoading ? (
                   <p className="text-center py-8 text-muted-foreground">Laden...</p>

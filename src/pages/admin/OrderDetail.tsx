@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare } from 'lucide-react';
@@ -39,7 +39,7 @@ export default function OrderDetailPage() {
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const { confirmPayment } = usePaymentConfirmation();
   const [internalNotes, setInternalNotes] = useState('');
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   const handleMarkAsPaid = (data: { 
@@ -136,7 +136,7 @@ export default function OrderDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 sm:px-6">
-              {isMobile ? (
+              {isCompact ? (
                 <div className="space-y-3">
                   {order.order_items?.map((item) => (
                     <div key={item.id} className="flex gap-3 py-2 border-b last:border-0">

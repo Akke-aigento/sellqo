@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { useTranslation } from 'react-i18next';
 import { Plus, MoreHorizontal, Play, Pause, X, FileText, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -74,7 +74,7 @@ function getIntervalLabel(interval: string, count: number, t: (key: string) => s
 }
 
 export default function SubscriptionsPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const { t, i18n } = useTranslation();
   const locale = dateLocales[i18n.language] || enUS;
   
@@ -151,7 +151,7 @@ export default function SubscriptionsPage() {
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
-          {isMobile ? (
+          {isCompact ? (
             <div className="space-y-2 px-3">
               {subscriptions.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">{t('common.noResults')}</p>
