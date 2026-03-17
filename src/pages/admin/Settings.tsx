@@ -46,9 +46,10 @@ import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
+import { SignatureSettings } from '@/components/admin/settings/SignatureSettings';
 import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
 import { useAuth } from '@/hooks/useAuth';
-import { Inbox, Truck } from 'lucide-react';
+import { Inbox, Truck, PenLine } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
@@ -114,6 +115,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },
       { id: 'inbound-email', title: 'Email Inbox', icon: Inbox, component: InboundEmailSettings },
+      { id: 'email-signatures', title: 'E-mail Handtekeningen', icon: PenLine, component: SignatureSettings },
       { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings },
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
