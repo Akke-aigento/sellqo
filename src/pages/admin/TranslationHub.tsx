@@ -229,19 +229,56 @@ export default function TranslationHub() {
                   Bestaande niet-vergrendelde vertalingen worden overschreven.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <div className="py-4">
-                <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
-                <div className="flex flex-wrap gap-2">
-                  {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
-                    <Badge key={lang.code} variant="secondary" className="text-sm">
-                      {lang.flag} {lang.label}
-                    </Badge>
-                  ))}
+              <div className="py-4 space-y-3">
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
+                      <Badge key={lang.code} variant="secondary" className="text-sm">
+                        {lang.flag} {lang.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Credit estimate */}
+                <div className="rounded-lg border bg-muted/50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Credit schatting
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {isUnlimited ? (
+                      <span>Onbeperkte credits (platform eigenaar)</span>
+                    ) : estimatedCredits === 0 ? (
+                      <span>Geen items om te vertalen</span>
+                    ) : (
+                      <>
+                        <span>~{estimatedCredits} credits nodig</span>
+                        <span className="mx-1">•</span>
+                        <span className={
+                          (credits?.available || 0) >= estimatedCredits 
+                            ? 'text-green-600 dark:text-green-400' 
+                            : 'text-destructive'
+                        }>
+                          {credits?.available || 0} beschikbaar
+                        </span>
+                        {(credits?.available || 0) < estimatedCredits && (
+                          <p className="mt-1 text-destructive text-xs">
+                            ⚠️ Niet genoeg credits. Koop extra credits via Marketing → AI Credits.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkTranslate} disabled={startBulkTranslation.isPending}>
+                <AlertDialogAction 
+                  onClick={handleBulkTranslate} 
+                  disabled={startBulkTranslation.isPending || (!isUnlimited && (credits?.available || 0) < estimatedCredits)}
+                >
                   {startBulkTranslation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Start Vertaling
                 </AlertDialogAction>
