@@ -182,6 +182,47 @@ export default function InvoicesPage() {
               </p>
             </div>
           ) : (
+            isMobile ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {invoices.map((invoice) => {
+                  const customer = getCustomerDisplay(invoice);
+                  return (
+                    <div
+                      key={invoice.id}
+                      className="rounded-lg border bg-card p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-sm">{invoice.invoice_number}</span>
+                        <InvoiceStatusBadge status={invoice.status} />
+                      </div>
+                      <div className="text-sm text-muted-foreground truncate">
+                        {customer.name}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}
+                        </span>
+                        <span className="font-semibold text-sm">{formatCurrency(invoice.total)}</span>
+                      </div>
+                      {(invoice.pdf_url || invoice.ubl_url) && (
+                        <div className="flex items-center gap-1 pt-1 border-t">
+                          {invoice.pdf_url && (
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.open(invoice.pdf_url!, '_blank')}>
+                              <Download className="h-3 w-3 mr-1" /> PDF
+                            </Button>
+                          )}
+                          {invoice.ubl_url && (
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.open(invoice.ubl_url!, '_blank')}>
+                              <FileCode className="h-3 w-3 mr-1" /> UBL
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div>
             <Table>
               <TableHeader>
@@ -315,6 +356,7 @@ export default function InvoicesPage() {
               </TableBody>
             </Table>
             </div>
+            )
           )}
         </CardContent>
       </Card>

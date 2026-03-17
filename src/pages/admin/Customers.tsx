@@ -124,6 +124,36 @@ export default function CustomersPage() {
               </p>
             </div>
           ) : (
+            isMobile ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {filteredCustomers.map((customer) => {
+                  const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';
+                  return (
+                    <div
+                      key={customer.id}
+                      className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/admin/customers/${customer.id}`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-medium text-primary">
+                            {(customer.first_name?.[0] || customer.email[0]).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{fullName}</div>
+                          <div className="text-xs text-muted-foreground truncate">{customer.email}</div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{customer.total_orders} bestelling{customer.total_orders !== 1 ? 'en' : ''}</span>
+                        <span className="font-semibold">{formatCurrency(Number(customer.total_spent))}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div className="min-w-[650px]">
             <Table>
               <TableHeader>
@@ -149,6 +179,7 @@ export default function CustomersPage() {
               </TableBody>
             </Table>
             </div>
+            )
           )}
         </CardContent>
       </Card>
