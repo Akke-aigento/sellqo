@@ -136,17 +136,26 @@ export function SwipeableConversationItem({
     <div className="relative overflow-hidden border-b border-border">
       {/* Background actions */}
       <div className="absolute inset-0 flex">
-        {/* Right-swipe: archive (blue) */}
+        {/* Right-swipe: restore (green) or archive (blue) */}
         <div
           className={cn(
             'flex items-center justify-start pl-5 flex-1 transition-colors',
-            translateX > SWIPE_THRESHOLD ? 'bg-blue-500' : 'bg-blue-500/70'
+            isTrashOrArchive
+              ? (translateX > SWIPE_THRESHOLD ? 'bg-green-500' : 'bg-green-500/70')
+              : (translateX > SWIPE_THRESHOLD ? 'bg-blue-500' : 'bg-blue-500/70')
           )}
         >
-          <Archive className={cn(
-            'h-5 w-5 text-white transition-transform',
-            pastThreshold && translateX > 0 && 'scale-125'
-          )} />
+          {isTrashOrArchive ? (
+            <Inbox className={cn(
+              'h-5 w-5 text-white transition-transform',
+              pastThreshold && translateX > 0 && 'scale-125'
+            )} />
+          ) : (
+            <Archive className={cn(
+              'h-5 w-5 text-white transition-transform',
+              pastThreshold && translateX > 0 && 'scale-125'
+            )} />
+          )}
         </div>
         {/* Left-swipe: delete (red) */}
         <div
