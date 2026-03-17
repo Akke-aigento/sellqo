@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram, UserPlus, ArrowLeft, PanelRight } from 'lucide-react';
+import { Mail, MessageSquare, Facebook, Instagram, ArrowLeft, PanelRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
