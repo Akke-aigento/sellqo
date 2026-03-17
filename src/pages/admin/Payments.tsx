@@ -243,6 +243,24 @@ export default function PaymentsPage() {
                   <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nog geen transacties</p>
                 </div>
+              ) : isMobile ? (
+                <div className="space-y-2 px-3">
+                  {transactionsData?.transactions?.map((tx) => (
+                    <div key={tx.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{formatDate(tx.created)}</span>
+                        {getTransactionTypeBadge(tx.type)}
+                      </div>
+                      {tx.description && <p className="text-sm text-muted-foreground mt-1 truncate">{tx.description}</p>}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground">
+                          {tx.fee > 0 ? `Fee: ${formatCurrency(tx.fee, tx.currency)}` : ''}
+                        </span>
+                        <span className="font-medium">{formatCurrency(tx.net, tx.currency)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div>
                 <Table>
