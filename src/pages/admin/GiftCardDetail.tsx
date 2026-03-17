@@ -51,6 +51,7 @@ const transactionTypeLabels: Record<GiftCardTransactionType, { label: string; co
 export default function GiftCardDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isCompact = useIsCompact();
   const { data: giftCard, isLoading } = useGiftCard(id);
   const updateGiftCard = useUpdateGiftCard();
   const sendEmail = useSendGiftCardEmail();

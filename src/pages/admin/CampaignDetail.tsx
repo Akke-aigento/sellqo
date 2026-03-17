@@ -20,6 +20,7 @@ import { nl } from 'date-fns/locale';
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isCompact = useIsCompact();
   const { campaign, isLoading: campaignLoading } = useEmailCampaign(id);
   const { sends, isLoading: sendsLoading } = useCampaignSends(id);
   const { linkClicks, hourlyStats, isLoading: analyticsLoading } = useCampaignAnalytics(id);

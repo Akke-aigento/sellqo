@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { ArrowLeft, Edit, Send, Link2, Copy, Trash2, Loader2, User, Calendar, Clock, Mail, Phone, ExternalLink, MessageSquare, ShoppingCart, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

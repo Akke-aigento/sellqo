@@ -64,6 +64,7 @@ interface PendingPayment {
 
 export function PendingPlatformPaymentsPage() {
   const queryClient = useQueryClient();
+  const isCompact = useIsCompact();
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmDialog, setConfirmDialog] = useState<PendingPayment | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
