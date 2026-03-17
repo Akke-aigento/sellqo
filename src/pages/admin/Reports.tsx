@@ -320,11 +320,39 @@ const Reports = () => {
         <TabsContent value="financial" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <ReportCard
+              title="Winst & Verlies"
+              description="Omzet minus inkoop minus kosten per maand — het kernrapport voor elke boekhouder"
+              icon={<BookOpen className="h-5 w-5" />}
+              onExport={(format) => exportProfitLoss(dateRange, format)}
+              isLoading={isExportingPL}
+            />
+            <ReportCard
               title="Omzetrapport"
               description="Totale omzet per periode met BTW en netto"
               icon={<TrendingUp className="h-5 w-5" />}
               onExport={(format) => exportRevenueReport(dateRange, format, 'month')}
               isLoading={isExportingRevenue}
+            />
+            <ReportCard
+              title="Omzet per BTW-tarief"
+              description="Uitsplitsing per BTW-tarief (21%, 12%, 6%, 0%) met maatstaf en BTW bedrag"
+              icon={<PieChart className="h-5 w-5" />}
+              onExport={(format) => exportVatBreakdown(dateRange, format)}
+              isLoading={isExportingVatBreakdown}
+            />
+            <ReportCard
+              title="Omzet per Verkoopkanaal"
+              description="Webshop vs POS vs Marketplace — omzet, orders, gem. orderbedrag"
+              icon={<BarChart3 className="h-5 w-5" />}
+              onExport={(format) => exportChannelRevenue(dateRange, format)}
+              isLoading={isExportingChannel}
+            />
+            <ReportCard
+              title="Betalingsoverzicht"
+              description="Alle ontvangen betalingen — reconciliatie voor bankafschriften"
+              icon={<Wallet className="h-5 w-5" />}
+              onExport={(format) => exportPaymentReconciliation(dateRange, format)}
+              isLoading={isExportingPayments}
             />
             <ReportCard
               title="BTW-aangifte"
@@ -347,6 +375,13 @@ const Reports = () => {
               recordCount={counts?.openInvoices}
               onExport={(format) => exportAgingReport(format)}
               isLoading={isExportingAging}
+            />
+            <ReportCard
+              title="Marge-analyse per Product"
+              description="Verkoopprijs vs kostprijs, marge (€ en %), gesorteerd op marge%"
+              icon={<TrendingUp className="h-5 w-5" />}
+              onExport={(format) => exportProductMargin(dateRange, format)}
+              isLoading={isExportingMargin}
             />
           </div>
         </TabsContent>
