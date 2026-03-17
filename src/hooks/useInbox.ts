@@ -656,5 +656,7 @@ export function useInbox() {
     deleteConversation: deleteConversation.mutate,
     restoreConversation: restoreConversation.mutate,
     moveToFolder: moveToFolder.mutate,
+    pinConversation: pinConversation.mutate,
+    snoozeConversation: snoozeConversation.mutate,
   };
 }
