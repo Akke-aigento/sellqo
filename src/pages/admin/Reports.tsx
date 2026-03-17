@@ -631,6 +631,47 @@ const Reports = () => {
           </div>
         </TabsContent>
 
+        {/* Stock / Voorraad Reports */}
+        <TabsContent value="stock" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ReportCard
+              title="Voorraadmutaties"
+              description="In/uit bewegingen per product — verkopen, inkopen, correcties"
+              icon={<ArrowDownUp className="h-5 w-5" />}
+              onExport={(format) => exportStockMovements(dateRange, format)}
+              isLoading={isExportingStockMovements}
+            />
+            <ReportCard
+              title="Dode Voorraad"
+              description="Producten met voorraad die >90 dagen niet verkocht zijn"
+              icon={<PackageX className="h-5 w-5" />}
+              onExport={(format) => exportDeadStock(format)}
+              isLoading={isExportingDeadStock}
+            />
+            <ReportCard
+              title="Omloopsnelheid"
+              description="Verkopen vs voorraad per product — welke items draaien goed?"
+              icon={<Gauge className="h-5 w-5" />}
+              onExport={(format) => exportStockTurnover(dateRange, format)}
+              isLoading={isExportingTurnover}
+            />
+            <ReportCard
+              title="Inkoopadvies"
+              description="Producten die bijbesteld moeten worden op basis van verkoopsnelheid"
+              icon={<ShoppingBag className="h-5 w-5" />}
+              onExport={(format) => exportReorderAdvice(format)}
+              isLoading={isExportingReorder}
+            />
+            <ReportCard
+              title="Voorraadwaardering"
+              description="Voorraad × kostprijs per product — balanspost voor de boekhouder"
+              icon={<Warehouse className="h-5 w-5" />}
+              onExport={(format) => exportInventoryValuation(format)}
+              isLoading={isExportingInventory}
+            />
+          </div>
+        </TabsContent>
+
         {/* Subscription Reports */}
         <TabsContent value="subscriptions" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
