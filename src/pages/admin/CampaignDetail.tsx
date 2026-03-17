@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, Mail, MousePointerClick, Users, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';

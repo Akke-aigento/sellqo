@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Clock, 
