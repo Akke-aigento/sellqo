@@ -1,50 +1,55 @@
-## POS Systeem: Grondige Refactor ✅
 
-### Wat is gewijzigd
 
-1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
-2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
-3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
-4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
-5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
-6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
-7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
+## Mapje aanmaken op mobiel + ontbrekende inbox-functionaliteit
 
-## POS → Orders Integratie ✅
+### Probleem 1: Map aanmaken niet bereikbaar op mobiel
+De "Nieuwe map" knop zit in de `FolderList` sidebar, die op mobiel verborgen is. De folder-dropdown in `InboxFilters` toont alleen bestaande mappen, geen optie om er eentje aan te maken.
 
-### Wat is gewijzigd
+### Probleem 2: Ontbrekende functionaliteit
+De inbox mist nog een aantal features die je in een serieuze unified inbox verwacht:
 
-1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
-2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
-3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
-4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
-5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
+### Plan
 
-### Bestanden gewijzigd
-- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
-- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
-- `src/hooks/useOrders.ts` – Filter op `sales_channel`
-- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
-- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
-- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
-- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
+**A. "Nieuwe map" toevoegen aan folder-dropdown (InboxFilters.tsx)**
+- Onderaan de folder-dropdown een `+ Nieuwe map` optie toevoegen
+- Bij klik: open een kleine dialog om de mapnaam in te voeren (hergebruik bestaande create-dialog logica)
+- Nieuwe props: `onCreateFolder` doorgeven vanuit `Messages.tsx`
 
-## Kassa-medewerkers met PIN-code ✅
+**B. Ontbrekende functionaliteit toevoegen aan de mobiele inbox:**
 
-### Wat is gewijzigd
+| Feature | Waar | Wat |
+|---------|------|-----|
+| **Snelle acties bij long-press** | `SwipeableConversationItem` | Bij long-press: in plaats van alleen selecteren, toon een bottom sheet/action menu met: Archiveren, Verwijderen, Verplaatsen naar map, Markeren als (on)gelezen, Toewijzen |
+| **Markeren als ongelezen** | Swipe-actie of action menu | Mogelijkheid om een gelezen bericht weer als ongelezen te markeren |
+| **Verplaatsen naar map** | Action menu bij long-press | Kies een map om het gesprek naartoe te verplaatsen (custom folders + systeem) |
+| **Pull-to-refresh** | `ConversationList` | Trek de lijst naar beneden om te verversen — standaard mobiel patroon |
+| **Lege folder-state** | `ConversationList` | Als een map leeg is, toon een passende illustratie en tekst per maptype |
 
-1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
-2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
-3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
-4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
-5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
-6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
+**C. Wijzigingen per bestand:**
 
-### Bestanden
-- `src/hooks/usePOSCashiers.ts` (nieuw)
-- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
-- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
-- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
-- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
-- `src/hooks/usePOS.ts` (gewijzigd)
-- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
+| Bestand | Wijziging |
+|---------|-----------|
+| `InboxFilters.tsx` | `+ Nieuwe map` item onderaan folder dropdown + create dialog |
+| `Messages.tsx` | `createFolder` doorgeven als prop aan InboxFilters |
+| `SwipeableConversationItem.tsx` | Long-press opent action sheet i.p.v. alleen toggle check |
+| Nieuw: `ConversationActionSheet.tsx` | Bottom sheet component met alle acties (archiveren, verwijderen, verplaatsen, markeren als ongelezen) |
+| `ConversationList.tsx` | Props uitbreiden voor mark-as-unread en move-to-folder acties |
+
+### Long-press Action Sheet design
+
+```text
+┌─────────────────────────────┐
+│  Jan de Vries                │  ← klant naam + preview
+│  "Vraag over retournering"   │
+├─────────────────────────────┤
+│  📬 Markeren als ongelezen   │
+│  📁 Verplaatsen naar map...  │  → sub-menu met mappen
+│  📦 Archiveren               │
+│  🗑️ Verwijderen              │
+│  ──────────────────────────  │
+│  ❌ Annuleren                │
+└─────────────────────────────┘
+```
+
+Dit maakt de inbox op mobiel volledig functioneel: mappen aanmaken, berichten organiseren, en alle acties beschikbaar via touch-gestures.
+
