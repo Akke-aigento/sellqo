@@ -49,6 +49,8 @@ export function AdminSidebar() {
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
   const { subscription } = useTenantSubscription();
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const { setOpenMobile } = useSidebar();
+  const closeMobile = useCallback(() => setOpenMobile(false), [setOpenMobile]);
 
   // Check if item should be hidden based on subscription features
   const isItemFeatureHidden = (item: NavItem): boolean => {
