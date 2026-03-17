@@ -226,6 +226,42 @@ export function PendingPlatformPaymentsPage() {
               <p>Geen openstaande betalingen</p>
             </div>
           ) : (
+            isCompact ? (
+              <div className="space-y-2 px-3 sm:px-0">
+                {pendingPayments.map((payment) => (
+                  <div key={payment.id} className="rounded-lg border bg-card p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm">{payment.tenants?.name || 'Onbekend'}</div>
+                        <div className="text-xs text-muted-foreground">{payment.tenants?.slug}</div>
+                      </div>
+                      <span className="font-semibold text-sm">{formatCurrency(payment.amount)}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {getPaymentTypeIcon(payment.payment_type)}
+                        <span className="text-xs">{getPaymentTypeLabel(payment)}</span>
+                      </div>
+                      <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{payment.ogm_reference}</code>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(payment.created_at), { addSuffix: true, locale: nl })}
+                        {' · Verloopt '}{format(new Date(payment.expires_at), 'd MMM', { locale: nl })}
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={() => setConfirmDialog(payment)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Bevestigen
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="min-w-[700px]">
             <Table>
               <TableHeader>
@@ -233,9 +269,9 @@ export function PendingPlatformPaymentsPage() {
                   <TableHead>Tenant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bedrag</TableHead>
-                  <TableHead className="hidden md:table-cell">OGM Referentie</TableHead>
-                  <TableHead className="hidden sm:table-cell">Aangemaakt</TableHead>
-                  <TableHead className="hidden sm:table-cell">Verloopt</TableHead>
+                  <TableHead>OGM Referentie</TableHead>
+                  <TableHead>Aangemaakt</TableHead>
+                  <TableHead>Verloopt</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
                 </TableRow>
               </TableHeader>
@@ -257,7 +293,7 @@ export function PendingPlatformPaymentsPage() {
                     <TableCell className="font-medium">
                       {formatCurrency(payment.amount)}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                       <div className="flex items-center gap-1">
                         <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                           {payment.ogm_reference}
@@ -272,10 +308,10 @@ export function PendingPlatformPaymentsPage() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(payment.created_at), { addSuffix: true, locale: nl })}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(payment.expires_at), 'd MMM', { locale: nl })}
                     </TableCell>
                     <TableCell className="text-right">
@@ -293,7 +329,7 @@ export function PendingPlatformPaymentsPage() {
               </TableBody>
               </Table>
             </div>
-          )}
+            )
         </CardContent>
       </Card>
 
