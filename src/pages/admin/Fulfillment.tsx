@@ -45,7 +45,9 @@ import {
   Printer,
   CheckCircle2,
   Upload,
-  Eye
+  Eye,
+  Clock,
+  FileText,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -53,6 +55,8 @@ import { CARRIER_PATTERNS, generateTrackingUrl } from '@/lib/carrierPatterns';
 import { useNavigate } from 'react-router-dom';
 import { TrackingImportDialog } from '@/components/admin/fulfillment/TrackingImportDialog';
 import { FulfillmentBulkActions } from '@/components/admin/FulfillmentBulkActions';
+import { FulfillmentOrderSheet } from '@/components/admin/FulfillmentOrderSheet';
+import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 
 type FulfillmentStatus = 'unfulfilled' | 'partial' | 'shipped' | 'delivered';
 
