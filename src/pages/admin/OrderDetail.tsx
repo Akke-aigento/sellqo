@@ -361,7 +361,7 @@ export default function OrderDetailPage() {
                     <div className="text-muted-foreground">{order.customer_phone}</div>
                   )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm"
