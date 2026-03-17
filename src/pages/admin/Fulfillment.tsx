@@ -707,6 +707,14 @@ export default function Fulfillment() {
         onOpenChange={setImportDialogOpen}
         onImportComplete={() => refetch()}
       />
+
+      {/* Order Detail Sheet */}
+      <FulfillmentOrderSheet
+        orderId={sheetOrderId}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onStatusChange={() => refetch()}
+      />
     </div>
   );
 }
