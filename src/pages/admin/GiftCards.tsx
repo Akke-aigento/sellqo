@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +47,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 export default function GiftCards() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const { data: giftCards = [], isLoading } = useGiftCards();
   const { data: stats } = useGiftCardStats();
   const updateGiftCard = useUpdateGiftCard();
@@ -221,7 +221,7 @@ export default function GiftCards() {
                 </Button>
               )}
             </div>
-          ) : isMobile ? (
+          ) : isCompact ? (
             <div className="space-y-2">
               {filteredCards.map((card) => (
                 <div

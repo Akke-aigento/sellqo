@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -62,7 +62,7 @@ function getPayoutStatusBadge(status: string) {
 }
 
 export default function PaymentsPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const { currentTenant } = useTenant();
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -244,7 +244,7 @@ export default function PaymentsPage() {
                   <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nog geen transacties</p>
                 </div>
-              ) : isMobile ? (
+              ) : isCompact ? (
                 <div className="space-y-2 px-3">
                   {transactionsData?.transactions?.map((tx) => (
                     <div key={tx.id} className="rounded-lg border bg-card p-3">
@@ -338,7 +338,7 @@ export default function PaymentsPage() {
                   <ArrowDownToLine className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nog geen uitbetalingen</p>
                 </div>
-              ) : isMobile ? (
+              ) : isCompact ? (
                 <div className="space-y-2 px-3">
                   {payoutsData?.payouts?.map((payout) => (
                     <div key={payout.id} className="rounded-lg border bg-card p-3">

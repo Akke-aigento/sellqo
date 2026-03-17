@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { nl } from 'date-fns/locale';
 import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,7 @@ import type { InvoiceStatus } from '@/types/invoice';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
@@ -182,7 +182,7 @@ export default function InvoicesPage() {
               </p>
             </div>
           ) : (
-            isMobile ? (
+            isCompact ? (
               <div className="space-y-2 px-3 sm:px-0">
                 {invoices.map((invoice) => {
                   const customer = getCustomerDisplay(invoice);

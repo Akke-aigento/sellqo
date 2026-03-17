@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 export default function PurchaseOrders() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -153,7 +153,7 @@ export default function PurchaseOrders() {
         {/* Orders Table */}
         <Card>
           <CardContent className="p-0 sm:p-6">
-            {isMobile ? (
+            {isCompact ? (
               <div className="space-y-2 p-3">
                 {isLoading ? (
                   <p className="text-center py-8 text-muted-foreground">Laden...</p>

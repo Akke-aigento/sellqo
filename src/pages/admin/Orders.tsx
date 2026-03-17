@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2, ChevronRight } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
@@ -21,7 +21,7 @@ import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
@@ -143,7 +143,7 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
-            isMobile ? (
+            isCompact ? (
               <div className="space-y-2 px-3 sm:px-0">
                 {orders.map((order) => (
                   <div

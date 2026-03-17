@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { 
@@ -68,7 +68,7 @@ import { cn } from '@/lib/utils';
 import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
 
 export default function ProductsPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const { currentTenant } = useTenant();
   const { 
     products, 
@@ -463,7 +463,7 @@ export default function ProductsPage() {
         <div className="min-h-[400px]">
           <ProductGridView products={filteredProducts} />
         </div>
-      ) : isMobile ? (
+      ) : isCompact ? (
         <div className="space-y-2">
           {isLoading ? (
             [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)

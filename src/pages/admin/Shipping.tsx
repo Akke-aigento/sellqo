@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import {
   Plus,
   Truck,
@@ -45,7 +45,7 @@ import { useShippingMethods } from "@/hooks/useShippingMethods";
 import type { ShippingMethod, ShippingMethodFormData } from "@/types/shipping";
 
 export default function ShippingPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const {
     shippingMethods,
     isLoading,
@@ -203,7 +203,7 @@ export default function ShippingPage() {
                 Verzendmethode toevoegen
               </Button>
             </div>
-          ) : isMobile ? (
+          ) : isCompact ? (
             <div className="space-y-2 px-3">
               {shippingMethods.map((method) => (
                 <div key={method.id} className="rounded-lg border bg-card p-3">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, MoreHorizontal, Eye, Copy, Send, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ import { nl } from 'date-fns/locale';
 import type { QuoteStatus, Quote } from '@/types/quote';
 
 export default function QuotesPage() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all');
@@ -143,7 +143,7 @@ export default function QuotesPage() {
                 </Button>
               )}
             </div>
-          ) : isMobile ? (
+          ) : isCompact ? (
             <div className="space-y-2">
               {quotes.map((quote) => (
                 <div
