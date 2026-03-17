@@ -142,44 +142,11 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-            <Table className="min-w-[600px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40px]">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Selecteer alle orders"
-                      className={isSomeSelected ? 'data-[state=checked]:bg-primary/50' : ''}
-                    />
-                  </TableHead>
-                  <TableHead>Bestelling</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Betaling</TableHead>
-                  <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <OrderRow
-                    key={order.id}
-                    order={order}
-                    isSelected={selectedOrderIds.includes(order.id)}
-                    onSelect={(checked) => handleSelectOrder(order.id, checked)}
-                    onView={() => navigate(`/admin/orders/${order.id}`)}
-                    onStatusChange={handleStatusChange}
-                    onDelete={handleDeleteOrder}
-                    formatCurrency={formatCurrency}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-            </div>
+            <MobileOrderList 
+              orders={orders} 
+              onView={(id) => navigate(`/admin/orders/${id}`)} 
+              formatCurrency={formatCurrency} 
+            />
           )}
         </CardContent>
       </Card>
