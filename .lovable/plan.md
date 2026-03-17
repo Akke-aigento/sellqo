@@ -48,3 +48,21 @@
 - `src/pages/admin/POSTerminal.tsx` (gewijzigd)
 - `src/hooks/usePOS.ts` (gewijzigd)
 - `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
+
+## Rapportage Uitbreiding: Boekhoudersdroomland ✅
+
+### Wat is gewijzigd
+
+1. **Winst & Verlies overzicht** – Omzet (facturen paid) minus inkoop (supplier docs) minus verzendkosten = bruto marge per maand met totaalrij
+2. **Omzet per BTW-tarief** – Uitsplitsing per tarief (21%, 12%, 6%, 0%) met maatstaf, BTW bedrag en aantal orders
+3. **Omzet per Verkoopkanaal** – Webshop vs POS vs Marketplace: omzet, orders, gem. orderbedrag, % van totaal
+4. **Betalingsoverzicht** – Alle ontvangen betalingen (facturen + POS) met datum, methode, referentie — reconciliatie-rapport voor bankafschriften
+5. **Marge-analyse per Product** – Per product: verkoopprijs, kostprijs, marge (€ + %), aantal verkocht, totale marge, gesorteerd op marge%
+6. **Voorraadwaardering** – Voorraad × kostprijs per product met totaalrij — balanspost voor elk kwartaal
+7. **Kassasessies (verrijkt)** – Sessies met omzet per sessie, aantal transacties, medewerker, sessieduur, contant/PIN split
+8. **Jaarafsluiting Pakket** – Multi-sheet Excel: W&V, BTW per kwartaal, voorraadwaardering, klantenbestand — alles in één bestand
+9. **BTW Kwartaal Pakket** – Automatisch huidig kwartaal: BTW-overzicht + IC-listing + betalingen
+
+### Bestanden
+- `src/hooks/useAccountingExports.ts` (nieuw — 9 hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe ReportCards + imports)
