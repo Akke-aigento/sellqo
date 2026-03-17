@@ -326,8 +326,8 @@ export const usePaymentReconciliationExport = () => {
           date: inv.paid_at || inv.created_at,
           reference: inv.invoice_number,
           type: 'Factuur',
-          payment_method: inv.payment_method || 'Onbekend',
-          ogm: inv.ogm_number || '',
+          payment_method: 'Bankoverschrijving',
+          ogm: inv.ogm_reference || '',
           amount: inv.total,
           source: 'Facturatie',
         });
