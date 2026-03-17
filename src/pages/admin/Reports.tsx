@@ -23,6 +23,11 @@ import {
   Receipt,
   Banknote,
   Calendar,
+  PieChart,
+  BarChart3,
+  Wallet,
+  Warehouse,
+  BookOpen,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -54,6 +59,17 @@ import {
   usePOSTransactionExport,
   usePOSCashMovementExport,
 } from '@/hooks/useReportExports';
+import {
+  useProfitLossExport,
+  useVatBreakdownExport,
+  useChannelRevenueExport,
+  usePaymentReconciliationExport,
+  useProductMarginExport,
+  useInventoryValuationExport,
+  useEnrichedPOSSessionExport,
+  useYearEndExport,
+  useQuarterlyVatExport,
+} from '@/hooks/useAccountingExports';
 
 const Reports = () => {
   const { currentTenant } = useTenant();
