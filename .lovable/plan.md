@@ -1,56 +1,68 @@
+## POS Systeem: Grondige Refactor ✅
 
+### Wat is gewijzigd
 
-## Rapportage uitbreiden: de boekhouder van z'n sokken blazen
+1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
+2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
+3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
+4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
+5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
+6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
+7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
 
-### Huidige staat
-Er zijn al 8 tabs met ~25 exportrapporten. Goed basis, maar een boekhouder mist de kernrapporten die hij nodig heeft voor zijn werk: winstberekening, BTW-reconciliatie, voorraadwaardering, betaaloverzichten en een compleet jaarpakket.
+## POS → Orders Integratie ✅
 
-### Nieuwe rapporten per tab
+### Wat is gewijzigd
 
-#### Tab "Financieel" (4 bestaand + 5 nieuw)
+1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
+2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
+3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
+4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
+5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
 
-1. **Winst & Verlies overzicht** -- DIT is wat elke boekhouder als eerste vraagt. Omzet (facturen paid) minus inkoop (supplier documents paid) minus verzendkosten = bruto marge. Per maand. Multi-sheet Excel met samenvattingsrij.
+### Bestanden gewijzigd
+- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
+- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
+- `src/hooks/useOrders.ts` – Filter op `sales_channel`
+- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
+- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
+- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
+- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
 
-2. **Omzet per BTW-tarief** -- Uitsplitsing alle factuurregels per BTW-tarief (21%, 12%, 6%, 0%). Maatstaf + BTW bedrag. Essentieel voor de BTW-aangifte controle.
+## Kassa-medewerkers met PIN-code ✅
 
-3. **Omzet per Verkoopkanaal** -- Webshop vs POS vs Marketplace vs Handmatig. Per kanaal: omzet, aantal orders, gem. orderbedrag, BTW.
+### Wat is gewijzigd
 
-4. **Betalingsoverzicht** -- Alle ontvangen betalingen met datum, methode (Stripe/bankoverschrijving/contant/PIN), referentie, factuurnummer, bedrag. Dit is het reconciliatie-rapport voor de bankafschriften.
+1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
+2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
+3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
+4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
+5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
+6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
 
-5. **Marge-analyse per Product** -- Per product: verkoopprijs, kostprijs, marge (absoluut + %), aantal verkocht, totale omzet, totale marge. Gesorteerd op marge%.
+### Bestanden
+- `src/hooks/usePOSCashiers.ts` (nieuw)
+- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
+- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
+- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
+- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
+- `src/hooks/usePOS.ts` (gewijzigd)
+- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
 
-#### Tab "Producten" (2 bestaand + 1 nieuw)
+## Rapportage Uitbreiding: Boekhoudersdroomland ✅
 
-6. **Voorraadwaardering** -- Per product: SKU, naam, voorraad, kostprijs, totale waarde (voorraad x kostprijs). Met totaalrij onderaan. Dit is een balanspost die de boekhouder elk kwartaal nodig heeft.
+### Wat is gewijzigd
 
-#### Tab "Kassa" (4 bestaand + 1 nieuw)
+1. **Winst & Verlies overzicht** – Omzet (facturen paid) minus inkoop (supplier docs) minus verzendkosten = bruto marge per maand met totaalrij
+2. **Omzet per BTW-tarief** – Uitsplitsing per tarief (21%, 12%, 6%, 0%) met maatstaf, BTW bedrag en aantal orders
+3. **Omzet per Verkoopkanaal** – Webshop vs POS vs Marketplace: omzet, orders, gem. orderbedrag, % van totaal
+4. **Betalingsoverzicht** – Alle ontvangen betalingen (facturen + POS) met datum, methode, referentie — reconciliatie-rapport voor bankafschriften
+5. **Marge-analyse per Product** – Per product: verkoopprijs, kostprijs, marge (€ + %), aantal verkocht, totale marge, gesorteerd op marge%
+6. **Voorraadwaardering** – Voorraad × kostprijs per product met totaalrij — balanspost voor elk kwartaal
+7. **Kassasessies (verrijkt)** – Sessies met omzet per sessie, aantal transacties, medewerker, sessieduur, contant/PIN split
+8. **Jaarafsluiting Pakket** – Multi-sheet Excel: W&V, BTW per kwartaal, voorraadwaardering, klantenbestand — alles in één bestand
+9. **BTW Kwartaal Pakket** – Automatisch huidig kwartaal: BTW-overzicht + IC-listing + betalingen
 
-7. **Kassasessies (verrijkt)** -- De bestaande sessie-export uitbreiden met: totale omzet per sessie, aantal transacties, medewerker (opened_by naam), sessieduur. Dit is het rapport dat we van de POS-pagina haalden.
-
-#### "Snelle Acties" sectie (4 bestaand + 2 nieuw)
-
-8. **Jaarafsluiting Pakket** -- Eén klik: multi-sheet Excel met W&V, omzetrapport, BTW per kwartaal, debiteurenoverzicht, crediteurenoverzicht, voorraadwaardering, klantenbestand. Alles in één bestand.
-
-9. **BTW Kwartaal Pakket** -- Voorgeselecteerd op huidig kwartaal: BTW-aangifte + IC-listing + betalingsoverzicht.
-
-### Technische aanpak
-
-**`src/hooks/useReportExports.ts`** -- 6 nieuwe export hooks toevoegen:
-- `useProfitLossExport` -- query invoices (paid) + supplier_documents (paid) per maand, bereken bruto marge
-- `useVatBreakdownExport` -- query invoices met order_items voor BTW per tarief
-- `useChannelRevenueExport` -- query orders grouped by sales_channel
-- `usePaymentReconciliationExport` -- query orders (paid) met payment_method, stripe refs, dates
-- `useProductMarginExport` -- query order_items joined met products (cost_price), bereken marge
-- `useInventoryValuationExport` -- query products met stock * cost_price
-
-**`src/hooks/useReportExports.ts`** -- Bestaande POS sessie export verrijken met extra kolommen (omzet, transacties, medewerker, duur).
-
-**`src/hooks/useReportExports.ts`** -- `useYearEndExport` hook die `generateExcelMultiSheet` gebruikt (bestaat al in exportUtils).
-
-**`src/pages/admin/Reports.tsx`** -- Nieuwe ReportCards toevoegen in de juiste tabs + nieuwe snelle acties.
-
-**`src/lib/exportUtils.ts`** -- Geen wijzigingen nodig, `generateExcelMultiSheet` bestaat al.
-
-### Geen database wijzigingen nodig
-Alle data zit al in bestaande tabellen (orders, invoices, order_items, products, supplier_documents, pos_transactions, pos_sessions). We aggregeren client-side.
-
+### Bestanden
+- `src/hooks/useAccountingExports.ts` (nieuw — 9 hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe ReportCards + imports)
