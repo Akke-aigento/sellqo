@@ -45,6 +45,7 @@ import { useShippingMethods } from "@/hooks/useShippingMethods";
 import type { ShippingMethod, ShippingMethodFormData } from "@/types/shipping";
 
 export default function ShippingPage() {
+  const isMobile = useIsMobile();
   const {
     shippingMethods,
     isLoading,

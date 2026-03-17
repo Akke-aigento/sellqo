@@ -68,6 +68,7 @@ import { cn } from '@/lib/utils';
 import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
 
 export default function ProductsPage() {
+  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const { 
     products, 

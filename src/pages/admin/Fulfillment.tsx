@@ -71,6 +71,7 @@ interface FulfillmentOrder {
 }
 
 export default function Fulfillment() {
+  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const { isWarehouse, hasFinancialAccess } = useAuth();
   const { toast } = useToast();

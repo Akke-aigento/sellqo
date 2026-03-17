@@ -62,6 +62,7 @@ function getPayoutStatusBadge(status: string) {
 }
 
 export default function PaymentsPage() {
+  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const [activeTab, setActiveTab] = useState('overview');
   

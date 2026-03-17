@@ -47,6 +47,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 export default function GiftCards() {
+  const isMobile = useIsMobile();
   const { data: giftCards = [], isLoading } = useGiftCards();
   const { data: stats } = useGiftCardStats();
   const updateGiftCard = useUpdateGiftCard();

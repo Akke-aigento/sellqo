@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 
 export default function PurchaseOrders() {
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");

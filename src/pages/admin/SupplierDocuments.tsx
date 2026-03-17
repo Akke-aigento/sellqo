@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 
 export default function SupplierDocuments() {
+  const isMobile = useIsMobile();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");

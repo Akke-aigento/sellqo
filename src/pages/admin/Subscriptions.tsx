@@ -74,6 +74,7 @@ function getIntervalLabel(interval: string, count: number, t: (key: string) => s
 }
 
 export default function SubscriptionsPage() {
+  const isMobile = useIsMobile();
   const { t, i18n } = useTranslation();
   const locale = dateLocales[i18n.language] || enUS;
   

@@ -44,6 +44,7 @@ import { nl } from 'date-fns/locale';
 import type { QuoteStatus, Quote } from '@/types/quote';
 
 export default function QuotesPage() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all');
