@@ -82,6 +82,12 @@ import {
   useCashflowExport,
   useAccountingSoftwareExport,
 } from '@/hooks/useAccountingExports';
+import {
+  useStockMovementExport,
+  useDeadStockExport,
+  useStockTurnoverExport,
+  useReorderAdviceExport,
+} from '@/hooks/useStockExports';
 
 const Reports = () => {
   const { currentTenant } = useTenant();
