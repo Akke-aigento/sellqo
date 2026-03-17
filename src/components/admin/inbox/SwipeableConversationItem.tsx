@@ -62,7 +62,11 @@ export function SwipeableConversationItem({
 
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
-      onToggleCheck();
+      if (onLongPress) {
+        onLongPress();
+      } else {
+        onToggleCheck();
+      }
     }, LONG_PRESS_MS);
   }, [onToggleCheck]);
 
