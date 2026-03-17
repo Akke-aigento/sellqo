@@ -559,6 +559,44 @@ export function useInbox() {
     },
   });
 
+  // Pin/unpin conversation
+  const pinConversation = useMutation({
+    mutationFn: async ({ conversationId, pinned }: { conversationId: string; pinned: boolean }) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+      const messageIds = conversation.messages.map((m) => m.id);
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ is_pinned: pinned })
+        .in('id', messageIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+    },
+  });
+
+  // Snooze conversation
+  const snoozeConversation = useMutation({
+    mutationFn: async ({ conversationId, until }: { conversationId: string; until: Date | null }) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+      const messageIds = conversation.messages.map((m) => m.id);
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ snoozed_until: until?.toISOString() || null })
+        .in('id', messageIds);
+      if (error) throw error;
+    },
+    onSuccess: (_, { until }) => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+      toast({
+        title: until ? 'Gesprek gesnoozed' : 'Snooze opgeheven',
+        description: until ? 'Het gesprek komt later terug in je inbox.' : 'Het gesprek is weer zichtbaar.',
+      });
+    },
+  });
+
   // Realtime subscription
   useEffect(() => {
     if (!currentTenant?.id) return;
