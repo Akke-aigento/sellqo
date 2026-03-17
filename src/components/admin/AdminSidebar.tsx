@@ -24,6 +24,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
