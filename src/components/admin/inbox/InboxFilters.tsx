@@ -50,6 +50,7 @@ export function InboxFilters({
   selectedFolderId,
   onFolderSelect,
   folderCounts,
+  onCreateFolder,
 }: InboxFiltersProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
