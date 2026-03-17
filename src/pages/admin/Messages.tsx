@@ -212,6 +212,8 @@ export default function MessagesPage() {
                       onBulkMoveToFolder={bulkMoveToFolder}
                       currentFolder={filters.folderId}
                       isBulkLoading={isBulkLoading}
+                      onArchiveConversation={archiveConversation}
+                      onDeleteConversation={deleteConversation}
                     />
                   </div>
                 </div>
