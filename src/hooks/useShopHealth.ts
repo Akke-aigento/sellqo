@@ -143,7 +143,7 @@ export function useShopHealth(): ShopHealthData {
       unreadMessages: unreadMessages.length,
       oldestUnreadHours: oldestUnread,
       pendingQuotes: 0,
-      stripeConnected: stripeStatus?.charges_enabled || false,
+      stripeConnected: currentTenant?.stripe_charges_enabled || false,
       overdueInvoicesAmount: overdueAmount,
       overdueInvoicesCount: unpaidSentInvoices.length,
       seoScore: tenantScore?.overall_score || null,
