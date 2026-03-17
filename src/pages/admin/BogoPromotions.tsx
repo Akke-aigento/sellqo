@@ -41,6 +41,7 @@ export default function BogoPromotionsPage() {
   const { data: promotions = [], isLoading } = useBogoPromotions();
   const updatePromotion = useUpdateBogoPromotion();
   const deletePromotion = useDeleteBogoPromotion();
+  const isCompact = useIsCompact();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);

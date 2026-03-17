@@ -39,6 +39,7 @@ export default function StackingRulesPage() {
   const { data: rules = [], isLoading } = useStackingRules();
   const updateRule = useUpdateStackingRule();
   const deleteRule = useDeleteStackingRule();
+  const isCompact = useIsCompact();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<DiscountStackingRule | null>(null);
