@@ -139,6 +139,12 @@ const Reports = () => {
   const { exportCashflow, isExporting: isExportingCashflow } = useCashflowExport();
   const { exportForAccountingSoftware, isExporting: isExportingSoftware } = useAccountingSoftwareExport();
 
+  // Stock export hooks
+  const { exportStockMovements, isExporting: isExportingStockMovements } = useStockMovementExport();
+  const { exportDeadStock, isExporting: isExportingDeadStock } = useDeadStockExport();
+  const { exportStockTurnover, isExporting: isExportingTurnover } = useStockTurnoverExport();
+  const { exportReorderAdvice, isExporting: isExportingReorder } = useReorderAdviceExport();
+
   // Fetch counts for display
   const { data: counts } = useQuery({
     queryKey: ['report-counts', currentTenant?.id, dateRange],
