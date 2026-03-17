@@ -107,8 +107,12 @@ export function SwipeableConversationItem({
 
     if (isSwiping.current) {
       if (translateX > SWIPE_THRESHOLD) {
-        // Swiped right → archive
-        onSwipeArchive();
+        // Swiped right → restore (in trash/archive) or archive
+        if (isTrashOrArchive && onSwipeRestore) {
+          onSwipeRestore();
+        } else {
+          onSwipeArchive();
+        }
       } else if (translateX < -SWIPE_THRESHOLD) {
         // Swiped left → delete
         onSwipeDelete();
