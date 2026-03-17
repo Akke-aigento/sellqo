@@ -27,6 +27,7 @@ export function SwipeableConversationItem({
   onToggleCheck,
   onSwipeArchive,
   onSwipeDelete,
+  onLongPress,
 }: SwipeableConversationItemProps) {
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
