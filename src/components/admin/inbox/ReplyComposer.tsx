@@ -188,6 +188,41 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const handleSend = async () => {
     if (!message.trim() || !currentTenant?.id) return;
 
+    // Handle internal note
+    if (isNoteMode) {
+      setIsSending(true);
+      try {
+        const { error } = await supabase
+          .from('customer_messages')
+          .insert({
+            tenant_id: currentTenant.id,
+            direction: 'internal',
+            subject: conversation.lastMessage.subject || 'Interne notitie',
+            body_html: message.trim().replace(/\n/g, '<br>'),
+            body_text: message.trim(),
+            from_email: 'system',
+            to_email: 'internal',
+            channel: conversation.channel === 'mixed' || conversation.channel === 'social' ? 'email' : conversation.channel,
+            delivery_status: 'sent',
+            message_status: conversation.messageStatus || 'active',
+            customer_id: conversation.customer?.id || null,
+            order_id: conversation.lastMessage.order_id || null,
+            folder_id: conversation.folderId || null,
+          });
+        if (error) throw error;
+        toast({ title: 'Notitie toegevoegd', description: 'Interne notitie is opgeslagen.' });
+        setMessage('');
+        setIsNoteMode(false);
+        onSent();
+      } catch (error) {
+        console.error('Error saving note:', error);
+        toast({ title: 'Fout', description: 'Kon notitie niet opslaan.', variant: 'destructive' });
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
     setIsSending(true);
     try {
       if (channel === 'whatsapp') {
