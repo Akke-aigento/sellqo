@@ -124,6 +124,7 @@ export function InboxFilters({
   const trashFolder = systemFolders.find(f => f.name === 'Prullenbak');
 
   return (
+    <>
     <div className="space-y-2 p-3 border-b">
       {/* Search row with status dropdown */}
       <div className="flex gap-2">
