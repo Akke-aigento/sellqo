@@ -46,6 +46,7 @@ import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
+import { SignatureSettings } from '@/components/admin/settings/SignatureSettings';
 import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { Inbox, Truck } from 'lucide-react';
