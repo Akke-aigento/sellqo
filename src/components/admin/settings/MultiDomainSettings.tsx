@@ -160,7 +160,99 @@ export function MultiDomainSettings() {
             <p>Nog geen domeinen gekoppeld</p>
             <p className="text-sm">Voeg je eerste domein toe om te beginnen</p>
           </div>
+        ) : isMobile ? (
+          /* Mobile: Card-based list */
+          <div className="space-y-3">
+            {domains.map(domain => (
+              <div key={domain.id} className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{domain.domain}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {domain.is_canonical && (
+                        <Badge variant="default" className="text-xs gap-1">
+                          <Crown className="h-3 w-3" />
+                          Canonical
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs">
+                        {useCustomFrontend ? 'Custom Frontend' : 'SellQo Theme'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!domain.is_canonical && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSetCanonical(domain.id)} title="Instellen als canonical">
+                        <Crown className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Domein verwijderen?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Weet je zeker dat je {domain.domain} wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => removeDomain.mutate(domain.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Verwijderen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    {editingId === domain.id ? (
+                      <div className="flex items-center gap-1">
+                        <Select value={editLocale} onValueChange={setEditLocale}>
+                          <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {TRANSLATION_LANGUAGES.map(lang => (
+                              <SelectItem key={lang.code} value={lang.code}>
+                                {lang.flag} {lang.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSaveLocale(domain.id)}>
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingId(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button onClick={() => startEditLocale(domain)} className="flex items-center gap-1 hover:underline">
+                        {getLocaleLabel(domain.locale)}
+                        <Edit2 className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <DomainVerificationPanel domain={domain} />
+                    <Switch
+                      checked={domain.is_active}
+                      onCheckedChange={() => handleToggleActive(domain)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          /* Desktop: Table */
           <Table>
             <TableHeader>
               <TableRow>
