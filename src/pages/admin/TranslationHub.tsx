@@ -89,10 +89,28 @@ export default function TranslationHub() {
   } = useTranslations();
   const { products } = useProducts();
   const { categories } = useCategories();
+  const { credits, isUnlimited } = useAICredits();
 
   const [selectedEntityType, setSelectedEntityType] = useState<TranslatableEntityType>('product');
   const [selectedLanguage, setSelectedLanguage] = useState<TranslationLanguage>('en');
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+
+  // Estimate credits needed for bulk translation
+  const estimatedCredits = useMemo(() => {
+    const targetLangs = settings?.target_languages || ['en', 'de', 'fr'];
+    const fieldsPerProduct = 5;
+    const fieldsPerCategory = 4;
+    
+    if (selectedEntityType === 'product') {
+      const count = pendingEntities?.products?.length || 0;
+      return count * fieldsPerProduct * targetLangs.length;
+    }
+    if (selectedEntityType === 'category') {
+      const count = pendingEntities?.categories?.length || 0;
+      return count * fieldsPerCategory * targetLangs.length;
+    }
+    return 0;
+  }, [selectedEntityType, pendingEntities, settings]);
 
   if (!currentTenant) {
     return (
