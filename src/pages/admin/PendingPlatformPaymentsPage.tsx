@@ -330,6 +330,7 @@ export function PendingPlatformPaymentsPage() {
               </Table>
             </div>
             )
+          )}
         </CardContent>
       </Card>
 
