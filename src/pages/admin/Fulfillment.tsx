@@ -91,6 +91,78 @@ export default function Fulfillment() {
   const [trackingCarrier, setTrackingCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [customTrackingUrl, setCustomTrackingUrl] = useState('');
+  const [sheetOrderId, setSheetOrderId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Stats query
+  const { data: stats } = useQuery({
+    queryKey: ['fulfillment-stats', currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant?.id) return null;
+      const { data, error } = await supabase
+        .from('orders')
+        .select('fulfillment_status, shipped_at')
+        .eq('tenant_id', currentTenant.id);
+      if (error) throw error;
+
+      const today = new Date().toISOString().split('T')[0];
+      const toShip = (data || []).filter(o => !o.fulfillment_status || o.fulfillment_status === 'unfulfilled' || o.fulfillment_status === 'pending').length;
+      const shippedToday = (data || []).filter(o => o.shipped_at && o.shipped_at.startsWith(today)).length;
+      const shipped = (data || []).filter(o => o.fulfillment_status === 'shipped' || o.fulfillment_status === 'fulfilled').length;
+      return { toShip, shippedToday, shipped };
+    },
+    enabled: !!currentTenant?.id,
+  });
+
+  // Quick status update per row
+  const quickStatusUpdate = useMutation({
+    mutationFn: async ({ orderId, newStatus }: { orderId: string; newStatus: string }) => {
+      const updateData: Record<string, unknown> = { fulfillment_status: newStatus };
+      if (newStatus === 'shipped') { updateData.status = 'shipped'; updateData.shipped_at = new Date().toISOString(); }
+      else if (newStatus === 'delivered') { updateData.status = 'delivered'; updateData.delivered_at = new Date().toISOString(); }
+      const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['fulfillment-stats'] });
+      toast({ title: 'Status bijgewerkt' });
+    },
+  });
+
+  const openSheet = (orderId: string) => {
+    setSheetOrderId(orderId);
+    setSheetOpen(true);
+  };
+
+  const handleSinglePackingSlip = async (order: FulfillmentOrder) => {
+    if (!currentTenant) return;
+    try {
+      // fetch items for this order
+      const { data: items } = await supabase.from('order_items').select('product_name, product_sku, quantity').eq('order_id', order.id);
+      const pdfBytes = await generatePackingSlipPdf(
+        {
+          order_number: order.order_number,
+          created_at: order.created_at,
+          customer_name: order.customer_name,
+          customer_email: '',
+          shipping_address: order.shipping_address,
+          order_items: items?.map(i => ({ product_name: i.product_name, product_sku: i.product_sku, quantity: i.quantity })),
+        },
+        {
+          name: currentTenant.name, address: currentTenant.address, city: currentTenant.city,
+          postal_code: currentTenant.postal_code, country: currentTenant.country,
+          phone: currentTenant.phone, email: currentTenant.owner_email,
+          kvk_number: currentTenant.kvk_number, logo_url: currentTenant.logo_url,
+          document_logo_url: (currentTenant as any).document_logo_url,
+        },
+      );
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    } catch (err: any) {
+      toast({ title: 'Fout bij pakbon', description: err.message, variant: 'destructive' });
+    }
+  };
 
   // Fetch orders for fulfillment
   const { data: orders, isLoading, refetch } = useQuery({
