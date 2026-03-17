@@ -148,44 +148,14 @@ export function ConversationDetail({
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            {linkedOrderId && !isMobile && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/orders/${linkedOrderId}`}>
-                  <Package className="h-4 w-4 mr-1" />
-                  Bestelling
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Link>
-              </Button>
-            )}
-            {!isMobile && (customer?.id ? (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/customers/${customer.id}`}>
-                  <User className="h-4 w-4 mr-1" />
-                  Klantprofiel
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Link>
-              </Button>
-            ) : customer?.email && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleCreateCustomer}
-                disabled={isCreatingCustomer}
-              >
-                <UserPlus className="h-4 w-4 mr-1" />
-                {isCreatingCustomer ? 'Aanmaken...' : 'Maak klant aan'}
-              </Button>
-            ))}
             {/* Customer info sidebar toggle */}
-            {customer?.id && (
-              <Button
-                variant={showCustomerInfo ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowCustomerInfo(!showCustomerInfo)}
-              >
-                <PanelRight className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              variant={showCustomerInfo ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowCustomerInfo(!showCustomerInfo)}
+            >
+              <PanelRight className="h-4 w-4" />
+            </Button>
             {/* Conversation actions dropdown */}
             <ConversationActions
               conversationStatus={conversationStatus}
