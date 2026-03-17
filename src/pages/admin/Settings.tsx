@@ -49,7 +49,7 @@ import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSe
 import { SignatureSettings } from '@/components/admin/settings/SignatureSettings';
 import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
 import { useAuth } from '@/hooks/useAuth';
-import { Inbox, Truck } from 'lucide-react';
+import { Inbox, Truck, PenLine } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
