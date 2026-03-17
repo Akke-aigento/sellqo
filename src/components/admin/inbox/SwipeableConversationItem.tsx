@@ -169,7 +169,7 @@ export function SwipeableConversationItem({
           <ConversationItem
             conversation={conversation}
             isSelected={isSelected}
-            onClick={() => {/* handled by touch */}}
+            onClick={onClick}
           />
         </div>
       </div>
