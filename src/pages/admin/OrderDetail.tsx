@@ -124,7 +124,7 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 min-w-0 overflow-hidden">
         {/* Left Column - Order Items */}
         <div className="lg:col-span-2 space-y-6">
           {/* Order Items */}
