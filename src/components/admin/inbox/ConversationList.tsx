@@ -2,7 +2,9 @@ import { MessageSquare } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SelectableConversationItem } from './SelectableConversationItem';
+import { SwipeableConversationItem } from './SwipeableConversationItem';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
+import { useIsCompact } from '@/hooks/use-mobile';
 import type { Conversation } from '@/hooks/useInbox';
 
 interface ConversationListProps {
@@ -21,6 +23,9 @@ interface ConversationListProps {
   onBulkMoveToFolder: (folderId: string | null) => void;
   currentFolder: string | null;
   isBulkLoading?: boolean;
+  // Single-item actions for swipe
+  onArchiveConversation?: (id: string) => void;
+  onDeleteConversation?: (id: string) => void;
 }
 
 export function ConversationList({
