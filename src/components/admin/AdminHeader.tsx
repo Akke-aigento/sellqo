@@ -27,7 +27,7 @@ export function AdminHeader() {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/admin')}
           className="lg:hidden h-8 w-8"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -35,14 +35,19 @@ export function AdminHeader() {
         </Button>
       )}
 
-      {/* Logo as home link - only on mobile/tablet */}
-      <Link to="/admin" className="lg:hidden hover:opacity-80 transition-opacity">
+      {/* Logo + shop name as home link - only on mobile/tablet */}
+      <Link to="/admin" className="lg:hidden flex items-center gap-2 hover:opacity-80 active:scale-95 transition-all">
         <SellqoLogo variant="icon" width={28} className="h-auto" />
+        {currentTenant && (
+          <span className="text-sm font-semibold text-foreground truncate max-w-[120px]">
+            {currentTenant.name}
+          </span>
+        )}
       </Link>
 
       <div className="flex-1">
         {currentTenant && (
-          <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             <span className="text-sm font-semibold text-muted-foreground">
               {currentTenant.name}
             </span>
