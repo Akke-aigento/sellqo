@@ -260,7 +260,7 @@ export const useReorderAdviceExport = () => {
 
       const since = subDays(new Date(), 90).toISOString();
       const { data: salesData } = await supabase
-        .from('order_items')
+        .from('order_items' as any)
         .select('product_id, quantity')
         .eq('tenant_id', currentTenant.id)
         .gte('created_at', since);
