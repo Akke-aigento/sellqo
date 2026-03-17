@@ -39,6 +39,7 @@ export default function OrderDetailPage() {
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const { confirmPayment } = usePaymentConfirmation();
   const [internalNotes, setInternalNotes] = useState('');
+  const isMobile = useIsMobile();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   const handleMarkAsPaid = (data: { 
