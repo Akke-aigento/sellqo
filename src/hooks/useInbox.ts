@@ -30,6 +30,8 @@ export interface InboxMessage {
   message_status?: MessageStatus;
   folder_id?: string | null;
   deleted_at?: string | null;
+  is_pinned?: boolean;
+  snoozed_until?: string | null;
   whatsapp_status: string | null;
   read_at: string | null;
   read_by: string | null;
