@@ -634,6 +634,14 @@ const Reports = () => {
               onExport={(format) => exportCashMovements(dateRange, format)}
               isLoading={isExportingCashMovements}
             />
+            <ReportCard
+              title="Sessies (Verrijkt)"
+              description="Sessies met omzet, transacties, medewerker en sessieduur"
+              icon={<BarChart3 className="h-5 w-5" />}
+              recordCount={counts?.posSessions}
+              onExport={(format) => exportEnrichedSessions(dateRange, format)}
+              isLoading={isExportingEnrichedSessions}
+            />
           </div>
         </TabsContent>
       </Tabs>
