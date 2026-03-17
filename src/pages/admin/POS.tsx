@@ -250,7 +250,23 @@ export default function POSPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex items-center gap-2">
+                    {session.status === 'open' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          await sessions_hook.closeSession.mutateAsync({
+                            sessionId: session.id,
+                            data: { closing_cash: session.opening_cash, notes: 'Handmatig gesloten vanuit overzicht' },
+                          });
+                        }}
+                        disabled={sessions_hook.closeSession.isPending}
+                      >
+                        <Pause className="mr-1 h-3 w-3" />
+                        Sluiten
+                      </Button>
+                    ) : null}
                     <Badge variant={session.status === 'open' ? 'default' : 'secondary'}>
                       {session.status === 'open' ? 'Actief' : 'Gesloten'}
                     </Badge>

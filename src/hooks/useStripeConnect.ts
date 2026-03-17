@@ -45,6 +45,12 @@ export function useStripeConnect(tenantId: string | undefined) {
 
   const [isOpeningDashboard, setIsOpeningDashboard] = useState(false);
 
+  // Auto-fetch status on mount when tenantId is available
+  useEffect(() => {
+    if (tenantId) {
+      checkStatus();
+    }
+  }, [tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
   const checkStatus = useCallback(async () => {
     if (!tenantId) return;
     
