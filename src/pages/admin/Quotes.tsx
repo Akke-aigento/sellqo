@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, MoreHorizontal, Eye, Copy, Send, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

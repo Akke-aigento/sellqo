@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from 'react-i18next';
 import { Plus, MoreHorizontal, Play, Pause, X, FileText, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
