@@ -337,5 +337,46 @@ export function InboxFilters({
         </div>
       )}
     </div>
+
+      {/* Create folder dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nieuwe map</DialogTitle>
+            <DialogDescription>Maak een nieuwe map aan om gesprekken te organiseren.</DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Mapnaam..."
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newFolderName.trim()) {
+                onCreateFolder?.(newFolderName.trim());
+                setNewFolderName('');
+                setCreateDialogOpen(false);
+              }
+            }}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Annuleren
+            </Button>
+            <Button
+              onClick={() => {
+                if (newFolderName.trim()) {
+                  onCreateFolder?.(newFolderName.trim());
+                  setNewFolderName('');
+                  setCreateDialogOpen(false);
+                }
+              }}
+              disabled={!newFolderName.trim()}
+            >
+              Aanmaken
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
