@@ -573,7 +573,38 @@ export default function Fulfillment() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 sm:gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Quick status toggle */}
+                        {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Markeer als verzonden"
+                            onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}
+                          >
+                            <Truck className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Markeer als afgeleverd"
+                            onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {/* Pakbon */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Pakbon"
+                          onClick={() => handleSinglePackingSlip(order)}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        {/* Tracking */}
                         {!order.tracking_number ? (
                           <Button
                             size="sm"
@@ -592,16 +623,14 @@ export default function Fulfillment() {
                             <span className="sm:hidden">Edit</span>
                           </Button>
                         )}
-                        {!isWarehouse && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
-                          >
-                            <span className="hidden sm:inline">Details</span>
-                            <Eye className="h-4 w-4 sm:hidden" />
-                          </Button>
-                        )}
+                        {/* Details sheet */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openSheet(order.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
