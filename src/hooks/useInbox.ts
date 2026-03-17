@@ -73,6 +73,8 @@ export interface Conversation {
   replyToEmail?: string;
   messageStatus: MessageStatus;
   folderId: string | null;
+  isPinned: boolean;
+  snoozedUntil: string | null;
 }
 
 export interface SearchOptions {
