@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram } from 'lucide-react';
+import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram, StickyNote } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +12,7 @@ import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionBox } from './AISuggestionBox';
 import { AttachmentUploader } from './AttachmentUploader';
+import { TemplatePicker } from './TemplatePicker';
 import type { Conversation, MessageChannel, isSocialChannel } from '@/hooks/useInbox';
 
 type ReplyChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
@@ -29,7 +32,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
-  
+  const [isNoteMode, setIsNoteMode] = useState(false);
   // Determine initial channel based on conversation
   const getInitialChannel = (): ReplyChannel => {
     const ch = conversation.channel;
@@ -187,6 +190,41 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const handleSend = async () => {
     if (!message.trim() || !currentTenant?.id) return;
 
+    // Handle internal note
+    if (isNoteMode) {
+      setIsSending(true);
+      try {
+        const { error } = await supabase
+          .from('customer_messages')
+          .insert({
+            tenant_id: currentTenant.id,
+            direction: 'internal',
+            subject: conversation.lastMessage.subject || 'Interne notitie',
+            body_html: message.trim().replace(/\n/g, '<br>'),
+            body_text: message.trim(),
+            from_email: 'system',
+            to_email: 'internal',
+            channel: conversation.channel === 'mixed' || conversation.channel === 'social' ? 'email' : conversation.channel,
+            delivery_status: 'sent',
+            message_status: conversation.messageStatus || 'active',
+            customer_id: conversation.customer?.id || null,
+            order_id: conversation.lastMessage.order_id || null,
+            folder_id: conversation.folderId || null,
+          });
+        if (error) throw error;
+        toast({ title: 'Notitie toegevoegd', description: 'Interne notitie is opgeslagen.' });
+        setMessage('');
+        setIsNoteMode(false);
+        onSent();
+      } catch (error) {
+        console.error('Error saving note:', error);
+        toast({ title: 'Fout', description: 'Kon notitie niet opslaan.', variant: 'destructive' });
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
     setIsSending(true);
     try {
       if (channel === 'whatsapp') {
@@ -285,7 +323,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   };
 
   return (
-    <div className="border-t p-4 bg-background">
+    <div className={cn('border-t p-4', isNoteMode ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-background')}>
       {/* Channel selector */}
       {hasMultipleChannels && (
         <Tabs value={channel} onValueChange={(v) => setChannel(v as ReplyChannel)} className="mb-3">
@@ -365,10 +403,10 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Textarea
-            placeholder="Typ je antwoord..."
+            placeholder={isNoteMode ? 'Schrijf een interne notitie... (alleen zichtbaar voor het team)' : 'Typ je antwoord...'}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="min-h-[120px] resize-y pr-10"
+            className={cn('min-h-[120px] resize-y pr-10', isNoteMode && 'border-amber-300 dark:border-amber-700')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 handleSend();
@@ -386,7 +424,25 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           </Button>
         </div>
         <div className="flex flex-col gap-1 self-end">
-          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && (
+          {/* Template picker */}
+          {!isNoteMode && (
+            <TemplatePicker onSelect={(body) => setMessage(prev => prev ? prev + '\n' + body : body)} />
+          )}
+          {/* Internal note toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isNoteMode ? 'default' : 'outline'}
+                size="icon"
+                className={cn('h-8 w-8', isNoteMode && 'bg-amber-500 hover:bg-amber-600')}
+                onClick={() => setIsNoteMode(!isNoteMode)}
+              >
+                <StickyNote className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isNoteMode ? 'Terug naar antwoord' : 'Interne notitie'}</TooltipContent>
+          </Tooltip>
+          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && !isNoteMode && (
             <Button
               variant="outline"
               size="icon"
@@ -400,15 +456,15 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           <Button
             onClick={handleSend}
             disabled={!message.trim() || isSending}
-            className="h-auto"
+            className={cn('h-auto', isNoteMode && 'bg-amber-500 hover:bg-amber-600')}
           >
-            <Send className="h-4 w-4" />
+            {isNoteMode ? <StickyNote className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground mt-2">
-        Druk op Cmd+Enter om te verzenden
+        {isNoteMode ? '📝 Notitie modus — alleen zichtbaar voor het team' : 'Druk op Cmd+Enter om te verzenden'}
       </p>
     </div>
   );
