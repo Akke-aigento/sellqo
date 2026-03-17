@@ -84,3 +84,19 @@
 ### Bestanden
 - `src/hooks/useAccountingExports.ts` (uitgebreid — 8 nieuwe hooks)
 - `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe tab + ReportCards)
+
+## Rapportage Fase 3: Tabs Fix + Voorraadrapportage ✅
+
+### Wat is gewijzigd
+
+1. **Tabs scrollbaar** – `TabsList` van `grid grid-cols-5 lg:grid-cols-9` naar `flex overflow-x-auto` met `flex-shrink-0` op elke trigger — geen afgesneden tekst meer
+2. **Nieuwe "Voorraad" tab** – Aparte tab met 5 rapporten:
+   - **Voorraadmutaties** – In/uit bewegingen (verkopen uit order_items, inkopen uit purchase_order_items)
+   - **Dode Voorraad** – Producten met stock > 0 die >90 dagen niet verkocht zijn
+   - **Omloopsnelheid** – Verkopen vs voorraad, gem. verkoop/dag, resterende dagen voorraad
+   - **Inkoopadvies** – Producten die bijbesteld moeten worden o.b.v. historische verkopen (90d)
+   - **Voorraadwaardering** – (verplaatst vanuit Producten tab)
+
+### Bestanden
+- `src/hooks/useStockExports.ts` (nieuw — 4 hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — scrollbare tabs + Voorraad tab)
