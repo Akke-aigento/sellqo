@@ -401,10 +401,10 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Textarea
-            placeholder="Typ je antwoord..."
+            placeholder={isNoteMode ? 'Schrijf een interne notitie... (alleen zichtbaar voor het team)' : 'Typ je antwoord...'}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="min-h-[120px] resize-y pr-10"
+            className={cn('min-h-[120px] resize-y pr-10', isNoteMode && 'border-amber-300 dark:border-amber-700')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 handleSend();
