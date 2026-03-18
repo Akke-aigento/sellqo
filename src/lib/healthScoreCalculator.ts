@@ -498,22 +498,9 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
   let score = maxScore;
   const items: HealthItem[] = [];
   
-  // Onboarding not completed
-  if (!data.onboardingCompleted) {
-    score -= 3;
-    items.push({
-      label: 'Setup wizard',
-      status: 'warning',
-      value: 'Niet voltooid',
-      action: { label: 'Voltooien', url: '/admin/settings' },
-    });
-  } else {
-    items.push({ label: 'Setup wizard', status: 'ok', value: 'Voltooid ✓' });
-  }
-  
-  // Missing legal pages
+  // Missing legal pages (max -7 penalty — most important compliance factor)
   if (data.missingLegalPages > 0) {
-    const penalty = Math.min(data.missingLegalPages * 1.5, 5);
+    const penalty = Math.min(data.missingLegalPages * 2, 7);
     score -= penalty;
     items.push({
       label: 'Juridische pagina\'s',
@@ -525,9 +512,9 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
     items.push({ label: 'Juridische pagina\'s', status: 'ok', value: '7/7 ✓' });
   }
   
-  // Company info
+  // Company info (-2 penalty)
   if (!data.companyInfoComplete) {
-    score -= 1.5;
+    score -= 2;
     items.push({
       label: 'Bedrijfsgegevens',
       status: 'warning',
@@ -536,9 +523,15 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
     });
   }
   
-  // Logo
+  // Logo (-1 penalty)
   if (!data.logoUploaded) {
-    score -= 0.5;
+    score -= 1;
+    items.push({
+      label: 'Logo',
+      status: 'warning',
+      value: 'Ontbreekt',
+      action: { label: 'Uploaden', url: '/admin/settings' },
+    });
   }
   
   score = Math.max(0, score);
