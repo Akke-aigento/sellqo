@@ -1,68 +1,102 @@
+## POS Systeem: Grondige Refactor ✅
 
+### Wat is gewijzigd
 
-## Herziening Health Score Systeem
+1. **Layout fix** – QuickButtonDialog verbreed naar `max-w-3xl`, zoekresultaten hebben `truncate` + `shrink-0` op prijzen
+2. **Categorie-navigatie** – Nieuw `POSProductPanel.tsx` met horizontale categorie-chips, subcategorieën breadcrumb, en productgrid
+3. **BTW per product** – Dynamische tax_rate per cart-item via `vat_rate_id` lookup, met fallback naar terminal `defaultTaxRate`
+4. **Barcode generatie** – `ProductBarcodeDialog.tsx` met JsBarcode (EAN-13, CODE128, etc.), download PNG, printen labels
+5. **Hardware setup help** – Scanner/printer/kaslade instructies + testprint & kaslade-test knoppen in terminal settings
+6. **Refactor POSTerminal** – Gesplitst in `POSProductPanel`, `POSCartPanel`, `usePOSCart` hook. Terminal van ~1500 naar gestructureerde componenten
+7. **BTW breakdown** – Cart toont per-tarief BTW regels als er meerdere tarieven in de winkelwagen zitten
 
-### Kernproblemen met huidige scoring
+## POS → Orders Integratie ✅
 
-1. **Onboarding in de score is onzinnig** — De setup wizard is eenmalig, geen operationele gezondheid. Een shop die de wizard heeft overgeslagen maar perfect draait, krijgt strafpunten.
+### Wat is gewijzigd
 
-2. **Lege winkel = perfecte score** — Een shop met 0 producten en 0 orders scoort 25/25 op Orders en 20/20 op Voorraad. Dat is misleidend — "geen problemen" ≠ "goed bezig."
+1. **POS-transacties worden nu als orders opgeslagen** – Na elke voltooide POS-verkoop wordt automatisch een `orders` + `order_items` record aangemaakt
+2. **Sales channel kolom** – `sales_channel` TEXT kolom toegevoegd aan `orders` tabel (default: 'webshop'). Backfill van bestaande orders op basis van `marketplace_source`
+3. **Verkoopkanaal badge** – `OrderMarketplaceBadge` toont nu "POS" badge (groen) naast bestaande bronnen
+4. **Verkoopkanaal filter** – OrderFilters component heeft nu een "Verkoopkanaal" dropdown (Alle kanalen / Webshop / POS / Bol.com / Amazon)
+5. **Dashboard statistieken** – POS-omzet wordt automatisch meegenomen in `useOrderStats` en alle rapportages
 
-3. **Stripe te zwaar bestraft** — -12 van 20 punten (60% penalty) voor geen Stripe is buitenproportioneel. Veel shops starten zonder of gebruiken andere methodes.
+### Bestanden gewijzigd
+- `src/hooks/usePOS.ts` – Order + order_items aanmaken na POS transactie, order cache invalideren
+- `src/types/order.ts` – `sales_channel` + `SalesChannel` type toegevoegd
+- `src/hooks/useOrders.ts` – Filter op `sales_channel`
+- `src/components/admin/OrderFilters.tsx` – Verkoopkanaal filter i.p.v. marketplace bron
+- `src/components/admin/marketplace/OrderMarketplaceBadge.tsx` – POS badge + salesChannel prop
+- `src/pages/admin/Orders.tsx` – salesChannel doorgeven aan badge
+- Database migratie: `ALTER TABLE orders ADD COLUMN sales_channel TEXT DEFAULT 'webshop'`
 
-4. **Geen verschil tussen "leeg" en "gezond"** — Het systeem kent geen "neutrale" of "niet van toepassing" status.
+## Kassa-medewerkers met PIN-code ✅
 
-### Voorgestelde wijzigingen
+### Wat is gewijzigd
 
-#### 1. Onboarding uit de health score halen
-- Verwijder `onboardingCompleted` volledig uit `calculateComplianceHealth`
-- Compliance focust nu alleen op **echte compliance**: juridische pagina's, bedrijfsgegevens, logo
-- Herbalanceer Compliance items: legal pages zwaarder (max -7), bedrijfsinfo (-2), logo (-1)
-
-#### 2. "Lege winkel" detectie toevoegen
-Wanneer een shop nog geen producten of orders heeft, toon neutrale/helpende items in plaats van groene vinkjes:
-
-| Situatie | Huidig | Nieuw |
-|----------|--------|-------|
-| 0 producten | Voorraad: 20/20 ✅ | Voorraad: 10/20 ⚡ "Voeg je eerste product toe" |
-| 0 orders ooit | Orders: 25/25 ✅ | Orders: 15/25 ⚡ "Wachtend op je eerste bestelling" |
-| 0 berichten ooit | Klantservice: 15/15 ✅ | Klantservice: 12/15 — neutrale staat, geen penalty maar ook geen perfecte score |
-
-Dit geeft nieuwe shops een startpunt van ~60-65% in plaats van een misleidende 100%.
-
-#### 3. Stripe penalty verlagen
-- Van -12 naar -6 punten (30% van Finance in plaats van 60%)
-- Stripe is belangrijk maar niet showstopping voor een nieuwe winkel
-
-#### 4. Gewichten bijstellen
-Huidige totaal = 100, dat blijft gelijk, maar verdeling verschuift:
-
-| Categorie | Huidig | Nieuw | Reden |
-|-----------|--------|-------|-------|
-| Orders | 25 | 25 | Blijft gelijk — kern van de business |
-| Voorraad | 20 | 20 | Blijft gelijk |
-| Klantservice | 15 | 20 | Verhoogd — klantretentie is cruciaal |
-| Betalingen | 20 | 15 | Verlaagd — minder dagelijkse urgentie |
-| SEO | 10 | 10 | Blijft gelijk |
-| Compliance | 10 | 10 | Blijft gelijk, maar zonder onboarding |
-
-### Technische aanpak
-
-**`src/lib/healthScoreCalculator.ts`**:
-- `calculateOrdersHealth`: Check `activeProducts === 0` → geef 15/25 + tip-item "Wachtend op eerste bestelling"
-- `calculateInventoryHealth`: Check `activeProducts === 0` → geef 10/20 + tip-item "Voeg producten toe"
-- `calculateCustomerServiceHealth`: Verhoog maxScore 15→20; als geen berichten ooit, geef 12/20
-- `calculateFinanceHealth`: Verlaag maxScore 20→15; Stripe penalty 12→6
-- `calculateComplianceHealth`: Verwijder `onboardingCompleted` check; herbalanceer legal pages naar max -7
-- `HealthData` interface: Onboarding veld kan blijven (backward compat) maar wordt niet meer gebruikt in scoring
-
-**`src/config/healthMessages.ts`**:
-- Update `categoryInfo` gewichten
-- Voeg "new shop" berichten toe per categorie (bijv. "Je winkel is bijna klaar — voeg producten toe!")
-
-**`src/hooks/useShopHealth.ts`**: Geen wijzigingen nodig (data gathering blijft hetzelfde)
+1. **Database** – `pos_cashiers` tabel met `pin_hash` (bcrypt via pgcrypto), `display_name`, `avatar_color`, `is_active`. DB functions: `create_pos_cashier`, `verify_cashier_pin`, `update_cashier_pin`, `hash_cashier_pin`. Nieuwe kolom `pos_cashier_id` op `pos_transactions`.
+2. **Hook** – `usePOSCashiers.ts` met CRUD + `verifyPin` (roept DB function aan, hash gaat nooit naar client)
+3. **PIN-select UI** – `POSCashierSelect.tsx`: avatar-grid met namen → 4-digit PIN invoer (auto-submit), terug-knop, foutmelding
+4. **Admin beheer** – `CashierManagement.tsx` in TeamSettings: aanmaken (naam + PIN + kleur), bewerken, PIN wijzigen, activeren/deactiveren
+5. **POS integratie** – `POSTerminal.tsx` toont cashier-select na sessie-open (als cashiers bestaan). Actieve medewerker in cart header met wissel-optie. `pos_cashier_id` wordt meegestuurd bij elke transactie.
+6. **Backwards compatible** – Geen cashiers aangemaakt? Alles werkt zoals voorheen.
 
 ### Bestanden
-- `src/lib/healthScoreCalculator.ts` — scoring logica herzien
-- `src/config/healthMessages.ts` — gewichten + nieuwe berichten
+- `src/hooks/usePOSCashiers.ts` (nieuw)
+- `src/components/admin/pos/POSCashierSelect.tsx` (nieuw)
+- `src/components/admin/settings/CashierManagement.tsx` (nieuw)
+- `src/components/admin/settings/TeamSettings.tsx` (gewijzigd)
+- `src/pages/admin/POSTerminal.tsx` (gewijzigd)
+- `src/hooks/usePOS.ts` (gewijzigd)
+- `src/components/admin/pos/POSCartPanel.tsx` (gewijzigd)
 
+## Rapportage Uitbreiding: Boekhoudersdroomland ✅
+
+### Wat is gewijzigd
+
+1. **Winst & Verlies overzicht** – Omzet (facturen paid) minus inkoop (supplier docs) minus verzendkosten = bruto marge per maand met totaalrij
+2. **Omzet per BTW-tarief** – Uitsplitsing per tarief (21%, 12%, 6%, 0%) met maatstaf, BTW bedrag en aantal orders
+3. **Omzet per Verkoopkanaal** – Webshop vs POS vs Marketplace: omzet, orders, gem. orderbedrag, % van totaal
+4. **Betalingsoverzicht** – Alle ontvangen betalingen (facturen + POS) met datum, methode, referentie — reconciliatie-rapport voor bankafschriften
+5. **Marge-analyse per Product** – Per product: verkoopprijs, kostprijs, marge (€ + %), aantal verkocht, totale marge, gesorteerd op marge%
+6. **Voorraadwaardering** – Voorraad × kostprijs per product met totaalrij — balanspost voor elk kwartaal
+7. **Kassasessies (verrijkt)** – Sessies met omzet per sessie, aantal transacties, medewerker, sessieduur, contant/PIN split
+8. **Jaarafsluiting Pakket** – Multi-sheet Excel: W&V, BTW per kwartaal, voorraadwaardering, klantenbestand — alles in één bestand
+9. **BTW Kwartaal Pakket** – Automatisch huidig kwartaal: BTW-overzicht + IC-listing + betalingen
+
+### Bestanden
+- `src/hooks/useAccountingExports.ts` (nieuw — 9 hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe ReportCards + imports)
+
+## Rapportage Fase 2: Boekhoudersdroomland Pro ✅
+
+### Wat is gewijzigd
+
+1. **Grootboekjournaal** – Debet/credit journaalposten voor facturen, POS-transacties en inkoopfacturen met MAR-rekeningnummers (400000, 700000, 451000, 604000, 440000, 570000)
+2. **Dagboek Verkopen** – Chronologisch verkoopfactuurjournaal met klant, BTW-nr, OGM, betaalstatus
+3. **Dagboek Aankopen** – Chronologisch inkoopjournaal met leverancier, BTW-nr, vervaldatum, betaalstatus
+4. **Debiteuren Subledger** – Openstaande posten per klant met verouderingsanalyse (0-30, 31-60, 61-90, 90+ dagen)
+5. **Crediteuren Subledger** – Openstaande posten per leverancier met verouderingsanalyse
+6. **Cashflow Overzicht** – Inkomend vs uitgaand geld per week met cumulatief saldo
+7. **Belgische Klantenlisting** – Jaarlijkse B2B klantenlisting (≥€250) voor FOD Financiën
+8. **Export naar Boekhoudpakket** – Exact Online en Octopus CSV importbestanden met juiste dagboekcodes en rekeningnummers
+9. **Nieuwe "Boekhouding" tab** – Alle journalen en subledgers in eigen tab + software-exportknoppen
+
+### Bestanden
+- `src/hooks/useAccountingExports.ts` (uitgebreid — 8 nieuwe hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — nieuwe tab + ReportCards)
+
+## Rapportage Fase 3: Tabs Fix + Voorraadrapportage ✅
+
+### Wat is gewijzigd
+
+1. **Tabs scrollbaar** – `TabsList` van `grid grid-cols-5 lg:grid-cols-9` naar `flex overflow-x-auto` met `flex-shrink-0` op elke trigger — geen afgesneden tekst meer
+2. **Nieuwe "Voorraad" tab** – Aparte tab met 5 rapporten:
+   - **Voorraadmutaties** – In/uit bewegingen (verkopen uit order_items, inkopen uit purchase_order_items)
+   - **Dode Voorraad** – Producten met stock > 0 die >90 dagen niet verkocht zijn
+   - **Omloopsnelheid** – Verkopen vs voorraad, gem. verkoop/dag, resterende dagen voorraad
+   - **Inkoopadvies** – Producten die bijbesteld moeten worden o.b.v. historische verkopen (90d)
+   - **Voorraadwaardering** – (verplaatst vanuit Producten tab)
+
+### Bestanden
+- `src/hooks/useStockExports.ts` (nieuw — 4 hooks)
+- `src/pages/admin/Reports.tsx` (gewijzigd — scrollbare tabs + Voorraad tab)
