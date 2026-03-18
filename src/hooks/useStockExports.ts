@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { generateCSV, generateExcel, generateFilename, ExportFormat } from '@/lib/exportUtils';
 import { toast } from 'sonner';
-import { format, subDays, differenceInDays } from 'date-fns';
+import { subDays, differenceInDays } from 'date-fns';
 
 interface DateRange {
   from: Date;
@@ -20,14 +20,14 @@ export const useStockMovementExport = () => {
     setIsExporting(true);
     try {
       const [salesRes, purchasesRes, productsRes] = await Promise.all([
-        supabase.from('order_items' as any)
-          .select('quantity, product_id, product_name, product_sku, created_at, order_id')
-          .eq('tenant_id', currentTenant.id)
+        supabase.from('order_items')
+          .select('quantity, product_id, product_name, product_sku, created_at, order_id, orders!inner(tenant_id)')
+          .eq('orders.tenant_id', currentTenant.id)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString()),
-        supabase.from('purchase_order_items' as any)
-          .select('quantity, product_id, created_at, purchase_order_id')
-          .eq('tenant_id', currentTenant.id)
+        supabase.from('purchase_order_items')
+          .select('quantity_ordered, product_id, created_at, purchase_order_id, purchase_orders!inner(tenant_id)')
+          .eq('purchase_orders.tenant_id', currentTenant.id)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString()),
         supabase.from('products')
@@ -39,14 +39,14 @@ export const useStockMovementExport = () => {
       if (purchasesRes.error) throw purchasesRes.error;
 
       const productMap: Record<string, { name: string; sku: string }> = {};
-      (productsRes.data || []).forEach((p: any) => {
+      (productsRes.data || []).forEach((p) => {
         productMap[p.id] = { name: p.name, sku: p.sku || '-' };
       });
 
       const rows: Record<string, any>[] = [];
 
-      (salesRes.data || []).forEach((item: any) => {
-        const prod = productMap[item.product_id];
+      (salesRes.data || []).forEach((item) => {
+        const prod = productMap[item.product_id || ''];
         rows.push({
           datum: item.created_at,
           product: item.product_name || prod?.name || '-',
@@ -57,14 +57,14 @@ export const useStockMovementExport = () => {
         });
       });
 
-      (purchasesRes.data || []).forEach((item: any) => {
-        const prod = productMap[item.product_id];
+      (purchasesRes.data || []).forEach((item) => {
+        const prod = productMap[item.product_id || ''];
         rows.push({
           datum: item.created_at,
           product: prod?.name || '-',
           sku: prod?.sku || '-',
           type: 'Inkoop',
-          hoeveelheid: item.quantity || 0,
+          hoeveelheid: item.quantity_ordered || 0,
           referentie: item.purchase_order_id || '-',
         });
       });
@@ -116,15 +116,16 @@ export const useDeadStockExport = () => {
       const cutoff = subDays(new Date(), 90);
 
       const { data: salesData } = await supabase
-        .from('order_items' as any)
-        .select('product_id, created_at')
-        .eq('tenant_id', currentTenant.id)
+        .from('order_items')
+        .select('product_id, created_at, orders!inner(tenant_id)')
+        .eq('orders.tenant_id', currentTenant.id)
         .in('product_id', (products || []).map(p => p.id));
 
       const lastSaleMap: Record<string, string> = {};
-      (salesData || []).forEach((s: any) => {
-        if (!lastSaleMap[s.product_id] || s.created_at > lastSaleMap[s.product_id]) {
-          lastSaleMap[s.product_id] = s.created_at;
+      (salesData || []).forEach((s) => {
+        const pid = s.product_id || '';
+        if (!lastSaleMap[pid] || s.created_at > lastSaleMap[pid]) {
+          lastSaleMap[pid] = s.created_at;
         }
       });
 
@@ -192,15 +193,16 @@ export const useStockTurnoverExport = () => {
       if (error) throw error;
 
       const { data: salesData } = await supabase
-        .from('order_items' as any)
-        .select('product_id, quantity')
-        .eq('tenant_id', currentTenant.id)
+        .from('order_items')
+        .select('product_id, quantity, orders!inner(tenant_id)')
+        .eq('orders.tenant_id', currentTenant.id)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString());
 
       const salesMap: Record<string, number> = {};
-      (salesData || []).forEach((s: any) => {
-        salesMap[s.product_id] = (salesMap[s.product_id] || 0) + (s.quantity || 0);
+      (salesData || []).forEach((s) => {
+        const pid = s.product_id || '';
+        salesMap[pid] = (salesMap[pid] || 0) + (s.quantity || 0);
       });
 
       const periodDays = Math.max(1, differenceInDays(dateRange.to, dateRange.from));
@@ -267,14 +269,15 @@ export const useReorderAdviceExport = () => {
 
       const since = subDays(new Date(), 90).toISOString();
       const { data: salesData } = await supabase
-        .from('order_items' as any)
-        .select('product_id, quantity')
-        .eq('tenant_id', currentTenant.id)
+        .from('order_items')
+        .select('product_id, quantity, orders!inner(tenant_id)')
+        .eq('orders.tenant_id', currentTenant.id)
         .gte('created_at', since);
 
       const salesMap: Record<string, number> = {};
-      (salesData || []).forEach((s: any) => {
-        salesMap[s.product_id] = (salesMap[s.product_id] || 0) + (s.quantity || 0);
+      (salesData || []).forEach((s) => {
+        const pid = s.product_id || '';
+        salesMap[pid] = (salesMap[pid] || 0) + (s.quantity || 0);
       });
 
       const rows = (products || [])
