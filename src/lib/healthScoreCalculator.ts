@@ -180,6 +180,29 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   let score = maxScore;
   const items: HealthItem[] = [];
   
+  // Empty shop detection — no products at all
+  if (data.activeProducts === 0) {
+    score = 10;
+    items.push({
+      label: 'Nog geen producten',
+      status: 'ok',
+      value: 'Begin hier',
+      action: { label: 'Product toevoegen', url: '/admin/products' },
+    });
+    
+    return {
+      id: 'inventory',
+      name: 'Voorraad',
+      icon: 'Package',
+      maxScore,
+      currentScore: score,
+      status: 'attention',
+      items,
+      emotionalMessage: 'Voeg je eerste product toe om te beginnen! 📦',
+      actionUrl: '/admin/products',
+    };
+  }
+  
   // Out of stock penalty (max -10 points)
   if (data.outOfStockCount > 0) {
     score -= Math.min(data.outOfStockCount * 3, 10);
