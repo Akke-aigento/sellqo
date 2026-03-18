@@ -362,16 +362,16 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
 }
 
 export function calculateFinanceHealth(data: HealthData): HealthCategory {
-  const maxScore = 20;
+  const maxScore = 15;
   let score = maxScore;
   const items: HealthItem[] = [];
   
-  // Stripe not connected is critical
+  // Stripe not connected — reduced penalty (was -12, now -6)
   if (!data.stripeConnected) {
-    score -= 12;
+    score -= 6;
     items.push({
       label: 'Stripe',
-      status: 'critical',
+      status: 'warning',
       value: 'Niet gekoppeld',
       action: { label: 'Koppelen', url: '/admin/settings?tab=payments' },
     });
@@ -379,7 +379,7 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
     items.push({ label: 'Stripe', status: 'ok', value: 'Actief ✓' });
   }
   
-  // Overdue invoices penalty
+  // Overdue invoices penalty (max -8)
   if (data.overdueInvoicesCount > 0) {
     score -= Math.min(data.overdueInvoicesCount * 2, 8);
     items.push({
