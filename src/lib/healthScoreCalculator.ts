@@ -95,6 +95,29 @@ export function calculateOrdersHealth(data: HealthData): HealthCategory {
   let score = maxScore;
   const items: HealthItem[] = [];
   
+  // Empty shop detection — no products means no orders possible
+  if (data.activeProducts === 0) {
+    score = 15;
+    items.push({
+      label: 'Wachtend op eerste bestelling',
+      status: 'ok',
+      value: 'Start met producten',
+      action: { label: 'Producten toevoegen', url: '/admin/products' },
+    });
+    
+    return {
+      id: 'orders',
+      name: 'Bestellingen',
+      icon: 'ShoppingCart',
+      maxScore,
+      currentScore: score,
+      status: 'attention',
+      items,
+      emotionalMessage: 'Voeg producten toe om je eerste bestellingen te ontvangen! 🛒',
+      actionUrl: '/admin/products',
+    };
+  }
+  
   // Pending orders penalty (max -10 points)
   const pendingTotal = data.pendingOrders + data.processingOrders;
   if (pendingTotal > 0) {
