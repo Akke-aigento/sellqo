@@ -268,15 +268,34 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
 }
 
 export function calculateCustomerServiceHealth(data: HealthData): HealthCategory {
-  const maxScore = 15;
+  const maxScore = 20;
   let score = maxScore;
   const items: HealthItem[] = [];
+  
+  // Neutral state — no messages ever received
+  const hasNoMessages = data.unreadMessages === 0 && data.pendingQuotes === 0;
+  if (hasNoMessages && data.activeProducts === 0) {
+    score = 12;
+    items.push({ label: 'Nog geen berichten', status: 'ok', value: 'Komt vanzelf' });
+    
+    return {
+      id: 'customerService',
+      name: 'Klantservice',
+      icon: 'MessageCircle',
+      maxScore,
+      currentScore: score,
+      status: 'attention',
+      items,
+      emotionalMessage: 'Berichten komen vanzelf zodra je winkel draait! 💬',
+      actionUrl: '/admin/messages',
+    };
+  }
   
   // Unread messages penalty
   if (data.unreadMessages > 0) {
     // Penalty increases with wait time
     if (data.oldestUnreadHours > 48) {
-      score -= 10;
+      score -= 14;
       items.push({
         label: 'Onbeantwoord (48+ uur)',
         status: 'critical',
@@ -284,7 +303,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
         action: { label: 'Beantwoorden', url: '/admin/messages' },
       });
     } else if (data.oldestUnreadHours > 24) {
-      score -= 6;
+      score -= 8;
       items.push({
         label: 'Onbeantwoord (24+ uur)',
         status: 'warning',
@@ -292,7 +311,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
         action: { label: 'Beantwoorden', url: '/admin/messages' },
       });
     } else {
-      score -= Math.min(data.unreadMessages * 2, 5);
+      score -= Math.min(data.unreadMessages * 2, 6);
       items.push({
         label: 'Wachtend op antwoord',
         status: 'warning',
@@ -306,7 +325,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
   
   // Pending quotes
   if (data.pendingQuotes > 0) {
-    score -= Math.min(data.pendingQuotes * 1, 3);
+    score -= Math.min(data.pendingQuotes * 1, 4);
     items.push({
       label: 'Openstaande offertes',
       status: 'warning',
