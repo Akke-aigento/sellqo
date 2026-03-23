@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2, ChevronRight } from 'lucide-react';
 import { useIsCompact } from '@/hooks/use-mobile';
@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
 import { useTenant } from '@/hooks/useTenant';
+import { useBulkSelection } from '@/contexts/BulkSelectionContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,11 +27,53 @@ export default function OrdersPage() {
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
+  const { setSelectedCount, setBulkActions, clearBulk } = useBulkSelection();
   
   // Batch selection state
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+
+  // Sync selection count to BulkSelectionContext for dynamic footer
+  useEffect(() => {
+    setSelectedCount(selectedOrderIds.length);
+    if (selectedOrderIds.length > 0) {
+      setBulkActions([
+        {
+          label: 'Verzonden',
+          icon: <Truck className="h-4 w-4" />,
+          onClick: () => {
+            selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'shipped' }));
+            setSelectedOrderIds([]);
+          },
+        },
+        {
+          label: 'Afgeleverd',
+          icon: <CheckCircle className="h-4 w-4" />,
+          onClick: () => {
+            selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'delivered' }));
+            setSelectedOrderIds([]);
+          },
+        },
+        {
+          label: 'Annuleer',
+          icon: <XCircle className="h-4 w-4" />,
+          variant: 'destructive' as const,
+          onClick: () => {
+            selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'cancelled' }));
+            setSelectedOrderIds([]);
+          },
+        },
+      ]);
+    } else {
+      setBulkActions([]);
+    }
+  }, [selectedOrderIds, setSelectedCount, setBulkActions, updateOrderStatus]);
+
+  // Clear bulk on unmount
+  useEffect(() => {
+    return () => clearBulk();
+  }, [clearBulk]);
 
   const handleDeleteOrder = (order: Order) => {
     setOrderToDelete(order);
@@ -145,27 +188,61 @@ export default function OrdersPage() {
           ) : (
             isCompact ? (
               <div className="space-y-2 px-3 sm:px-0">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50 transition-colors"
-                    onClick={() => navigate(`/admin/orders/${order.id}`)}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm">{order.order_number}</span>
-                      <OrderStatusBadge status={order.status} />
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground truncate">
-                      {order.customer_name || order.customer_email || '-'}
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(order.original_created_at || order.created_at), 'd MMM yyyy', { locale: nl })}
-                      </span>
-                      <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
-                    </div>
+                {/* Select all toggle for mobile */}
+                {orders.length > 0 && (
+                  <div className="flex items-center gap-2 py-1 px-1">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Selecteer alle orders"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {selectedOrderIds.length > 0
+                        ? `${selectedOrderIds.length} van ${orders.length} geselecteerd`
+                        : 'Selecteer alle'}
+                    </span>
                   </div>
-                ))}
+                )}
+                {orders.map((order) => {
+                  const isSelected = selectedOrderIds.includes(order.id);
+                  return (
+                    <div
+                      key={order.id}
+                      className={`rounded-lg border bg-card p-3 transition-colors ${isSelected ? 'border-primary bg-primary/5' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div
+                          className="pt-0.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
+                            aria-label={`Selecteer order ${order.order_number}`}
+                          />
+                        </div>
+                        <div
+                          className="flex-1 min-w-0 cursor-pointer active:bg-muted/50"
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-sm">{order.order_number}</span>
+                            <OrderStatusBadge status={order.status} />
+                          </div>
+                          <div className="mt-1 text-sm text-muted-foreground truncate">
+                            {order.customer_name || order.customer_email || '-'}
+                          </div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(order.original_created_at || order.created_at), 'd MMM yyyy', { locale: nl })}
+                            </span>
+                            <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
             <div className="overflow-x-auto">
