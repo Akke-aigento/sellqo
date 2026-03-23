@@ -27,37 +27,29 @@ export function AdminBottomNav() {
   // Bulk action mode
   if (selectedCount > 0) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary text-primary-foreground border-t lg:hidden animate-in slide-in-from-bottom-2 duration-200">
-        <div className="flex items-center h-14 px-3 gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary text-primary-foreground border-t lg:hidden animate-in slide-in-from-bottom-2 duration-200" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <nav className="flex items-center justify-around h-16">
+          <button
             onClick={clearBulk}
+            className="flex flex-col items-center gap-0.5 text-xs min-w-0 px-2 py-1 text-primary-foreground/80"
           >
-            <X className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium mr-auto">
-            {selectedCount} geselecteerd
-          </span>
-          <div className="flex items-center gap-1">
-            {bulkActions.map((action, i) => (
-              <Button
-                key={i}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'h-8 text-xs text-primary-foreground hover:bg-primary-foreground/20',
-                  action.variant === 'destructive' && 'hover:bg-destructive/80'
-                )}
-                onClick={action.onClick}
-              >
-                {action.icon}
-                <span className="ml-1">{action.label}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
+            <X className="h-5 w-5" />
+            <span>{selectedCount}</span>
+          </button>
+          {bulkActions.map((action, i) => (
+            <button
+              key={i}
+              onClick={action.onClick}
+              className={cn(
+                'flex flex-col items-center gap-0.5 text-xs min-w-0 px-2 py-1 text-primary-foreground',
+                action.variant === 'destructive' && 'text-destructive-foreground'
+              )}
+            >
+              {action.icon || <Package className="h-5 w-5" />}
+              <span className="truncate max-w-[4.5rem]">{action.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     );
   }
