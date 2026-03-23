@@ -82,7 +82,6 @@ async function processWwwA(zoneId: string, domain: string, allRecords: DnsRecord
 
     if (existing) {
       if (existing.type === 'CNAME') {
-        // Delete the CNAME, then create A
         console.log(`Deleting CNAME for www (id: ${existing.id}, content: ${existing.content})`);
         const deleted = await cfDelete(zoneId, existing.id, token);
         if (!deleted) return { name: label, type: 'A', success: false, action: 'error', error: 'Kon CNAME voor www niet verwijderen' };
@@ -102,7 +101,6 @@ async function processWwwA(zoneId: string, domain: string, allRecords: DnsRecord
           : { name: label, type: 'A', success: false, action: 'error', error: res.errors?.[0]?.message };
       }
 
-      // Some other type exists on www — don't touch it, just create A alongside
       console.log(`Unexpected record type ${existing.type} on www, creating A alongside`);
     }
 
@@ -123,12 +121,11 @@ async function processSellqoTxt(zoneId: string, domain: string, verificationToke
     const existing = allRecords.find(r => r.type === 'TXT' && r.name.toLowerCase() === txtName);
 
     if (existing) {
-      // Always delete + recreate TXT to guarantee correct value
       const existingContent = existing.content.replace(/^"|"$/g, '');
       if (existingContent === txtContent) {
         return { name: label, type: 'TXT', success: true, action: 'skipped', record_id: existing.id };
       }
-      console.log(`Deleting old _sellqo TXT (id: ${existing.id}, content: "${existingContent}")`);
+      console.log(`Deleting old _sellqo TXT (id: ${existing.id}, content: "${existingContent}", expected: "${txtContent}")`);
       const deleted = await cfDelete(zoneId, existing.id, token);
       if (!deleted) return { name: label, type: 'TXT', success: false, action: 'error', error: 'Kon bestaand _sellqo TXT niet verwijderen' };
       const res = await cfPost(zoneId, { type: 'TXT', name: txtName, content: txtContent, ttl: 1 }, token);
@@ -161,12 +158,10 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { tenant_id, domain, api_token } = await req.json();
+    const { tenant_id, domain, domain_id, api_token } = await req.json();
     if (!tenant_id || !domain || !api_token) {
       return new Response(JSON.stringify({ error: 'tenant_id, domain en api_token zijn verplicht' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -183,7 +178,6 @@ Deno.serve(async (req) => {
     const cleanDomain = domain.toLowerCase().replace(/^www\./, '');
     const zonesData = await cfFetch<Zone[]>(`/zones?name=${encodeURIComponent(cleanDomain)}`, api_token);
     if (!zonesData.success || !zonesData.result?.length) {
-      // Fallback: list all zones for error message
       const allZones = await cfFetch<Zone[]>('/zones', api_token);
       return new Response(JSON.stringify({
         success: false,
@@ -194,17 +188,54 @@ Deno.serve(async (req) => {
     }
     const zone = zonesData.result[0];
 
-    // 3. Get verification token from tenant
-    const { data: tenantData, error: tenantError } = await supabase
-      .from('tenants')
-      .select('domain_verification_token')
-      .eq('id', tenant_id)
-      .single();
-    if (tenantError || !tenantData) {
-      return new Response(JSON.stringify({ error: 'Tenant niet gevonden' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // 3. Resolve verification token — multi-domain first, legacy fallback
+    let verificationToken: string | null = null;
+    let resolvedDomainId: string | null = domain_id || null;
+
+    if (domain_id) {
+      // Path A: domain_id provided — use tenant_domains record
+      const { data: domainRecord } = await supabase
+        .from('tenant_domains')
+        .select('verification_token')
+        .eq('id', domain_id)
+        .eq('tenant_id', tenant_id)
+        .single();
+      verificationToken = domainRecord?.verification_token || null;
+      console.log(`Token from tenant_domains (domain_id=${domain_id}): ${verificationToken}`);
     }
-    const verificationToken = tenantData.domain_verification_token || crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+
+    if (!verificationToken) {
+      // Path B: look up tenant_domains by domain name
+      const { data: domainByName } = await supabase
+        .from('tenant_domains')
+        .select('id, verification_token')
+        .eq('tenant_id', tenant_id)
+        .eq('domain', cleanDomain)
+        .single();
+      if (domainByName?.verification_token) {
+        verificationToken = domainByName.verification_token;
+        resolvedDomainId = domainByName.id;
+        console.log(`Token from tenant_domains (by name=${cleanDomain}): ${verificationToken}`);
+      }
+    }
+
+    if (!verificationToken) {
+      // Path C: legacy fallback — tenants table
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('domain_verification_token')
+        .eq('id', tenant_id)
+        .single();
+      verificationToken = tenantData?.domain_verification_token || null;
+      console.log(`Token from tenants (legacy fallback): ${verificationToken}`);
+    }
+
+    if (!verificationToken) {
+      verificationToken = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+      console.log(`Generated new token: ${verificationToken}`);
+    }
+
+    console.log(`Using verification token: ${verificationToken} for domain: ${cleanDomain}`);
 
     // 4. Fetch ALL existing DNS records (once)
     const recordsData = await cfFetch<DnsRecord[]>(`/zones/${zone.id}/dns_records?per_page=500`, api_token);
@@ -223,8 +254,17 @@ Deno.serve(async (req) => {
 
     console.log('DNS sync results:', JSON.stringify(results));
 
-    // 6. Update tenant only if all 3 succeeded
+    // 6. Update records on success
     if (allSuccess) {
+      if (resolvedDomainId) {
+        // Multi-domain path: update tenant_domains
+        await supabase.from('tenant_domains').update({
+          dns_verified: true,
+        }).eq('id', resolvedDomainId);
+        console.log(`Updated tenant_domains (id=${resolvedDomainId}) dns_verified=true`);
+      }
+
+      // Also update legacy tenants table for backward compatibility
       await supabase.from('tenants').update({
         custom_domain: cleanDomain,
         domain_verified: true,

@@ -39,7 +39,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
   };
 
   const getCurrentStep = (): DomainStep => {
-    if (domain.ssl_active || sslStatus?.ssl_active) return 'live';
+    if (domain.dns_verified && (domain.ssl_active || sslStatus?.ssl_active)) return 'live';
     if (domain.dns_verified) return 'ssl-active';
     return 'domain-saved';
   };
@@ -206,7 +206,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
 }
 
 function DomainStatusBadge({ domain, sslActive }: { domain: TenantDomain; sslActive?: boolean }) {
-  if (domain.ssl_active || sslActive) {
+  if (domain.dns_verified && (domain.ssl_active || sslActive)) {
     return (
       <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 gap-1">
         <ShieldCheck className="h-3 w-3" /> SSL actief
