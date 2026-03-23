@@ -1,36 +1,61 @@
 
 
-## Fix Cloudflare Auto-Connect + Documentatiepagina
+## Shipping email opfleuren — Coolblue-style
 
-### Fix 1: Cloudflare DNS auto-connect logica
+### Huidige situatie
+De "bestelling is verzonden" email bevat alleen een kale tabel met carrier/tracknummer en een blauwe knop. De body_html wordt gegenereerd op **2 plekken**:
+1. `src/hooks/useOrderShipping.ts` (regel 67-93) — frontend trigger
+2. `supabase/functions/fulfillment-api/index.ts` (regel 291-295) — API trigger (nog kaler)
 
-**Bestand:** `supabase/functions/cloudflare-api-connect/index.ts`
+Beide sturen de body_html naar `send-customer-message`, die het wrapt in de standaard email template (header met logo, footer met adres).
 
-Het huidige probleem: de edge function haalt alleen records op die exact matchen op `name={cleanDomain}` (regel 141), waardoor `www.` en `_sellqo.` records niet gevonden worden. Ook worden conflicterende CNAME records niet afgehandeld.
+### Wat we bouwen
+Een veel leukere, Coolblue-achtige shipping email body met:
+- Blije header tekst met emoji ("Joepie! Je pakket is onderweg! 🎉")
+- Visueel aantrekkelijke tracking card met carrier icoon, tracknummer, en grote CTA-knop
+- Stappen-indicator (Besteld → Verzonden → Onderweg → Bezorgd) — stap 2 actief
+- Persoonlijke, informele tone-of-voice
+- Subtiele tip/bemoediging onderaan ("Even geduld nog, binnenkort bij jou!")
 
-**Wijzigingen:**
-1. Alle DNS records voor de zone ophalen (zonder name-filter) via `GET /zones/{zone_id}/dns_records?per_page=500`
-2. Voor elk vereist record (@ A, www A, _sellqo TXT):
-   - Als een record met hetzelfde name+type bestaat → PATCH (update)
-   - Als een CNAME voor `www.{domain}` bestaat → DELETE eerst, dan A record aanmaken
-   - Als een TXT record voor `_sellqo.{domain}` bestaat met verkeerde waarde → DELETE + recreate
-3. Per-record feedback in de response (welke records created/updated/deleted)
+### Aanpak — Shared helper functie
 
-### Fix 2: Documentatiepagina in Instellingen
+**Nieuw bestand:** `src/lib/shippingEmailTemplate.ts`
+Een functie `generateShippingEmailHtml(params)` die de volledige body_html returnt. Parameters: orderNumber, carrierName, trackingNumber, trackingUrl, primaryColor (van tenant).
 
-**Nieuw bestand:** `src/components/admin/settings/DocumentationSettings.tsx`
-- Sectie "Cloudflare koppelen" met 7 stappen (exact zoals beschreven in de vraag)
-- Clean styling, consistent met admin UI (Card, numbered steps, code-achtige highlights)
+**`src/hooks/useOrderShipping.ts`** — importeer en gebruik de helper i.p.v. inline HTML
 
-**Bestand:** `src/pages/admin/Settings.tsx`
-- Nieuwe sectie `{ id: 'documentation', title: 'Documentatie', icon: BookOpen, component: DocumentationSettings }` toevoegen aan de `channels` group (of nieuwe group)
+**`supabase/functions/fulfillment-api/index.ts`** — zelfde template inline (edge functions kunnen niet importeren uit src/), maar met dezelfde design
 
-**Bestand:** `src/components/admin/settings/DomainVerificationPanel.tsx`
-- Kleine "Hoe werkt dit? →" link toevoegen naast de "Cloudflare automatisch koppelen" header, die linkt naar `/admin/settings?section=documentation`
+### Email design (binnen de bestaande wrapper)
+
+```text
+┌─────────────────────────────────────────┐
+│  🎉 Joepie! Je pakket is onderweg!      │
+│  Bestelling #1128 is verzonden          │
+├─────────────────────────────────────────┤
+│                                         │
+│  ● Besteld  ● Verzonden  ○ Onderweg  ○ Bezorgd │
+│  ━━━━━━━━━━━━●━━━━━━━━━━○━━━━━━━━━━━   │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │  🚚 Bpost                         │  │
+│  │  Tracknummer: CD117081258BE       │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │     📦 Volg je pakket →           │  │
+│  │     (grote kleurrijke CTA)        │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  💡 Tip: Houd je brievenbus in de       │
+│  gaten, het komt eraan!                 │
+│                                         │
+│  📦 Betreft bestelling: #1128          │
+└─────────────────────────────────────────┘
+```
 
 ### Bestanden
-- `supabase/functions/cloudflare-api-connect/index.ts` — fix DNS record handling
-- `src/components/admin/settings/DocumentationSettings.tsx` — nieuw
-- `src/pages/admin/Settings.tsx` — documentatie sectie toevoegen
-- `src/components/admin/settings/DomainVerificationPanel.tsx` — "Hoe werkt dit?" link
+- `src/lib/shippingEmailTemplate.ts` — nieuw: shared template generator
+- `src/hooks/useOrderShipping.ts` — gebruik de helper
+- `supabase/functions/fulfillment-api/index.ts` — zelfde template inline
 
