@@ -1,31 +1,28 @@
 
 
-## Fix Cloudflare auto-connect: www CNAME + _sellqo TXT bugs
+## Fix: Cloudflare DNS sync deleting unrelated records
 
-### Root cause
+### Problem
 
-**Bug 1 (www CNAME):** The CNAME conflict check (line 202-213) runs *before* the `existingRecord` check, but if the CNAME delete succeeds and there's no existing A record, the flow correctly falls to "create new." However, Cloudflare may return the CNAME name with a trailing dot or different casing, causing the `find()` to miss it. Fix: broaden the conflict check to delete **any** non-A record on `www.{domain}`.
+**Bug 1 — Overly aggressive conflict deletion (line 197-206):** The code deletes ALL records with the same name but different type. For the root domain (`vanxcel.be`), this means it deletes SPF TXT records, Google/MS verification TXT records, and any other non-A records. This is destructive and wrong.
 
-**Bug 2 (_sellqo TXT):** The content comparison at line 217 (`existingRecord.content !== record.content`) likely fails because Cloudflare wraps TXT values in quotes (`"sellqo-verify=..."`) while we compare unquoted. This causes it to fall into the PATCH branch, which may silently fail for TXT records. Fix: for TXT records, always delete-and-recreate if content doesn't match (strip quotes before comparing).
+**Bug 2 — _sellqo TXT still not updating:** The content comparison and delete+create flow looks correct in theory, but the conflict deletion step (bug 1) may be interfering, and the name matching needs to be exact for the `_sellqo.{domain}` pattern.
 
-### Changes — single file
+### Fix
 
 **`supabase/functions/cloudflare-api-connect/index.ts`**
 
-1. **www CNAME fix (lines 201-213):** Find ALL records for `www.{domain}` that are NOT type A, delete each one before proceeding to create the A record.
+1. **Remove the generic conflict deletion entirely** (lines 196-206). No more "delete all records with wrong type for same name." This is the line causing SPF, DMARC, verification records etc. to be deleted.
 
-2. **_sellqo TXT fix (lines 215-229):** Strip surrounding quotes from `existingRecord.content` before comparing. If content still doesn't match, delete and recreate. Also: if a same-name record exists with a *different type* (not TXT), delete it too.
+2. **Add targeted CNAME-only conflict check for `www`:** Before creating the `www` A record specifically, check if a CNAME exists for `www.{domain}` and delete only that one CNAME. Do not touch any other record types.
 
-3. No other files change.
+3. **Keep the existing same-type update logic** (lines 208-247) which correctly handles: find exact name+type match → compare content (with TXT quote stripping) → delete+create if different → create if missing.
 
-### Technical detail
+### Result
+- Only 3 records are ever touched: `@ A`, `www A`, `_sellqo TXT`
+- Only one extra deletion can happen: a CNAME on `www` (required to replace with A)
+- SPF, DMARC, Google verification, MS verification, other CNAMEs — all untouched
 
-```text
-For each required record:
-  1. Delete any conflicting records (wrong type for same name)
-  2. Find existing same-type record
-  3. If exists + same content → skip (already correct)
-  4. If exists + different content → delete + create
-  5. If not exists → create
-```
+### Files
+- `supabase/functions/cloudflare-api-connect/index.ts` — remove generic conflict deletion, add www-only CNAME check
 
