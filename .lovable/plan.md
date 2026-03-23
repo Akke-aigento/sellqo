@@ -1,94 +1,88 @@
 
 
-## Domeinarchitectuur voor Custom Frontend Tenants
+## Volledige SellQo Storefront Integration Prompt — Audit & Aanvullingen
 
-### Het probleem
+Na grondige analyse van de volledige `storefront-api` (2339 regels), `storefront-resolve`, en de routing-architectuur, zijn dit de **ontbrekende onderdelen** in het huidige document:
 
-Er zijn drie lagen die elk "domeinen" beheren, en die moeten correct samenwerken:
+### Wat ontbreekt
 
-1. **DNS (Cloudflare)** — waar het domein fysiek naartoe wijst (IP-adres)
-2. **Lovable hosting** — welk Lovable-project het domein serveert
-3. **SellQo tenant_domains** — welke tenant bij het domein hoort (voor API-context)
+**1. `storefront-resolve` — de bootstrap-stap**
+Het document noemt het niet expliciet. Dit is de EERSTE call die elke custom frontend moet doen bij page load. Response bevat: `tenant_id`, `tenant_slug`, `locale`, `storefront_api_url`, `all_domains` (voor hreflang), `currency`, `country`, `logo_url`. Geen API key nodig — publiek endpoint.
 
-### De juiste architectuur
+**2. Volledige API endpoint tabel is incompleet**
+Ontbrekende endpoints:
+- `GET /collections` + `GET /collections/{slug}` + `GET /collections/{slug}/products`
+- `GET /categories`
+- `GET /products/{slug}/related?limit=4`
+- `GET /products/{slug}/reviews`
+- `GET /reviews` + `GET /reviews/summary`
+- `GET /search?q=&autocomplete=true`
+- `GET /navigation` — geeft main menu, footer menu, legal menu, announcement bar
+- `GET /pages` + `GET /pages/{slug}`
+- `GET /gift-cards` + `POST /gift-cards/balance`
+- `GET /settings` (full config) + sub-endpoints: `/settings/social`, `/settings/trust`, `/settings/conversion`, `/settings/checkout`, `/settings/languages`
+- `GET /legal` + `GET /legal/{type}` (privacy, terms, refund, shipping, cookie, etc.)
+- `POST /contact` — contactformulier
+- `POST /newsletter/subscribe`
+- `GET /shipping` — verzendmethoden
+- `POST /checkout` — twee flows: simpel (cart_id + success_url → hosted checkout URL) en volledig (place order direct)
+- Checkout sub-actions via legacy POST: `checkout_start`, `checkout_set_addresses`, `checkout_get_shipping_options`, `checkout_get_payment_methods`, `checkout_place_order`, `checkout_get_confirmation`
 
-```text
-Bezoeker typt vanxcel.be
-        │
-        ▼
-   DNS (Cloudflare)
-   A-record → Lovable IP (185.158.133.1)
-        │
-        ▼
-   Lovable routing
-   Domein gekoppeld aan Vanxcel-project (80408260...)
-        │
-        ▼
-   Vanxcel frontend laadt
-   Roept storefront-resolve aan met hostname="vanxcel.be"
-        │
-        ▼
-   SellQo storefront-resolve
-   Zoekt in tenant_domains → vindt tenant + locale + config
-        │
-        ▼
-   Vanxcel frontend toont producten via Storefront API
-```
+**3. Locale/i18n header**
+De API leest `Accept-Language` header voor vertaling. Frontend moet dit meesturen op basis van resolved locale.
 
-### Conclusie per laag
+**4. Promotions engine**
+`POST /` met action `calculate_promotions` — volume discounts, BOGO, bundles, automatic discounts, gift promotions, customer group discounts, discount stacking rules. Frontend moet cart items meesturen voor server-side berekening.
 
-**DNS (Cloudflare):** De A-records voor vanxcel.be/nl/com moeten naar `185.158.133.1` wijzen — dat is het Lovable IP. Dit is al gedaan via de Cloudflare auto-connect.
+**5. Cart response structuur — veel meer velden**
+Response bevat: `id`, `session_id`, `currency`, `discount_code`, `items[]` (met `product`, `variant`, `line_total`, `product_type`, `gift_card_metadata`), `item_count`, `subtotal`, `discount_amount`, `discount_info`, `total`, `expires_at`.
 
-**Lovable domein-koppeling:** De domeinen moeten gekoppeld worden in het **Vanxcel Lovable-project**, NIET in het SellQo-project. Lovable moet weten welk project het moet serveren als iemand vanxcel.be bezoekt.
+**6. Checkout flow details**
+- Simpele flow: `POST /checkout` met `{ cart_id, success_url, cancel_url }` → krijgt `checkout_url` terug (hosted op SellQo)
+- Volledige flow: `POST /checkout` met `{ cart_id, shipping_address, billing_address, email, phone, shipping_method_id, payment_method, customer_note }` → creëert order direct
+- Payment methods: `stripe` of `bank_transfer`
+- Gift card orders: geen shipping nodig
+- Order confirmation: `GET` via legacy action `checkout_get_confirmation` met `order_id`
 
-**SellQo tenant_domains:** De domeinen moeten WEL in de SellQo database blijven staan, want `storefront-resolve` en `storefront-api` gebruiken deze tabel om de juiste tenant, locale en config te resolven. MAAR:
-- De DNS-verificatie (`dns_verified`, `ssl_active`) is niet meer relevant voor SellQo — dat beheert Lovable nu
-- De Cloudflare auto-connect vanuit SellQo is niet meer nodig voor custom frontend tenants
+**7. Gift cards**
+- Cart add item voor gift cards: `{ product_id, quantity, amount, gift_card_metadata: { recipient_name, recipient_email, personal_message, design_id } }`
+- Gift cards worden nooit gemerged in cart (altijd unieke items)
 
-### Wat er moet veranderen
+**8. Service points (verzendpunten)**
+`POST` met action `get_service_points` — vereist `postal_code`, `country`, optioneel `carrier`, `house_number`. Werkt met Sendcloud en MyParcel integraties.
 
-**1. Veld toevoegen aan `tenant_domains`: `hosting_mode`**
+**9. SEO + Sitemap endpoints**
+- `get_seo` — meta tags, canonical URL, hreflang per entity
+- `get_sitemap_data` — alle slugs voor producten, categorieën, pagina's + domain mapping
 
-Een nieuw veld dat aangeeft of SellQo of een extern platform het domein host:
-- `sellqo` (default) — SellQo beheert DNS-verificatie, SSL, en serveert de storefront
-- `external` — domein wordt extern gehost (bijv. in een ander Lovable-project); SellQo gebruikt het alleen voor API-context/routing
+**10. Module check systeem**
+De API kan modules aan/uitzetten per tenant via `custom_frontend_config`. Frontend krijgt `403 MODULE_DISABLED` als een uitgeschakelde module wordt aangesproken.
 
-**2. UI aanpassen: DNS-verificatie verbergen voor external domeinen**
+**11. Dual routing: REST vs Legacy POST**
+De API ondersteunt TWEE routeringsmethoden:
+- **RESTful** (vereist `X-Tenant-ID` + `X-API-Key` headers): `/products`, `/cart/{id}/items`, etc.
+- **Legacy POST** (body met `action` + `tenant_id`): backward compatible, geen API key nodig voor resolve_domain
 
-In het domein-instellingenpaneel (`MultiDomainSettings` / `DomainVerificationPanel`):
-- Als `use_custom_frontend` aan staat, worden nieuwe domeinen automatisch als `hosting_mode: 'external'` toegevoegd
-- External domeinen tonen GEEN DNS-verificatie stappen, geen Cloudflare connect, geen SSL-status
-- Wel tonen: domein, locale, canonical status (voor hreflang/API-routing)
-- Info-banner: "Dit domein wordt gehost in je custom frontend. Koppel het daar aan je project."
+De proxy moet beide ondersteunen.
 
-**3. storefront-resolve ongewijzigd**
+### Plan
 
-De resolve-functie zoekt alleen op `domain + is_active`. Het maakt niet uit of het domein `sellqo` of `external` gehost is — de API-context is identiek. Geen wijziging nodig.
+Ik schrijf het document volledig opnieuw naar `/mnt/documents/sellqo-storefront-integration-prompt.md` met:
+1. Bootstrap flow (`storefront-resolve` → tenant context ophalen)
+2. Proxy specificatie (beide routing modes)
+3. Client met locale header support
+4. Volledige type definities (incl. variant options, gift cards, promotions, navigation, settings)
+5. Normalizer met ALLE veldmappings uit de echte API
+6. Compleet endpoint overzicht (30+ endpoints)
+7. React Query hooks (products, collections, cart, checkout, navigation, settings, legal, search)
+8. CartContext met server-side cart sync
+9. Checkout flow (simpel + volledig)
+10. SEO/i18n helpers
+11. Standaard pagina's en componenten
 
-**4. Drie domeinen, verschillende locales**
+Dit wordt het definitieve "one-prompt SDK" document.
 
-Voor de 3 Vanxcel-domeinen:
-| Domein | Locale | Canonical | Hosting |
-|---|---|---|---|
-| vanxcel.be | nl | ✓ | external |
-| vanxcel.nl | nl | | external |
-| vanxcel.com | en | | external |
+### Technisch
 
-De Vanxcel frontend roept bij laden `storefront-resolve` aan met `window.location.hostname` en krijgt de juiste locale terug. Op basis daarvan toont het de juiste taal.
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| **Database migratie** | `hosting_mode` kolom toevoegen aan `tenant_domains` (default `'sellqo'`) |
-| `src/hooks/useTenantDomains.ts` | Type uitbreiden met `hosting_mode` |
-| `src/components/admin/settings/MultiDomainSettings.tsx` | Auto-set `hosting_mode: 'external'` bij custom frontend; DNS-verificatie UI verbergen voor external |
-| `src/components/admin/settings/DomainVerificationPanel.tsx` | Niet tonen voor external domeinen |
-| `src/components/admin/storefront/StorefrontSettings.tsx` | Info-tekst toevoegen dat domeinen extern gekoppeld moeten worden |
-
-### Wat NIET verandert
-- `storefront-resolve` — werkt al correct
-- `storefront-api` — werkt al correct
-- `cloudflare-api-connect` — blijft werken voor `sellqo`-hosted domeinen
-- `verify-domain` — blijft werken voor `sellqo`-hosted domeinen
+Alleen een document-export naar `/mnt/documents/`. Geen codewijzigingen in het SellQo-project.
 
