@@ -22,6 +22,7 @@ import {
   MessageCircle,
   MessageSquare,
   Bot,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
