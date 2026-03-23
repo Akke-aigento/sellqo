@@ -27,6 +27,8 @@ export function InboundEmailSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [forwardEmail, setForwardEmail] = useState(currentTenant?.email_forward_address || '');
+  const [savingForward, setSavingForward] = useState(false);
 
   // Fetch inbound stats
   const { data: stats } = useQuery({
