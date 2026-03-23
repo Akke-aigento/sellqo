@@ -44,9 +44,11 @@ export function AdminLayout() {
   return (
     <TenantProvider>
       <GamificationProvider>
-        <SidebarProvider>
-          <AdminLayoutContent />
-        </SidebarProvider>
+        <BulkSelectionProvider>
+          <SidebarProvider>
+            <AdminLayoutContent />
+          </SidebarProvider>
+        </BulkSelectionProvider>
       </GamificationProvider>
     </TenantProvider>
   );
