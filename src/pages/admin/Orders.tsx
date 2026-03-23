@@ -41,7 +41,8 @@ export default function OrdersPage() {
       setBulkActions([
         {
           label: 'Verzonden',
-          icon: <Truck className="h-4 w-4" />,
+          icon: <Truck className="h-5 w-5" />,
+          primary: true,
           onClick: () => {
             selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'shipped' }));
             setSelectedOrderIds([]);
@@ -49,18 +50,30 @@ export default function OrdersPage() {
         },
         {
           label: 'Afgeleverd',
-          icon: <CheckCircle className="h-4 w-4" />,
+          icon: <CheckCircle className="h-5 w-5" />,
+          primary: true,
           onClick: () => {
             selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'delivered' }));
             setSelectedOrderIds([]);
           },
         },
         {
-          label: 'Annuleer',
+          label: 'Annuleren',
           icon: <XCircle className="h-4 w-4" />,
           variant: 'destructive' as const,
+          primary: false,
           onClick: () => {
             selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'cancelled' }));
+            setSelectedOrderIds([]);
+          },
+        },
+        {
+          label: 'Verwijderen',
+          icon: <Trash2 className="h-4 w-4" />,
+          variant: 'destructive' as const,
+          primary: false,
+          onClick: () => {
+            selectedOrderIds.forEach(id => deleteOrder.mutate(id));
             setSelectedOrderIds([]);
           },
         },
