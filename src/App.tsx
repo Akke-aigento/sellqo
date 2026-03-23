@@ -145,6 +145,7 @@ const App = () => (
             <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><WishlistProvider><ShopOrderConfirmation /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><ShopLegalPage /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><ShopWishlist /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/contact" element={<CartProvider><WishlistProvider><ShopContact /></WishlistProvider></CartProvider>} />
             
             {/* Dedicated kassa route - outside AdminLayout for tablet kiosk mode */}
             <Route path="/kassa/:terminalId" element={
