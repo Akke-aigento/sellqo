@@ -425,6 +425,7 @@ export function ShopLayout({ children, hideChrome: hideChromeFromProp }: ShopLay
                         <Link to={`${basePath}/page/${page.slug}`} className="text-muted-foreground hover:text-foreground">{page.title}</Link>
                       </li>
                     ))}
+                    <li><Link to={`${basePath}/contact`} className="text-muted-foreground hover:text-foreground">Contact</Link></li>
                   </ul>
                 </div>
 
