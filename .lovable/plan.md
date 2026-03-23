@@ -1,61 +1,31 @@
 
 
-## Shipping email opfleuren — Coolblue-style
+## Fix Cloudflare auto-connect: www CNAME + _sellqo TXT bugs
 
-### Huidige situatie
-De "bestelling is verzonden" email bevat alleen een kale tabel met carrier/tracknummer en een blauwe knop. De body_html wordt gegenereerd op **2 plekken**:
-1. `src/hooks/useOrderShipping.ts` (regel 67-93) — frontend trigger
-2. `supabase/functions/fulfillment-api/index.ts` (regel 291-295) — API trigger (nog kaler)
+### Root cause
 
-Beide sturen de body_html naar `send-customer-message`, die het wrapt in de standaard email template (header met logo, footer met adres).
+**Bug 1 (www CNAME):** The CNAME conflict check (line 202-213) runs *before* the `existingRecord` check, but if the CNAME delete succeeds and there's no existing A record, the flow correctly falls to "create new." However, Cloudflare may return the CNAME name with a trailing dot or different casing, causing the `find()` to miss it. Fix: broaden the conflict check to delete **any** non-A record on `www.{domain}`.
 
-### Wat we bouwen
-Een veel leukere, Coolblue-achtige shipping email body met:
-- Blije header tekst met emoji ("Joepie! Je pakket is onderweg! 🎉")
-- Visueel aantrekkelijke tracking card met carrier icoon, tracknummer, en grote CTA-knop
-- Stappen-indicator (Besteld → Verzonden → Onderweg → Bezorgd) — stap 2 actief
-- Persoonlijke, informele tone-of-voice
-- Subtiele tip/bemoediging onderaan ("Even geduld nog, binnenkort bij jou!")
+**Bug 2 (_sellqo TXT):** The content comparison at line 217 (`existingRecord.content !== record.content`) likely fails because Cloudflare wraps TXT values in quotes (`"sellqo-verify=..."`) while we compare unquoted. This causes it to fall into the PATCH branch, which may silently fail for TXT records. Fix: for TXT records, always delete-and-recreate if content doesn't match (strip quotes before comparing).
 
-### Aanpak — Shared helper functie
+### Changes — single file
 
-**Nieuw bestand:** `src/lib/shippingEmailTemplate.ts`
-Een functie `generateShippingEmailHtml(params)` die de volledige body_html returnt. Parameters: orderNumber, carrierName, trackingNumber, trackingUrl, primaryColor (van tenant).
+**`supabase/functions/cloudflare-api-connect/index.ts`**
 
-**`src/hooks/useOrderShipping.ts`** — importeer en gebruik de helper i.p.v. inline HTML
+1. **www CNAME fix (lines 201-213):** Find ALL records for `www.{domain}` that are NOT type A, delete each one before proceeding to create the A record.
 
-**`supabase/functions/fulfillment-api/index.ts`** — zelfde template inline (edge functions kunnen niet importeren uit src/), maar met dezelfde design
+2. **_sellqo TXT fix (lines 215-229):** Strip surrounding quotes from `existingRecord.content` before comparing. If content still doesn't match, delete and recreate. Also: if a same-name record exists with a *different type* (not TXT), delete it too.
 
-### Email design (binnen de bestaande wrapper)
+3. No other files change.
+
+### Technical detail
 
 ```text
-┌─────────────────────────────────────────┐
-│  🎉 Joepie! Je pakket is onderweg!      │
-│  Bestelling #1128 is verzonden          │
-├─────────────────────────────────────────┤
-│                                         │
-│  ● Besteld  ● Verzonden  ○ Onderweg  ○ Bezorgd │
-│  ━━━━━━━━━━━━●━━━━━━━━━━○━━━━━━━━━━━   │
-│                                         │
-│  ┌───────────────────────────────────┐  │
-│  │  🚚 Bpost                         │  │
-│  │  Tracknummer: CD117081258BE       │  │
-│  └───────────────────────────────────┘  │
-│                                         │
-│  ┌───────────────────────────────────┐  │
-│  │     📦 Volg je pakket →           │  │
-│  │     (grote kleurrijke CTA)        │  │
-│  └───────────────────────────────────┘  │
-│                                         │
-│  💡 Tip: Houd je brievenbus in de       │
-│  gaten, het komt eraan!                 │
-│                                         │
-│  📦 Betreft bestelling: #1128          │
-└─────────────────────────────────────────┘
+For each required record:
+  1. Delete any conflicting records (wrong type for same name)
+  2. Find existing same-type record
+  3. If exists + same content → skip (already correct)
+  4. If exists + different content → delete + create
+  5. If not exists → create
 ```
-
-### Bestanden
-- `src/lib/shippingEmailTemplate.ts` — nieuw: shared template generator
-- `src/hooks/useOrderShipping.ts` — gebruik de helper
-- `supabase/functions/fulfillment-api/index.ts` — zelfde template inline
 
