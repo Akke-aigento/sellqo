@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -14,60 +13,142 @@ interface CloudflareResponse<T> {
   result: T;
 }
 
-interface Zone {
-  id: string;
+interface Zone { id: string; name: string; status: string; }
+interface DnsRecord { id: string; type: string; name: string; content: string; }
+
+interface RecordResult {
   name: string;
-  status: string;
-}
-
-interface DnsRecord {
-  id: string;
   type: string;
-  name: string;
-  content: string;
+  success: boolean;
+  action: 'patched' | 'created' | 'deleted_and_created' | 'skipped' | 'error';
+  record_id?: string;
+  error?: string;
 }
 
-interface RecordAction {
-  record: string;
-  type: string;
-  action: 'created' | 'updated' | 'deleted_and_created' | 'error';
-  detail?: string;
+// ─── Cloudflare API helpers ───
+
+async function cfFetch<T>(path: string, apiToken: string, init?: RequestInit): Promise<CloudflareResponse<T>> {
+  const res = await fetch(`https://api.cloudflare.com/client/v4${path}`, {
+    ...init,
+    headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json', ...init?.headers },
+  });
+  return await res.json() as CloudflareResponse<T>;
 }
 
-async function deleteRecord(zoneId: string, recordId: string, apiToken: string): Promise<boolean> {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${recordId}`,
-    { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiToken}` } }
-  );
-  const data = await res.json() as CloudflareResponse<unknown>;
-  return data.success;
+async function cfDelete(zoneId: string, recordId: string, token: string): Promise<boolean> {
+  const r = await cfFetch(`/zones/${zoneId}/dns_records/${recordId}`, token, { method: 'DELETE' });
+  return r.success;
 }
 
-async function createRecord(zoneId: string, record: Record<string, unknown>, apiToken: string): Promise<CloudflareResponse<DnsRecord>> {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
-    {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
+async function cfPatch(zoneId: string, recordId: string, body: Record<string, unknown>, token: string) {
+  return cfFetch<DnsRecord>(`/zones/${zoneId}/dns_records/${recordId}`, token, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+async function cfPost(zoneId: string, body: Record<string, unknown>, token: string) {
+  return cfFetch<DnsRecord>(`/zones/${zoneId}/dns_records`, token, { method: 'POST', body: JSON.stringify(body) });
+}
+
+// ─── Per-record processors (each touches ONLY its specific record) ───
+
+async function processRootA(zoneId: string, domain: string, allRecords: DnsRecord[], token: string): Promise<RecordResult> {
+  const label = `A ${domain}`;
+  try {
+    const existing = allRecords.find(r => r.type === 'A' && r.name.toLowerCase() === domain);
+
+    if (existing) {
+      if (existing.content === SELLQO_IP) {
+        return { name: label, type: 'A', success: true, action: 'skipped', record_id: existing.id };
+      }
+      const res = await cfPatch(zoneId, existing.id, { content: SELLQO_IP }, token);
+      return res.success
+        ? { name: label, type: 'A', success: true, action: 'patched', record_id: existing.id }
+        : { name: label, type: 'A', success: false, action: 'error', error: res.errors?.[0]?.message };
     }
-  );
-  return await res.json() as CloudflareResponse<DnsRecord>;
+
+    const res = await cfPost(zoneId, { type: 'A', name: domain, content: SELLQO_IP, ttl: 1, proxied: false }, token);
+    return res.success
+      ? { name: label, type: 'A', success: true, action: 'created', record_id: res.result?.id }
+      : { name: label, type: 'A', success: false, action: 'error', error: res.errors?.[0]?.message };
+  } catch (e) {
+    return { name: label, type: 'A', success: false, action: 'error', error: String(e) };
+  }
 }
 
-async function updateRecord(zoneId: string, recordId: string, record: Record<string, unknown>, apiToken: string): Promise<CloudflareResponse<DnsRecord>> {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${recordId}`,
-    {
-      method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
+async function processWwwA(zoneId: string, domain: string, allRecords: DnsRecord[], token: string): Promise<RecordResult> {
+  const wwwName = `www.${domain}`;
+  const label = `A ${wwwName}`;
+  try {
+    const existing = allRecords.find(r => r.name.toLowerCase() === wwwName);
+
+    if (existing) {
+      if (existing.type === 'CNAME') {
+        // Delete the CNAME, then create A
+        console.log(`Deleting CNAME for www (id: ${existing.id}, content: ${existing.content})`);
+        const deleted = await cfDelete(zoneId, existing.id, token);
+        if (!deleted) return { name: label, type: 'A', success: false, action: 'error', error: 'Kon CNAME voor www niet verwijderen' };
+        const res = await cfPost(zoneId, { type: 'A', name: wwwName, content: SELLQO_IP, ttl: 1, proxied: false }, token);
+        return res.success
+          ? { name: label, type: 'A', success: true, action: 'deleted_and_created', record_id: res.result?.id }
+          : { name: label, type: 'A', success: false, action: 'error', error: res.errors?.[0]?.message };
+      }
+
+      if (existing.type === 'A') {
+        if (existing.content === SELLQO_IP) {
+          return { name: label, type: 'A', success: true, action: 'skipped', record_id: existing.id };
+        }
+        const res = await cfPatch(zoneId, existing.id, { content: SELLQO_IP }, token);
+        return res.success
+          ? { name: label, type: 'A', success: true, action: 'patched', record_id: existing.id }
+          : { name: label, type: 'A', success: false, action: 'error', error: res.errors?.[0]?.message };
+      }
+
+      // Some other type exists on www — don't touch it, just create A alongside
+      console.log(`Unexpected record type ${existing.type} on www, creating A alongside`);
     }
-  );
-  return await res.json() as CloudflareResponse<DnsRecord>;
+
+    const res = await cfPost(zoneId, { type: 'A', name: wwwName, content: SELLQO_IP, ttl: 1, proxied: false }, token);
+    return res.success
+      ? { name: label, type: 'A', success: true, action: 'created', record_id: res.result?.id }
+      : { name: label, type: 'A', success: false, action: 'error', error: res.errors?.[0]?.message };
+  } catch (e) {
+    return { name: label, type: 'A', success: false, action: 'error', error: String(e) };
+  }
 }
 
-serve(async (req) => {
+async function processSellqoTxt(zoneId: string, domain: string, verificationToken: string, allRecords: DnsRecord[], token: string): Promise<RecordResult> {
+  const txtName = `_sellqo.${domain}`;
+  const txtContent = `sellqo-verify=${verificationToken}`;
+  const label = `TXT ${txtName}`;
+  try {
+    const existing = allRecords.find(r => r.type === 'TXT' && r.name.toLowerCase() === txtName);
+
+    if (existing) {
+      // Always delete + recreate TXT to guarantee correct value
+      const existingContent = existing.content.replace(/^"|"$/g, '');
+      if (existingContent === txtContent) {
+        return { name: label, type: 'TXT', success: true, action: 'skipped', record_id: existing.id };
+      }
+      console.log(`Deleting old _sellqo TXT (id: ${existing.id}, content: "${existingContent}")`);
+      const deleted = await cfDelete(zoneId, existing.id, token);
+      if (!deleted) return { name: label, type: 'TXT', success: false, action: 'error', error: 'Kon bestaand _sellqo TXT niet verwijderen' };
+      const res = await cfPost(zoneId, { type: 'TXT', name: txtName, content: txtContent, ttl: 1 }, token);
+      return res.success
+        ? { name: label, type: 'TXT', success: true, action: 'deleted_and_created', record_id: res.result?.id }
+        : { name: label, type: 'TXT', success: false, action: 'error', error: res.errors?.[0]?.message };
+    }
+
+    const res = await cfPost(zoneId, { type: 'TXT', name: txtName, content: txtContent, ttl: 1 }, token);
+    return res.success
+      ? { name: label, type: 'TXT', success: true, action: 'created', record_id: res.result?.id }
+      : { name: label, type: 'TXT', success: false, action: 'error', error: res.errors?.[0]?.message };
+  } catch (e) {
+    return { name: label, type: 'TXT', success: false, action: 'error', error: String(e) };
+  }
+}
+
+// ─── Main handler ───
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -75,10 +156,8 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -87,218 +166,85 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const { tenant_id, domain, api_token } = await req.json();
-
     if (!tenant_id || !domain || !api_token) {
-      return new Response(
-        JSON.stringify({ error: 'tenant_id, domain en api_token zijn verplicht' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'tenant_id, domain en api_token zijn verplicht' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Step 1: Verify API token
-    const verifyResponse = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-      headers: { 'Authorization': `Bearer ${api_token}` }
-    });
-    const verifyData = await verifyResponse.json() as CloudflareResponse<{ status: string }>;
-
+    // 1. Verify token
+    const verifyData = await cfFetch<{ status: string }>('/user/tokens/verify', api_token);
     if (!verifyData.success || verifyData.result?.status !== 'active') {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Het API token is ongeldig. Controleer of je het volledige token hebt gekopieerd.',
-          error_type: 'invalid_token'
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Het API token is ongeldig of inactief.', error_type: 'invalid_token' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Step 2: Get zones accessible by this token
-    const zonesResponse = await fetch('https://api.cloudflare.com/client/v4/zones', {
-      headers: { 'Authorization': `Bearer ${api_token}` }
-    });
-    const zonesData = await zonesResponse.json() as CloudflareResponse<Zone[]>;
-
-    if (!zonesData.success) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Dit token mist de benodigde permissies. Gebruik de "Edit zone DNS" template.',
-          error_type: 'missing_permissions'
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 3: Find zone matching domain
+    // 2. Find zone
     const cleanDomain = domain.toLowerCase().replace(/^www\./, '');
-    const zone = zonesData.result.find((z: Zone) => {
-      return cleanDomain === z.name || cleanDomain.endsWith(`.${z.name}`);
-    });
-
-    if (!zone) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: `Dit token heeft geen toegang tot het domein "${cleanDomain}". Selecteer het juiste domein bij 'Zone Resources' in Cloudflare.`,
-          error_type: 'domain_not_found',
-          available_zones: zonesData.result.map((z: Zone) => z.name)
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const zonesData = await cfFetch<Zone[]>(`/zones?name=${encodeURIComponent(cleanDomain)}`, api_token);
+    if (!zonesData.success || !zonesData.result?.length) {
+      // Fallback: list all zones for error message
+      const allZones = await cfFetch<Zone[]>('/zones', api_token);
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Zone "${cleanDomain}" niet gevonden. Controleer of het token toegang heeft tot dit domein.`,
+        error_type: 'domain_not_found',
+        available_zones: allZones.result?.map((z: Zone) => z.name) || [],
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+    const zone = zonesData.result[0];
 
-    // Step 4: Get tenant verification token
+    // 3. Get verification token from tenant
     const { data: tenantData, error: tenantError } = await supabase
       .from('tenants')
       .select('domain_verification_token')
       .eq('id', tenant_id)
       .single();
-
     if (tenantError || !tenantData) {
-      return new Response(
-        JSON.stringify({ error: 'Tenant niet gevonden' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Tenant niet gevonden' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
     const verificationToken = tenantData.domain_verification_token || crypto.randomUUID().replace(/-/g, '').substring(0, 16);
 
-    // Step 5: Fetch ALL existing DNS records for the zone (no name filter)
-    const existingRecordsResponse = await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records?per_page=500`,
-      { headers: { 'Authorization': `Bearer ${api_token}` } }
-    );
-    const existingRecordsData = await existingRecordsResponse.json() as CloudflareResponse<DnsRecord[]>;
-    const allRecords = existingRecordsData.result || [];
+    // 4. Fetch ALL existing DNS records (once)
+    const recordsData = await cfFetch<DnsRecord[]>(`/zones/${zone.id}/dns_records?per_page=500`, api_token);
+    const allRecords = recordsData.result || [];
+    console.log(`Fetched ${allRecords.length} existing DNS records for zone ${zone.name}`);
 
-    // Step 6: Create/Update DNS records with conflict handling
-    const recordsToCreate = [
-      { type: 'A', name: cleanDomain, content: SELLQO_IP, ttl: 1, proxied: false },
-      { type: 'A', name: `www.${cleanDomain}`, content: SELLQO_IP, ttl: 1, proxied: false },
-      { type: 'TXT', name: `_sellqo.${cleanDomain}`, content: `sellqo-verify=${verificationToken}`, ttl: 1 },
-    ];
+    // 5. Process exactly 3 records — nothing else
+    const [rootResult, wwwResult, txtResult] = await Promise.all([
+      processRootA(zone.id, cleanDomain, allRecords, api_token),
+      processWwwA(zone.id, cleanDomain, allRecords, api_token),
+      processSellqoTxt(zone.id, cleanDomain, verificationToken, allRecords, api_token),
+    ]);
 
-    const actions: RecordAction[] = [];
+    const results = [rootResult, wwwResult, txtResult];
+    const allSuccess = results.every(r => r.success);
 
-    for (const record of recordsToCreate) {
-      const recordLabel = `${record.type} ${record.name}`;
+    console.log('DNS sync results:', JSON.stringify(results));
 
-      // Step A: Only delete CNAME conflict for www (to replace with A record)
-      if (record.type === 'A' && record.name.toLowerCase().startsWith('www.')) {
-        const wwwCname = allRecords.find(
-          (r: DnsRecord) => r.name.toLowerCase() === record.name.toLowerCase() && r.type === 'CNAME'
-        );
-        if (wwwCname) {
-          console.log(`Deleting conflicting CNAME for www: ${wwwCname.content} (id: ${wwwCname.id})`);
-          const deleted = await deleteRecord(zone.id, wwwCname.id, api_token);
-          if (!deleted) {
-            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon conflicterend CNAME record voor www niet verwijderen' });
-          }
-        }
-      }
-
-      // Step B: Find existing same-type record
-      const existingRecord = allRecords.find(
-        (r: DnsRecord) => r.type === record.type && r.name.toLowerCase() === record.name.toLowerCase()
-      );
-
-      if (existingRecord) {
-        // Strip surrounding quotes for TXT comparison (Cloudflare wraps TXT in quotes)
-        const existingContent = record.type === 'TXT'
-          ? existingRecord.content.replace(/^"|"$/g, '')
-          : existingRecord.content;
-
-        if (existingContent === record.content) {
-          // Already correct — skip
-          actions.push({ record: recordLabel, type: record.type, action: 'updated', detail: 'Al correct ingesteld' });
-        } else {
-          // Wrong value — delete and recreate (PATCH can silently fail for TXT)
-          console.log(`Content mismatch for ${recordLabel}: "${existingContent}" !== "${record.content}", deleting and recreating`);
-          const deleted = await deleteRecord(zone.id, existingRecord.id, api_token);
-          if (deleted) {
-            const createRes = await createRecord(zone.id, record, api_token);
-            actions.push({
-              record: recordLabel,
-              type: record.type,
-              action: createRes.success ? 'deleted_and_created' : 'error',
-              detail: createRes.success ? undefined : createRes.errors?.[0]?.message,
-            });
-          } else {
-            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon bestaand record niet verwijderen voor update' });
-          }
-        }
-      } else {
-        // No existing record — create new
-        const createRes = await createRecord(zone.id, record, api_token);
-        actions.push({
-          record: recordLabel,
-          type: record.type,
-          action: createRes.success ? 'created' : 'error',
-          detail: createRes.success ? undefined : createRes.errors?.[0]?.message,
-        });
-      }
+    // 6. Update tenant only if all 3 succeeded
+    if (allSuccess) {
+      await supabase.from('tenants').update({
+        custom_domain: cleanDomain,
+        domain_verified: true,
+        domain_verification_token: verificationToken,
+      }).eq('id', tenant_id);
     }
 
-    const hasErrors = actions.some(a => a.action === 'error');
-    const recordsCreated = actions.filter(a => a.action === 'created' || a.action === 'deleted_and_created').length;
-    const recordsUpdated = actions.filter(a => a.action === 'updated').length;
-
-    // Step 7: Update tenant with domain info
-    if (!hasErrors) {
-      const { error: updateError } = await supabase
-        .from('tenants')
-        .update({
-          custom_domain: cleanDomain,
-          domain_verified: true,
-          domain_verification_token: verificationToken,
-        })
-        .eq('id', tenant_id);
-
-      if (updateError) {
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: 'DNS records zijn aangemaakt maar tenant kon niet worden bijgewerkt',
-            records_created: recordsCreated,
-            records_updated: recordsUpdated,
-            actions,
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: !hasErrors,
-        records_created: recordsCreated,
-        records_updated: recordsUpdated,
-        domain: cleanDomain,
-        zone_name: zone.name,
-        actions,
-        errors: hasErrors ? actions.filter(a => a.action === 'error').map(a => `${a.record}: ${a.detail}`) : undefined,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({
+      success: allSuccess,
+      domain: cleanDomain,
+      zone_name: zone.name,
+      records: results,
+      records_created: results.filter(r => r.action === 'created' || r.action === 'deleted_and_created').length,
+      records_updated: results.filter(r => r.action === 'patched' || r.action === 'skipped').length,
+      errors: allSuccess ? undefined : results.filter(r => !r.success).map(r => `${r.name}: ${r.error}`),
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('Error in cloudflare-api-connect:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: 'Er is een onverwachte fout opgetreden'
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Er is een onverwachte fout opgetreden' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
