@@ -1,49 +1,28 @@
 
 
-## Plan: Orders Bulk Selectie op Mobiel + Live Status Update + Dynamische Footer
+## Fix: Bulk actiebalk past niet mooi op mobiel
 
-### Drie problemen gevonden
+### Probleem
+De footer in bulk-modus probeert alles op één regel te proppen: X-knop + "2 geselecteerd" + meerdere actieknoppen. Op smalle schermen wordt dit afgesneden of ziet het er gedrongen uit.
 
-1. **Mobiele kaartweergave heeft geen selectie** — De desktop tabel heeft checkboxes, maar de compacte kaartweergave (mobiel) mist ze volledig. Je kunt op mobiel geen orders selecteren voor bulk acties.
+### Oplossing
+De bulk-actiebalk compacter en mooier maken:
 
-2. **Status update zonder visuele feedback** — Op de OrderDetail pagina wordt `updateOrderStatus` aangeroepen, die query key `['orders']` invalidated. Maar de detail pagina gebruikt query key `['order', orderId]`. Resultaat: de Select dropdown springt terug naar de oude waarde totdat je handmatig refresht.
+**`src/components/admin/AdminBottomNav.tsx`**:
+- Actieknoppen tonen als **icon-only** met een kleine label eronder (zelfde stijl als de normale navigatie-items), zodat ze gelijkmatig verdeeld worden
+- "2 geselecteerd" korter weergeven als "2" naast het X-icoon
+- `justify-around` gebruiken voor gelijkmatige verdeling net als de normale nav
+- Safe area padding toevoegen voor iOS (`pb-safe`) via `env(safe-area-inset-bottom)`
+- Hoogte vergroten naar `h-16` om ruimte te geven aan icon + label layout
 
-3. **Dynamische bottom nav bij selectie** — Jouw idee: wanneer orders geselecteerd zijn op mobiel, transformeer de vaste footer naar een actiebalk met bulk-opties (status wijzigen, verwijderen, etc).
+Layout wordt:
 
-### Aanpak
-
-#### 1. Checkboxes toevoegen aan mobiele kaartweergave
-In `src/pages/admin/Orders.tsx`, de compacte card view uitbreiden met:
-- Een checkbox links in elke kaart
-- Long-press of tap op checkbox om te selecteren
-- "Alles selecteren" optie bovenaan wanneer in selectie-modus
-
-#### 2. Fix: Query key invalidatie op OrderDetail
-In `src/hooks/useOrders.ts`, de `onSuccess` callbacks van `updateOrderStatus` en `updatePaymentStatus` uitbreiden:
-```typescript
-onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['orders'] });
-  queryClient.invalidateQueries({ queryKey: ['order'] }); // <-- toevoegen
-}
+```text
+[ ✕ 2 ]  [ 📦 Verzonden ]  [ ✓ Afgeleverd ]  [ ⊘ Annuleer ]
 ```
-Dit zorgt ervoor dat de detail pagina direct de nieuwe status toont.
 
-#### 3. Dynamische AdminBottomNav bij selectie
-In `src/components/admin/AdminBottomNav.tsx`:
-- Accepteer optionele props: `selectionCount`, `onBulkAction`, `bulkActions`
-- Wanneer `selectionCount > 0`: toon een actiebalk in plaats van navigatie (bijv. "3 geselecteerd" + knoppen voor Status, Verwijderen, Deselecteer)
-- Animeer de transitie tussen navigatie en actiemodus
-- Dit wordt aangestuurd vanuit de Orders pagina via een context/callback pattern
-
-Concreet:
-- Maak een `BulkSelectionContext` die de AdminBottomNav kan lezen
-- Orders pagina vult deze context wanneer items geselecteerd zijn
-- AdminBottomNav rendert bulk acties in plaats van navigatie links wanneer selectie actief is
+Elk item verticaal gecentreerd met icon boven label, net als de normale nav-items — consistent en ruimte-efficiënt.
 
 ### Bestanden
-
-- `src/hooks/useOrders.ts` — query invalidation fix
-- `src/pages/admin/Orders.tsx` — checkboxes in compacte weergave + context provider
-- `src/components/admin/AdminBottomNav.tsx` — dynamische modus
-- `src/contexts/BulkSelectionContext.tsx` — nieuw: gedeelde selectie-state tussen pagina en footer
+- `src/components/admin/AdminBottomNav.tsx` — bulk-modus layout herstructureren
 
