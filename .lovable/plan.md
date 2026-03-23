@@ -1,56 +1,36 @@
 
 
-## Verzonden e-mails bekijkbaar maken vanuit berichtgeschiedenis
+## Fix Cloudflare Auto-Connect + Documentatiepagina
 
-### Wat
-De berichten in de `MessageHistoryPanel` (order- en klantpagina) klikbaar maken. Bij klik opent een dialog/modal met de volledige e-mail (subject, afzender/ontvanger, datum, en de gerenderde HTML-inhoud).
+### Fix 1: Cloudflare DNS auto-connect logica
 
-### Aanpak
+**Bestand:** `supabase/functions/cloudflare-api-connect/index.ts`
 
-**`src/components/admin/MessageHistoryPanel.tsx`** — enige bestand dat wijzigt:
+Het huidige probleem: de edge function haalt alleen records op die exact matchen op `name={cleanDomain}` (regel 141), waardoor `www.` en `_sellqo.` records niet gevonden worden. Ook worden conflicterende CNAME records niet afgehandeld.
 
-1. **State toevoegen** voor het geselecteerde bericht (`selectedMessage`)
-2. **`MessageItem` klikbaar maken** — `cursor-pointer` + `hover:bg-muted/50` + `onClick` → zet selected message
-3. **`MessageDetailDialog` component toevoegen** (in hetzelfde bestand):
-   - Dialog met de volledige e-mail info:
-     - Header: subject, status badge
-     - Meta: van/naar, datum/tijd
-     - Body: de `body_html` gerenderd in een `iframe` (sandbox, srcdoc) zodat de HTML-styling intact blijft zonder de app te beïnvloeden
-     - Fallback: als geen `body_html`, toon `body_text`
-   - Sluitknop
+**Wijzigingen:**
+1. Alle DNS records voor de zone ophalen (zonder name-filter) via `GET /zones/{zone_id}/dns_records?per_page=500`
+2. Voor elk vereist record (@ A, www A, _sellqo TXT):
+   - Als een record met hetzelfde name+type bestaat → PATCH (update)
+   - Als een CNAME voor `www.{domain}` bestaat → DELETE eerst, dan A record aanmaken
+   - Als een TXT record voor `_sellqo.{domain}` bestaat met verkeerde waarde → DELETE + recreate
+3. Per-record feedback in de response (welke records created/updated/deleted)
 
-### Technische details
+### Fix 2: Documentatiepagina in Instellingen
 
-- **iframe met `srcdoc`**: De `body_html` wordt getoond in een sandboxed iframe (`sandbox=""`) zodat scripts geblokkeerd worden maar de styling van de originele e-mail behouden blijft
-- **Geen nieuwe bestanden, hooks of database-wijzigingen** — alles zit al in `customer_messages.body_html`
-- **Geen backend wijzigingen**
+**Nieuw bestand:** `src/components/admin/settings/DocumentationSettings.tsx`
+- Sectie "Cloudflare koppelen" met 7 stappen (exact zoals beschreven in de vraag)
+- Clean styling, consistent met admin UI (Card, numbered steps, code-achtige highlights)
 
-### Layout
+**Bestand:** `src/pages/admin/Settings.tsx`
+- Nieuwe sectie `{ id: 'documentation', title: 'Documentatie', icon: BookOpen, component: DocumentationSettings }` toevoegen aan de `channels` group (of nieuwe group)
 
-```text
-Berichtgeschiedenis (bestaand):
-┌─────────────────────────────────┐
-│ ● Je bestelling #1128 is onderweg  [Verzonden] │  ← klikbaar
-│   Naar: paul@example.com • 23 mrt  │
-│ ● Factuur #INV-2024-001           [Verzonden] │  ← klikbaar
-│   Naar: paul@example.com • 22 mrt  │
-└─────────────────────────────────┘
-
-Dialog bij klik:
-┌──────────────────────────────────────┐
-│  Je bestelling #1128 is onderweg 📦  │
-│  Van: VanXcel <noreply@sellqo.app>   │
-│  Naar: paul@example.com             │
-│  23 mrt 2026, 14:32                 │
-│  ─────────────────────────────────── │
-│  ┌────────────────────────────────┐  │
-│  │  (gerenderde HTML e-mail       │  │
-│  │   in iframe)                   │  │
-│  └────────────────────────────────┘  │
-│                          [Sluiten]   │
-└──────────────────────────────────────┘
-```
+**Bestand:** `src/components/admin/settings/DomainVerificationPanel.tsx`
+- Kleine "Hoe werkt dit? →" link toevoegen naast de "Cloudflare automatisch koppelen" header, die linkt naar `/admin/settings?section=documentation`
 
 ### Bestanden
-- `src/components/admin/MessageHistoryPanel.tsx` — klikbare items + detail dialog
+- `supabase/functions/cloudflare-api-connect/index.ts` — fix DNS record handling
+- `src/components/admin/settings/DocumentationSettings.tsx` — nieuw
+- `src/pages/admin/Settings.tsx` — documentatie sectie toevoegen
+- `src/components/admin/settings/DomainVerificationPanel.tsx` — "Hoe werkt dit?" link
 
