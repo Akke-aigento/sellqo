@@ -82,6 +82,7 @@ export function useOrders(filters?: OrderFilters) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
       toast({ title: 'Status bijgewerkt' });
     },
     onError: (error) => {
