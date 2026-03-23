@@ -1,48 +1,56 @@
 
 
-## Fix: Tracking URLs in Bol.com edge functions (`jfrfracking.info` → juiste carrier URLs)
+## Verzonden e-mails bekijkbaar maken vanuit berichtgeschiedenis
 
-### Analyse
+### Wat
+De berichten in de `MessageHistoryPanel` (order- en klantpagina) klikbaar maken. Bij klik opent een dialog/modal met de volledige e-mail (subject, afzender/ontvanger, datum, en de gerenderde HTML-inhoud).
 
-De `jfrfracking.info` URL is **geen bewuste keuze** — het is een kapot placeholder-domein dat niet werkt. Het wordt op **5 plekken** gebruikt als fallback `tracking_url` wanneer een tracking nummer wordt opgeslagen. De hele Bol.com API-flow (shipment creation, label fetching, retry logic, v10 API calls) blijft **100% ongewijzigd**. We passen alleen de string aan die de tracking URL genereert.
+### Aanpak
 
-### Wat verandert
+**`src/components/admin/MessageHistoryPanel.tsx`** — enige bestand dat wijzigt:
 
-**1. Nieuwe shared helper** — `supabase/functions/_shared/carrierTrackingUrls.ts`
-Een kleine functie die dezelfde URL-patronen bevat als de frontend `carrierPatterns.ts`:
-- `BPOST_BE` / `bpost` → `https://track.bpost.cloud/btr/web/#/search?itemCode={tracking}`
-- `TNT` / `postnl` → `https://postnl.nl/tracktrace/?B={tracking}`
-- `DHL` → `https://www.dhl.com/nl-nl/home/tracking.html?tracking-id={tracking}`
-- etc.
+1. **State toevoegen** voor het geselecteerde bericht (`selectedMessage`)
+2. **`MessageItem` klikbaar maken** — `cursor-pointer` + `hover:bg-muted/50` + `onClick` → zet selected message
+3. **`MessageDetailDialog` component toevoegen** (in hetzelfde bestand):
+   - Dialog met de volledige e-mail info:
+     - Header: subject, status badge
+     - Meta: van/naar, datum/tijd
+     - Body: de `body_html` gerenderd in een `iframe` (sandbox, srcdoc) zodat de HTML-styling intact blijft zonder de app te beïnvloeden
+     - Fallback: als geen `body_html`, toon `body_text`
+   - Sluitknop
 
-**2. `confirm-bol-shipment/index.ts`** — 2 plekken
-Regel 256 en 308: `jfrfracking.info` template vervangen door helper-call. Verder niets.
+### Technische details
 
-**3. `create-bol-vvb-label/index.ts`** — 3 plekken
-Regel 287, 526 en 956: zelfde vervanging. Verder niets.
+- **iframe met `srcdoc`**: De `body_html` wordt getoond in een sandboxed iframe (`sandbox=""`) zodat scripts geblokkeerd worden maar de styling van de originele e-mail behouden blijft
+- **Geen nieuwe bestanden, hooks of database-wijzigingen** — alles zit al in `customer_messages.body_html`
+- **Geen backend wijzigingen**
 
-**4. Database fix** — eenmalige migratie
-```sql
-UPDATE orders 
-SET tracking_url = CASE 
-  WHEN carrier ILIKE '%bpost%' THEN 'https://track.bpost.cloud/btr/web/#/search?itemCode=' || tracking_number
-  WHEN carrier ILIKE '%postnl%' OR carrier = 'TNT' THEN 'https://postnl.nl/tracktrace/?B=' || tracking_number
-  ELSE 'https://17track.net/nl/track?nums=' || tracking_number
-END
-WHERE tracking_url LIKE '%jfrfracking.info%' AND tracking_number IS NOT NULL;
+### Layout
+
+```text
+Berichtgeschiedenis (bestaand):
+┌─────────────────────────────────┐
+│ ● Je bestelling #1128 is onderweg  [Verzonden] │  ← klikbaar
+│   Naar: paul@example.com • 23 mrt  │
+│ ● Factuur #INV-2024-001           [Verzonden] │  ← klikbaar
+│   Naar: paul@example.com • 22 mrt  │
+└─────────────────────────────────┘
+
+Dialog bij klik:
+┌──────────────────────────────────────┐
+│  Je bestelling #1128 is onderweg 📦  │
+│  Van: VanXcel <noreply@sellqo.app>   │
+│  Naar: paul@example.com             │
+│  23 mrt 2026, 14:32                 │
+│  ─────────────────────────────────── │
+│  ┌────────────────────────────────┐  │
+│  │  (gerenderde HTML e-mail       │  │
+│  │   in iframe)                   │  │
+│  └────────────────────────────────┘  │
+│                          [Sluiten]   │
+└──────────────────────────────────────┘
 ```
 
-### Wat NIET verandert
-- Bol.com API calls (POST /shipments, GET /shipping-labels, etc.)
-- Shipment creation logica, retry logica, PDF crop logica
-- Label opslag flow
-- `update-bol-tracking` edge function
-- Frontend code (`carrierPatterns.ts`, `TrackingInfoCard.tsx`, `useOrderShipping.ts`)
-- DB triggers, sync_status logica, shipped_awaiting_tracking flow
-
 ### Bestanden
-- `supabase/functions/_shared/carrierTrackingUrls.ts` — nieuw (klein helper bestand)
-- `supabase/functions/confirm-bol-shipment/index.ts` — 2x string replacement
-- `supabase/functions/create-bol-vvb-label/index.ts` — 3x string replacement
-- Database migratie — bestaande foute URLs corrigeren
+- `src/components/admin/MessageHistoryPanel.tsx` — klikbare items + detail dialog
 
