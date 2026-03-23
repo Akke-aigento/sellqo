@@ -39,7 +39,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
   };
 
   const getCurrentStep = (): DomainStep => {
-    if (domain.ssl_active || sslStatus?.ssl_active) return 'live';
+    if (domain.dns_verified && (domain.ssl_active || sslStatus?.ssl_active)) return 'live';
     if (domain.dns_verified) return 'ssl-active';
     return 'domain-saved';
   };
