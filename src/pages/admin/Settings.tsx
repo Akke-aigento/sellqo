@@ -49,6 +49,7 @@ import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSett
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { SignatureSettings } from '@/components/admin/settings/SignatureSettings';
 import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
+import { DocumentationSettings } from '@/components/admin/settings/DocumentationSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { Inbox, Truck, PenLine } from 'lucide-react';
 
