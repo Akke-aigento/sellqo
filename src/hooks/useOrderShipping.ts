@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { generateTrackingUrl, getCarrierById } from '@/lib/carrierPatterns';
+import { generateShippingEmailHtml } from '@/lib/shippingEmailTemplate';
 
 export interface UpdateTrackingInput {
   orderId: string;
