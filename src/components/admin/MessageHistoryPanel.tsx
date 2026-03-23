@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useMessageHistory, CustomerMessage } from '@/hooks/useCustomerMessages';
@@ -5,6 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Mail,
   Send,
@@ -41,6 +49,7 @@ export function MessageHistoryPanel({
   embedded = false,
 }: MessageHistoryPanelProps) {
   const { data: messages = [], isLoading } = useMessageHistory(entityType, entityId);
+  const [selectedMessage, setSelectedMessage] = useState<CustomerMessage | null>(null);
 
   const displayMessages = maxItems ? messages.slice(0, maxItems) : messages;
 
@@ -92,45 +101,68 @@ export function MessageHistoryPanel({
   }
 
   return (
-    <Wrapper>
-      {!embedded && (
-        <WrapperHeader className={compact ? 'pb-2' : undefined}>
-          <CardTitle className="flex items-center justify-between text-base">
-            <span className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Berichtgeschiedenis
-            </span>
-            <Badge variant="secondary" className="font-normal">
-              {messages.length} bericht{messages.length !== 1 ? 'en' : ''}
-            </Badge>
-          </CardTitle>
-        </WrapperHeader>
-      )}
-      <WrapperContent className={embedded ? '' : 'pt-0'}>
-        <ScrollArea className={compact ? 'h-[200px]' : 'h-[300px]'}>
-          <div className="space-y-3 pr-4">
-            {displayMessages.map((message) => (
-              <MessageItem key={message.id} message={message} compact={compact} />
-            ))}
-            {maxItems && messages.length > maxItems && (
-              <p className="text-xs text-center text-muted-foreground pt-2">
-                +{messages.length - maxItems} meer berichten
-              </p>
-            )}
-          </div>
-        </ScrollArea>
-      </WrapperContent>
-    </Wrapper>
+    <>
+      <Wrapper>
+        {!embedded && (
+          <WrapperHeader className={compact ? 'pb-2' : undefined}>
+            <CardTitle className="flex items-center justify-between text-base">
+              <span className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Berichtgeschiedenis
+              </span>
+              <Badge variant="secondary" className="font-normal">
+                {messages.length} bericht{messages.length !== 1 ? 'en' : ''}
+              </Badge>
+            </CardTitle>
+          </WrapperHeader>
+        )}
+        <WrapperContent className={embedded ? '' : 'pt-0'}>
+          <ScrollArea className={compact ? 'h-[200px]' : 'h-[300px]'}>
+            <div className="space-y-3 pr-4">
+              {displayMessages.map((message) => (
+                <MessageItem
+                  key={message.id}
+                  message={message}
+                  compact={compact}
+                  onClick={() => setSelectedMessage(message)}
+                />
+              ))}
+              {maxItems && messages.length > maxItems && (
+                <p className="text-xs text-center text-muted-foreground pt-2">
+                  +{messages.length - maxItems} meer berichten
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </WrapperContent>
+      </Wrapper>
+
+      <MessageDetailDialog
+        message={selectedMessage}
+        onClose={() => setSelectedMessage(null)}
+      />
+    </>
   );
 }
 
-function MessageItem({ message, compact }: { message: CustomerMessage; compact: boolean }) {
+function MessageItem({
+  message,
+  compact,
+  onClick,
+}: {
+  message: CustomerMessage;
+  compact: boolean;
+  onClick: () => void;
+}) {
   const statusConfig = STATUS_CONFIG[message.delivery_status];
   const StatusIcon = statusConfig.icon;
   const DirectionIcon = message.direction === 'outbound' ? Send : Inbox;
 
   return (
-    <div className="relative pl-6 pb-3 border-l-2 border-muted last:pb-0">
+    <div
+      className="relative pl-6 pb-3 border-l-2 border-muted last:pb-0 cursor-pointer rounded-r-md transition-colors hover:bg-muted/50"
+      onClick={onClick}
+    >
       {/* Timeline dot */}
       <div className="absolute left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-background border-2 border-primary" />
       
@@ -174,5 +206,63 @@ function MessageItem({ message, compact }: { message: CustomerMessage; compact: 
         )}
       </div>
     </div>
+  );
+}
+
+function MessageDetailDialog({
+  message,
+  onClose,
+}: {
+  message: CustomerMessage | null;
+  onClose: () => void;
+}) {
+  if (!message) return null;
+
+  const statusConfig = STATUS_CONFIG[message.delivery_status];
+  const StatusIcon = statusConfig.icon;
+
+  return (
+    <Dialog open={!!message} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between gap-3 pr-6">
+            <span className="truncate">{message.subject}</span>
+            <Badge variant={statusConfig.variant} className="flex-shrink-0 text-xs">
+              <StatusIcon className="h-3 w-3 mr-1" />
+              {statusConfig.label}
+            </Badge>
+          </DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-1 text-sm text-muted-foreground pt-1">
+              <div>
+                <span className="font-medium">Van:</span> {message.from_email}
+              </div>
+              <div>
+                <span className="font-medium">Naar:</span> {message.to_email}
+              </div>
+              <div>
+                <span className="font-medium">Datum:</span>{' '}
+                {format(new Date(message.created_at), 'd MMMM yyyy, HH:mm', { locale: nl })}
+              </div>
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 min-h-0 border rounded-md overflow-hidden bg-white">
+          {message.body_html ? (
+            <iframe
+              srcDoc={message.body_html}
+              sandbox=""
+              className="w-full h-[500px] border-none"
+              title={message.subject}
+            />
+          ) : (
+            <div className="p-4 whitespace-pre-wrap text-sm text-foreground">
+              {message.body_text || 'Geen inhoud beschikbaar.'}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
