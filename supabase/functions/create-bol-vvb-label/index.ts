@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateTrackingUrl } from "../_shared/carrierTrackingUrls.ts";
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
