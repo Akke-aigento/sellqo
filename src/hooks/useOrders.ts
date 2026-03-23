@@ -101,6 +101,7 @@ export function useOrders(filters?: OrderFilters) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
       toast({ title: 'Betaalstatus bijgewerkt' });
     },
     onError: (error) => {
