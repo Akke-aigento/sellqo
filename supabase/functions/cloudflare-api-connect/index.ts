@@ -193,15 +193,17 @@ serve(async (req) => {
     for (const record of recordsToCreate) {
       const recordLabel = `${record.type} ${record.name}`;
 
-      // Step A: Delete ALL conflicting records (wrong type for same name)
-      const conflictingRecords = allRecords.filter(
-        (r: DnsRecord) => r.name.toLowerCase() === record.name.toLowerCase() && r.type !== record.type
-      );
-      for (const conflict of conflictingRecords) {
-        console.log(`Deleting conflicting ${conflict.type} record for ${conflict.name} (id: ${conflict.id})`);
-        const deleted = await deleteRecord(zone.id, conflict.id, api_token);
-        if (!deleted) {
-          actions.push({ record: recordLabel, type: record.type, action: 'error', detail: `Kon conflicterend ${conflict.type} record niet verwijderen` });
+      // Step A: Only delete CNAME conflict for www (to replace with A record)
+      if (record.type === 'A' && record.name.toLowerCase().startsWith('www.')) {
+        const wwwCname = allRecords.find(
+          (r: DnsRecord) => r.name.toLowerCase() === record.name.toLowerCase() && r.type === 'CNAME'
+        );
+        if (wwwCname) {
+          console.log(`Deleting conflicting CNAME for www: ${wwwCname.content} (id: ${wwwCname.id})`);
+          const deleted = await deleteRecord(zone.id, wwwCname.id, api_token);
+          if (!deleted) {
+            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon conflicterend CNAME record voor www niet verwijderen' });
+          }
         }
       }
 
