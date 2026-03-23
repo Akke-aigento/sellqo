@@ -13,6 +13,7 @@ export interface TenantDomain {
   dns_verified: boolean;
   verification_token: string | null;
   ssl_active: boolean;
+  hosting_mode: 'sellqo' | 'external';
   created_at: string;
   updated_at: string;
 }
