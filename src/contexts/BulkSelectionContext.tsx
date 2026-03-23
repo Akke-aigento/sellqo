@@ -5,6 +5,7 @@ export interface BulkAction {
   icon?: ReactNode;
   onClick: () => void;
   variant?: 'default' | 'destructive';
+  primary?: boolean;
 }
 
 interface BulkSelectionContextType {

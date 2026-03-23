@@ -29,6 +29,9 @@ export function AdminBottomNav() {
     return location.pathname.startsWith(path);
   };
 
+  const primaryActions = bulkActions.filter(a => a.primary !== false);
+  const secondaryActions = bulkActions.filter(a => a.primary === false);
+
   // Bulk action mode
   if (selectedCount > 0) {
     return (
@@ -41,19 +44,41 @@ export function AdminBottomNav() {
             <X className="h-5 w-5" />
             <span>{selectedCount}</span>
           </button>
-          {bulkActions.map((action, i) => (
+          {primaryActions.map((action, i) => (
             <button
               key={i}
               onClick={action.onClick}
-              className={cn(
-                'flex flex-col items-center gap-0.5 text-xs min-w-0 px-2 py-1 text-primary-foreground',
-                action.variant === 'destructive' && 'text-destructive-foreground'
-              )}
+              className="flex flex-col items-center gap-0.5 text-xs min-w-0 px-2 py-1 text-primary-foreground"
             >
               {action.icon || <Package className="h-5 w-5" />}
               <span className="truncate max-w-[4.5rem]">{action.label}</span>
             </button>
           ))}
+          {secondaryActions.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex flex-col items-center gap-0.5 text-xs min-w-0 px-2 py-1 text-primary-foreground">
+                  <MoreHorizontal className="h-5 w-5" />
+                  <span>Meer</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="end" className="mb-2">
+                {secondaryActions.map((action, i) => (
+                  <DropdownMenuItem
+                    key={i}
+                    onClick={action.onClick}
+                    className={cn(
+                      'gap-2',
+                      action.variant === 'destructive' && 'text-destructive focus:text-destructive'
+                    )}
+                  >
+                    {action.icon}
+                    {action.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </nav>
       </div>
     );
