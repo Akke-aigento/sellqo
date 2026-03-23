@@ -1,53 +1,94 @@
 
-Diagnose (grondig nagekeken)
 
-- Do I know what the issue is? Ja.
-- De foutlus komt niet door de 3-record DNS logica zelf, maar door een token-bron mismatch:
-  - `verify-domain` valideert multi-domain tegen `tenant_domains.verification_token` (via `domain_id`).
-  - `cloudflare-api-connect` gebruikt nu `tenants.domain_verification_token`.
-  - Resultaat: `_sellqo` wordt naar de “tenant token” gezet, terwijl verificatie verwacht dat hij matcht met de “domain token”.
-- Bewijs uit logs/data:
-  - `verify-domain` logs tonen telkens `a_record_valid: true`, `txt_record_valid: false`, `current_txt_record: sellqo-verify=c998...`
-  - `tenant_domains` voor `vanxcel.be` heeft `verification_token=f6f3...`
-  - `cloudflare-api-connect` logs tonen “TXT skipped” op de oude waarde, dus hij blijft fout voor de domain-verificatie.
-- Extra symptoom: UI toont soms “SSL actief” terwijl `dns_verified` nog false is, wat verwarrend is.
+## Domeinarchitectuur voor Custom Frontend Tenants
 
-Implementatieplan
+### Het probleem
 
-1) Fix request-contract tussen UI en backend
-- Bestand: `src/hooks/useDomainVerificationMulti.ts`
-- `connectWithApiToken` stuurt ook `domain_id: domain.id` mee naar `cloudflare-api-connect`.
-- Zo werkt auto-connect altijd op het juiste domeinrecord.
+Er zijn drie lagen die elk "domeinen" beheren, en die moeten correct samenwerken:
 
-2) Fix token-resolutie in `cloudflare-api-connect` (kernfix)
-- Bestand: `supabase/functions/cloudflare-api-connect/index.ts`
-- Resolutievolgorde:
-  1. Als `domain_id` meegegeven is: haal `tenant_domains` record op (`id + tenant_id`) en gebruik exact die `verification_token`.
-  2. Zo niet: probeer `tenant_domains` lookup op (`tenant_id + cleanDomain`).
-  3. Enkel als fallback: legacy `tenants.domain_verification_token`.
-- `_sellqo` TXT wordt altijd opgebouwd met de resolvde token van het target domain context.
-- 3-record contract blijft strikt identiek (alleen `@ A`, `www A`, `_sellqo TXT`).
+1. **DNS (Cloudflare)** — waar het domein fysiek naartoe wijst (IP-adres)
+2. **Lovable hosting** — welk Lovable-project het domein serveert
+3. **SellQo tenant_domains** — welke tenant bij het domein hoort (voor API-context)
 
-3) Consistente updates na succesvolle sync
-- Bestand: `supabase/functions/cloudflare-api-connect/index.ts`
-- Bij succes:
-  - update het juiste `tenant_domains` record (minstens token sync als die ontbrak, en optioneel state-velden die in deze flow horen).
-  - legacy `tenants` alleen bij fallback/legacy pad om backward compatibility te behouden.
-- Geen wijzigingen aan andere DNS-record types/namen.
+### De juiste architectuur
 
-4) Verificatie-feedback verbeteren (zodat errors niet “leeg” lijken)
-- Bestand: `supabase/functions/verify-domain/index.ts`
-- Voeg expliciete fouttak toe voor “TXT bestaat maar waarde mismatcht” met duidelijke `error` + `error_details` (verwacht vs gevonden).
-- Zo ziet gebruiker meteen dat enkel `_sellqo` token fout staat.
+```text
+Bezoeker typt vanxcel.be
+        │
+        ▼
+   DNS (Cloudflare)
+   A-record → Lovable IP (185.158.133.1)
+        │
+        ▼
+   Lovable routing
+   Domein gekoppeld aan Vanxcel-project (80408260...)
+        │
+        ▼
+   Vanxcel frontend laadt
+   Roept storefront-resolve aan met hostname="vanxcel.be"
+        │
+        ▼
+   SellQo storefront-resolve
+   Zoekt in tenant_domains → vindt tenant + locale + config
+        │
+        ▼
+   Vanxcel frontend toont producten via Storefront API
+```
 
-5) UI-statuslogica rechttrekken
-- Bestand: `src/components/admin/settings/DomainVerificationPanel.tsx`
-- Statusbadge/progress eerst laten afhangen van `dns_verified`; pas “SSL actief/live” tonen wanneer DNS ook verified is.
-- Vermijdt de huidige “groen + toch error” verwarring.
+### Conclusie per laag
 
-6) Validatieplan (na implementatie)
-- Test 1: domein met mismatch token → auto-connect moet `_sellqo` vervangen naar domain-token en verify moet slagen.
-- Test 2: bestaande SPF/DMARC/Google/MS TXT records blijven onaangeraakt.
-- Test 3: `www` CNAME scenario blijft correct (delete CNAME → create A).
-- Test 4: UI toont geen contradictie meer (geen “SSL actief” terwijl DNS nog false).
-- Test 5: edge logs moeten eindigen op `success: true` + verify-domain `txt_record_valid: true`.
+**DNS (Cloudflare):** De A-records voor vanxcel.be/nl/com moeten naar `185.158.133.1` wijzen — dat is het Lovable IP. Dit is al gedaan via de Cloudflare auto-connect.
+
+**Lovable domein-koppeling:** De domeinen moeten gekoppeld worden in het **Vanxcel Lovable-project**, NIET in het SellQo-project. Lovable moet weten welk project het moet serveren als iemand vanxcel.be bezoekt.
+
+**SellQo tenant_domains:** De domeinen moeten WEL in de SellQo database blijven staan, want `storefront-resolve` en `storefront-api` gebruiken deze tabel om de juiste tenant, locale en config te resolven. MAAR:
+- De DNS-verificatie (`dns_verified`, `ssl_active`) is niet meer relevant voor SellQo — dat beheert Lovable nu
+- De Cloudflare auto-connect vanuit SellQo is niet meer nodig voor custom frontend tenants
+
+### Wat er moet veranderen
+
+**1. Veld toevoegen aan `tenant_domains`: `hosting_mode`**
+
+Een nieuw veld dat aangeeft of SellQo of een extern platform het domein host:
+- `sellqo` (default) — SellQo beheert DNS-verificatie, SSL, en serveert de storefront
+- `external` — domein wordt extern gehost (bijv. in een ander Lovable-project); SellQo gebruikt het alleen voor API-context/routing
+
+**2. UI aanpassen: DNS-verificatie verbergen voor external domeinen**
+
+In het domein-instellingenpaneel (`MultiDomainSettings` / `DomainVerificationPanel`):
+- Als `use_custom_frontend` aan staat, worden nieuwe domeinen automatisch als `hosting_mode: 'external'` toegevoegd
+- External domeinen tonen GEEN DNS-verificatie stappen, geen Cloudflare connect, geen SSL-status
+- Wel tonen: domein, locale, canonical status (voor hreflang/API-routing)
+- Info-banner: "Dit domein wordt gehost in je custom frontend. Koppel het daar aan je project."
+
+**3. storefront-resolve ongewijzigd**
+
+De resolve-functie zoekt alleen op `domain + is_active`. Het maakt niet uit of het domein `sellqo` of `external` gehost is — de API-context is identiek. Geen wijziging nodig.
+
+**4. Drie domeinen, verschillende locales**
+
+Voor de 3 Vanxcel-domeinen:
+| Domein | Locale | Canonical | Hosting |
+|---|---|---|---|
+| vanxcel.be | nl | ✓ | external |
+| vanxcel.nl | nl | | external |
+| vanxcel.com | en | | external |
+
+De Vanxcel frontend roept bij laden `storefront-resolve` aan met `window.location.hostname` en krijgt de juiste locale terug. Op basis daarvan toont het de juiste taal.
+
+### Bestanden
+
+| Bestand | Wijziging |
+|---|---|
+| **Database migratie** | `hosting_mode` kolom toevoegen aan `tenant_domains` (default `'sellqo'`) |
+| `src/hooks/useTenantDomains.ts` | Type uitbreiden met `hosting_mode` |
+| `src/components/admin/settings/MultiDomainSettings.tsx` | Auto-set `hosting_mode: 'external'` bij custom frontend; DNS-verificatie UI verbergen voor external |
+| `src/components/admin/settings/DomainVerificationPanel.tsx` | Niet tonen voor external domeinen |
+| `src/components/admin/storefront/StorefrontSettings.tsx` | Info-tekst toevoegen dat domeinen extern gekoppeld moeten worden |
+
+### Wat NIET verandert
+- `storefront-resolve` — werkt al correct
+- `storefront-api` — werkt al correct
+- `cloudflare-api-connect` — blijft werken voor `sellqo`-hosted domeinen
+- `verify-domain` — blijft werken voor `sellqo`-hosted domeinen
+
