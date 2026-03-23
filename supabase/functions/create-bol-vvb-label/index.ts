@@ -953,7 +953,7 @@ const handler = async (req: Request): Promise<Response> => {
       };
       if (trackingNumber) {
         orderUpdate.tracking_number = trackingNumber;
-        orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${trackingNumber}`;
+        orderUpdate.tracking_url = generateTrackingUrl(selectedOffer?.transporterCode || '', trackingNumber);
       }
       await supabase.from("orders").update(orderUpdate).eq("id", order.id);
 
