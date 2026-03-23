@@ -285,7 +285,7 @@ const handler = async (req: Request): Promise<Response> => {
               const orderUpdate: Record<string, unknown> = { tracking_number: foundTracking };
               if (foundCarrier) orderUpdate.carrier = foundCarrier;
               if (foundTracking) {
-                orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${foundTracking}`;
+                orderUpdate.tracking_url = generateTrackingUrl(foundCarrier || carrier, foundTracking);
               }
               await supabase.from("orders").update(orderUpdate).eq("id", order.id);
               console.log("Updated order with tracking:", foundTracking);
