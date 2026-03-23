@@ -97,11 +97,12 @@ export function MultiDomainSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Custom Frontend info alert */}
-        {useCustomFrontend && customFrontendUrl && domains.length > 0 && (
+        {useCustomFrontend && domains.length > 0 && (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Alle geverifieerde domeinen serveren je custom frontend op <strong>{customFrontendUrl}</strong>
+              Custom frontend actief — domeinen worden extern gehost. Koppel ze aan je custom frontend project (bijv. via Lovable Domains).
+              {customFrontendUrl && <> Frontend URL: <strong>{customFrontendUrl}</strong></>}
             </AlertDescription>
           </Alert>
         )}
