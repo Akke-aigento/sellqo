@@ -1,53 +1,48 @@
 
 
-## Plan: Contactformulier Storefront + E-mail Forwarding
+## Fix: Tracking URLs in Bol.com edge functions (`jfrfracking.info` → juiste carrier URLs)
 
-### Huidige situatie
+### Analyse
 
-1. **Contactformulier**: De `Contact.tsx` is de SellQo-platform pagina, niet per-tenant. Er bestaat **geen** contactformulier in de storefront (`/shop/:tenantSlug/...`). Het platform-formulier doet bovendien niets — het simuleert alleen een submit.
-2. **E-mail forwarding**: Bestaat niet. Inkomende berichten landen in de SellQo inbox maar worden nergens doorgestuurd naar een externe mailbox.
+De `jfrfracking.info` URL is **geen bewuste keuze** — het is een kapot placeholder-domein dat niet werkt. Het wordt op **5 plekken** gebruikt als fallback `tracking_url` wanneer een tracking nummer wordt opgeslagen. De hele Bol.com API-flow (shipment creation, label fetching, retry logic, v10 API calls) blijft **100% ongewijzigd**. We passen alleen de string aan die de tracking URL genereert.
 
-### Wat we bouwen
+### Wat verandert
 
-#### 1. Storefront Contactformulier
-Een contactpagina voor elke tenant-webshop (`/shop/:tenantSlug/contact`) waar bezoekers een bericht kunnen sturen dat direct in de SellQo inbox terechtkomt.
+**1. Nieuwe shared helper** — `supabase/functions/_shared/carrierTrackingUrls.ts`
+Een kleine functie die dezelfde URL-patronen bevat als de frontend `carrierPatterns.ts`:
+- `BPOST_BE` / `bpost` → `https://track.bpost.cloud/btr/web/#/search?itemCode={tracking}`
+- `TNT` / `postnl` → `https://postnl.nl/tracktrace/?B={tracking}`
+- `DHL` → `https://www.dhl.com/nl-nl/home/tracking.html?tracking-id={tracking}`
+- etc.
 
-- **Pagina**: `src/pages/storefront/ShopContact.tsx` — formulier met naam, e-mail, onderwerp, bericht
-- **Edge function**: `storefront-contact-form` — valideert input, slaat op als `customer_messages` met `direction: 'inbound'`, `channel: 'contact_form'`, koppelt aan bestaande klant of maakt prospect aan (zelfde patroon als `handle-inbound-email`)
-- **Route**: Toevoegen aan router
-- **Navigatie**: Link toevoegen aan de ShopLayout navigatie
+**2. `confirm-bol-shipment/index.ts`** — 2 plekken
+Regel 256 en 308: `jfrfracking.info` template vervangen door helper-call. Verder niets.
 
-#### 2. E-mail Forwarding Instelling
-Per tenant een optioneel extern e-mailadres instellen waar inkomende berichten automatisch naartoe worden doorgestuurd.
+**3. `create-bol-vvb-label/index.ts`** — 3 plekken
+Regel 287, 526 en 956: zelfde vervanging. Verder niets.
 
-- **Database**: Twee nieuwe kolommen op `tenants`:
-  - `email_forward_address` (text, nullable) — bijv. `info@mijnbedrijf.nl`
-  - `email_forward_enabled` (boolean, default false)
-- **Instellingen UI**: Sectie toevoegen in `InboundEmailSettings.tsx` — toggle + e-mailadres input
-- **Edge function aanpassing**: `handle-inbound-email` uitbreiden — na opslaan van bericht, als forwarding aan staat, stuur een kopie naar het forward-adres via de bestaande e-mail infrastructuur
-- **Storefront contact form**: Zelfde forwarding-logica toepassen in de `storefront-contact-form` edge function
-
-### Technische details
-
-**Database migratie:**
+**4. Database fix** — eenmalige migratie
 ```sql
-ALTER TABLE tenants 
-  ADD COLUMN email_forward_address text,
-  ADD COLUMN email_forward_enabled boolean DEFAULT false;
+UPDATE orders 
+SET tracking_url = CASE 
+  WHEN carrier ILIKE '%bpost%' THEN 'https://track.bpost.cloud/btr/web/#/search?itemCode=' || tracking_number
+  WHEN carrier ILIKE '%postnl%' OR carrier = 'TNT' THEN 'https://postnl.nl/tracktrace/?B=' || tracking_number
+  ELSE 'https://17track.net/nl/track?nums=' || tracking_number
+END
+WHERE tracking_url LIKE '%jfrfracking.info%' AND tracking_number IS NOT NULL;
 ```
 
-**Forwarding mechanisme**: Na het opslaan van een inbound bericht, checken of `email_forward_enabled = true` en `email_forward_address` is ingevuld. Zo ja, een e-mail sturen naar dat adres met de originele inhoud (subject, body, afzender info). Gebruikt de bestaande Lovable e-mail pipeline.
-
-**Contact form edge function**: Publiek endpoint (geen auth vereist), met rate limiting op basis van IP/tenant combo om misbruik te voorkomen. Zod-validatie op alle input.
+### Wat NIET verandert
+- Bol.com API calls (POST /shipments, GET /shipping-labels, etc.)
+- Shipment creation logica, retry logica, PDF crop logica
+- Label opslag flow
+- `update-bol-tracking` edge function
+- Frontend code (`carrierPatterns.ts`, `TrackingInfoCard.tsx`, `useOrderShipping.ts`)
+- DB triggers, sync_status logica, shipped_awaiting_tracking flow
 
 ### Bestanden
-
-- `src/pages/storefront/ShopContact.tsx` — nieuw: contactpagina
-- `supabase/functions/storefront-contact-form/index.ts` — nieuw: formulier verwerking + forwarding
-- `supabase/functions/handle-inbound-email/index.ts` — uitbreiden met forwarding
-- `src/components/admin/settings/InboundEmailSettings.tsx` — forwarding sectie toevoegen
-- `src/hooks/useTenant.tsx` — Tenant interface uitbreiden
-- Router config — route toevoegen
-- ShopLayout navigatie — link toevoegen
-- Database migratie — twee kolommen
+- `supabase/functions/_shared/carrierTrackingUrls.ts` — nieuw (klein helper bestand)
+- `supabase/functions/confirm-bol-shipment/index.ts` — 2x string replacement
+- `supabase/functions/create-bol-vvb-label/index.ts` — 3x string replacement
+- Database migratie — bestaande foute URLs corrigeren
 
