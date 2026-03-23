@@ -10,6 +10,7 @@ import { TrialExpiredBlocker } from './TrialExpiredBlocker';
 import { useGlobalNotificationListener } from '@/hooks/useGlobalNotificationListener';
 import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
 import { AdminBottomNav } from './AdminBottomNav';
+import { BulkSelectionProvider } from '@/contexts/BulkSelectionContext';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
