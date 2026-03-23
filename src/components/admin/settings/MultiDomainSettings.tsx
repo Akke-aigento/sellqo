@@ -37,12 +37,15 @@ export function MultiDomainSettings() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLocale, setEditLocale] = useState('');
 
+  const isExternalHosting = !!useCustomFrontend;
+
   const handleAdd = async () => {
     if (!newDomain.trim()) return;
     await addDomain.mutateAsync({
       domain: newDomain,
       locale: newLocale,
       is_canonical: newCanonical || domains.length === 0,
+      hosting_mode: isExternalHosting ? 'external' : 'sellqo',
     });
     setNewDomain('');
     setNewLocale('nl');
