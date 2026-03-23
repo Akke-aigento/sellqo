@@ -245,7 +245,10 @@ export function MultiDomainSettings() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <DomainVerificationPanel domain={domain} />
+                    {domain.hosting_mode !== 'external' && <DomainVerificationPanel domain={domain} />}
+                    {domain.hosting_mode === 'external' && (
+                      <Badge variant="outline" className="text-xs">Extern</Badge>
+                    )}
                     <Switch
                       checked={domain.is_active}
                       onCheckedChange={() => handleToggleActive(domain)}
