@@ -288,12 +288,7 @@ Deno.serve(async (req) => {
               customer_email: order.customer_email,
               customer_name: order.customer_name,
               subject: `Je bestelling ${order.order_number} is onderweg! 📦`,
-              body_html: `
-                <p>Goed nieuws! Je bestelling <strong>${order.order_number}</strong> is verzonden.</p>
-                <p>Carrier: ${carrier}</p>
-                <p>Tracknummer: ${tracking_number}</p>
-                ${tracking_url ? `<p><a href="${tracking_url}">Volg je pakket</a></p>` : ''}
-              `,
+              body_html: generateFulfillmentShippingHtml(order.order_number, carrier, tracking_number, tracking_url),
               body_text: `Je bestelling ${order.order_number} is verzonden via ${carrier}. Tracknummer: ${tracking_number}`,
               context_type: 'order',
               order_id: orderId,
