@@ -22,6 +22,7 @@ import {
   MessageCircle,
   MessageSquare,
   Bot,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,6 +49,7 @@ import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSett
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { SignatureSettings } from '@/components/admin/settings/SignatureSettings';
 import { TrackingNotificationSettings } from '@/components/admin/settings/TrackingNotificationSettings';
+import { DocumentationSettings } from '@/components/admin/settings/DocumentationSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { Inbox, Truck, PenLine } from 'lucide-react';
 
@@ -122,6 +124,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
       { id: 'tracking', title: 'Verzending & Tracking', icon: Truck, component: TrackingNotificationSettings },
       { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
+      { id: 'documentation', title: 'Documentatie', icon: BookOpen, component: DocumentationSettings },
     ],
   },
 ];

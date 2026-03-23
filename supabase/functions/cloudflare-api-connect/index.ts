@@ -27,14 +27,52 @@ interface DnsRecord {
   content: string;
 }
 
+interface RecordAction {
+  record: string;
+  type: string;
+  action: 'created' | 'updated' | 'deleted_and_created' | 'error';
+  detail?: string;
+}
+
+async function deleteRecord(zoneId: string, recordId: string, apiToken: string): Promise<boolean> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${recordId}`,
+    { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiToken}` } }
+  );
+  const data = await res.json() as CloudflareResponse<unknown>;
+  return data.success;
+}
+
+async function createRecord(zoneId: string, record: Record<string, unknown>, apiToken: string): Promise<CloudflareResponse<DnsRecord>> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
+    {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    }
+  );
+  return await res.json() as CloudflareResponse<DnsRecord>;
+}
+
+async function updateRecord(zoneId: string, recordId: string, record: Record<string, unknown>, apiToken: string): Promise<CloudflareResponse<DnsRecord>> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${recordId}`,
+    {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    }
+  );
+  return await res.json() as CloudflareResponse<DnsRecord>;
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -104,7 +142,6 @@ serve(async (req) => {
     // Step 3: Find zone matching domain
     const cleanDomain = domain.toLowerCase().replace(/^www\./, '');
     const zone = zonesData.result.find((z: Zone) => {
-      // Check if domain matches zone or is a subdomain of zone
       return cleanDomain === z.name || cleanDomain.endsWith(`.${z.name}`);
     });
 
@@ -136,101 +173,120 @@ serve(async (req) => {
 
     const verificationToken = tenantData.domain_verification_token || crypto.randomUUID().replace(/-/g, '').substring(0, 16);
 
-    // Step 5: Check existing DNS records
+    // Step 5: Fetch ALL existing DNS records for the zone (no name filter)
     const existingRecordsResponse = await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records?name=${cleanDomain}`,
+      `https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records?per_page=500`,
       { headers: { 'Authorization': `Bearer ${api_token}` } }
     );
     const existingRecordsData = await existingRecordsResponse.json() as CloudflareResponse<DnsRecord[]>;
+    const allRecords = existingRecordsData.result || [];
 
-    // Step 6: Create/Update DNS records
+    // Step 6: Create/Update DNS records with conflict handling
     const recordsToCreate = [
       { type: 'A', name: cleanDomain, content: SELLQO_IP, ttl: 1, proxied: false },
       { type: 'A', name: `www.${cleanDomain}`, content: SELLQO_IP, ttl: 1, proxied: false },
       { type: 'TXT', name: `_sellqo.${cleanDomain}`, content: `sellqo-verify=${verificationToken}`, ttl: 1 },
     ];
 
-    let recordsCreated = 0;
-    let recordsUpdated = 0;
-    const errors: string[] = [];
+    const actions: RecordAction[] = [];
 
     for (const record of recordsToCreate) {
-      // Check if record already exists
-      const existingRecord = existingRecordsData.result?.find(
+      const recordLabel = `${record.type} ${record.name}`;
+
+      // Find existing record with same name+type
+      const existingRecord = allRecords.find(
         (r: DnsRecord) => r.type === record.type && r.name === record.name
       );
 
-      if (existingRecord) {
-        // Update existing record
-        const updateResponse = await fetch(
-          `https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records/${existingRecord.id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${api_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(record),
-          }
+      // Check for conflicting CNAME on www
+      if (record.name === `www.${cleanDomain}` && record.type === 'A') {
+        const conflictingCname = allRecords.find(
+          (r: DnsRecord) => r.type === 'CNAME' && r.name === record.name
         );
-        const updateData = await updateResponse.json() as CloudflareResponse<DnsRecord>;
-        if (updateData.success) {
-          recordsUpdated++;
+        if (conflictingCname) {
+          const deleted = await deleteRecord(zone.id, conflictingCname.id, api_token);
+          if (!deleted) {
+            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon conflicterende CNAME niet verwijderen' });
+            continue;
+          }
+        }
+      }
+
+      if (existingRecord) {
+        // For TXT records with wrong value, delete and recreate
+        if (record.type === 'TXT' && existingRecord.content !== record.content) {
+          const deleted = await deleteRecord(zone.id, existingRecord.id, api_token);
+          if (deleted) {
+            const createRes = await createRecord(zone.id, record, api_token);
+            actions.push({
+              record: recordLabel,
+              type: record.type,
+              action: createRes.success ? 'deleted_and_created' : 'error',
+              detail: createRes.success ? undefined : createRes.errors?.[0]?.message,
+            });
+          } else {
+            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon bestaand TXT record niet verwijderen' });
+          }
         } else {
-          errors.push(`Kon ${record.type} record voor ${record.name} niet updaten`);
+          // PATCH update existing record
+          const updateRes = await updateRecord(zone.id, existingRecord.id, record, api_token);
+          actions.push({
+            record: recordLabel,
+            type: record.type,
+            action: updateRes.success ? 'updated' : 'error',
+            detail: updateRes.success ? undefined : updateRes.errors?.[0]?.message,
+          });
         }
       } else {
         // Create new record
-        const createResponse = await fetch(
-          `https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${api_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(record),
-          }
-        );
-        const createData = await createResponse.json() as CloudflareResponse<DnsRecord>;
-        if (createData.success) {
-          recordsCreated++;
-        } else {
-          errors.push(`Kon ${record.type} record voor ${record.name} niet aanmaken: ${createData.errors?.[0]?.message || 'Onbekende fout'}`);
-        }
+        const createRes = await createRecord(zone.id, record, api_token);
+        actions.push({
+          record: recordLabel,
+          type: record.type,
+          action: createRes.success ? 'created' : 'error',
+          detail: createRes.success ? undefined : createRes.errors?.[0]?.message,
+        });
       }
     }
 
-    // Step 7: Update tenant with domain info and mark as verified
-    const { error: updateError } = await supabase
-      .from('tenants')
-      .update({
-        custom_domain: cleanDomain,
-        domain_verified: true,
-        domain_verification_token: verificationToken,
-      })
-      .eq('id', tenant_id);
+    const hasErrors = actions.some(a => a.action === 'error');
+    const recordsCreated = actions.filter(a => a.action === 'created' || a.action === 'deleted_and_created').length;
+    const recordsUpdated = actions.filter(a => a.action === 'updated').length;
 
-    if (updateError) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'DNS records zijn aangemaakt maar tenant kon niet worden bijgewerkt',
-          records_created: recordsCreated,
-          records_updated: recordsUpdated
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Step 7: Update tenant with domain info
+    if (!hasErrors) {
+      const { error: updateError } = await supabase
+        .from('tenants')
+        .update({
+          custom_domain: cleanDomain,
+          domain_verified: true,
+          domain_verification_token: verificationToken,
+        })
+        .eq('id', tenant_id);
+
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'DNS records zijn aangemaakt maar tenant kon niet worden bijgewerkt',
+            records_created: recordsCreated,
+            records_updated: recordsUpdated,
+            actions,
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     return new Response(
       JSON.stringify({ 
-        success: true,
+        success: !hasErrors,
         records_created: recordsCreated,
         records_updated: recordsUpdated,
         domain: cleanDomain,
         zone_name: zone.name,
-        errors: errors.length > 0 ? errors : undefined
+        actions,
+        errors: hasErrors ? actions.filter(a => a.action === 'error').map(a => `${a.record}: ${a.detail}`) : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

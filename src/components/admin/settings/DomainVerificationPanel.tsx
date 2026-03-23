@@ -130,8 +130,9 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
                   {/* Cloudflare auto-connect */}
                   {providerInfo.supports_auto_connect && (
                     <div className="p-3 rounded-md border border-primary/20 bg-primary/5 space-y-2">
-                      <p className="text-xs font-medium flex items-center gap-1">
-                        <Key className="h-3 w-3" /> Cloudflare automatisch koppelen
+                      <p className="text-xs font-medium flex items-center justify-between">
+                        <span className="flex items-center gap-1"><Key className="h-3 w-3" /> Cloudflare automatisch koppelen</span>
+                        <a href="/admin/settings?section=documentation" className="text-xs text-primary hover:underline font-normal">Hoe werkt dit? →</a>
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Voer je Cloudflare API Token in om DNS automatisch te configureren.
