@@ -13,6 +13,7 @@ export interface TenantDomain {
   dns_verified: boolean;
   verification_token: string | null;
   ssl_active: boolean;
+  hosting_mode: 'sellqo' | 'external';
   created_at: string;
   updated_at: string;
 }
@@ -39,7 +40,7 @@ export function useTenantDomains() {
   });
 
   const addDomain = useMutation({
-    mutationFn: async (params: { domain: string; locale: string; is_canonical?: boolean }) => {
+    mutationFn: async (params: { domain: string; locale: string; is_canonical?: boolean; hosting_mode?: 'sellqo' | 'external' }) => {
       const { data, error } = await supabase
         .from('tenant_domains')
         .insert({
@@ -47,7 +48,8 @@ export function useTenantDomains() {
           domain: params.domain.toLowerCase().trim(),
           locale: params.locale,
           is_canonical: params.is_canonical ?? false,
-        })
+          hosting_mode: params.hosting_mode ?? 'sellqo',
+        } as any)
         .select()
         .single();
 

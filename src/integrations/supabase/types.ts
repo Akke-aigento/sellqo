@@ -12041,6 +12041,7 @@ export type Database = {
           created_at: string
           dns_verified: boolean
           domain: string
+          hosting_mode: string
           id: string
           is_active: boolean
           is_canonical: boolean
@@ -12054,6 +12055,7 @@ export type Database = {
           created_at?: string
           dns_verified?: boolean
           domain: string
+          hosting_mode?: string
           id?: string
           is_active?: boolean
           is_canonical?: boolean
@@ -12067,6 +12069,7 @@ export type Database = {
           created_at?: string
           dns_verified?: boolean
           domain?: string
+          hosting_mode?: string
           id?: string
           is_active?: boolean
           is_canonical?: boolean

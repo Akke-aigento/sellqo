@@ -37,12 +37,15 @@ export function MultiDomainSettings() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLocale, setEditLocale] = useState('');
 
+  const isExternalHosting = !!useCustomFrontend;
+
   const handleAdd = async () => {
     if (!newDomain.trim()) return;
     await addDomain.mutateAsync({
       domain: newDomain,
       locale: newLocale,
       is_canonical: newCanonical || domains.length === 0,
+      hosting_mode: isExternalHosting ? 'external' : 'sellqo',
     });
     setNewDomain('');
     setNewLocale('nl');
@@ -94,11 +97,12 @@ export function MultiDomainSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Custom Frontend info alert */}
-        {useCustomFrontend && customFrontendUrl && domains.length > 0 && (
+        {useCustomFrontend && domains.length > 0 && (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Alle geverifieerde domeinen serveren je custom frontend op <strong>{customFrontendUrl}</strong>
+              Custom frontend actief — domeinen worden extern gehost. Koppel ze aan je custom frontend project (bijv. via Lovable Domains).
+              {customFrontendUrl && <> Frontend URL: <strong>{customFrontendUrl}</strong></>}
             </AlertDescription>
           </Alert>
         )}
@@ -241,7 +245,10 @@ export function MultiDomainSettings() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <DomainVerificationPanel domain={domain} />
+                    {domain.hosting_mode !== 'external' && <DomainVerificationPanel domain={domain} />}
+                    {domain.hosting_mode === 'external' && (
+                      <Badge variant="outline" className="text-xs">Extern</Badge>
+                    )}
                     <Switch
                       checked={domain.is_active}
                       onCheckedChange={() => handleToggleActive(domain)}
@@ -308,7 +315,11 @@ export function MultiDomainSettings() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <DomainVerificationPanel domain={domain} />
+                    {domain.hosting_mode !== 'external' ? (
+                      <DomainVerificationPanel domain={domain} />
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">Extern gehost</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Switch
