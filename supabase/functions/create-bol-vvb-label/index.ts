@@ -524,7 +524,7 @@ const handler = async (req: Request): Promise<Response> => {
         const orderUpdateFields: Record<string, unknown> = {
           tracking_number: retryTracking,
           carrier: existingLabel.carrier,
-          tracking_url: `https://jfrfracking.info/track/nl-NL/?B=${retryTracking}`,
+          tracking_url: generateTrackingUrl(existingLabel.carrier || carrier, retryTracking),
         };
         await supabase
           .from("orders")
