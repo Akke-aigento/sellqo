@@ -1,30 +1,53 @@
 
 
-## Fix: Kapotte track & trace links in klantmails
+## Plan: Contactformulier Storefront + E-mail Forwarding
 
-### Probleem
-De edge functions `create-bol-vvb-label` en `confirm-bol-shipment` gebruiken een hardcoded URL `https://jfrfracking.info/track/nl-NL/?B={tracking}` als tracking URL. Dit domein werkt niet.
+### Huidige situatie
 
-Ondertussen bestaat er al een werkende `generateTrackingUrl()` functie in `src/lib/carrierPatterns.ts` die de juiste carrier-specifieke URLs genereert (bijv. bpost → `https://track.bpost.cloud/btr/web/#/search?itemCode=CD117081258BE`).
+1. **Contactformulier**: De `Contact.tsx` is de SellQo-platform pagina, niet per-tenant. Er bestaat **geen** contactformulier in de storefront (`/shop/:tenantSlug/...`). Het platform-formulier doet bovendien niets — het simuleert alleen een submit.
+2. **E-mail forwarding**: Bestaat niet. Inkomende berichten landen in de SellQo inbox maar worden nergens doorgestuurd naar een externe mailbox.
 
-### Oplossing
-Alle hardcoded `jfrfracking.info` URLs in de edge functions vervangen door de juiste carrier-specifieke tracking URLs. Aangezien edge functions geen toegang hebben tot `src/lib/`, kopieer ik de carrier pattern lookup direct in de edge functions (of in een `_shared` module).
+### Wat we bouwen
 
-### Aanpak
+#### 1. Storefront Contactformulier
+Een contactpagina voor elke tenant-webshop (`/shop/:tenantSlug/contact`) waar bezoekers een bericht kunnen sturen dat direct in de SellQo inbox terechtkomt.
 
-1. **Maak `supabase/functions/_shared/carrier-tracking.ts`** — Een gedeelde module met de carrier patterns en een `generateTrackingUrl()` functie, gebaseerd op de bestaande `carrierPatterns.ts`. Bevat in ieder geval bpost, PostNL, DHL, DPD, en alle andere carriers.
+- **Pagina**: `src/pages/storefront/ShopContact.tsx` — formulier met naam, e-mail, onderwerp, bericht
+- **Edge function**: `storefront-contact-form` — valideert input, slaat op als `customer_messages` met `direction: 'inbound'`, `channel: 'contact_form'`, koppelt aan bestaande klant of maakt prospect aan (zelfde patroon als `handle-inbound-email`)
+- **Route**: Toevoegen aan router
+- **Navigatie**: Link toevoegen aan de ShopLayout navigatie
 
-2. **Update `create-bol-vvb-label/index.ts`** — Vervang alle `https://jfrfracking.info/track/nl-NL/?B=${...}` door een aanroep naar de gedeelde `generateTrackingUrl()`, op basis van de gedetecteerde carrier.
+#### 2. E-mail Forwarding Instelling
+Per tenant een optioneel extern e-mailadres instellen waar inkomende berichten automatisch naartoe worden doorgestuurd.
 
-3. **Update `confirm-bol-shipment/index.ts`** — Idem: gebruik de gedeelde functie in plaats van de hardcoded URL.
+- **Database**: Twee nieuwe kolommen op `tenants`:
+  - `email_forward_address` (text, nullable) — bijv. `info@mijnbedrijf.nl`
+  - `email_forward_enabled` (boolean, default false)
+- **Instellingen UI**: Sectie toevoegen in `InboundEmailSettings.tsx` — toggle + e-mailadres input
+- **Edge function aanpassing**: `handle-inbound-email` uitbreiden — na opslaan van bericht, als forwarding aan staat, stuur een kopie naar het forward-adres via de bestaande e-mail infrastructuur
+- **Storefront contact form**: Zelfde forwarding-logica toepassen in de `storefront-contact-form` edge function
 
-4. **Deploy beide edge functions** zodat de fix live gaat.
+### Technische details
 
-### Resultaat
-Klanten krijgen werkende tracking links die direct naar de carrier-website wijzen (bpost, PostNL, DHL, etc.).
+**Database migratie:**
+```sql
+ALTER TABLE tenants 
+  ADD COLUMN email_forward_address text,
+  ADD COLUMN email_forward_enabled boolean DEFAULT false;
+```
+
+**Forwarding mechanisme**: Na het opslaan van een inbound bericht, checken of `email_forward_enabled = true` en `email_forward_address` is ingevuld. Zo ja, een e-mail sturen naar dat adres met de originele inhoud (subject, body, afzender info). Gebruikt de bestaande Lovable e-mail pipeline.
+
+**Contact form edge function**: Publiek endpoint (geen auth vereist), met rate limiting op basis van IP/tenant combo om misbruik te voorkomen. Zod-validatie op alle input.
 
 ### Bestanden
-- `supabase/functions/_shared/carrier-tracking.ts` — nieuw: gedeelde carrier URL generator
-- `supabase/functions/create-bol-vvb-label/index.ts` — vervang hardcoded URLs
-- `supabase/functions/confirm-bol-shipment/index.ts` — vervang hardcoded URLs
+
+- `src/pages/storefront/ShopContact.tsx` — nieuw: contactpagina
+- `supabase/functions/storefront-contact-form/index.ts` — nieuw: formulier verwerking + forwarding
+- `supabase/functions/handle-inbound-email/index.ts` — uitbreiden met forwarding
+- `src/components/admin/settings/InboundEmailSettings.tsx` — forwarding sectie toevoegen
+- `src/hooks/useTenant.tsx` — Tenant interface uitbreiden
+- Router config — route toevoegen
+- ShopLayout navigatie — link toevoegen
+- Database migratie — twee kolommen
 

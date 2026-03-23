@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateTrackingUrl } from "../_shared/carrier-tracking.ts";
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
@@ -285,7 +284,7 @@ const handler = async (req: Request): Promise<Response> => {
               const orderUpdate: Record<string, unknown> = { tracking_number: foundTracking };
               if (foundCarrier) orderUpdate.carrier = foundCarrier;
               if (foundTracking) {
-                orderUpdate.tracking_url = generateTrackingUrl(foundCarrier || carrier, foundTracking);
+                orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${foundTracking}`;
               }
               await supabase.from("orders").update(orderUpdate).eq("id", order.id);
               console.log("Updated order with tracking:", foundTracking);
@@ -524,7 +523,7 @@ const handler = async (req: Request): Promise<Response> => {
         const orderUpdateFields: Record<string, unknown> = {
           tracking_number: retryTracking,
           carrier: existingLabel.carrier,
-          tracking_url: generateTrackingUrl(existingLabel.carrier || carrier, retryTracking),
+          tracking_url: `https://jfrfracking.info/track/nl-NL/?B=${retryTracking}`,
         };
         await supabase
           .from("orders")
@@ -954,7 +953,7 @@ const handler = async (req: Request): Promise<Response> => {
       };
       if (trackingNumber) {
         orderUpdate.tracking_number = trackingNumber;
-        orderUpdate.tracking_url = generateTrackingUrl(selectedOffer.transporterCode || carrier, trackingNumber);
+        orderUpdate.tracking_url = `https://jfrfracking.info/track/nl-NL/?B=${trackingNumber}`;
       }
       await supabase.from("orders").update(orderUpdate).eq("id", order.id);
 
