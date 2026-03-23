@@ -315,7 +315,11 @@ export function MultiDomainSettings() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <DomainVerificationPanel domain={domain} />
+                    {domain.hosting_mode !== 'external' ? (
+                      <DomainVerificationPanel domain={domain} />
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">Extern gehost</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Switch
