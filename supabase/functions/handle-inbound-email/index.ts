@@ -671,6 +671,40 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
+    // Forward email to external address if enabled
+    const { data: tenantForward } = await supabase
+      .from("tenants")
+      .select("name, email_forward_enabled, email_forward_address")
+      .eq("id", tenantId)
+      .single();
+
+    if (tenantForward?.email_forward_enabled && tenantForward?.email_forward_address && resendApiKey) {
+      try {
+        const fwdResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `${tenantForward.name} <noreply@sellqo.app>`,
+            to: [tenantForward.email_forward_address],
+            reply_to: payload.from,
+            subject: `[FWD] ${payload.subject}`,
+            html: bodyHtml,
+          }),
+        });
+
+        if (!fwdResponse.ok) {
+          console.error('Forward email failed:', await fwdResponse.text());
+        } else {
+          console.log('Forwarded inbound email to:', tenantForward.email_forward_address);
+        }
+      } catch (fwdErr) {
+        console.error('Forward email error:', fwdErr);
+      }
+    }
+
     console.log("Inbound email processed successfully:", {
       message_id: message.id,
       tenant_id: tenantId,
