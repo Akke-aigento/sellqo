@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN email_forward_address text, ADD COLUMN email_forward_enabled boolean DEFAULT false;
