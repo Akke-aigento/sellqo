@@ -434,7 +434,7 @@ const handler = async (req: Request): Promise<Response> => {
         
         const { data: tenant, error } = await supabase
           .from("tenants")
-          .select("id, name, inbound_email_enabled")
+          .select("id, name, inbound_email_enabled, email_forward_enabled, email_forward_address")
           .eq("inbound_email_prefix", prefix)
           .maybeSingle();
 
