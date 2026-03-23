@@ -124,6 +124,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
       { id: 'tracking', title: 'Verzending & Tracking', icon: Truck, component: TrackingNotificationSettings },
       { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
+      { id: 'documentation', title: 'Documentatie', icon: BookOpen, component: DocumentationSettings },
     ],
   },
 ];
