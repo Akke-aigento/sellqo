@@ -91,6 +91,9 @@ interface Tenant {
   // Inbound email settings
   inbound_email_prefix?: string | null;
   inbound_email_enabled?: boolean;
+  // Email forwarding
+  email_forward_address?: string | null;
+  email_forward_enabled?: boolean;
 }
 
 interface TenantContextType {

@@ -12873,6 +12873,8 @@ export type Database = {
           document_logo_url: string | null
           domain_verification_token: string | null
           domain_verified: boolean | null
+          email_forward_address: string | null
+          email_forward_enabled: boolean | null
           enable_b2b_checkout: boolean | null
           export_text: string | null
           iban: string | null
@@ -12970,6 +12972,8 @@ export type Database = {
           document_logo_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
+          email_forward_address?: string | null
+          email_forward_enabled?: boolean | null
           enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
@@ -13067,6 +13071,8 @@ export type Database = {
           document_logo_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
+          email_forward_address?: string | null
+          email_forward_enabled?: boolean | null
           enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
