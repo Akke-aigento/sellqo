@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
     };
     if (resolvedTracking) {
       orderUpdate.tracking_number = resolvedTracking;
-      orderUpdate.tracking_url = tracking_url || `https://jfrfracking.info/track/nl-NL/?B=${resolvedTracking}`;
+      orderUpdate.tracking_url = tracking_url || generateTrackingUrl(carrier, resolvedTracking);
     }
     await supabase.from("orders").update(orderUpdate).eq("id", order_id);
 
