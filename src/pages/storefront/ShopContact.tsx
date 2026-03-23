@@ -76,7 +76,7 @@ export default function ShopContact() {
           <title>Bericht verzonden | {tenant?.name || 'Shop'}</title>
         </Helmet>
         <div className="container mx-auto px-4 py-16 max-w-lg text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-6" />
+          <CheckCircle className="h-16 w-16 text-primary mx-auto mb-6" />
           <h1 className="text-2xl font-bold mb-3">Bedankt voor je bericht!</h1>
           <p className="text-muted-foreground">
             We hebben je bericht ontvangen en proberen zo snel mogelijk te reageren.
