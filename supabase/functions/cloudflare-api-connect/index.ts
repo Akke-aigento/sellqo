@@ -193,28 +193,35 @@ serve(async (req) => {
     for (const record of recordsToCreate) {
       const recordLabel = `${record.type} ${record.name}`;
 
-      // Find existing record with same name+type
-      const existingRecord = allRecords.find(
-        (r: DnsRecord) => r.type === record.type && r.name === record.name
+      // Step A: Delete ALL conflicting records (wrong type for same name)
+      const conflictingRecords = allRecords.filter(
+        (r: DnsRecord) => r.name.toLowerCase() === record.name.toLowerCase() && r.type !== record.type
       );
-
-      // Check for conflicting CNAME on www
-      if (record.name === `www.${cleanDomain}` && record.type === 'A') {
-        const conflictingCname = allRecords.find(
-          (r: DnsRecord) => r.type === 'CNAME' && r.name === record.name
-        );
-        if (conflictingCname) {
-          const deleted = await deleteRecord(zone.id, conflictingCname.id, api_token);
-          if (!deleted) {
-            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon conflicterende CNAME niet verwijderen' });
-            continue;
-          }
+      for (const conflict of conflictingRecords) {
+        console.log(`Deleting conflicting ${conflict.type} record for ${conflict.name} (id: ${conflict.id})`);
+        const deleted = await deleteRecord(zone.id, conflict.id, api_token);
+        if (!deleted) {
+          actions.push({ record: recordLabel, type: record.type, action: 'error', detail: `Kon conflicterend ${conflict.type} record niet verwijderen` });
         }
       }
 
+      // Step B: Find existing same-type record
+      const existingRecord = allRecords.find(
+        (r: DnsRecord) => r.type === record.type && r.name.toLowerCase() === record.name.toLowerCase()
+      );
+
       if (existingRecord) {
-        // For TXT records with wrong value, delete and recreate
-        if (record.type === 'TXT' && existingRecord.content !== record.content) {
+        // Strip surrounding quotes for TXT comparison (Cloudflare wraps TXT in quotes)
+        const existingContent = record.type === 'TXT'
+          ? existingRecord.content.replace(/^"|"$/g, '')
+          : existingRecord.content;
+
+        if (existingContent === record.content) {
+          // Already correct — skip
+          actions.push({ record: recordLabel, type: record.type, action: 'updated', detail: 'Al correct ingesteld' });
+        } else {
+          // Wrong value — delete and recreate (PATCH can silently fail for TXT)
+          console.log(`Content mismatch for ${recordLabel}: "${existingContent}" !== "${record.content}", deleting and recreating`);
           const deleted = await deleteRecord(zone.id, existingRecord.id, api_token);
           if (deleted) {
             const createRes = await createRecord(zone.id, record, api_token);
@@ -225,20 +232,11 @@ serve(async (req) => {
               detail: createRes.success ? undefined : createRes.errors?.[0]?.message,
             });
           } else {
-            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon bestaand TXT record niet verwijderen' });
+            actions.push({ record: recordLabel, type: record.type, action: 'error', detail: 'Kon bestaand record niet verwijderen voor update' });
           }
-        } else {
-          // PATCH update existing record
-          const updateRes = await updateRecord(zone.id, existingRecord.id, record, api_token);
-          actions.push({
-            record: recordLabel,
-            type: record.type,
-            action: updateRes.success ? 'updated' : 'error',
-            detail: updateRes.success ? undefined : updateRes.errors?.[0]?.message,
-          });
         }
       } else {
-        // Create new record
+        // No existing record — create new
         const createRes = await createRecord(zone.id, record, api_token);
         actions.push({
           record: recordLabel,
