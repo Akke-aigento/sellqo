@@ -265,29 +265,59 @@ export default function ProductsPage() {
       }));
     }
 
-    if (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) {
-      await tryOp('Categorieën toevoegen', async () => {
-        for (const productId of ids) {
-          for (const catId of state.category_ids_to_add!) {
-            const { error } = await (supabase as any)
-              .from('product_categories')
-              .upsert({ product_id: productId, category_id: catId, is_primary: false, sort_order: 0 }, { onConflict: 'product_id,category_id' });
-            if (error) throw error;
-          }
-        }
-      });
-    }
+    const hasCategoryChanges = (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) ||
+      (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length);
 
-    if (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length) {
-      await tryOp('Categorieën verwijderen', async () => {
+    if (hasCategoryChanges) {
+      await tryOp('Categorieën', async () => {
         for (const productId of ids) {
-          const { error } = await (supabase as any)
+          // 1. Fetch current categories for this product
+          const { data: existing } = await (supabase as any)
+            .from('product_categories')
+            .select('category_id')
+            .eq('product_id', productId);
+          
+          let currentCats = new Set<string>((existing || []).map((r: any) => r.category_id));
+
+          // 2. Apply add/remove
+          if (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) {
+            for (const catId of state.category_ids_to_add) currentCats.add(catId);
+          }
+          if (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length) {
+            for (const catId of state.category_ids_to_remove) currentCats.delete(catId);
+          }
+
+          const desiredArr = Array.from(currentCats);
+
+          // 3. Delete all existing and upsert desired
+          await (supabase as any)
             .from('product_categories')
             .delete()
-            .eq('product_id', productId)
-            .in('category_id', state.category_ids_to_remove!);
-          if (error) throw error;
+            .eq('product_id', productId);
+
+          if (desiredArr.length > 0) {
+            const rows = desiredArr.map((catId, idx) => ({
+              product_id: productId,
+              category_id: catId,
+              is_primary: idx === 0,
+              sort_order: idx,
+            }));
+            const { error: upsertErr } = await (supabase as any)
+              .from('product_categories')
+              .insert(rows);
+            if (upsertErr) throw upsertErr;
+          }
+
+          // 4. Sync legacy category_id on products table
+          const primaryCatId = desiredArr.length > 0 ? desiredArr[0] : null;
+          await supabase
+            .from('products')
+            .update({ category_id: primaryCatId })
+            .eq('id', productId);
         }
+
+        // 5. Refresh the category map immediately
+        await refreshProductCategoryMap();
       });
     }
 
