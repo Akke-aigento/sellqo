@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { useQuery } from '@tanstack/react-query';
+import { 
   ArrowLeft, 
   Mail, 
   Phone, 
