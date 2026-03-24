@@ -108,6 +108,9 @@ import ShopOrderConfirmation from "./pages/storefront/ShopOrderConfirmation";
 import ShopLegalPage from "./pages/storefront/ShopLegalPage";
 import ShopWishlist from "./pages/storefront/ShopWishlist";
 import ShopContact from "./pages/storefront/ShopContact";
+import ShopAuth from "./pages/storefront/ShopAuth";
+import ShopResetPassword from "./pages/storefront/ShopResetPassword";
+import ShopAccount from "./pages/storefront/ShopAccount";
 
 const queryClient = new QueryClient();
 
