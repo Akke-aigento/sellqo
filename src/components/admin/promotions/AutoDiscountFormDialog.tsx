@@ -119,6 +119,7 @@ export function AutoDiscountFormDialog({
         discount_value: 10,
         applies_to: 'all',
         product_ids: [],
+        category_ids: [],
         max_discount_amount: undefined,
         priority: 10,
         is_active: true,
