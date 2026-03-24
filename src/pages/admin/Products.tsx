@@ -101,21 +101,24 @@ export default function ProductsPage() {
   // Fetch product_categories for category filtering
   const [productCategoryMap, setProductCategoryMap] = useState<Record<string, string[]>>({});
   
-  useEffect(() => {
-    (async () => {
-      const { data } = await (supabase as any)
-        .from('product_categories')
-        .select('product_id, category_id');
-      if (data) {
-        const map: Record<string, string[]> = {};
-        for (const row of data) {
-          if (!map[row.product_id]) map[row.product_id] = [];
-          map[row.product_id].push(row.category_id);
-        }
-        setProductCategoryMap(map);
+  const refreshProductCategoryMap = useCallback(async () => {
+    const { data } = await (supabase as any)
+      .from('product_categories')
+      .select('product_id, category_id')
+      .order('sort_order', { ascending: true });
+    if (data) {
+      const map: Record<string, string[]> = {};
+      for (const row of data) {
+        if (!map[row.product_id]) map[row.product_id] = [];
+        map[row.product_id].push(row.category_id);
       }
-    })();
-  }, [products]);
+      setProductCategoryMap(map);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshProductCategoryMap();
+  }, [products, refreshProductCategoryMap]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
