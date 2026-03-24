@@ -1116,7 +1116,21 @@ export default function ShopCheckout() {
                   </div>
                   )}
 
-                  {/* Shipping method selector */}
+                  {/* Save address checkbox for logged-in customers */}
+                  {sfAuthenticated && !allGiftCards && !selectedAddressId && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="saveAddress"
+                        checked={saveAddress}
+                        onCheckedChange={(checked) => setSaveAddress(!!checked)}
+                      />
+                      <Label htmlFor="saveAddress" className="text-sm cursor-pointer">
+                        Adres opslaan voor volgende keer
+                      </Label>
+                    </div>
+                  )}
+
+
                   {!allGiftCards && shippingMethods.length > 1 && (
                     <>
                       <Separator />
