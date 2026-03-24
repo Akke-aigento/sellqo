@@ -1,29 +1,36 @@
 
 
-## Checkboxes toevoegen aan de Grid-weergave voor bulkselectie
+## Fix: Scroll in Bulk bewerking modal
 
 ### Probleem
-De grid-weergave (spreadsheet-stijl) heeft alleen cel-selectie maar geen rij-selectie met checkboxes. Hierdoor kun je geen producten selecteren voor bulkacties (bewerken, verwijderen, activeren) zoals in de lijstweergave wel kan.
+De `DialogContent` gebruikt `grid` layout (uit dialog.tsx), maar de `ProductBulkEditDialog` gebruikt `flex flex-col` met `overflow-hidden`. Het probleem is dat flex children binnen een grid container niet correct krimpen — de `flex-1 overflow-y-auto` div krijgt geen beperkte hoogte en kan dus niet scrollen.
 
-### Aanpak
+### Fix
 
-**`src/components/admin/products/grid/ProductGridView.tsx`**
-1. Props uitbreiden met `selectedIds`, `onToggleSelect`, `onToggleSelectAll` (hergebruik bestaande state uit Products.tsx)
-2. Checkbox-kolom toevoegen links van de rijnummer-kolom:
-   - Header: select-all checkbox
-   - Per rij: individuele checkbox
-3. Wanneer rijen geselecteerd zijn, de bestaande bulk-actie balk in Products.tsx wordt automatisch zichtbaar (die werkt al op `selectedIds`)
+**`src/components/admin/products/ProductBulkEditDialog.tsx`**
 
-**`src/pages/admin/Products.tsx`**
-1. `selectedIds`, `toggleSelect`, `toggleSelectAll` doorgeven als props aan `ProductGridView`
-2. De bulk-actiebalk (regel 431-458) werkt al voor beide views — geen wijziging nodig
+1. De scrollable content div (`flex-1 overflow-y-auto`) heeft `min-h-0` nodig zodat flex shrink werkt
+2. De `Tabs` wrapper heeft ook `min-h-0` nodig
+3. Voeg een expliciete `min-h-0` toe aan de `DialogContent` className zodat de hele flex-col chain correct krimpt
 
-### Technisch detail
-- De checkbox-kolom komt links van de bestaande "rijnummer" kolom (de smalle 40px kolom)
-- Shift+click voor range-selectie wordt ondersteund
-- De cel-selectie (voor inline editing) blijft onafhankelijk werken van de rij-selectie
+Concrete wijziging op regel 90:
+```
+max-w-2xl max-h-[85vh] overflow-hidden flex flex-col
+→ max-w-2xl max-h-[85vh] overflow-hidden flex flex-col min-h-0
+```
+
+Regel 98 (Tabs):
+```
+className="flex-1 overflow-hidden flex flex-col"
+→ className="flex-1 overflow-hidden flex flex-col min-h-0"
+```
+
+Regel 109 (scroll container):
+```
+className="flex-1 overflow-y-auto mt-4 pr-2"
+→ className="flex-1 overflow-y-auto mt-4 pr-2 min-h-0"
+```
 
 ### Bestanden
-- `src/components/admin/products/grid/ProductGridView.tsx` — checkbox kolom + props
-- `src/pages/admin/Products.tsx` — props doorgeven aan GridView
+- `src/components/admin/products/ProductBulkEditDialog.tsx` — 3 regels `min-h-0` toevoegen
 
