@@ -101,6 +101,7 @@ export function AutoDiscountFormDialog({
         discount_value: discount.discount_value || undefined,
         applies_to: discount.applies_to,
         product_ids: discount.product_ids || [],
+        category_ids: (discount as any).category_ids || [],
         max_discount_amount: discount.max_discount_amount || undefined,
         priority: discount.priority,
         is_active: discount.is_active,
