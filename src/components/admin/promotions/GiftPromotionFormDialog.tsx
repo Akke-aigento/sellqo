@@ -261,6 +261,25 @@ export function GiftPromotionFormDialog({
               />
             )}
 
+            {watchTriggerType === 'specific_categories' && (
+              <FormField
+                control={form.control}
+                name="trigger_category_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trigger-categorieën</FormLabel>
+                    <FormDescription>Gift wordt toegevoegd als producten uit deze categorieën in de winkelwagen zitten</FormDescription>
+                    <CategoryMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Selecteer categorieën..."
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="gift_product_id"

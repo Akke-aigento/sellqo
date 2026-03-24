@@ -350,6 +350,24 @@ export function AutoDiscountFormDialog({
               />
             )}
 
+            {watchAppliesTo === 'specific_categories' && (
+              <FormField
+                control={form.control}
+                name="category_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Korting toepassen op categorieën</FormLabel>
+                    <CategoryMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Selecteer categorieën..."
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
