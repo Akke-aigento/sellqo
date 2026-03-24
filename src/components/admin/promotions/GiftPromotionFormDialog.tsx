@@ -31,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { useCreateGiftPromotion, useUpdateGiftPromotion } from '@/hooks/useGiftPromotions';
 import { useProducts } from '@/hooks/useProducts';
 import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { GiftPromotion, GiftPromotionFormData } from '@/types/promotions';
 
 const formSchema = z.object({
