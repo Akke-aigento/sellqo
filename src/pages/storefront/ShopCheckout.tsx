@@ -567,6 +567,19 @@ export default function ShopCheckout() {
           throw new Error(body?.error || error.message);
         }
         if (sessionData?.url) {
+          // Save address if requested
+          if (saveAddress && sfAuthenticated && !selectedAddressId && customerData.street) {
+            addAddress({
+              street: customerData.street,
+              house_number: customerData.houseNumber,
+              postal_code: customerData.postalCode,
+              city: customerData.city,
+              country: customerData.country,
+              first_name: customerData.firstName,
+              last_name: customerData.lastName,
+              phone: customerData.phone,
+            }).catch(() => {});
+          }
           clearCart();
           window.location.href = sessionData.url;
         }
@@ -577,6 +590,19 @@ export default function ShopCheckout() {
         if (error) {
           const body = await error.context?.json?.().catch(() => null);
           throw new Error(body?.error || error.message);
+        }
+        // Save address if requested
+        if (saveAddress && sfAuthenticated && !selectedAddressId && customerData.street) {
+          addAddress({
+            street: customerData.street,
+            house_number: customerData.houseNumber,
+            postal_code: customerData.postalCode,
+            city: customerData.city,
+            country: customerData.country,
+            first_name: customerData.firstName,
+            last_name: customerData.lastName,
+            phone: customerData.phone,
+          }).catch(() => {});
         }
         clearCart();
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
