@@ -77,6 +77,7 @@ export function GiftPromotionFormDialog({
       trigger_type: 'cart_total',
       trigger_value: 50,
       trigger_product_ids: [],
+      trigger_category_ids: [],
       gift_product_id: '',
       gift_quantity: 1,
       max_per_order: 1,
