@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck, Sparkles, Gift } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck, Sparkles, Gift, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/storefront/PaymentMethodSelector';
 import { BankTransferPayment } from '@/components/storefront/BankTransferPayment';
@@ -20,6 +21,8 @@ import { useTranslation } from 'react-i18next';
 import { useStorefrontShipping } from '@/hooks/useStorefrontShipping';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCartPromotions } from '@/hooks/useCartPromotions';
+import { useStorefrontAuth } from '@/context/StorefrontAuthContext';
+import { useStorefrontCustomerApi } from '@/hooks/useStorefrontCustomerApi';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
