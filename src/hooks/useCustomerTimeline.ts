@@ -149,7 +149,7 @@ export function useCustomerTimeline(customerId: string | undefined) {
           events.push({
             id: `pos-${p.id}`,
             type: 'pos',
-            title: `POS Verkoop ${p.transaction_number || ''}`.trim(),
+            title: `POS Verkoop ${p.receipt_number || ''}`.trim(),
             description: `€${Number(p.total).toFixed(2)}`,
             timestamp: p.created_at,
           });
