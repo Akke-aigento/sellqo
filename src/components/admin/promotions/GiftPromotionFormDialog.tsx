@@ -215,6 +215,7 @@ export function GiftPromotionFormDialog({
                         <SelectItem value="cart_total">Bestelwaarde</SelectItem>
                         <SelectItem value="quantity">Aantal producten</SelectItem>
                         <SelectItem value="specific_products">Specifieke producten</SelectItem>
+                        <SelectItem value="specific_categories">Specifieke categorieën</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
