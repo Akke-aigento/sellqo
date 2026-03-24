@@ -125,6 +125,15 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     category: 'stats',
     icon: Trophy,
   },
+  {
+    id: 'customer-health',
+    title: 'Klant Gezondheid',
+    description: 'Klanten met dalende scores die aandacht nodig hebben',
+    defaultSize: 'md',
+    minSize: 'sm',
+    category: 'stats',
+    icon: Users,
+  },
 ];
 
 // Predefined layout presets
