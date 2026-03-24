@@ -82,6 +82,7 @@ export default function ProductsPage() {
     bulkAdjustStock,
     bulkUpdateTags,
     bulkUpdateSocialChannels,
+    refetch,
   } = useProducts();
   const { categories } = useCategories();
   
@@ -346,8 +347,10 @@ export default function ProductsPage() {
       throw new Error(`${failCount} operatie(s) mislukt`);
     }
 
-    setSelectedIds(new Set());
     toast({ title: 'Bulk bewerking voltooid', description: `${successCount} operatie(s) succesvol toegepast op ${ids.length} producten.` });
+    await refetch();
+    await refreshProductCategoryMap();
+    setSelectedIds(new Set());
   };
 
   const handleDeleteProduct = () => {
