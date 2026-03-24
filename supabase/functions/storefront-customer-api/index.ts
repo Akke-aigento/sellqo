@@ -144,13 +144,25 @@ serve(async (req) => {
 
       case 'update_profile': {
         const customer = await getCustomer();
-        const { first_name, last_name, phone } = params as any;
-        const updates: any = {};
+        const { first_name, last_name, phone, newsletter_opt_in, company_name: upCompany, vat_number: upVat } = params as any;
+        const updates: Record<string, unknown> = {};
         if (first_name !== undefined) updates.first_name = first_name;
         if (last_name !== undefined) updates.last_name = last_name;
         if (phone !== undefined) updates.phone = phone;
-        const { data, error } = await supabase.from('storefront_customers').update(updates).eq('id', customer.id).select('id, email, first_name, last_name, phone').single();
+        if (upCompany !== undefined) updates.company_name = upCompany;
+        if (upVat !== undefined) updates.vat_number = upVat;
+        if (newsletter_opt_in !== undefined) {
+          updates.newsletter_opted_in = !!newsletter_opt_in;
+          if (newsletter_opt_in && !customer.newsletter_opted_in) {
+            updates.newsletter_opted_in_at = new Date().toISOString();
+          }
+        }
+        const { data, error } = await supabase.from('storefront_customers').update(updates).eq('id', customer.id).select('id, email, first_name, last_name, phone, newsletter_opted_in, company_name, vat_number, vat_verified').single();
         if (error) throw error;
+
+        // Sync changes to customers table
+        await syncToCustomers(supabase, tenant_id, data, newsletter_opt_in);
+
         result = data;
         break;
       }
