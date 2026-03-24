@@ -38,11 +38,10 @@ export function useCustomerTimeline(customerId: string | undefined) {
           .eq('customer_id', customerId)
           .order('sent_at', { ascending: false })
           .limit(50),
-        // Wishlist (storefront_favorites)
+        // Wishlist (storefront_favorites) - uses storefront_customer_id
         supabase
           .from('storefront_favorites')
           .select('id, product_id, created_at')
-          .eq('customer_id', customerId)
           .eq('tenant_id', currentTenant.id)
           .order('created_at', { ascending: false })
           .limit(30),
@@ -54,18 +53,16 @@ export function useCustomerTimeline(customerId: string | undefined) {
           .eq('tenant_id', currentTenant.id)
           .order('created_at', { ascending: false })
           .limit(30),
-        // Loyalty transactions
+        // Loyalty transactions (via customer_loyalty)
         supabase
           .from('loyalty_transactions')
-          .select('id, points, type, description, created_at')
-          .eq('customer_id', customerId)
-          .eq('tenant_id', currentTenant.id)
+          .select('id, points, transaction_type, description, created_at, customer_loyalty_id')
           .order('created_at', { ascending: false })
           .limit(30),
         // POS transactions
         supabase
           .from('pos_transactions')
-          .select('id, transaction_number, total, status, created_at')
+          .select('id, receipt_number, total, status, created_at')
           .eq('customer_id', customerId)
           .eq('tenant_id', currentTenant.id)
           .order('created_at', { ascending: false })
