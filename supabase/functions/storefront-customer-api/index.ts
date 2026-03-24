@@ -72,7 +72,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'register': {
-        const { email, password, first_name, last_name, phone } = params as any;
+        const { email, password, first_name, last_name, phone, newsletter_opt_in, company_name: regCompany, vat_number: regVat } = params as any;
         if (!email || !password) throw new Error('email and password are required');
         if (password.length < 8) throw new Error('Password must be at least 8 characters');
 
@@ -80,11 +80,34 @@ serve(async (req) => {
         if (existing) throw new Error('An account with this email already exists');
 
         const passwordHash = await hashPassword(password);
+        const insertData: Record<string, unknown> = {
+          tenant_id, email: email.toLowerCase(), password_hash: passwordHash,
+          first_name: first_name || '', last_name: last_name || '', phone: phone || null,
+          newsletter_opted_in: !!newsletter_opt_in,
+          newsletter_opted_in_at: newsletter_opt_in ? new Date().toISOString() : null,
+          company_name: regCompany || null,
+          vat_number: regVat || null,
+        };
+
+        // VIES validation if VAT number provided
+        if (regVat) {
+          try {
+            const vatRes = await supabase.functions.invoke('validate-vat', { body: { vat_number: regVat } });
+            if (vatRes.data?.valid) {
+              insertData.vat_verified = true;
+              insertData.vat_verified_at = new Date().toISOString();
+            }
+          } catch { /* VIES unavailable, skip */ }
+        }
+
         const { data: customer, error } = await supabase
           .from('storefront_customers')
-          .insert({ tenant_id, email: email.toLowerCase(), password_hash: passwordHash, first_name: first_name || '', last_name: last_name || '', phone: phone || null })
-          .select('id, email, first_name, last_name').single();
+          .insert(insertData)
+          .select('id, email, first_name, last_name, newsletter_opted_in, company_name, vat_number, vat_verified').single();
         if (error) throw error;
+
+        // Auto-sync to customers table
+        await syncToCustomers(supabase, tenant_id, customer, newsletter_opt_in);
 
         const token = await generateToken({ customer_id: customer.id, tenant_id, email: customer.email }, tokenSecret);
         result = { customer, token };
