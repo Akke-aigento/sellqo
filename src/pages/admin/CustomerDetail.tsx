@@ -267,6 +267,12 @@ export default function CustomerDetailPage() {
             <User className="h-4 w-4" />
             Gegevens
           </TabsTrigger>
+          {storefrontAccount && (
+            <TabsTrigger value="webshop" className="gap-2">
+              <Globe className="h-4 w-4" />
+              Webshop Account
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Orders Tab */}
