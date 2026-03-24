@@ -25,6 +25,14 @@ import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { SearchModal } from '@/components/storefront/SearchModal';
 import { StorefrontOfflinePage } from '@/components/storefront/StorefrontOfflinePage';
 import { StorefrontPasswordGate } from '@/components/storefront/StorefrontPasswordGate';
+import { useStorefrontAuth } from '@/context/StorefrontAuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { relativeLuminance } from '@/lib/color-utils';
 import { generateThemePalette as genPalette, generateThemePaletteLegacy } from '@/lib/theme-palette';
