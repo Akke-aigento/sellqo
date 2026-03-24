@@ -43,6 +43,7 @@ const formSchema = z.object({
   discount_value: z.coerce.number().optional(),
   applies_to: z.string(),
   product_ids: z.array(z.string()).optional(),
+  category_ids: z.array(z.string()).optional(),
   max_discount_amount: z.coerce.number().optional(),
   priority: z.coerce.number().min(1).default(10),
   is_active: z.boolean(),
