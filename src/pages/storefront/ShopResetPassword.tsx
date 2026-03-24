@@ -76,7 +76,7 @@ export default function ShopResetPassword() {
           resetDone ? (
             <Card>
               <CardContent className="pt-6 text-center space-y-4">
-                <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
+                <CheckCircle className="h-12 w-12 mx-auto text-emerald-500" />
                 <h2 className="text-xl font-bold">Wachtwoord gewijzigd</h2>
                 <p className="text-muted-foreground">Je kunt nu inloggen met je nieuwe wachtwoord.</p>
                 <Button asChild className="w-full">
