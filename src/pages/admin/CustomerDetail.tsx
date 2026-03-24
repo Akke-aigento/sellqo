@@ -269,6 +269,10 @@ export default function CustomerDetailPage() {
             <User className="h-4 w-4" />
             Gegevens
           </TabsTrigger>
+          <TabsTrigger value="timeline" className="gap-2">
+            <Clock className="h-4 w-4" />
+            Timeline
+          </TabsTrigger>
           {storefrontAccount && (
             <TabsTrigger value="webshop" className="gap-2">
               <Globe className="h-4 w-4" />
