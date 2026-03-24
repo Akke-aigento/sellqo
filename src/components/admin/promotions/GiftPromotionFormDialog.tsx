@@ -40,6 +40,7 @@ const formSchema = z.object({
   trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
   trigger_product_ids: z.array(z.string()).optional(),
+  trigger_category_ids: z.array(z.string()).optional(),
   gift_product_id: z.string().min(1, 'Cadeau product is verplicht'),
   gift_quantity: z.coerce.number().min(1).default(1),
   max_per_order: z.coerce.number().min(1).optional(),
