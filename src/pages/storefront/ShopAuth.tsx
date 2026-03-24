@@ -63,8 +63,17 @@ export default function ShopAuth() {
     if (!regEmail || !regPassword || !regFirstName || !regLastName) { toast.error('Vul alle velden in'); return; }
     if (regPassword !== regConfirm) { toast.error('Wachtwoorden komen niet overeen'); return; }
     if (regPassword.length < 8) { toast.error('Wachtwoord moet minimaal 8 tekens bevatten'); return; }
+    if (regIsB2b && !regCompanyName) { toast.error('Vul een bedrijfsnaam in'); return; }
     setProcessing(true);
-    const result = await register({ email: regEmail, password: regPassword, first_name: regFirstName, last_name: regLastName });
+    const result = await register({
+      email: regEmail,
+      password: regPassword,
+      first_name: regFirstName,
+      last_name: regLastName,
+      newsletter_opt_in: regNewsletter,
+      company_name: regIsB2b ? regCompanyName : undefined,
+      vat_number: regIsB2b && regVatNumber ? regVatNumber : undefined,
+    } as any);
     setProcessing(false);
     if (result.success) {
       toast.success('Account aangemaakt!');
