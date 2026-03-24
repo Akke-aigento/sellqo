@@ -201,6 +201,7 @@ const App = () => (
               <Route path="customers" element={<CustomersPage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="storefront-accounts" element={<StorefrontAccountsPage />} />
+              <Route path="customer-intelligence" element={<CustomerIntelligencePage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="payments" element={<PaymentsPage />} />
