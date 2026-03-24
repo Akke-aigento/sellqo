@@ -239,8 +239,15 @@ serve(async (req) => {
             const { data: tenant } = await supabase.from('tenants').select('store_name, name, slug').eq('id', tenant_id).single();
             const storeName = tenant?.store_name || tenant?.name || 'Shop';
 
-            // Build reset URL — use tenant slug-based storefront URL
-            const resetUrl = `https://sellqo.lovable.app/shop/${tenant?.slug || ''}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+            // Check for custom frontend URL
+            const { data: themeRow } = await supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url').eq('tenant_id', tenant_id).maybeSingle();
+            let resetUrl: string;
+            if (themeRow?.use_custom_frontend && themeRow?.custom_frontend_url) {
+              const base = (themeRow.custom_frontend_url as string).replace(/\/+$/, '');
+              resetUrl = `${base}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+            } else {
+              resetUrl = `https://sellqo.lovable.app/shop/${tenant?.slug || ''}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+            }
 
             const emailRes = await fetch('https://api.resend.com/emails', {
               method: 'POST',

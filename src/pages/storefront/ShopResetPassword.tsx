@@ -112,7 +112,7 @@ export default function ShopResetPassword() {
           requestSent ? (
             <Card>
               <CardContent className="pt-6 text-center space-y-4">
-                <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
+                <CheckCircle className="h-12 w-12 mx-auto text-emerald-500" />
                 <h2 className="text-xl font-bold">E-mail verzonden</h2>
                 <p className="text-muted-foreground">Als er een account bestaat met dit e-mailadres, ontvang je een link om je wachtwoord te herstellen.</p>
                 <Button variant="outline" asChild className="w-full">
