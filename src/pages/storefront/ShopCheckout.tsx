@@ -1156,6 +1156,18 @@ export default function ShopCheckout() {
                     </div>
                   )}
 
+                  {/* Newsletter opt-in */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="checkoutNewsletter"
+                      checked={newsletterOptIn}
+                      onCheckedChange={(checked) => setNewsletterOptIn(!!checked)}
+                    />
+                    <Label htmlFor="checkoutNewsletter" className="text-sm cursor-pointer">
+                      Aanmelden voor nieuwsbrief
+                    </Label>
+                  </div>
+
 
                   {!allGiftCards && shippingMethods.length > 1 && (
                     <>
