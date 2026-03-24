@@ -1,24 +1,28 @@
 
 
-## Fix: Grid/lijst direct updaten na bulk bewerking
+## Bulk actiebalk floatend onderaan maken
 
 ### Probleem
-Na sluiten van de bulk-modal blijft de productlijst stale. `handleBulkEdit` roept geen `refetch()` aan op de products query — pas bij page refresh worden wijzigingen zichtbaar.
+De bulk-actiebalk staat nu vast boven de tabel (regel 497-525). Bij 1000+ producten scrollt de gebruiker naar beneden en ziet de balk niet meer — moet helemaal terug scrollen om een actie uit te voeren.
 
-### Fix
+### Oplossing
+De balk wordt een floating bar onderaan het scherm (sticky/fixed bottom), vergelijkbaar met hoe `AdminBottomNav` werkt maar dan voor desktop+mobiel.
 
-**`src/pages/admin/Products.tsx`**
+### Wijzigingen
 
-1. **`refetch` destructuren uit `useProducts()`** — staat al in de hook maar wordt niet opgehaald (regel 75-85).
+**`src/pages/admin/Products.tsx`** (regel 497-525)
 
-2. **Na succesvolle bulk edit `refetch()` aanroepen** — op regel 349 (na de success toast), `await refetch()` toevoegen. Dit herlaadt de products query inclusief de category join, waardoor zowel lijst als grid meteen actuele data tonen.
+1. Verplaats de bulk-actiebalk van inline naar een `fixed bottom-0` positie:
+   - `fixed bottom-0 left-0 right-0 z-40` (onder modals maar boven content)
+   - Op desktop: `lg:left-[var(--sidebar-width)]` zodat hij niet over de sidebar valt
+   - Styling: `bg-background border-t shadow-lg` voor duidelijke scheiding
+   - `animate-in slide-in-from-bottom` voor subtiele entrance animatie
+   - Padding-bottom: `pb-[env(safe-area-inset-bottom)]` voor iOS
 
-3. **`refreshProductCategoryMap` wordt al aangeroepen** maar hangt af van `products` state — door `refetch()` toe te voegen triggert de `useEffect` op `[products]` automatisch een map-refresh.
+2. Content-padding toevoegen aan de productlijst wanneer de balk zichtbaar is, zodat laatste rijen niet achter de balk verdwijnen (`pb-20` op de tabel-container wanneer `selectedIds.size > 0`)
 
-### Concrete wijzigingen
-- Regel 85: `refetch` toevoegen aan destructuring
-- Regel 349: `await refetch()` na success toast, vóór `setSelectedIds` reset
+3. Op mobiel: de `AdminBottomNav` bulk-mode wordt al getriggerd via `BulkSelectionContext` — die balk verbergen wanneer desktop-balk actief is (of vice versa, afhankelijk van breakpoint)
 
 ### Bestanden
-- `src/pages/admin/Products.tsx`
+- `src/pages/admin/Products.tsx` — balk repositioneren + padding toevoegen
 
