@@ -47,6 +47,58 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return derivedHex === hashHex;
 }
 
+// Auto-sync storefront_customer to the CRM customers table
+async function syncToCustomers(supabase: any, tenantId: string, sfCustomer: any, newsletterOptIn?: boolean) {
+  try {
+    const email = sfCustomer.email?.toLowerCase();
+    if (!email) return;
+
+    // Check if customer already exists by email
+    const { data: existing } = await supabase
+      .from('customers')
+      .select('id, storefront_customer_id')
+      .eq('tenant_id', tenantId)
+      .eq('email', email)
+      .maybeSingle();
+
+    const customerData: Record<string, unknown> = {
+      first_name: sfCustomer.first_name || '',
+      last_name: sfCustomer.last_name || '',
+      phone: sfCustomer.phone || null,
+      storefront_customer_id: sfCustomer.id,
+      company_name: sfCustomer.company_name || null,
+      vat_number: sfCustomer.vat_number || null,
+      vat_verified: sfCustomer.vat_verified || false,
+    };
+
+    if (newsletterOptIn !== undefined) {
+      customerData.email_subscribed = !!newsletterOptIn;
+      customerData.email_marketing_status = newsletterOptIn ? 'subscribed' : 'unsubscribed';
+    }
+
+    if (existing) {
+      await supabase.from('customers').update(customerData).eq('id', existing.id);
+    } else {
+      await supabase.from('customers').insert({
+        ...customerData,
+        tenant_id: tenantId,
+        email,
+        customer_type: sfCustomer.company_name ? 'b2b' : 'b2c',
+      });
+    }
+
+    // Sync to newsletter_subscribers if opted in
+    if (newsletterOptIn) {
+      await supabase.from('newsletter_subscribers').upsert(
+        { tenant_id: tenantId, email, status: 'active', first_name: sfCustomer.first_name || null, last_name: sfCustomer.last_name || null },
+        { onConflict: 'tenant_id,email' }
+      );
+    }
+  } catch (err) {
+    console.error('syncToCustomers error:', err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
