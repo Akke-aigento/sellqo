@@ -1,31 +1,42 @@
 
+Doel: bulk categorie-wijzigingen moeten écht persistenter werken én meteen zichtbaar zijn in zowel lijst- als gridweergave.
 
-## Fix: Bulk categorie-aanpassingen worden niet weergegeven
+Diagnose (grondig)
+- De bulkflow schrijft nu naar `product_categories`, maar synchroniseert **niet** consequent de legacy `products.category_id`.
+- Gevolg: grid/list-delen die op `category_id` vertrouwen tonen leeg/oud, waardoor het lijkt alsof opslaan faalt.
+- Extra probleem: `productCategoryMap` in `Products.tsx` wordt alleen herladen wanneer `products` wijzigt; categorie-only bulkupdates wijzigen `products` vaak niet, dus UI blijft stale.
+- In data zie je dit patroon al: product heeft rows in `product_categories` maar `products.category_id = null`.
 
-### Root cause
+Implementatieplan
 
-De bulk categorie-operatie **slaat wél op** in de `product_categories` junction-tabel (de toast bevestigt "1 operatie succesvol"). Het probleem is dat de **weergave** de verkeerde databron leest:
+1) Categorie-bulklogica herwerken in `src/pages/admin/Products.tsx`
+- Vervang de huidige nested add/remove loops door één “sync per product” flow:
+  - huidige categorieën per geselecteerd product ophalen
+  - add/remove toepassen in memory
+  - gewenste set normaliseren (sort_order oplopend, 1 primary)
+  - DB sync uitvoeren: delete obsolete + upsert desired met correcte `is_primary/sort_order`
+- Daarna per product `products.category_id` updaten naar de gekozen primary (of `null` als geen categorieën meer).
 
-- **Lijstweergave** (regel 638-643): toont `product.category.name` — dit komt uit de legacy `category_id` FK-kolom op de `products` tabel (single-category join). De bulk edit schrijft naar de `product_categories` junction-tabel maar raakt de legacy kolom niet aan.
-- **productCategoryMap** (regel 102-118): wordt wél correct opgebouwd uit de junction-tabel, maar wordt alleen gebruikt voor **filtering**, niet voor weergave.
+2) UI meteen consistent maken na bulk categorie-update
+- In `Products.tsx` een expliciete `refreshProductCategoryMap()` helper maken.
+- Deze helper:
+  - haalt alleen mappings op voor relevante producten (niet blind alle rows)
+  - heeft nette error handling
+- Aanroepen:
+  - bij initiële load
+  - direct na succesvolle categorie-bulksync
+- Daarnaast `products` query invalideren zodat grid/list die nog op `category_id` steunen ook meteen klopt.
 
-### Fix
+3) Robuustheid/errorfeedback behouden
+- Categorie-sync in bestaande `tryOp` laten, maar foutdetails uitbreiden (welke product-sync faalde).
+- Bij partial failure: duidelijke fouttoast + dialog open laten.
+- Bij succes: selectie resetten + succesmelding met aantallen.
 
-**`src/pages/admin/Products.tsx`**
+4) Validatie na fix
+- Test A: bulk “categorie toevoegen” op producten zonder categorie → direct zichtbaar in lijst + grid, en `category_id` gevuld.
+- Test B: bulk “categorie verwijderen” (incl. laatste categorie) → direct zichtbaar, `category_id` wordt null.
+- Test C: combinatie add+remove in één run → primaire categorie blijft correct, geen “ghost” categorieën.
+- Test D: harde refresh van pagina toont exact dezelfde resultaten (persistente opslag bevestigd).
 
-1. **Categorie-kolom weergave aanpassen** (regel 638-643): In plaats van `product.category?.name`, de categorieën ophalen uit `productCategoryMap[product.id]` en de namen resolven via de `categories` array. Toon meerdere badges als een product meerdere categorieën heeft.
-
-2. **productCategoryMap herladen na bulk edit**: Na succesvolle bulk operatie `queryClient.invalidateQueries` triggert al een `products` refetch, wat de `useEffect` op `[products]` herstart. Maar de `useEffect` runt async en kan een race condition hebben. Fix: ook expliciet de map refreshen na bulk edit (of de dependency aanpassen).
-
-3. **Grid-weergave categorie-kolom**: Controleren of de grid view dezelfde fix nodig heeft.
-
-### Technisch
-
-```text
-Nu:     Categorie kolom → product.category.name (legacy FK join, single)
-Straks: Categorie kolom → productCategoryMap[product.id] → categories lookup (junction, multi)
-```
-
-### Bestanden
-- `src/pages/admin/Products.tsx` — categorie-weergave omschakelen van legacy FK naar junction-tabel map
-
+Bestand(en)
+- `src/pages/admin/Products.tsx` (kernfix: synclogica + map refresh + invalidaties)
