@@ -1004,6 +1004,59 @@ export default function ShopCheckout() {
                   {!allGiftCards && (
                   <div className="space-y-4">
                     <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
+
+                    {/* Saved addresses selector */}
+                    {sfAuthenticated && savedAddresses.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Opgeslagen adressen</Label>
+                        <div className="grid gap-2">
+                          {savedAddresses.map((addr: any) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedAddressId(addr.id);
+                                applyAddress(addr);
+                              }}
+                              className={`text-left p-3 rounded-lg border transition-colors ${
+                                selectedAddressId === addr.id
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                <div className="text-sm">
+                                  <p className="font-medium">
+                                    {addr.label || `${addr.street} ${addr.house_number || ''}`}
+                                    {addr.is_default && <span className="text-xs text-muted-foreground ml-2">(standaard)</span>}
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    {addr.street} {addr.house_number}, {addr.postal_code} {addr.city}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAddressId(null);
+                              setCustomerData(prev => ({ ...prev, street: '', houseNumber: '', postalCode: '', city: '' }));
+                            }}
+                            className={`text-left p-3 rounded-lg border transition-colors text-sm ${
+                              selectedAddressId === null && !savedAddresses.length
+                                ? 'border-primary bg-primary/5'
+                                : selectedAddressId === null
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            + Nieuw adres invoeren
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     
                     {addressAutocomplete && (
                       <div className="relative">
