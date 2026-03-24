@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Menu, Search, X, Heart } from 'lucide-react';
+import { ShoppingCart, Menu, Search, X, Heart, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
