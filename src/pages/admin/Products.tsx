@@ -461,7 +461,12 @@ export default function ProductsPage() {
       {/* Grid or Table View */}
       {viewMode === 'grid' ? (
         <div className="min-h-[400px]">
-          <ProductGridView products={filteredProducts} />
+          <ProductGridView
+            products={filteredProducts}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+          />
         </div>
       ) : isCompact ? (
         <div className="space-y-2">

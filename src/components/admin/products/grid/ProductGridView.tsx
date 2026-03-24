@@ -313,6 +313,29 @@ export function ProductGridView({ products, selectedIds, onToggleSelect, onToggl
                   key={product.id}
                   className="flex border-b hover:bg-muted/30 transition-colors"
                 >
+                  {/* Checkbox */}
+                  <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center">
+                    <Checkbox
+                      checked={selectedIds.has(product.id)}
+                      onCheckedChange={() => {
+                        onToggleSelect(product.id);
+                        lastClickedIndex.current = products.indexOf(product);
+                      }}
+                      onClick={(e) => {
+                        if (e.shiftKey && lastClickedIndex.current !== null) {
+                          const currentIndex = products.indexOf(product);
+                          const start = Math.min(lastClickedIndex.current, currentIndex);
+                          const end = Math.max(lastClickedIndex.current, currentIndex);
+                          for (let i = start; i <= end; i++) {
+                            if (!selectedIds.has(products[i].id)) {
+                              onToggleSelect(products[i].id);
+                            }
+                          }
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+                  </div>
                   {/* Row number / indicator */}
                   <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
                     {grid.pendingChanges.has(product.id) && (
