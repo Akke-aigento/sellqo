@@ -493,32 +493,38 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Bulk actions */}
+      {/* Floating bulk actions bar */}
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-muted/50 p-3">
-          <span className="text-sm font-medium">
-            {selectedIds.size} geselecteerd
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
-              <Settings2 className="mr-2 h-4 w-4" />
-              Bewerken
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkActivate}>
-              <Eye className="mr-2 h-4 w-4" />
-              Activeren
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
-              <EyeOff className="mr-2 h-4 w-4" />
-              Deactiveren
-            </Button>
-            <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Verwijderen
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              AI Genereer
+        <div className="fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width,280px)] border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 duration-200 hidden lg:block" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <div className="flex flex-wrap items-center gap-4 px-6 py-3">
+            <span className="text-sm font-medium">
+              {selectedIds.size} geselecteerd
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
+                <Settings2 className="mr-2 h-4 w-4" />
+                Bewerken
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleBulkActivate}>
+                <Eye className="mr-2 h-4 w-4" />
+                Activeren
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
+                <EyeOff className="mr-2 h-4 w-4" />
+                Deactiveren
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Verwijderen
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                AI Genereer
+              </Button>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="ml-auto">
+              <X className="mr-2 h-4 w-4" />
+              Deselecteer
             </Button>
           </div>
         </div>
