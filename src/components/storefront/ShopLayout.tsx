@@ -544,6 +544,55 @@ export function ShopLayout({ children, hideChrome: hideChromeFromProp }: ShopLay
   );
 }
 
+// Account Header Button
+function AccountHeaderButton({ basePath }: { basePath: string }) {
+  const navigate = useNavigate();
+  let auth: { isAuthenticated: boolean; customer: any; logout: () => void } | null = null;
+  try { auth = useStorefrontAuth(); } catch { /* not in provider */ }
+
+  if (!auth) {
+    return (
+      <Button variant="ghost" size="icon" asChild className="hidden md:flex">
+        <Link to={`${basePath}/login`}><User className="h-5 w-5" /></Link>
+      </Button>
+    );
+  }
+
+  if (!auth.isAuthenticated) {
+    return (
+      <Button variant="ghost" size="icon" asChild className="hidden md:flex">
+        <Link to={`${basePath}/login`}><User className="h-5 w-5" /></Link>
+      </Button>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="hidden md:flex">
+          <User className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <div className="px-2 py-1.5 text-sm font-medium">
+          {auth.customer?.first_name} {auth.customer?.last_name}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate(`${basePath}/account`)}>
+          Mijn account
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate(`${basePath}/account?tab=orders`)}>
+          Bestellingen
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => { auth!.logout(); navigate(basePath); }}>
+          Uitloggen
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 // Announcement Carousel
 function AnnouncementCarousel({ texts, link, bgColor, textColor }: { texts: string[]; link?: string; bgColor: string; textColor?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
