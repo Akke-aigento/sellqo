@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsCompact } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
