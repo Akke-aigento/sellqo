@@ -67,8 +67,8 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
-                <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+              <PopoverContent className="w-[300px] p-0" align="start" portalled={false}>
+                <div className="h-[280px] overflow-y-auto overscroll-contain p-2 space-y-1">
                   {categories.map((cat) => {
                     const currentList = categoryMode === 'add' ? selectedAddIds : selectedRemoveIds;
                     const isSelected = currentList.includes(cat.id);

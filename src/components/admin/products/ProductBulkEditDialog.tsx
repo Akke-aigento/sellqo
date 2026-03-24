@@ -87,7 +87,7 @@ export function ProductBulkEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col min-h-0">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col min-h-0 overflow-visible">
         <DialogHeader>
           <DialogTitle>Bulk bewerking</DialogTitle>
           <DialogDescription>
