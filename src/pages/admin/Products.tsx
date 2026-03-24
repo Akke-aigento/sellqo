@@ -636,11 +636,25 @@ export default function ProductsPage() {
                       {product.sku || '-'}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {product.category ? (
-                        <Badge variant="outline">{product.category.name}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      {(() => {
+                        const catIds = productCategoryMap[product.id] || [];
+                        if (catIds.length === 0) {
+                          return <span className="text-muted-foreground">-</span>;
+                        }
+                        return (
+                          <div className="flex flex-wrap gap-1">
+                            {catIds.slice(0, 3).map(catId => {
+                              const cat = categories.find(c => c.id === catId);
+                              return cat ? (
+                                <Badge key={catId} variant="outline">{cat.name}</Badge>
+                              ) : null;
+                            })}
+                            {catIds.length > 3 && (
+                              <Badge variant="secondary">+{catIds.length - 3}</Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatPrice(product.price)}
