@@ -1,28 +1,47 @@
 
-Doel: de categorie-dropdown in de bulkbewerking écht scrollbaar maken binnen de modal (trackpad + mouse wheel), zonder regressies elders.
 
-1) Root-cause fix: Popover in modal niet meer buiten de dialog scroll-lock renderen
-- Bestand: `src/components/ui/popover.tsx`
-- `PopoverContent` uitbreiden met een optionele prop (bv. `portalled?: boolean`, default `true`).
-- Als `portalled=false`, render `PopoverPrimitive.Content` zonder `PopoverPrimitive.Portal`.
-- Reden: de huidige portal-render buiten de dialog veroorzaakt in deze modal-context een wheel/scroll-lock conflict.
+## Fix: Bulk bewerker wijzigingen worden niet opgeslagen
 
-2) Bulk categorie-dropdown omzetten naar “in-dialog” popover + echte scroll container
-- Bestand: `src/components/admin/products/bulk/BulkBasicTab.tsx`
-- Voor deze specifieke dropdown: `PopoverContent` gebruiken met `portalled={false}`.
-- De lijst-wrapper vervangen door `ScrollArea` (of vaste hoogte + `overflow-y-auto`) met expliciete hoogte (bv. `h-[280px]`) i.p.v. alleen `max-h`.
-- `overscroll-contain` toevoegen op de scroll-container zodat scroll niet “lekt” naar de modal/page.
+### Diagnose
 
-3) Clipping vermijden in de modal
-- Bestand: `src/components/admin/products/ProductBulkEditDialog.tsx`
-- `DialogContent` niet langer hard op `overflow-hidden` laten staan als dat de niet-geportalde popover afsnijdt; overflow-beperking op de bestaande interne tabs/scroll-container houden.
-- De huidige `min-h-0` chain behouden (die fixte de algemene modal-scroll al).
+Na grondige analyse van de code zijn er **twee problemen** gevonden:
 
-4) Validatie (gericht op jouw bug)
-- Open bulkbewerking → Basis → Categorieën wijzigen → dropdown openen.
-- Verifiëren:
-  - met trackpad/muiswiel kan je door de volledige categorielijst scrollen;
-  - onderliggende modal/body scrollt niet mee;
-  - selecteren/deselecteren blijft werken;
-  - geen visuele clipping van de dropdown.
-- Quick regression check: andere popovers buiten deze modal blijven ongewijzigd gedrag hebben (default `portalled=true`).
+1. **Geen error handling in `handleBulkEdit`** — De functie roept meerdere mutaties sequentieel aan met `await`. Als de eerste mutatie faalt (bijv. `bulkAdjustPrices`), stopt de hele functie en worden **alle volgende mutaties overgeslagen** — zonder duidelijke foutmelding. De dialog toont kort "Bezig..." en stopt dan zonder feedback.
+
+2. **`handleApply` in de dialog heeft geen `catch`** — Als `onApply` een error gooit, wordt de error niet afgevangen door de dialog. De dialog blijft open maar de gebruiker ziet geen duidelijke melding wat er fout ging.
+
+3. **Mogelijke stille fouten bij categorie-updates** — De categorie bulk-update gebruikt `(supabase as any).from('product_categories')` wat type-checking omzeilt. Als de upsert of delete faalt, wordt de error niet getoond.
+
+### Fix
+
+**`src/pages/admin/Products.tsx` — `handleBulkEdit` robuust maken**
+
+- Wrap elke mutatie-groep in een individuele try/catch
+- Bijhoud hoeveel operaties slaagden vs faalden
+- Toon een samenvattende toast aan het einde ("X van Y operaties geslaagd")
+- Als alles slaagt: sluit dialog + clear selectie
+- Als iets faalt: toon foutmelding maar voer resterende operaties WEL uit
+
+**`src/components/admin/products/ProductBulkEditDialog.tsx` — error handling toevoegen**
+
+- Voeg een `catch` block toe aan `handleApply`
+- Toon een toast bij errors zodat de gebruiker weet wat er misging
+- Dialog NIET sluiten bij fouten
+
+### Technisch
+
+```text
+handleBulkEdit flow (nu):
+  mutatie 1 → FAIL → STOP (rest wordt overgeslagen, geen feedback)
+
+handleBulkEdit flow (nieuw):
+  mutatie 1 → FAIL → log error, ga door
+  mutatie 2 → OK → log success, ga door
+  ...
+  einde → toon "2 van 3 operaties geslaagd" of "Alle wijzigingen opgeslagen"
+```
+
+### Bestanden
+- `src/pages/admin/Products.tsx` — `handleBulkEdit` met per-operatie error handling
+- `src/components/admin/products/ProductBulkEditDialog.tsx` — catch block + foutfeedback
+
