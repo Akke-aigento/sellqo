@@ -581,6 +581,13 @@ export default function ShopCheckout() {
               phone: customerData.phone,
             }).catch(() => {});
           }
+          // Newsletter subscribe
+          if (newsletterOptIn && tenant?.id) {
+            supabase.from('newsletter_subscribers').upsert(
+              { tenant_id: tenant.id, email: customerData.email.toLowerCase(), status: 'active', first_name: customerData.firstName || null, last_name: customerData.lastName || null },
+              { onConflict: 'tenant_id,email' }
+            ).then(() => {}).catch(() => {});
+          }
           clearCart();
           window.location.href = sessionData.url;
         }
