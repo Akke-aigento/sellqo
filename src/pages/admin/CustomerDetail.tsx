@@ -16,7 +16,8 @@ import { useQuery } from '@tanstack/react-query';
   Trash2,
   ExternalLink,
   UserPlus,
-  Loader2
+  Loader2,
+  Globe
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
