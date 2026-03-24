@@ -284,6 +284,12 @@ export function ProductGridView({ products, selectedIds, onToggleSelect, onToggl
           <div className="min-w-max">
             {/* Header */}
             <div className="flex border-b bg-muted/50 sticky top-0 z-10">
+              <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center">
+                <Checkbox
+                  checked={products.length > 0 && selectedIds.size === products.length}
+                  onCheckedChange={onToggleSelectAll}
+                />
+              </div>
               <div className="w-10 flex-shrink-0 p-2 border-r" />
               {grid.visibleColumnDefs.map((col) => (
                 <div
