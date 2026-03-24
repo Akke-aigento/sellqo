@@ -106,7 +106,7 @@ export function ProductBulkEditDialog({
             <TabsTrigger value="specs">Specs</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto mt-4 pr-2">
+          <div className="flex-1 overflow-y-auto mt-4 pr-2 min-h-0">
             <TabsContent value="basis" className="mt-0">
               <BulkBasicTab {...tabProps} />
             </TabsContent>
