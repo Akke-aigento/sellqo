@@ -10,6 +10,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { TenantProvider } from "@/hooks/useTenant";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { StorefrontAuthProvider } from "@/context/StorefrontAuthContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import LandingPage from "./pages/Landing";
 import Auth from "./pages/Auth";
