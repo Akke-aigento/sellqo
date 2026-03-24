@@ -47,6 +47,21 @@ export default function CustomerDetailPage() {
   const [isCreating, setIsCreating] = useState(false);
   const { createCustomer } = useCustomers();
 
+  // Query linked storefront account
+  const { data: storefrontAccount } = useQuery({
+    queryKey: ['storefront-account', customer?.storefront_customer_id],
+    queryFn: async () => {
+      if (!customer?.storefront_customer_id) return null;
+      const { data } = await (supabase as any)
+        .from('storefront_customers')
+        .select('id, email, first_name, last_name, is_active, created_at, last_login_at, newsletter_opted_in, newsletter_opted_in_at, company_name, vat_number, vat_verified, addresses')
+        .eq('id', customer.storefront_customer_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!customer?.storefront_customer_id,
+  });
+
   // Query customer_messages for from_email when customer not found
   const { data: messageData } = useQuery({
     queryKey: ['customer-message-lookup', customerId, currentTenant?.id],
