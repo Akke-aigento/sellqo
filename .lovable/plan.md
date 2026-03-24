@@ -17,5 +17,17 @@
 12. ✅ Admin: Webshop Accounts overzichtspagina
 13. ✅ Admin: Webshop Account tab op klantdetail
 
+## Customer Intelligence Suite — Status
+
+### Volledig afgerond
+1. ✅ Customer Intelligence Dashboard (RFM + CLV + Churn) — `/admin/customer-intelligence`
+2. ✅ Klant-timeline / 360° View — tab op klantdetail
+3. ✅ Automatische klanttags — database trigger (VIP, Slapend, Trouwe klant, B2B Verified, Omni-channel, etc.)
+4. ✅ Klant health scores — dashboard widget + hook
+5. ✅ Dashboard widget: Klanten met dalende score
+
 ### Openstaand
-Geen openstaande items.
+6. ⬜ Product-aanbevelingen per klant (cross-sell data uit order_items)
+7. ⬜ Geautomatiseerde klant-flows (verjaardag, herbestelling)
+8. ⬜ Advertentie-export (lookalike audiences CSV)
+9. ⬜ Omzet-attributie per acquisitiekanaal

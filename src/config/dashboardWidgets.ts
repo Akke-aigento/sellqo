@@ -152,6 +152,7 @@ export const layoutPresets: LayoutPreset[] = [
       'ai-marketing',
       'pos-overview',
       'marketplace',
+      'customer-health',
       'badges',
     ],
     hiddenWidgets: [],
