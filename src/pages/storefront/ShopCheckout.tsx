@@ -89,6 +89,7 @@ export default function ShopCheckout() {
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [saveAddress, setSaveAddress] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   // Read query params for headless cart and cancel URL
   const searchParams = new URLSearchParams(window.location.search);
@@ -580,6 +581,13 @@ export default function ShopCheckout() {
               phone: customerData.phone,
             }).catch(() => {});
           }
+          // Newsletter subscribe
+          if (newsletterOptIn && tenant?.id) {
+            supabase.from('newsletter_subscribers').upsert(
+              { tenant_id: tenant.id, email: customerData.email.toLowerCase(), status: 'active', first_name: customerData.firstName || null, last_name: customerData.lastName || null },
+              { onConflict: 'tenant_id,email' }
+            ).then(() => {});
+          }
           clearCart();
           window.location.href = sessionData.url;
         }
@@ -603,6 +611,13 @@ export default function ShopCheckout() {
             last_name: customerData.lastName,
             phone: customerData.phone,
           }).catch(() => {});
+        }
+        // Newsletter subscribe
+        if (newsletterOptIn && tenant?.id) {
+          supabase.from('newsletter_subscribers').upsert(
+            { tenant_id: tenant.id, email: customerData.email.toLowerCase(), status: 'active', first_name: customerData.firstName || null, last_name: customerData.lastName || null },
+            { onConflict: 'tenant_id,email' }
+          ).then(() => {});
         }
         clearCart();
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
@@ -1155,6 +1170,18 @@ export default function ShopCheckout() {
                       </Label>
                     </div>
                   )}
+
+                  {/* Newsletter opt-in */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="checkoutNewsletter"
+                      checked={newsletterOptIn}
+                      onCheckedChange={(checked) => setNewsletterOptIn(!!checked)}
+                    />
+                    <Label htmlFor="checkoutNewsletter" className="text-sm cursor-pointer">
+                      Aanmelden voor nieuwsbrief
+                    </Label>
+                  </div>
 
 
                   {!allGiftCards && shippingMethods.length > 1 && (

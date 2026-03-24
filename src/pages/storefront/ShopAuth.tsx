@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
@@ -33,6 +34,10 @@ export default function ShopAuth() {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirm, setRegConfirm] = useState('');
+  const [regNewsletter, setRegNewsletter] = useState(false);
+  const [regIsB2b, setRegIsB2b] = useState(false);
+  const [regCompanyName, setRegCompanyName] = useState('');
+  const [regVatNumber, setRegVatNumber] = useState('');
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -59,8 +64,17 @@ export default function ShopAuth() {
     if (!regEmail || !regPassword || !regFirstName || !regLastName) { toast.error('Vul alle velden in'); return; }
     if (regPassword !== regConfirm) { toast.error('Wachtwoorden komen niet overeen'); return; }
     if (regPassword.length < 8) { toast.error('Wachtwoord moet minimaal 8 tekens bevatten'); return; }
+    if (regIsB2b && !regCompanyName) { toast.error('Vul een bedrijfsnaam in'); return; }
     setProcessing(true);
-    const result = await register({ email: regEmail, password: regPassword, first_name: regFirstName, last_name: regLastName });
+    const result = await register({
+      email: regEmail,
+      password: regPassword,
+      first_name: regFirstName,
+      last_name: regLastName,
+      newsletter_opt_in: regNewsletter,
+      company_name: regIsB2b ? regCompanyName : undefined,
+      vat_number: regIsB2b && regVatNumber ? regVatNumber : undefined,
+    } as any);
     setProcessing(false);
     if (result.success) {
       toast.success('Account aangemaakt!');
@@ -142,6 +156,31 @@ export default function ShopAuth() {
                     <Label htmlFor="reg-confirm">Bevestig wachtwoord</Label>
                     <Input id="reg-confirm" type="password" value={regConfirm} onChange={e => setRegConfirm(e.target.value)} required />
                   </div>
+
+                  {/* Newsletter opt-in */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="reg-newsletter" checked={regNewsletter} onCheckedChange={(c) => setRegNewsletter(!!c)} />
+                    <Label htmlFor="reg-newsletter" className="text-sm cursor-pointer">Aanmelden voor nieuwsbrief</Label>
+                  </div>
+
+                  {/* B2B toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="reg-b2b" checked={regIsB2b} onCheckedChange={(c) => setRegIsB2b(!!c)} />
+                    <Label htmlFor="reg-b2b" className="text-sm cursor-pointer">Ik bestel namens een bedrijf</Label>
+                  </div>
+
+                  {regIsB2b && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-company">Bedrijfsnaam *</Label>
+                        <Input id="reg-company" value={regCompanyName} onChange={e => setRegCompanyName(e.target.value)} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-vat">BTW-nummer (optioneel)</Label>
+                        <Input id="reg-vat" value={regVatNumber} onChange={e => setRegVatNumber(e.target.value.toUpperCase())} placeholder="BE0123456789" />
+                      </div>
+                    </div>
+                  )}
                   <Button type="submit" className="w-full" disabled={processing}>
                     {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Account aanmaken

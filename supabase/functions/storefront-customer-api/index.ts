@@ -47,6 +47,58 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return derivedHex === hashHex;
 }
 
+// Auto-sync storefront_customer to the CRM customers table
+async function syncToCustomers(supabase: any, tenantId: string, sfCustomer: any, newsletterOptIn?: boolean) {
+  try {
+    const email = sfCustomer.email?.toLowerCase();
+    if (!email) return;
+
+    // Check if customer already exists by email
+    const { data: existing } = await supabase
+      .from('customers')
+      .select('id, storefront_customer_id')
+      .eq('tenant_id', tenantId)
+      .eq('email', email)
+      .maybeSingle();
+
+    const customerData: Record<string, unknown> = {
+      first_name: sfCustomer.first_name || '',
+      last_name: sfCustomer.last_name || '',
+      phone: sfCustomer.phone || null,
+      storefront_customer_id: sfCustomer.id,
+      company_name: sfCustomer.company_name || null,
+      vat_number: sfCustomer.vat_number || null,
+      vat_verified: sfCustomer.vat_verified || false,
+    };
+
+    if (newsletterOptIn !== undefined) {
+      customerData.email_subscribed = !!newsletterOptIn;
+      customerData.email_marketing_status = newsletterOptIn ? 'subscribed' : 'unsubscribed';
+    }
+
+    if (existing) {
+      await supabase.from('customers').update(customerData).eq('id', existing.id);
+    } else {
+      await supabase.from('customers').insert({
+        ...customerData,
+        tenant_id: tenantId,
+        email,
+        customer_type: sfCustomer.company_name ? 'b2b' : 'b2c',
+      });
+    }
+
+    // Sync to newsletter_subscribers if opted in
+    if (newsletterOptIn) {
+      await supabase.from('newsletter_subscribers').upsert(
+        { tenant_id: tenantId, email, status: 'active', first_name: sfCustomer.first_name || null, last_name: sfCustomer.last_name || null },
+        { onConflict: 'tenant_id,email' }
+      );
+    }
+  } catch (err) {
+    console.error('syncToCustomers error:', err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -72,7 +124,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'register': {
-        const { email, password, first_name, last_name, phone } = params as any;
+        const { email, password, first_name, last_name, phone, newsletter_opt_in, company_name: regCompany, vat_number: regVat } = params as any;
         if (!email || !password) throw new Error('email and password are required');
         if (password.length < 8) throw new Error('Password must be at least 8 characters');
 
@@ -80,11 +132,34 @@ serve(async (req) => {
         if (existing) throw new Error('An account with this email already exists');
 
         const passwordHash = await hashPassword(password);
+        const insertData: Record<string, unknown> = {
+          tenant_id, email: email.toLowerCase(), password_hash: passwordHash,
+          first_name: first_name || '', last_name: last_name || '', phone: phone || null,
+          newsletter_opted_in: !!newsletter_opt_in,
+          newsletter_opted_in_at: newsletter_opt_in ? new Date().toISOString() : null,
+          company_name: regCompany || null,
+          vat_number: regVat || null,
+        };
+
+        // VIES validation if VAT number provided
+        if (regVat) {
+          try {
+            const vatRes = await supabase.functions.invoke('validate-vat', { body: { vat_number: regVat } });
+            if (vatRes.data?.valid) {
+              insertData.vat_verified = true;
+              insertData.vat_verified_at = new Date().toISOString();
+            }
+          } catch { /* VIES unavailable, skip */ }
+        }
+
         const { data: customer, error } = await supabase
           .from('storefront_customers')
-          .insert({ tenant_id, email: email.toLowerCase(), password_hash: passwordHash, first_name: first_name || '', last_name: last_name || '', phone: phone || null })
-          .select('id, email, first_name, last_name').single();
+          .insert(insertData)
+          .select('id, email, first_name, last_name, newsletter_opted_in, company_name, vat_number, vat_verified').single();
         if (error) throw error;
+
+        // Auto-sync to customers table
+        await syncToCustomers(supabase, tenant_id, customer, newsletter_opt_in);
 
         const token = await generateToken({ customer_id: customer.id, tenant_id, email: customer.email }, tokenSecret);
         result = { customer, token };
@@ -121,13 +196,25 @@ serve(async (req) => {
 
       case 'update_profile': {
         const customer = await getCustomer();
-        const { first_name, last_name, phone } = params as any;
-        const updates: any = {};
+        const { first_name, last_name, phone, newsletter_opt_in, company_name: upCompany, vat_number: upVat } = params as any;
+        const updates: Record<string, unknown> = {};
         if (first_name !== undefined) updates.first_name = first_name;
         if (last_name !== undefined) updates.last_name = last_name;
         if (phone !== undefined) updates.phone = phone;
-        const { data, error } = await supabase.from('storefront_customers').update(updates).eq('id', customer.id).select('id, email, first_name, last_name, phone').single();
+        if (upCompany !== undefined) updates.company_name = upCompany;
+        if (upVat !== undefined) updates.vat_number = upVat;
+        if (newsletter_opt_in !== undefined) {
+          updates.newsletter_opted_in = !!newsletter_opt_in;
+          if (newsletter_opt_in && !customer.newsletter_opted_in) {
+            updates.newsletter_opted_in_at = new Date().toISOString();
+          }
+        }
+        const { data, error } = await supabase.from('storefront_customers').update(updates).eq('id', customer.id).select('id, email, first_name, last_name, phone, newsletter_opted_in, company_name, vat_number, vat_verified').single();
         if (error) throw error;
+
+        // Sync changes to customers table
+        await syncToCustomers(supabase, tenant_id, data, newsletter_opt_in);
+
         result = data;
         break;
       }
