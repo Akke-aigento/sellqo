@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
 import { useVatRates } from '@/hooks/useVatRates';
@@ -24,9 +25,13 @@ import { cn } from '@/lib/utils';
 
 interface ProductGridViewProps {
   products: Product[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
 }
 
-export function ProductGridView({ products }: ProductGridViewProps) {
+export function ProductGridView({ products, selectedIds, onToggleSelect, onToggleSelectAll }: ProductGridViewProps) {
+  const lastClickedIndex = useRef<number | null>(null);
   const { toast } = useToast();
   const { currentTenant } = useTenant();
   const { categories } = useCategories();
