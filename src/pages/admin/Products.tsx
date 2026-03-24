@@ -532,7 +532,7 @@ export default function ProductsPage() {
 
       {/* Grid or Table View */}
       {viewMode === 'grid' ? (
-        <div className="min-h-[400px]">
+        <div className={cn("min-h-[400px]", selectedIds.size > 0 && "pb-20")}>
           <ProductGridView
             products={filteredProducts}
             selectedIds={selectedIds}
