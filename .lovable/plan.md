@@ -1,47 +1,31 @@
 
 
-## Fix: Bulk bewerker wijzigingen worden niet opgeslagen
+## Fix: Bulk categorie-aanpassingen worden niet weergegeven
 
-### Diagnose
+### Root cause
 
-Na grondige analyse van de code zijn er **twee problemen** gevonden:
+De bulk categorie-operatie **slaat wél op** in de `product_categories` junction-tabel (de toast bevestigt "1 operatie succesvol"). Het probleem is dat de **weergave** de verkeerde databron leest:
 
-1. **Geen error handling in `handleBulkEdit`** — De functie roept meerdere mutaties sequentieel aan met `await`. Als de eerste mutatie faalt (bijv. `bulkAdjustPrices`), stopt de hele functie en worden **alle volgende mutaties overgeslagen** — zonder duidelijke foutmelding. De dialog toont kort "Bezig..." en stopt dan zonder feedback.
-
-2. **`handleApply` in de dialog heeft geen `catch`** — Als `onApply` een error gooit, wordt de error niet afgevangen door de dialog. De dialog blijft open maar de gebruiker ziet geen duidelijke melding wat er fout ging.
-
-3. **Mogelijke stille fouten bij categorie-updates** — De categorie bulk-update gebruikt `(supabase as any).from('product_categories')` wat type-checking omzeilt. Als de upsert of delete faalt, wordt de error niet getoond.
+- **Lijstweergave** (regel 638-643): toont `product.category.name` — dit komt uit de legacy `category_id` FK-kolom op de `products` tabel (single-category join). De bulk edit schrijft naar de `product_categories` junction-tabel maar raakt de legacy kolom niet aan.
+- **productCategoryMap** (regel 102-118): wordt wél correct opgebouwd uit de junction-tabel, maar wordt alleen gebruikt voor **filtering**, niet voor weergave.
 
 ### Fix
 
-**`src/pages/admin/Products.tsx` — `handleBulkEdit` robuust maken**
+**`src/pages/admin/Products.tsx`**
 
-- Wrap elke mutatie-groep in een individuele try/catch
-- Bijhoud hoeveel operaties slaagden vs faalden
-- Toon een samenvattende toast aan het einde ("X van Y operaties geslaagd")
-- Als alles slaagt: sluit dialog + clear selectie
-- Als iets faalt: toon foutmelding maar voer resterende operaties WEL uit
+1. **Categorie-kolom weergave aanpassen** (regel 638-643): In plaats van `product.category?.name`, de categorieën ophalen uit `productCategoryMap[product.id]` en de namen resolven via de `categories` array. Toon meerdere badges als een product meerdere categorieën heeft.
 
-**`src/components/admin/products/ProductBulkEditDialog.tsx` — error handling toevoegen**
+2. **productCategoryMap herladen na bulk edit**: Na succesvolle bulk operatie `queryClient.invalidateQueries` triggert al een `products` refetch, wat de `useEffect` op `[products]` herstart. Maar de `useEffect` runt async en kan een race condition hebben. Fix: ook expliciet de map refreshen na bulk edit (of de dependency aanpassen).
 
-- Voeg een `catch` block toe aan `handleApply`
-- Toon een toast bij errors zodat de gebruiker weet wat er misging
-- Dialog NIET sluiten bij fouten
+3. **Grid-weergave categorie-kolom**: Controleren of de grid view dezelfde fix nodig heeft.
 
 ### Technisch
 
 ```text
-handleBulkEdit flow (nu):
-  mutatie 1 → FAIL → STOP (rest wordt overgeslagen, geen feedback)
-
-handleBulkEdit flow (nieuw):
-  mutatie 1 → FAIL → log error, ga door
-  mutatie 2 → OK → log success, ga door
-  ...
-  einde → toon "2 van 3 operaties geslaagd" of "Alle wijzigingen opgeslagen"
+Nu:     Categorie kolom → product.category.name (legacy FK join, single)
+Straks: Categorie kolom → productCategoryMap[product.id] → categories lookup (junction, multi)
 ```
 
 ### Bestanden
-- `src/pages/admin/Products.tsx` — `handleBulkEdit` met per-operatie error handling
-- `src/components/admin/products/ProductBulkEditDialog.tsx` — catch block + foutfeedback
+- `src/pages/admin/Products.tsx` — categorie-weergave omschakelen van legacy FK naar junction-tabel map
 
