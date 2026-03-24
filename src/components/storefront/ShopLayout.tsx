@@ -725,6 +725,9 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
                 <Link to={`${basePath}/wishlist`} className="text-lg font-medium flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
                   <Heart className="h-5 w-5" /> Verlanglijst {wishlistCount > 0 && `(${wishlistCount})`}
                 </Link>
+                <Link to={`${basePath}/account`} className="text-lg font-medium flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                  <User className="h-5 w-5" /> Mijn account
+                </Link>
                 <div className="border-t my-2" />
                 {categories.map((cat: any) => (
                   <Link key={cat.id} to={`${basePath}/products?category=${cat.slug}`} className="text-muted-foreground hover:text-foreground" onClick={() => setMobileMenuOpen(false)}>{cat.name}</Link>
