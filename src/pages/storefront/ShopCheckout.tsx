@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck, Sparkles, Gift } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, LogIn, Search, User, CheckCircle, AlertCircle, Tag, X, Truck, Sparkles, Gift, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/storefront/PaymentMethodSelector';
 import { BankTransferPayment } from '@/components/storefront/BankTransferPayment';
@@ -20,6 +21,8 @@ import { useTranslation } from 'react-i18next';
 import { useStorefrontShipping } from '@/hooks/useStorefrontShipping';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCartPromotions } from '@/hooks/useCartPromotions';
+import { useStorefrontAuth } from '@/context/StorefrontAuthContext';
+import { useStorefrontCustomerApi } from '@/hooks/useStorefrontCustomerApi';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -79,6 +82,13 @@ export default function ShopCheckout() {
     appliedDiscount, applyDiscountCode, removeDiscountCode,
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
+
+  // Storefront customer auth
+  const { customer: sfCustomer, isAuthenticated: sfAuthenticated } = useStorefrontAuth();
+  const { getAddresses, addAddress } = useStorefrontCustomerApi();
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
 
   // Read query params for headless cart and cancel URL
   const searchParams = new URLSearchParams(window.location.search);
@@ -150,7 +160,31 @@ export default function ShopCheckout() {
   const ossThresholdReached = tenant?.oss_threshold_reached ?? false;
   const defaultVatHandling = tenant?.default_vat_handling || 'exclusive';
 
-  // Check auth state
+  // Pre-fill from storefront customer profile
+  useEffect(() => {
+    if (sfAuthenticated && sfCustomer) {
+      setCustomerData(prev => ({
+        ...prev,
+        email: prev.email || sfCustomer.email || '',
+        firstName: prev.firstName || sfCustomer.first_name || '',
+        lastName: prev.lastName || sfCustomer.last_name || '',
+        phone: prev.phone || sfCustomer.phone || '',
+      }));
+      // Load saved addresses
+      getAddresses().then((addrs: any[]) => {
+        if (Array.isArray(addrs) && addrs.length > 0) {
+          setSavedAddresses(addrs);
+          const defaultAddr = addrs.find((a: any) => a.is_default) || addrs[0];
+          if (defaultAddr && !customerData.street) {
+            applyAddress(defaultAddr);
+            setSelectedAddressId(defaultAddr.id);
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [sfAuthenticated, sfCustomer]);
+
+  // Fallback: Check Supabase auth state
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -167,6 +201,17 @@ export default function ShopCheckout() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  const applyAddress = (addr: any) => {
+    setCustomerData(prev => ({
+      ...prev,
+      street: addr.street || '',
+      houseNumber: addr.house_number || '',
+      postalCode: addr.postal_code || '',
+      city: addr.city || '',
+      country: addr.country || prev.country,
+    }));
+  };
 
   // Load server-side cart when cart_id is present (headless/custom frontend)
   useEffect(() => {
@@ -522,6 +567,19 @@ export default function ShopCheckout() {
           throw new Error(body?.error || error.message);
         }
         if (sessionData?.url) {
+          // Save address if requested
+          if (saveAddress && sfAuthenticated && !selectedAddressId && customerData.street) {
+            addAddress({
+              street: customerData.street,
+              house_number: customerData.houseNumber,
+              postal_code: customerData.postalCode,
+              city: customerData.city,
+              country: customerData.country,
+              first_name: customerData.firstName,
+              last_name: customerData.lastName,
+              phone: customerData.phone,
+            }).catch(() => {});
+          }
           clearCart();
           window.location.href = sessionData.url;
         }
@@ -532,6 +590,19 @@ export default function ShopCheckout() {
         if (error) {
           const body = await error.context?.json?.().catch(() => null);
           throw new Error(body?.error || error.message);
+        }
+        // Save address if requested
+        if (saveAddress && sfAuthenticated && !selectedAddressId && customerData.street) {
+          addAddress({
+            street: customerData.street,
+            house_number: customerData.houseNumber,
+            postal_code: customerData.postalCode,
+            city: customerData.city,
+            country: customerData.country,
+            first_name: customerData.firstName,
+            last_name: customerData.lastName,
+            phone: customerData.phone,
+          }).catch(() => {});
         }
         clearCart();
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
@@ -959,6 +1030,59 @@ export default function ShopCheckout() {
                   {!allGiftCards && (
                   <div className="space-y-4">
                     <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
+
+                    {/* Saved addresses selector */}
+                    {sfAuthenticated && savedAddresses.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Opgeslagen adressen</Label>
+                        <div className="grid gap-2">
+                          {savedAddresses.map((addr: any) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedAddressId(addr.id);
+                                applyAddress(addr);
+                              }}
+                              className={`text-left p-3 rounded-lg border transition-colors ${
+                                selectedAddressId === addr.id
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                <div className="text-sm">
+                                  <p className="font-medium">
+                                    {addr.label || `${addr.street} ${addr.house_number || ''}`}
+                                    {addr.is_default && <span className="text-xs text-muted-foreground ml-2">(standaard)</span>}
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    {addr.street} {addr.house_number}, {addr.postal_code} {addr.city}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAddressId(null);
+                              setCustomerData(prev => ({ ...prev, street: '', houseNumber: '', postalCode: '', city: '' }));
+                            }}
+                            className={`text-left p-3 rounded-lg border transition-colors text-sm ${
+                              selectedAddressId === null && !savedAddresses.length
+                                ? 'border-primary bg-primary/5'
+                                : selectedAddressId === null
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            + Nieuw adres invoeren
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     
                     {addressAutocomplete && (
                       <div className="relative">
@@ -1018,7 +1142,21 @@ export default function ShopCheckout() {
                   </div>
                   )}
 
-                  {/* Shipping method selector */}
+                  {/* Save address checkbox for logged-in customers */}
+                  {sfAuthenticated && !allGiftCards && !selectedAddressId && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="saveAddress"
+                        checked={saveAddress}
+                        onCheckedChange={(checked) => setSaveAddress(!!checked)}
+                      />
+                      <Label htmlFor="saveAddress" className="text-sm cursor-pointer">
+                        Adres opslaan voor volgende keer
+                      </Label>
+                    </div>
+                  )}
+
+
                   {!allGiftCards && shippingMethods.length > 1 && (
                     <>
                       <Separator />
