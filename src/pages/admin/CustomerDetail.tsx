@@ -457,6 +457,19 @@ export default function CustomerDetailPage() {
           </div>
         </TabsContent>
 
+        {/* Timeline Tab */}
+        <TabsContent value="timeline">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Klant-timeline</CardTitle>
+              <CardDescription>Alle interacties chronologisch</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CustomerTimeline customerId={customerId!} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Webshop Account Tab */}
         {storefrontAccount && (
           <TabsContent value="webshop">
