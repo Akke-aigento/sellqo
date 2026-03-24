@@ -83,6 +83,13 @@ export default function ShopCheckout() {
   } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
 
+  // Storefront customer auth
+  const { customer: sfCustomer, isAuthenticated: sfAuthenticated } = useStorefrontAuth();
+  const { getAddresses, addAddress } = useStorefrontCustomerApi();
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+
   // Read query params for headless cart and cancel URL
   const searchParams = new URLSearchParams(window.location.search);
   const cancelUrl = searchParams.get('cancel_url');
