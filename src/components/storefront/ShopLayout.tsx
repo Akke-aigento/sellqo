@@ -650,6 +650,9 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
             </Link>
           </Button>
 
+          {/* Account */}
+          <AccountHeaderButton basePath={basePath} />
+
           {/* Cart - opens drawer */}
           <Button variant="ghost" size="icon" className="relative" onClick={openDrawer}>
             <ShoppingCart className="h-5 w-5" />
