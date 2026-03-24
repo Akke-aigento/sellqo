@@ -268,6 +268,24 @@ export function BogoPromotionFormDialog({
               )}
             />
 
+            {/* Buy categories selector */}
+            <FormField
+              control={form.control}
+              name="buy_category_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Of koop-categorieën</FormLabel>
+                  <FormDescription>Alternatief: selecteer categorieën i.p.v. individuele producten</FormDescription>
+                  <CategoryMultiSelect
+                    selectedIds={field.value || []}
+                    onChange={field.onChange}
+                    placeholder="Selecteer categorieën..."
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Get products selector */}
             <FormField
               control={form.control}
