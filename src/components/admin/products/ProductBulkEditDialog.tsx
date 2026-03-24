@@ -65,6 +65,9 @@ export function ProductBulkEditDialog({
       setState({});
       setEnabledFields(new Set());
       onOpenChange(false);
+    } catch (e: any) {
+      // Dialog blijft open bij fouten — toast wordt al getoond door handleBulkEdit
+      console.error('Bulk edit error:', e);
     } finally {
       setIsApplying(false);
     }

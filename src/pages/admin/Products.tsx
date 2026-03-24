@@ -189,86 +189,104 @@ export default function ProductsPage() {
 
   const handleBulkEdit = async (state: BulkEditState, enabledFields: Set<string>) => {
     const ids = Array.from(selectedIds);
-    
-    // Process each enabled field
+    let successCount = 0;
+    let failCount = 0;
+    const errors: string[] = [];
+
+    const tryOp = async (label: string, fn: () => Promise<any>) => {
+      try {
+        await fn();
+        successCount++;
+      } catch (e: any) {
+        failCount++;
+        errors.push(label + ': ' + (e?.message || 'onbekende fout'));
+      }
+    };
+
     if (enabledFields.has('price_adjustment') && state.price_adjustment) {
-      await bulkAdjustPrices.mutateAsync({
+      await tryOp('Prijsaanpassing', () => bulkAdjustPrices.mutateAsync({
         ids,
-        adjustmentType: state.price_adjustment.type,
-        adjustmentValue: state.price_adjustment.value,
-      });
+        adjustmentType: state.price_adjustment!.type,
+        adjustmentValue: state.price_adjustment!.value,
+      }));
     }
-    
+
     if (enabledFields.has('compare_at_price') && state.compare_at_price_action) {
-      await bulkAdjustPrices.mutateAsync({
+      await tryOp('Vergelijkingsprijs', () => bulkAdjustPrices.mutateAsync({
         ids,
-        adjustmentType: state.compare_at_price_action,
+        adjustmentType: state.compare_at_price_action!,
         adjustmentValue: state.compare_at_price_value || 0,
         priceField: 'compare_at_price',
-      });
+      }));
     }
-    
+
     if (enabledFields.has('cost_price') && state.cost_price_action) {
-      await bulkAdjustPrices.mutateAsync({
+      await tryOp('Kostprijs', () => bulkAdjustPrices.mutateAsync({
         ids,
-        adjustmentType: state.cost_price_action,
+        adjustmentType: state.cost_price_action!,
         adjustmentValue: state.cost_price || 0,
         priceField: 'cost_price',
-      });
+      }));
     }
-    
+
     if (enabledFields.has('stock_adjustment') && state.stock_adjustment) {
-      await bulkAdjustStock.mutateAsync({
+      await tryOp('Voorraad', () => bulkAdjustStock.mutateAsync({
         ids,
-        adjustmentType: state.stock_adjustment.type,
-        adjustmentValue: state.stock_adjustment.value,
-      });
+        adjustmentType: state.stock_adjustment!.type,
+        adjustmentValue: state.stock_adjustment!.value,
+      }));
     }
-    
+
     if (enabledFields.has('tags_to_add') || enabledFields.has('tags_to_remove')) {
-      await bulkUpdateTags.mutateAsync({
+      await tryOp('Tags', () => bulkUpdateTags.mutateAsync({
         ids,
         tagsToAdd: state.tags_to_add || [],
         tagsToRemove: state.tags_to_remove || [],
-      });
+      }));
     }
-    
+
     if (enabledFields.has('tags_replace_all') && state.tags_replace_all) {
-      await bulkUpdateTags.mutateAsync({
+      await tryOp('Tags vervangen', () => bulkUpdateTags.mutateAsync({
         ids,
         replaceAll: true,
         replacementTags: state.tags_replace_all,
-      });
-    }
-    
-    if (enabledFields.has('social_channels') && state.social_channels) {
-      await bulkUpdateSocialChannels.mutateAsync({
-        ids,
-        socialChannels: state.social_channels,
-      });
-    }
-    
-    // Bulk category add/remove via product_categories junction table
-    if (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) {
-      for (const productId of ids) {
-        for (const catId of state.category_ids_to_add) {
-          await (supabase as any)
-            .from('product_categories')
-            .upsert({ product_id: productId, category_id: catId, is_primary: false, sort_order: 0 }, { onConflict: 'product_id,category_id' });
-        }
-      }
-    }
-    if (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length) {
-      for (const productId of ids) {
-        await (supabase as any)
-          .from('product_categories')
-          .delete()
-          .eq('product_id', productId)
-          .in('category_id', state.category_ids_to_remove);
-      }
+      }));
     }
 
-    // Simple field updates via bulkUpdateProducts
+    if (enabledFields.has('social_channels') && state.social_channels) {
+      await tryOp('Kanalen', () => bulkUpdateSocialChannels.mutateAsync({
+        ids,
+        socialChannels: state.social_channels!,
+      }));
+    }
+
+    if (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) {
+      await tryOp('Categorieën toevoegen', async () => {
+        for (const productId of ids) {
+          for (const catId of state.category_ids_to_add!) {
+            const { error } = await (supabase as any)
+              .from('product_categories')
+              .upsert({ product_id: productId, category_id: catId, is_primary: false, sort_order: 0 }, { onConflict: 'product_id,category_id' });
+            if (error) throw error;
+          }
+        }
+      });
+    }
+
+    if (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length) {
+      await tryOp('Categorieën verwijderen', async () => {
+        for (const productId of ids) {
+          const { error } = await (supabase as any)
+            .from('product_categories')
+            .delete()
+            .eq('product_id', productId)
+            .in('category_id', state.category_ids_to_remove!);
+          if (error) throw error;
+        }
+      });
+    }
+
+    // Simple field updates
     const simpleUpdates: Record<string, any> = {};
     if (enabledFields.has('vat_rate_id')) simpleUpdates.vat_rate_id = state.vat_rate_id;
     if (enabledFields.has('product_type')) simpleUpdates.product_type = state.product_type;
@@ -279,12 +297,22 @@ export default function ProductsPage() {
     if (enabledFields.has('track_inventory')) simpleUpdates.track_inventory = state.track_inventory;
     if (enabledFields.has('allow_backorder')) simpleUpdates.allow_backorder = state.allow_backorder;
     if (enabledFields.has('low_stock_threshold')) simpleUpdates.low_stock_threshold = state.low_stock_threshold;
-    
+
     if (Object.keys(simpleUpdates).length > 0) {
-      await bulkUpdateProducts.mutateAsync({ ids, data: simpleUpdates });
+      await tryOp('Velden bijwerken', () => bulkUpdateProducts.mutateAsync({ ids, data: simpleUpdates }));
     }
-    
+
+    if (failCount > 0) {
+      toast({
+        title: `${successCount} van ${successCount + failCount} operaties geslaagd`,
+        description: errors.join('; '),
+        variant: 'destructive',
+      });
+      throw new Error(`${failCount} operatie(s) mislukt`);
+    }
+
     setSelectedIds(new Set());
+    toast({ title: 'Bulk bewerking voltooid', description: `${successCount} operatie(s) succesvol toegepast op ${ids.length} producten.` });
   };
 
   const handleDeleteProduct = () => {
