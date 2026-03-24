@@ -28,6 +28,7 @@ import CreditNotesPage from "./pages/admin/CreditNotes";
 import CustomersPage from "./pages/admin/Customers";
 import CustomerDetailPage from "./pages/admin/CustomerDetail";
 import StorefrontAccountsPage from "./pages/admin/StorefrontAccounts";
+import CustomerIntelligencePage from "./pages/admin/CustomerIntelligence";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
 import SubscriptionsPage from "./pages/admin/Subscriptions";
@@ -200,6 +201,7 @@ const App = () => (
               <Route path="customers" element={<CustomersPage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="storefront-accounts" element={<StorefrontAccountsPage />} />
+              <Route path="customer-intelligence" element={<CustomerIntelligencePage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="payments" element={<PaymentsPage />} />

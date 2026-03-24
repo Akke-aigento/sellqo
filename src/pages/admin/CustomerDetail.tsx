@@ -17,9 +17,11 @@ import {
   ExternalLink,
   UserPlus,
   Loader2,
-  Globe
+  Globe,
+  Clock
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
+import { CustomerTimeline } from '@/components/admin/CustomerTimeline';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
 import { useTenant } from '@/hooks/useTenant';
 import { useQuery } from '@tanstack/react-query';
@@ -267,6 +269,10 @@ export default function CustomerDetailPage() {
             <User className="h-4 w-4" />
             Gegevens
           </TabsTrigger>
+          <TabsTrigger value="timeline" className="gap-2">
+            <Clock className="h-4 w-4" />
+            Timeline
+          </TabsTrigger>
           {storefrontAccount && (
             <TabsTrigger value="webshop" className="gap-2">
               <Globe className="h-4 w-4" />
@@ -449,6 +455,19 @@ export default function CustomerDetailPage() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        {/* Timeline Tab */}
+        <TabsContent value="timeline">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Klant-timeline</CardTitle>
+              <CardDescription>Alle interacties chronologisch</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CustomerTimeline customerId={customerId!} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Webshop Account Tab */}
