@@ -27,6 +27,7 @@ import InvoicesPage from "./pages/admin/Invoices";
 import CreditNotesPage from "./pages/admin/CreditNotes";
 import CustomersPage from "./pages/admin/Customers";
 import CustomerDetailPage from "./pages/admin/CustomerDetail";
+import StorefrontAccountsPage from "./pages/admin/StorefrontAccounts";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
 import SubscriptionsPage from "./pages/admin/Subscriptions";
