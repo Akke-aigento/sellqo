@@ -17,9 +17,11 @@ import {
   ExternalLink,
   UserPlus,
   Loader2,
-  Globe
+  Globe,
+  Clock
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
+import { CustomerTimeline } from '@/components/admin/CustomerTimeline';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
 import { useTenant } from '@/hooks/useTenant';
 import { useQuery } from '@tanstack/react-query';
