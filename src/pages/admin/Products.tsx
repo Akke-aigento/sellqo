@@ -70,6 +70,7 @@ import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/ty
 
 export default function ProductsPage() {
   const isCompact = useIsCompact();
+  const { toast } = useToast();
   const { currentTenant } = useTenant();
   const { 
     products, 
