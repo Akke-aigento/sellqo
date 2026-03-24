@@ -3056,6 +3056,7 @@ export type Database = {
           sms_marketing_level: string | null
           sms_marketing_status: string | null
           sms_subscribed: boolean | null
+          storefront_customer_id: string | null
           tags: string[] | null
           tax_exempt: boolean | null
           tax_exempt_reason: string | null
@@ -3116,6 +3117,7 @@ export type Database = {
           sms_marketing_level?: string | null
           sms_marketing_status?: string | null
           sms_subscribed?: boolean | null
+          storefront_customer_id?: string | null
           tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
@@ -3176,6 +3178,7 @@ export type Database = {
           sms_marketing_level?: string | null
           sms_marketing_status?: string | null
           sms_subscribed?: boolean | null
+          storefront_customer_id?: string | null
           tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
@@ -3197,6 +3200,13 @@ export type Database = {
             columns: ["import_job_id"]
             isOneToOne: false
             referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_storefront_customer_id_fkey"
+            columns: ["storefront_customer_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_customers"
             referencedColumns: ["id"]
           },
           {
@@ -10950,6 +10960,7 @@ export type Database = {
       storefront_customers: {
         Row: {
           addresses: Json
+          company_name: string | null
           created_at: string
           email: string
           first_name: string
@@ -10957,15 +10968,22 @@ export type Database = {
           is_active: boolean
           last_login_at: string | null
           last_name: string
+          marketing_consent: boolean | null
+          newsletter_opted_in: boolean | null
+          newsletter_opted_in_at: string | null
           password_hash: string
           password_reset_expires_at: string | null
           password_reset_token: string | null
           phone: string | null
           tenant_id: string
           updated_at: string
+          vat_number: string | null
+          vat_verified: boolean | null
+          vat_verified_at: string | null
         }
         Insert: {
           addresses?: Json
+          company_name?: string | null
           created_at?: string
           email: string
           first_name?: string
@@ -10973,15 +10991,22 @@ export type Database = {
           is_active?: boolean
           last_login_at?: string | null
           last_name?: string
+          marketing_consent?: boolean | null
+          newsletter_opted_in?: boolean | null
+          newsletter_opted_in_at?: string | null
           password_hash: string
           password_reset_expires_at?: string | null
           password_reset_token?: string | null
           phone?: string | null
           tenant_id: string
           updated_at?: string
+          vat_number?: string | null
+          vat_verified?: boolean | null
+          vat_verified_at?: string | null
         }
         Update: {
           addresses?: Json
+          company_name?: string | null
           created_at?: string
           email?: string
           first_name?: string
@@ -10989,12 +11014,18 @@ export type Database = {
           is_active?: boolean
           last_login_at?: string | null
           last_name?: string
+          marketing_consent?: boolean | null
+          newsletter_opted_in?: boolean | null
+          newsletter_opted_in_at?: string | null
           password_hash?: string
           password_reset_expires_at?: string | null
           password_reset_token?: string | null
           phone?: string | null
           tenant_id?: string
           updated_at?: string
+          vat_number?: string | null
+          vat_verified?: boolean | null
+          vat_verified_at?: string | null
         }
         Relationships: [
           {
