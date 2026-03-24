@@ -82,6 +82,7 @@ export default function ProductsPage() {
     bulkAdjustStock,
     bulkUpdateTags,
     bulkUpdateSocialChannels,
+    refetch,
   } = useProducts();
   const { categories } = useCategories();
   
