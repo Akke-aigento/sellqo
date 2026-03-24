@@ -30,6 +30,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateAutoDiscount, useUpdateAutoDiscount } from '@/hooks/useAutoDiscounts';
 import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { AutomaticDiscount, AutomaticDiscountFormData } from '@/types/promotions';
 
 const formSchema = z.object({
