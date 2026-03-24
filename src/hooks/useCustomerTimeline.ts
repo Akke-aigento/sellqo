@@ -137,7 +137,7 @@ export function useCustomerTimeline(customerId: string | undefined) {
         events.push({
           id: `loyalty-${l.id}`,
           type: 'loyalty',
-          title: `${l.type === 'earn' ? '+' : '-'}${l.points} loyaliteitspunten`,
+          title: `${l.transaction_type === 'earn' ? '+' : '-'}${l.points} loyaliteitspunten`,
           description: l.description || undefined,
           timestamp: l.created_at,
         });
