@@ -7,6 +7,7 @@ import {
   Trophy,
   Heart,
   Grid3X3,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
