@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useIsCompact } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
