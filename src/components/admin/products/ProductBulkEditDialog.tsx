@@ -95,7 +95,7 @@ export function ProductBulkEditDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="basis">Basis</TabsTrigger>
             <TabsTrigger value="prijzen">Prijzen</TabsTrigger>
