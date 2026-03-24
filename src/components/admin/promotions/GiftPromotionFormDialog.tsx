@@ -134,6 +134,7 @@ export function GiftPromotionFormDialog({
       trigger_type: data.trigger_type,
       trigger_value: data.trigger_value,
       trigger_product_ids: data.trigger_type === 'specific_products' && data.trigger_product_ids?.length ? data.trigger_product_ids : undefined,
+      trigger_category_ids: data.trigger_type === 'specific_categories' && data.trigger_category_ids?.length ? data.trigger_category_ids : undefined,
       gift_product_id: data.gift_product_id,
       gift_quantity: data.gift_quantity,
       max_per_order: data.max_per_order,
