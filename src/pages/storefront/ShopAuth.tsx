@@ -33,6 +33,10 @@ export default function ShopAuth() {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirm, setRegConfirm] = useState('');
+  const [regNewsletter, setRegNewsletter] = useState(false);
+  const [regIsB2b, setRegIsB2b] = useState(false);
+  const [regCompanyName, setRegCompanyName] = useState('');
+  const [regVatNumber, setRegVatNumber] = useState('');
 
   // Redirect if already authenticated
   if (isAuthenticated) {
