@@ -10,6 +10,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { TenantProvider } from "@/hooks/useTenant";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { StorefrontAuthProvider } from "@/context/StorefrontAuthContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import LandingPage from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -107,6 +108,9 @@ import ShopOrderConfirmation from "./pages/storefront/ShopOrderConfirmation";
 import ShopLegalPage from "./pages/storefront/ShopLegalPage";
 import ShopWishlist from "./pages/storefront/ShopWishlist";
 import ShopContact from "./pages/storefront/ShopContact";
+import ShopAuth from "./pages/storefront/ShopAuth";
+import ShopResetPassword from "./pages/storefront/ShopResetPassword";
+import ShopAccount from "./pages/storefront/ShopAccount";
 
 const queryClient = new QueryClient();
 
@@ -136,16 +140,19 @@ const App = () => (
             <Route path="/api/shopify/callback" element={<ShopifyCallback />} />
             
             {/* Public Storefront routes - wrapped in CartProvider */}
-            <Route path="/shop/:tenantSlug" element={<CartProvider><WishlistProvider><ShopHome /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/products" element={<CartProvider><WishlistProvider><ShopProducts /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/product/:productSlug" element={<CartProvider><WishlistProvider><ShopProductDetail /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<CartProvider><WishlistProvider><ShopPage /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/cart" element={<CartProvider><WishlistProvider><ShopCart /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><WishlistProvider><ShopCheckout /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><WishlistProvider><ShopOrderConfirmation /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><ShopLegalPage /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><ShopWishlist /></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/contact" element={<CartProvider><WishlistProvider><ShopContact /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopHome /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/products" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopProducts /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/product/:productSlug" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopProductDetail /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopPage /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/cart" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopCart /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopCheckout /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopOrderConfirmation /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopLegalPage /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopWishlist /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/contact" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopContact /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/login" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAuth /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/reset-password" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopResetPassword /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/account" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAccount /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             
             {/* Dedicated kassa route - outside AdminLayout for tablet kiosk mode */}
             <Route path="/kassa/:terminalId" element={
