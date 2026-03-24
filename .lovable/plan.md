@@ -1,37 +1,21 @@
 
 
-## Openstaande items uit het Klantaccounts-plan
+## Klantaccounts voor Storefront — Status
 
-Van de 7 onderdelen zijn er 5 afgerond. Dit blijft over:
+### Volledig afgerond
+1. ✅ StorefrontAuthContext + hook
+2. ✅ Login & Registratie pagina (ShopAuth) — incl. newsletter opt-in + B2B velden
+3. ✅ Wachtwoord reset pagina (ShopResetPassword)
+4. ✅ Account Dashboard (ShopAccount)
+5. ✅ Routes + Navigatie (App.tsx + ShopLayout header)
+6. ✅ Custom frontend reset-URL (edge function)
+7. ✅ Wishlist server-sync (WishlistContext)
+8. ✅ Checkout integratie (pre-fill + adresselectie + newsletter opt-in)
+9. ✅ Auto-sync storefront_customers → customers (CRM koppeling)
+10. ✅ Newsletter opt-in bij registratie + checkout
+11. ✅ B2B velden (bedrijfsnaam + BTW/VIES validatie) bij registratie
+12. ✅ Admin: Webshop Accounts overzichtspagina
+13. ✅ Admin: Webshop Account tab op klantdetail
 
-### Afgerond
-1. StorefrontAuthContext + hook
-2. Login & Registratie pagina (ShopAuth)
-3. Wachtwoord reset pagina (ShopResetPassword)
-4. Account Dashboard (ShopAccount)
-5. Routes + Navigatie (App.tsx + ShopLayout header)
-6. Custom frontend reset-URL (edge function)
-
-### Nog te doen
-
-**1. Wishlist server-sync** — `src/context/WishlistContext.tsx`
-- Momenteel draait de wishlist 100% op localStorage, geen connectie met de backend `storefront_favorites` tabel
-- Aanpassing: als klant ingelogd is (via `useStorefrontAuth`), sync met server via `wishlist_get`, `wishlist_add`, `wishlist_remove` uit `useStorefrontCustomerApi`
-- Bij inloggen: merge localStorage items naar server, daarna server als bron gebruiken
-- Bij uitloggen: terugvallen op localStorage
-- Niet-ingelogde bezoekers behouden het huidige localStorage-gedrag
-
-**2. Checkout integratie** — `src/pages/storefront/ShopCheckout.tsx`
-- De checkout leest momenteel alleen de Supabase Auth sessie (regel 160), maar kent de storefront-klant niet
-- Aanpassing: `useStorefrontAuth` importeren en als klant ingelogd is:
-  - Pre-fill email, voornaam, achternaam, telefoon uit klantprofiel
-  - Adres-selector tonen: kies uit opgeslagen adressen of vul nieuw in
-  - Checkbox "Adres opslaan voor volgende keer" → `add_address` call na bestelling
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| `src/context/WishlistContext.tsx` | Server-sync voor ingelogde klanten + merge-logica |
-| `src/pages/storefront/ShopCheckout.tsx` | Pre-fill klantgegevens + adresselectie |
-
+### Openstaand
+Geen openstaande items.
