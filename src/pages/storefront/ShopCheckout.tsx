@@ -160,7 +160,31 @@ export default function ShopCheckout() {
   const ossThresholdReached = tenant?.oss_threshold_reached ?? false;
   const defaultVatHandling = tenant?.default_vat_handling || 'exclusive';
 
-  // Check auth state
+  // Pre-fill from storefront customer profile
+  useEffect(() => {
+    if (sfAuthenticated && sfCustomer) {
+      setCustomerData(prev => ({
+        ...prev,
+        email: prev.email || sfCustomer.email || '',
+        firstName: prev.firstName || sfCustomer.first_name || '',
+        lastName: prev.lastName || sfCustomer.last_name || '',
+        phone: prev.phone || sfCustomer.phone || '',
+      }));
+      // Load saved addresses
+      getAddresses().then((addrs: any[]) => {
+        if (Array.isArray(addrs) && addrs.length > 0) {
+          setSavedAddresses(addrs);
+          const defaultAddr = addrs.find((a: any) => a.is_default) || addrs[0];
+          if (defaultAddr && !customerData.street) {
+            applyAddress(defaultAddr);
+            setSelectedAddressId(defaultAddr.id);
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [sfAuthenticated, sfCustomer]);
+
+  // Fallback: Check Supabase auth state
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -177,6 +201,17 @@ export default function ShopCheckout() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  const applyAddress = (addr: any) => {
+    setCustomerData(prev => ({
+      ...prev,
+      street: addr.street || '',
+      houseNumber: addr.house_number || '',
+      postalCode: addr.postal_code || '',
+      city: addr.city || '',
+      country: addr.country || prev.country,
+    }));
+  };
 
   // Load server-side cart when cart_id is present (headless/custom frontend)
   useEffect(() => {
