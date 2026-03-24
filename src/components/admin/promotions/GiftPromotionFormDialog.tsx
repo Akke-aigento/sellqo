@@ -31,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { useCreateGiftPromotion, useUpdateGiftPromotion } from '@/hooks/useGiftPromotions';
 import { useProducts } from '@/hooks/useProducts';
 import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { GiftPromotion, GiftPromotionFormData } from '@/types/promotions';
 
 const formSchema = z.object({
@@ -39,6 +40,7 @@ const formSchema = z.object({
   trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
   trigger_product_ids: z.array(z.string()).optional(),
+  trigger_category_ids: z.array(z.string()).optional(),
   gift_product_id: z.string().min(1, 'Cadeau product is verplicht'),
   gift_quantity: z.coerce.number().min(1).default(1),
   max_per_order: z.coerce.number().min(1).optional(),
@@ -75,6 +77,7 @@ export function GiftPromotionFormDialog({
       trigger_type: 'cart_total',
       trigger_value: 50,
       trigger_product_ids: [],
+      trigger_category_ids: [],
       gift_product_id: '',
       gift_quantity: 1,
       max_per_order: 1,
@@ -94,6 +97,7 @@ export function GiftPromotionFormDialog({
         trigger_type: promotion.trigger_type,
         trigger_value: promotion.trigger_value || undefined,
         trigger_product_ids: promotion.trigger_product_ids || [],
+        trigger_category_ids: promotion.trigger_category_ids || [],
         gift_product_id: promotion.gift_product_id,
         gift_quantity: promotion.gift_quantity,
         max_per_order: promotion.max_per_order || undefined,
@@ -110,6 +114,7 @@ export function GiftPromotionFormDialog({
         trigger_type: 'cart_total',
         trigger_value: 50,
         trigger_product_ids: [],
+        trigger_category_ids: [],
         gift_product_id: '',
         gift_quantity: 1,
         max_per_order: 1,
@@ -129,6 +134,7 @@ export function GiftPromotionFormDialog({
       trigger_type: data.trigger_type,
       trigger_value: data.trigger_value,
       trigger_product_ids: data.trigger_type === 'specific_products' && data.trigger_product_ids?.length ? data.trigger_product_ids : undefined,
+      trigger_category_ids: data.trigger_type === 'specific_categories' && data.trigger_category_ids?.length ? data.trigger_category_ids : undefined,
       gift_product_id: data.gift_product_id,
       gift_quantity: data.gift_quantity,
       max_per_order: data.max_per_order,
@@ -209,6 +215,7 @@ export function GiftPromotionFormDialog({
                         <SelectItem value="cart_total">Bestelwaarde</SelectItem>
                         <SelectItem value="quantity">Aantal producten</SelectItem>
                         <SelectItem value="specific_products">Specifieke producten</SelectItem>
+                        <SelectItem value="specific_categories">Specifieke categorieën</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -247,6 +254,25 @@ export function GiftPromotionFormDialog({
                       selectedIds={field.value || []}
                       onChange={field.onChange}
                       placeholder="Selecteer trigger-producten..."
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {watchTriggerType === 'specific_categories' && (
+              <FormField
+                control={form.control}
+                name="trigger_category_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trigger-categorieën</FormLabel>
+                    <FormDescription>Gift wordt toegevoegd als producten uit deze categorieën in de winkelwagen zitten</FormDescription>
+                    <CategoryMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Selecteer categorieën..."
                     />
                     <FormMessage />
                   </FormItem>

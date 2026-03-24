@@ -30,6 +30,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateAutoDiscount, useUpdateAutoDiscount } from '@/hooks/useAutoDiscounts';
 import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { AutomaticDiscount, AutomaticDiscountFormData } from '@/types/promotions';
 
 const formSchema = z.object({
@@ -42,6 +43,7 @@ const formSchema = z.object({
   discount_value: z.coerce.number().optional(),
   applies_to: z.string(),
   product_ids: z.array(z.string()).optional(),
+  category_ids: z.array(z.string()).optional(),
   max_discount_amount: z.coerce.number().optional(),
   priority: z.coerce.number().min(1).default(10),
   is_active: z.boolean(),
@@ -78,6 +80,7 @@ export function AutoDiscountFormDialog({
       discount_value: 10,
       applies_to: 'all',
       product_ids: [],
+      category_ids: [],
       max_discount_amount: undefined,
       priority: 10,
       is_active: true,
@@ -98,6 +101,7 @@ export function AutoDiscountFormDialog({
         discount_value: discount.discount_value || undefined,
         applies_to: discount.applies_to,
         product_ids: discount.product_ids || [],
+        category_ids: (discount as any).category_ids || [],
         max_discount_amount: discount.max_discount_amount || undefined,
         priority: discount.priority,
         is_active: discount.is_active,
@@ -115,6 +119,7 @@ export function AutoDiscountFormDialog({
         discount_value: 10,
         applies_to: 'all',
         product_ids: [],
+        category_ids: [],
         max_discount_amount: undefined,
         priority: 10,
         is_active: true,
@@ -338,6 +343,24 @@ export function AutoDiscountFormDialog({
                       selectedIds={field.value || []}
                       onChange={field.onChange}
                       placeholder="Selecteer producten..."
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {watchAppliesTo === 'specific_categories' && (
+              <FormField
+                control={form.control}
+                name="category_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Korting toepassen op categorieën</FormLabel>
+                    <CategoryMultiSelect
+                      selectedIds={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Selecteer categorieën..."
                     />
                     <FormMessage />
                   </FormItem>

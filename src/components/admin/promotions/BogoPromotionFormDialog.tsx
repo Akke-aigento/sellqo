@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateBogoPromotion, useUpdateBogoPromotion } from '@/hooks/useBogoPromotions';
 import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { BogoPromotion, BogoPromotionFormData } from '@/types/promotions';
 
 const formSchema = z.object({
@@ -39,7 +40,9 @@ const formSchema = z.object({
   buy_quantity: z.coerce.number().min(1),
   get_quantity: z.coerce.number().min(1),
   buy_product_ids: z.array(z.string()).optional(),
+  buy_category_ids: z.array(z.string()).optional(),
   get_product_ids: z.array(z.string()).optional(),
+  get_category_ids: z.array(z.string()).optional(),
   discount_type: z.enum(['percentage', 'fixed_amount', 'free']),
   discount_value: z.coerce.number().min(0),
   max_uses_per_order: z.coerce.number().optional(),
@@ -73,7 +76,9 @@ export function BogoPromotionFormDialog({
       buy_quantity: 2,
       get_quantity: 1,
       buy_product_ids: [],
+      buy_category_ids: [],
       get_product_ids: [],
+      get_category_ids: [],
       discount_type: 'free',
       discount_value: 100,
       max_uses_per_order: undefined,
@@ -92,7 +97,9 @@ export function BogoPromotionFormDialog({
         buy_quantity: promotion.buy_quantity,
         get_quantity: promotion.get_quantity,
         buy_product_ids: promotion.buy_product_ids || [],
+        buy_category_ids: promotion.buy_category_ids || [],
         get_product_ids: promotion.get_product_ids || [],
+        get_category_ids: promotion.get_category_ids || [],
         discount_type: promotion.discount_type as 'percentage' | 'fixed_amount' | 'free',
         discount_value: promotion.discount_value,
         max_uses_per_order: promotion.max_uses_per_order ?? undefined,
@@ -108,7 +115,9 @@ export function BogoPromotionFormDialog({
         buy_quantity: 2,
         get_quantity: 1,
         buy_product_ids: [],
+        buy_category_ids: [],
         get_product_ids: [],
+        get_category_ids: [],
         discount_type: 'free',
         discount_value: 100,
         max_uses_per_order: undefined,
@@ -127,7 +136,9 @@ export function BogoPromotionFormDialog({
       buy_quantity: values.buy_quantity,
       get_quantity: values.get_quantity,
       buy_product_ids: values.buy_product_ids?.length ? values.buy_product_ids : undefined,
+      buy_category_ids: values.buy_category_ids?.length ? values.buy_category_ids : undefined,
       get_product_ids: values.get_product_ids?.length ? values.get_product_ids : undefined,
+      get_category_ids: values.get_category_ids?.length ? values.get_category_ids : undefined,
       discount_type: values.discount_type,
       discount_value: values.discount_type === 'free' ? 100 : values.discount_value,
       max_uses_per_order: values.max_uses_per_order ?? null,
@@ -257,6 +268,24 @@ export function BogoPromotionFormDialog({
               )}
             />
 
+            {/* Buy categories selector */}
+            <FormField
+              control={form.control}
+              name="buy_category_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Of koop-categorieën</FormLabel>
+                  <FormDescription>Alternatief: selecteer categorieën i.p.v. individuele producten</FormDescription>
+                  <CategoryMultiSelect
+                    selectedIds={field.value || []}
+                    onChange={field.onChange}
+                    placeholder="Selecteer categorieën..."
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Get products selector */}
             <FormField
               control={form.control}
@@ -269,6 +298,24 @@ export function BogoPromotionFormDialog({
                     selectedIds={field.value || []}
                     onChange={field.onChange}
                     placeholder="Zelfde als koop-producten (klik om te filteren)"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Get categories selector */}
+            <FormField
+              control={form.control}
+              name="get_category_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Of krijg-categorieën</FormLabel>
+                  <FormDescription>Alternatief: selecteer categorieën i.p.v. individuele producten</FormDescription>
+                  <CategoryMultiSelect
+                    selectedIds={field.value || []}
+                    onChange={field.onChange}
+                    placeholder="Selecteer categorieën..."
                   />
                   <FormMessage />
                 </FormItem>
