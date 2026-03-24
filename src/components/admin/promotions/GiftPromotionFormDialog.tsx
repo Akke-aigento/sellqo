@@ -97,6 +97,7 @@ export function GiftPromotionFormDialog({
         trigger_type: promotion.trigger_type,
         trigger_value: promotion.trigger_value || undefined,
         trigger_product_ids: promotion.trigger_product_ids || [],
+        trigger_category_ids: promotion.trigger_category_ids || [],
         gift_product_id: promotion.gift_product_id,
         gift_quantity: promotion.gift_quantity,
         max_per_order: promotion.max_per_order || undefined,
