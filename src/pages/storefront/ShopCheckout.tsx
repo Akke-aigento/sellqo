@@ -89,6 +89,7 @@ export default function ShopCheckout() {
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [saveAddress, setSaveAddress] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   // Read query params for headless cart and cancel URL
   const searchParams = new URLSearchParams(window.location.search);
