@@ -617,7 +617,7 @@ export default function ShopCheckout() {
           supabase.from('newsletter_subscribers').upsert(
             { tenant_id: tenant.id, email: customerData.email.toLowerCase(), status: 'active', first_name: customerData.firstName || null, last_name: customerData.lastName || null },
             { onConflict: 'tenant_id,email' }
-          ).then(() => {}).catch(() => {});
+          ).then(() => {});
         }
         clearCart();
         navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
