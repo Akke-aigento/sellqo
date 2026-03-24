@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateBogoPromotion, useUpdateBogoPromotion } from '@/hooks/useBogoPromotions';
 import { ProductMultiSelect } from './ProductMultiSelect';
+import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { BogoPromotion, BogoPromotionFormData } from '@/types/promotions';
 
 const formSchema = z.object({
