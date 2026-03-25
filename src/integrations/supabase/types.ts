@@ -9563,6 +9563,92 @@ export type Database = {
           },
         ]
       }
+      returns: {
+        Row: {
+          created_at: string
+          customer_name: string | null
+          handling_result: string | null
+          id: string
+          items: Json | null
+          marketplace_connection_id: string
+          marketplace_order_id: string | null
+          marketplace_return_id: string
+          order_id: string | null
+          raw_marketplace_data: Json | null
+          registration_date: string | null
+          return_reason: string | null
+          return_reason_code: string | null
+          status: Database["public"]["Enums"]["return_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name?: string | null
+          handling_result?: string | null
+          id?: string
+          items?: Json | null
+          marketplace_connection_id: string
+          marketplace_order_id?: string | null
+          marketplace_return_id: string
+          order_id?: string | null
+          raw_marketplace_data?: Json | null
+          registration_date?: string | null
+          return_reason?: string | null
+          return_reason_code?: string | null
+          status?: Database["public"]["Enums"]["return_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string | null
+          handling_result?: string | null
+          id?: string
+          items?: Json | null
+          marketplace_connection_id?: string
+          marketplace_order_id?: string | null
+          marketplace_return_id?: string
+          order_id?: string | null
+          raw_marketplace_data?: Json | null
+          registration_date?: string | null
+          return_reason?: string | null
+          return_reason_code?: string | null
+          status?: Database["public"]["Enums"]["return_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_marketplace_connection_id_fkey"
+            columns: ["marketplace_connection_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_platform_connections: {
         Row: {
           api_key: string | null
@@ -14400,6 +14486,14 @@ export type Database = {
         | "declined"
         | "expired"
         | "converted"
+      return_status:
+        | "registered"
+        | "in_transit"
+        | "received"
+        | "approved"
+        | "rejected"
+        | "exchanged"
+        | "repaired"
       supplier_document_type:
         | "invoice"
         | "quote"
@@ -14669,6 +14763,15 @@ export const Constants = {
         "declined",
         "expired",
         "converted",
+      ],
+      return_status: [
+        "registered",
+        "in_transit",
+        "received",
+        "approved",
+        "rejected",
+        "exchanged",
+        "repaired",
       ],
       supplier_document_type: [
         "invoice",
