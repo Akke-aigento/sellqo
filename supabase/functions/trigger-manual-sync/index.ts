@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
       } else if (platformType === 'bol_com') {
         switch (dataType) {
           case 'orders': syncFunctionName = 'sync-bol-orders'; break
+          case 'products': syncFunctionName = 'sync-bol-products'; break
           case 'inventory': syncFunctionName = 'sync-bol-inventory'; break
           case 'shipments': syncFunctionName = 'update-bol-tracking'; break
         }
