@@ -196,6 +196,33 @@ Deno.serve(async (req) => {
           errors.push(`Return ${returnId}: ${upsertError.message}`)
         } else {
           imported++
+
+          // Auto-accept new unhandled returns if setting is enabled
+          if (autoAcceptReturns && !ret.handled && status === 'registered') {
+            try {
+              const autoRes = await fetch(`${BOL_API_BASE}/returns`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/vnd.retailer.v10+json',
+                  'Accept': 'application/vnd.retailer.v10+json',
+                },
+                body: JSON.stringify({ handlingResult: 'RETURN_RECEIVED', quantityReturned: ret.returnItems?.[0]?.quantity || 1 }),
+              })
+              if (autoRes.ok || autoRes.status === 202) {
+                await supabase
+                  .from('returns')
+                  .update({ status: 'approved', handling_result: 'RETURN_RECEIVED', updated_at: new Date().toISOString() })
+                  .eq('marketplace_connection_id', connectionId)
+                  .eq('marketplace_return_id', returnId)
+                console.log(`[sync-bol-returns] Auto-accepted return ${returnId}`)
+              } else {
+                console.error(`[sync-bol-returns] Auto-accept failed for ${returnId}: ${autoRes.status}`)
+              }
+            } catch (autoErr) {
+              console.error(`[sync-bol-returns] Auto-accept error for ${returnId}:`, autoErr)
+            }
+          }
         }
       } catch (itemErr) {
         const msg = itemErr instanceof Error ? itemErr.message : String(itemErr)
