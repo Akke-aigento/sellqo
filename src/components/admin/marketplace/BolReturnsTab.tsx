@@ -59,12 +59,12 @@ export function BolReturnsTab({ connectionId, connectionName }: BolReturnsTabPro
   });
 
   // Sync auto-accept state from connection settings
-  const connSettings = connection?.settings as Record<string, unknown> | null;
-  const connAutoAccept = !!connSettings?.autoAcceptReturns;
-  if (connAutoAccept !== autoAccept && connection) {
-    // Only update once when data loads
-    setAutoAccept(connAutoAccept);
-  }
+  useEffect(() => {
+    if (connection?.settings) {
+      const s = connection.settings as Record<string, unknown>;
+      setAutoAccept(!!s.autoAcceptReturns);
+    }
+  }, [connection?.settings]);
 
   const { data: returns = [], isLoading } = useQuery({
     queryKey: ['marketplace-returns', connectionId, currentTenant?.id],
