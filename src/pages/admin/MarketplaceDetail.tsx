@@ -74,6 +74,7 @@ import { AmazonBuyShippingSettings } from '@/components/admin/marketplace/Amazon
 import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWidget';
 import { BolCsvImport } from '@/components/admin/marketplace/BolCsvImport';
 import { BolProductImportDialog } from '@/components/admin/marketplace/BolProductImportDialog';
+import { BolProductSyncTab } from '@/components/admin/marketplace/BolProductSyncTab';
 import { useAutoSync } from '@/hooks/useAutoSync';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -98,6 +99,7 @@ export default function MarketplaceDetailPage() {
   const [syncingInventory, setSyncingInventory] = useState(false);
   const [importingHistorical, setImportingHistorical] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Settings state
   const [connectionName, setConnectionName] = useState('');
@@ -424,22 +426,13 @@ export default function MarketplaceDetailPage() {
         </div>
         <div className="flex gap-2">
           {connection.marketplace_type === 'bol_com' && (
-            <>
-              <BolProductImportDialog
-                connectionId={connection.id}
-                onImportComplete={() => {
-                  queryClient.invalidateQueries({ queryKey: ['marketplace-products', currentTenant?.id] });
-                  queryClient.invalidateQueries({ queryKey: ['marketplace-connection', connectionId] });
-                }}
-              />
-              <BolCsvImport 
-                connectionId={connection.id}
-                onImportComplete={() => {
-                  queryClient.invalidateQueries({ queryKey: ['marketplace-orders', connectionId] });
-                  queryClient.invalidateQueries({ queryKey: ['sync-activities', connectionId] });
-                }}
-              />
-            </>
+            <BolCsvImport 
+              connectionId={connection.id}
+              onImportComplete={() => {
+                queryClient.invalidateQueries({ queryKey: ['marketplace-orders', connectionId] });
+                queryClient.invalidateQueries({ queryKey: ['sync-activities', connectionId] });
+              }}
+            />
           )}
           <Button 
             variant="outline" 
@@ -475,11 +468,11 @@ export default function MarketplaceDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="orders">Orders ({realOrders.length})</TabsTrigger>
-          <TabsTrigger value="inventory">Voorraad</TabsTrigger>
+          <TabsTrigger value="products">Producten</TabsTrigger>
           <TabsTrigger value="sync-rules">Sync Regels</TabsTrigger>
           <TabsTrigger value="settings">Instellingen</TabsTrigger>
           <TabsTrigger value="logs">Sync Logs</TabsTrigger>
@@ -700,146 +693,22 @@ export default function MarketplaceDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* INVENTORY TAB */}
-        <TabsContent value="inventory">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Voorraad Synchronisatie</CardTitle>
-                  <CardDescription>
-                    Producten gekoppeld aan {info.name} met real-time voorraad sync
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Bulk Update
-                  </Button>
-                  <Button onClick={handleSyncNow} disabled={syncing}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Sync Alles
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3 mb-4">
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle producten</SelectItem>
-                    <SelectItem value="active">Voorraad actief</SelectItem>
-                    <SelectItem value="paused">Voorraad gepauzeerd</SelectItem>
-                    <SelectItem value="unlinked">Niet gekoppeld</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input placeholder="Zoek product..." className="flex-1" />
-              </div>
-
-              {productsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : linkedProducts.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">Geen producten gekoppeld</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Koppel producten aan {info.name} door een EAN toe te voegen en sync in te schakelen
-                  </p>
-                  <Button variant="outline" onClick={() => navigate('/admin/products')}>
-                    Naar Producten
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>SKU / EAN</TableHead>
-                      <TableHead>SellQo Voorraad</TableHead>
-                      <TableHead>Sync Status</TableHead>
-                      <TableHead>Laatste Sync</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {linkedProducts.map(product => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={product.images?.[0] || '/placeholder.svg'}
-                              alt={product.name}
-                              className="w-10 h-10 rounded object-cover"
-                            />
-                            <span className="font-medium">{product.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{product.bol_ean}</TableCell>
-                        <TableCell>
-                          <span className={(product.stock || 0) < 5 ? 'text-destructive font-semibold' : ''}>
-                            {product.stock || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {product.sync_inventory ? (
-                            <Badge variant="default" className="flex items-center gap-1 w-fit">
-                              <CheckCircle className="w-3 h-3" />
-                              Actief
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Gepauzeerd</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {product.last_inventory_sync
-                            ? formatDistanceToNow(new Date(product.last_inventory_sync), { addSuffix: true, locale: nl })
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Sync Nu
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                {product.sync_inventory ? 'Pauseer Sync' : 'Activeer Sync'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                Bekijk op {info.name}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                Ontkoppel Product
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+        {/* PRODUCTS TAB */}
+        <TabsContent value="products">
+          <BolProductSyncTab
+            connectionId={connection.id}
+            platformName={info.name}
+            onSyncNow={handleSyncNow}
+            syncing={syncing}
+          />
         </TabsContent>
 
         {/* SYNC RULES TAB */}
         <TabsContent value="sync-rules">
           <SyncRulesTab 
             connection={connection} 
-            platformName={info.name} 
+            platformName={info.name}
+            onNavigateToProducts={() => setActiveTab('products')}
           />
         </TabsContent>
 
