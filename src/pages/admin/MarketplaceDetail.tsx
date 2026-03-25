@@ -75,6 +75,7 @@ import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWid
 import { BolCsvImport } from '@/components/admin/marketplace/BolCsvImport';
 import { BolProductImportDialog } from '@/components/admin/marketplace/BolProductImportDialog';
 import { BolProductSyncTab } from '@/components/admin/marketplace/BolProductSyncTab';
+import { BolReturnsTab } from '@/components/admin/marketplace/BolReturnsTab';
 import { useAutoSync } from '@/hooks/useAutoSync';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -473,6 +474,7 @@ export default function MarketplaceDetailPage() {
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="orders">Orders ({realOrders.length})</TabsTrigger>
           <TabsTrigger value="products">Producten</TabsTrigger>
+          <TabsTrigger value="returns">Retouren</TabsTrigger>
           <TabsTrigger value="sync-rules">Sync Regels</TabsTrigger>
           <TabsTrigger value="settings">Instellingen</TabsTrigger>
           <TabsTrigger value="logs">Sync Logs</TabsTrigger>
@@ -700,6 +702,14 @@ export default function MarketplaceDetailPage() {
             platformName={info.name}
             onSyncNow={handleSyncNow}
             syncing={syncing}
+          />
+        </TabsContent>
+
+        {/* RETURNS TAB */}
+        <TabsContent value="returns">
+          <BolReturnsTab 
+            connectionId={connection.id}
+            connectionName={info?.name || connection.marketplace_type}
           />
         </TabsContent>
 
