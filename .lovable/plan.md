@@ -1,26 +1,27 @@
 
 
-## Fix: Dubbele order-notificaties door duplicate trigger
+## Orders bulk-actiebalk → floating bottom bar
 
-### Root cause
+### Probleem
+Exact hetzelfde als bij producten: de bulk-balk staat inline boven de tabel (regel 166-171 in `Orders.tsx`). Bij 100+ orders scrollt de gebruiker weg en ziet de balk niet meer.
 
-Er bestaan twee triggers op de `orders` tabel die **exact dezelfde functie** aanroepen:
+### Oplossing
+Dezelfde aanpak als de producten floating bar.
 
-| Trigger | Functie | Event |
-|---|---|---|
-| `trigger_order_notification` | `handle_order_notification()` | AFTER INSERT OR UPDATE |
-| `on_order_notification` | `handle_order_notification()` | AFTER INSERT OR UPDATE |
+### Wijzigingen
 
-Elke keer dat een order wordt aangemaakt of gewijzigd, wordt `handle_order_notification()` twee keer uitgevoerd. Dit verklaart waarom elke notificatie dubbel verschijnt (bijv. "#1130 verzonden" x2, "#1127 afgeleverd" x2) en er twee e-mails worden gestuurd.
+**`src/components/admin/OrderBulkActions.tsx`** (regel 236-325)
+- De wrapper `div` veranderen van inline `p-3 bg-muted rounded-lg border` naar:
+  - `fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width)]`
+  - `bg-background/95 backdrop-blur-sm border-t shadow-lg`
+  - `p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]`
+  - `animate-in slide-in-from-bottom-2 duration-200`
+- Op mobiel (`lg:hidden`): balk verbergen — wordt afgehandeld door `AdminBottomNav` via het bestaande `BulkSelectionContext`
 
-### Fix
-
-**Database migratie:**
-- `DROP TRIGGER on_order_notification ON orders;` — de duplicate trigger verwijderen
-- `trigger_order_notification` blijft behouden als de enige trigger
-
-Eén SQL-statement, klaar.
+**`src/pages/admin/Orders.tsx`** (rond regel 173-174)
+- `pb-20` toevoegen aan de Card/tabel-container wanneer `selectedOrderIds.length > 0`, zodat onderste rijen niet achter de floating bar verdwijnen
 
 ### Bestanden
-- Database migratie (1 regel)
+- `src/components/admin/OrderBulkActions.tsx`
+- `src/pages/admin/Orders.tsx`
 
