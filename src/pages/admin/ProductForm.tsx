@@ -244,6 +244,9 @@ export default function ProductForm() {
   const digitalDeliveryType = form.watch('digital_delivery_type');
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
+  const isBundle = productType === 'bundle';
+
+  const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
 
   // Initialize selected categories from saved data via useEffect
   // to avoid race conditions when data is still loading
