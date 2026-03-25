@@ -1,61 +1,56 @@
 
 
-## Bol.com Retouren Sync
-
-### Wat er nu is
-- `SyncDataType` bevat `returns` — typeondersteuning is er al
-- `SyncRules` heeft `returns?: SyncRuleConfig` — configuratie-plek bestaat
-- **Maar**: geen `sync-bol-returns` edge function, geen retourentabel, geen UI
+## Retour Afhandeling: Review Workflow + Auto-Accept Toggle
 
 ### Wat we bouwen
 
-**1. Database: `returns` tabel**
+**1. Retour detail/review paneel**
+Klikbare rijen in de retourentabel. Bij klik opent een detail-dialog/sheet met:
+- Klantgegevens + bestelling link
+- Retour-reden (hoofdreden + detail van Bol.com)
+- Per item: product, EAN, hoeveelheid, reden
+- Interne notities veld (tenant kan aantekeningen maken)
+- Actieknoppen: **Accepteren** / **Afwijzen**
 
-| Kolom | Type | Beschrijving |
-|---|---|---|
-| id | uuid PK | |
-| tenant_id | uuid FK | |
-| order_id | uuid FK nullable | Link naar SellQo order |
-| marketplace_connection_id | uuid FK | |
-| marketplace_return_id | varchar | Bol.com return ID |
-| marketplace_order_id | varchar | Bol.com order ID |
-| status | enum | `registered`, `in_transit`, `received`, `approved`, `rejected`, `exchanged`, `repaired` |
-| return_reason | text | Reden van klant |
-| return_reason_code | varchar | Bol.com reason code |
-| customer_name | text | |
-| items | jsonb | Array van retour-items (product, quantity, EAN) |
-| handling_result | varchar | `RETURN_RECEIVED`, `EXCHANGE_PRODUCT`, `REPAIR` etc. |
-| registration_date | timestamptz | Wanneer retour aangemeld |
-| raw_marketplace_data | jsonb | Volledige Bol.com response |
-| created_at / updated_at | timestamptz | |
+**2. Accepteer/Afwijs flow**
+- "Accepteren" → update status naar `approved` in DB + call naar Bol.com API (`PUT /returns/{returnId}`) met `handlingResult: RETURN_RECEIVED`
+- "Afwijzen" → status `rejected` + Bol.com API met `handlingResult: RETURN_DOES_NOT_MEET_CONDITIONS`
+- Na actie: toast bevestiging + tabel refresh
 
-RLS: tenant-based access.
+**3. Edge function: `handle-bol-return`**
+Nieuwe edge function die de Bol.com Returns API aanroept om een retour te accepteren of af te wijzen. Accepteert `connectionId`, `returnId`, `action` (accept/reject) en optioneel `quantityReturned`.
 
-**2. Edge function: `sync-bol-returns/index.ts`**
-- Haalt retouren op via `GET /retailer/returns` (Bol.com v10 API)
-- Filtert op `handled=false` voor nieuwe retouren + `handled=true` voor status updates
-- Upsert op `marketplace_return_id` (geen duplicaten)
-- Matcht aan bestaande orders via `marketplace_order_id`
+**4. Auto-accept toggle in connection settings**
+In de `marketplace_connections.settings` JSON een `autoAcceptReturns: boolean` veld. Toggle zichtbaar in de Retouren tab header. Wanneer aan: de `sync-bol-returns` function accepteert nieuwe retouren automatisch via de Bol.com API bij sync.
 
-**3. UI: Retouren tab in MarketplaceDetail**
-- Nieuwe tab "Retouren" naast Producten/Orders
-- Tabel met: datum, order, klant, reden, status, items
-- Badge met aantal open retouren
-
-**4. Integratie**
-- `useAutoSync` hook uitbreiden met returns sync
-- `marketplace-sync-scheduler` uitbreiden zodat retouren mee worden gesynchroniseerd
-- `trigger-manual-sync` reageert al op `dataType: 'returns'` — hoeft alleen de juiste function aan te roepen
+**5. Interne notities kolom**
+Migratie: `ALTER TABLE returns ADD COLUMN internal_notes text`. Tenant kan per retour notities opslaan voor intern gebruik.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| SQL migratie | `returns` tabel + enum + RLS policies |
-| `supabase/functions/sync-bol-returns/index.ts` | **Nieuw** — ophalen en upserten van Bol.com retouren |
-| `src/pages/admin/MarketplaceDetail.tsx` | "Retouren" tab toevoegen |
-| `src/components/admin/marketplace/BolReturnsTab.tsx` | **Nieuw** — retourentabel met status, filters |
-| `src/hooks/useAutoSync.ts` | Returns sync toevoegen aan auto-sync loop |
-| `supabase/functions/marketplace-sync-scheduler/index.ts` | Returns sync toevoegen |
-| `supabase/functions/trigger-manual-sync/index.ts` | `returns` case koppelen aan `sync-bol-returns` |
+| SQL migratie | `internal_notes` kolom op `returns` |
+| `supabase/functions/handle-bol-return/index.ts` | **Nieuw** — accept/reject via Bol.com API |
+| `supabase/functions/sync-bol-returns/index.ts` | Auto-accept logica toevoegen wanneer setting aan staat |
+| `src/components/admin/marketplace/BolReturnsTab.tsx` | Klikbare rijen, detail dialog, accept/reject knoppen, auto-accept toggle, notities |
+
+### Flow
+
+```text
+Retour binnenkomt via sync
+  → Status "Aangemeld" (oranje badge)
+  → Tenant klikt op retour → detail dialog opent
+  → Bekijkt reden, klant, items
+  → Voegt eventueel notitie toe
+  → Klikt "Accepteren" of "Afwijzen"
+  → Edge function → Bol.com API
+  → Status update in DB
+  → Tabel refresht
+
+OF: Auto-accept AAN
+  → Sync haalt nieuwe retour op
+  → Automatisch accepteren via Bol.com API
+  → Status direct "Goedgekeurd"
+```
 
