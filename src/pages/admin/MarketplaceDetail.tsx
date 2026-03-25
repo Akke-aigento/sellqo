@@ -707,7 +707,8 @@ export default function MarketplaceDetailPage() {
         <TabsContent value="sync-rules">
           <SyncRulesTab 
             connection={connection} 
-            platformName={info.name} 
+            platformName={info.name}
+            onNavigateToProducts={() => setActiveTab('products')}
           />
         </TabsContent>
 
