@@ -28,6 +28,7 @@ import type { SyncDataType } from '@/types/syncRules';
 interface SyncRulesTabProps {
   connection: MarketplaceConnection;
   platformName: string;
+  onNavigateToProducts?: () => void;
 }
 
 export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
