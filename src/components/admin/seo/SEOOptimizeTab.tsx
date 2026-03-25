@@ -70,15 +70,19 @@ export function SEOOptimizeTab() {
 
     if (entityTypeFilter !== 'product') {
       for (const c of categories || []) {
-        const score = productScores?.find(s => s.entity_type === 'category' && s.entity_id === c.id);
+        const score = categoryScores?.find(s => s.entity_id === c.id);
+        // Use multilingual meta fields with nl fallback
+        const cat = c as any;
+        const metaTitle = cat.meta_title_nl || cat.meta_title_en || null;
+        const metaDesc = cat.meta_description_nl || cat.meta_description_en || null;
         items.push({
           id: c.id,
           name: c.name,
           type: 'category',
-          meta_title: (c as any).meta_title || null,
-          meta_description: (c as any).meta_description || null,
+          meta_title: metaTitle,
+          meta_description: metaDesc,
           description: c.description || null,
-          images: (c as any).image_url ? [(c as any).image_url] : [],
+          images: cat.image_url ? [cat.image_url] : [],
           seo_score: score?.overall_score ?? null,
         });
       }
