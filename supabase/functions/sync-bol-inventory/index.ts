@@ -27,6 +27,13 @@ interface ProductMarketplaceMappings {
     offerId: string
     lastSync?: string
     autoLinked?: boolean
+    syncFields?: {
+      price?: boolean
+      stock?: boolean
+      title?: boolean
+      fulfillment?: boolean
+      shipping?: boolean
+    }
   }
   amazon?: {
     sku: string
@@ -288,6 +295,13 @@ Deno.serve(async (req) => {
             
             if (!bolMapping?.offerId) {
               console.log(`Product ${product.id} has no Bol.com offer ID, skipping`)
+              continue
+            }
+
+            // Check if stock sync is enabled via syncFields (defaults to true if not set)
+            const syncFields = bolMapping.syncFields
+            if (syncFields && syncFields.stock === false) {
+              console.log(`Product ${product.id}: stock sync disabled via syncFields, skipping`)
               continue
             }
 

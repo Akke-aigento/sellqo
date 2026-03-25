@@ -43,6 +43,14 @@ interface BolOffersListResponse {
 
 type RequestMode = 'list' | 'import' | 'list-sellqo' | 'export' | 'sync-settings'
 
+interface SyncFields {
+  price: boolean
+  stock: boolean
+  title: boolean
+  fulfillment: boolean
+  shipping: boolean
+}
+
 interface SyncRequest {
   connectionId: string
   mode: RequestMode
@@ -50,7 +58,7 @@ interface SyncRequest {
   selectedProductIds?: string[]
   syncDirection?: 'import' | 'export' | 'bidirectional'
   conflictStrategy?: string
-  productSyncSettings?: Array<{ productId: string; syncEnabled: boolean }>
+  productSyncSettings?: Array<{ productId: string; syncEnabled?: boolean; syncFields?: SyncFields }>
 }
 
 async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
@@ -140,10 +148,10 @@ async function handleList(supabase: any, connection: any, accessToken: string) {
     .select('id, name, bol_ean, bol_offer_id, stock, sync_inventory')
     .eq('tenant_id', connection.tenant_id)
 
-  const existingEanMap = new Map<string, { id: string; name: string; bol_offer_id: string | null; sync_inventory: boolean }>()
+  const existingEanMap = new Map<string, { id: string; name: string; bol_offer_id: string | null; sync_inventory: boolean; marketplace_mappings: any }>()
   for (const p of existingProducts || []) {
     if (p.bol_ean) {
-      existingEanMap.set(p.bol_ean, { id: p.id, name: p.name, bol_offer_id: p.bol_offer_id, sync_inventory: p.sync_inventory })
+      existingEanMap.set(p.bol_ean, { id: p.id, name: p.name, bol_offer_id: p.bol_offer_id, sync_inventory: p.sync_inventory, marketplace_mappings: p.marketplace_mappings })
     }
   }
 
@@ -162,6 +170,7 @@ async function handleList(supabase: any, connection: any, accessToken: string) {
       existingProductId: existing?.id || null,
       existingProductName: existing?.name || null,
       syncEnabled: existing?.sync_inventory ?? false,
+      syncFields: existing?.marketplace_mappings?.bol_com?.syncFields || null,
     }
   })
 
@@ -191,6 +200,7 @@ async function handleListSellqo(supabase: any, connection: any) {
     alreadyOnBol: !!p.bol_offer_id,
     bolOfferId: p.bol_offer_id || null,
     syncEnabled: p.sync_inventory ?? false,
+    syncFields: p.marketplace_mappings?.bol_com?.syncFields || null,
   }))
 
   return {
@@ -356,18 +366,47 @@ async function handleExport(supabase: any, connection: any, accessToken: string,
   return { success: true, exported, alreadyExists, errors, totalProcessed: exported + alreadyExists }
 }
 
-async function handleSyncSettings(supabase: any, connection: any, settings: Array<{ productId: string; syncEnabled: boolean }>) {
+async function handleSyncSettings(supabase: any, connection: any, settings: Array<{ productId: string; syncEnabled?: boolean; syncFields?: SyncFields }>) {
   let updated = 0, errors = 0
 
   for (const setting of settings) {
-    const { error } = await supabase
-      .from('products')
-      .update({ sync_inventory: setting.syncEnabled })
-      .eq('id', setting.productId)
-      .eq('tenant_id', connection.tenant_id)
+    try {
+      const updateData: any = {}
+      
+      if (setting.syncEnabled !== undefined) {
+        updateData.sync_inventory = setting.syncEnabled
+      }
 
-    if (error) { errors++; continue }
-    updated++
+      if (setting.syncFields) {
+        // Get current marketplace_mappings to merge
+        const { data: product } = await supabase
+          .from('products')
+          .select('marketplace_mappings')
+          .eq('id', setting.productId)
+          .eq('tenant_id', connection.tenant_id)
+          .single()
+
+        const currentMappings = product?.marketplace_mappings || {}
+        updateData.marketplace_mappings = {
+          ...currentMappings,
+          bol_com: {
+            ...(currentMappings.bol_com || {}),
+            syncFields: setting.syncFields,
+          }
+        }
+      }
+
+      if (Object.keys(updateData).length === 0) continue
+
+      const { error } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', setting.productId)
+        .eq('tenant_id', connection.tenant_id)
+
+      if (error) { errors++; continue }
+      updated++
+    } catch { errors++ }
   }
 
   return { success: true, updated, errors }

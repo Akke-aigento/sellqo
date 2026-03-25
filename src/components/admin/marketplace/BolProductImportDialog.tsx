@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Loader2, Package, Search, CheckCircle, Link2, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Loader2, Package, Search, CheckCircle, Link2, ArrowUpDown, RefreshCw, ChevronDown, ChevronRight, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,30 @@ import { SyncDirectionSelector } from './SyncDirectionSelector';
 import { ConflictStrategySelector } from './ConflictStrategySelector';
 import type { SyncDirection, ConflictStrategy, SupportedDirections } from '@/types/syncRules';
 
+export interface SyncFields {
+  price: boolean;
+  stock: boolean;
+  title: boolean;
+  fulfillment: boolean;
+  shipping: boolean;
+}
+
+const DEFAULT_SYNC_FIELDS: SyncFields = {
+  price: true,
+  stock: true,
+  title: false,
+  fulfillment: false,
+  shipping: true,
+};
+
+const SYNC_FIELD_LABELS: Record<keyof SyncFields, { label: string; description: string }> = {
+  price: { label: 'Prijs', description: 'Verkoopprijs synchroniseren' },
+  stock: { label: 'Voorraad', description: 'Stock levels bijwerken' },
+  title: { label: 'Titel', description: 'Productnaam en omschrijving' },
+  fulfillment: { label: 'Fulfillment', description: 'FBR/FBB methode' },
+  shipping: { label: 'Verzendinfo', description: 'Leveringscode meesturen' },
+};
+
 interface BolOffer {
   offerId: string;
   ean: string;
@@ -40,6 +65,7 @@ interface BolOffer {
   existingProductId: string | null;
   existingProductName: string | null;
   syncEnabled?: boolean;
+  syncFields?: SyncFields;
 }
 
 interface SellQoProduct {
@@ -51,6 +77,7 @@ interface SellQoProduct {
   alreadyOnBol: boolean;
   bolOfferId: string | null;
   syncEnabled: boolean;
+  syncFields?: SyncFields;
 }
 
 interface BolProductImportDialogProps {
@@ -75,6 +102,7 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [fetched, setFetched] = useState(false);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
 
   const resetState = () => {
     setOffers([]);
@@ -193,13 +221,63 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Opslaan mislukt');
       
-      // Update local state
       setSellqoProducts(prev => prev.map(p => p.productId === productId ? { ...p, syncEnabled: enabled } : p));
       setOffers(prev => prev.map(o => o.existingProductId === productId ? { ...o, syncEnabled: enabled } : o));
       toast.success(enabled ? 'Sync ingeschakeld' : 'Sync uitgeschakeld');
     } catch (err) {
       toast.error('Opslaan mislukt: ' + (err instanceof Error ? err.message : 'Onbekende fout'));
     }
+  };
+
+  const handleSyncFieldToggle = async (productId: string, field: keyof SyncFields, enabled: boolean) => {
+    // Get current syncFields for this product
+    const product = sellqoProducts.find(p => p.productId === productId);
+    const offer = offers.find(o => o.existingProductId === productId);
+    const currentFields = product?.syncFields || offer?.syncFields || { ...DEFAULT_SYNC_FIELDS };
+    const updatedFields = { ...currentFields, [field]: enabled };
+
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-bol-products', {
+        body: { connectionId, mode: 'sync-settings', productSyncSettings: [{ productId, syncFields: updatedFields }] },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Opslaan mislukt');
+      
+      setSellqoProducts(prev => prev.map(p => p.productId === productId ? { ...p, syncFields: updatedFields } : p));
+      setOffers(prev => prev.map(o => o.existingProductId === productId ? { ...o, syncFields: updatedFields } : o));
+    } catch (err) {
+      toast.error('Opslaan mislukt: ' + (err instanceof Error ? err.message : 'Onbekende fout'));
+    }
+  };
+
+  const renderSyncFieldsRow = (productId: string, syncFields: SyncFields | undefined) => {
+    const fields = syncFields || { ...DEFAULT_SYNC_FIELDS };
+    return (
+      <TableRow className="bg-muted/30 border-b">
+        <TableCell colSpan={direction === 'bidirectional' ? 8 : 7}>
+          <div className="py-2 px-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Settings2 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Sync instellingen</span>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {(Object.keys(SYNC_FIELD_LABELS) as Array<keyof SyncFields>).map((field) => (
+                <div key={field} className="flex items-center gap-2">
+                  <Switch
+                    id={`${productId}-${field}`}
+                    checked={fields[field]}
+                    onCheckedChange={(checked) => handleSyncFieldToggle(productId, field, checked)}
+                  />
+                  <Label htmlFor={`${productId}-${field}`} className="text-sm cursor-pointer">
+                    {SYNC_FIELD_LABELS[field].label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   const handleAction = () => {
@@ -301,57 +379,72 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
               </TableCell>
             </TableRow>
           ) : (
-            filteredOffers.map(offer => (
-              <TableRow
-                key={offer.offerId}
-                className={offer.alreadyLinked ? 'opacity-60' : 'cursor-pointer'}
-                onClick={() => !offer.alreadyLinked && toggleSelect(offer.offerId)}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={offer.alreadyLinked || selectedIds.has(offer.offerId)}
-                    disabled={offer.alreadyLinked}
-                    onCheckedChange={() => toggleSelect(offer.offerId)}
-                    onClick={e => e.stopPropagation()}
-                  />
-                </TableCell>
-                <TableCell className="font-medium max-w-[250px] truncate">{offer.title}</TableCell>
-                <TableCell className="font-mono text-xs">{offer.ean}</TableCell>
-                <TableCell className="text-right">€{offer.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{offer.stock}</TableCell>
-                <TableCell>
-                  <Badge variant={offer.fulfilmentMethod === 'FBB' ? 'default' : 'secondary'}>
-                    {offer.fulfilmentMethod}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {offer.alreadyLinked ? (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-xs">Gekoppeld</span>
-                    </div>
-                  ) : selectedIds.has(offer.offerId) ? (
-                    <div className="flex items-center gap-1 text-primary">
-                      <Link2 className="w-4 h-4" />
-                      <span className="text-xs">Geselecteerd</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Nieuw</span>
-                  )}
-                </TableCell>
-                {direction === 'bidirectional' && offer.alreadyLinked && offer.existingProductId && (
-                  <TableCell onClick={e => e.stopPropagation()}>
-                    <Switch
-                      checked={offer.syncEnabled ?? false}
-                      onCheckedChange={(checked) => handleSyncToggle(offer.existingProductId!, checked)}
-                    />
-                  </TableCell>
-                )}
-                {direction === 'bidirectional' && !offer.alreadyLinked && (
-                  <TableCell><span className="text-xs text-muted-foreground">—</span></TableCell>
-                )}
-              </TableRow>
-            ))
+            filteredOffers.map(offer => {
+              const isExpanded = expandedProductId === (offer.existingProductId || offer.offerId);
+              return (
+                <>
+                  <TableRow
+                    key={offer.offerId}
+                    className={offer.alreadyLinked ? 'cursor-pointer' : 'cursor-pointer'}
+                    onClick={() => {
+                      if (offer.alreadyLinked && offer.existingProductId) {
+                        setExpandedProductId(isExpanded ? null : offer.existingProductId);
+                      } else {
+                        toggleSelect(offer.offerId);
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      {offer.alreadyLinked ? (
+                        isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <Checkbox
+                          checked={selectedIds.has(offer.offerId)}
+                          onCheckedChange={() => toggleSelect(offer.offerId)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[250px] truncate">{offer.title}</TableCell>
+                    <TableCell className="font-mono text-xs">{offer.ean}</TableCell>
+                    <TableCell className="text-right">€{offer.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{offer.stock}</TableCell>
+                    <TableCell>
+                      <Badge variant={offer.fulfilmentMethod === 'FBB' ? 'default' : 'secondary'}>
+                        {offer.fulfilmentMethod}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {offer.alreadyLinked ? (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-xs">Gekoppeld</span>
+                        </div>
+                      ) : selectedIds.has(offer.offerId) ? (
+                        <div className="flex items-center gap-1 text-primary">
+                          <Link2 className="w-4 h-4" />
+                          <span className="text-xs">Geselecteerd</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Nieuw</span>
+                      )}
+                    </TableCell>
+                    {direction === 'bidirectional' && offer.alreadyLinked && offer.existingProductId && (
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <Switch
+                          checked={offer.syncEnabled ?? false}
+                          onCheckedChange={(checked) => handleSyncToggle(offer.existingProductId!, checked)}
+                        />
+                      </TableCell>
+                    )}
+                    {direction === 'bidirectional' && !offer.alreadyLinked && (
+                      <TableCell><span className="text-xs text-muted-foreground">—</span></TableCell>
+                    )}
+                  </TableRow>
+                  {isExpanded && offer.existingProductId && renderSyncFieldsRow(offer.existingProductId, offer.syncFields)}
+                </>
+              );
+            })
           )}
         </TableBody>
       </Table>
@@ -385,51 +478,66 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
               </TableCell>
             </TableRow>
           ) : (
-            filteredProducts.map(product => (
-              <TableRow
-                key={product.productId}
-                className={product.alreadyOnBol ? 'opacity-60' : 'cursor-pointer'}
-                onClick={() => !product.alreadyOnBol && toggleSelect(product.productId)}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={product.alreadyOnBol || selectedIds.has(product.productId)}
-                    disabled={product.alreadyOnBol}
-                    onCheckedChange={() => toggleSelect(product.productId)}
-                    onClick={e => e.stopPropagation()}
-                  />
-                </TableCell>
-                <TableCell className="font-medium max-w-[250px] truncate">{product.name}</TableCell>
-                <TableCell className="font-mono text-xs">{product.ean || <span className="text-muted-foreground italic">Geen EAN</span>}</TableCell>
-                <TableCell className="text-right">€{product.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{product.stock}</TableCell>
-                <TableCell>
-                  {product.alreadyOnBol ? (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-xs">Op Bol.com</span>
-                    </div>
-                  ) : selectedIds.has(product.productId) ? (
-                    <div className="flex items-center gap-1 text-primary">
-                      <Link2 className="w-4 h-4" />
-                      <span className="text-xs">Geselecteerd</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Niet op Bol</span>
-                  )}
-                </TableCell>
-                <TableCell onClick={e => e.stopPropagation()}>
-                  {product.alreadyOnBol ? (
-                    <Switch
-                      checked={product.syncEnabled}
-                      onCheckedChange={(checked) => handleSyncToggle(product.productId, checked)}
-                    />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
+            filteredProducts.map(product => {
+              const isExpanded = expandedProductId === product.productId;
+              return (
+                <>
+                  <TableRow
+                    key={product.productId}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      if (product.alreadyOnBol) {
+                        setExpandedProductId(isExpanded ? null : product.productId);
+                      } else {
+                        toggleSelect(product.productId);
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      {product.alreadyOnBol ? (
+                        isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <Checkbox
+                          checked={selectedIds.has(product.productId)}
+                          onCheckedChange={() => toggleSelect(product.productId)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[250px] truncate">{product.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{product.ean || <span className="text-muted-foreground italic">Geen EAN</span>}</TableCell>
+                    <TableCell className="text-right">€{product.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{product.stock}</TableCell>
+                    <TableCell>
+                      {product.alreadyOnBol ? (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-xs">Op Bol.com</span>
+                        </div>
+                      ) : selectedIds.has(product.productId) ? (
+                        <div className="flex items-center gap-1 text-primary">
+                          <Link2 className="w-4 h-4" />
+                          <span className="text-xs">Geselecteerd</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Niet op Bol</span>
+                      )}
+                    </TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
+                      {product.alreadyOnBol ? (
+                        <Switch
+                          checked={product.syncEnabled}
+                          onCheckedChange={(checked) => handleSyncToggle(product.productId, checked)}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  {isExpanded && product.alreadyOnBol && renderSyncFieldsRow(product.productId, product.syncFields)}
+                </>
+              );
+            })
           )}
         </TableBody>
       </Table>
