@@ -537,12 +537,8 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
                   {isExpanded && product.alreadyOnBol && renderSyncFieldsRow(product.productId, product.syncFields)}
                 </>
               );
-            })
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
+            )
+          )}
           )}
         </TableBody>
       </Table>
