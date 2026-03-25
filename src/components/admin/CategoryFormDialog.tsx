@@ -134,21 +134,13 @@ export function CategoryFormDialog({
           hide_from_storefront: (category as any).hide_from_storefront || false,
           sort_order: category.sort_order ?? 0,
           image_url: category.image_url || '',
-          // @ts-expect-error - New fields from migration
           meta_title_nl: category.meta_title_nl || '',
-          // @ts-expect-error - New fields from migration
           meta_title_en: category.meta_title_en || '',
-          // @ts-expect-error - New fields from migration
           meta_title_de: category.meta_title_de || '',
-          // @ts-expect-error - New fields from migration
           meta_title_fr: category.meta_title_fr || '',
-          // @ts-expect-error - New fields from migration
           meta_description_nl: category.meta_description_nl || '',
-          // @ts-expect-error - New fields from migration
           meta_description_en: category.meta_description_en || '',
-          // @ts-expect-error - New fields from migration
           meta_description_de: category.meta_description_de || '',
-          // @ts-expect-error - New fields from migration
           meta_description_fr: category.meta_description_fr || '',
         });
       } else {
