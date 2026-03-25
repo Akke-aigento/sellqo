@@ -89,7 +89,7 @@ export function SEOOptimizeTab() {
     }
 
     return items;
-  }, [products, categories, productScores, entityTypeFilter]);
+  }, [products, categories, productScores, categoryScores, entityTypeFilter]);
 
   // Apply filters
   const filteredEntities = useMemo(() => {

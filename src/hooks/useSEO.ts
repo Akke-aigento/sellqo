@@ -232,6 +232,7 @@ export function useSEO() {
   return {
     tenantScore,
     productScores,
+    categoryScores,
     keywords,
     history,
     quickWins,
