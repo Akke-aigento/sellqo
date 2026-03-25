@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,9 +33,10 @@ type FilterStatus = 'all' | 'missing_meta_title' | 'missing_meta_description' | 
 type GenerateType = 'meta_title' | 'meta_description' | 'product_description' | 'alt_text';
 
 export function SEOOptimizeTab() {
+  const queryClient = useQueryClient();
   const { products, isLoading: isLoadingProducts } = useProducts();
   const { categories, isLoading: isLoadingCategories } = useCategories();
-  const { productScores } = useSEO();
+  const { productScores, categoryScores } = useSEO();
   const { currentTenant } = useTenant();
 
   const [entityTypeFilter, setEntityTypeFilter] = useState<'all' | 'product' | 'category'>('all');
@@ -70,22 +72,26 @@ export function SEOOptimizeTab() {
 
     if (entityTypeFilter !== 'product') {
       for (const c of categories || []) {
-        const score = productScores?.find(s => s.entity_type === 'category' && s.entity_id === c.id);
+        const score = categoryScores?.find(s => s.entity_id === c.id);
+        // Use multilingual meta fields with nl fallback
+        const cat = c as any;
+        const metaTitle = cat.meta_title_nl || cat.meta_title_en || null;
+        const metaDesc = cat.meta_description_nl || cat.meta_description_en || null;
         items.push({
           id: c.id,
           name: c.name,
           type: 'category',
-          meta_title: (c as any).meta_title || null,
-          meta_description: (c as any).meta_description || null,
+          meta_title: metaTitle,
+          meta_description: metaDesc,
           description: c.description || null,
-          images: (c as any).image_url ? [(c as any).image_url] : [],
+          images: cat.image_url ? [cat.image_url] : [],
           seo_score: score?.overall_score ?? null,
         });
       }
     }
 
     return items;
-  }, [products, categories, productScores, entityTypeFilter]);
+  }, [products, categories, productScores, categoryScores, entityTypeFilter]);
 
   // Apply filters
   const filteredEntities = useMemo(() => {
@@ -232,6 +238,11 @@ export function SEOOptimizeTab() {
       }
 
       toast.success(`${appliedCount} items bijgewerkt`);
+      // Invalidate relevant queries so UI refreshes
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-entity-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-score'] });
       setPreviewOpen(false);
       setPreviewData(null);
       setSelectedIds(new Set());
