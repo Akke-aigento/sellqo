@@ -148,10 +148,10 @@ async function handleList(supabase: any, connection: any, accessToken: string) {
     .select('id, name, bol_ean, bol_offer_id, stock, sync_inventory')
     .eq('tenant_id', connection.tenant_id)
 
-  const existingEanMap = new Map<string, { id: string; name: string; bol_offer_id: string | null; sync_inventory: boolean }>()
+  const existingEanMap = new Map<string, { id: string; name: string; bol_offer_id: string | null; sync_inventory: boolean; marketplace_mappings: any }>()
   for (const p of existingProducts || []) {
     if (p.bol_ean) {
-      existingEanMap.set(p.bol_ean, { id: p.id, name: p.name, bol_offer_id: p.bol_offer_id, sync_inventory: p.sync_inventory })
+      existingEanMap.set(p.bol_ean, { id: p.id, name: p.name, bol_offer_id: p.bol_offer_id, sync_inventory: p.sync_inventory, marketplace_mappings: p.marketplace_mappings })
     }
   }
 
