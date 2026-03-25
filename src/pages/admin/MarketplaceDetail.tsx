@@ -705,6 +705,14 @@ export default function MarketplaceDetailPage() {
           />
         </TabsContent>
 
+        {/* RETURNS TAB */}
+        <TabsContent value="returns">
+          <BolReturnsTab 
+            connectionId={connection.id}
+            connectionName={info?.name || connection.marketplace_type}
+          />
+        </TabsContent>
+
         {/* SYNC RULES TAB */}
         <TabsContent value="sync-rules">
           <SyncRulesTab 
