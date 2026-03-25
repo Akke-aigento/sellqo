@@ -166,6 +166,26 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Sync returns for Bol.com
+        if (conn.marketplace_type === 'bol_com') {
+          try {
+            const returnsResponse = await fetch(`${supabaseUrl}/functions/v1/sync-bol-returns`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseAnonKey}`,
+              },
+              body: JSON.stringify({ connectionId: conn.id }),
+            });
+            if (returnsResponse.ok) {
+              const returnsData = await returnsResponse.json();
+              console.log(`[marketplace-sync-scheduler] Returns synced for ${conn.id}: ${returnsData.returnsImported ?? 0} imported`);
+            }
+          } catch (retErr) {
+            console.error(`[marketplace-sync-scheduler] Returns sync error for ${conn.id}:`, retErr);
+          }
+        }
+
         // Sync tracking/shipments for Bol.com
         if (conn.marketplace_type === 'bol_com') {
           console.log(`[marketplace-sync-scheduler] Triggering update-bol-tracking for connection ${conn.id}`);

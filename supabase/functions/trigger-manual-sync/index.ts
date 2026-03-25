@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
           case 'products': syncFunctionName = 'sync-bol-products'; break
           case 'inventory': syncFunctionName = 'sync-bol-inventory'; break
           case 'shipments': syncFunctionName = 'update-bol-tracking'; break
+          case 'returns': syncFunctionName = 'sync-bol-returns'; break
         }
       } else if (platformType === 'amazon') {
         switch (dataType) {
