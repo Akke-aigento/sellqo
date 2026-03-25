@@ -1,63 +1,62 @@
 
 
-## Per-Product Sync Velden Toggles
+## Productbeheer Samenvoegen: Eén "Producten" Tab
 
-Momenteel is er alleen een aan/uit toggle per product. De uitbreiding voegt granulaire controle toe over **welke data** gesynchroniseerd wordt per product.
+### Het probleem nu
 
-### Syncbare velden voor Bol.com
+Er zijn 3 losse plekken voor product sync:
+1. **"Producten Synchroniseren" knop** (header) → dialog met import/export/bidi + per-product veld-toggles
+2. **"Voorraad" tab** → toont gekoppelde producten met sync status, maar geen veld-toggles
+3. **"Sync Regels" tab** → generieke "producten" regelkaart met richting/frequentie, maar geen productselectie
 
-| Veld | Richting | Beschrijving |
-|---|---|---|
-| Prijs | Import/Export | Verkoopprijs synchroniseren |
-| Voorraad | Import/Export | Stock levels bijwerken |
-| Titel & beschrijving | Import/Export | Productnaam en omschrijving |
-| Fulfillment | Alleen import | FBR/FBB methode overnemen |
-| Verzendinfo | Export | Leveringscode meesturen |
+### De oplossing
 
-### UI-aanpassing
-
-In de producttabel komt per gekoppeld product een **uitklapbaar paneel** (accordion/expandable row). Als je op een gekoppeld product klikt, verschijnt een rij met toggles voor elk syncbaar veld. Zo blijft de tabel overzichtelijk maar heb je per product volledige controle.
+Vervang de losse "Voorraad" tab en de floating dialog door één geïntegreerde **"Producten" tab** die alles combineert:
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│ ☑ Product X  │ EAN │ €29.99 │ 150 │ FBR │ Gekoppeld │ 🔄 Aan │
-├─────────────────────────────────────────────────────┤
-│  Sync instellingen:                                 │
-│  [✓] Prijs   [✓] Voorraad   [ ] Titel   [✓] Verzend│
-└─────────────────────────────────────────────────────┘
+┌─ Producten Tab ──────────────────────────────────────────────┐
+│                                                               │
+│  ┌─ Sync Instellingen (compact) ───────────────────────────┐ │
+│  │  Richting: [Import] [Export] [Bidi]   Frequentie: 30min │ │
+│  │  Conflict: SellQo wins              Auto-sync: ✓ Aan   │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  [Producten ophalen van Bol.com]  [Zoek...]  Filter: [Alle] │
+│                                                               │
+│  ┌─ Producttabel ──────────────────────────────────────────┐ │
+│  │ ☑ Product X  │ EAN │ €29.99 │ 150 │ FBR │ 🔄 Aan │ ▼  │ │
+│  │   ├─ Sync velden: [✓]Prijs [✓]Voorraad [ ]Titel [✓]... │ │
+│  │ ☑ Product Y  │ EAN │ €14.50 │  32 │ FBR │ 🔄 Aan │ ▶  │ │
+│  │ ☐ Product Z  │ EAN │ €45.00 │   0 │ FBB │ Nieuw  │ ▶  │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  [Importeer geselecteerde] of [Exporteer geselecteerde]       │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-### Datamodel
-
-De sync-veld preferences worden opgeslagen in `marketplace_mappings` (JSON) op het product, naast de bestaande `sync_inventory` boolean:
-
-```json
-{
-  "bol_com": {
-    "offerId": "uuid",
-    "syncFields": {
-      "price": true,
-      "stock": true,
-      "title": false,
-      "fulfillment": false,
-      "shipping": true
-    }
-  }
-}
-```
-
-### Aanpassingen
+### Wat verandert
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/marketplace/BolProductImportDialog.tsx` | Expandable rows toevoegen voor gekoppelde producten met per-veld toggles. Nieuwe state voor `expandedProductId`. |
-| `supabase/functions/sync-bol-products/index.ts` | `sync-settings` mode uitbreiden: naast `syncEnabled` ook `syncFields` object accepteren en opslaan in `marketplace_mappings` |
-| `supabase/functions/sync-bol-inventory/index.ts` | Bij stock sync checken of `syncFields.stock` enabled is voor dat product, anders overslaan |
+| `src/pages/admin/MarketplaceDetail.tsx` | "Voorraad" tab hernoemen naar "Producten". De tab-content vervangen door de nieuwe `BolProductSyncTab` component. `BolProductImportDialog` knop uit de header verwijderen. |
+| `src/components/admin/marketplace/BolProductSyncTab.tsx` | **Nieuw** — Combineert de inhoud van de oude `BolProductImportDialog` (product ophalen, selectie, import/export, veld-toggles) met de voorraadtabel (gekoppelde producten, sync status, laatste sync). Sync richting/frequentie/conflict als inline instellingen bovenaan ipv in een dialog. |
+| `src/components/admin/marketplace/BolProductImportDialog.tsx` | Wordt niet meer gebruikt vanuit MarketplaceDetail. Kan behouden blijven voor eventueel hergebruik elders, maar de logica verhuist naar de nieuwe tab. |
+| `src/components/admin/marketplace/SyncRulesTab.tsx` | De "producten" SyncRuleCard krijgt een link/knop "Beheer producten →" die naar de Producten tab navigeert, zodat er geen dubbele config meer is. |
 
-### Hoe het werkt
+### Hoe de nieuwe tab werkt
 
-1. Tenant koppelt producten (import/export, bestaande flow)
-2. Bij gekoppelde producten verschijnt een uitklaprij met veld-toggles
-3. Toggles worden opgeslagen via `sync-settings` in `marketplace_mappings`
-4. Bij elke automatische sync worden alleen de ingeschakelde velden gesynchroniseerd
+1. **Bovenaan**: Compacte sync-instellingen (richting, frequentie, conflict-strategie) — direct inline, geen dialog nodig
+2. **Midden**: Actieknoppen "Producten ophalen van Bol.com" (import-modus) of "SellQo producten tonen" (export-modus), plus zoek/filter
+3. **Tabel**: Alle producten (zowel gekoppelde als nog te importeren) in één lijst met:
+   - Checkbox voor selectie
+   - Status badge (Gekoppeld / Nieuw / Niet op Bol)  
+   - Sync toggle (aan/uit)
+   - Expandable row met per-veld toggles (prijs, voorraad, titel, etc.)
+   - Laatste sync timestamp
+4. **Onderaan**: Bulk actie knoppen afhankelijk van selectie en richting
+
+### Wat verdwijnt
+- De floating "Producten Synchroniseren" dialog-knop in de header
+- De aparte "Voorraad" tab (samengevoegd in "Producten")
+- De losse "producten" kaart in Sync Regels tab (vervangen door deeplink)
 
