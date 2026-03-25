@@ -298,6 +298,13 @@ Deno.serve(async (req) => {
               continue
             }
 
+            // Check if stock sync is enabled via syncFields (defaults to true if not set)
+            const syncFields = bolMapping.syncFields
+            if (syncFields && syncFields.stock === false) {
+              console.log(`Product ${product.id}: stock sync disabled via syncFields, skipping`)
+              continue
+            }
+
             // Calculate quantity to send (apply safety stock)
             const safetyStock = settings.safetyStock || 0
             const currentStock = product.stock || 0
