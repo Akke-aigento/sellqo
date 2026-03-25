@@ -238,6 +238,11 @@ export function SEOOptimizeTab() {
       }
 
       toast.success(`${appliedCount} items bijgewerkt`);
+      // Invalidate relevant queries so UI refreshes
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-entity-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-score'] });
       setPreviewOpen(false);
       setPreviewData(null);
       setSelectedIds(new Set());
