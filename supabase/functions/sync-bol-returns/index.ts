@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
       .eq('id', connectionId)
       .single()
 
+    const settings = (connection?.settings || {}) as Record<string, unknown>
+    const autoAcceptReturns = settings.autoAcceptReturns === true
     if (connError || !connection) {
       throw new Error(`Connection not found: ${connError?.message}`)
     }
