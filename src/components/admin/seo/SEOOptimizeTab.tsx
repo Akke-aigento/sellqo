@@ -33,6 +33,7 @@ type FilterStatus = 'all' | 'missing_meta_title' | 'missing_meta_description' | 
 type GenerateType = 'meta_title' | 'meta_description' | 'product_description' | 'alt_text';
 
 export function SEOOptimizeTab() {
+  const queryClient = useQueryClient();
   const { products, isLoading: isLoadingProducts } = useProducts();
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const { productScores, categoryScores } = useSEO();
