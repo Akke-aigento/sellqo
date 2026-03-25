@@ -74,6 +74,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronRight, ChevronDown } from 'lucide-react';
+import { BundleProductsSection, type BundleItem } from '@/components/admin/products/BundleProductsSection';
+import { supabase } from '@/integrations/supabase/client';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
