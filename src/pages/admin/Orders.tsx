@@ -171,7 +171,7 @@ export default function OrdersPage() {
       />
 
       {/* Orders Table */}
-      <Card>
+      <Card className={selectedOrderIds.length > 0 ? 'pb-20' : ''}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
