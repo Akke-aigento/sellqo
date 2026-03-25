@@ -126,7 +126,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, type, productIds, categoryIds, entityType = 'product' } = await req.json();
+    const { tenantId, type, productIds, categoryIds, entityType = 'product', preview = false } = await req.json();
     
     const ids = entityType === 'category' ? categoryIds : productIds;
     
