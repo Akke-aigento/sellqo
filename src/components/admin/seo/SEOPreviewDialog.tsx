@@ -77,7 +77,7 @@ export function SEOPreviewDialog({ open, onOpenChange, items, generateType, onAp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Preview: {charLimit.label}
@@ -85,7 +85,7 @@ export function SEOPreviewDialog({ open, onOpenChange, items, generateType, onAp
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6 max-h-[calc(85vh-12rem)]">
           <div className="space-y-4">
             {items.map((item) => {
               const isApproved = approvedIds.has(item.entity_id);
