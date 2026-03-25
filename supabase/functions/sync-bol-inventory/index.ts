@@ -27,6 +27,13 @@ interface ProductMarketplaceMappings {
     offerId: string
     lastSync?: string
     autoLinked?: boolean
+    syncFields?: {
+      price?: boolean
+      stock?: boolean
+      title?: boolean
+      fulfillment?: boolean
+      shipping?: boolean
+    }
   }
   amazon?: {
     sku: string
