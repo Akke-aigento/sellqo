@@ -165,12 +165,12 @@ serve(async (req) => {
       .eq("id", tenantId)
       .single();
 
-    const results: Array<{ entity_id: string; generated: string; field: string }> = [];
+    const results: Array<{ entity_id: string; entity_name: string; generated: string; field: string; current_value: string | null }> = [];
 
     if (entityType === 'category') {
       const { data: categories, error: categoriesError } = await supabase
         .from("categories")
-        .select("id, name, description")
+        .select("id, name, description, meta_title, meta_description")
         .in("id", ids);
 
       if (categoriesError) throw categoriesError;
@@ -179,25 +179,29 @@ serve(async (req) => {
         const generated = await generateContent(type, category, tenant, lovableApiKey, 'category');
         if (generated) {
           const updateField = type === 'category_description' ? 'description' : type;
+          const currentValue = (category as any)[updateField] || null;
           
-          const { error: updateError } = await supabase
-            .from("categories")
-            .update({ [updateField]: generated })
-            .eq("id", category.id);
-
-          if (!updateError) {
-            results.push({
-              entity_id: category.id,
-              generated,
-              field: updateField,
-            });
+          if (!preview) {
+            const { error: updateError } = await supabase
+              .from("categories")
+              .update({ [updateField]: generated })
+              .eq("id", category.id);
+            if (updateError) continue;
           }
+
+          results.push({
+            entity_id: category.id,
+            entity_name: category.name,
+            generated,
+            field: updateField,
+            current_value: currentValue,
+          });
         }
       }
     } else {
       const { data: products, error: productsError } = await supabase
         .from("products")
-        .select("id, name, description, price, category_id")
+        .select("id, name, description, price, category_id, meta_title, meta_description")
         .in("id", ids);
 
       if (productsError) throw productsError;
@@ -206,19 +210,23 @@ serve(async (req) => {
         const generated = await generateContent(type, product, tenant, lovableApiKey, 'product');
         if (generated) {
           const updateField = type === "product_description" ? "description" : type;
+          const currentValue = (product as any)[updateField] || null;
           
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ [updateField]: generated })
-            .eq("id", product.id);
-
-          if (!updateError) {
-            results.push({
-              entity_id: product.id,
-              generated,
-              field: updateField,
-            });
+          if (!preview) {
+            const { error: updateError } = await supabase
+              .from("products")
+              .update({ [updateField]: generated })
+              .eq("id", product.id);
+            if (updateError) continue;
           }
+
+          results.push({
+            entity_id: product.id,
+            entity_name: product.name,
+            generated,
+            field: updateField,
+            current_value: currentValue,
+          });
         }
       }
     }
