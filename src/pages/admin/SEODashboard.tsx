@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   Search, RefreshCw, Wand2, TrendingUp, AlertTriangle, Bot, FileCode, Globe,
   Gauge, Users, Calendar, Image as ImageIcon, FolderOpen, Package, Target,
-  Zap, CheckCircle, ArrowRight, Sparkles, Settings2, BarChart3,
+  Zap, CheckCircle, ArrowRight, Sparkles, Settings2, BarChart3, Rocket,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
 import { SEOHealthChecklist } from '@/components/admin/seo/SEOHealthChecklist';
 import { SEOScoreHistoryChart } from '@/components/admin/seo/SEOScoreHistoryChart';
@@ -29,7 +29,9 @@ import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
+import { AnimatedCounter } from '@/components/admin/marketing/AnimatedCounter';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type { ProductStructuredData, BusinessStructuredData } from '@/lib/structuredData';
 
 export default function SEODashboard() {
@@ -43,41 +45,55 @@ export default function SEODashboard() {
   const { currentTenant } = useTenant();
 
   const [activeTab, setActiveTab] = useState('overview');
+  const [scoreAnimated, setScoreAnimated] = useState(false);
 
-  // Health metrics
   const totalProducts = products?.length || 0;
+  const totalCategories = categories?.length || 0;
   const productsWithMeta = products?.filter(p => p.meta_title).length || 0;
   const productsWithDesc = products?.filter(p => p.meta_description).length || 0;
   const productsWithImages = products?.filter(p => p.images && p.images.length > 0).length || 0;
+  const missingMetaTitles = (products || []).filter(p => !p.meta_title).length;
+  const missingMetaDescs = (products || []).filter(p => !p.meta_description).length;
+  const missingDescriptions = (products || []).filter(p => !p.description).length;
+  const totalMissing = missingMetaTitles + missingMetaDescs + missingDescriptions;
 
-  // Client-side quick wins (no analysis needed)
+  useEffect(() => {
+    const timer = setTimeout(() => setScoreAnimated(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Client-side quick wins
   const clientSideIssues = (() => {
     const issues: Array<{ type: string; severity: 'error' | 'warning' | 'info'; message: string; field?: string; entity_id?: string; entity_name?: string }> = [];
-    
     for (const p of products || []) {
       if (!p.meta_title) issues.push({ type: 'meta_title_missing', severity: 'warning', message: `Meta title ontbreekt`, entity_id: p.id, entity_name: p.name });
       if (!p.meta_description) issues.push({ type: 'meta_description_missing', severity: 'warning', message: `Meta description ontbreekt`, entity_id: p.id, entity_name: p.name });
       if (!p.description) issues.push({ type: 'description_missing', severity: 'error', message: `Beschrijving ontbreekt`, entity_id: p.id, entity_name: p.name });
     }
-    
     return issues;
   })();
 
   const clientSideSuggestions = (() => {
     const suggestions: Array<{ type: string; priority: 'high' | 'medium' | 'low'; title: string; description: string; action?: string; estimated_impact?: number }> = [];
-    const missingTitles = (products || []).filter(p => !p.meta_title).length;
-    const missingDescs = (products || []).filter(p => !p.meta_description).length;
-    const missingContent = (products || []).filter(p => !p.description).length;
-
-    if (missingTitles > 0) suggestions.push({ type: 'fix_meta_titles', priority: 'high', title: `${missingTitles} producten zonder meta title`, description: 'Ga naar Optimaliseer en genereer meta titles met AI.', action: 'navigate_optimize' });
-    if (missingDescs > 0) suggestions.push({ type: 'fix_meta_descriptions', priority: 'high', title: `${missingDescs} producten zonder meta description`, description: 'Meta descriptions verhogen je click-through rate in zoekresultaten.', action: 'navigate_optimize' });
-    if (missingContent > 0) suggestions.push({ type: 'fix_descriptions', priority: 'medium', title: `${missingContent} producten zonder beschrijving`, description: 'Content is de basis van SEO. Voeg beschrijvingen toe of laat AI ze genereren.', action: 'navigate_optimize' });
-
+    if (missingMetaTitles > 0) suggestions.push({ type: 'fix_meta_titles', priority: 'high', title: `${missingMetaTitles} producten zonder meta title`, description: 'Genereer meta titles met AI voor betere zoekresultaten.', action: 'navigate_optimize', estimated_impact: 15 });
+    if (missingMetaDescs > 0) suggestions.push({ type: 'fix_meta_descriptions', priority: 'high', title: `${missingMetaDescs} producten zonder meta description`, description: 'Meta descriptions verhogen je click-through rate.', action: 'navigate_optimize', estimated_impact: 12 });
+    if (missingDescriptions > 0) suggestions.push({ type: 'fix_descriptions', priority: 'medium', title: `${missingDescriptions} producten zonder beschrijving`, description: 'Content is de basis van SEO. Laat AI beschrijvingen genereren.', action: 'navigate_optimize', estimated_impact: 20 });
     return suggestions;
   })();
 
   const activeIssues = tenantScore?.issues?.length ? tenantScore.issues : clientSideIssues;
   const activeSuggestions = tenantScore?.suggestions?.length ? tenantScore.suggestions : clientSideSuggestions;
+
+  const overallScore = tenantScore?.overall_score ?? 0;
+  const scoreGradient = overallScore >= 80
+    ? 'from-green-500/20 via-emerald-500/10 to-transparent'
+    : overallScore >= 50
+      ? 'from-yellow-500/20 via-amber-500/10 to-transparent'
+      : 'from-red-500/20 via-orange-500/10 to-transparent';
+
+  const scoreStrokeColor = overallScore >= 80 ? 'text-green-500' : overallScore >= 50 ? 'text-yellow-500' : 'text-red-500';
+  const circumference = 2 * Math.PI * 54;
+  const strokeDashoffset = circumference - (circumference * (scoreAnimated ? overallScore : 0)) / 100;
 
   const getStatus = (done: number, total: number): 'complete' | 'partial' | 'incomplete' => {
     if (total === 0) return 'incomplete';
@@ -111,67 +127,130 @@ export default function SEODashboard() {
     vatNumber: currentTenant.btw_number || null,
   } : undefined;
 
-  const overallScore = tenantScore?.overall_score ?? 0;
-  const scoreColor = overallScore >= 80 ? 'text-green-500' : overallScore >= 50 ? 'text-yellow-500' : 'text-red-500';
+  const metaCompletionPct = totalProducts > 0 ? Math.round((productsWithMeta / totalProducts) * 100) : 0;
+  const descCompletionPct = totalProducts > 0 ? Math.round((productsWithDesc / totalProducts) * 100) : 0;
 
   return (
     <FeatureGate feature="ai_marketing">
       <div className="space-y-6 max-w-6xl mx-auto">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border p-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative w-20 h-20 flex-shrink-0">
-                <svg className="w-20 h-20 -rotate-90">
-                  <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="8" fill="none" className="text-muted/30" />
-                  <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="8" fill="none"
-                    strokeDasharray={`${overallScore * 2.136} 213.6`}
-                    className={scoreColor}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={`text-2xl font-bold ${scoreColor}`}>{overallScore || '--'}</span>
-                </div>
+        {/* ── Hero Header ── */}
+        <div className={cn(
+          "relative overflow-hidden rounded-2xl border bg-gradient-to-br p-8",
+          scoreGradient
+        )}>
+          {/* Decorative blobs */}
+          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-accent/5 blur-3xl" />
+
+          <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-8">
+            {/* Animated Score Ring */}
+            <div className="relative w-32 h-32 flex-shrink-0">
+              <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" stroke="hsl(var(--muted))" strokeWidth="10" fill="none" opacity="0.3" />
+                <circle
+                  cx="60" cy="60" r="54"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  fill="none"
+                  strokeLinecap="round"
+                  className={cn(scoreStrokeColor, "transition-all duration-1000 ease-out")}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={cn("text-4xl font-black tabular-nums", scoreStrokeColor)}>
+                  {overallScore || '—'}
+                </span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Score</span>
               </div>
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 space-y-3">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">SEO Dashboard</h1>
-                <p className="text-muted-foreground">
-                  {overallScore >= 80 ? 'Uitstekend! Je SEO is goed op orde.' : overallScore >= 50 ? 'Er zijn verbeterpunten voor je SEO.' : 'Start met de quick wins hieronder.'}
+                <p className="text-muted-foreground mt-1">
+                  {overallScore >= 80 ? '🎉 Uitstekend! Je SEO is goed op orde.' : overallScore >= 50 ? '⚡ Er zijn verbeterpunten — gebruik de optimizer.' : totalMissing > 0 ? `🔧 ${totalMissing} items missen SEO data — klik "Alles optimaliseren" om te starten.` : 'Start een AI analyse om je score te berekenen.'}
                 </p>
-                {productsNeedingAttention > 0 && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm text-yellow-600">{productsNeedingAttention} producten hebben aandacht nodig</span>
+              </div>
+
+              {/* Mini sub-scores */}
+              <div className="flex flex-wrap gap-4">
+                {[
+                  { label: 'Meta', score: tenantScore?.meta_score, icon: FileCode },
+                  { label: 'Content', score: tenantScore?.content_score, icon: Search },
+                  { label: 'Technisch', score: tenantScore?.technical_score, icon: Gauge },
+                  { label: 'AI Search', score: tenantScore?.ai_search_score, icon: Bot },
+                ].map(({ label, score, icon: Icon }) => (
+                  <div key={label} className="flex items-center gap-2 text-sm">
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className={cn("font-bold", score != null && score >= 70 ? 'text-green-600' : score != null && score >= 40 ? 'text-yellow-600' : 'text-muted-foreground')}>
+                      {score ?? '—'}
+                    </span>
                   </div>
-                )}
+                ))}
               </div>
             </div>
-            <Button onClick={() => analyzeSEO()} disabled={isAnalyzing} size="lg" className="gap-2">
-              {isAnalyzing ? (<><RefreshCw className="h-4 w-4 animate-spin" />Analyseren...</>) : (<><Sparkles className="h-4 w-4" />AI Analyse starten</>)}
-            </Button>
+
+            {/* CTA buttons */}
+            <div className="flex flex-col gap-2 shrink-0">
+              <Button
+                onClick={() => { setActiveTab('optimize'); }}
+                size="lg"
+                className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/25"
+                disabled={totalMissing === 0}
+              >
+                <Rocket className="h-4 w-4" />
+                Alles optimaliseren
+                {totalMissing > 0 && (
+                  <Badge variant="secondary" className="ml-1 bg-white/20 text-accent-foreground text-xs">
+                    {totalMissing}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                onClick={() => analyzeSEO()}
+                disabled={isAnalyzing}
+                size="lg"
+                variant="outline"
+                className="gap-2 bg-background/60 backdrop-blur"
+              >
+                {isAnalyzing ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" />Analyseren...</>
+                ) : (
+                  <><Sparkles className="h-4 w-4" />AI Analyse starten</>
+                )}
+              </Button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1"><TrendingUp className="h-4 w-4" />Meta Score</div>
-              <p className="text-xl font-bold">{tenantScore?.meta_score ?? '--'}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1"><FileCode className="h-4 w-4" />Technisch</div>
-              <p className="text-xl font-bold">{tenantScore?.technical_score ?? '--'}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1"><Bot className="h-4 w-4" />AI Search</div>
-              <p className="text-xl font-bold">{tenantScore?.ai_search_score ?? '--'}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1"><Package className="h-4 w-4" />Producten</div>
-              <p className="text-xl font-bold">{totalProducts}</p>
-            </div>
+          {/* Stats bar */}
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+            {[
+              { label: 'Producten', value: totalProducts, icon: Package },
+              { label: 'Categorieën', value: totalCategories, icon: FolderOpen },
+              { label: 'Zonder meta title', value: missingMetaTitles, icon: AlertTriangle, alert: missingMetaTitles > 0 },
+              { label: 'Zonder beschrijving', value: missingDescriptions, icon: AlertTriangle, alert: missingDescriptions > 0 },
+            ].map(({ label, value, icon: Icon, alert }) => (
+              <div key={label} className={cn(
+                "flex items-center gap-3 p-3 rounded-xl border bg-background/70 backdrop-blur-sm transition-colors",
+                alert && "border-yellow-500/30 bg-yellow-500/5"
+              )}>
+                <Icon className={cn("h-4 w-4 shrink-0", alert ? "text-yellow-500" : "text-muted-foreground")} />
+                <div>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-lg font-bold">
+                    <AnimatedCounter value={value} duration={800} />
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* ── Tabs ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start">
             <TabsTrigger value="overview" className="gap-2"><Zap className="h-4 w-4" />Overzicht</TabsTrigger>
@@ -182,30 +261,43 @@ export default function SEODashboard() {
 
           {/* Tab 1: Overzicht */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Completion progress */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Meta Titles</span>
+                    <span className="text-sm text-muted-foreground">{productsWithMeta}/{totalProducts}</span>
+                  </div>
+                  <Progress value={metaCompletionPct} className="h-3" />
+                  <p className="text-xs text-muted-foreground mt-1">{metaCompletionPct}% compleet</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Meta Descriptions</span>
+                    <span className="text-sm text-muted-foreground">{productsWithDesc}/{totalProducts}</span>
+                  </div>
+                  <Progress value={descCompletionPct} className="h-3" />
+                  <p className="text-xs text-muted-foreground mt-1">{descCompletionPct}% compleet</p>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Quick Wins */}
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <CardTitle>Quick Wins</CardTitle>
-                </div>
-                <CardDescription>De belangrijkste verbeterpunten</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SEOQuickWins
-                  issues={activeIssues}
-                  suggestions={activeSuggestions}
-                  onAction={(action) => {
-                    if (action === 'navigate_optimize' || action === 'generate_meta_titles' || action === 'generate_meta_descriptions') {
-                      setActiveTab('optimize');
-                    } else {
-                      toast.info(`Actie: ${action}`);
-                    }
-                  }}
-                  isLoading={isLoading && isLoadingProducts}
-                />
-              </CardContent>
-            </Card>
+            <SEOQuickWins
+              issues={activeIssues}
+              suggestions={activeSuggestions}
+              onAction={(action) => {
+                if (action === 'navigate_optimize' || action === 'generate_meta_titles' || action === 'generate_meta_descriptions') {
+                  setActiveTab('optimize');
+                } else {
+                  toast.info(`Actie: ${action}`);
+                }
+              }}
+              isLoading={isLoading && isLoadingProducts}
+            />
 
             {/* Health Checklist */}
             <Card>

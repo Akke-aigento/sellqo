@@ -3,16 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  Zap, 
-  AlertTriangle, 
-  AlertCircle, 
-  Info,
-  ArrowRight,
-  FileText,
-  Image,
-  Type,
-  Code
+  Zap, AlertTriangle, AlertCircle, Info, ArrowRight, FileText, Image, Type, Code, Rocket, TrendingUp
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { SEOIssue, SEOSuggestion } from '@/types/seo';
 
 interface SEOQuickWinsProps {
@@ -30,20 +23,11 @@ const getIssueIcon = (type: string) => {
   return AlertCircle;
 };
 
-const getSeverityColor = (severity: string) => {
+const getSeverityConfig = (severity: string) => {
   switch (severity) {
-    case 'error': return 'destructive';
-    case 'warning': return 'secondary';
-    case 'info': return 'outline';
-    default: return 'outline';
-  }
-};
-
-const getSeverityIcon = (severity: string) => {
-  switch (severity) {
-    case 'error': return <AlertCircle className="h-4 w-4 text-destructive" />;
-    case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-    default: return <Info className="h-4 w-4 text-blue-500" />;
+    case 'error': return { border: 'border-l-red-500', bg: 'bg-red-500/5', icon: <AlertCircle className="h-4 w-4 text-red-500" />, label: 'Kritiek' };
+    case 'warning': return { border: 'border-l-yellow-500', bg: 'bg-yellow-500/5', icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />, label: 'Waarschuwing' };
+    default: return { border: 'border-l-blue-500', bg: 'bg-blue-500/5', icon: <Info className="h-4 w-4 text-blue-500" />, label: 'Info' };
   }
 };
 
@@ -51,85 +35,116 @@ export function SEOQuickWins({ issues, suggestions, onAction, isLoading }: SEOQu
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
+        <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
         <CardContent className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
         </CardContent>
       </Card>
     );
   }
 
   const allItems = [
-    ...issues.map((issue) => ({ ...issue, itemType: 'issue' as const })),
-    ...suggestions.map((sug) => ({ ...sug, itemType: 'suggestion' as const, severity: sug.priority === 'high' ? 'error' : sug.priority === 'medium' ? 'warning' : 'info' })),
+    ...suggestions.map((sug) => ({
+      ...sug,
+      itemType: 'suggestion' as const,
+      severity: sug.priority === 'high' ? 'error' : sug.priority === 'medium' ? 'warning' : 'info',
+    })),
+    ...issues.slice(0, 3).map((issue) => ({ ...issue, itemType: 'issue' as const })),
   ].slice(0, 6);
+
+  if (allItems.length === 0) {
+    return (
+      <Card className="border-green-500/20 bg-green-500/5">
+        <CardContent className="py-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10 mb-3">
+            <Zap className="h-6 w-6 text-green-500" />
+          </div>
+          <p className="font-medium text-green-700 dark:text-green-400">Alles ziet er goed uit!</p>
+          <p className="text-sm text-muted-foreground mt-1">Geen verbeterpunten gevonden</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-yellow-500" />
-          Quick Wins
-        </CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Zap className="h-5 w-5 text-yellow-500" />
+            Quick Wins
+          </CardTitle>
+          <Badge variant="outline" className="text-xs">
+            {allItems.length} acties
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent>
-        {allItems.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Geen verbeterpunten gevonden</p>
-            <p className="text-sm">Voer een analyse uit om suggesties te krijgen</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {allItems.map((item, index) => {
-              const isIssue = item.itemType === 'issue';
-              const Icon = getIssueIcon(isIssue ? (item as SEOIssue).type : (item as SEOSuggestion).type);
-              
-              return (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="mt-0.5">
-                    {getSeverityIcon(item.severity)}
-                  </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {allItems.map((item, index) => {
+            const isIssue = item.itemType === 'issue';
+            const isSuggestion = item.itemType === 'suggestion';
+            const Icon = getIssueIcon(isIssue ? (item as SEOIssue).type : (item as SEOSuggestion).type);
+            const config = getSeverityConfig(item.severity);
+            const estimatedImpact = isSuggestion ? (item as SEOSuggestion).estimated_impact : undefined;
+
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "relative flex flex-col gap-2 p-4 rounded-xl border border-l-4 transition-all hover:shadow-md",
+                  config.border,
+                  config.bg,
+                )}
+              >
+                {/* Header */}
+                <div className="flex items-start gap-2">
+                  {config.icon}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm truncate">
-                        {isIssue ? (item as SEOIssue).message : (item as SEOSuggestion).title}
-                      </span>
-                    </div>
-                    {!isIssue && (item as SEOSuggestion).description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="font-medium text-sm leading-tight">
+                      {isIssue ? (item as SEOIssue).message : (item as SEOSuggestion).title}
+                    </p>
+                    {isSuggestion && (item as SEOSuggestion).description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {(item as SEOSuggestion).description}
                       </p>
                     )}
-                    {(item as any).entity_name && (
-                      <Badge variant="outline" className="mt-1 text-xs">
-                        {(item as any).entity_name}
-                      </Badge>
-                    )}
                   </div>
-                  {!isIssue && (item as SEOSuggestion).action && onAction && (
+                </div>
+
+                {/* Footer: impact + action */}
+                <div className="flex items-center justify-between mt-auto pt-1">
+                  {estimatedImpact ? (
+                    <div className="flex items-center gap-1 text-xs text-green-600">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>+{estimatedImpact} punten</span>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+
+                  {isSuggestion && (item as SEOSuggestion).action && onAction && (
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="shrink-0"
+                      variant="secondary"
+                      className="h-7 text-xs gap-1"
                       onClick={() => onAction((item as SEOSuggestion).action!, (item as SEOSuggestion).entity_id)}
                     >
-                      <ArrowRight className="h-4 w-4" />
+                      <Rocket className="h-3 w-3" />
+                      Fix nu
                     </Button>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                {(item as any).entity_name && (
+                  <Badge variant="outline" className="absolute top-2 right-2 text-[10px]">
+                    {(item as any).entity_name}
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
