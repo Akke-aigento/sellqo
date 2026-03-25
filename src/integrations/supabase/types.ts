@@ -10031,7 +10031,7 @@ export type Database = {
           ai_search_score: number | null
           content_score: number | null
           created_at: string | null
-          entity_id: string | null
+          entity_id: string
           entity_type: string
           id: string
           issues: Json | null
@@ -10047,7 +10047,7 @@ export type Database = {
           ai_search_score?: number | null
           content_score?: number | null
           created_at?: string | null
-          entity_id?: string | null
+          entity_id: string
           entity_type: string
           id?: string
           issues?: Json | null
@@ -10063,7 +10063,7 @@ export type Database = {
           ai_search_score?: number | null
           content_score?: number | null
           created_at?: string | null
-          entity_id?: string | null
+          entity_id?: string
           entity_type?: string
           id?: string
           issues?: Json | null
