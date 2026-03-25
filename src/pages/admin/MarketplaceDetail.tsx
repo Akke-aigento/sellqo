@@ -73,6 +73,7 @@ import { BolVVBSettings } from '@/components/admin/marketplace/BolVVBSettings';
 import { AmazonBuyShippingSettings } from '@/components/admin/marketplace/AmazonBuyShippingSettings';
 import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWidget';
 import { BolCsvImport } from '@/components/admin/marketplace/BolCsvImport';
+import { BolProductImportDialog } from '@/components/admin/marketplace/BolProductImportDialog';
 import { useAutoSync } from '@/hooks/useAutoSync';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
