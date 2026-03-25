@@ -224,8 +224,8 @@ export function useSEO() {
     ?.filter((issue: SEOIssue) => issue.severity === 'warning' || issue.severity === 'error')
     .slice(0, 5) || [];
 
-  // Calculate products needing attention
-  const productsNeedingAttention = productScores?.filter(
+  // Calculate entities needing attention
+  const productsNeedingAttention = entityScores?.filter(
     (score) => score.overall_score !== null && score.overall_score < 50
   ).length || 0;
 
