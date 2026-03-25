@@ -1,15 +1,61 @@
 
 
-## Per-Product Sync Velden Toggles — ✅ Geïmplementeerd
+## Bol.com Retouren Sync
 
-Granulaire controle over welke data gesynchroniseerd wordt per product (Prijs, Voorraad, Titel, Fulfillment, Verzendinfo) via expandable rows in de producttabel.
+### Wat er nu is
+- `SyncDataType` bevat `returns` — typeondersteuning is er al
+- `SyncRules` heeft `returns?: SyncRuleConfig` — configuratie-plek bestaat
+- **Maar**: geen `sync-bol-returns` edge function, geen retourentabel, geen UI
 
-## Productbeheer Samenvoegen: Eén "Producten" Tab — ✅ Geïmplementeerd
+### Wat we bouwen
 
-De losse "Voorraad" tab, "Producten Synchroniseren" dialog-knop en de producten/voorraad sync-regels zijn samengevoegd in één geïntegreerde **"Producten" tab** binnen de Marketplace detail pagina.
+**1. Database: `returns` tabel**
 
-### Wat er veranderd is
-- **"Voorraad" tab → "Producten" tab**: Combineert sync instellingen (richting, frequentie, conflict-strategie), gekoppelde producten overzicht, en import/export functionaliteit in één tab.
-- **Dialog-knop verwijderd**: "Producten Synchroniseren" knop uit de header verwijderd — alles zit nu inline in de Producten tab.
-- **Sync Regels tab**: Producten en Voorraad kaarten vervangen door een deeplink "Beheer producten →" die direct naar de Producten tab navigeert.
-- **Nieuwe component**: `BolProductSyncTab.tsx` bevat alle gecombineerde logica.
+| Kolom | Type | Beschrijving |
+|---|---|---|
+| id | uuid PK | |
+| tenant_id | uuid FK | |
+| order_id | uuid FK nullable | Link naar SellQo order |
+| marketplace_connection_id | uuid FK | |
+| marketplace_return_id | varchar | Bol.com return ID |
+| marketplace_order_id | varchar | Bol.com order ID |
+| status | enum | `registered`, `in_transit`, `received`, `approved`, `rejected`, `exchanged`, `repaired` |
+| return_reason | text | Reden van klant |
+| return_reason_code | varchar | Bol.com reason code |
+| customer_name | text | |
+| items | jsonb | Array van retour-items (product, quantity, EAN) |
+| handling_result | varchar | `RETURN_RECEIVED`, `EXCHANGE_PRODUCT`, `REPAIR` etc. |
+| registration_date | timestamptz | Wanneer retour aangemeld |
+| raw_marketplace_data | jsonb | Volledige Bol.com response |
+| created_at / updated_at | timestamptz | |
+
+RLS: tenant-based access.
+
+**2. Edge function: `sync-bol-returns/index.ts`**
+- Haalt retouren op via `GET /retailer/returns` (Bol.com v10 API)
+- Filtert op `handled=false` voor nieuwe retouren + `handled=true` voor status updates
+- Upsert op `marketplace_return_id` (geen duplicaten)
+- Matcht aan bestaande orders via `marketplace_order_id`
+
+**3. UI: Retouren tab in MarketplaceDetail**
+- Nieuwe tab "Retouren" naast Producten/Orders
+- Tabel met: datum, order, klant, reden, status, items
+- Badge met aantal open retouren
+
+**4. Integratie**
+- `useAutoSync` hook uitbreiden met returns sync
+- `marketplace-sync-scheduler` uitbreiden zodat retouren mee worden gesynchroniseerd
+- `trigger-manual-sync` reageert al op `dataType: 'returns'` — hoeft alleen de juiste function aan te roepen
+
+### Bestanden
+
+| Bestand | Actie |
+|---|---|
+| SQL migratie | `returns` tabel + enum + RLS policies |
+| `supabase/functions/sync-bol-returns/index.ts` | **Nieuw** — ophalen en upserten van Bol.com retouren |
+| `src/pages/admin/MarketplaceDetail.tsx` | "Retouren" tab toevoegen |
+| `src/components/admin/marketplace/BolReturnsTab.tsx` | **Nieuw** — retourentabel met status, filters |
+| `src/hooks/useAutoSync.ts` | Returns sync toevoegen aan auto-sync loop |
+| `supabase/functions/marketplace-sync-scheduler/index.ts` | Returns sync toevoegen |
+| `supabase/functions/trigger-manual-sync/index.ts` | `returns` case koppelen aan `sync-bol-returns` |
+
