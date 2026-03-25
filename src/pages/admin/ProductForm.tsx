@@ -504,24 +504,6 @@ export default function ProductForm() {
             {isEditing ? `Bewerk ${product?.name}` : 'Voeg een nieuw product toe aan je catalogus'}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/admin/products')}>
-            Annuleren
-          </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Opslaan...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Opslaan
-              </>
-            )}
-          </Button>
-        </div>
       </div>
 
       <Form {...form}>
