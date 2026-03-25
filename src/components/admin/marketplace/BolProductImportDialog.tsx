@@ -478,46 +478,66 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
               </TableCell>
             </TableRow>
           ) : (
-            filteredProducts.map(product => (
-              <TableRow
-                key={product.productId}
-                className={product.alreadyOnBol ? 'opacity-60' : 'cursor-pointer'}
-                onClick={() => !product.alreadyOnBol && toggleSelect(product.productId)}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={product.alreadyOnBol || selectedIds.has(product.productId)}
-                    disabled={product.alreadyOnBol}
-                    onCheckedChange={() => toggleSelect(product.productId)}
-                    onClick={e => e.stopPropagation()}
-                  />
-                </TableCell>
-                <TableCell className="font-medium max-w-[250px] truncate">{product.name}</TableCell>
-                <TableCell className="font-mono text-xs">{product.ean || <span className="text-muted-foreground italic">Geen EAN</span>}</TableCell>
-                <TableCell className="text-right">€{product.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{product.stock}</TableCell>
-                <TableCell>
-                  {product.alreadyOnBol ? (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-xs">Op Bol.com</span>
-                    </div>
-                  ) : selectedIds.has(product.productId) ? (
-                    <div className="flex items-center gap-1 text-primary">
-                      <Link2 className="w-4 h-4" />
-                      <span className="text-xs">Geselecteerd</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Niet op Bol</span>
-                  )}
-                </TableCell>
-                <TableCell onClick={e => e.stopPropagation()}>
-                  {product.alreadyOnBol ? (
-                    <Switch
-                      checked={product.syncEnabled}
-                      onCheckedChange={(checked) => handleSyncToggle(product.productId, checked)}
-                    />
-                  ) : (
+            filteredProducts.map(product => {
+              const isExpanded = expandedProductId === product.productId;
+              return (
+                <>
+                  <TableRow
+                    key={product.productId}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      if (product.alreadyOnBol) {
+                        setExpandedProductId(isExpanded ? null : product.productId);
+                      } else {
+                        toggleSelect(product.productId);
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      {product.alreadyOnBol ? (
+                        isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <Checkbox
+                          checked={selectedIds.has(product.productId)}
+                          onCheckedChange={() => toggleSelect(product.productId)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[250px] truncate">{product.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{product.ean || <span className="text-muted-foreground italic">Geen EAN</span>}</TableCell>
+                    <TableCell className="text-right">€{product.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{product.stock}</TableCell>
+                    <TableCell>
+                      {product.alreadyOnBol ? (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-xs">Op Bol.com</span>
+                        </div>
+                      ) : selectedIds.has(product.productId) ? (
+                        <div className="flex items-center gap-1 text-primary">
+                          <Link2 className="w-4 h-4" />
+                          <span className="text-xs">Geselecteerd</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Niet op Bol</span>
+                      )}
+                    </TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
+                      {product.alreadyOnBol ? (
+                        <Switch
+                          checked={product.syncEnabled}
+                          onCheckedChange={(checked) => handleSyncToggle(product.productId, checked)}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  {isExpanded && product.alreadyOnBol && renderSyncFieldsRow(product.productId, product.syncFields)}
+                </>
+              );
+            })
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
