@@ -102,6 +102,7 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [fetched, setFetched] = useState(false);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
 
   const resetState = () => {
     setOffers([]);
