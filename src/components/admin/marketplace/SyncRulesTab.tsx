@@ -135,6 +135,23 @@ export function SyncRulesTab({ connection, platformName, onNavigateToProducts }:
       <div className="grid lg:grid-cols-[1fr,320px] gap-6">
         {/* Main sync rules */}
         <div className="space-y-4">
+          {/* Deeplink to Producten tab */}
+          {onNavigateToProducts && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="flex items-center justify-between py-4">
+                <div>
+                  <p className="text-sm font-medium">Producten & Voorraad</p>
+                  <p className="text-xs text-muted-foreground">
+                    Beheer productkoppelingen, import/export en per-product sync velden in de Producten tab.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={onNavigateToProducts}>
+                  Beheer producten
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           {supportedTypes.map((dataTypeInfo) => {
             const dataType = dataTypeInfo.type as SyncDataType;
             const typeCapabilities = getCapabilities(dataType);
