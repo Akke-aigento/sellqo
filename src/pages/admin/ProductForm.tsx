@@ -74,6 +74,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronRight, ChevronDown } from 'lucide-react';
+import { BundleProductsSection, type BundleItem } from '@/components/admin/products/BundleProductsSection';
+import { supabase } from '@/integrations/supabase/client';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
@@ -242,6 +244,29 @@ export default function ProductForm() {
   const digitalDeliveryType = form.watch('digital_delivery_type');
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
+  const isBundle = productType === 'bundle';
+
+  const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
+
+  // Load bundle items when editing a bundle product
+  useEffect(() => {
+    if (isEditing && id && product?.product_type === 'bundle') {
+      supabase
+        .from('bundle_products')
+        .select('product_id, quantity, is_required')
+        .eq('bundle_id', id)
+        .order('sort_order')
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setBundleItems(data.map(d => ({
+              product_id: d.product_id,
+              quantity: d.quantity,
+              is_required: d.is_required,
+            })));
+          }
+        });
+    }
+  }, [isEditing, id, product?.product_type]);
 
   // Initialize selected categories from saved data via useEffect
   // to avoid race conditions when data is still loading
@@ -305,7 +330,7 @@ export default function ProductForm() {
 
   const handleProductTypeChange = (type: ProductType) => {
     form.setValue('product_type', type);
-    if (type === 'digital' || type === 'service' || type === 'gift_card') {
+    if (type === 'digital' || type === 'service' || type === 'gift_card' || type === 'bundle') {
       form.setValue('requires_shipping', false);
       form.setValue('track_inventory', false);
     } else if (type === 'physical') {
@@ -425,6 +450,35 @@ export default function ProductForm() {
           categoryIds: selectedCategoryIds,
           primaryCategoryId: effectivePrimary,
         });
+      }
+      // Save bundle items
+      if (productId && data.product_type === 'bundle' && currentTenant) {
+        // Upsert a product_bundles record using the product ID
+        const bundleSlug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        await supabase.from('product_bundles').upsert({
+          id: productId,
+          name: data.name,
+          slug: bundleSlug,
+          description: data.description || null,
+          bundle_type: 'fixed',
+          discount_type: 'none',
+          discount_value: 0,
+          is_active: data.is_active,
+          tenant_id: currentTenant.id,
+        }, { onConflict: 'id' });
+
+        // Remove existing bundle products and re-insert
+        await supabase.from('bundle_products').delete().eq('bundle_id', productId);
+        if (bundleItems.length > 0) {
+          const items = bundleItems.map((item, index) => ({
+            bundle_id: productId!,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            is_required: item.is_required,
+            sort_order: index,
+          }));
+          await supabase.from('bundle_products').insert(items);
+        }
       }
       navigate('/admin/products');
     } catch (err: any) {
@@ -1088,7 +1142,16 @@ export default function ProductForm() {
                     </Card>
                   )}
 
-                  {/* Varianten - hidden for gift cards */}
+                  {/* Conditional: Bundle */}
+                  {isBundle && (
+                    <BundleProductsSection
+                      value={bundleItems}
+                      onChange={setBundleItems}
+                      currentProductId={id}
+                    />
+                  )}
+
+
                   {!isGiftCard && (
                     <>
                     {isEditing && id ? (
