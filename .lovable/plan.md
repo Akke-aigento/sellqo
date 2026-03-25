@@ -1,51 +1,63 @@
 
 
-## Product Sync Uitbreiden: Richting + Selectieve Sync
+## Per-Product Sync Velden Toggles
 
-### Wat er nu is
-- De `BolProductImportDialog` is puur import-only: producten ophalen van Bol.com → selecteren → importeren in SellQo
-- Er is al een `SyncDirectionSelector` component (import/export/bidirectional)
-- De `sync-bol-products` edge function ondersteunt alleen `list` en `import` modes
+Momenteel is er alleen een aan/uit toggle per product. De uitbreiding voegt granulaire controle toe over **welke data** gesynchroniseerd wordt per product.
 
-### Wat we bouwen
+### Syncbare velden voor Bol.com
 
-**De dialog wordt een volledige "Product Sync Manager"** met:
+| Veld | Richting | Beschrijving |
+|---|---|---|
+| Prijs | Import/Export | Verkoopprijs synchroniseren |
+| Voorraad | Import/Export | Stock levels bijwerken |
+| Titel & beschrijving | Import/Export | Productnaam en omschrijving |
+| Fulfillment | Alleen import | FBR/FBB methode overnemen |
+| Verzendinfo | Export | Leveringscode meesturen |
 
-1. **Sync-richting selector** bovenaan de dialog (hergebruik bestaande `SyncDirectionSelector`)
-   - **Import**: Bol.com → SellQo (huidige flow, werkt al)
-   - **Export**: SellQo → Bol.com (selecteer SellQo-producten om als offer aan te maken op Bol.com)
-   - **Bidirectioneel**: Beide kanten, met conflict-strategie keuze
+### UI-aanpassing
 
-2. **Selectieve productlijst aangepast per richting**:
-   - **Import-modus**: Toont Bol.com offers (huidige flow), selecteer welke je wilt importeren
-   - **Export-modus**: Toont SellQo-producten (uit `products` tabel), selecteer welke je wilt pushen naar Bol.com
-   - **Bidirectioneel**: Toont gecombineerde lijst, geeft aan wat waar al bestaat, selecteer welke je synchroon wilt houden
+In de producttabel komt per gekoppeld product een **uitklapbaar paneel** (accordion/expandable row). Als je op een gekoppeld product klikt, verschijnt een rij met toggles voor elk syncbaar veld. Zo blijft de tabel overzichtelijk maar heb je per product volledige controle.
 
-3. **Per-product sync toggle** — na initiële import/export kan de tenant per product aan/uitzetten of die meesynchroniseert (opslaan in `marketplace_mappings` of `sync_inventory` veld)
+```text
+┌─────────────────────────────────────────────────────┐
+│ ☑ Product X  │ EAN │ €29.99 │ 150 │ FBR │ Gekoppeld │ 🔄 Aan │
+├─────────────────────────────────────────────────────┤
+│  Sync instellingen:                                 │
+│  [✓] Prijs   [✓] Voorraad   [ ] Titel   [✓] Verzend│
+└─────────────────────────────────────────────────────┘
+```
+
+### Datamodel
+
+De sync-veld preferences worden opgeslagen in `marketplace_mappings` (JSON) op het product, naast de bestaande `sync_inventory` boolean:
+
+```json
+{
+  "bol_com": {
+    "offerId": "uuid",
+    "syncFields": {
+      "price": true,
+      "stock": true,
+      "title": false,
+      "fulfillment": false,
+      "shipping": true
+    }
+  }
+}
+```
 
 ### Aanpassingen
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/marketplace/BolProductImportDialog.tsx` | Uitbreiden naar "BolProductSyncDialog": sync-richting selector toevoegen, export-modus UI (SellQo producten ophalen), bidirectionele view, per-product sync toggle |
-| `supabase/functions/sync-bol-products/index.ts` | Nieuwe `export` mode: maakt offers aan op Bol.com via `POST /retailer/offers` voor geselecteerde SellQo-producten. Nieuwe `sync-settings` mode: slaat per-product sync preferences op |
-| `src/pages/admin/MarketplaceDetail.tsx` | Button tekst aanpassen van "Importeer Producten" naar "Producten Synchroniseren" |
+| `src/components/admin/marketplace/BolProductImportDialog.tsx` | Expandable rows toevoegen voor gekoppelde producten met per-veld toggles. Nieuwe state voor `expandedProductId`. |
+| `supabase/functions/sync-bol-products/index.ts` | `sync-settings` mode uitbreiden: naast `syncEnabled` ook `syncFields` object accepteren en opslaan in `marketplace_mappings` |
+| `supabase/functions/sync-bol-inventory/index.ts` | Bij stock sync checken of `syncFields.stock` enabled is voor dat product, anders overslaan |
 
-### Export flow (nieuw)
+### Hoe het werkt
 
-```text
-Tenant kiest "Export" richting
-  → Frontend haalt SellQo-producten op (die nog niet op Bol.com staan)
-  → Tabel toont: naam, EAN, prijs, voorraad, of al op Bol.com
-  → Tenant selecteert welke producten ze willen pushen
-  → "Exporteer" → Edge function maakt offers aan via Bol.com API
-  → Resultaat: X aangemaakt, Y al bestaand, Z fouten
-```
-
-### Bidirectioneel (nieuw)
-
-- Gecombineerde lijst: alle producten uit beide bronnen
-- Kolom "Bron" toont waar het product vandaan komt
-- Conflict-strategie keuze (SellQo wins / Bol.com wins / nieuwste wins)
-- Na activatie: producten worden bij elke sync in beide richtingen bijgewerkt
+1. Tenant koppelt producten (import/export, bestaande flow)
+2. Bij gekoppelde producten verschijnt een uitklaprij met veld-toggles
+3. Toggles worden opgeslagen via `sync-settings` in `marketplace_mappings`
+4. Bij elke automatische sync worden alleen de ingeschakelde velden gesynchroniseerd
 
