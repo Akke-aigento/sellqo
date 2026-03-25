@@ -99,6 +99,7 @@ export default function MarketplaceDetailPage() {
   const [syncingInventory, setSyncingInventory] = useState(false);
   const [importingHistorical, setImportingHistorical] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Settings state
   const [connectionName, setConnectionName] = useState('');
