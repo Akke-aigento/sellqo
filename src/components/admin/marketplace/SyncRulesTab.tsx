@@ -59,9 +59,9 @@ export function SyncRulesTab({ connection, platformName, onNavigateToProducts }:
 
   const capabilities = PLATFORM_CAPABILITIES[connection.marketplace_type];
 
-  // Get supported data types for this platform
+  // Get supported data types for this platform, excluding 'products' and 'inventory' (handled in Producten tab)
   const supportedTypes = SYNC_DATA_TYPES.filter(
-    (dt) => capabilities[dt.type] !== null
+    (dt) => capabilities[dt.type] !== null && dt.type !== 'products' && dt.type !== 'inventory'
   );
 
   if (isLoading) {
