@@ -103,10 +103,6 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Content -->
           <tr>
             <td style="padding: 32px;">
-              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px;">
-                Beste ${customer_name || 'klant'},
-              </p>
-              
               <div style="color: #374151; font-size: 16px; line-height: 1.6;">
                 ${body_html}
               </div>
@@ -134,11 +130,6 @@ const handler = async (req: Request): Promise<Response> => {
                 </tr>
               </table>
               ` : ''}
-              
-              <p style="margin: 32px 0 0 0; color: #374151; font-size: 16px;">
-                Met vriendelijke groet,<br>
-                <strong>${fromName}</strong>
-              </p>
             </td>
           </tr>
           
