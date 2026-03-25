@@ -236,7 +236,7 @@ export function useSEO() {
     history,
     quickWins,
     productsNeedingAttention,
-    isLoading: isLoadingScore || isLoadingProducts || isLoadingKeywords,
+    isLoading: isLoadingScore || isLoadingEntities || isLoadingKeywords,
     analyzeSEO: analyzeSeOMutation.mutate,
     isAnalyzing: analyzeSeOMutation.isPending,
     generateContent: generateContentMutation.mutate,
