@@ -424,13 +424,22 @@ export default function MarketplaceDetailPage() {
         </div>
         <div className="flex gap-2">
           {connection.marketplace_type === 'bol_com' && (
-            <BolCsvImport 
-              connectionId={connection.id}
-              onImportComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ['marketplace-orders', connectionId] });
-                queryClient.invalidateQueries({ queryKey: ['sync-activities', connectionId] });
-              }}
-            />
+            <>
+              <BolProductImportDialog
+                connectionId={connection.id}
+                onImportComplete={() => {
+                  queryClient.invalidateQueries({ queryKey: ['marketplace-products', currentTenant?.id] });
+                  queryClient.invalidateQueries({ queryKey: ['marketplace-connection', connectionId] });
+                }}
+              />
+              <BolCsvImport 
+                connectionId={connection.id}
+                onImportComplete={() => {
+                  queryClient.invalidateQueries({ queryKey: ['marketplace-orders', connectionId] });
+                  queryClient.invalidateQueries({ queryKey: ['sync-activities', connectionId] });
+                }}
+              />
+            </>
           )}
           <Button 
             variant="outline" 
