@@ -223,15 +223,30 @@ Deno.serve(async (req) => {
             let mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings
             let bolMapping = mappings.bol_com
             
+            // UUID validation helper
+            const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
             // Fallback: use bol_offer_id column if marketplace_mappings is empty
             if (!bolMapping?.offerId && product.bol_offer_id) {
-              console.log(`Product ${product.id}: Using bol_offer_id column fallback: ${product.bol_offer_id}`)
-              bolMapping = {
-                offerId: product.bol_offer_id,
-                lastSync: (product as any).last_inventory_sync || undefined,
-                autoLinked: false
+              if (isValidUUID(product.bol_offer_id)) {
+                console.log(`Product ${product.id}: Using bol_offer_id column fallback: ${product.bol_offer_id}`)
+                bolMapping = {
+                  offerId: product.bol_offer_id,
+                  lastSync: (product as any).last_inventory_sync || undefined,
+                  autoLinked: false
+                }
+                mappings = { ...mappings, bol_com: bolMapping }
+              } else {
+                console.log(`Product ${product.id}: bol_offer_id '${product.bol_offer_id}' is NOT a valid UUID, will re-lookup via EAN`)
+                // Clear invalid offer ID so EAN lookup is triggered below
+                bolMapping = undefined
               }
-              mappings = { ...mappings, bol_com: bolMapping }
+            }
+
+            // Also validate existing mapping offerId
+            if (bolMapping?.offerId && !isValidUUID(bolMapping.offerId)) {
+              console.log(`Product ${product.id}: marketplace_mappings offerId '${bolMapping.offerId}' is NOT a valid UUID, clearing for re-lookup`)
+              bolMapping = undefined
             }
             
             // If still no Offer ID but EAN exists, try to look it up automatically
