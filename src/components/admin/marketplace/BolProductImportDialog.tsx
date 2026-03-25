@@ -221,13 +221,63 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Opslaan mislukt');
       
-      // Update local state
       setSellqoProducts(prev => prev.map(p => p.productId === productId ? { ...p, syncEnabled: enabled } : p));
       setOffers(prev => prev.map(o => o.existingProductId === productId ? { ...o, syncEnabled: enabled } : o));
       toast.success(enabled ? 'Sync ingeschakeld' : 'Sync uitgeschakeld');
     } catch (err) {
       toast.error('Opslaan mislukt: ' + (err instanceof Error ? err.message : 'Onbekende fout'));
     }
+  };
+
+  const handleSyncFieldToggle = async (productId: string, field: keyof SyncFields, enabled: boolean) => {
+    // Get current syncFields for this product
+    const product = sellqoProducts.find(p => p.productId === productId);
+    const offer = offers.find(o => o.existingProductId === productId);
+    const currentFields = product?.syncFields || offer?.syncFields || { ...DEFAULT_SYNC_FIELDS };
+    const updatedFields = { ...currentFields, [field]: enabled };
+
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-bol-products', {
+        body: { connectionId, mode: 'sync-settings', productSyncSettings: [{ productId, syncFields: updatedFields }] },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Opslaan mislukt');
+      
+      setSellqoProducts(prev => prev.map(p => p.productId === productId ? { ...p, syncFields: updatedFields } : p));
+      setOffers(prev => prev.map(o => o.existingProductId === productId ? { ...o, syncFields: updatedFields } : o));
+    } catch (err) {
+      toast.error('Opslaan mislukt: ' + (err instanceof Error ? err.message : 'Onbekende fout'));
+    }
+  };
+
+  const renderSyncFieldsRow = (productId: string, syncFields: SyncFields | undefined) => {
+    const fields = syncFields || { ...DEFAULT_SYNC_FIELDS };
+    return (
+      <TableRow className="bg-muted/30 border-b">
+        <TableCell colSpan={direction === 'bidirectional' ? 8 : 7}>
+          <div className="py-2 px-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Settings2 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Sync instellingen</span>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {(Object.keys(SYNC_FIELD_LABELS) as Array<keyof SyncFields>).map((field) => (
+                <div key={field} className="flex items-center gap-2">
+                  <Switch
+                    id={`${productId}-${field}`}
+                    checked={fields[field]}
+                    onCheckedChange={(checked) => handleSyncFieldToggle(productId, field, checked)}
+                  />
+                  <Label htmlFor={`${productId}-${field}`} className="text-sm cursor-pointer">
+                    {SYNC_FIELD_LABELS[field].label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   const handleAction = () => {
