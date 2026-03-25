@@ -200,6 +200,7 @@ async function handleListSellqo(supabase: any, connection: any) {
     alreadyOnBol: !!p.bol_offer_id,
     bolOfferId: p.bol_offer_id || null,
     syncEnabled: p.sync_inventory ?? false,
+    syncFields: p.marketplace_mappings?.bol_com?.syncFields || null,
   }))
 
   return {
