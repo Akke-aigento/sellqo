@@ -35,9 +35,9 @@ export function useSEO() {
     enabled: !!tenantId,
   });
 
-  // Fetch product SEO scores
-  const { data: productScores, isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['seo-product-scores', tenantId],
+  // Fetch product + category SEO scores
+  const { data: entityScores, isLoading: isLoadingEntities } = useQuery({
+    queryKey: ['seo-entity-scores', tenantId],
     queryFn: async () => {
       if (!tenantId) return [];
       
@@ -45,7 +45,7 @@ export function useSEO() {
         .from('seo_scores')
         .select('*')
         .eq('tenant_id', tenantId)
-        .eq('entity_type', 'product')
+        .in('entity_type', ['product', 'category'])
         .order('overall_score', { ascending: true, nullsFirst: true });
       
       if (error) throw error;
@@ -57,6 +57,9 @@ export function useSEO() {
     },
     enabled: !!tenantId,
   });
+
+  const productScores = entityScores?.filter(s => s.entity_type === 'product') || [];
+  const categoryScores = entityScores?.filter(s => s.entity_type === 'category') || [];
 
   // Fetch SEO keywords
   const { data: keywords, isLoading: isLoadingKeywords } = useQuery({
