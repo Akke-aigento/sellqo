@@ -72,7 +72,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Tenant not found");
     }
 
-    const replyToEmail = tenant.owner_email || "noreply@sellqo.app";
+    const replyToEmail = (tenant.inbound_email_enabled && tenant.inbound_email_prefix)
+      ? `${tenant.inbound_email_prefix}@sellqo.app`
+      : (tenant.owner_email || "noreply@sellqo.app");
     const fromName = tenant.name || "Sellqo";
     const primaryColor = tenant.primary_color || "#2563eb";
 
