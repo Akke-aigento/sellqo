@@ -30,6 +30,30 @@ import { SyncDirectionSelector } from './SyncDirectionSelector';
 import { ConflictStrategySelector } from './ConflictStrategySelector';
 import type { SyncDirection, ConflictStrategy, SupportedDirections } from '@/types/syncRules';
 
+export interface SyncFields {
+  price: boolean;
+  stock: boolean;
+  title: boolean;
+  fulfillment: boolean;
+  shipping: boolean;
+}
+
+const DEFAULT_SYNC_FIELDS: SyncFields = {
+  price: true,
+  stock: true,
+  title: false,
+  fulfillment: false,
+  shipping: true,
+};
+
+const SYNC_FIELD_LABELS: Record<keyof SyncFields, { label: string; description: string }> = {
+  price: { label: 'Prijs', description: 'Verkoopprijs synchroniseren' },
+  stock: { label: 'Voorraad', description: 'Stock levels bijwerken' },
+  title: { label: 'Titel', description: 'Productnaam en omschrijving' },
+  fulfillment: { label: 'Fulfillment', description: 'FBR/FBB methode' },
+  shipping: { label: 'Verzendinfo', description: 'Leveringscode meesturen' },
+};
+
 interface BolOffer {
   offerId: string;
   ean: string;
@@ -41,6 +65,7 @@ interface BolOffer {
   existingProductId: string | null;
   existingProductName: string | null;
   syncEnabled?: boolean;
+  syncFields?: SyncFields;
 }
 
 interface SellQoProduct {
@@ -52,6 +77,7 @@ interface SellQoProduct {
   alreadyOnBol: boolean;
   bolOfferId: string | null;
   syncEnabled: boolean;
+  syncFields?: SyncFields;
 }
 
 interface BolProductImportDialogProps {
