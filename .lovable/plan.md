@@ -1,40 +1,33 @@
 
 
-## Fix: Automatische aanhef/afsluiting + reply-to routing
+## Reply-to naar SellQo Inbox Routeren
 
-### Issue 1: "Beste klant" en "Met vriendelijke groet" worden dubbel toegevoegd
+### Wat er al is
+De infrastructuur bestaat al volledig:
+- Elke tenant heeft een `inbound_email_prefix` (bijv. `vanxcel-abc123`)
+- Inbound domein is `sellqo.app` → dus het adres is `{prefix}@sellqo.app`
+- De `handle-inbound-email` edge function verwerkt binnenkomende mails en koppelt ze aan de juiste tenant
+- MX-record en Resend webhook zijn geconfigureerd
 
-De tenant typt het bericht in de dialog (bijv. "Goedenavond Brecht, Wij hebben uw retourverzoek ontvangen..."). Maar de edge function `send-customer-message/index.ts` wikkelt dat bericht in een HTML-template die **automatisch** toevoegt:
-- Regel 107: `Beste ${customer_name || 'klant'},` (aanhef)
-- Regel 138-140: `Met vriendelijke groet, ${fromName}` (afsluiting)
+### Wat er fout gaat
+In `send-customer-message/index.ts` regel 75:
+```
+const replyToEmail = tenant.owner_email || "noreply@sellqo.app";
+```
+Dit stuurt antwoorden naar `info@vanxcel.com` i.p.v. naar de SellQo inbox.
 
-Het resultaat: de tenant's eigen aanhef + de automatische aanhef, en de tenant's eigen afsluiting + de automatische afsluiting. Vandaar de dubbele "Met vriendelijke groet, VanXcel" in de screenshot.
+### Fix (1 bestand)
 
-**Fix**: Verwijder de hardcoded aanhef (regel 106-108) en afsluiting (regel 137-141) uit de HTML-template. De tenant bepaalt zelf wat er in het bericht staat — de template moet alleen de wrapper (header, footer, styling) toevoegen, niet de inhoud aanpassen.
+**`supabase/functions/send-customer-message/index.ts`**:
 
-### Issue 2: Antwoorden komen in info@vanxcel.com, niet in SellQo
+1. Voeg `inbound_email_prefix, inbound_email_enabled` toe aan de tenant select query (regel 67)
+2. Wijzig de reply-to logica (regel 75):
+   - Als `inbound_email_enabled` EN `inbound_email_prefix` bestaan → `reply_to = {prefix}@sellqo.app`
+   - Anders → fallback naar `tenant.owner_email` (huidige gedrag)
+3. Update de footer tekst (regel 143) zodat het het juiste adres toont
 
-Regel 75: `const replyToEmail = tenant.owner_email || "noreply@sellqo.app";`
-Regel 207: `reply_to: replyToEmail`
-
-De `reply_to` wordt ingesteld op `tenant.owner_email` — dat is `info@vanxcel.com`. Dus als een klant antwoordt, gaat het naar die mailbox en niet naar SellQo.
-
-**Fix**: Dit hangt af van of SellQo inbound email processing actief is. Als dat zo is, moet reply-to naar het SellQo inbound-adres wijzen (bijv. een uniek doorsturadres per tenant). Als inbound niet actief is, is het huidige gedrag eigenlijk correct — antwoorden gaan naar de tenant's eigen mailbox.
-
-Ik ga even checken hoe inbound email werkt in dit project.
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| `supabase/functions/send-customer-message/index.ts` | Verwijder hardcoded "Beste klant" aanhef en "Met vriendelijke groet" afsluiting uit de HTML-template. Tenant's `body_html` wordt direct in de content-sectie geplaatst zonder extra tekst eromheen. |
-
-### Wat er overblijft in de template
-- Header met logo/naam (branding)
-- De `body_html` van de tenant (ongewijzigd)
-- Optioneel bestel-/offerteblok
-- Footer met adresgegevens
-
-### Reply-to gedrag
-Het huidige gedrag (`reply_to: tenant.owner_email`) is by design — antwoorden gaan naar de tenant's eigen mailbox. Als je wilt dat antwoorden in de SellQo inbox terechtkomen, moet de inbound email forwarding actief zijn en de reply-to naar het SellQo forwarding-adres wijzen. Dit is een apart configuratiepunt dat nu al werkt via de inbox-instellingen. Geen wijziging nodig tenzij je dit expliciet wilt veranderen.
+### Resultaat
+- Tenant heeft inbound email AAN → klant antwoordt → mail komt in SellQo inbox
+- Tenant heeft inbound email UIT → klant antwoordt → mail gaat naar tenant's eigen mailbox (huidige gedrag)
+- Geen extra configuratie nodig, werkt automatisch op basis van bestaande instellingen
 
