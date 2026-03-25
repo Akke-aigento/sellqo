@@ -452,8 +452,22 @@ export default function ProductForm() {
         });
       }
       // Save bundle items
-      if (productId && data.product_type === 'bundle') {
-        // Remove existing bundle products
+      if (productId && data.product_type === 'bundle' && currentTenant) {
+        // Upsert a product_bundles record using the product ID
+        const bundleSlug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        await supabase.from('product_bundles').upsert({
+          id: productId,
+          name: data.name,
+          slug: bundleSlug,
+          description: data.description || null,
+          bundle_type: 'fixed',
+          discount_type: 'none',
+          discount_value: 0,
+          is_active: data.is_active,
+          tenant_id: currentTenant.id,
+        }, { onConflict: 'id' });
+
+        // Remove existing bundle products and re-insert
         await supabase.from('bundle_products').delete().eq('bundle_id', productId);
         if (bundleItems.length > 0) {
           const items = bundleItems.map((item, index) => ({
