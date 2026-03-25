@@ -9569,6 +9569,7 @@ export type Database = {
           customer_name: string | null
           handling_result: string | null
           id: string
+          internal_notes: string | null
           items: Json | null
           marketplace_connection_id: string
           marketplace_order_id: string | null
@@ -9587,6 +9588,7 @@ export type Database = {
           customer_name?: string | null
           handling_result?: string | null
           id?: string
+          internal_notes?: string | null
           items?: Json | null
           marketplace_connection_id: string
           marketplace_order_id?: string | null
@@ -9605,6 +9607,7 @@ export type Database = {
           customer_name?: string | null
           handling_result?: string | null
           id?: string
+          internal_notes?: string | null
           items?: Json | null
           marketplace_connection_id?: string
           marketplace_order_id?: string | null
