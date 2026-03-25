@@ -43,6 +43,14 @@ interface BolOffersListResponse {
 
 type RequestMode = 'list' | 'import' | 'list-sellqo' | 'export' | 'sync-settings'
 
+interface SyncFields {
+  price: boolean
+  stock: boolean
+  title: boolean
+  fulfillment: boolean
+  shipping: boolean
+}
+
 interface SyncRequest {
   connectionId: string
   mode: RequestMode
@@ -50,7 +58,7 @@ interface SyncRequest {
   selectedProductIds?: string[]
   syncDirection?: 'import' | 'export' | 'bidirectional'
   conflictStrategy?: string
-  productSyncSettings?: Array<{ productId: string; syncEnabled: boolean }>
+  productSyncSettings?: Array<{ productId: string; syncEnabled?: boolean; syncFields?: SyncFields }>
 }
 
 async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
