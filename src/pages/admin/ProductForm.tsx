@@ -310,7 +310,7 @@ export default function ProductForm() {
 
   const handleProductTypeChange = (type: ProductType) => {
     form.setValue('product_type', type);
-    if (type === 'digital' || type === 'service' || type === 'gift_card') {
+    if (type === 'digital' || type === 'service' || type === 'gift_card' || type === 'bundle') {
       form.setValue('requires_shipping', false);
       form.setValue('track_inventory', false);
     } else if (type === 'physical') {
