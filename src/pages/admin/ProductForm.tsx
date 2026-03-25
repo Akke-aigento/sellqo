@@ -1128,7 +1128,16 @@ export default function ProductForm() {
                     </Card>
                   )}
 
-                  {/* Varianten - hidden for gift cards */}
+                  {/* Conditional: Bundle */}
+                  {isBundle && (
+                    <BundleProductsSection
+                      value={bundleItems}
+                      onChange={setBundleItems}
+                      currentProductId={id}
+                    />
+                  )}
+
+
                   {!isGiftCard && (
                     <>
                     {isEditing && id ? (
