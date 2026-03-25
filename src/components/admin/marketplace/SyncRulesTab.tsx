@@ -31,7 +31,7 @@ interface SyncRulesTabProps {
   onNavigateToProducts?: () => void;
 }
 
-export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
+export function SyncRulesTab({ connection, platformName, onNavigateToProducts }: SyncRulesTabProps) {
   const { connections } = useMarketplaceConnections();
   const {
     syncRules,
