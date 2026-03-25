@@ -85,7 +85,7 @@ export function SEOPreviewDialog({ open, onOpenChange, items, generateType, onAp
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6 max-h-[calc(85vh-12rem)]">
           <div className="space-y-4">
             {items.map((item) => {
               const isApproved = approvedIds.has(item.entity_id);
