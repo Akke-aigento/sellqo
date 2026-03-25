@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, RotateCcw, AlertCircle } from 'lucide-react';
+import { Loader2, Save, RotateCcw, AlertCircle, ArrowRight } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
