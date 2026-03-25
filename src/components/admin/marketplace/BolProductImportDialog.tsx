@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Loader2, Package, Search, CheckCircle, Link2, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Loader2, Package, Search, CheckCircle, Link2, ArrowUpDown, RefreshCw, ChevronDown, ChevronRight, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
