@@ -366,18 +366,47 @@ async function handleExport(supabase: any, connection: any, accessToken: string,
   return { success: true, exported, alreadyExists, errors, totalProcessed: exported + alreadyExists }
 }
 
-async function handleSyncSettings(supabase: any, connection: any, settings: Array<{ productId: string; syncEnabled: boolean }>) {
+async function handleSyncSettings(supabase: any, connection: any, settings: Array<{ productId: string; syncEnabled?: boolean; syncFields?: SyncFields }>) {
   let updated = 0, errors = 0
 
   for (const setting of settings) {
-    const { error } = await supabase
-      .from('products')
-      .update({ sync_inventory: setting.syncEnabled })
-      .eq('id', setting.productId)
-      .eq('tenant_id', connection.tenant_id)
+    try {
+      const updateData: any = {}
+      
+      if (setting.syncEnabled !== undefined) {
+        updateData.sync_inventory = setting.syncEnabled
+      }
 
-    if (error) { errors++; continue }
-    updated++
+      if (setting.syncFields) {
+        // Get current marketplace_mappings to merge
+        const { data: product } = await supabase
+          .from('products')
+          .select('marketplace_mappings')
+          .eq('id', setting.productId)
+          .eq('tenant_id', connection.tenant_id)
+          .single()
+
+        const currentMappings = product?.marketplace_mappings || {}
+        updateData.marketplace_mappings = {
+          ...currentMappings,
+          bol_com: {
+            ...(currentMappings.bol_com || {}),
+            syncFields: setting.syncFields,
+          }
+        }
+      }
+
+      if (Object.keys(updateData).length === 0) continue
+
+      const { error } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', setting.productId)
+        .eq('tenant_id', connection.tenant_id)
+
+      if (error) { errors++; continue }
+      updated++
+    } catch { errors++ }
   }
 
   return { success: true, updated, errors }
