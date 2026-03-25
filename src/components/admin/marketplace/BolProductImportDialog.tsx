@@ -379,57 +379,72 @@ export function BolProductImportDialog({ connectionId, onImportComplete }: BolPr
               </TableCell>
             </TableRow>
           ) : (
-            filteredOffers.map(offer => (
-              <TableRow
-                key={offer.offerId}
-                className={offer.alreadyLinked ? 'opacity-60' : 'cursor-pointer'}
-                onClick={() => !offer.alreadyLinked && toggleSelect(offer.offerId)}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={offer.alreadyLinked || selectedIds.has(offer.offerId)}
-                    disabled={offer.alreadyLinked}
-                    onCheckedChange={() => toggleSelect(offer.offerId)}
-                    onClick={e => e.stopPropagation()}
-                  />
-                </TableCell>
-                <TableCell className="font-medium max-w-[250px] truncate">{offer.title}</TableCell>
-                <TableCell className="font-mono text-xs">{offer.ean}</TableCell>
-                <TableCell className="text-right">€{offer.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{offer.stock}</TableCell>
-                <TableCell>
-                  <Badge variant={offer.fulfilmentMethod === 'FBB' ? 'default' : 'secondary'}>
-                    {offer.fulfilmentMethod}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {offer.alreadyLinked ? (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-xs">Gekoppeld</span>
-                    </div>
-                  ) : selectedIds.has(offer.offerId) ? (
-                    <div className="flex items-center gap-1 text-primary">
-                      <Link2 className="w-4 h-4" />
-                      <span className="text-xs">Geselecteerd</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Nieuw</span>
-                  )}
-                </TableCell>
-                {direction === 'bidirectional' && offer.alreadyLinked && offer.existingProductId && (
-                  <TableCell onClick={e => e.stopPropagation()}>
-                    <Switch
-                      checked={offer.syncEnabled ?? false}
-                      onCheckedChange={(checked) => handleSyncToggle(offer.existingProductId!, checked)}
-                    />
-                  </TableCell>
-                )}
-                {direction === 'bidirectional' && !offer.alreadyLinked && (
-                  <TableCell><span className="text-xs text-muted-foreground">—</span></TableCell>
-                )}
-              </TableRow>
-            ))
+            filteredOffers.map(offer => {
+              const isExpanded = expandedProductId === (offer.existingProductId || offer.offerId);
+              return (
+                <>
+                  <TableRow
+                    key={offer.offerId}
+                    className={offer.alreadyLinked ? 'cursor-pointer' : 'cursor-pointer'}
+                    onClick={() => {
+                      if (offer.alreadyLinked && offer.existingProductId) {
+                        setExpandedProductId(isExpanded ? null : offer.existingProductId);
+                      } else {
+                        toggleSelect(offer.offerId);
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      {offer.alreadyLinked ? (
+                        isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <Checkbox
+                          checked={selectedIds.has(offer.offerId)}
+                          onCheckedChange={() => toggleSelect(offer.offerId)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[250px] truncate">{offer.title}</TableCell>
+                    <TableCell className="font-mono text-xs">{offer.ean}</TableCell>
+                    <TableCell className="text-right">€{offer.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{offer.stock}</TableCell>
+                    <TableCell>
+                      <Badge variant={offer.fulfilmentMethod === 'FBB' ? 'default' : 'secondary'}>
+                        {offer.fulfilmentMethod}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {offer.alreadyLinked ? (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-xs">Gekoppeld</span>
+                        </div>
+                      ) : selectedIds.has(offer.offerId) ? (
+                        <div className="flex items-center gap-1 text-primary">
+                          <Link2 className="w-4 h-4" />
+                          <span className="text-xs">Geselecteerd</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Nieuw</span>
+                      )}
+                    </TableCell>
+                    {direction === 'bidirectional' && offer.alreadyLinked && offer.existingProductId && (
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <Switch
+                          checked={offer.syncEnabled ?? false}
+                          onCheckedChange={(checked) => handleSyncToggle(offer.existingProductId!, checked)}
+                        />
+                      </TableCell>
+                    )}
+                    {direction === 'bidirectional' && !offer.alreadyLinked && (
+                      <TableCell><span className="text-xs text-muted-foreground">—</span></TableCell>
+                    )}
+                  </TableRow>
+                  {isExpanded && offer.existingProductId && renderSyncFieldsRow(offer.existingProductId, offer.syncFields)}
+                </>
+              );
+            })
           )}
         </TableBody>
       </Table>
