@@ -34,7 +34,7 @@ type GenerateType = 'meta_title' | 'meta_description' | 'product_description' | 
 export function SEOOptimizeTab() {
   const { products, isLoading: isLoadingProducts } = useProducts();
   const { categories, isLoading: isLoadingCategories } = useCategories();
-  const { productScores } = useSEO();
+  const { productScores, categoryScores } = useSEO();
   const { currentTenant } = useTenant();
 
   const [entityTypeFilter, setEntityTypeFilter] = useState<'all' | 'product' | 'category'>('all');
