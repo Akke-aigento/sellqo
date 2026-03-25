@@ -248,6 +248,26 @@ export default function ProductForm() {
 
   const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
 
+  // Load bundle items when editing a bundle product
+  useEffect(() => {
+    if (isEditing && id && product?.product_type === 'bundle') {
+      supabase
+        .from('bundle_products')
+        .select('product_id, quantity, is_required')
+        .eq('bundle_id', id)
+        .order('sort_order')
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setBundleItems(data.map(d => ({
+              product_id: d.product_id,
+              quantity: d.quantity,
+              is_required: d.is_required,
+            })));
+          }
+        });
+    }
+  }, [isEditing, id, product?.product_type]);
+
   // Initialize selected categories from saved data via useEffect
   // to avoid race conditions when data is still loading
   useEffect(() => {
