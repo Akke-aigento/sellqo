@@ -451,6 +451,21 @@ export default function ProductForm() {
           primaryCategoryId: effectivePrimary,
         });
       }
+      // Save bundle items
+      if (productId && data.product_type === 'bundle') {
+        // Remove existing bundle products
+        await supabase.from('bundle_products').delete().eq('bundle_id', productId);
+        if (bundleItems.length > 0) {
+          const items = bundleItems.map((item, index) => ({
+            bundle_id: productId!,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            is_required: item.is_required,
+            sort_order: index,
+          }));
+          await supabase.from('bundle_products').insert(items);
+        }
+      }
       navigate('/admin/products');
     } catch (err: any) {
       console.error('Product save failed:', err);
