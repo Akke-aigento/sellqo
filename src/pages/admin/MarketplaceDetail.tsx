@@ -75,6 +75,7 @@ import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWid
 import { BolCsvImport } from '@/components/admin/marketplace/BolCsvImport';
 import { BolProductImportDialog } from '@/components/admin/marketplace/BolProductImportDialog';
 import { BolProductSyncTab } from '@/components/admin/marketplace/BolProductSyncTab';
+import { BolReturnsTab } from '@/components/admin/marketplace/BolReturnsTab';
 import { useAutoSync } from '@/hooks/useAutoSync';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
