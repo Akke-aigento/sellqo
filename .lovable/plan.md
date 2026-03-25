@@ -1,33 +1,26 @@
 
 
-## Klantaccounts voor Storefront — Status
+## Fix: Dubbele order-notificaties door duplicate trigger
 
-### Volledig afgerond
-1. ✅ StorefrontAuthContext + hook
-2. ✅ Login & Registratie pagina (ShopAuth) — incl. newsletter opt-in + B2B velden
-3. ✅ Wachtwoord reset pagina (ShopResetPassword)
-4. ✅ Account Dashboard (ShopAccount)
-5. ✅ Routes + Navigatie (App.tsx + ShopLayout header)
-6. ✅ Custom frontend reset-URL (edge function)
-7. ✅ Wishlist server-sync (WishlistContext)
-8. ✅ Checkout integratie (pre-fill + adresselectie + newsletter opt-in)
-9. ✅ Auto-sync storefront_customers → customers (CRM koppeling)
-10. ✅ Newsletter opt-in bij registratie + checkout
-11. ✅ B2B velden (bedrijfsnaam + BTW/VIES validatie) bij registratie
-12. ✅ Admin: Webshop Accounts overzichtspagina
-13. ✅ Admin: Webshop Account tab op klantdetail
+### Root cause
 
-## Customer Intelligence Suite — Status
+Er bestaan twee triggers op de `orders` tabel die **exact dezelfde functie** aanroepen:
 
-### Volledig afgerond
-1. ✅ Customer Intelligence Dashboard (RFM + CLV + Churn) — `/admin/customer-intelligence`
-2. ✅ Klant-timeline / 360° View — tab op klantdetail
-3. ✅ Automatische klanttags — database trigger (VIP, Slapend, Trouwe klant, B2B Verified, Omni-channel, etc.)
-4. ✅ Klant health scores — dashboard widget + hook
-5. ✅ Dashboard widget: Klanten met dalende score
+| Trigger | Functie | Event |
+|---|---|---|
+| `trigger_order_notification` | `handle_order_notification()` | AFTER INSERT OR UPDATE |
+| `on_order_notification` | `handle_order_notification()` | AFTER INSERT OR UPDATE |
 
-### Openstaand
-6. ⬜ Product-aanbevelingen per klant (cross-sell data uit order_items)
-7. ⬜ Geautomatiseerde klant-flows (verjaardag, herbestelling)
-8. ⬜ Advertentie-export (lookalike audiences CSV)
-9. ⬜ Omzet-attributie per acquisitiekanaal
+Elke keer dat een order wordt aangemaakt of gewijzigd, wordt `handle_order_notification()` twee keer uitgevoerd. Dit verklaart waarom elke notificatie dubbel verschijnt (bijv. "#1130 verzonden" x2, "#1127 afgeleverd" x2) en er twee e-mails worden gestuurd.
+
+### Fix
+
+**Database migratie:**
+- `DROP TRIGGER on_order_notification ON orders;` — de duplicate trigger verwijderen
+- `trigger_order_notification` blijft behouden als de enige trigger
+
+Eén SQL-statement, klaar.
+
+### Bestanden
+- Database migratie (1 regel)
+
