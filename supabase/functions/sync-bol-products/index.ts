@@ -170,6 +170,7 @@ async function handleList(supabase: any, connection: any, accessToken: string) {
       existingProductId: existing?.id || null,
       existingProductName: existing?.name || null,
       syncEnabled: existing?.sync_inventory ?? false,
+      syncFields: existing?.marketplace_mappings?.bol_com?.syncFields || null,
     }
   })
 
