@@ -142,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
                 ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code || ''} ${tenant.city || ''}${tenant.country ? `, ${tenant.country}` : ''}
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                Je kunt direct antwoorden op deze email. Je antwoord gaat naar ${replyToEmail}.
+                Je kunt direct antwoorden op deze email.
               </p>
             </td>
           </tr>
