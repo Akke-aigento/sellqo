@@ -468,7 +468,7 @@ export default function MarketplaceDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="orders">Orders ({realOrders.length})</TabsTrigger>
