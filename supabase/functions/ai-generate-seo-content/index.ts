@@ -11,6 +11,16 @@ interface TenantInfo {
   description: string | null;
 }
 
+// Resolve tenant language from storefront_settings
+async function getTenantLanguage(supabase: any, tenantId: string): Promise<string> {
+  const { data } = await supabase
+    .from("storefront_settings")
+    .select("storefront_default_language")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  return data?.storefront_default_language || 'nl';
+}
+
 async function generateContent(
   type: string,
   entity: { id: string; name: string; description?: string | null; price?: number },
@@ -142,6 +152,9 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Resolve tenant language
+    const lang = await getTenantLanguage(supabase, tenantId);
+
     // Calculate credits needed (1 per entity)
     const creditsNeeded = ids.length;
 
@@ -168,18 +181,42 @@ serve(async (req) => {
     const results: Array<{ entity_id: string; entity_name: string; generated: string; field: string; current_value: string | null }> = [];
 
     if (entityType === 'category') {
+      // Fetch categories with multilingual fields
       const { data: categories, error: categoriesError } = await supabase
         .from("categories")
-        .select("id, name, description, meta_title, meta_description")
+        .select("id, name, description, meta_title_nl, meta_title_en, meta_title_de, meta_title_fr, meta_description_nl, meta_description_en, meta_description_de, meta_description_fr")
         .in("id", ids);
 
       if (categoriesError) throw categoriesError;
 
       for (const category of categories || []) {
-        const generated = await generateContent(type, category, tenant, lovableApiKey, 'category');
+        // Normalize: use tenant language to resolve meta fields for AI context
+        const normalizedCategory = {
+          ...category,
+          description: category.description,
+          meta_title: (category as any)[`meta_title_${lang}`] || category.meta_title_nl || null,
+          meta_description: (category as any)[`meta_description_${lang}`] || category.meta_description_nl || null,
+        };
+
+        const generated = await generateContent(type, normalizedCategory, tenant, lovableApiKey, 'category');
         if (generated) {
-          const updateField = type === 'category_description' ? 'description' : type;
-          const currentValue = (category as any)[updateField] || null;
+          // Map the type to the actual DB column name (multilingual)
+          let updateField: string;
+          let currentValue: string | null;
+
+          if (type === 'meta_title') {
+            updateField = `meta_title_${lang}`;
+            currentValue = (category as any)[`meta_title_${lang}`] || null;
+          } else if (type === 'meta_description') {
+            updateField = `meta_description_${lang}`;
+            currentValue = (category as any)[`meta_description_${lang}`] || null;
+          } else if (type === 'category_description') {
+            updateField = 'description';
+            currentValue = category.description || null;
+          } else {
+            updateField = type;
+            currentValue = null;
+          }
           
           if (!preview) {
             const { error: updateError } = await supabase

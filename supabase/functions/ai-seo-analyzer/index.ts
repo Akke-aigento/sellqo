@@ -76,6 +76,7 @@ function analyzeCategory(category: any): { score: number; issues: SEOIssue[] } {
   const issues: SEOIssue[] = [];
   let score = 100;
 
+  // category already has normalized meta_title / meta_description
   if (!category.meta_title) {
     score -= 15;
     issues.push({ type: 'meta_title_missing', severity: 'warning', message: 'Meta title ontbreekt', field: 'meta_title', entity_id: category.id, entity_name: category.name });
@@ -113,6 +114,25 @@ function analyzeCategory(category: any): { score: number; issues: SEOIssue[] } {
   return { score: Math.max(0, score), issues };
 }
 
+// Resolve tenant language from storefront_settings
+async function getTenantLanguage(supabase: any, tenantId: string): Promise<string> {
+  const { data } = await supabase
+    .from("storefront_settings")
+    .select("storefront_default_language")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  return data?.storefront_default_language || 'nl';
+}
+
+// Normalize category: map multilingual fields to meta_title / meta_description
+function normalizeCategory(cat: any, lang: string) {
+  return {
+    ...cat,
+    meta_title: cat[`meta_title_${lang}`] || cat.meta_title_nl || null,
+    meta_description: cat[`meta_description_${lang}`] || cat.meta_description_nl || null,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -145,17 +165,22 @@ serve(async (req) => {
       );
     }
 
-    // Fetch products and categories in parallel
+    // Resolve tenant language
+    const lang = await getTenantLanguage(supabase, tenantId);
+
+    // Fetch products and categories in parallel — use multilingual columns for categories
     const [productsResult, categoriesResult] = await Promise.all([
       supabase.from("products").select("id, name, description, meta_title, meta_description, slug, images, is_active").eq("tenant_id", tenantId).eq("is_active", true),
-      supabase.from("categories").select("id, name, description, meta_title, meta_description, slug, image_url, is_active").eq("tenant_id", tenantId).eq("is_active", true),
+      supabase.from("categories").select("id, name, description, meta_title_nl, meta_title_en, meta_title_de, meta_title_fr, meta_description_nl, meta_description_en, meta_description_de, meta_description_fr, slug, image_url, is_active").eq("tenant_id", tenantId).eq("is_active", true),
     ]);
 
     if (productsResult.error) throw productsResult.error;
     if (categoriesResult.error) throw categoriesResult.error;
 
     const products = productsResult.data || [];
-    const categories = categoriesResult.data || [];
+    const rawCategories = categoriesResult.data || [];
+    // Normalize categories to have virtual meta_title / meta_description
+    const categories = rawCategories.map((c: any) => normalizeCategory(c, lang));
 
     const issues: SEOIssue[] = [];
     const suggestions: SEOSuggestion[] = [];
@@ -214,13 +239,13 @@ serve(async (req) => {
     }
     suggestions.push({ type: 'add_faq', priority: 'medium', title: 'Voeg FAQ sectie toe', description: 'FAQ content wordt vaak geciteerd door AI-zoekmachines. Voeg veelgestelde vragen toe aan je producten.', action: 'generate_faq', estimated_impact: 10 });
 
-    // BATCH upserts — tenant score
+    // BATCH upserts — tenant score (entity_id = tenantId for unique constraint)
     const { error: upsertError } = await supabase
       .from("seo_scores")
       .upsert({
         tenant_id: tenantId,
         entity_type: 'tenant',
-        entity_id: null,
+        entity_id: tenantId,
         overall_score: overallScore,
         meta_score: metaScore,
         content_score: contentScore,
@@ -231,7 +256,10 @@ serve(async (req) => {
         last_analyzed_at: new Date().toISOString(),
       }, { onConflict: 'tenant_id,entity_type,entity_id' });
 
-    if (upsertError) console.error("Error upserting tenant score:", upsertError);
+    if (upsertError) {
+      console.error("Error upserting tenant score:", upsertError);
+      throw new Error(`Score opslag mislukt: ${upsertError.message}`);
+    }
 
     // BATCH upsert all product scores in ONE call
     if (productScores.length > 0) {
