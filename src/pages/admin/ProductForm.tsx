@@ -1405,6 +1405,35 @@ export default function ProductForm() {
           </Tabs>
         </form>
       </Form>
+
+      {/* Floating action bar */}
+      {form.formState.isDirty && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width)] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg animate-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center justify-between px-6 py-3">
+            <p className="text-sm text-muted-foreground font-medium">
+              Onopgeslagen wijzigingen
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => form.reset()}>
+                Annuleren
+              </Button>
+              <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Opslaan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Opslaan
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
