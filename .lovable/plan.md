@@ -1,56 +1,40 @@
 
 
-## Retour Afhandeling: Review Workflow + Auto-Accept Toggle
+## Fix: Automatische aanhef/afsluiting + reply-to routing
 
-### Wat we bouwen
+### Issue 1: "Beste klant" en "Met vriendelijke groet" worden dubbel toegevoegd
 
-**1. Retour detail/review paneel**
-Klikbare rijen in de retourentabel. Bij klik opent een detail-dialog/sheet met:
-- Klantgegevens + bestelling link
-- Retour-reden (hoofdreden + detail van Bol.com)
-- Per item: product, EAN, hoeveelheid, reden
-- Interne notities veld (tenant kan aantekeningen maken)
-- Actieknoppen: **Accepteren** / **Afwijzen**
+De tenant typt het bericht in de dialog (bijv. "Goedenavond Brecht, Wij hebben uw retourverzoek ontvangen..."). Maar de edge function `send-customer-message/index.ts` wikkelt dat bericht in een HTML-template die **automatisch** toevoegt:
+- Regel 107: `Beste ${customer_name || 'klant'},` (aanhef)
+- Regel 138-140: `Met vriendelijke groet, ${fromName}` (afsluiting)
 
-**2. Accepteer/Afwijs flow**
-- "Accepteren" → update status naar `approved` in DB + call naar Bol.com API (`PUT /returns/{returnId}`) met `handlingResult: RETURN_RECEIVED`
-- "Afwijzen" → status `rejected` + Bol.com API met `handlingResult: RETURN_DOES_NOT_MEET_CONDITIONS`
-- Na actie: toast bevestiging + tabel refresh
+Het resultaat: de tenant's eigen aanhef + de automatische aanhef, en de tenant's eigen afsluiting + de automatische afsluiting. Vandaar de dubbele "Met vriendelijke groet, VanXcel" in de screenshot.
 
-**3. Edge function: `handle-bol-return`**
-Nieuwe edge function die de Bol.com Returns API aanroept om een retour te accepteren of af te wijzen. Accepteert `connectionId`, `returnId`, `action` (accept/reject) en optioneel `quantityReturned`.
+**Fix**: Verwijder de hardcoded aanhef (regel 106-108) en afsluiting (regel 137-141) uit de HTML-template. De tenant bepaalt zelf wat er in het bericht staat — de template moet alleen de wrapper (header, footer, styling) toevoegen, niet de inhoud aanpassen.
 
-**4. Auto-accept toggle in connection settings**
-In de `marketplace_connections.settings` JSON een `autoAcceptReturns: boolean` veld. Toggle zichtbaar in de Retouren tab header. Wanneer aan: de `sync-bol-returns` function accepteert nieuwe retouren automatisch via de Bol.com API bij sync.
+### Issue 2: Antwoorden komen in info@vanxcel.com, niet in SellQo
 
-**5. Interne notities kolom**
-Migratie: `ALTER TABLE returns ADD COLUMN internal_notes text`. Tenant kan per retour notities opslaan voor intern gebruik.
+Regel 75: `const replyToEmail = tenant.owner_email || "noreply@sellqo.app";`
+Regel 207: `reply_to: replyToEmail`
+
+De `reply_to` wordt ingesteld op `tenant.owner_email` — dat is `info@vanxcel.com`. Dus als een klant antwoordt, gaat het naar die mailbox en niet naar SellQo.
+
+**Fix**: Dit hangt af van of SellQo inbound email processing actief is. Als dat zo is, moet reply-to naar het SellQo inbound-adres wijzen (bijv. een uniek doorsturadres per tenant). Als inbound niet actief is, is het huidige gedrag eigenlijk correct — antwoorden gaan naar de tenant's eigen mailbox.
+
+Ik ga even checken hoe inbound email werkt in dit project.
 
 ### Bestanden
 
-| Bestand | Actie |
+| Bestand | Wijziging |
 |---|---|
-| SQL migratie | `internal_notes` kolom op `returns` |
-| `supabase/functions/handle-bol-return/index.ts` | **Nieuw** — accept/reject via Bol.com API |
-| `supabase/functions/sync-bol-returns/index.ts` | Auto-accept logica toevoegen wanneer setting aan staat |
-| `src/components/admin/marketplace/BolReturnsTab.tsx` | Klikbare rijen, detail dialog, accept/reject knoppen, auto-accept toggle, notities |
+| `supabase/functions/send-customer-message/index.ts` | Verwijder hardcoded "Beste klant" aanhef en "Met vriendelijke groet" afsluiting uit de HTML-template. Tenant's `body_html` wordt direct in de content-sectie geplaatst zonder extra tekst eromheen. |
 
-### Flow
+### Wat er overblijft in de template
+- Header met logo/naam (branding)
+- De `body_html` van de tenant (ongewijzigd)
+- Optioneel bestel-/offerteblok
+- Footer met adresgegevens
 
-```text
-Retour binnenkomt via sync
-  → Status "Aangemeld" (oranje badge)
-  → Tenant klikt op retour → detail dialog opent
-  → Bekijkt reden, klant, items
-  → Voegt eventueel notitie toe
-  → Klikt "Accepteren" of "Afwijzen"
-  → Edge function → Bol.com API
-  → Status update in DB
-  → Tabel refresht
-
-OF: Auto-accept AAN
-  → Sync haalt nieuwe retour op
-  → Automatisch accepteren via Bol.com API
-  → Status direct "Goedgekeurd"
-```
+### Reply-to gedrag
+Het huidige gedrag (`reply_to: tenant.owner_email`) is by design — antwoorden gaan naar de tenant's eigen mailbox. Als je wilt dat antwoorden in de SellQo inbox terechtkomen, moet de inbound email forwarding actief zijn en de reply-to naar het SellQo forwarding-adres wijzen. Dit is een apart configuratiepunt dat nu al werkt via de inbox-instellingen. Geen wijziging nodig tenzij je dit expliciet wilt veranderen.
 
