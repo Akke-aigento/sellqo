@@ -282,6 +282,21 @@ export default function ShopProductDetail() {
                   logoUrl={(tenant as any)?.logo_url || undefined}
                 />
               </div>
+            ) : product.product_type === 'bundle' && product.bundle_items?.length > 0 ? (
+              <>
+                <BundleContentsSection
+                  items={product.bundle_items}
+                  bundlePrice={displayPrice}
+                  individualTotal={product.bundle_individual_total || 0}
+                  currency={tenant?.currency || 'EUR'}
+                  tenantSlug={tenantSlug || ''}
+                />
+                <Button size="lg" className="w-full mb-6" onClick={handleAddBundleToCart}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
+                  <Layers className="h-5 w-5 mr-2" />
+                  Voeg bundel toe aan winkelwagen
+                </Button>
+              </>
             ) : (
               <>
                 {/* Viewers count */}
