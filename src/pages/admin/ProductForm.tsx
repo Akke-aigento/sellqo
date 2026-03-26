@@ -553,7 +553,7 @@ export default function ProductForm() {
   }
 
   return (
-    <div className={cn("space-y-6", form.formState.isDirty && "pb-20")}>
+    <div className={cn("space-y-6", hasUnsavedChanges && "pb-20")}>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin/products')}>
