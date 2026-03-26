@@ -345,6 +345,40 @@ export default function OrderDetailPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Retour knop */}
+              {order.payment_status === 'paid' && order.status !== 'cancelled' && (
+                <Button
+                  variant="outline"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => setShowRefundDialog(true)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retour verwerken
+                </Button>
+              )}
+
+              {/* Bestaande retouren */}
+              {orderReturns.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Retouren</label>
+                  {orderReturns.map((ret) => (
+                    <div key={ret.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                      <div>
+                        <div className="font-medium">{ret.return_reason || 'Retour'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {ret.refund_method === 'stripe' ? 'Stripe' : 'Handmatig'} — {ret.refund_status}
+                        </div>
+                      </div>
+                      {ret.refund_amount && (
+                        <Badge variant={ret.refund_status === 'processed' ? 'default' : 'outline'}>
+                          {formatCurrency(ret.refund_amount)}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
