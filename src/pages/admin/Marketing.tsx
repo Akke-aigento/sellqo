@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles } from 'lucide-react';
+import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles, X, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
