@@ -155,6 +155,7 @@ const App = () => (
             <Route path="/shop/:tenantSlug/contact" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopContact /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/login" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAuth /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/reset-password" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopResetPassword /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/verify-email" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopVerifyEmail /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/account" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAccount /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             
             {/* Dedicated kassa route - outside AdminLayout for tablet kiosk mode */}
