@@ -1,87 +1,58 @@
 
 
-## Analyse: Segmenten, Advertenties & Campagnes — Wat Ontbreekt
+## Custom Frontend Documentatie Uitbreiden — Ontbrekende Prompts
 
-### Huidige staat per module
+### Huidige staat
+De `CustomFrontendConfigurator.tsx` bevat 5 prompts die de basis dekken (client, proxy, checkout, footer, contact). Maar de API heeft intussen veel meer functionaliteit die **niet gedocumenteerd** is in de prompts.
 
-**Segmenten (SegmentBuilder + SegmentDialog)**
-- Basisfilters werken: klanttype, landen, bestellingen, besteed bedrag, engagement score
-- Ontbreekt:
-  - Geen bewerkfunctie (edit) voor bestaande segmenten — alleen aanmaken + verwijderen
-  - Geen RFM-tags of auto-tags als filtercriterium (terwijl auto-tagging al bestaat in Customer Intelligence)
-  - Geen "product-gekocht" of "categorie" filter (belangrijk voor remarketing)
-  - Geen "aangepast veld" / tags filter
-  - Geen preview van individuele klanten in het segment
-  - Segmenten worden NIET gedeeld tussen Email Marketing en Advertenties — terwijl de database dit al ondersteunt (`ad_campaigns.segment_id`)
+### Wat ontbreekt (en dus niet functioneel zou zijn op een custom frontend)
 
-**Advertenties (Ads module)**
-- Dashboard toont stats + actieve campagnes
-- CampaignWizard heeft: platform, type, naam, budget, ROAS
-- Ontbreekt:
-  - **Geen productselectie** — je kunt geen producten kiezen voor Sponsored Products / Shopping campagnes, terwijl `product_ids` en `category_ids` kolommen bestaan
-  - **Geen segment/doelgroep stap** — `segment_id` en `audience_type` bestaan in DB maar worden niet gebruikt in de wizard
-  - **Geen creatives beheer** — `ad_creatives` tabel bestaat maar er is geen UI om afbeeldingen, headlines, of beschrijvingen toe te voegen
-  - **Geen campagne detail/edit pagina** — "Bewerken" in dropdown doet niets
-  - **Geen datum selectie** — start/einddatum ontbreekt in wizard terwijl kolommen bestaan
-  - **Geen audience syncs UI** — `ad_audience_syncs` tabel bestaat maar nergens zichtbaar
-  - **Geen performance grafieken per campagne** — alleen totaalcijfers
-  - **AI Suggesties** is een lege placeholder
+| Feature | API Endpoints (bestaan al) | Prompt? |
+|---|---|---|
+| **Klantaccounts** (registratie, login, e-mailverificatie, profiel, wachtwoord reset) | `storefront-customer-api`: register, login, verify_email, resend_verification, get_profile, update_profile, change_password, request_password_reset, reset_password | ✅ Prompt 6 |
+| **Bestelgeschiedenis & adressen** | get_orders, get_order, get_addresses, add/update/delete_address | ✅ Prompt 7 |
+| **Wishlist/Favorieten** | wishlist_get, wishlist_add, wishlist_remove | ✅ Prompt 7 |
+| **B2B velden** (bedrijfsnaam, BTW-nummer met VIES validatie) | register + update_profile params: company_name, vat_number | ✅ Prompt 6 |
+| **Bundel producten** | get_product retourneert nu bundle_items + bundle_individual_total | ✅ Prompt 8 |
+| **Nieuwsbrief** | POST /newsletter/subscribe | ✅ Prompt 9 |
+| **Reviews** | GET /reviews, GET /products/{slug}/reviews | ✅ Prompt 8 |
+| **Zoeken** | GET /search?q=... | ✅ Prompt 8 |
+| **Navigatie** | GET /navigation (main menu, footer menu) | ✅ Prompt 9 |
+| **Gift cards** | GET /gift-cards, POST /gift-cards/balance | ✅ Prompt 9 |
+| **Verzendmethoden & servicepunten** | GET /shipping, GET /service-points | ✅ Prompt 11 |
+| **Promoties/kortingen** | calculate_promotions, validate_discount_code, cart discount endpoints | ✅ Prompt 11 |
+| **SEO & Sitemap** | GET /seo, GET /sitemap | ✅ Prompt 10 |
+| **Settings sub-endpoints** | GET /settings/social, /trust, /conversion, /checkout, /languages | ✅ Prompt 10 |
+| **Migratie-compatibele registratie** | Claim-flow voor gemigreerde klanten zonder wachtwoord | ✅ Prompt 6 |
 
-**Email Campagnes (Marketing module)**
-- Basis werkt: aanmaken, template kiezen, segment kiezen, versturen
-- Ontbreekt:
-  - **Geen campagne detail pagina** met per-ontvanger resultaten
-  - Segmenten zijn niet bewerkbaar vanuit de campagne-flow
-  - **Geen link tussen email campagnes en ad campagnes** — bijv. retargeting op basis van email non-openers
-
-### Samenhang-problemen
-
-1. **Segmenten leven op twee plekken** — Marketing tab en Ads wizard, maar zijn niet verbonden
-2. **Geen cross-channel view** — je kunt niet zien welke klanten via email EN ads zijn bereikt
-3. **Productselectie** zit nergens — niet in ads wizard, niet als segment filter
+### Status: ✅ VOLLEDIG — Alle 11 prompts zijn geïmplementeerd
 
 ---
 
-### Plan: Wat te bouwen (prioriteit)
+## Segmenten, Advertenties & Campagnes — Verbeteringen
 
-**Fase 1 — Kritische ontbrekende functionaliteit**
+### Fase 1 — Kritische ontbrekende functionaliteit ✅ VOLTOOID
 
-| # | Wat | Waar |
+| # | Wat | Status |
 |---|---|---|
-| 1 | **Productselectie stap in CampaignWizard** | Nieuwe wizard stap "Producten" tussen type en budget: zoek/selecteer producten + categorieën |
-| 2 | **Doelgroep/Segment stap in CampaignWizard** | Nieuwe wizard stap: kies bestaand segment OF maak doelgroep (audience_type) |
-| 3 | **Datumkiezer in CampaignWizard** | Start/einddatum in de budget-stap |
-| 4 | **Creatives tab/sectie bij campagne** | Na aanmaken: voeg headlines, beschrijvingen, afbeeldingen toe per campagne |
-| 5 | **Campagne detail pagina** | Klikbare campagne → detail view met stats, creatives, producten, bewerk-opties |
+| 1 | **Productselectie stap in CampaignWizard** | ✅ |
+| 2 | **Doelgroep/Segment stap in CampaignWizard** | ✅ |
+| 3 | **Datumkiezer in CampaignWizard** | ✅ |
+| 4 | **Creatives beheer (CreativeManager)** | ✅ |
+| 5 | **Campagne detail pagina** | ✅ |
 
-**Fase 2 — Segmenten verbeteren**
+### Fase 2 — Segmenten verbeteren ✅ VOLTOOID
 
-| # | Wat | Waar |
+| # | Wat | Status |
 |---|---|---|
-| 6 | **Segment bewerken** | Edit-knop op segmentkaart → SegmentDialog met bestaande data |
-| 7 | **Extra filters in SegmentBuilder** | Product gekocht, categorie, auto-tags (VIP, Sleeping, etc.), registratiedatum |
-| 8 | **Klantpreview in segment** | "Bekijk klanten" knop → tabel met eerste 50 klanten die matchen |
+| 6 | **Segment bewerken** | ✅ |
+| 7 | **Extra filters (auto-tags, registratiedatum)** | ✅ |
+| 8 | **Klantpreview** | 🔜 Volgende iteratie |
 
-**Fase 3 — Samenhang & Cross-channel**
+### Fase 3 — Samenhang & Cross-channel
 
-| # | Wat | Waar |
+| # | Wat | Status |
 |---|---|---|
-| 9 | **Gedeelde segmenten widget** | Segment selectie-component herbruikbaar voor zowel email als ads |
-| 10 | **Campagne performance grafieken** | Lijn/balk charts per campagne (impressies, clicks, ROAS over tijd) |
-| 11 | **AI Suggesties invullen** | Op basis van verkoopdata: suggereer "Promoot bestsellers", "Retarget cart abandoners", etc. |
-
-### Technische aanpak
-
-- **CampaignWizard.tsx**: voeg 2 extra stappen toe (`products` + `audience`) aan de steps array; gebruik bestaand ProductSelectDialog voor productkeuze
-- **CampaignCard.tsx**: maak klikbaar naar een nieuwe detail-route `/admin/ads/campaign/:id`
-- **SegmentBuilder.tsx**: voeg filters toe voor `purchased_product_ids`, `tags`, `registration_date_range`
-- **SegmentDialog.tsx**: accepteer een `segment` prop voor edit-modus (deels al voorbereid)
-- **Nieuw component**: `CampaignDetailPage.tsx` met tabs (Overzicht, Creatives, Producten, Doelgroep)
-- **Nieuw component**: `CreativeManager.tsx` voor het beheren van ad_creatives per campagne
-- Database: geen migraties nodig — alle kolommen bestaan al
-
-### Omvang
-Fase 1 (5 items) is het belangrijkst — zonder productselectie en doelgroep zijn advertentiecampagnes functioneel onbruikbaar. Fase 2 en 3 zijn verbeteringen.
-
-Zal ik met Fase 1 beginnen?
-
+| 9 | Gedeelde segmenten widget | 🔜 |
+| 10 | Performance grafieken per campagne | 🔜 |
+| 11 | AI Suggesties invullen | 🔜 |
