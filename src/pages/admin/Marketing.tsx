@@ -21,6 +21,7 @@ export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<any>(null);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
