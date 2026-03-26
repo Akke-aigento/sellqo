@@ -359,11 +359,24 @@ export default function MarketingPage() {
 
       <SegmentDialog
         open={segmentDialogOpen}
-        onOpenChange={setSegmentDialogOpen}
-        onSave={(data) => {
-          createSegment.mutate(data as any, { onSuccess: () => setSegmentDialogOpen(false) });
+        onOpenChange={(open) => {
+          setSegmentDialogOpen(open);
+          if (!open) setEditingSegment(null);
         }}
-        isLoading={createSegment.isPending}
+        segment={editingSegment}
+        onSave={(data) => {
+          if (editingSegment) {
+            updateSegment.mutate({ id: editingSegment.id, ...data } as any, {
+              onSuccess: () => {
+                setSegmentDialogOpen(false);
+                setEditingSegment(null);
+              },
+            });
+          } else {
+            createSegment.mutate(data as any, { onSuccess: () => setSegmentDialogOpen(false) });
+          }
+        }}
+        isLoading={editingSegment ? updateSegment.isPending : createSegment.isPending}
       />
     </div>
   );
