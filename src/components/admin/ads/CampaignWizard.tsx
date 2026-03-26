@@ -55,18 +55,22 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
     queryKey: ['products-for-ads', currentTenant?.id, productSearch],
     queryFn: async () => {
       if (!currentTenant?.id) return [];
-      let query = supabase
+      const filters: Record<string, string> = {
+        tenant_id: currentTenant.id,
+        status: 'active',
+      };
+      let q = supabase
         .from('products')
         .select('id, name, price, images')
         .eq('tenant_id', currentTenant.id)
         .eq('status', 'active')
         .limit(20);
       if (productSearch) {
-        query = query.ilike('name', `%${productSearch}%`);
+        q = q.ilike('name', `%${productSearch}%`) as typeof q;
       }
-      const { data, error } = await query;
+      const { data, error } = await q;
       if (error) throw error;
-      return data;
+      return data as { id: string; name: string; price: number; images: string[] | null }[];
     },
     enabled: !!currentTenant?.id && step === 'products',
   });
