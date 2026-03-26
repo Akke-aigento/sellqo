@@ -8,6 +8,7 @@ import { ArrowLeft, Edit, Pause, Play, Trash2, TrendingUp, Image, Package, Users
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { AD_PLATFORMS, CAMPAIGN_TYPES, type AdCampaign, type AdCampaignStatus } from '@/types/ads';
 import { CreativeManager } from './CreativeManager';
+import { CampaignPerformanceChart } from './CampaignPerformanceChart';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -148,6 +149,9 @@ export function CampaignDetailPage({ campaignId, onBack }: CampaignDetailPagePro
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Performance Chart */}
+          <CampaignPerformanceChart campaign={campaign} />
+
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>

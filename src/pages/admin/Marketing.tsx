@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles, X, Edit } from 'lucide-react';
+import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles, X, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SegmentCustomerPreview } from '@/components/admin/marketing/SegmentCustomerPreview';
 
 export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
@@ -23,6 +24,7 @@ export default function MarketingPage() {
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
   const [editingSegment, setEditingSegment] = useState<any>(null);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [previewSegment, setPreviewSegment] = useState<any>(null);
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
@@ -300,7 +302,7 @@ export default function MarketingPage() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{segment.name}</CardTitle>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
+                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
@@ -310,6 +312,14 @@ export default function MarketingPage() {
                           }}
                         >
                           <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setPreviewSegment(segment)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -378,6 +388,15 @@ export default function MarketingPage() {
         }}
         isLoading={editingSegment ? updateSegment.isPending : createSegment.isPending}
       />
+
+      {previewSegment && (
+        <SegmentCustomerPreview
+          open={!!previewSegment}
+          onOpenChange={(open) => { if (!open) setPreviewSegment(null); }}
+          segmentName={previewSegment.name}
+          filterRules={previewSegment.filter_rules || {}}
+        />
+      )}
     </div>
   );
 }
