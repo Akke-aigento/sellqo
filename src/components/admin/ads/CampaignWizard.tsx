@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
+import { SegmentSelector } from '@/components/admin/shared/SegmentSelector';
 import { AD_PLATFORMS, CAMPAIGN_TYPES, type AdPlatform, type CampaignType, type AudienceType } from '@/types/ads';
 import { ArrowLeft, ArrowRight, Check, Loader2, CalendarIcon, Package, Search, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
