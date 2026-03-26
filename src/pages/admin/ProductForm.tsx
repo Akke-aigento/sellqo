@@ -247,6 +247,10 @@ export default function ProductForm() {
   const isBundle = productType === 'bundle';
 
   const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
+  const [initialBundleItems, setInitialBundleItems] = useState<BundleItem[]>([]);
+
+  const isBundleItemsDirty = JSON.stringify(bundleItems) !== JSON.stringify(initialBundleItems);
+  const hasUnsavedChanges = form.formState.isDirty || isBundleItemsDirty;
 
   // Load bundle items when editing a bundle product
   useEffect(() => {
