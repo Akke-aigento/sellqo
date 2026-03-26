@@ -55,10 +55,10 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
     queryKey: ['products-for-ads', currentTenant?.id, productSearch],
     queryFn: async (): Promise<{ id: string; name: string; price: number; images: string[] | null }[]> => {
       if (!currentTenant?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('products')
         .select('id, name, price, images')
-        .eq('tenant_id', currentTenant.id)
+        .eq('tenant_id', currentTenant.id) as any)
         .eq('status', 'active')
         .limit(20);
       if (error) throw error;
