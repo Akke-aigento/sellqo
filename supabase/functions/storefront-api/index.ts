@@ -496,6 +496,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
       total_count: reviews?.length || 0,
     },
+    ...(bundleItems.length > 0 ? { bundle_items: bundleItems, bundle_individual_total: bundleIndividualTotal } : {}),
   };
 }
 
