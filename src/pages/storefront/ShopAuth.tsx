@@ -162,11 +162,28 @@ export default function ShopAuth() {
           <TabsContent value="register">
             <Card>
               <CardHeader>
-                <CardTitle>Account aanmaken</CardTitle>
-                <CardDescription>Maak een account aan om je bestellingen te volgen</CardDescription>
+                <CardTitle>{registrationSuccess ? 'Controleer je e-mail' : 'Account aanmaken'}</CardTitle>
+                <CardDescription>{registrationSuccess ? 'We hebben een verificatiemail verstuurd' : 'Maak een account aan om je bestellingen te volgen'}</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleRegister} className="space-y-4">
+                {registrationSuccess ? (
+                  <div className="text-center space-y-4 py-4">
+                    <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+                    <p className="text-muted-foreground">
+                      We hebben een verificatiemail verstuurd naar <strong>{regEmail}</strong>. Klik op de link in de e-mail om je account te bevestigen.
+                    </p>
+                    <p className="text-sm text-muted-foreground">Geen e-mail ontvangen? Controleer je spam-map of</p>
+                    <Button variant="outline" onClick={() => handleResendVerification(regEmail)} disabled={resending}>
+                      {resending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                      Verificatiemail opnieuw versturen
+                    </Button>
+                    <div>
+                      <Button variant="ghost" onClick={() => { setRegistrationSuccess(false); setActiveTab('login'); }}>
+                        Ga naar inloggen
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="reg-first">Voornaam</Label>
