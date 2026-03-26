@@ -388,6 +388,15 @@ export default function MarketingPage() {
         }}
         isLoading={editingSegment ? updateSegment.isPending : createSegment.isPending}
       />
+
+      {previewSegment && (
+        <SegmentCustomerPreview
+          open={!!previewSegment}
+          onOpenChange={(open) => { if (!open) setPreviewSegment(null); }}
+          segmentName={previewSegment.name}
+          filterRules={previewSegment.filter_rules || {}}
+        />
+      )}
     </div>
   );
 }

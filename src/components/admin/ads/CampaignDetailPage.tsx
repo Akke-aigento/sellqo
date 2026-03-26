@@ -149,6 +149,9 @@ export function CampaignDetailPage({ campaignId, onBack }: CampaignDetailPagePro
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Performance Chart */}
+          <CampaignPerformanceChart campaign={campaign} />
+
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
