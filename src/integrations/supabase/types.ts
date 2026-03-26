@@ -9571,15 +9571,21 @@ export type Database = {
           id: string
           internal_notes: string | null
           items: Json | null
-          marketplace_connection_id: string
+          marketplace_connection_id: string | null
           marketplace_order_id: string | null
-          marketplace_return_id: string
+          marketplace_return_id: string | null
           order_id: string | null
           raw_marketplace_data: Json | null
+          refund_amount: number | null
+          refund_method: string | null
+          refund_notes: string | null
+          refund_status: string | null
           registration_date: string | null
           return_reason: string | null
           return_reason_code: string | null
+          source: string | null
           status: Database["public"]["Enums"]["return_status"]
+          stripe_refund_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -9590,15 +9596,21 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           items?: Json | null
-          marketplace_connection_id: string
+          marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
-          marketplace_return_id: string
+          marketplace_return_id?: string | null
           order_id?: string | null
           raw_marketplace_data?: Json | null
+          refund_amount?: number | null
+          refund_method?: string | null
+          refund_notes?: string | null
+          refund_status?: string | null
           registration_date?: string | null
           return_reason?: string | null
           return_reason_code?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["return_status"]
+          stripe_refund_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -9609,15 +9621,21 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           items?: Json | null
-          marketplace_connection_id?: string
+          marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
-          marketplace_return_id?: string
+          marketplace_return_id?: string | null
           order_id?: string | null
           raw_marketplace_data?: Json | null
+          refund_amount?: number | null
+          refund_method?: string | null
+          refund_notes?: string | null
+          refund_status?: string | null
           registration_date?: string | null
           return_reason?: string | null
           return_reason_code?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["return_status"]
+          stripe_refund_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
