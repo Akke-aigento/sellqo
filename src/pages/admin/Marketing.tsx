@@ -27,7 +27,7 @@ export default function MarketingPage() {
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
   const { templates, isLoading: templatesLoading, createTemplate, deleteTemplate } = useEmailTemplates();
-  const { segments, isLoading: segmentsLoading, createSegment, deleteSegment } = useCustomerSegments();
+  const { segments, isLoading: segmentsLoading, createSegment, updateSegment, deleteSegment } = useCustomerSegments();
 
   const defaultStats = {
     totalCampaigns: 0, totalSent: 0, totalOpened: 0, totalClicked: 0,
