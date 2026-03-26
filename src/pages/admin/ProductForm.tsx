@@ -454,21 +454,25 @@ export default function ProductForm() {
       // Save bundle items
       if (productId && data.product_type === 'bundle' && currentTenant) {
         // Upsert a product_bundles record using the product ID
-        const bundleSlug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        await supabase.from('product_bundles').upsert({
+        const bundleSlug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + productId!.slice(0, 8);
+        const { error: bundleError } = await supabase.from('product_bundles').upsert({
           id: productId,
           name: data.name,
           slug: bundleSlug,
           description: data.description || null,
           bundle_type: 'fixed',
-          discount_type: 'none',
+          discount_type: 'percentage',
           discount_value: 0,
           is_active: data.is_active,
           tenant_id: currentTenant.id,
         }, { onConflict: 'id' });
 
+        if (bundleError) throw new Error(`Bundel opslaan mislukt: ${bundleError.message}`);
+
         // Remove existing bundle products and re-insert
-        await supabase.from('bundle_products').delete().eq('bundle_id', productId);
+        const { error: deleteError } = await supabase.from('bundle_products').delete().eq('bundle_id', productId);
+        if (deleteError) throw new Error(`Bundel items verwijderen mislukt: ${deleteError.message}`);
+
         if (bundleItems.length > 0) {
           const items = bundleItems.map((item, index) => ({
             bundle_id: productId!,
@@ -477,7 +481,8 @@ export default function ProductForm() {
             is_required: item.is_required,
             sort_order: index,
           }));
-          await supabase.from('bundle_products').insert(items);
+          const { error: insertError } = await supabase.from('bundle_products').insert(items);
+          if (insertError) throw new Error(`Bundel items opslaan mislukt: ${insertError.message}`);
         }
       }
       navigate('/admin/products');
