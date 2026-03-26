@@ -315,6 +315,25 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="returns">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Alle retouren
+              </CardTitle>
+              <CardDescription>
+                Retouren van alle kanalen (webshop, marktplaatsen, POS)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ReturnsOverview />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
