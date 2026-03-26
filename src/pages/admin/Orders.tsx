@@ -161,6 +161,19 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList>
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Bestellingen
+          </TabsTrigger>
+          <TabsTrigger value="returns" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Retouren
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-6">
       {/* Filters */}
       <OrderFilters filters={filters} onFiltersChange={setFilters} />
 
