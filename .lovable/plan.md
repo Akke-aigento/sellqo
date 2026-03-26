@@ -1,96 +1,80 @@
 
 
-## Prompt voor Vanxcel Custom Frontend: Bundels, BTW-nummer, Nieuwsbrief
+## Migratie-compatibele Registratie + E-mailbevestiging
 
-### Overzicht
-Er zijn 3 zaken die in het Vanxcel-project moeten worden toegevoegd/verbeterd:
+### Huidige situatie
 
-1. **Bundel producten renderen op de productpagina**
-2. **BTW-nummer + bedrijfsnaam bij registratie en account**
-3. **Nieuwsbrief via de SellQo API i.p.v. externe redirect**
+1. **`password_hash` is `NOT NULL`** — gemigreerde klanten kunnen niet eens in `storefront_customers` staan zonder wachtwoord
+2. **Register action (regel 131-132)** gooit altijd "email already exists" als het e-mailadres al bestaat, ongeacht of er een wachtwoord is
+3. **Geen e-mailverificatie** — registratie geeft direct een token, geen bevestigingsmail
 
-### Voorwaarde: SellQo API moet eerst bundel-data teruggeven
+### Wat we bouwen
 
-De `storefront-api` edge function (`getProduct()`) retourneert momenteel GEEN `bundle_items` bij bundelproducten. Dit moet **eerst in SellQo** worden toegevoegd voordat Vanxcel het kan renderen. Specifiek:
+**1. Database migratie**
 
-**In SellQo (dit project) — storefront-api aanpassen:**
-- Na het ophalen van het product (rond regel 420), als `product.product_type === 'bundle'`:
-  - Query `bundle_products` tabel voor dit product ID
-  - Haal bijbehorende product-details op (naam, prijs, afbeeldingen, slug)
-  - Bereken `individual_total`
-  - Voeg `bundle_items` en `bundle_individual_total` toe aan de response
-
-### Daarna: Prompt voor het Vanxcel project
-
----
-
-**Prompt om te sturen naar het Vanxcel project:**
-
-> ### 1. Bundel Product Weergave op Productpagina
->
-> De SellQo API retourneert nu `bundle_items` en `bundle_individual_total` bij producten met `product_type === 'bundle'`. 
->
-> **Types uitbreiden** (`src/integrations/sellqo/types.ts`):
-> ```typescript
-> export interface BundleItem {
->   product_id: string;
->   quantity: number;
->   is_required: boolean;
->   product: { id: string; name: string; price: number; images: string[] | null; slug: string; };
-> }
-> ```
-> Voeg aan `Product` toe: `bundle_items?: BundleItem[]` en `bundle_individual_total?: number`.
->
-> **Normalizer uitbreiden** (`normalizer.ts`): Map `raw.bundle_items` en `raw.bundle_individual_total` door naar het Product object.
->
-> **Nieuw component** `src/components/BundleContents.tsx`: Maak een bundel-sectie die verschijnt wanneer `product.product_type === 'bundle'` en `product.bundle_items?.length > 0`. Toon:
-> - Header met "In deze bundel (X producten)" + besparingspercentage badge
-> - Per item: afbeelding (80×80), productnaam als klikbare link naar `/products/{slug}`, individuele prijs (doorgestreept), hoeveelheid badge als > 1
-> - Footer met prijsvergelijking: totaal los vs. bundelprijs + besparing in euro's
-> - "Voeg bundel toe aan winkelwagen" knop die alle bundel-items toevoegt aan de cart
->
-> **ProductDetail.tsx aanpassen**: Render `<BundleContents>` onder de productafbeelding wanneer het een bundelproduct is.
->
-> ### 2. BTW-nummer & Bedrijfsnaam bij Registratie en Account
->
-> De `storefront-customer-api` ondersteunt al `company_name`, `vat_number`, en `newsletter_opt_in` bij zowel `register` als `update_profile`. Het BTW-nummer wordt automatisch gevalideerd via VIES.
->
-> **Login.tsx — Registratieformulier uitbreiden:**
-> - Voeg optionele velden toe: "Bedrijfsnaam" en "BTW-nummer" (met placeholder bijv. `BE0123456789`)
-> - Voeg een checkbox toe: "Schrijf mij in voor de nieuwsbrief"
-> - Stuur deze mee bij `register()`: `company_name`, `vat_number`, `newsletter_opt_in`
->
-> **CustomerAuthContext.tsx uitbreiden:**
-> - Voeg aan de `Customer` interface toe: `company_name?: string`, `vat_number?: string`, `vat_verified?: boolean`, `newsletter_opted_in?: boolean`
-> - Pas `register()` aan om de extra velden door te geven
-> - Pas `updateProfile()` aan om `company_name`, `vat_number`, `newsletter_opt_in` te ondersteunen
->
-> **Account.tsx — Profiel tab uitbreiden:**
-> - Toon "Bedrijfsnaam" veld (bewerkbaar)
-> - Toon "BTW-nummer" veld (bewerkbaar) met een verified-badge als `vat_verified === true`
-> - Toon "Nieuwsbrief" toggle (aan/uit) die `newsletter_opt_in` meestuurt bij opslaan
->
-> ### 3. Nieuwsbrief via SellQo API
->
-> De `Newsletter.tsx` component stuurt momenteel door naar een externe URL. Vervang dit door een API-call.
->
-> **Newsletter.tsx aanpassen:**
-> - Importeer de SellQo client/fetch
-> - Bij submit: POST naar de storefront-api met action `newsletter_subscribe` en `{ email, source: 'website' }`
-> - Toon een success-toast ("Bedankt voor je aanmelding!") of error-toast
-> - Geen externe redirect meer
-
-### Samenvatting wijzigingen
-
-| Waar | Wat |
+| Wijziging | Reden |
 |---|---|
-| **SellQo** `storefront-api/index.ts` | Bundle items toevoegen aan `getProduct()` response |
-| **Vanxcel** `types.ts` | `BundleItem` interface + velden op `Product` |
-| **Vanxcel** `normalizer.ts` | Bundle data doorvoeren |
-| **Vanxcel** `BundleContents.tsx` | Nieuw component voor bundel-weergave |
-| **Vanxcel** `ProductDetail.tsx` | Bundel-sectie renderen |
-| **Vanxcel** `Login.tsx` | Bedrijfsnaam, BTW, nieuwsbrief checkbox |
-| **Vanxcel** `CustomerAuthContext.tsx` | Extra velden in types + register/update |
-| **Vanxcel** `Account.tsx` | Profiel: bedrijf, BTW, nieuwsbrief toggle |
-| **Vanxcel** `Newsletter.tsx` | API-call i.p.v. externe redirect |
+| `password_hash` nullable maken | Gemigreerde klanten kunnen bestaan zonder wachtwoord |
+| `email_verified BOOLEAN DEFAULT false` toevoegen | E-mailbevestiging tracking |
+| `email_verification_token TEXT` toevoegen | Token voor verificatielink |
+| `email_verification_expires_at TIMESTAMPTZ` toevoegen | Verloopdatum token |
+
+**2. Register action aanpassen** (`storefront-customer-api/index.ts`)
+
+Huidige flow (regel 126-167):
+```
+Email bestaat? → Error
+Anders → Insert + token
+```
+
+Nieuwe flow:
+```text
+Email bestaat?
+  → Heeft password_hash? → Error "Account bestaat al, log in"
+  → Geen password_hash (gemigreerd)?
+      → Claim account: set password_hash, update profiel
+      → Stuur verificatiemail
+      → Return { message: "Verificatiemail verstuurd" } (GEEN token)
+
+Email bestaat niet?
+  → Insert nieuwe klant
+  → Stuur verificatiemail
+  → Return { message: "Verificatiemail verstuurd" } (GEEN token)
+```
+
+**3. E-mailverificatie flow**
+
+- Nieuwe action `verify_email`: ontvangt token, valideert, zet `email_verified = true`, geeft JWT token terug
+- Verificatielink wijst naar storefront pagina `/verify-email?token=...&email=...`
+- Verificatiemail via Resend (zelfde patroon als password reset)
+
+**4. Login aanpassen**
+
+- Check `email_verified` — als `false`, return error "Bevestig eerst je e-mailadres"
+- Nieuwe action `resend_verification`: stuurt verificatiemail opnieuw
+
+**5. Storefront UI**
+
+- `StorefrontVerifyEmail.tsx` — pagina die token valideert en doorverwijst naar login
+- Registratieformulier toont na submit: "Check je e-mail om je account te bevestigen"
+- Login error bij onbevestigd account toont link om verificatiemail opnieuw te versturen
+
+### Bestanden
+
+| Bestand | Wijziging |
+|---|---|
+| Nieuwe migratie | `password_hash` nullable, verificatie-kolommen |
+| `storefront-customer-api/index.ts` | Register claim-flow, verify_email action, resend_verification, login check |
+| `src/pages/shop/StorefrontVerifyEmail.tsx` | Verificatiepagina |
+| `src/pages/shop/StorefrontRegister.tsx` of login component | Success-state na registratie |
+| Routes (`App.tsx` of shop router) | `/shop/:tenantSlug/verify-email` route |
+
+### Verwacht gedrag
+
+| Scenario | Resultaat |
+|---|---|
+| Nieuw e-mailadres | Insert → verificatiemail → bevestigen → login |
+| Gemigreerd e-mailadres (geen wachtwoord) | Claim → wachtwoord gezet → verificatiemail → bevestigen → login + oude orders zichtbaar |
+| Al geregistreerd (heeft wachtwoord + verified) | Error "Account bestaat al, log in" |
+| Login zonder verificatie | Error "Bevestig eerst je e-mailadres" + optie opnieuw versturen |
 
