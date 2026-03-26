@@ -330,28 +330,12 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Klantsegment</Label>
-                <Select
-                  value={formData.segment_id || 'none'}
-                  onValueChange={(v) => setFormData({ ...formData, segment_id: v === 'none' ? '' : v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kies segment..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Geen segment (alle klanten)</SelectItem>
-                    {segments.map(seg => (
-                      <SelectItem key={seg.id} value={seg.id}>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-3.5 w-3.5" />
-                          {seg.name} ({seg.member_count} klanten)
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <SegmentSelector
+                value={formData.segment_id}
+                onChange={(v) => setFormData({ ...formData, segment_id: v })}
+                showCreateButton
+                onCreateClick={() => {/* Could open segment dialog */}}
+              />
 
               <div className="space-y-2">
                 <Label>Doelgroeptype</Label>
