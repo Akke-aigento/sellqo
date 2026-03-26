@@ -24,6 +24,10 @@ export default function ShopAuth() {
 
   const [activeTab, setActiveTab] = useState('login');
   const [processing, setProcessing] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const { invoke } = useStorefrontCustomerApi();
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
