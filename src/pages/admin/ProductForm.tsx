@@ -261,13 +261,13 @@ export default function ProductForm() {
         .eq('bundle_id', id)
         .order('sort_order')
         .then(({ data }) => {
-          if (data && data.length > 0) {
-            setBundleItems(data.map(d => ({
-              product_id: d.product_id,
-              quantity: d.quantity,
-              is_required: d.is_required,
-            })));
-          }
+          const items = (data && data.length > 0) ? data.map(d => ({
+            product_id: d.product_id,
+            quantity: d.quantity,
+            is_required: d.is_required,
+          })) : [];
+          setBundleItems(items);
+          setInitialBundleItems(items);
         });
     }
   }, [isEditing, id, product?.product_type]);
