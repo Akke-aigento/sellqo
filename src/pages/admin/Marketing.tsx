@@ -295,9 +295,36 @@ export default function MarketingPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {segments.map((segment) => (
-                <Card key={segment.id} className="hover:shadow-md transition-shadow">
+                <Card key={segment.id} className="hover:shadow-md transition-shadow group">
                   <CardHeader>
-                    <CardTitle className="text-base">{segment.name}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{segment.name}</CardTitle>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditingSegment(segment);
+                            setSegmentDialogOpen(true);
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5 rotate-45" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => {
+                            if (confirm('Weet je zeker dat je dit segment wilt verwijderen?')) {
+                              deleteSegment.mutate(segment.id);
+                            }
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                     <CardDescription>{segment.description || 'Geen beschrijving'}</CardDescription>
                   </CardHeader>
                   <CardContent>
