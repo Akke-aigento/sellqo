@@ -1,49 +1,35 @@
 
-## Fixplan: Bundel-wijzigingen moeten ook als “unsaved product changes” tellen
 
-### Probleem
-Bij product bewerken worden wijzigingen in **bundelinhoud** (`bundleItems`) niet gezien door `form.formState.isDirty`, omdat die state buiten React Hook Form staat.  
-Gevolg: geen floating opslaabalk, dus gebruiker kan bundelwijzigingen niet opslaan.
+## Bundel Productpagina: Visueel Verbeterde Productlijst
 
-### Root cause
-In `ProductForm.tsx` wordt de floating actiebalk + bottom padding alleen getoond op:
-- `form.formState.isDirty`
+### Huidige situatie
+De `BundleContentsSection` component bestaat al en toont de bundel-items met klikbare links. Maar het design is minimalistisch — kleine thumbnails (48px), weinig visuele hiërarchie, en het ziet er niet anders uit dan een simpele lijst.
 
-Maar bundelacties (toevoegen/verwijderen/aantal/verplicht) updaten enkel:
-- `bundleItems` via `setBundleItems(...)`
+### Wat we verbeteren
 
-### Implementatie-aanpak
+**`src/components/storefront/BundleContentsSection.tsx`** — volledig redesign:
 
-1. **Voeg aparte dirty-detectie toe voor bundelitems**
-   - In `src/pages/admin/ProductForm.tsx`:
-     - `initialBundleItems` state toevoegen (snapshot van geladen bundelitems)
-     - `isBundleItemsDirty` berekenen via vergelijking `bundleItems` vs `initialBundleItems` (bijv. JSON signature)
-     - `hasUnsavedChanges = form.formState.isDirty || isBundleItemsDirty`
+1. **Grotere productkaarten** per item met:
+   - Grotere afbeelding (80×80px)
+   - Productnaam als duidelijke klikbare link met hover-effect en pijltje/chevron
+   - Individuele prijs (doorgestreept) naast de naam
+   - Hoeveelheid badge als die > 1 is
+   - Optioneel/verplicht indicator
 
-2. **Gebruik gecombineerde dirty flag overal voor de floating save UX**
-   - Vervang voorwaarden:
-     - container padding: `form.formState.isDirty` → `hasUnsavedChanges`
-     - floating action bar: `form.formState.isDirty` → `hasUnsavedChanges`
+2. **Duidelijke visuele scheiding** tussen de bundel-sectie en de rest:
+   - Sectie-header met icoon + titel "In deze bundel ({x} producten)"
+   - Subtiele kaartjes per product met lichte achtergrond en border
+   - Hover-state op elke kaart (schaduw/border kleurverandering) om clickability te benadrukken
 
-3. **Zorg dat “Annuleren” ook bundelwijzigingen reset**
-   - Huidig: `form.reset()`  
-   - Nieuw: `form.reset()` + `setBundleItems(initialBundleItems)`  
-   Zo worden bundelwijzigingen ook echt teruggedraaid.
+3. **Besparingsindicator prominenter**:
+   - Bovenaan de sectie een groene banner met besparing
+   - Per product: individuele prijs doorgestreept
 
-4. **Initialisatie/snapshot correct zetten bij edit**
-   - In bestaande load-effect voor bundels:
-     - na ophalen van `bundle_products` zowel `bundleItems` als `initialBundleItems` vullen
-     - ook expliciet `[]` zetten als geen records, zodat dirty check stabiel blijft
+4. **Onderaan**: totaal individuele prijs vs. bundelprijs vergelijking
 
-### Bestanden
-- `src/pages/admin/ProductForm.tsx` (enkel dit bestand)
+### Technische aanpak
+- Enkel `BundleContentsSection.tsx` wordt aangepast
+- Props blijven identiek (geen wijziging in ShopProductDetail nodig)
+- Links gebruiken bestaand pad: `/shop/{tenantSlug}/product/{product.slug}`
+- Tailwind classes voor alle styling
 
-### Verwacht resultaat
-- Wijzig je bundelinhoud (items, qty, verplicht): **floating opslaabalk verschijnt meteen**
-- Klik op **Opslaan**: bundelwijzigingen worden opgeslagen via bestaande submit-flow
-- Klik op **Annuleren**: formulier én bundelinhoud gaan terug naar laatst geladen staat
-
-### Technische details
-- Geen databasewijziging nodig
-- Geen aanpassing nodig in `BundleProductsSection.tsx` of backend
-- Fix is puur state/dirty-detectie in ProductForm, zodat bundelwijzigingen als volwaardige productwijzigingen behandeld worden
