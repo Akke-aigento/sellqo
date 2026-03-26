@@ -356,6 +356,32 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       }));
       const options = (optionsRes.data || []) as Array<{ id: string; name: string; values: string[]; position: number }>;
 
+      // Fetch bundle items if product is a bundle
+      let bundleItems: Array<{ product_id: string; quantity: number; is_required: boolean; product: { id: string; name: string; price: number; images: string[] | null; slug: string } }> = [];
+      if (product.product_type === 'bundle') {
+        const { data: bpData } = await supabase
+          .from('bundle_products')
+          .select('product_id, quantity, is_required, sort_order')
+          .eq('bundle_id', product.id)
+          .order('sort_order', { ascending: true });
+
+        if (bpData && bpData.length > 0) {
+          const productIds = bpData.map(bp => bp.product_id);
+          const { data: bundleProductsData } = await supabase
+            .from('products')
+            .select('id, name, price, images, slug')
+            .in('id', productIds)
+            .eq('is_active', true);
+
+          bundleItems = bpData.map(bp => ({
+            ...bp,
+            product: bundleProductsData?.find(p => p.id === bp.product_id) || { id: bp.product_id, name: 'Onbekend product', price: 0, images: null, slug: '' },
+          }));
+        }
+      }
+
+      const individualTotal = bundleItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
       return {
         ...product,
         images: product.images || [],
@@ -368,6 +394,8 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
         variants,
         options,
         has_variants: variants.length > 0,
+        bundle_items: bundleItems,
+        bundle_individual_total: individualTotal,
       };
     },
     enabled: !!tenantId && !!productSlug,
