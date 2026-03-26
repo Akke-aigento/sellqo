@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package } from 'lucide-react';
+import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +14,7 @@ import { ImageLightbox } from '@/components/storefront/ImageLightbox';
 import { RelatedProducts } from '@/components/storefront/RelatedProducts';
 import { ProductReviewsSection, StarRating } from '@/components/storefront/ProductReviewsSection';
 import { GiftCardPurchaseForm } from '@/components/storefront/GiftCardPurchaseForm';
+import { BundleContentsSection } from '@/components/storefront/BundleContentsSection';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
@@ -122,6 +123,20 @@ export default function ShopProductDetail() {
       variantId: selectedVariant?.id, variantTitle,
     });
     // Cart drawer opens automatically via CartContext
+  };
+
+  const handleAddBundleToCart = () => {
+    if (!product?.bundle_items?.length) return;
+    for (const item of product.bundle_items) {
+      addToCart({
+        productId: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        image: item.product.images?.[0],
+      });
+    }
+    toast.success('Bundel toegevoegd aan winkelwagen');
   };
 
   const handleImageClick = () => {
@@ -267,6 +282,21 @@ export default function ShopProductDetail() {
                   logoUrl={(tenant as any)?.logo_url || undefined}
                 />
               </div>
+            ) : product.product_type === 'bundle' && product.bundle_items?.length > 0 ? (
+              <>
+                <BundleContentsSection
+                  items={product.bundle_items}
+                  bundlePrice={displayPrice}
+                  individualTotal={product.bundle_individual_total || 0}
+                  currency={tenant?.currency || 'EUR'}
+                  tenantSlug={tenantSlug || ''}
+                />
+                <Button size="lg" className="w-full mb-6" onClick={handleAddBundleToCart}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
+                  <Layers className="h-5 w-5 mr-2" />
+                  Voeg bundel toe aan winkelwagen
+                </Button>
+              </>
             ) : (
               <>
                 {/* Viewers count */}
