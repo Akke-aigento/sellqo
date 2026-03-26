@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
 import { useStorefrontAuth } from '@/context/StorefrontAuthContext';
+import { useStorefrontCustomerApi } from '@/hooks/useStorefrontCustomerApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, CheckCircle2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
@@ -23,6 +24,10 @@ export default function ShopAuth() {
 
   const [activeTab, setActiveTab] = useState('login');
   const [processing, setProcessing] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const { invoke } = useStorefrontCustomerApi();
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -55,7 +60,13 @@ export default function ShopAuth() {
       toast.success('Succesvol ingelogd');
       navigate(redirectTo, { replace: true });
     } else {
-      toast.error(result.error || 'Inloggen mislukt');
+      const errMsg = result.error || 'Inloggen mislukt';
+      if (errMsg.startsWith('EMAIL_NOT_VERIFIED:')) {
+        setUnverifiedEmail(loginEmail);
+        toast.error(errMsg.replace('EMAIL_NOT_VERIFIED:', ''));
+      } else {
+        toast.error(errMsg);
+      }
     }
   };
 
@@ -77,10 +88,23 @@ export default function ShopAuth() {
     } as any);
     setProcessing(false);
     if (result.success) {
-      toast.success('Account aangemaakt!');
-      navigate(redirectTo, { replace: true });
+      // New flow: check if requires_verification
+      setRegistrationSuccess(true);
+      toast.success('Controleer je e-mail om je account te bevestigen');
     } else {
       toast.error(result.error || 'Registratie mislukt');
+    }
+  };
+
+  const handleResendVerification = async (email: string) => {
+    setResending(true);
+    try {
+      await invoke('resend_verification', { email });
+      toast.success('Nieuwe verificatiemail verstuurd!');
+    } catch {
+      toast.error('Kon geen nieuwe mail versturen');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -112,15 +136,24 @@ export default function ShopAuth() {
                     <Label htmlFor="login-password">Wachtwoord</Label>
                     <Input id="login-password" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                   </div>
-                  <Button type="submit" className="w-full" disabled={processing}>
-                    {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Inloggen
-                  </Button>
-                  <div className="text-center">
-                    <Link to={`/shop/${tenantSlug}/reset-password`} className="text-sm text-muted-foreground hover:text-foreground underline">
-                      Wachtwoord vergeten?
-                    </Link>
-                  </div>
+                   <Button type="submit" className="w-full" disabled={processing}>
+                     {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                     Inloggen
+                   </Button>
+                   {unverifiedEmail && (
+                     <div className="p-3 rounded-lg bg-muted text-center space-y-2">
+                       <p className="text-sm text-muted-foreground">Je e-mailadres is nog niet bevestigd.</p>
+                       <Button variant="outline" size="sm" onClick={() => handleResendVerification(unverifiedEmail)} disabled={resending}>
+                         {resending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                         Verificatiemail opnieuw versturen
+                       </Button>
+                     </div>
+                   )}
+                   <div className="text-center">
+                     <Link to={`/shop/${tenantSlug}/reset-password`} className="text-sm text-muted-foreground hover:text-foreground underline">
+                       Wachtwoord vergeten?
+                     </Link>
+                   </div>
                 </form>
               </CardContent>
             </Card>
@@ -129,10 +162,28 @@ export default function ShopAuth() {
           <TabsContent value="register">
             <Card>
               <CardHeader>
-                <CardTitle>Account aanmaken</CardTitle>
-                <CardDescription>Maak een account aan om je bestellingen te volgen</CardDescription>
+                <CardTitle>{registrationSuccess ? 'Controleer je e-mail' : 'Account aanmaken'}</CardTitle>
+                <CardDescription>{registrationSuccess ? 'We hebben een verificatiemail verstuurd' : 'Maak een account aan om je bestellingen te volgen'}</CardDescription>
               </CardHeader>
               <CardContent>
+                {registrationSuccess ? (
+                  <div className="text-center space-y-4 py-4">
+                    <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+                    <p className="text-muted-foreground">
+                      We hebben een verificatiemail verstuurd naar <strong>{regEmail}</strong>. Klik op de link in de e-mail om je account te bevestigen.
+                    </p>
+                    <p className="text-sm text-muted-foreground">Geen e-mail ontvangen? Controleer je spam-map of</p>
+                    <Button variant="outline" onClick={() => handleResendVerification(regEmail)} disabled={resending}>
+                      {resending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                      Verificatiemail opnieuw versturen
+                    </Button>
+                    <div>
+                      <Button variant="ghost" onClick={() => { setRegistrationSuccess(false); setActiveTab('login'); }}>
+                        Ga naar inloggen
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -156,19 +207,14 @@ export default function ShopAuth() {
                     <Label htmlFor="reg-confirm">Bevestig wachtwoord</Label>
                     <Input id="reg-confirm" type="password" value={regConfirm} onChange={e => setRegConfirm(e.target.value)} required />
                   </div>
-
-                  {/* Newsletter opt-in */}
                   <div className="flex items-center space-x-2">
                     <Checkbox id="reg-newsletter" checked={regNewsletter} onCheckedChange={(c) => setRegNewsletter(!!c)} />
                     <Label htmlFor="reg-newsletter" className="text-sm cursor-pointer">Aanmelden voor nieuwsbrief</Label>
                   </div>
-
-                  {/* B2B toggle */}
                   <div className="flex items-center space-x-2">
                     <Checkbox id="reg-b2b" checked={regIsB2b} onCheckedChange={(c) => setRegIsB2b(!!c)} />
                     <Label htmlFor="reg-b2b" className="text-sm cursor-pointer">Ik bestel namens een bedrijf</Label>
                   </div>
-
                   {regIsB2b && (
                     <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
                       <div className="space-y-2">
@@ -186,6 +232,7 @@ export default function ShopAuth() {
                     Account aanmaken
                   </Button>
                 </form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

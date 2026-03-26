@@ -127,42 +127,233 @@ serve(async (req) => {
         const { email, password, first_name, last_name, phone, newsletter_opt_in, company_name: regCompany, vat_number: regVat } = params as any;
         if (!email || !password) throw new Error('email and password are required');
         if (password.length < 8) throw new Error('Password must be at least 8 characters');
+        const emailLc = email.toLowerCase().trim();
 
-        const { data: existing } = await supabase.from('storefront_customers').select('id').eq('tenant_id', tenant_id).eq('email', email.toLowerCase()).maybeSingle();
-        if (existing) throw new Error('An account with this email already exists');
+        const { data: existing } = await supabase.from('storefront_customers')
+          .select('id, password_hash, email_verified, first_name, last_name')
+          .eq('tenant_id', tenant_id).eq('email', emailLc).maybeSingle();
 
         const passwordHash = await hashPassword(password);
-        const insertData: Record<string, unknown> = {
-          tenant_id, email: email.toLowerCase(), password_hash: passwordHash,
-          first_name: first_name || '', last_name: last_name || '', phone: phone || null,
-          newsletter_opted_in: !!newsletter_opt_in,
-          newsletter_opted_in_at: newsletter_opt_in ? new Date().toISOString() : null,
-          company_name: regCompany || null,
-          vat_number: regVat || null,
-        };
+        // Generate verification token
+        const verificationToken = crypto.randomUUID() + '-' + crypto.randomUUID();
+        const verificationExpires = new Date(Date.now() + 24 * 3600 * 1000).toISOString(); // 24h
 
-        // VIES validation if VAT number provided
-        if (regVat) {
-          try {
-            const vatRes = await supabase.functions.invoke('validate-vat', { body: { vat_number: regVat } });
-            if (vatRes.data?.valid) {
-              insertData.vat_verified = true;
-              insertData.vat_verified_at = new Date().toISOString();
-            }
-          } catch { /* VIES unavailable, skip */ }
+        let customerId: string;
+        let customerEmail: string;
+        let customerFirstName: string;
+
+        if (existing) {
+          // Account exists WITH password → already registered
+          if (existing.password_hash) {
+            throw new Error('Er bestaat al een account met dit e-mailadres. Log in of gebruik wachtwoord vergeten.');
+          }
+          // Migrated account (no password) → claim it
+          const updates: Record<string, unknown> = {
+            password_hash: passwordHash,
+            email_verified: false,
+            email_verification_token: verificationToken,
+            email_verification_expires_at: verificationExpires,
+          };
+          if (first_name) updates.first_name = first_name;
+          if (last_name) updates.last_name = last_name;
+          if (phone) updates.phone = phone;
+          if (newsletter_opt_in !== undefined) {
+            updates.newsletter_opted_in = !!newsletter_opt_in;
+            if (newsletter_opt_in) updates.newsletter_opted_in_at = new Date().toISOString();
+          }
+          if (regCompany) updates.company_name = regCompany;
+          if (regVat) updates.vat_number = regVat;
+
+          // VIES validation
+          if (regVat) {
+            try {
+              const vatRes = await supabase.functions.invoke('validate-vat', { body: { vat_number: regVat } });
+              if (vatRes.data?.valid) { updates.vat_verified = true; updates.vat_verified_at = new Date().toISOString(); }
+            } catch { /* skip */ }
+          }
+
+          await supabase.from('storefront_customers').update(updates).eq('id', existing.id);
+          customerId = existing.id;
+          customerEmail = emailLc;
+          customerFirstName = first_name || existing.first_name || '';
+        } else {
+          // Brand new account
+          const insertData: Record<string, unknown> = {
+            tenant_id, email: emailLc, password_hash: passwordHash,
+            first_name: first_name || '', last_name: last_name || '', phone: phone || null,
+            newsletter_opted_in: !!newsletter_opt_in,
+            newsletter_opted_in_at: newsletter_opt_in ? new Date().toISOString() : null,
+            company_name: regCompany || null, vat_number: regVat || null,
+            email_verified: false,
+            email_verification_token: verificationToken,
+            email_verification_expires_at: verificationExpires,
+          };
+
+          if (regVat) {
+            try {
+              const vatRes = await supabase.functions.invoke('validate-vat', { body: { vat_number: regVat } });
+              if (vatRes.data?.valid) { insertData.vat_verified = true; insertData.vat_verified_at = new Date().toISOString(); }
+            } catch { /* skip */ }
+          }
+
+          const { data: customer, error } = await supabase
+            .from('storefront_customers')
+            .insert(insertData)
+            .select('id, email, first_name, last_name, newsletter_opted_in, company_name, vat_number, vat_verified').single();
+          if (error) throw error;
+
+          await syncToCustomers(supabase, tenant_id, customer, newsletter_opt_in);
+          customerId = customer.id;
+          customerEmail = customer.email;
+          customerFirstName = customer.first_name || '';
         }
 
-        const { data: customer, error } = await supabase
-          .from('storefront_customers')
-          .insert(insertData)
-          .select('id, email, first_name, last_name, newsletter_opted_in, company_name, vat_number, vat_verified').single();
-        if (error) throw error;
+        // Send verification email
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        if (resendApiKey) {
+          try {
+            const { data: tenant } = await supabase.from('tenants').select('store_name, name, slug').eq('id', tenant_id).single();
+            const storeName = tenant?.store_name || tenant?.name || 'Shop';
+            const { data: themeRow } = await supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url').eq('tenant_id', tenant_id).maybeSingle();
+            let verifyUrl: string;
+            if (themeRow?.use_custom_frontend && themeRow?.custom_frontend_url) {
+              const base = (themeRow.custom_frontend_url as string).replace(/\/+$/, '');
+              verifyUrl = `${base}/verify-email?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(emailLc)}`;
+            } else {
+              verifyUrl = `https://sellqo.lovable.app/shop/${tenant?.slug || ''}/verify-email?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(emailLc)}`;
+            }
 
-        // Auto-sync to customers table
-        await syncToCustomers(supabase, tenant_id, customer, newsletter_opt_in);
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: `${storeName} <noreply@sellqo.nl>`,
+                to: [emailLc],
+                subject: `Bevestig je e-mailadres — ${storeName}`,
+                html: `
+                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+                    <h1 style="font-size: 24px; margin-bottom: 16px;">Bevestig je e-mailadres</h1>
+                    <p style="color: #555; line-height: 1.6;">Hallo${customerFirstName ? ` ${customerFirstName}` : ''},</p>
+                    <p style="color: #555; line-height: 1.6;">Bedankt voor je registratie bij <strong>${storeName}</strong>. Klik op de onderstaande knop om je e-mailadres te bevestigen.</p>
+                    <div style="text-align: center; margin: 32px 0;">
+                      <a href="${verifyUrl}" style="background-color: #000; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">E-mailadres bevestigen</a>
+                    </div>
+                    <p style="color: #888; font-size: 13px; line-height: 1.5;">Deze link is 24 uur geldig. Als je geen account hebt aangemaakt, kun je deze e-mail negeren.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+                    <p style="color: #aaa; font-size: 12px;">${storeName}</p>
+                  </div>
+                `,
+              }),
+            });
+          } catch (emailErr) {
+            console.error('Failed to send verification email:', emailErr);
+          }
+        }
+
+        result = { message: 'Verificatiemail verstuurd. Controleer je inbox om je account te bevestigen.', requires_verification: true };
+        break;
+      }
+
+      case 'verify_email': {
+        const { email: veEmail, token: veToken } = params as any;
+        if (!veEmail || !veToken) throw new Error('email and token are required');
+        const emailLc = veEmail.toLowerCase().trim();
+
+        const { data: customer } = await supabase.from('storefront_customers')
+          .select('id, email, first_name, last_name, phone, email_verification_token, email_verification_expires_at, email_verified')
+          .eq('tenant_id', tenant_id).eq('email', emailLc).maybeSingle();
+
+        if (!customer) throw new Error('Account niet gevonden');
+        if (customer.email_verified) {
+          // Already verified — just return token
+          const token = await generateToken({ customer_id: customer.id, tenant_id, email: customer.email }, tokenSecret);
+          result = { message: 'E-mailadres is al bevestigd.', customer: { id: customer.id, email: customer.email, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone }, token };
+          break;
+        }
+        if (customer.email_verification_token !== veToken) throw new Error('Ongeldige verificatielink');
+        if (customer.email_verification_expires_at && new Date(customer.email_verification_expires_at) < new Date()) {
+          throw new Error('Verificatielink is verlopen. Vraag een nieuwe aan.');
+        }
+
+        await supabase.from('storefront_customers').update({
+          email_verified: true,
+          email_verification_token: null,
+          email_verification_expires_at: null,
+        }).eq('id', customer.id);
 
         const token = await generateToken({ customer_id: customer.id, tenant_id, email: customer.email }, tokenSecret);
-        result = { customer, token };
+        result = {
+          message: 'E-mailadres succesvol bevestigd!',
+          customer: { id: customer.id, email: customer.email, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone },
+          token,
+        };
+        break;
+      }
+
+      case 'resend_verification': {
+        const { email: rvEmail } = params as any;
+        if (!rvEmail) throw new Error('email is required');
+        const emailLc = rvEmail.toLowerCase().trim();
+
+        const { data: customer } = await supabase.from('storefront_customers')
+          .select('id, email, first_name, email_verified, password_hash')
+          .eq('tenant_id', tenant_id).eq('email', emailLc).eq('is_active', true).maybeSingle();
+
+        // Don't leak info
+        if (!customer || customer.email_verified || !customer.password_hash) {
+          result = { message: 'Als er een onbevestigd account bestaat, is er een nieuwe verificatiemail verstuurd.' };
+          break;
+        }
+
+        const newToken = crypto.randomUUID() + '-' + crypto.randomUUID();
+        const newExpires = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+        await supabase.from('storefront_customers').update({
+          email_verification_token: newToken,
+          email_verification_expires_at: newExpires,
+        }).eq('id', customer.id);
+
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        if (resendApiKey) {
+          try {
+            const { data: tenant } = await supabase.from('tenants').select('store_name, name, slug').eq('id', tenant_id).single();
+            const storeName = tenant?.store_name || tenant?.name || 'Shop';
+            const { data: themeRow } = await supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url').eq('tenant_id', tenant_id).maybeSingle();
+            let verifyUrl: string;
+            if (themeRow?.use_custom_frontend && themeRow?.custom_frontend_url) {
+              const base = (themeRow.custom_frontend_url as string).replace(/\/+$/, '');
+              verifyUrl = `${base}/verify-email?token=${encodeURIComponent(newToken)}&email=${encodeURIComponent(emailLc)}`;
+            } else {
+              verifyUrl = `https://sellqo.lovable.app/shop/${tenant?.slug || ''}/verify-email?token=${encodeURIComponent(newToken)}&email=${encodeURIComponent(emailLc)}`;
+            }
+
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: `${storeName} <noreply@sellqo.nl>`,
+                to: [emailLc],
+                subject: `Bevestig je e-mailadres — ${storeName}`,
+                html: `
+                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+                    <h1 style="font-size: 24px; margin-bottom: 16px;">Bevestig je e-mailadres</h1>
+                    <p style="color: #555; line-height: 1.6;">Hallo${customer.first_name ? ` ${customer.first_name}` : ''},</p>
+                    <p style="color: #555; line-height: 1.6;">Klik op de onderstaande knop om je e-mailadres te bevestigen.</p>
+                    <div style="text-align: center; margin: 32px 0;">
+                      <a href="${verifyUrl}" style="background-color: #000; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">E-mailadres bevestigen</a>
+                    </div>
+                    <p style="color: #888; font-size: 13px; line-height: 1.5;">Deze link is 24 uur geldig.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+                    <p style="color: #aaa; font-size: 12px;">${storeName}</p>
+                  </div>
+                `,
+              }),
+            });
+          } catch (emailErr) {
+            console.error('Failed to send verification email:', emailErr);
+          }
+        }
+
+        result = { message: 'Als er een onbevestigd account bestaat, is er een nieuwe verificatiemail verstuurd.' };
         break;
       }
 
@@ -174,9 +365,15 @@ serve(async (req) => {
           .from('storefront_customers').select('*')
           .eq('tenant_id', tenant_id).eq('email', email.toLowerCase()).eq('is_active', true).maybeSingle();
         if (!customer) throw new Error('Invalid email or password');
+        if (!customer.password_hash) throw new Error('Invalid email or password');
 
         const valid = await verifyPassword(password, customer.password_hash);
         if (!valid) throw new Error('Invalid email or password');
+
+        // Check email verification
+        if (!customer.email_verified) {
+          throw new Error('EMAIL_NOT_VERIFIED:Bevestig eerst je e-mailadres. Controleer je inbox voor de verificatielink.');
+        }
 
         await supabase.from('storefront_customers').update({ last_login_at: new Date().toISOString() }).eq('id', customer.id);
 

@@ -112,6 +112,7 @@ import ShopWishlist from "./pages/storefront/ShopWishlist";
 import ShopContact from "./pages/storefront/ShopContact";
 import ShopAuth from "./pages/storefront/ShopAuth";
 import ShopResetPassword from "./pages/storefront/ShopResetPassword";
+import ShopVerifyEmail from "./pages/storefront/ShopVerifyEmail";
 import ShopAccount from "./pages/storefront/ShopAccount";
 
 const queryClient = new QueryClient();
@@ -154,6 +155,7 @@ const App = () => (
             <Route path="/shop/:tenantSlug/contact" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopContact /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/login" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAuth /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/reset-password" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopResetPassword /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/verify-email" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopVerifyEmail /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/account" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAccount /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
             
             {/* Dedicated kassa route - outside AdminLayout for tablet kiosk mode */}

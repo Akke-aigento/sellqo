@@ -119,9 +119,16 @@ export function StorefrontAuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (data: { email: string; password: string; first_name: string; last_name: string; phone?: string }) => {
     try {
       const result = await invokeApi('register', data);
-      setToken(result.token);
-      setCustomer(result.customer);
-      localStorage.setItem(storageKey, result.token);
+      // New flow: if requires_verification, don't set token — user must verify email first
+      if (result?.requires_verification) {
+        return { success: true, requiresVerification: true };
+      }
+      // Fallback for legacy behavior
+      if (result?.token) {
+        setToken(result.token);
+        setCustomer(result.customer);
+        localStorage.setItem(storageKey, result.token);
+      }
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Registratie mislukt' };

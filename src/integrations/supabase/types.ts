@@ -11052,6 +11052,9 @@ export type Database = {
           company_name: string | null
           created_at: string
           email: string
+          email_verification_expires_at: string | null
+          email_verification_token: string | null
+          email_verified: boolean
           first_name: string
           id: string
           is_active: boolean
@@ -11060,7 +11063,7 @@ export type Database = {
           marketing_consent: boolean | null
           newsletter_opted_in: boolean | null
           newsletter_opted_in_at: string | null
-          password_hash: string
+          password_hash: string | null
           password_reset_expires_at: string | null
           password_reset_token: string | null
           phone: string | null
@@ -11075,6 +11078,9 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email: string
+          email_verification_expires_at?: string | null
+          email_verification_token?: string | null
+          email_verified?: boolean
           first_name?: string
           id?: string
           is_active?: boolean
@@ -11083,7 +11089,7 @@ export type Database = {
           marketing_consent?: boolean | null
           newsletter_opted_in?: boolean | null
           newsletter_opted_in_at?: string | null
-          password_hash: string
+          password_hash?: string | null
           password_reset_expires_at?: string | null
           password_reset_token?: string | null
           phone?: string | null
@@ -11098,6 +11104,9 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email?: string
+          email_verification_expires_at?: string | null
+          email_verification_token?: string | null
+          email_verified?: boolean
           first_name?: string
           id?: string
           is_active?: boolean
@@ -11106,7 +11115,7 @@ export type Database = {
           marketing_consent?: boolean | null
           newsletter_opted_in?: boolean | null
           newsletter_opted_in_at?: string | null
-          password_hash?: string
+          password_hash?: string | null
           password_reset_expires_at?: string | null
           password_reset_token?: string | null
           phone?: string | null
