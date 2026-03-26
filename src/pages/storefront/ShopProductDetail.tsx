@@ -125,6 +125,20 @@ export default function ShopProductDetail() {
     // Cart drawer opens automatically via CartContext
   };
 
+  const handleAddBundleToCart = () => {
+    if (!product?.bundle_items?.length) return;
+    for (const item of product.bundle_items) {
+      addToCart({
+        productId: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        image: item.product.images?.[0],
+      });
+    }
+    toast.success('Bundel toegevoegd aan winkelwagen');
+  };
+
   const handleImageClick = () => {
     if (imageZoom === 'lightbox') setLightboxOpen(true);
   };
