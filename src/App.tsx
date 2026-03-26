@@ -112,6 +112,7 @@ import ShopWishlist from "./pages/storefront/ShopWishlist";
 import ShopContact from "./pages/storefront/ShopContact";
 import ShopAuth from "./pages/storefront/ShopAuth";
 import ShopResetPassword from "./pages/storefront/ShopResetPassword";
+import ShopVerifyEmail from "./pages/storefront/ShopVerifyEmail";
 import ShopAccount from "./pages/storefront/ShopAccount";
 
 const queryClient = new QueryClient();
