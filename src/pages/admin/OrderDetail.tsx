@@ -44,6 +44,8 @@ export default function OrderDetailPage() {
   const [internalNotes, setInternalNotes] = useState('');
   const isCompact = useIsCompact();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const { returns: orderReturns } = useOrderReturns(id);
 
   const handleMarkAsPaid = (data: { 
     paymentMethod: PaymentMethodType; 
