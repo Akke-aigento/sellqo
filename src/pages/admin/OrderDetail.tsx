@@ -650,6 +650,16 @@ export default function OrderDetailPage() {
         customerId={order.customer_id || undefined}
         orderNumber={order.order_number}
       />
+
+      {/* Refund Dialog */}
+      {order && (
+        <OrderRefundDialog
+          open={showRefundDialog}
+          onOpenChange={setShowRefundDialog}
+          order={order}
+          formatCurrency={formatCurrency}
+        />
+      )}
     </div>
   );
 }
