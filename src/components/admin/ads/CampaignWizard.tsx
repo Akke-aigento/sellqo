@@ -53,24 +53,21 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
   // Fetch products for selection
   const { data: products = [] } = useQuery({
     queryKey: ['products-for-ads', currentTenant?.id, productSearch],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ id: string; name: string; price: number; images: string[] | null }[]> => {
       if (!currentTenant?.id) return [];
-      const filters: Record<string, string> = {
-        tenant_id: currentTenant.id,
-        status: 'active',
-      };
-      let q = supabase
+      const { data, error } = await supabase
         .from('products')
         .select('id, name, price, images')
         .eq('tenant_id', currentTenant.id)
         .eq('status', 'active')
         .limit(20);
-      if (productSearch) {
-        q = q.ilike('name', `%${productSearch}%`) as typeof q;
-      }
-      const { data, error } = await q;
       if (error) throw error;
-      return data as { id: string; name: string; price: number; images: string[] | null }[];
+      let results = (data || []) as any[];
+      if (productSearch) {
+        const search = productSearch.toLowerCase();
+        results = results.filter((p: any) => p.name?.toLowerCase().includes(search));
+      }
+      return results;
     },
     enabled: !!currentTenant?.id && step === 'products',
   });
