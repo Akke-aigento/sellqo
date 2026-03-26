@@ -8,6 +8,7 @@ import { ArrowLeft, Edit, Pause, Play, Trash2, TrendingUp, Image, Package, Users
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { AD_PLATFORMS, CAMPAIGN_TYPES, type AdCampaign, type AdCampaignStatus } from '@/types/ads';
 import { CreativeManager } from './CreativeManager';
+import { CampaignPerformanceChart } from './CampaignPerformanceChart';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
