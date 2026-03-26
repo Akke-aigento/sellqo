@@ -121,6 +121,9 @@ export interface Order {
   // Import tracking
   import_source?: string | null;
   original_created_at?: string | null;
+  // Stripe
+  stripe_payment_intent_id?: string | null;
+  stripe_checkout_session_id?: string | null;
   // Sales channel
   sales_channel?: string | null;
   // Tracking status (auto-polling)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2, ChevronRight } from 'lucide-react';
+import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2, ChevronRight, RotateCcw } from 'lucide-react';
 import { useIsCompact } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -19,6 +19,8 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderSt
 import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
+import { ReturnsOverview } from '@/components/admin/ReturnsOverview';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
@@ -159,6 +161,19 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList>
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Bestellingen
+          </TabsTrigger>
+          <TabsTrigger value="returns" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Retouren
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-6">
       {/* Filters */}
       <OrderFilters filters={filters} onFiltersChange={setFilters} />
 
@@ -300,6 +315,25 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="returns">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Alle retouren
+              </CardTitle>
+              <CardDescription>
+                Retouren van alle kanalen (webshop, marktplaatsen, POS)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ReturnsOverview />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
