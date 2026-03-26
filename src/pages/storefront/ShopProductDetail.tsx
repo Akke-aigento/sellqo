@@ -14,6 +14,7 @@ import { ImageLightbox } from '@/components/storefront/ImageLightbox';
 import { RelatedProducts } from '@/components/storefront/RelatedProducts';
 import { ProductReviewsSection, StarRating } from '@/components/storefront/ProductReviewsSection';
 import { GiftCardPurchaseForm } from '@/components/storefront/GiftCardPurchaseForm';
+import { BundleContentsSection } from '@/components/storefront/BundleContentsSection';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
