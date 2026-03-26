@@ -247,6 +247,10 @@ export default function ProductForm() {
   const isBundle = productType === 'bundle';
 
   const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
+  const [initialBundleItems, setInitialBundleItems] = useState<BundleItem[]>([]);
+
+  const isBundleItemsDirty = JSON.stringify(bundleItems) !== JSON.stringify(initialBundleItems);
+  const hasUnsavedChanges = form.formState.isDirty || isBundleItemsDirty;
 
   // Load bundle items when editing a bundle product
   useEffect(() => {
@@ -257,13 +261,13 @@ export default function ProductForm() {
         .eq('bundle_id', id)
         .order('sort_order')
         .then(({ data }) => {
-          if (data && data.length > 0) {
-            setBundleItems(data.map(d => ({
-              product_id: d.product_id,
-              quantity: d.quantity,
-              is_required: d.is_required,
-            })));
-          }
+          const items = (data && data.length > 0) ? data.map(d => ({
+            product_id: d.product_id,
+            quantity: d.quantity,
+            is_required: d.is_required,
+          })) : [];
+          setBundleItems(items);
+          setInitialBundleItems(items);
         });
     }
   }, [isEditing, id, product?.product_type]);
@@ -549,7 +553,7 @@ export default function ProductForm() {
   }
 
   return (
-    <div className={cn("space-y-6", form.formState.isDirty && "pb-20")}>
+    <div className={cn("space-y-6", hasUnsavedChanges && "pb-20")}>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin/products')}>
@@ -1475,14 +1479,14 @@ export default function ProductForm() {
       </Form>
 
       {/* Floating action bar */}
-      {form.formState.isDirty && (
+      {hasUnsavedChanges && (
         <div className="fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width)] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg animate-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-center justify-between px-6 py-3">
             <p className="text-sm text-muted-foreground font-medium">
               Onopgeslagen wijzigingen
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => form.reset()}>
+              <Button variant="outline" size="sm" onClick={() => { form.reset(); setBundleItems(initialBundleItems); }}>
                 Annuleren
               </Button>
               <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
