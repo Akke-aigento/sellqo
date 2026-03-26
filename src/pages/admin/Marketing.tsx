@@ -309,7 +309,7 @@ export default function MarketingPage() {
                             setSegmentDialogOpen(true);
                           }}
                         >
-                          <Plus className="h-3.5 w-3.5 rotate-45" />
+                          <Edit className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
