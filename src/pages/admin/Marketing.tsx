@@ -16,6 +16,7 @@ import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SegmentCustomerPreview } from '@/components/admin/marketing/SegmentCustomerPreview';
 
 export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
