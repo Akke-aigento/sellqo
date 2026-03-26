@@ -1,80 +1,79 @@
 
 
-## Migratie-compatibele Registratie + E-mailbevestiging
+## Custom Frontend Documentatie Uitbreiden — Ontbrekende Prompts
 
-### Huidige situatie
+### Huidige staat
+De `CustomFrontendConfigurator.tsx` bevat 5 prompts die de basis dekken (client, proxy, checkout, footer, contact). Maar de API heeft intussen veel meer functionaliteit die **niet gedocumenteerd** is in de prompts.
 
-1. **`password_hash` is `NOT NULL`** — gemigreerde klanten kunnen niet eens in `storefront_customers` staan zonder wachtwoord
-2. **Register action (regel 131-132)** gooit altijd "email already exists" als het e-mailadres al bestaat, ongeacht of er een wachtwoord is
-3. **Geen e-mailverificatie** — registratie geeft direct een token, geen bevestigingsmail
+### Wat ontbreekt (en dus niet functioneel zou zijn op een custom frontend)
 
-### Wat we bouwen
+| Feature | API Endpoints (bestaan al) | Prompt? |
+|---|---|---|
+| **Klantaccounts** (registratie, login, e-mailverificatie, profiel, wachtwoord reset) | `storefront-customer-api`: register, login, verify_email, resend_verification, get_profile, update_profile, change_password, request_password_reset, reset_password | Nee |
+| **Bestelgeschiedenis & adressen** | get_orders, get_order, get_addresses, add/update/delete_address | Nee |
+| **Wishlist/Favorieten** | wishlist_get, wishlist_add, wishlist_remove | Nee |
+| **B2B velden** (bedrijfsnaam, BTW-nummer met VIES validatie) | register + update_profile params: company_name, vat_number | Nee |
+| **Bundel producten** | get_product retourneert nu bundle_items + bundle_individual_total | Nee |
+| **Nieuwsbrief** | POST /newsletter/subscribe | Nee |
+| **Reviews** | GET /reviews, GET /products/{slug}/reviews | Nee |
+| **Zoeken** | GET /search?q=... | Nee |
+| **Navigatie** | GET /navigation (main menu, footer menu) | Nee |
+| **Gift cards** | GET /gift-cards, POST /gift-cards/balance | Nee |
+| **Verzendmethoden & servicepunten** | GET /shipping, GET /service-points | Nee |
+| **Promoties/kortingen** | calculate_promotions, validate_discount_code, cart discount endpoints | Gedeeltelijk (cart discount ja, berekeningen nee) |
+| **SEO & Sitemap** | GET /seo, GET /sitemap | Nee |
+| **Settings sub-endpoints** | GET /settings/social, /trust, /conversion, /checkout, /languages | Nee |
+| **Migratie-compatibele registratie** | Claim-flow voor gemigreerde klanten zonder wachtwoord | Nee |
 
-**1. Database migratie**
+### Plan: 6 nieuwe prompts toevoegen
 
-| Wijziging | Reden |
-|---|---|
-| `password_hash` nullable maken | Gemigreerde klanten kunnen bestaan zonder wachtwoord |
-| `email_verified BOOLEAN DEFAULT false` toevoegen | E-mailbevestiging tracking |
-| `email_verification_token TEXT` toevoegen | Token voor verificatielink |
-| `email_verification_expires_at TIMESTAMPTZ` toevoegen | Verloopdatum token |
+**Prompt 6: Klantaccounts — Registratie, Login & Verificatie**
+- CustomerAuthContext met JWT token management
+- Register met B2B velden (company_name, vat_number, newsletter_opt_in)
+- E-mailverificatie flow (verify_email action + /verify-email pagina)
+- Login met email_not_verified error handling + resend optie
+- Migratie-compatibel: gemigreerde klanten claimen hun account transparant
+- Logout + token persistentie in localStorage
 
-**2. Register action aanpassen** (`storefront-customer-api/index.ts`)
+**Prompt 7: Klantdashboard — Profiel, Bestellingen, Adressen, Wishlist**
+- Account pagina met tabs: Profiel, Bestellingen, Adressen, Favorieten
+- Profiel: naam, telefoon, bedrijfsnaam, BTW-nummer (met verified badge), nieuwsbrief toggle
+- Bestellingen: lijst + detail view met items, status, totalen
+- Adresboek: CRUD met default-adres instelling
+- Wishlist: productlijst met "verwijder" en "voeg toe aan winkelwagen"
+- Wachtwoord wijzigen + wachtwoord vergeten flow
 
-Huidige flow (regel 126-167):
-```
-Email bestaat? → Error
-Anders → Insert + token
-```
+**Prompt 8: Bundel Producten, Reviews & Zoeken**
+- BundleContents component voor product_type === 'bundle'
+- Productkaarten met afbeeldingen, individuele prijs (doorgestreept), besparingsindicator
+- "Voeg bundel toe" knop die alle items aan cart toevoegt
+- Reviews sectie op productpagina + algemene reviews pagina
+- Zoekfunctionaliteit met GET /search?q=... + autocomplete
 
-Nieuwe flow:
-```text
-Email bestaat?
-  → Heeft password_hash? → Error "Account bestaat al, log in"
-  → Geen password_hash (gemigreerd)?
-      → Claim account: set password_hash, update profiel
-      → Stuur verificatiemail
-      → Return { message: "Verificatiemail verstuurd" } (GEEN token)
+**Prompt 9: Navigatie, Nieuwsbrief & Gift Cards**
+- Dynamische navigatie via GET /navigation (main + footer menu)
+- Nieuwsbrief component: POST naar /newsletter/subscribe i.p.v. externe redirect
+- Gift card pagina: denominaties tonen, saldo checken, toevoegen aan cart
 
-Email bestaat niet?
-  → Insert nieuwe klant
-  → Stuur verificatiemail
-  → Return { message: "Verificatiemail verstuurd" } (GEEN token)
-```
+**Prompt 10: SEO, Sitemap & Meertaligheid**
+- SEO meta tags per pagina via GET /seo
+- Sitemap generatie via GET /sitemap voor SSR/SSG
+- Accept-Language header meesturen voor vertalingen
+- Settings/languages endpoint voor taalwissel UI
 
-**3. E-mailverificatie flow**
+**Prompt 11: Promoties, Verzending & Servicepunten**
+- Cart promotie-berekening na elke wijziging (calculate_promotions)
+- Besparingsoverzicht in cart drawer
+- Kortingscode validatie + toepassen/verwijderen
+- Verzendmethoden ophalen + servicepunt selector (PostNL/DHL/DPD)
+- Gratis verzending drempel indicator
 
-- Nieuwe action `verify_email`: ontvangt token, valideert, zet `email_verified = true`, geeft JWT token terug
-- Verificatielink wijst naar storefront pagina `/verify-email?token=...&email=...`
-- Verificatiemail via Resend (zelfde patroon als password reset)
+### Technische aanpak
+- Alleen `CustomFrontendConfigurator.tsx` wordt aangepast
+- `generatePrompts()` functie uitbreiden met 6 extra prompts
+- Elke prompt bevat: types, API calls, component structuur, en foutafhandeling
+- Alle prompts gebruiken dezelfde proxy-architectuur uit prompt 2
 
-**4. Login aanpassen**
-
-- Check `email_verified` — als `false`, return error "Bevestig eerst je e-mailadres"
-- Nieuwe action `resend_verification`: stuurt verificatiemail opnieuw
-
-**5. Storefront UI**
-
-- `StorefrontVerifyEmail.tsx` — pagina die token valideert en doorverwijst naar login
-- Registratieformulier toont na submit: "Check je e-mail om je account te bevestigen"
-- Login error bij onbevestigd account toont link om verificatiemail opnieuw te versturen
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| Nieuwe migratie | `password_hash` nullable, verificatie-kolommen |
-| `storefront-customer-api/index.ts` | Register claim-flow, verify_email action, resend_verification, login check |
-| `src/pages/shop/StorefrontVerifyEmail.tsx` | Verificatiepagina |
-| `src/pages/shop/StorefrontRegister.tsx` of login component | Success-state na registratie |
-| Routes (`App.tsx` of shop router) | `/shop/:tenantSlug/verify-email` route |
-
-### Verwacht gedrag
-
-| Scenario | Resultaat |
-|---|---|
-| Nieuw e-mailadres | Insert → verificatiemail → bevestigen → login |
-| Gemigreerd e-mailadres (geen wachtwoord) | Claim → wachtwoord gezet → verificatiemail → bevestigen → login + oude orders zichtbaar |
-| Al geregistreerd (heeft wachtwoord + verified) | Error "Account bestaat al, log in" |
-| Login zonder verificatie | Error "Bevestig eerst je e-mailadres" + optie opnieuw versturen |
+### Resultaat
+Een custom frontend project dat alle 11 prompts volgt heeft **volledige functionaliteit**: shop browsing, accounts met verificatie, B2B, bundels, reviews, zoeken, navigatie, nieuwsbrief, gift cards, SEO, promoties, en verzending — identiek aan de ingebouwde SellQo storefront.
 
