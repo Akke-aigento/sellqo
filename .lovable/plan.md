@@ -47,12 +47,12 @@ De `CustomFrontendConfigurator.tsx` bevat 5 prompts die de basis dekken (client,
 |---|---|---|
 | 6 | **Segment bewerken** | ✅ |
 | 7 | **Extra filters (auto-tags, registratiedatum)** | ✅ |
-| 8 | **Klantpreview** | 🔜 Volgende iteratie |
+| 8 | **Klantpreview** | ✅ |
 
-### Fase 3 — Samenhang & Cross-channel
+### Fase 3 — Samenhang & Cross-channel ✅ VOLTOOID
 
 | # | Wat | Status |
 |---|---|---|
-| 9 | Gedeelde segmenten widget | 🔜 |
-| 10 | Performance grafieken per campagne | 🔜 |
-| 11 | AI Suggesties invullen | 🔜 |
+| 9 | Gedeelde segmenten widget | ✅ |
+| 10 | Performance grafieken per campagne | ✅ |
+| 11 | AI Suggesties invullen | ✅ |
