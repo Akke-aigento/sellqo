@@ -43,6 +43,17 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
     },
   });
 
+  // Reset form when segment changes (edit vs create)
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: segment?.name || '',
+        description: segment?.description || '',
+      });
+      setFilterRules(segment?.filter_rules || {});
+    }
+  }, [open, segment]);
+
   const handleSubmit = (data: SegmentFormData) => {
     if (!currentTenant?.id) return;
     
