@@ -53,11 +53,11 @@ export function SegmentCustomerPreview({ open, onOpenChange, segmentName, filter
       if (filterRules.max_orders !== undefined) {
         query = query.lte('total_orders', filterRules.max_orders);
       }
-      if (filterRules.min_spent !== undefined) {
-        query = query.gte('total_spent', filterRules.min_spent);
+      if (filterRules.min_total_spent !== undefined) {
+        query = query.gte('total_spent', filterRules.min_total_spent);
       }
-      if (filterRules.max_spent !== undefined) {
-        query = query.lte('total_spent', filterRules.max_spent);
+      if (filterRules.max_total_spent !== undefined) {
+        query = query.lte('total_spent', filterRules.max_total_spent);
       }
       if (filterRules.auto_tags && filterRules.auto_tags.length > 0) {
         query = query.overlaps('auto_tags', filterRules.auto_tags);
