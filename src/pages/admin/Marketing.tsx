@@ -302,7 +302,7 @@ export default function MarketingPage() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{segment.name}</CardTitle>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
+                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
@@ -312,6 +312,14 @@ export default function MarketingPage() {
                           }}
                         >
                           <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setPreviewSegment(segment)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
