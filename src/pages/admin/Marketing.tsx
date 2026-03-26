@@ -24,6 +24,7 @@ export default function MarketingPage() {
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
   const [editingSegment, setEditingSegment] = useState<any>(null);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [previewSegment, setPreviewSegment] = useState<any>(null);
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
