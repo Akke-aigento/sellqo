@@ -28,6 +28,10 @@ export interface SegmentFilterRules {
   no_order_since_days?: number;
   min_engagement_score?: number;
   email_subscribed?: boolean;
+  // Advanced filters
+  auto_tags?: string[];
+  registration_date_from?: string;
+  registration_date_to?: string;
 }
 
 // Customer Segment Types
