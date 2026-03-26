@@ -60,7 +60,13 @@ export default function ShopAuth() {
       toast.success('Succesvol ingelogd');
       navigate(redirectTo, { replace: true });
     } else {
-      toast.error(result.error || 'Inloggen mislukt');
+      const errMsg = result.error || 'Inloggen mislukt';
+      if (errMsg.startsWith('EMAIL_NOT_VERIFIED:')) {
+        setUnverifiedEmail(loginEmail);
+        toast.error(errMsg.replace('EMAIL_NOT_VERIFIED:', ''));
+      } else {
+        toast.error(errMsg);
+      }
     }
   };
 
