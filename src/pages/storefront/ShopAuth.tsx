@@ -88,10 +88,23 @@ export default function ShopAuth() {
     } as any);
     setProcessing(false);
     if (result.success) {
-      toast.success('Account aangemaakt!');
-      navigate(redirectTo, { replace: true });
+      // New flow: check if requires_verification
+      setRegistrationSuccess(true);
+      toast.success('Controleer je e-mail om je account te bevestigen');
     } else {
       toast.error(result.error || 'Registratie mislukt');
+    }
+  };
+
+  const handleResendVerification = async (email: string) => {
+    setResending(true);
+    try {
+      await invoke('resend_verification', { email });
+      toast.success('Nieuwe verificatiemail verstuurd!');
+    } catch {
+      toast.error('Kon geen nieuwe mail versturen');
+    } finally {
+      setResending(false);
     }
   };
 
