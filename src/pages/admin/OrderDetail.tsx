@@ -32,8 +32,6 @@ import { toast } from 'sonner';
 import { OrderRefundDialog } from '@/components/admin/OrderRefundDialog';
 import { useOrderReturns } from '@/hooks/useReturns';
 import { Badge } from '@/components/ui/badge';
-import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
-import { toast } from 'sonner';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
