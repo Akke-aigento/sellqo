@@ -19,6 +19,8 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderSt
 import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
+import { ReturnsOverview } from '@/components/admin/ReturnsOverview';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
