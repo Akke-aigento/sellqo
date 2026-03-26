@@ -365,9 +365,15 @@ serve(async (req) => {
           .from('storefront_customers').select('*')
           .eq('tenant_id', tenant_id).eq('email', email.toLowerCase()).eq('is_active', true).maybeSingle();
         if (!customer) throw new Error('Invalid email or password');
+        if (!customer.password_hash) throw new Error('Invalid email or password');
 
         const valid = await verifyPassword(password, customer.password_hash);
         if (!valid) throw new Error('Invalid email or password');
+
+        // Check email verification
+        if (!customer.email_verified) {
+          throw new Error('EMAIL_NOT_VERIFIED:Bevestig eerst je e-mailadres. Controleer je inbox voor de verificatielink.');
+        }
 
         await supabase.from('storefront_customers').update({ last_login_at: new Date().toISOString() }).eq('id', customer.id);
 
