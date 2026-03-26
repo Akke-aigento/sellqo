@@ -136,15 +136,24 @@ export default function ShopAuth() {
                     <Label htmlFor="login-password">Wachtwoord</Label>
                     <Input id="login-password" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                   </div>
-                  <Button type="submit" className="w-full" disabled={processing}>
-                    {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Inloggen
-                  </Button>
-                  <div className="text-center">
-                    <Link to={`/shop/${tenantSlug}/reset-password`} className="text-sm text-muted-foreground hover:text-foreground underline">
-                      Wachtwoord vergeten?
-                    </Link>
-                  </div>
+                   <Button type="submit" className="w-full" disabled={processing}>
+                     {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                     Inloggen
+                   </Button>
+                   {unverifiedEmail && (
+                     <div className="p-3 rounded-lg bg-muted text-center space-y-2">
+                       <p className="text-sm text-muted-foreground">Je e-mailadres is nog niet bevestigd.</p>
+                       <Button variant="outline" size="sm" onClick={() => handleResendVerification(unverifiedEmail)} disabled={resending}>
+                         {resending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                         Verificatiemail opnieuw versturen
+                       </Button>
+                     </div>
+                   )}
+                   <div className="text-center">
+                     <Link to={`/shop/${tenantSlug}/reset-password`} className="text-sm text-muted-foreground hover:text-foreground underline">
+                       Wachtwoord vergeten?
+                     </Link>
+                   </div>
                 </form>
               </CardContent>
             </Card>
