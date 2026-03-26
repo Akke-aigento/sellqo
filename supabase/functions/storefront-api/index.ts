@@ -418,6 +418,43 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   // Determine product_type
   const productType = product.product_type || 'physical';
 
+  // Bundle items
+  let bundleItems: any[] = [];
+  let bundleIndividualTotal: number | null = null;
+  if (productType === 'bundle') {
+    const { data: bpRows } = await supabase
+      .from('bundle_products')
+      .select('product_id, quantity, is_required')
+      .eq('bundle_id', product.id)
+      .eq('tenant_id', tenantId);
+
+    if (bpRows && bpRows.length > 0) {
+      const bpIds = bpRows.map((bp: any) => bp.product_id);
+      const { data: bpProducts } = await supabase
+        .from('products')
+        .select('id, name, price, images, slug')
+        .in('id', bpIds);
+
+      const prodMap: Record<string, any> = {};
+      for (const p of (bpProducts || [])) prodMap[p.id] = p;
+
+      let total = 0;
+      bundleItems = bpRows
+        .filter((bp: any) => prodMap[bp.product_id])
+        .map((bp: any) => {
+          const p = prodMap[bp.product_id];
+          total += (p.price || 0) * (bp.quantity || 1);
+          return {
+            product_id: bp.product_id,
+            quantity: bp.quantity || 1,
+            is_required: bp.is_required ?? true,
+            product: { id: p.id, name: p.name, price: p.price, images: p.images, slug: p.slug },
+          };
+        });
+      bundleIndividualTotal = total;
+    }
+  }
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -459,6 +496,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
       total_count: reviews?.length || 0,
     },
+    ...(bundleItems.length > 0 ? { bundle_items: bundleItems, bundle_individual_total: bundleIndividualTotal } : {}),
   };
 }
 
