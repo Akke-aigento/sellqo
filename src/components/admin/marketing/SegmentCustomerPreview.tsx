@@ -35,7 +35,7 @@ export function SegmentCustomerPreview({ open, onOpenChange, segmentName, filter
     queryFn: async (): Promise<PreviewCustomer[]> => {
       if (!currentTenant?.id) return [];
 
-      let query = supabase
+      let query: any = supabase
         .from('customers')
         .select('id, first_name, last_name, email, country, total_orders, total_spent, customer_type, auto_tags')
         .eq('tenant_id', currentTenant.id);
