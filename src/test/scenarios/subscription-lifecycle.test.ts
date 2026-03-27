@@ -158,7 +158,7 @@ describe('Subscription Lifecycle Scenarios', () => {
     });
 
     it('peppol addon gets migrated when upgrading to Pro', () => {
-      const proFeatures = proPlan.features as Record<string, boolean>;
+      const proFeatures = proPlan.features as unknown as Record<string, boolean>;
       expect(proFeatures['peppol']).toBe(true);
       // Addon would be cancelled since feature is now included
     });
