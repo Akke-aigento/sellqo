@@ -1,37 +1,48 @@
 
 
-## Fix: Bol.com Retouren Pagina Niet Gevonden
+## Retouren Koppelen aan Bestellingen & Klantgesprek Starten
 
-### Waarschijnlijke oorzaak
+### Huidige staat
+- `returns` tabel heeft `order_id` (nullable) maar **geen `customer_id`**
+- De detail-sheet toont `customer_name` als tekst, maar kan niet doorlinken naar de klant
+- Er is geen manier om vanuit een retour een gesprek met de klant te starten
+- De `order` join haalt al `order_number`, `total`, `customer_email` op — maar niet `customer_id`
 
-De `MarketplaceDetailPage` (`/admin/connect/:connectionId`) laadt de connectie via `useMarketplaceConnection(connectionId)`. Als deze query faalt of `null` retourneert, toont de pagina: **"Connectie niet gevonden"** — wat lijkt op "pagina niet gevonden".
+### Plan
 
-Mogelijke redenen:
-- De `marketplace_connections` query wordt geblokkeerd door RLS-policies (de detail-query filtert **niet op tenant_id**, terwijl de lijst-query dat wél doet)
-- De connection `is_active` staat op `false` waardoor `getConnectionByType` in de Marketplaces pagina `undefined` retourneert → `handleSettings` navigeert nergens heen
+**1. Database: `customer_id` toevoegen aan `returns`**
+- Nieuwe kolom `customer_id UUID REFERENCES customers(id) ON DELETE SET NULL`
+- Index voor snelle lookups
+- Bestaande retouren: backfill via `UPDATE returns SET customer_id = orders.customer_id FROM orders WHERE returns.order_id = orders.id`
 
-### Oplossing
+**2. Edge function `process-order-refund` aanpassen**
+- Bij aanmaken retour: `customer_id` meesturen vanuit de order
 
-**1. `useMarketplaceConnection` hook verbeteren** (`src/hooks/useMarketplaceConnections.ts`)
-- Tenant context meegeven aan de query zodat RLS geen probleem is
-- Error logging toevoegen zodat de oorzaak zichtbaar is in de console
+**3. `useReturns` hook uitbreiden**
+- Join uitbreiden: `order:orders (order_number, total, customer_email, customer_id)` + `customer:customers (id, first_name, last_name, email)`
+- `ReturnRecord` type uitbreiden met `customer_id` en `customer` join
 
-**2. `MarketplaceDetailPage` — betere foutafhandeling** (`src/pages/admin/MarketplaceDetail.tsx`)
-- Bij "Connectie niet gevonden": toon een duidelijkere foutmelding met de daadwerkelijke error
-- Console error loggen als de query faalt, zodat we de exacte oorzaak kunnen zien
+**4. ReturnsOverview detail-sheet uitbreiden**
+- **Klantnaam klikbaar** → navigeert naar `/admin/customers/:customerId`
+- **Bestelnummer klikbaar** → navigeert naar `/admin/orders/:orderId` (al deels aanwezig)
+- **"Gesprek starten" knop** → navigeert naar inbox met pre-filled context:
+  - Route: `/admin/inbox?compose=true&to={customer_email}&subject=Retour {order_number}`
+  - Of: opent `ComposeDialog` direct met retour-context
 
-**3. Directe deep-link naar Retouren tab** (`src/pages/admin/Marketplaces.tsx`)
-- `activeTab` state initialiseren vanuit URL query parameter (bijv. `?tab=returns`)
-- Vanuit de MarketplaceCard een "Retouren" snelkoppeling toevoegen voor verbonden Bol.com die navigeert naar `/admin/connect/:id?tab=returns`
-
-**4. `MarketplaceDetailPage` — tab uit URL lezen**
-- `activeTab` initialiseren vanuit `?tab=` search parameter i.p.v. hardcoded `'overview'`
-- Zo werken deep-links naar specifieke tabs
+**5. Inbox compose integratie**
+- De bestaande `ComposeDialog` accepteert al query params of kan via state worden aangestuurd
+- We navigeren naar `/admin/inbox` met search params die de compose dialog triggeren met het juiste e-mailadres en onderwerp
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/hooks/useMarketplaceConnections.ts` | Tenant-aware detail query + error logging |
-| `src/pages/admin/MarketplaceDetail.tsx` | Tab uit URL lezen + betere error state |
+| Nieuwe migratie | `customer_id` kolom + backfill + index |
+| `supabase/functions/process-order-refund/index.ts` | `customer_id` meesturen bij insert |
+| `src/hooks/useReturns.ts` | Join uitbreiden, type updaten |
+| `src/components/admin/ReturnsOverview.tsx` | Klikbare klant, klikbare order, "Gesprek starten" knop |
+
+### Resultaat
+- Elke retour is direct gekoppeld aan klant + bestelling
+- Vanuit retour-detail: 1 klik naar klantpagina, 1 klik naar bestelling, 1 klik om e-mail te sturen over de retour
 
