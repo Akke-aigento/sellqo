@@ -87,7 +87,7 @@ export default function MarketplaceDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
-  const { connection, isLoading } = useMarketplaceConnection(connectionId);
+  const { connection, isLoading, error: connectionError } = useMarketplaceConnection(connectionId);
   const { updateConnection, deleteConnection } = useMarketplaceConnections();
 
   // Enable auto-sync when viewing this page
