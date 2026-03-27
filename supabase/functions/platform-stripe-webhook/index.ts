@@ -334,8 +334,26 @@ serve(async (req) => {
           .update({ subscription_status: "past_due" })
           .eq("id", tenant.id);
 
-        // TODO: Send payment failed email via Resend
-        logStep("Payment failed notification pending", { email: tenant.owner_email });
+        // Send payment failed email
+        const failedAmount = formatAmount(invoice.amount_due || 0, invoice.currency || 'eur');
+        await supabase.functions.invoke("create-notification", {
+          body: {
+            tenant_id: tenant.id,
+            category: "billing",
+            type: "payment_failed",
+            title: `Betaling mislukt: ${failedAmount}`,
+            message: `Je betaling van ${failedAmount} kon niet worden verwerkt. Update je betaalmethode om je abonnement actief te houden.`,
+            priority: "urgent",
+            action_url: "/admin/settings?tab=subscription",
+            data: {
+              invoice_id: invoice.id,
+              amount: (invoice.amount_due || 0) / 100,
+            },
+            skip_in_app: true,
+          },
+        });
+
+        logStep("Payment failed notification sent", { tenantId: tenant.id, email: tenant.owner_email });
         break;
       }
 
