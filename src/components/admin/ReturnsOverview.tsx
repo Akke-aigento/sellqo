@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
   RotateCcw, ExternalLink, Package, Search, SlidersHorizontal,
-  CheckCircle2, XCircle, Clock, Archive, MessageSquare, CreditCard
+  CheckCircle2, XCircle, Clock, Archive, MessageSquare, CreditCard,
+  Mail, User
 } from 'lucide-react';
 import { useReturns, useUpdateReturnStatus, useProcessRefund, ReturnRecord } from '@/hooks/useReturns';
 import { useTenant } from '@/hooks/useTenant';
