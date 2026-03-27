@@ -403,20 +403,42 @@ export function ReturnsOverview() {
 
                 <Separator />
 
-                {/* Link to order */}
-                {selectedReturn.order_id && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setSelectedReturn(null);
-                      navigate(`/admin/orders/${selectedReturn.order_id}`);
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Bekijk bestelling
-                  </Button>
-                )}
+                {/* Action buttons */}
+                <div className="space-y-2">
+                  {selectedReturn.order_id && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedReturn(null);
+                        navigate(`/admin/orders/${selectedReturn.order_id}`);
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Bekijk bestelling
+                    </Button>
+                  )}
+
+                  {(() => {
+                    const email = selectedReturn.customer?.email || selectedReturn.order?.customer_email;
+                    if (!email) return null;
+                    const orderNumber = selectedReturn.order?.order_number || '';
+                    const subject = encodeURIComponent(`Retour ${orderNumber}`.trim());
+                    return (
+                      <Button
+                        variant="default"
+                        className="w-full"
+                        onClick={() => {
+                          setSelectedReturn(null);
+                          navigate(`/admin/inbox?compose=true&to=${encodeURIComponent(email)}&subject=${subject}`);
+                        }}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Gesprek starten
+                      </Button>
+                    );
+                  })()}
+                </div>
 
                 {/* Dates */}
                 <div className="text-xs text-muted-foreground space-y-0.5">
