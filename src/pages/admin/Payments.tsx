@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ function getPayoutStatusBadge(status: string) {
 }
 
 export default function PaymentsPage() {
+  const isCompact = useIsCompact();
   const { currentTenant } = useTenant();
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -242,6 +244,24 @@ export default function PaymentsPage() {
                   <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nog geen transacties</p>
                 </div>
+              ) : isCompact ? (
+                <div className="space-y-2 px-3">
+                  {transactionsData?.transactions?.map((tx) => (
+                    <div key={tx.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{formatDate(tx.created)}</span>
+                        {getTransactionTypeBadge(tx.type)}
+                      </div>
+                      {tx.description && <p className="text-sm text-muted-foreground mt-1 truncate">{tx.description}</p>}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground">
+                          {tx.fee > 0 ? `Fee: ${formatCurrency(tx.fee, tx.currency)}` : ''}
+                        </span>
+                        <span className="font-medium">{formatCurrency(tx.net, tx.currency)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div>
                 <Table>
@@ -317,6 +337,21 @@ export default function PaymentsPage() {
                 <div className="text-center py-8 text-muted-foreground">
                   <ArrowDownToLine className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nog geen uitbetalingen</p>
+                </div>
+              ) : isCompact ? (
+                <div className="space-y-2 px-3">
+                  {payoutsData?.payouts?.map((payout) => (
+                    <div key={payout.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{formatDate(payout.arrival_date)}</span>
+                        {getPayoutStatusBadge(payout.status)}
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground capitalize">{payout.method}</span>
+                        <span className="font-medium">{formatCurrency(payout.amount, payout.currency)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div>

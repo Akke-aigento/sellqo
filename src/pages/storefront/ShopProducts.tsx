@@ -122,7 +122,10 @@ export default function ShopProducts() {
               {selectedCategory?.name || 'Alle Producten'}
             </h1>
             {selectedCategory?.description && (
-              <p className="text-muted-foreground mt-1">{selectedCategory.description}</p>
+              <div 
+                className="text-muted-foreground mt-1 prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: selectedCategory.description }}
+              />
             )}
             <p className="text-sm text-muted-foreground mt-2">
               {products.length} {products.length === 1 ? 'product' : 'producten'}

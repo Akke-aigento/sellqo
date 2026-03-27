@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles } from 'lucide-react';
+import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles, X, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,17 +16,20 @@ import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SegmentCustomerPreview } from '@/components/admin/marketing/SegmentCustomerPreview';
 
 export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<any>(null);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [previewSegment, setPreviewSegment] = useState<any>(null);
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
   const { templates, isLoading: templatesLoading, createTemplate, deleteTemplate } = useEmailTemplates();
-  const { segments, isLoading: segmentsLoading, createSegment, deleteSegment } = useCustomerSegments();
+  const { segments, isLoading: segmentsLoading, createSegment, updateSegment, deleteSegment } = useCustomerSegments();
 
   const defaultStats = {
     totalCampaigns: 0, totalSent: 0, totalOpened: 0, totalClicked: 0,
@@ -294,9 +297,44 @@ export default function MarketingPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {segments.map((segment) => (
-                <Card key={segment.id} className="hover:shadow-md transition-shadow">
+                <Card key={segment.id} className="hover:shadow-md transition-shadow group">
                   <CardHeader>
-                    <CardTitle className="text-base">{segment.name}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{segment.name}</CardTitle>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditingSegment(segment);
+                            setSegmentDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setPreviewSegment(segment)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => {
+                            if (confirm('Weet je zeker dat je dit segment wilt verwijderen?')) {
+                              deleteSegment.mutate(segment.id);
+                            }
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                     <CardDescription>{segment.description || 'Geen beschrijving'}</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -331,12 +369,34 @@ export default function MarketingPage() {
 
       <SegmentDialog
         open={segmentDialogOpen}
-        onOpenChange={setSegmentDialogOpen}
-        onSave={(data) => {
-          createSegment.mutate(data as any, { onSuccess: () => setSegmentDialogOpen(false) });
+        onOpenChange={(open) => {
+          setSegmentDialogOpen(open);
+          if (!open) setEditingSegment(null);
         }}
-        isLoading={createSegment.isPending}
+        segment={editingSegment}
+        onSave={(data) => {
+          if (editingSegment) {
+            updateSegment.mutate({ id: editingSegment.id, ...data } as any, {
+              onSuccess: () => {
+                setSegmentDialogOpen(false);
+                setEditingSegment(null);
+              },
+            });
+          } else {
+            createSegment.mutate(data as any, { onSuccess: () => setSegmentDialogOpen(false) });
+          }
+        }}
+        isLoading={editingSegment ? updateSegment.isPending : createSegment.isPending}
       />
+
+      {previewSegment && (
+        <SegmentCustomerPreview
+          open={!!previewSegment}
+          onOpenChange={(open) => { if (!open) setPreviewSegment(null); }}
+          segmentName={previewSegment.name}
+          filterRules={previewSegment.filter_rules || {}}
+        />
+      )}
     </div>
   );
 }

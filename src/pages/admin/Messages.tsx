@@ -35,14 +35,17 @@ export default function MessagesPage() {
     filters,
     setFilters,
     markConversationAsRead,
+    markConversationAsUnread,
     unreadTotal,
     archiveConversation,
     deleteConversation,
     restoreConversation,
     moveToFolder,
+    pinConversation,
+    snoozeConversation,
   } = useInbox();
 
-  const { folders, archiveFolder, trashFolder } = useInboxFolders();
+  const { folders, archiveFolder, trashFolder, createFolder } = useInboxFolders();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -151,7 +154,7 @@ export default function MessagesPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <div className={`${isSinglePanel ? 'p-3 pb-0' : 'p-6 pb-0'}`}>
+      <div className={`${isSinglePanel ? 'px-3 py-2' : 'p-6 pb-0'}`}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
@@ -173,34 +176,128 @@ export default function MessagesPage() {
         <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
       </div>
 
-      <div className={`${isSinglePanel ? 'p-3' : 'p-6'} h-[calc(100%-${isSinglePanel ? '3.5rem' : '5rem'})]`}>
-        <Card className="h-full flex overflow-hidden">
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            {/* Left sidebar - Folders (hidden on mobile when viewing detail) */}
-            {showList && (
+      <div className={`${isSinglePanel ? 'px-0' : 'p-6'} h-[calc(100%-${isSinglePanel ? '3rem' : '5rem'})]`}>
+        {/* On mobile: no Card wrapper, just a plain div for native inbox feel */}
+        {isSinglePanel ? (
+          <div className="h-full flex overflow-hidden">
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Folder sidebar hidden on mobile — folders accessible via filters */}
+
+              {/* Conversation list */}
+              {showList && (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <InboxFilters
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    emailCount={counts.email}
+                    whatsappCount={counts.whatsapp}
+                    facebookCount={counts.facebook}
+                    instagramCount={counts.instagram}
+                    unreadCount={unreadTotal}
+                    folders={folders}
+                    selectedFolderId={
+                      filters.folderId === 'archived' ? archiveFolder?.id || null :
+                      filters.folderId === 'deleted' ? trashFolder?.id || null :
+                      filters.folderId
+                    }
+                    onFolderSelect={handleFolderSelect}
+                    folderCounts={folderCounts}
+                    onCreateFolder={(name) => createFolder.mutate({ name })}
+                  />
+                  <div className="flex-1 overflow-hidden">
+                    <ConversationList
+                      conversations={conversations}
+                      selectedId={selectedConversationId}
+                      onSelect={handleSelectConversation}
+                      isLoading={isLoading}
+                      selectedIds={selectedIds}
+                      onToggleSelection={toggleSelection}
+                      onSelectAll={selectAll}
+                      onClearSelection={clearSelection}
+                      onBulkArchive={bulkArchive}
+                      onBulkDelete={bulkDelete}
+                      onBulkRestore={bulkRestore}
+                      onBulkMoveToFolder={bulkMoveToFolder}
+                      currentFolder={filters.folderId}
+                      isBulkLoading={isBulkLoading}
+                       onArchiveConversation={archiveConversation}
+                       onDeleteConversation={deleteConversation}
+                       onRestoreConversation={restoreConversation}
+                       onMarkAsUnread={markConversationAsUnread}
+                       onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                       folders={folders}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Drag overlay */}
+              <DragOverlay>
+                {activeConversation && (
+                  <ConversationDragOverlay conversation={activeConversation} />
+                )}
+              </DragOverlay>
+            </DndContext>
+
+            {/* Conversation detail */}
+            {showDetail && (
+              <div className="flex-1 min-w-0">
+                {selectedConversation ? (
+                  <ConversationDetail
+                    conversation={selectedConversation}
+                    onMarkAsRead={() => markConversationAsRead(selectedConversation.id)}
+                    onMessageSent={() => {}}
+                    onArchive={() => archiveConversation(selectedConversation.id)}
+                    onDelete={() => deleteConversation(selectedConversation.id)}
+                    onRestore={() => restoreConversation(selectedConversation.id)}
+                    onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
+                    onPin={(pinned) => pinConversation({ conversationId: selectedConversation.id, pinned })}
+                    onSnooze={(until) => snoozeConversation({ conversationId: selectedConversation.id, until })}
+                    onBack={handleBack}
+                  />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                      Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Card className="h-full flex overflow-hidden">
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Left sidebar - Folders */}
               <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
                 <div className="p-1.5 border-b flex items-center justify-between shrink-0">
                   {!isSidebarCollapsed && (
                     <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
                   )}
-                  {!isSinglePanel && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 shrink-0"
-                      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    >
-                      {isSidebarCollapsed ? (
-                        <PanelLeft className="h-3.5 w-3.5" />
-                      ) : (
-                        <PanelLeftClose className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  >
+                    {isSidebarCollapsed ? (
+                      <PanelLeft className="h-3.5 w-3.5" />
+                    ) : (
+                      <PanelLeftClose className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
                 </div>
                 <FolderList
                   selectedFolderId={
@@ -213,11 +310,9 @@ export default function MessagesPage() {
                   collapsed={isSidebarCollapsed}
                 />
               </div>
-            )}
 
-            {/* Middle - Conversation list */}
-            {showList && (
-              <div className={`${isSinglePanel ? 'flex-1' : 'w-72 min-w-72'} border-r flex flex-col shrink-0 overflow-hidden`}>
+              {/* Middle - Conversation list */}
+              <div className="w-72 min-w-72 border-r flex flex-col shrink-0 overflow-hidden">
                 <InboxFilters
                   filters={filters}
                   onFiltersChange={setFilters}
@@ -243,21 +338,25 @@ export default function MessagesPage() {
                     onBulkMoveToFolder={bulkMoveToFolder}
                     currentFolder={filters.folderId}
                     isBulkLoading={isBulkLoading}
+                    onArchiveConversation={archiveConversation}
+                    onDeleteConversation={deleteConversation}
+                    onRestoreConversation={restoreConversation}
+                    onMarkAsUnread={markConversationAsUnread}
+                    onMoveToFolder={(id, folderId) => moveToFolder({ conversationId: id, folderId })}
+                    folders={folders}
                   />
                 </div>
               </div>
-            )}
 
-            {/* Drag overlay */}
-            <DragOverlay>
-              {activeConversation && (
-                <ConversationDragOverlay conversation={activeConversation} />
-              )}
-            </DragOverlay>
-          </DndContext>
+              {/* Drag overlay */}
+              <DragOverlay>
+                {activeConversation && (
+                  <ConversationDragOverlay conversation={activeConversation} />
+                )}
+              </DragOverlay>
+            </DndContext>
 
-          {/* Right panel - Conversation detail */}
-          {showDetail && (
+            {/* Right panel - Conversation detail */}
             <div className="flex-1 min-w-0">
               {selectedConversation ? (
                 <ConversationDetail
@@ -268,7 +367,8 @@ export default function MessagesPage() {
                   onDelete={() => deleteConversation(selectedConversation.id)}
                   onRestore={() => restoreConversation(selectedConversation.id)}
                   onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
-                  onBack={isSinglePanel ? handleBack : undefined}
+                  onPin={(pinned) => pinConversation({ conversationId: selectedConversation.id, pinned })}
+                  onSnooze={(until) => snoozeConversation({ conversationId: selectedConversation.id, until })}
                 />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6">
@@ -282,8 +382,8 @@ export default function MessagesPage() {
                 </div>
               )}
             </div>
-          )}
-        </Card>
+          </Card>
+        )}
       </div>
     </div>
   );

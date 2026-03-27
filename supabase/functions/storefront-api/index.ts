@@ -1,9 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2?bundle";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-api-key, accept-language, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
 // ============== TYPES ==============
@@ -229,6 +230,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
 
 async function getCategories(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
   const locale = params.locale as string | undefined;
+  const hideEmpty = params.hide_empty === true || params.hide_empty === 'true';
 
   const { data: categories, error } = await supabase
     .from('categories')
@@ -241,25 +243,42 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   if (error) throw error;
   if (!categories || categories.length === 0) return [];
 
-  // Get product counts per category
-  const { data: productCounts } = await supabase
+  // Get product counts per category from BOTH legacy category_id AND junction table
+  const { data: legacyProducts } = await supabase
     .from('products')
-    .select('category_id')
+    .select('id, category_id')
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  const countMap: Record<string, number> = {};
-  if (productCounts) {
-    for (const p of productCounts) {
-      if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+  const categoryIds = categories.map((c: any) => c.id);
+  const { data: junctionRows } = await supabase
+    .from('product_categories')
+    .select('product_id, category_id')
+    .in('category_id', categoryIds);
+
+  const activeProductIds = new Set((legacyProducts || []).map((p: any) => p.id));
+
+  const countMap: Record<string, Set<string>> = {};
+  // Legacy category_id
+  for (const p of (legacyProducts || [])) {
+    if (p.category_id) {
+      if (!countMap[p.category_id]) countMap[p.category_id] = new Set();
+      countMap[p.category_id].add(p.id);
+    }
+  }
+  // Junction table (only active products)
+  for (const row of (junctionRows || [])) {
+    if (activeProductIds.has(row.product_id)) {
+      if (!countMap[row.category_id]) countMap[row.category_id] = new Set();
+      countMap[row.category_id].add(row.product_id);
     }
   }
 
   // Translations
   const tMap = locale ? await getTranslations(supabase, tenantId, 'category', categories.map((c: any) => c.id), locale) : {};
 
-  return categories.map((cat: any) => {
+  const result = categories.map((cat: any) => {
     const t = tMap[cat.id] || {};
     return {
       id: cat.id,
@@ -268,9 +287,16 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
       description: t.description || cat.description,
       image_url: cat.image_url,
       parent_id: cat.parent_id,
-      product_count: countMap[cat.id] || 0,
+      product_count: countMap[cat.id]?.size || 0,
     };
   });
+
+  // Filter out empty categories if requested
+  if (hideEmpty) {
+    return result.filter((cat: any) => cat.product_count > 0);
+  }
+
+  return result;
 }
 
 // ============== GET PRODUCT (SINGLE) ==============
@@ -375,6 +401,60 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     if (selectedVariantIndex === -1) selectedVariantIndex = null;
   }
 
+  // Determine in_stock: if product-level track_inventory is off, always in stock
+  const productTrackInventory = !!product.track_inventory;
+  let inStock: boolean;
+  if (hasVariants) {
+    inStock = (variants || []).some((v: any) => {
+      // If product-level tracking is off, variant is always in stock
+      if (!productTrackInventory) return true;
+      // Otherwise check variant-level tracking
+      return !v.track_inventory || v.stock > 0;
+    });
+  } else {
+    inStock = !productTrackInventory || product.stock > 0;
+  }
+
+  // Determine product_type
+  const productType = product.product_type || 'physical';
+
+  // Bundle items
+  let bundleItems: any[] = [];
+  let bundleIndividualTotal: number | null = null;
+  if (productType === 'bundle') {
+    const { data: bpRows } = await supabase
+      .from('bundle_products')
+      .select('product_id, quantity, is_required')
+      .eq('bundle_id', product.id)
+      .eq('tenant_id', tenantId);
+
+    if (bpRows && bpRows.length > 0) {
+      const bpIds = bpRows.map((bp: any) => bp.product_id);
+      const { data: bpProducts } = await supabase
+        .from('products')
+        .select('id, name, price, images, slug')
+        .in('id', bpIds);
+
+      const prodMap: Record<string, any> = {};
+      for (const p of (bpProducts || [])) prodMap[p.id] = p;
+
+      let total = 0;
+      bundleItems = bpRows
+        .filter((bp: any) => prodMap[bp.product_id])
+        .map((bp: any) => {
+          const p = prodMap[bp.product_id];
+          total += (p.price || 0) * (bp.quantity || 1);
+          return {
+            product_id: bp.product_id,
+            quantity: bp.quantity || 1,
+            is_required: bp.is_required ?? true,
+            product: { id: p.id, name: p.name, price: p.price, images: p.images, slug: p.slug },
+          };
+        });
+      bundleIndividualTotal = total;
+    }
+  }
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -387,8 +467,9 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
-    in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
-    stock: product.track_inventory ? product.stock : null,
+    product_type: productType,
+    in_stock: inStock,
+    stock: productTrackInventory ? product.stock : null,
     tags: product.tags || [],
     category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
     has_variants: hasVariants,
@@ -398,8 +479,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     variants: (variants || []).map((v: any) => ({
       id: v.id, title: v.title, sku: v.sku, barcode: v.barcode,
       price: v.price ?? product.price, compare_at_price: v.compare_at_price ?? product.compare_at_price,
-      stock: v.track_inventory ? v.stock : null,
-      in_stock: !v.track_inventory || v.stock > 0,
+      stock: (productTrackInventory && v.track_inventory) ? v.stock : null,
+      in_stock: !productTrackInventory || !v.track_inventory || v.stock > 0,
       image_url: v.image_url, attribute_values: v.attribute_values, weight: v.weight ?? product.weight,
       linked_product_id: v.linked_product_id || null,
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
@@ -415,6 +496,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
       total_count: reviews?.length || 0,
     },
+    ...(bundleItems.length > 0 ? { bundle_items: bundleItems, bundle_individual_total: bundleIndividualTotal } : {}),
   };
 }
 
@@ -444,12 +526,24 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, created_at, product_type, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  if (resolvedCategoryId) query = query.eq('category_id', resolvedCategoryId);
+  if (resolvedCategoryId) {
+    // Query junction table for multi-category support
+    const { data: pcRows } = await supabase
+      .from('product_categories')
+      .select('product_id')
+      .eq('category_id', resolvedCategoryId);
+    const junctionIds = (pcRows || []).map((r: any) => r.product_id);
+    if (junctionIds.length > 0) {
+      query = query.or(`category_id.eq.${resolvedCategoryId},id.in.(${junctionIds.join(',')})`);
+    } else {
+      query = query.eq('category_id', resolvedCategoryId);
+    }
+  }
   if (search) query = query.ilike('name', `%${search}%`);
   if (minPrice != null) query = query.gte('price', minPrice);
   if (maxPrice != null) query = query.lte('price', maxPrice);
@@ -510,15 +604,25 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         const prices = pVariants.map((v: any) => v.price ?? product.price);
         priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
       }
+      const productTrackInventory = !!product.track_inventory;
+      const productType = product.product_type || 'physical';
+      let inStock: boolean;
+      if (hasVariants) {
+        inStock = pVariants.some((v: any) => {
+          if (!productTrackInventory) return true;
+          return !v.track_inventory || v.stock > 0;
+        });
+      } else {
+        inStock = !productTrackInventory || product.stock > 0;
+      }
       return {
         id: product.id, name: t.name || product.name, slug: product.slug,
         description: t.description || product.description,
         price: product.price, compare_at_price: product.compare_at_price,
         images: product.images || [],
-        in_stock: hasVariants
-          ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
-          : (!product.track_inventory || product.stock > 0),
-        stock: product.track_inventory ? product.stock : null, sku: product.sku,
+        product_type: productType,
+        in_stock: inStock,
+        stock: productTrackInventory ? product.stock : null, sku: product.sku,
         tags: product.tags || [], is_featured: product.is_featured || false,
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
         has_variants: hasVariants,
@@ -992,9 +1096,9 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
 // ============== CART ACTIONS ==============
 
 async function cartCreate(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const sessionId = params.session_id as string;
+  // Auto-generate session_id if not provided
+  const sessionId = (params.session_id as string) || crypto.randomUUID();
   const currency = (params.currency as string) || 'EUR';
-  if (!sessionId) throw new Error('session_id is required');
 
   // Check for existing cart
   const { data: existing } = await supabase
@@ -1003,14 +1107,22 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
     .gt('expires_at', new Date().toISOString())
     .maybeSingle();
 
-  if (existing) return { cart_id: existing.id };
+  if (existing) {
+    // Return full cart data instead of just id
+    const cart = await cartGet(supabase, tenantId, { cart_id: existing.id });
+    if (cart) return cart;
+    return { id: existing.id, items: [], item_count: 0, subtotal: 0, shipping: 0, discount: 0, tax: 0, total: 0, currency };
+  }
 
   const { data, error } = await supabase
     .from('storefront_carts')
     .insert({ tenant_id: tenantId, session_id: sessionId, currency })
     .select('id').single();
-  if (error) throw error;
-  return { cart_id: data.id };
+  if (error) {
+    console.error('Cart creation DB error:', error);
+    throw new Error('Failed to create cart: ' + (error.message || 'Unknown database error'));
+  }
+  return { id: data.id, session_id: sessionId, items: [], item_count: 0, subtotal: 0, shipping: 0, discount: 0, tax: 0, total: 0, currency };
 }
 
 async function cartGet(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -1028,7 +1140,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, slug, images, price, track_inventory, stock)')
+    .select('id, product_id, variant_id, quantity, unit_price, gift_card_metadata, products(id, name, slug, images, price, track_inventory, stock, product_type)')
     .eq('cart_id', cart.id);
 
   // Fetch variant info for items that have variant_id
@@ -1041,21 +1153,42 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
+    const productType = item.products?.product_type || 'physical';
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
-      quantity: item.quantity, unit_price: item.unit_price,
+      quantity: item.quantity, unit_price: item.unit_price || (item.gift_card_metadata as any)?.amount || variant?.price || item.products?.price || 0,
+      product_type: productType,
+      gift_card_metadata: item.gift_card_metadata || null,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
-      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
-      line_total: item.quantity * item.unit_price,
+      variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url, price: variant.price } : null,
+      line_total: item.quantity * (item.unit_price || (item.gift_card_metadata as any)?.amount || variant?.price || item.products?.price || 0),
     };
   });
 
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
+  // Calculate discount if a discount_code is present
+  let discountAmount = 0;
+  let discountInfo: any = null;
+  if (cart.discount_code) {
+    const { data: dc } = await supabase.from('discount_codes')
+      .select('*').eq('tenant_id', tenantId).eq('code', cart.discount_code).eq('is_active', true).maybeSingle();
+    if (dc) {
+      if (dc.discount_type === 'percentage') {
+        discountAmount = Math.round(subtotal * (dc.discount_value / 100) * 100) / 100;
+      } else {
+        discountAmount = Math.min(dc.discount_value, subtotal);
+      }
+      if (dc.maximum_discount_amount) discountAmount = Math.min(discountAmount, dc.maximum_discount_amount);
+      discountInfo = { discount_type: dc.discount_type, discount_value: dc.discount_value, applies_to: dc.applies_to, description: dc.description };
+    }
+  }
+
   return {
     id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_code: cart.discount_code,
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
-    subtotal, expires_at: cart.expires_at,
+    subtotal, discount_amount: discountAmount, discount_info: discountInfo,
+    total: Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100, expires_at: cart.expires_at,
   };
 }
 
@@ -1064,19 +1197,28 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   const productId = params.product_id as string;
   const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
+  const giftCardMetadata = params.gift_card_metadata as Record<string, unknown> | undefined;
+  const requestedAmount = params.amount as number | undefined;
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
 
-  // Verify product exists and get price
+  // Verify product exists and get price + type
   const { data: product } = await supabase
-    .from('products').select('id, price, track_inventory, stock, is_active')
+    .from('products').select('id, price, track_inventory, stock, is_active, product_type')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
 
+  const isGiftCard = product.product_type === 'gift_card';
+
   let unitPrice = product.price;
   let stockSource = product;
+  let effectiveVariantId = variantId;
 
-  // If variant_id provided, validate and use variant pricing/stock
-  if (variantId) {
+  if (isGiftCard) {
+    // Gift cards: use requested amount, no variant, no stock check
+    unitPrice = requestedAmount || product.price;
+    effectiveVariantId = undefined;
+  } else if (variantId) {
+    // If variant_id provided, validate and use variant pricing/stock
     const { data: variant } = await supabase
       .from('product_variants').select('id, price, stock, track_inventory, is_active')
       .eq('id', variantId).eq('product_id', productId).eq('tenant_id', tenantId).single();
@@ -1085,25 +1227,35 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     stockSource = variant;
   }
 
-  if (stockSource.track_inventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
+  // Skip stock check for gift cards and when tracking is disabled
+  const shouldTrackInventory = !isGiftCard && product.track_inventory !== false && (!stockSource || stockSource === product || stockSource.track_inventory !== false);
 
-  // Check if item already in cart (unique by product_id + variant_id)
-  let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
-  if (variantId) existingQuery = existingQuery.eq('variant_id', variantId);
-  else existingQuery = existingQuery.is('variant_id', null);
-  const { data: existing } = await existingQuery.maybeSingle();
+  if (shouldTrackInventory && stockSource.stock < quantity) throw new Error('Insufficient stock');
 
-  if (existing) {
-    const newQty = existing.quantity + quantity;
-    if (stockSource.track_inventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
-    const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
-    if (error) throw error;
-  } else {
-    const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
-    if (variantId) insertData.variant_id = variantId;
-    const { error } = await supabase.from('storefront_cart_items').insert(insertData);
-    if (error) throw error;
+  // Gift cards are always unique items — never merge
+  if (!isGiftCard) {
+    // Check if item already in cart (unique by product_id + variant_id)
+    let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
+    if (effectiveVariantId) existingQuery = existingQuery.eq('variant_id', effectiveVariantId);
+    else existingQuery = existingQuery.is('variant_id', null);
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (existing) {
+      const newQty = existing.quantity + quantity;
+      if (shouldTrackInventory && stockSource.stock < newQty) throw new Error('Insufficient stock');
+      const { error } = await supabase.from('storefront_cart_items').update({ quantity: newQty, unit_price: unitPrice }).eq('id', existing.id);
+      if (error) throw error;
+      await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
+      return cartGet(supabase, tenantId, { cart_id: cartId });
+    }
   }
+
+  // Insert new cart item
+  const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
+  if (effectiveVariantId) insertData.variant_id = effectiveVariantId;
+  if (isGiftCard && giftCardMetadata) insertData.gift_card_metadata = giftCardMetadata;
+  const { error } = await supabase.from('storefront_cart_items').insert(insertData);
+  if (error) throw error;
 
   await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
   return cartGet(supabase, tenantId, { cart_id: cartId });
@@ -1115,12 +1267,23 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
   if (!itemId) throw new Error('item_id is required');
   if (quantity < 1) throw new Error('quantity must be at least 1');
 
-  const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id').eq('id', itemId).single();
+  const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id, variant_id').eq('id', itemId).single();
   if (!item) throw new Error('Cart item not found');
 
-  // Stock check
+  // Stock check — respect track_inventory on both product and variant level
   const { data: product } = await supabase.from('products').select('track_inventory, stock').eq('id', item.product_id).single();
-  if (product?.track_inventory && product.stock < quantity) throw new Error('Insufficient stock');
+  let shouldTrackInventory = product?.track_inventory !== false;
+  let stockToCheck = product?.stock ?? 0;
+
+  if (item.variant_id && shouldTrackInventory) {
+    const { data: variant } = await supabase.from('product_variants').select('track_inventory, stock').eq('id', item.variant_id).single();
+    if (variant) {
+      if (variant.track_inventory === false) shouldTrackInventory = false;
+      else stockToCheck = variant.stock ?? 0;
+    }
+  }
+
+  if (shouldTrackInventory && stockToCheck < quantity) throw new Error('Insufficient stock');
 
   const { error } = await supabase.from('storefront_cart_items').update({ quantity }).eq('id', itemId);
   if (error) throw error;
@@ -1150,7 +1313,7 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   const validation = await validateDiscountCode(supabase, tenantId, { code });
   if (!validation.valid) throw new Error(validation.error);
 
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: code, updated_at: new Date().toISOString() }).eq('id', cartId);
+  const { error } = await supabase.from('storefront_carts').update({ discount_code: code, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
@@ -1158,7 +1321,7 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   if (!cartId) throw new Error('cart_id is required');
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: null, updated_at: new Date().toISOString() }).eq('id', cartId);
+  const { error } = await supabase.from('storefront_carts').update({ discount_code: null, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
@@ -1225,25 +1388,41 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     shipping_method_id: string; payment_method: string; customer_note?: string;
   };
 
-  if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
-    throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
-  }
-
-  // 1. Get cart with items
+  // Check if all items are gift cards (digital-only order)
+  // We need cart first to determine this
   const cart = await cartGet(supabase, tenantId, { cart_id });
   if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
 
-  // 2. Validate stock for all items
-  for (const item of cart.items) {
-    if (item.product && !item.product.in_stock) throw new Error(`${item.product.name} is niet meer op voorraad`);
+  const allGiftCards = cart.items.every((item: any) => item.product_type === 'gift_card');
+
+  if (!allGiftCards && (!shipping_address || !shipping_method_id)) {
+    throw new Error('shipping_address and shipping_method_id are required for physical orders');
+  }
+  if (!cart_id || !email || !payment_method) {
+    throw new Error('cart_id, email, and payment_method are required');
   }
 
-  // 3. Get shipping method
-  const { data: shippingMethod } = await supabase
-    .from('shipping_methods').select('id, name, price, free_above')
-    .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
-  if (!shippingMethod) throw new Error('Shipping method not found');
-  const shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  // 2. Validate stock for all items (skip gift cards)
+  for (const item of cart.items) {
+    if (item.product_type !== 'gift_card' && item.product && !item.product.in_stock) {
+      throw new Error(`${item.product.name} is niet meer op voorraad`);
+    }
+  }
+
+  // 3. Get shipping method and cost
+  let shippingCost = 0;
+  let shippingMethod: any = null;
+  if (allGiftCards) {
+    // Digital-only order: no shipping needed
+    shippingCost = 0;
+  } else {
+    const { data: sm } = await supabase
+      .from('shipping_methods').select('id, name, price, free_above')
+      .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
+    if (!sm) throw new Error('Shipping method not found');
+    shippingMethod = sm;
+    shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  }
 
   // 4. Get tenant for VAT
   const { data: tenant } = await supabase
@@ -1251,8 +1430,10 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     .eq('id', tenantId).single();
   const vatRate = tenant?.default_vat_rate || 21;
   const subtotal = cart.subtotal;
-  const vatAmount = Math.round(subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
-  const total = subtotal + shippingCost;
+  const discountAmount = cart.discount_amount || 0;
+  const discountedSubtotal = Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100;
+  const vatAmount = Math.round(discountedSubtotal * (vatRate / (100 + vatRate)) * 100) / 100;
+  const total = discountedSubtotal + shippingCost;
 
   // 5. Find or create customer
   let customerId: string | null = null;
@@ -1277,13 +1458,22 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   // 6. Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
 
+  // 6b. Look up discount_code_id if a discount code was applied
+  let discountCodeId: string | null = null;
+  if (cart.discount_code && discountAmount > 0) {
+    const { data: dcLookup } = await supabase.from('discount_codes')
+      .select('id').eq('tenant_id', tenantId).eq('code', cart.discount_code).maybeSingle();
+    discountCodeId = dcLookup?.id || null;
+  }
+
   // 7. Create order
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
       tenant_id: tenantId, customer_id: customerId, order_number: orderNumber,
-      status: 'pending', payment_status: 'pending', payment_method,
-      subtotal, shipping_cost: shippingCost, tax: vatAmount, total,
+      status: 'pending', payment_status: total <= 0 ? 'paid' : 'pending', payment_method,
+      subtotal, discount_amount: discountAmount, discount_code: cart.discount_code || null,
+      shipping_cost: shippingCost, tax: vatAmount, total,
       currency: tenant?.currency || 'EUR',
       shipping_address, billing_address: billing_address || shipping_address,
       customer_email: email, customer_phone: phone || null,
@@ -1293,35 +1483,82 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     .select('id, order_number').single();
   if (orderError) throw orderError;
 
+  // 7b. Record discount code usage (skip for Stripe — webhook handles it after payment)
+  if (discountCodeId && discountAmount > 0 && payment_method !== 'stripe') {
+    await supabase.from('discount_code_usage').insert({
+      discount_code_id: discountCodeId, order_id: order.id, customer_email: email, discount_amount: discountAmount,
+    });
+    await supabase.from('discount_codes').update({ usage_count: (await supabase.from('discount_codes').select('usage_count').eq('id', discountCodeId).single()).data?.usage_count + 1 }).eq('id', discountCodeId);
+  }
+
   // 8. Create order items (with variant support)
-  const orderItems = cart.items.map((item: any) => ({
-    order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
-    product_name: item.product?.name || '', quantity: item.quantity,
-    unit_price: item.unit_price, total: item.line_total,
-    sku: null, product_image: item.product?.image || null,
-    variant_id: item.variant_id || null,
-    variant_title: item.variant?.title || null,
-  }));
+  const orderItems = cart.items.map((item: any) => {
+    const oi: any = {
+      order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
+      product_name: item.product?.name || '', quantity: item.quantity,
+      unit_price: item.unit_price, total: item.line_total,
+      sku: null, product_image: item.product?.image || null,
+      variant_id: item.variant_id || null,
+      variant_title: item.variant?.title || null,
+    };
+    if (item.product_type === 'gift_card' && item.gift_card_metadata) {
+      oi.gift_card_metadata = item.gift_card_metadata;
+    }
+    return oi;
+  });
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
 
-  // 9. Decrement stock (variant-level if applicable)
-  for (const item of cart.items) {
-    if (item.variant_id) {
-      await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
-    } else {
-      await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+  // 9. Decrement stock (skip for Stripe — webhook handles it after payment)
+  if (payment_method !== 'stripe') {
+    for (const item of cart.items) {
+      if (item.product_type === 'gift_card') continue;
+      if (item.variant_id) {
+        await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+      } else {
+        await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+      }
     }
   }
 
-  // 10. Clear cart
-  await supabase.from('storefront_cart_items').delete().eq('cart_id', cart_id);
-  await supabase.from('storefront_carts').delete().eq('id', cart_id);
+  // 9b. Process gift card items (skip for Stripe — webhook handles it after payment)
+  if (payment_method !== 'stripe') {
+    const giftCardItems = cart.items.filter((item: any) => item.product_type === 'gift_card');
+    if (giftCardItems.length > 0) {
+      try {
+        await supabase.functions.invoke('process-gift-card-order', {
+          body: {
+            order_id: order.id,
+            tenant_id: tenantId,
+            items: giftCardItems.map((item: any) => ({
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              gift_card_metadata: item.gift_card_metadata,
+            })),
+          },
+        });
+      } catch (gcError) {
+        console.error('Gift card processing error (non-blocking):', gcError);
+      }
+    }
+  }
+
+  // 10. Clear cart (skip for Stripe — webhook handles it after payment)
+  if (payment_method !== 'stripe') {
+    await supabase.from('storefront_cart_items').delete().eq('cart_id', cart_id);
+    await supabase.from('storefront_carts').delete().eq('id', cart_id);
+  }
 
   // 11. Handle payment
+  // If total is 0 (100% discount), skip payment entirely
+  if (total <= 0) {
+    await supabase.from('orders').update({ payment_status: 'paid', status: 'processing' }).eq('id', order.id);
+    return { order_id: order.id, order_number: order.order_number, payment_method: 'free', total: 0 };
+  }
+
   if (payment_method === 'stripe' && tenant?.stripe_account_id) {
-    // Create Stripe checkout session via the existing create-checkout-session function pattern
     const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
 
@@ -1333,6 +1570,18 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
       },
       quantity: item.quantity,
     }));
+
+    // Add discount as negative line item
+    if (discountAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: (tenant?.currency || 'EUR').toLowerCase(),
+          product_data: { name: `Korting${cart.discount_code ? ` (${cart.discount_code})` : ''}` },
+          unit_amount: Math.round(discountAmount * 100),
+        },
+        quantity: 1,
+      });
+    }
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -1346,18 +1595,36 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     }
 
     const origin = params.origin as string || 'https://sellqo.lovable.app';
-    const session = await stripe.checkout.sessions.create({
+
+    const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
       success_url: `${origin}/order-confirmation?order_id=${order.id}`,
       cancel_url: `${origin}/checkout?cancelled=true`,
       customer_email: email,
-      metadata: { order_id: order.id, tenant_id: tenantId },
+      metadata: { order_id: order.id, tenant_id: tenantId, cart_id: cart_id },
       payment_intent_data: {
-        application_fee_amount: Math.round(total * 0.05 * 100), // 5% platform fee
+        application_fee_amount: Math.round(total * 0.05 * 100),
         transfer_data: { destination: tenant.stripe_account_id },
       },
-    });
+    };
+
+    // Add Stripe coupon for the discount instead of negative line item
+    if (discountAmount > 0) {
+      // Remove the discount line item we added above - use Stripe discounts instead
+      const discountIdx = lineItems.findIndex((li: any) => li.price_data.product_data.name.startsWith('Korting'));
+      if (discountIdx >= 0) lineItems.splice(discountIdx, 1);
+      
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(discountAmount * 100),
+        currency: (tenant?.currency || 'EUR').toLowerCase(),
+        name: cart.discount_code || 'Korting',
+        duration: 'once',
+      });
+      sessionParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return { order_id: order.id, order_number: order.order_number, payment_url: session.url, payment_method: 'stripe' };
   }
@@ -1372,7 +1639,7 @@ async function checkoutGetConfirmation(supabase: any, tenantId: string, params: 
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at')
+    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at, discount_amount, discount_code')
     .eq('id', orderId).eq('tenant_id', tenantId).single();
   if (error) throw error;
   if (!order) throw new Error('Order not found');
@@ -1458,6 +1725,225 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
   };
 }
 
+// ============== REST HELPERS ==============
+
+function jsonResponse(data: any, status = 200, cacheControl?: string) {
+  const headers: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+  if (cacheControl) headers['Cache-Control'] = cacheControl;
+  else if (status === 200) headers['Cache-Control'] = 'public, max-age=60';
+  else headers['Cache-Control'] = 'no-cache';
+  return new Response(JSON.stringify(data), { status, headers });
+}
+
+function errorResponse(error: string, status = 400, code?: string) {
+  return jsonResponse({ success: false, error, ...(code ? { code } : {}) }, status, 'no-cache');
+}
+
+// ============== API KEY VALIDATION ==============
+
+async function validateApiKey(supabase: any, tenantId: string, apiKey: string): Promise<boolean> {
+  if (!apiKey) return false;
+  const { data: themeSettings } = await supabase
+    .from('tenant_theme_settings')
+    .select('custom_frontend_config')
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  const config = themeSettings?.custom_frontend_config;
+  if (!config?.api_key_hash) return false;
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(apiKey));
+  const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex === config.api_key_hash;
+}
+
+// ============== MODULE CHECK ==============
+
+function isModuleEnabled(config: any, module: string): boolean {
+  if (!config) return true;
+  const moduleConfig = config[module];
+  if (!moduleConfig) return true;
+  if (typeof moduleConfig === 'object' && 'enabled' in moduleConfig) return moduleConfig.enabled;
+  return true;
+}
+
+// ============== NAVIGATION HANDLER ==============
+
+async function getNavigation(supabase: any, tenantId: string, locale?: string) {
+  const { data: ts } = await supabase
+    .from('tenant_theme_settings')
+    .select('show_announcement_bar, announcement_text, announcement_link, primary_color')
+    .eq('tenant_id', tenantId).maybeSingle();
+
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, slug, parent_id, sort_order, hide_from_storefront')
+    .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
+    .order('sort_order', { ascending: true });
+
+  const tMap = locale && categories?.length
+    ? await getTranslations(supabase, tenantId, 'category', categories.map((c: any) => c.id), locale) : {};
+
+  const topLevel = (categories || []).filter((c: any) => !c.parent_id);
+  const children = (categories || []).filter((c: any) => c.parent_id);
+
+  const mainMenu = [
+    { id: 'home', label: 'Home', url: '/', children: [] },
+    { id: 'shop', label: 'Shop', url: '/shop', children: topLevel.map((cat: any) => {
+      const t = tMap[cat.id] || {};
+      const catChildren = children.filter((c: any) => c.parent_id === cat.id).map((c: any) => {
+        const ct = tMap[c.id] || {};
+        return { id: c.id, label: ct.name || c.name, url: `/shop/${c.slug}`, children: [] };
+      });
+      return { id: cat.id, label: t.name || cat.name, url: `/shop/${cat.slug}`, children: catChildren };
+    })},
+  ];
+
+  const { data: pages } = await supabase
+    .from('pages').select('id, title, slug, show_in_nav')
+    .eq('tenant_id', tenantId).eq('is_published', true).order('nav_order', { ascending: true });
+
+  const footerMenu = (pages || []).map((p: any) => ({
+    id: p.id, label: p.title, url: `/${p.slug}`, children: [],
+  }));
+
+  const langField = locale && ['en', 'de', 'fr'].includes(locale) ? locale : 'nl';
+  const { data: legalPages } = await supabase
+    .from('legal_pages')
+    .select(`id, page_type, title_${langField}, is_published`)
+    .eq('tenant_id', tenantId).eq('is_published', true);
+
+  const legalMenuItems = (legalPages || []).map((p: any) => ({
+    id: p.id, label: p[`title_${langField}`] || p.page_type, url: `/legal/${p.page_type}`, children: [],
+  }));
+
+  return {
+    main: mainMenu,
+    footer: [...footerMenu, ...legalMenuItems],
+    announcement: ts?.show_announcement_bar && ts?.announcement_text ? {
+      text: ts.announcement_text, link: ts.announcement_link || null, is_visible: true,
+      background_color: ts.primary_color || '#FF6B35', text_color: '#FFFFFF',
+    } : null,
+  };
+}
+
+// ============== SETTINGS SUB-ENDPOINTS ==============
+
+async function getSettingsSocial(supabase: any, tenantId: string) {
+  const { data: tenant } = await supabase.from('tenants')
+    .select('social_facebook, social_instagram, social_twitter, social_linkedin, social_tiktok, social_youtube')
+    .eq('id', tenantId).single();
+  return {
+    facebook: tenant?.social_facebook || null, instagram: tenant?.social_instagram || null,
+    twitter: tenant?.social_twitter || null, linkedin: tenant?.social_linkedin || null,
+    tiktok: tenant?.social_tiktok || null, youtube: tenant?.social_youtube || null,
+  };
+}
+
+async function getSettingsTrust(supabase: any, tenantId: string) {
+  const { data: ts } = await supabase.from('tenant_theme_settings')
+    .select('cookie_banner_enabled, cookie_banner_style, trust_badges')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return {
+    cookie_banner: { enabled: ts?.cookie_banner_enabled ?? true, style: ts?.cookie_banner_style || 'minimal' },
+    badges: ts?.trust_badges || [], usps: [],
+  };
+}
+
+async function getSettingsConversion(supabase: any, tenantId: string) {
+  const { data: ts } = await supabase.from('tenant_theme_settings')
+    .select('show_stock_count, show_viewers_count, show_recent_purchases, exit_intent_popup')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return {
+    stock_urgency: { enabled: ts?.show_stock_count ?? false, threshold: 5 },
+    recent_purchases: { enabled: ts?.show_recent_purchases ?? false },
+    free_shipping_bar: { enabled: true, threshold: 50, currency: 'EUR' },
+  };
+}
+
+async function getSettingsCheckout(supabase: any, tenantId: string) {
+  const { data: ts } = await supabase.from('tenant_theme_settings')
+    .select('checkout_guest_enabled, checkout_phone_required, checkout_company_field, checkout_address_autocomplete')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return {
+    mode: 'hosted', guest_checkout: ts?.checkout_guest_enabled ?? true,
+    phone_required: ts?.checkout_phone_required ?? false,
+    company_field: ts?.checkout_company_field || 'optional',
+    address_autocomplete: ts?.checkout_address_autocomplete ?? true,
+  };
+}
+
+async function getSettingsLanguages(supabase: any, tenantId: string) {
+  const [{ data: tenant }, { data: domains }] = await Promise.all([
+    supabase.from('tenants').select('default_language').eq('id', tenantId).single(),
+    supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', tenantId).eq('is_active', true),
+  ]);
+  const languages = [...new Set((domains || []).map((d: any) => d.locale).filter(Boolean))];
+  const names: Record<string, string> = { nl: 'Nederlands', en: 'English', de: 'Deutsch', fr: 'Français', es: 'Español' };
+  return {
+    available: languages.map((code: string) => ({ code, name: names[code] || code })),
+    default: tenant?.default_language || 'nl',
+  };
+}
+
+// ============== PRODUCT REVIEWS BY SLUG ==============
+
+async function getProductReviews(supabase: any, tenantId: string, slug: string) {
+  const { data: product } = await supabase.from('products').select('id')
+    .eq('tenant_id', tenantId).eq('slug', slug).eq('is_active', true).maybeSingle();
+  if (!product) throw new Error('Product not found');
+
+  const { data: reviews } = await supabase.from('external_reviews')
+    .select('id, reviewer_name, rating, review_text, created_at, platform')
+    .eq('tenant_id', tenantId).eq('product_id', product.id).eq('is_visible', true)
+    .order('created_at', { ascending: false }).limit(50);
+
+  const items = reviews || [];
+  const avgRating = items.length ? items.reduce((s: number, r: any) => s + r.rating, 0) / items.length : null;
+  const distribution: Record<string, number> = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+  for (const r of items) { const key = String(Math.round(r.rating)); if (distribution[key] !== undefined) distribution[key]++; }
+
+  return { reviews: items, summary: { average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null, total_count: items.length, distribution } };
+}
+
+// ============== RELATED PRODUCTS BY SLUG ==============
+
+async function getRelatedProducts(supabase: any, tenantId: string, slug: string, limit: number, locale?: string) {
+  const { data: product } = await supabase.from('products').select('id, category_id')
+    .eq('tenant_id', tenantId).eq('slug', slug).eq('is_active', true).maybeSingle();
+  if (!product || !product.category_id) return [];
+
+  const { data: related } = await supabase.from('products')
+    .select('id, name, slug, price, compare_at_price, images')
+    .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
+    .eq('category_id', product.category_id).neq('id', product.id).limit(limit);
+
+  const tMap = locale && related?.length ? await getTranslations(supabase, tenantId, 'product', related.map((r: any) => r.id), locale) : {};
+  return (related || []).map((r: any) => {
+    const t = tMap[r.id] || {};
+    return { id: r.id, name: t.name || r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.images?.[0] || null };
+  });
+}
+
+// ============== GIFT CARD HANDLERS ==============
+
+async function getGiftCardDenominations(supabase: any, tenantId: string) {
+  const { data } = await supabase.from('gift_cards')
+    .select('initial_amount').eq('tenant_id', tenantId).eq('status', 'active');
+  const amounts = [...new Set((data || []).map((g: any) => g.initial_amount))].sort((a: number, b: number) => a - b);
+  return { denominations: amounts.length > 0 ? amounts : [10, 25, 50, 100], currency: 'EUR' };
+}
+
+async function checkGiftCardBalance(supabase: any, tenantId: string, code: string) {
+  if (!code) throw new Error('Gift card code is required');
+  const { data } = await supabase.from('gift_cards')
+    .select('current_balance, currency, status, expires_at')
+    .eq('tenant_id', tenantId).eq('code', code.toUpperCase().trim()).maybeSingle();
+  if (!data) throw new Error('Gift card not found');
+  if (data.status !== 'active') throw new Error('Gift card is not active');
+  if (data.expires_at && new Date(data.expires_at) < new Date()) throw new Error('Gift card has expired');
+  return { balance: data.current_balance, currency: data.currency || 'EUR' };
+}
+
 // ============== RATE LIMITING ==============
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -1473,6 +1959,16 @@ function checkRateLimit(tenantId: string, limit = 1000, windowMs = 60000): boole
   return entry.count <= limit;
 }
 
+// ============== MODULE MAP ==============
+
+const resourceModuleMap: Record<string, string> = {
+  products: 'products', collections: 'collections', categories: 'collections',
+  cart: 'cart', checkout: 'checkout', 'gift-cards': 'gift_cards',
+  pages: 'pages', navigation: 'navigation', reviews: '',
+  newsletter: 'newsletter', search: '', shipping: '', settings: '',
+  legal: '', contact: '',
+};
+
 // ============== MAIN HANDLER ==============
 
 serve(async (req) => {
@@ -1480,68 +1976,402 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const body: StorefrontRequest = await req.json();
-    const { action, tenant_id, params = {} } = body;
+    const url = new URL(req.url);
+    // Strip everything up to and including 'storefront-api' from the path
+    const pathIdx = url.pathname.indexOf('storefront-api');
+    const restPath = pathIdx >= 0 ? url.pathname.substring(pathIdx + 'storefront-api'.length) : url.pathname;
+    const pathParts = restPath.split('/').filter(Boolean);
+    const resource = pathParts[0] || '';
+    const resourceId = pathParts[1] || '';
+    const subResource = pathParts[2] || '';
+    const subResourceId = pathParts[3] || '';
 
-    // Actions that don't need tenant_id
-    if (action === 'resolve_domain') {
-      return new Response(JSON.stringify({ success: true, data: await resolveDomain(supabase, params) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const tenantIdHeader = req.headers.get('x-tenant-id');
+    const apiKeyHeader = req.headers.get('x-api-key');
+    const locale = req.headers.get('accept-language')?.split(',')[0]?.split('-')[0]?.trim() || 'nl';
+
+    // ---- BACKWARD COMPATIBILITY: POST-body action approach ----
+    if (req.method === 'POST' && !resource) {
+      const body: StorefrontRequest = await req.json();
+      // If body has 'action' field, use legacy routing
+      if (body.action) {
+        const { action, tenant_id, params = {} } = body;
+
+        if (action === 'resolve_domain') {
+          return new Response(JSON.stringify({ success: true, data: await resolveDomain(supabase, params) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (!tenant_id) {
+          return new Response(JSON.stringify({ success: false, error: 'tenant_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (!checkRateLimit(tenant_id)) {
+          return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+        }
+
+        let result: unknown;
+        let cacheControl: string | null = null;
+
+        switch (action) {
+          case 'get_tenant': result = await getTenant(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+          case 'get_product': result = await getProduct(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+          case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
+          case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+          case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
+          case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+          case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
+          case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
+          case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;
+          case 'search_products': result = await searchProducts(supabase, tenant_id, params); break;
+          case 'get_seo': result = await getSeo(supabase, tenant_id, params); cacheControl = 'public, max-age=600'; break;
+          case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
+          case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
+          case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
+          case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;
+          case 'cart_add_item': result = await cartAddItem(supabase, tenant_id, params); break;
+          case 'cart_update_item': result = await cartUpdateItem(supabase, tenant_id, params); break;
+          case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
+          case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
+          case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
+          case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
+          case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
+          case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
+          case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
+          case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
+          case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
+          default:
+            return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+        if (cacheControl) responseHeaders['Cache-Control'] = cacheControl;
+        return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
+      }
     }
 
-    if (!tenant_id) {
-      return new Response(JSON.stringify({ success: false, error: 'tenant_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // ---- RESTful URL ROUTING ----
+
+    if (!tenantIdHeader) return errorResponse('X-Tenant-ID header is required', 400, 'MISSING_TENANT_ID');
+
+    // Resolve tenant (by slug or UUID)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdHeader);
+    const tenantQuery = supabase.from('tenants').select('id, slug').limit(1);
+    if (isUuid) tenantQuery.eq('id', tenantIdHeader);
+    else tenantQuery.eq('slug', tenantIdHeader);
+    const { data: tenantRow } = await tenantQuery.maybeSingle();
+    if (!tenantRow) return errorResponse('Tenant not found', 404, 'TENANT_NOT_FOUND');
+    const tenantId = tenantRow.id;
+
+    // Rate limit
+    if (!checkRateLimit(tenantId)) return errorResponse('Too many requests', 429, 'RATE_LIMIT_EXCEEDED');
+
+    // Validate API key
+    if (apiKeyHeader) {
+      const valid = await validateApiKey(supabase, tenantId, apiKeyHeader);
+      if (!valid) return errorResponse('Invalid API key', 401, 'INVALID_API_KEY');
+    } else {
+      // API key required for RESTful mode
+      return errorResponse('X-API-Key header is required', 401, 'MISSING_API_KEY');
     }
 
-    // Rate limiting per tenant
-    if (!checkRateLimit(tenant_id)) {
-      return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    // Load custom_frontend_config for module checks
+    const { data: tsCfg } = await supabase.from('tenant_theme_settings')
+      .select('custom_frontend_config').eq('tenant_id', tenantId).maybeSingle();
+    const frontendConfig = tsCfg?.custom_frontend_config || null;
+
+    // Check module enabled
+    const requiredModule = resourceModuleMap[resource];
+    if (requiredModule && !isModuleEnabled(frontendConfig, requiredModule)) {
+      return errorResponse(`Module '${requiredModule}' is not enabled`, 403, 'MODULE_DISABLED');
     }
 
-    let result: unknown;
-    let cacheControl: string | null = null;
+    if (!resource) return errorResponse('Endpoint not found', 404, 'NOT_FOUND');
 
-    switch (action) {
-      case 'get_tenant': result = await getTenant(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
-      case 'get_product': result = await getProduct(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
-      case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
-      case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
-      case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
-      case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
-      case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
-      case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
-      case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;
-      case 'search_products': result = await searchProducts(supabase, tenant_id, params); break;
-      case 'get_seo': result = await getSeo(supabase, tenant_id, params); cacheControl = 'public, max-age=600'; break;
-      case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
-      case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
-      // Cart actions
-      case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
-      case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;
-      case 'cart_add_item': result = await cartAddItem(supabase, tenant_id, params); break;
-      case 'cart_update_item': result = await cartUpdateItem(supabase, tenant_id, params); break;
-      case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
-      case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
-      case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
-      // Checkout actions
-      case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
-      case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
-      case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
-      case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
-      case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
-      case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
-      default:
-        return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const method = req.method;
+    const sp = url.searchParams;
+
+    // ---- PRODUCTS ----
+    if (resource === 'products') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId && subResource === 'related') {
+        const limit = Number(sp.get('limit')) || 4;
+        return jsonResponse({ success: true, data: await getRelatedProducts(supabase, tenantId, resourceId, limit, locale) }, 200, 'public, max-age=60');
+      }
+      if (resourceId && subResource === 'reviews') {
+        return jsonResponse({ success: true, data: await getProductReviews(supabase, tenantId, resourceId) }, 200, 'public, max-age=120');
+      }
+      if (resourceId) {
+        return jsonResponse({ success: true, data: await getProduct(supabase, tenantId, { slug: resourceId, locale }) }, 200, 'public, max-age=60');
+      }
+      // List products
+      const params: Record<string, unknown> = {
+        locale, page: sp.get('page') || 1, per_page: sp.get('per_page') || 24,
+        sort_by: sp.get('sort') || sp.get('sort_by') || 'newest',
+        category_slug: sp.get('category_slug') || sp.get('collection') || sp.get('category') || undefined,
+        search: sp.get('search') || sp.get('q') || undefined,
+        min_price: sp.get('min_price') || undefined, max_price: sp.get('max_price') || undefined,
+        tags: sp.get('tags') ? (sp.get('tags') as string).split(',') : undefined,
+        in_stock_only: sp.get('in_stock') === 'true',
+        is_featured: sp.get('featured') === 'true',
+      };
+      return jsonResponse({ success: true, data: await getProducts(supabase, tenantId, params) }, 200, 'public, max-age=60');
     }
 
-    const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
-    if (cacheControl) responseHeaders['Cache-Control'] = cacheControl;
+    // ---- COLLECTIONS ----
+    if (resource === 'collections') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId && subResource === 'products') {
+        const params: Record<string, unknown> = {
+          locale, category_slug: resourceId,
+          page: sp.get('page') || 1, per_page: sp.get('per_page') || 24,
+          sort_by: sp.get('sort') || 'newest',
+        };
+        return jsonResponse({ success: true, data: await getProducts(supabase, tenantId, params) }, 200, 'public, max-age=60');
+      }
+      if (resourceId) {
+        const cats = await getCategories(supabase, tenantId, { locale, hide_empty: sp.get('hide_empty') });
+        const cat = (cats as any[]).find((c: any) => c.slug === resourceId);
+        if (!cat) return errorResponse('Collection not found', 404);
+        return jsonResponse({ success: true, data: cat }, 200, 'public, max-age=300');
+      }
+      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale, hide_empty: sp.get('hide_empty') }) }, 200, 'public, max-age=300');
+    }
 
-    return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
+    // ---- CATEGORIES ----
+    if (resource === 'categories') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      return jsonResponse({ success: true, data: await getCategories(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+    }
+
+    // ---- CART ----
+    if (resource === 'cart') {
+      if (method === 'POST' && !resourceId) {
+        let body: any = {};
+        try { body = await req.json(); } catch { body = {}; }
+        return jsonResponse({ success: true, data: await cartCreate(supabase, tenantId, { session_id: body.session_id, currency: body.currency }) }, 201, 'no-cache');
+      }
+      if (method === 'GET' && resourceId) {
+        return jsonResponse({ success: true, data: await cartGet(supabase, tenantId, { cart_id: resourceId }) }, 200, 'no-cache');
+      }
+      if (method === 'POST' && resourceId && subResource === 'items') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartAddItem(supabase, tenantId, { cart_id: resourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'PUT' && resourceId && subResource === 'items' && subResourceId) {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'PATCH' && resourceId && subResource === 'items' && subResourceId) {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartUpdateItem(supabase, tenantId, { item_id: subResourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'DELETE' && resourceId && subResource === 'items' && subResourceId) {
+        return jsonResponse({ success: true, data: await cartRemoveItem(supabase, tenantId, { item_id: subResourceId }) }, 200, 'no-cache');
+      }
+      if (method === 'POST' && resourceId && subResource === 'discount') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await cartApplyDiscount(supabase, tenantId, { cart_id: resourceId, ...body }) }, 200, 'no-cache');
+      }
+      if (method === 'DELETE' && resourceId && subResource === 'discount') {
+        return jsonResponse({ success: true, data: await cartRemoveDiscount(supabase, tenantId, { cart_id: resourceId }) }, 200, 'no-cache');
+      }
+      return errorResponse('Cart endpoint not found', 404);
+    }
+
+    // ---- CHECKOUT ----
+    if (resource === 'checkout') {
+      if (method !== 'POST') return errorResponse('Method not allowed', 405);
+      let body: any = {};
+      try { body = await req.json(); } catch { throw new Error('Invalid JSON body'); }
+
+      // Simple flow: if only cart_id + success_url/cancel_url, return hosted checkout URL
+      if (body.cart_id && !body.shipping_address && !body.payment_method) {
+        const cart = await cartGet(supabase, tenantId, { cart_id: body.cart_id });
+        if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+
+        // Get tenant info for checkout URL
+        const { data: tenantInfo } = await supabase.from('tenants').select('slug').eq('id', tenantId).single();
+        const tenantSlug = tenantInfo?.slug || tenantId;
+
+        // Build hosted checkout URL with cart and redirect params
+        const checkoutBaseUrl = `https://sellqo.lovable.app/shop/${tenantSlug}/checkout`;
+        const checkoutUrl = new URL(checkoutBaseUrl);
+        checkoutUrl.searchParams.set('cart_id', body.cart_id);
+        if (body.success_url) checkoutUrl.searchParams.set('success_url', body.success_url);
+        if (body.cancel_url) checkoutUrl.searchParams.set('cancel_url', body.cancel_url);
+
+        return jsonResponse({
+          success: true,
+          data: {
+            checkout_url: checkoutUrl.toString(),
+            cart_id: body.cart_id,
+            item_count: cart.item_count,
+            subtotal: cart.subtotal,
+            currency: cart.currency,
+          }
+        }, 200, 'no-cache');
+      }
+
+      // Full checkout flow: place order directly
+      return jsonResponse({ success: true, data: await checkoutPlaceOrder(supabase, tenantId, { ...body, origin: body.success_url ? new URL(body.success_url).origin : url.origin }) }, 200, 'no-cache');
+    }
+
+    // ---- GIFT CARDS ----
+    if (resource === 'gift-cards') {
+      if (method === 'GET' && !resourceId) {
+        return jsonResponse({ success: true, data: await getGiftCardDenominations(supabase, tenantId) }, 200, 'public, max-age=300');
+      }
+      if (method === 'POST' && resourceId === 'balance') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await checkGiftCardBalance(supabase, tenantId, body.code) }, 200, 'no-cache');
+      }
+      return errorResponse('Gift cards endpoint not found', 404);
+    }
+
+    // ---- PAGES ----
+    if (resource === 'pages') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId) {
+        return jsonResponse({ success: true, data: await getPages(supabase, tenantId, { slug: resourceId, locale }) }, 200, 'public, max-age=600');
+      }
+      return jsonResponse({ success: true, data: await getPages(supabase, tenantId, { locale, type: sp.get('type') || undefined }) }, 200, 'public, max-age=600');
+    }
+
+    // ---- NAVIGATION ----
+    if (resource === 'navigation') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      return jsonResponse({ success: true, data: await getNavigation(supabase, tenantId, locale) }, 200, 'public, max-age=300');
+    }
+
+    // ---- REVIEWS ----
+    if (resource === 'reviews') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      if (resourceId === 'summary') {
+        const result = await getReviews(supabase, tenantId, { limit: 0 });
+        return jsonResponse({ success: true, data: { average_rating: result.average_rating, total_count: result.total_count } }, 200, 'public, max-age=120');
+      }
+      const params: Record<string, unknown> = {
+        limit: sp.get('limit') || 20, page: sp.get('page') || 1,
+        featured_only: sp.get('featured') === 'true',
+      };
+      return jsonResponse({ success: true, data: await getReviews(supabase, tenantId, params) }, 200, 'public, max-age=120');
+    }
+
+    // ---- NEWSLETTER ----
+    if (resource === 'newsletter') {
+      if (method === 'POST' && resourceId === 'subscribe') {
+        const body = await req.json();
+        return jsonResponse({ success: true, data: await newsletterSubscribe(supabase, tenantId, { ...body, locale }) }, 200, 'no-cache');
+      }
+      return errorResponse('Newsletter endpoint not found', 404);
+    }
+
+    // ---- SETTINGS ----
+    if (resource === 'settings') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      switch (resourceId) {
+        case 'social': return jsonResponse({ success: true, data: await getSettingsSocial(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'trust': return jsonResponse({ success: true, data: await getSettingsTrust(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'conversion': return jsonResponse({ success: true, data: await getSettingsConversion(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'checkout': return jsonResponse({ success: true, data: await getSettingsCheckout(supabase, tenantId) }, 200, 'public, max-age=300');
+        case 'languages': return jsonResponse({ success: true, data: await getSettingsLanguages(supabase, tenantId) }, 200, 'public, max-age=300');
+        case '': case undefined:
+          return jsonResponse({ success: true, data: await getConfig(supabase, tenantId, { locale }) }, 200, 'public, max-age=300');
+        default: return errorResponse('Settings endpoint not found', 404);
+      }
+    }
+
+    // ---- SEARCH ----
+    if (resource === 'search') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      const params: Record<string, unknown> = {
+        query: sp.get('q') || '', locale, limit: sp.get('limit') || 20,
+        autocomplete: sp.get('autocomplete') === 'true',
+      };
+      return jsonResponse({ success: true, data: await searchProducts(supabase, tenantId, params) }, 200, 'public, max-age=30');
+    }
+
+    // ---- LEGAL PAGES ----
+    if (resource === 'legal') {
+      if (method !== 'GET') return errorResponse('Method not allowed', 405);
+      const langField = locale && ['en', 'de', 'fr'].includes(locale) ? locale : 'nl';
+      const { data: legalPages, error: legalErr } = await supabase
+        .from('legal_pages')
+        .select(`id, page_type, title_nl, title_en, title_de, title_fr, content_nl, content_en, content_de, content_fr, is_published`)
+        .eq('tenant_id', tenantId)
+        .eq('is_published', true);
+      if (legalErr) throw legalErr;
+
+      if (resourceId) {
+        // Single page by type: GET /legal/privacy
+        const page = (legalPages || []).find((p: any) => p.page_type === resourceId);
+        if (!page) return errorResponse('Legal page not found', 404);
+        return jsonResponse({ success: true, data: {
+          type: page.page_type,
+          title: page[`title_${langField}`] || page.title_nl || page.page_type,
+          slug: page.page_type,
+          content: page[`content_${langField}`] || page.content_nl || '',
+        }}, 200, 'public, max-age=600');
+      }
+
+      // List all published legal pages
+      const slugMap: Record<string, string> = {
+        privacy: 'privacy', terms: 'terms', refund: 'returns',
+        shipping: 'shipping', contact: 'contact', legal_notice: 'legal-notice', cookie: 'cookies',
+      };
+      const tenantSlug = tenantRow.slug || tenantId;
+      return jsonResponse({ success: true, data: (legalPages || []).map((p: any) => {
+        const slug = slugMap[p.page_type] || p.page_type;
+        return {
+          type: p.page_type,
+          title: p[`title_${langField}`] || p.title_nl || p.page_type,
+          slug,
+          url: `https://sellqo.app/shop/${tenantSlug}/legal/${slug}`,
+          enabled: true,
+        };
+      })}, 200, 'public, max-age=600');
+    }
+
+    // ---- CONTACT FORM ----
+    if (resource === 'contact' && method === 'POST') {
+      const body = await req.json().catch(() => ({}));
+      const { name, email, subject, message } = body;
+
+      if (!name || !email || !message) {
+        return errorResponse('Missing required fields: name, email, message', 400);
+      }
+
+      // Send via send-customer-message to tenant inbox
+      const { error } = await supabase.functions.invoke('send-customer-message', {
+        body: {
+          tenant_id: tenantId,
+          customer_email: email,
+          customer_name: name,
+          subject: subject || 'Contactformulier',
+          body_html: `<p><strong>Naam:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Onderwerp:</strong> ${subject || 'Geen onderwerp'}</p><hr/><p>${message.replace(/\n/g, '<br/>')}</p>`,
+          body_text: `Naam: ${name}\nEmail: ${email}\nOnderwerp: ${subject || 'Geen onderwerp'}\n\n${message}`,
+          context_type: 'general',
+          context_data: { source: 'storefront_contact_form' }
+        }
+      });
+
+      if (error) {
+        console.error('send-customer-message error:', error);
+        return errorResponse('Failed to send message', 500);
+      }
+
+      return jsonResponse({ success: true, message: 'Message sent successfully' }, 200);
+    }
+
+    return errorResponse('Endpoint not found', 404, 'NOT_FOUND');
+
   } catch (error) {
     console.error('Storefront API error:', error);
-    return new Response(JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message.includes('not found') ? 404 : message.includes('required') ? 400 : 500;
+    return new Response(JSON.stringify({ success: false, error: message }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
   }
 });

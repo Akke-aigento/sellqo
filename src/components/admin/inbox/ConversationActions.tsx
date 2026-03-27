@@ -1,4 +1,4 @@
-import { Archive, Trash2, FolderInput, RotateCcw, MoreHorizontal } from 'lucide-react';
+import { Archive, Trash2, FolderInput, RotateCcw, MoreHorizontal, Pin, PinOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,25 +11,32 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
+import { SnoozePicker } from './SnoozePicker';
 
 interface ConversationActionsProps {
   conversationStatus: 'active' | 'archived' | 'deleted';
+  isPinned?: boolean;
   onArchive: () => void;
   onDelete: () => void;
   onRestore: () => void;
   onMoveToFolder: (folderId: string | null) => void;
+  onPin?: (pinned: boolean) => void;
+  onSnooze?: (until: Date) => void;
   disabled?: boolean;
 }
 
 export function ConversationActions({
   conversationStatus,
+  isPinned,
   onArchive,
   onDelete,
   onRestore,
   onMoveToFolder,
+  onPin,
+  onSnooze,
   disabled,
 }: ConversationActionsProps) {
-  const { customFolders, archiveFolder, trashFolder } = useInboxFolders();
+  const { customFolders } = useInboxFolders();
 
   const isArchived = conversationStatus === 'archived';
   const isDeleted = conversationStatus === 'deleted';
@@ -52,6 +59,30 @@ export function ConversationActions({
             <DropdownMenuSeparator />
           </>
         )}
+
+        {/* Pin/Unpin */}
+        {onPin && !isDeleted && (
+          <DropdownMenuItem onClick={() => onPin(!isPinned)}>
+            {isPinned ? (
+              <>
+                <PinOff className="h-4 w-4 mr-2" />
+                Losmaken
+              </>
+            ) : (
+              <>
+                <Pin className="h-4 w-4 mr-2" />
+                Vastzetten
+              </>
+            )}
+          </DropdownMenuItem>
+        )}
+
+        {/* Snooze */}
+        {onSnooze && !isDeleted && (
+          <SnoozePicker onSnooze={onSnooze} />
+        )}
+
+        {(onPin || onSnooze) && !isDeleted && <DropdownMenuSeparator />}
 
         {/* Move to folder submenu */}
         {customFolders.length > 0 && !isDeleted && (

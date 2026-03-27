@@ -35,9 +35,9 @@ export function useSEO() {
     enabled: !!tenantId,
   });
 
-  // Fetch product SEO scores
-  const { data: productScores, isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['seo-product-scores', tenantId],
+  // Fetch product + category SEO scores
+  const { data: entityScores, isLoading: isLoadingEntities } = useQuery({
+    queryKey: ['seo-entity-scores', tenantId],
     queryFn: async () => {
       if (!tenantId) return [];
       
@@ -45,7 +45,7 @@ export function useSEO() {
         .from('seo_scores')
         .select('*')
         .eq('tenant_id', tenantId)
-        .eq('entity_type', 'product')
+        .in('entity_type', ['product', 'category'])
         .order('overall_score', { ascending: true, nullsFirst: true });
       
       if (error) throw error;
@@ -57,6 +57,9 @@ export function useSEO() {
     },
     enabled: !!tenantId,
   });
+
+  const productScores = entityScores?.filter(s => s.entity_type === 'product') || [];
+  const categoryScores = entityScores?.filter(s => s.entity_type === 'category') || [];
 
   // Fetch SEO keywords
   const { data: keywords, isLoading: isLoadingKeywords } = useQuery({
@@ -109,7 +112,7 @@ export function useSEO() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['seo-score'] });
-      queryClient.invalidateQueries({ queryKey: ['seo-product-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-entity-scores'] });
       queryClient.invalidateQueries({ queryKey: ['seo-history'] });
       toast.success(`SEO Analyse voltooid - Score: ${data.overall_score}/100`);
     },
@@ -221,19 +224,20 @@ export function useSEO() {
     ?.filter((issue: SEOIssue) => issue.severity === 'warning' || issue.severity === 'error')
     .slice(0, 5) || [];
 
-  // Calculate products needing attention
-  const productsNeedingAttention = productScores?.filter(
+  // Calculate entities needing attention
+  const productsNeedingAttention = entityScores?.filter(
     (score) => score.overall_score !== null && score.overall_score < 50
   ).length || 0;
 
   return {
     tenantScore,
     productScores,
+    categoryScores,
     keywords,
     history,
     quickWins,
     productsNeedingAttention,
-    isLoading: isLoadingScore || isLoadingProducts || isLoadingKeywords,
+    isLoading: isLoadingScore || isLoadingEntities || isLoadingKeywords,
     analyzeSEO: analyzeSeOMutation.mutate,
     isAnalyzing: analyzeSeOMutation.isPending,
     generateContent: generateContentMutation.mutate,

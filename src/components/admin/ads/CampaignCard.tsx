@@ -9,10 +9,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AD_PLATFORMS, type AdCampaign, type AdCampaignStatus } from '@/types/ads';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
-import { MoreHorizontal, Pause, Play, Trash2, Edit, ExternalLink } from 'lucide-react';
+import { MoreHorizontal, Pause, Play, Trash2, ExternalLink } from 'lucide-react';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
+  onClick?: () => void;
 }
 
 const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -24,7 +25,7 @@ const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default
   rejected: { label: 'Afgewezen', variant: 'destructive' },
 };
 
-export function CampaignCard({ campaign }: CampaignCardProps) {
+export function CampaignCard({ campaign, onClick }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
   const platformInfo = AD_PLATFORMS[campaign.platform];
   const statusConfig = STATUS_CONFIG[campaign.status as AdCampaignStatus] || STATUS_CONFIG.draft;
@@ -39,22 +40,28 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
     return num.toString();
   };
 
-  const handlePause = () => {
+  const handlePause = (e: React.MouseEvent) => {
+    e.stopPropagation();
     updateStatus.mutate({ id: campaign.id, status: 'paused' });
   };
 
-  const handleActivate = () => {
+  const handleActivate = (e: React.MouseEvent) => {
+    e.stopPropagation();
     updateStatus.mutate({ id: campaign.id, status: 'active' });
   };
 
-  const handleDelete = () => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm('Weet je zeker dat je deze campagne wilt verwijderen?')) {
       deleteCampaign.mutate(campaign.id);
     }
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
+    <div 
+      className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
       {/* Platform Icon */}
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${platformInfo.color}`}>
         {platformInfo.icon}
@@ -105,23 +112,18 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
 
       {/* Actions */}
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="icon">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>
-            <Edit className="h-4 w-4 mr-2" />
-            Bewerken
-          </DropdownMenuItem>
           {campaign.platform_campaign_id && (
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
               <ExternalLink className="h-4 w-4 mr-2" />
               Bekijk in {platformInfo.name}
             </DropdownMenuItem>
           )}
-          <DropdownMenuSeparator />
           {campaign.status === 'active' ? (
             <DropdownMenuItem onClick={handlePause}>
               <Pause className="h-4 w-4 mr-2" />

@@ -113,8 +113,8 @@ export const achievementMessages = {
 export const categoryInfo: Record<HealthCategoryId, { name: string; icon: string; maxScore: number }> = {
   orders: { name: 'Bestellingen', icon: 'ShoppingCart', maxScore: 25 },
   inventory: { name: 'Voorraad', icon: 'Package', maxScore: 20 },
-  customerService: { name: 'Klantservice', icon: 'MessageCircle', maxScore: 15 },
-  finance: { name: 'Betalingen', icon: 'CreditCard', maxScore: 20 },
+  customerService: { name: 'Klantservice', icon: 'MessageCircle', maxScore: 20 },
+  finance: { name: 'Betalingen', icon: 'CreditCard', maxScore: 15 },
   seo: { name: 'SEO & Zichtbaarheid', icon: 'Search', maxScore: 10 },
   compliance: { name: 'Compliance', icon: 'Shield', maxScore: 10 },
 };

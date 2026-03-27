@@ -141,7 +141,7 @@ export function useDomainVerificationMulti(domain: TenantDomain) {
     setIsConnecting(true);
     try {
       const { data, error } = await supabase.functions.invoke<CloudflareConnectResult>('cloudflare-api-connect', {
-        body: { tenant_id: currentTenant.id, domain: domain.domain, api_token: apiToken },
+        body: { tenant_id: currentTenant.id, domain: domain.domain, domain_id: domain.id, api_token: apiToken },
       });
       if (error) throw error;
       if (!data) throw new Error('Geen response');

@@ -64,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch tenant info for branding and reply-to
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("name, owner_email, logo_url, primary_color, address, city, postal_code, country")
+      .select("name, owner_email, logo_url, primary_color, address, city, postal_code, country, inbound_email_prefix, inbound_email_enabled")
       .eq("id", tenant_id)
       .single();
 
@@ -72,7 +72,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Tenant not found");
     }
 
-    const replyToEmail = tenant.owner_email || "noreply@sellqo.app";
+    const replyToEmail = (tenant.inbound_email_enabled && tenant.inbound_email_prefix)
+      ? `${tenant.inbound_email_prefix}@sellqo.app`
+      : (tenant.owner_email || "noreply@sellqo.app");
     const fromName = tenant.name || "Sellqo";
     const primaryColor = tenant.primary_color || "#2563eb";
 
@@ -103,10 +105,6 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Content -->
           <tr>
             <td style="padding: 32px;">
-              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px;">
-                Beste ${customer_name || 'klant'},
-              </p>
-              
               <div style="color: #374151; font-size: 16px; line-height: 1.6;">
                 ${body_html}
               </div>
@@ -134,11 +132,6 @@ const handler = async (req: Request): Promise<Response> => {
                 </tr>
               </table>
               ` : ''}
-              
-              <p style="margin: 32px 0 0 0; color: #374151; font-size: 16px;">
-                Met vriendelijke groet,<br>
-                <strong>${fromName}</strong>
-              </p>
             </td>
           </tr>
           
@@ -149,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
                 ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code || ''} ${tenant.city || ''}${tenant.country ? `, ${tenant.country}` : ''}
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                Je kunt direct antwoorden op deze email. Je antwoord gaat naar ${replyToEmail}.
+                Je kunt direct antwoorden op deze email.
               </p>
             </td>
           </tr>

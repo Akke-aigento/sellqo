@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, MoreHorizontal, Eye, Copy, Send, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ import { nl } from 'date-fns/locale';
 import type { QuoteStatus, Quote } from '@/types/quote';
 
 export default function QuotesPage() {
+  const isCompact = useIsCompact();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all');
@@ -141,6 +143,28 @@ export default function QuotesPage() {
                 </Button>
               )}
             </div>
+          ) : isCompact ? (
+            <div className="space-y-2">
+              {quotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                  onClick={() => navigate(`/admin/orders/quotes/${quote.id}`)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{quote.quote_number}</span>
+                    <QuoteStatusBadge status={quote.status} />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 truncate">{getCustomerName(quote)}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(quote.created_at), 'd MMM yyyy', { locale: nl })}
+                    </span>
+                    <span className="font-medium">€{Number(quote.total).toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div>
             <Table>
@@ -195,7 +219,6 @@ export default function QuotesPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Implement copy
                           }}>
                             <Copy className="mr-2 h-4 w-4" />
                             Kopiëren

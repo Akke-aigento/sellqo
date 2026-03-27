@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -48,6 +49,8 @@ export function AdminSidebar() {
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
   const { subscription } = useTenantSubscription();
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const { setOpenMobile } = useSidebar();
+  const closeMobile = useCallback(() => setOpenMobile(false), [setOpenMobile]);
 
   // Check if item should be hidden based on subscription features
   const isItemFeatureHidden = (item: NavItem): boolean => {
@@ -132,7 +135,7 @@ export function AdminSidebar() {
                 {visibleChildren.map((child) => (
                   <SidebarMenuSubItem key={child.id}>
                     <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
-                      <NavLink to={child.url}>
+                      <NavLink to={child.url} onClick={closeMobile}>
                         {child.title}
                       </NavLink>
                     </SidebarMenuSubButton>
@@ -149,7 +152,7 @@ export function AdminSidebar() {
     return (
       <SidebarMenuItem key={item.id}>
         <SidebarMenuButton asChild isActive={isActive(item.url)}>
-          <NavLink to={item.url} className="flex items-center justify-between">
+          <NavLink to={item.url} onClick={closeMobile} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               {item.icon && <item.icon className="h-4 w-4" />}
               <span>{item.title}</span>
@@ -191,6 +194,7 @@ export function AdminSidebar() {
         <SidebarHeader className="border-b">
           <Link 
             to="/admin" 
+            onClick={closeMobile}
             className="px-4 py-3 flex items-center justify-center hover:opacity-80 transition-opacity"
           >
             <SellqoLogo variant="full" width={140} className="h-auto" />

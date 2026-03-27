@@ -27,6 +27,13 @@ interface ProductMarketplaceMappings {
     offerId: string
     lastSync?: string
     autoLinked?: boolean
+    syncFields?: {
+      price?: boolean
+      stock?: boolean
+      title?: boolean
+      fulfillment?: boolean
+      shipping?: boolean
+    }
   }
   amazon?: {
     sku: string
@@ -197,12 +204,59 @@ Deno.serve(async (req) => {
 
         console.log(`Found ${products?.length || 0} products to sync for connection ${connection.id}`)
 
+        // Diagnostic: if no products found, check why
+        if (!products || products.length === 0) {
+          const { count: syncEnabledNoEan } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', connection.tenant_id)
+            .eq('sync_inventory', true)
+            .is('bol_ean', null)
+
+          const { count: totalSyncEnabled } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', connection.tenant_id)
+            .eq('sync_inventory', true)
+
+          console.log(`DIAGNOSTIC: ${totalSyncEnabled || 0} products have sync_inventory=true, ${syncEnabledNoEan || 0} of those are missing bol_ean`)
+          if ((syncEnabledNoEan || 0) > 0) {
+            console.log(`HINT: ${syncEnabledNoEan} producten hebben sync_inventory=true maar geen bol_ean ingevuld — vul de EAN in om voorraad te synchroniseren`)
+          }
+        }
+
         for (const product of products || []) {
           try {
             let mappings = (product.marketplace_mappings || {}) as ProductMarketplaceMappings
             let bolMapping = mappings.bol_com
             
-            // NEW: If EAN exists but no Offer ID, try to look it up automatically
+            // UUID validation helper
+            const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+            // Fallback: use bol_offer_id column if marketplace_mappings is empty
+            if (!bolMapping?.offerId && product.bol_offer_id) {
+              if (isValidUUID(product.bol_offer_id)) {
+                console.log(`Product ${product.id}: Using bol_offer_id column fallback: ${product.bol_offer_id}`)
+                bolMapping = {
+                  offerId: product.bol_offer_id,
+                  lastSync: (product as any).last_inventory_sync || undefined,
+                  autoLinked: false
+                }
+                mappings = { ...mappings, bol_com: bolMapping }
+              } else {
+                console.log(`Product ${product.id}: bol_offer_id '${product.bol_offer_id}' is NOT a valid UUID, will re-lookup via EAN`)
+                // Clear invalid offer ID so EAN lookup is triggered below
+                bolMapping = undefined
+              }
+            }
+
+            // Also validate existing mapping offerId
+            if (bolMapping?.offerId && !isValidUUID(bolMapping.offerId)) {
+              console.log(`Product ${product.id}: marketplace_mappings offerId '${bolMapping.offerId}' is NOT a valid UUID, clearing for re-lookup`)
+              bolMapping = undefined
+            }
+            
+            // If still no Offer ID but EAN exists, try to look it up automatically
             if (!bolMapping?.offerId && product.bol_ean) {
               console.log(`Product ${product.id} has EAN but no Offer ID, looking up...`)
               
@@ -241,6 +295,13 @@ Deno.serve(async (req) => {
             
             if (!bolMapping?.offerId) {
               console.log(`Product ${product.id} has no Bol.com offer ID, skipping`)
+              continue
+            }
+
+            // Check if stock sync is enabled via syncFields (defaults to true if not set)
+            const syncFields = bolMapping.syncFields
+            if (syncFields && syncFields.stock === false) {
+              console.log(`Product ${product.id}: stock sync disabled via syncFields, skipping`)
               continue
             }
 

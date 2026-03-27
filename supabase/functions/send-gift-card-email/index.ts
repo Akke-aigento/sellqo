@@ -27,13 +27,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { gift_card_id, recipient_email_override }: SendGiftCardEmailRequest = await req.json();
 
-    // Fetch gift card with design
+    // Fetch gift card
     const { data: giftCard, error: giftCardError } = await supabaseClient
       .from("gift_cards")
-      .select(`
-        *,
-        design:gift_card_designs(*)
-      `)
+      .select("*")
       .eq("id", gift_card_id)
       .single();
 
@@ -59,13 +56,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     const fromName = tenant.name || "Sellqo";
     const primaryColor = tenant.primary_color || "#2563eb";
+    const logoUrl = tenant.logo_url;
     const websiteUrl = tenant.website_url || "#";
-    const designImage = giftCard.design?.image_url;
     const recipientName = giftCard.recipient_name || "ontvanger";
     const personalMessage = giftCard.personal_message;
+    const templateId = giftCard.design_id || "elegant";
     const expiresAt = giftCard.expires_at 
       ? new Date(giftCard.expires_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
       : null;
+
+    // Template styles
+    const templateStyles: Record<string, { bg: string; text: string; accent: string; cardBg: string }> = {
+      elegant: { bg: '#1a1a2e', text: '#fef3c7', accent: '#fbbf24', cardBg: '#1e1e3a' },
+      modern: { bg: '#ffffff', text: '#1e293b', accent: primaryColor, cardBg: '#f8fafc' },
+      festive: { bg: '#dc2626', text: '#ffffff', accent: '#fef08a', cardBg: '#ef4444' },
+      botanical: { bg: '#ecfdf5', text: '#064e3b', accent: '#059669', cardBg: '#f0fdf4' },
+      minimal: { bg: '#ffffff', text: '#111827', accent: '#111827', cardBg: '#ffffff' },
+      gradient: { bg: primaryColor, text: '#ffffff', accent: '#e9d5ff', cardBg: primaryColor },
+    };
+    const style = templateStyles[templateId] || templateStyles.elegant;
 
     // Build beautiful HTML email
     const emailHtml = `
@@ -82,21 +91,20 @@ const handler = async (req: Request): Promise<Response> => {
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
           
-          <!-- Design Header Image -->
-          ${designImage ? `
           <tr>
-            <td>
-              <img src="${designImage}" alt="Cadeaukaart" style="width: 100%; height: auto; display: block;">
+            <td style="background: ${templateId === 'gradient' ? `linear-gradient(135deg, ${style.bg}, ${style.cardBg})` : style.bg}; padding: 48px 32px; text-align: center;">
+              <p style="color: ${style.text}; opacity: 0.7; font-size: 12px; text-transform: uppercase; letter-spacing: 3px; margin: 0 0 4px 0;">Cadeaukaart</p>
+              ${logoUrl ? `
+              <div style="margin: 0 0 12px 0;">
+                <img src="${logoUrl}" alt="${fromName}" style="max-height: 48px; max-width: 160px; object-fit: contain;${['elegant', 'festive', 'gradient'].includes(templateId) ? ' background: rgba(255,255,255,0.15); border-radius: 8px; padding: 6px;' : ''}" />
+              </div>
+              ` : ''}
+              <h1 style="color: ${style.text}; font-size: 28px; margin: 0 0 16px 0;">${fromName}</h1>
+              <div style="display: inline-block; color: ${style.accent}; font-size: 42px; font-weight: 700; margin: 0;">
+                €${Number(giftCard.current_balance).toFixed(2)}
+              </div>
             </td>
           </tr>
-          ` : `
-          <tr>
-            <td style="background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%); padding: 48px 32px; text-align: center;">
-              <span style="font-size: 48px;">🎁</span>
-              <h1 style="color: #ffffff; font-size: 28px; margin: 16px 0 0 0;">Cadeaukaart</h1>
-            </td>
-          </tr>
-          `}
           
           <!-- Content -->
           <tr>

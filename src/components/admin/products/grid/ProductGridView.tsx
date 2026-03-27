@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
 import { useVatRates } from '@/hooks/useVatRates';
@@ -24,9 +25,13 @@ import { cn } from '@/lib/utils';
 
 interface ProductGridViewProps {
   products: Product[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
 }
 
-export function ProductGridView({ products }: ProductGridViewProps) {
+export function ProductGridView({ products, selectedIds, onToggleSelect, onToggleSelectAll }: ProductGridViewProps) {
+  const lastClickedIndex = useRef<number | null>(null);
   const { toast } = useToast();
   const { currentTenant } = useTenant();
   const { categories } = useCategories();
@@ -279,6 +284,12 @@ export function ProductGridView({ products }: ProductGridViewProps) {
           <div className="min-w-max">
             {/* Header */}
             <div className="flex border-b bg-muted/50 sticky top-0 z-10">
+              <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center">
+                <Checkbox
+                  checked={products.length > 0 && selectedIds.size === products.length}
+                  onCheckedChange={onToggleSelectAll}
+                />
+              </div>
               <div className="w-10 flex-shrink-0 p-2 border-r" />
               {grid.visibleColumnDefs.map((col) => (
                 <div
@@ -302,6 +313,29 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                   key={product.id}
                   className="flex border-b hover:bg-muted/30 transition-colors"
                 >
+                  {/* Checkbox */}
+                  <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center">
+                    <Checkbox
+                      checked={selectedIds.has(product.id)}
+                      onCheckedChange={() => {
+                        onToggleSelect(product.id);
+                        lastClickedIndex.current = products.indexOf(product);
+                      }}
+                      onClick={(e) => {
+                        if (e.shiftKey && lastClickedIndex.current !== null) {
+                          const currentIndex = products.indexOf(product);
+                          const start = Math.min(lastClickedIndex.current, currentIndex);
+                          const end = Math.max(lastClickedIndex.current, currentIndex);
+                          for (let i = start; i <= end; i++) {
+                            if (!selectedIds.has(products[i].id)) {
+                              onToggleSelect(products[i].id);
+                            }
+                          }
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+                  </div>
                   {/* Row number / indicator */}
                   <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
                     {grid.pendingChanges.has(product.id) && (

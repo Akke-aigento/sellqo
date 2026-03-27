@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { useTheme } from 'next-themes';
 import logoLight from '@/assets/logo-light.png';
 import logoDark from '@/assets/logo-dark.png';
@@ -10,39 +11,46 @@ interface SellqoLogoProps {
   width?: number;
 }
 
-export function SellqoLogo({ variant = 'full', className = '', width }: SellqoLogoProps) {
-  const { resolvedTheme } = useTheme();
-  
-  if (variant === 'icon') {
-    return (
-      <img 
-        src={logoIcon} 
-        alt="Sellqo" 
-        className={className}
-        style={width ? { width: `${width}px`, height: 'auto' } : undefined}
-      />
-    );
-  }
+export const SellqoLogo = forwardRef<HTMLImageElement, SellqoLogoProps>(
+  ({ variant = 'full', className = '', width }, ref) => {
+    const { resolvedTheme } = useTheme();
+    
+    if (variant === 'icon') {
+      return (
+        <img 
+          ref={ref}
+          src={logoIcon} 
+          alt="Sellqo" 
+          className={className}
+          style={width ? { width: `${width}px`, height: 'auto' } : undefined}
+        />
+      );
+    }
 
-  if (variant === 'tagline') {
+    if (variant === 'tagline') {
+      return (
+        <img 
+          ref={ref}
+          src={logoTagline} 
+          alt="Sellqo - Jouw webshop. Simpel online." 
+          className={className}
+          style={width ? { width: `${width}px`, height: 'auto' } : undefined}
+        />
+      );
+    }
+    
+    const logoSrc = resolvedTheme === 'dark' ? logoDark : logoLight;
+    
     return (
       <img 
-        src={logoTagline} 
+        ref={ref}
+        src={logoSrc} 
         alt="Sellqo - Jouw webshop. Simpel online." 
         className={className}
         style={width ? { width: `${width}px`, height: 'auto' } : undefined}
       />
     );
   }
-  
-  const logoSrc = resolvedTheme === 'dark' ? logoDark : logoLight;
-  
-  return (
-    <img 
-      src={logoSrc} 
-      alt="Sellqo - Jouw webshop. Simpel online." 
-      className={className}
-      style={width ? { width: `${width}px`, height: 'auto' } : undefined}
-    />
-  );
-}
+);
+
+SellqoLogo.displayName = 'SellqoLogo';

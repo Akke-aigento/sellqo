@@ -9,5 +9,5 @@ export function HealthActionsWidget() {
     return <Skeleton className="h-48 w-full" />;
   }
   
-  return <HealthActionList actionItems={actionItems} />;
+  return <HealthActionList actionItems={actionItems ?? []} />;
 }

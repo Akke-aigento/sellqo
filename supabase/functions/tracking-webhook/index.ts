@@ -271,7 +271,8 @@ Deno.serve(async (req) => {
 
     if (orderDetails?.marketplace_source === 'bol_com' && orderDetails?.marketplace_connection_id) {
       try {
-        await supabase.functions.invoke('confirm-bol-shipment', {
+        // Use update-bol-tracking to push tracking to existing shipment at Bol.com
+        await supabase.functions.invoke('update-bol-tracking', {
           body: {
             order_id: orderId,
             tracking_number: payload.tracking_number,
@@ -279,7 +280,7 @@ Deno.serve(async (req) => {
           },
         });
       } catch (syncError) {
-        console.error('Marketplace sync error (non-fatal):', syncError);
+        console.error('Bol.com tracking sync error (non-fatal):', syncError);
       }
     }
 

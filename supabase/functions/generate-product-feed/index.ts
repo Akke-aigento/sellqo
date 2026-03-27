@@ -16,6 +16,7 @@ interface Product {
   featured_image: string | null;
   images: string[];
   stock: number;
+  track_inventory: boolean;
   barcode: string | null;
   sku: string | null;
   slug: string;
@@ -70,7 +71,7 @@ serve(async (req: Request) => {
       .from('products')
       .select(`
         id, name, description, price, compare_at_price, 
-        featured_image, images, stock, barcode, sku, slug,
+        featured_image, images, stock, track_inventory, barcode, sku, slug,
         category:categories(name),
         social_channels
       `)
@@ -154,7 +155,7 @@ function generateGoogleFeed(products: Product[], tenant: Tenant): string {
       ${product.images?.slice(1, 10).map(img => `<g:additional_image_link>${escapeXml(img)}</g:additional_image_link>`).join('\n      ') || ''}
       <g:price>${product.price.toFixed(2)} ${currency}</g:price>
       ${product.compare_at_price ? `<g:sale_price>${product.price.toFixed(2)} ${currency}</g:sale_price>` : ''}
-      <g:availability>${product.stock > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>
+      <g:availability>${(!product.track_inventory || product.stock > 0) ? 'in_stock' : 'out_of_stock'}</g:availability>
       <g:condition>new</g:condition>
       <g:brand>${escapeXml(tenant.company_name)}</g:brand>
       ${product.barcode ? `<g:gtin>${escapeXml(product.barcode)}</g:gtin>` : ''}
@@ -188,7 +189,7 @@ function generateFacebookCSV(products: Product[], tenant: Tenant): string {
       csvEscape(product.id),
       csvEscape(product.name),
       csvEscape(stripHtml(product.description || product.name)),
-      product.stock > 0 ? 'in stock' : 'out of stock',
+      (!product.track_inventory || product.stock > 0) ? 'in stock' : 'out of stock',
       'new',
       `${product.price.toFixed(2)} ${currency}`,
       csvEscape(`${baseUrl}/product/${product.slug}`),
@@ -214,7 +215,7 @@ function generatePinterestRSS(products: Product[], tenant: Tenant): string {
       <description>${escapeXml(stripHtml(product.description || product.name))}</description>
       <g:id>${escapeXml(product.id)}</g:id>
       <g:price>${product.price.toFixed(2)} ${currency}</g:price>
-      <g:availability>${product.stock > 0 ? 'in stock' : 'out of stock'}</g:availability>
+      <g:availability>${(!product.track_inventory || product.stock > 0) ? 'in stock' : 'out of stock'}</g:availability>
       <g:condition>new</g:condition>
       <g:image_link>${escapeXml(product.featured_image || product.images?.[0] || '')}</g:image_link>
       <g:brand>${escapeXml(tenant.company_name)}</g:brand>

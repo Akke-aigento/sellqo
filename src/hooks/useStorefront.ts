@@ -156,6 +156,10 @@ export function useStorefront() {
         'storefront_language_selector_style',
         // Intelligent palette
         'brand_color', 'theme_mode', 'theme_style',
+        // Storefront visibility
+        'storefront_status', 'storefront_password',
+        // Custom frontend config
+        'custom_frontend_config',
       ];
 
       for (const key of allowedFields) {

@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare, Printer, RotateCcw } from 'lucide-react';
 import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
@@ -28,6 +29,9 @@ import type { ServicePointData } from '@/types/servicePoint';
 import { useState, useCallback } from 'react';
 import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 import { toast } from 'sonner';
+import { OrderRefundDialog } from '@/components/admin/OrderRefundDialog';
+import { useOrderReturns } from '@/hooks/useReturns';
+import { Badge } from '@/components/ui/badge';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +42,10 @@ export default function OrderDetailPage() {
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const { confirmPayment } = usePaymentConfirmation();
   const [internalNotes, setInternalNotes] = useState('');
+  const isCompact = useIsCompact();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const { returns: orderReturns } = useOrderReturns(id);
 
   const handleMarkAsPaid = (data: { 
     paymentMethod: PaymentMethodType; 
@@ -96,7 +103,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -122,9 +129,9 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 min-w-0 overflow-hidden">
         {/* Left Column - Order Items */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0 overflow-hidden">
           {/* Order Items */}
           <Card>
             <CardHeader>
@@ -133,49 +140,68 @@ export default function OrderDetailPage() {
                 Orderregels
               </CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto px-0 sm:px-6">
-              <div className="min-w-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-center">Aantal</TableHead>
-                    <TableHead className="text-right">Prijs</TableHead>
-                    <TableHead className="text-right">Totaal</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <CardContent className="px-4 sm:px-6">
+              {isCompact ? (
+                <div className="space-y-3">
                   {order.order_items?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {item.product_image ? (
-                            <img 
-                              src={item.product_image} 
-                              alt={item.product_name}
-                              className="h-10 w-10 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium">{item.product_name}</div>
-                            {item.product_sku && (
-                              <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
-                            )}
-                          </div>
+                    <div key={item.id} className="flex gap-3 py-2 border-b last:border-0">
+                      {item.product_image ? (
+                        <img src={item.product_image} alt={item.product_name} className="h-10 w-10 rounded object-cover shrink-0" />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
+                          <Package className="h-4 w-4 text-muted-foreground" />
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">{item.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(Number(item.total_price))}</TableCell>
-                    </TableRow>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm break-words line-clamp-2">{item.product_name}</div>
+                        {item.product_sku && <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>}
+                        <div className="text-sm text-muted-foreground mt-0.5">
+                          {item.quantity} × {formatCurrency(Number(item.unit_price))} = <span className="font-medium text-foreground">{formatCurrency(Number(item.total_price))}</span>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
-              </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-6">
+                  <div className="px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead className="text-center">Aantal</TableHead>
+                          <TableHead className="text-right">Prijs</TableHead>
+                          <TableHead className="text-right">Totaal</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {order.order_items?.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                {item.product_image ? (
+                                  <img src={item.product_image} alt={item.product_name} className="h-10 w-10 rounded object-cover" />
+                                ) : (
+                                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                                    <Package className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-medium">{item.product_name}</div>
+                                  {item.product_sku && <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">{item.quantity}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(Number(item.total_price))}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
 
               <Separator className="my-4" />
 
@@ -267,7 +293,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Right Column - Consolidated */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 overflow-hidden">
           {/* Card 1: Acties & Status */}
           <Card>
             <CardHeader className="pb-3">
@@ -282,7 +308,7 @@ export default function OrderDetailPage() {
                   onConfirm={handleMarkAsPaid}
                 />
               )}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Orderstatus</label>
                   <Select
@@ -319,6 +345,40 @@ export default function OrderDetailPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Retour knop */}
+              {order.payment_status === 'paid' && order.status !== 'cancelled' && (
+                <Button
+                  variant="outline"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => setShowRefundDialog(true)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retour verwerken
+                </Button>
+              )}
+
+              {/* Bestaande retouren */}
+              {orderReturns.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Retouren</label>
+                  {orderReturns.map((ret) => (
+                    <div key={ret.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                      <div>
+                        <div className="font-medium">{ret.return_reason || 'Retour'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {ret.refund_method === 'stripe' ? 'Stripe' : 'Handmatig'} — {ret.refund_status}
+                        </div>
+                      </div>
+                      {ret.refund_amount && (
+                        <Badge variant={ret.refund_status === 'processed' ? 'default' : 'outline'}>
+                          {formatCurrency(ret.refund_amount)}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -335,12 +395,12 @@ export default function OrderDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                 <div className="text-sm">
                   <div className="font-medium">{order.customer_name || 'Onbekend'}</div>
-                  <div className="text-muted-foreground">{order.customer_email}</div>
+                  <div className="text-muted-foreground break-all">{order.customer_email}</div>
                   {order.customer_phone && (
                     <div className="text-muted-foreground">{order.customer_phone}</div>
                   )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -421,37 +481,81 @@ export default function OrderDetailPage() {
 
               <Separator />
 
-              {/* Pakbon */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={async () => {
-                  if (!order || !currentTenant) return;
-                  try {
-                    const pdfBytes = await generatePackingSlipPdf(order, {
-                      name: currentTenant.name,
-                      address: currentTenant.address,
-                      city: currentTenant.city,
-                      postal_code: currentTenant.postal_code,
-                      country: currentTenant.country,
-                      phone: currentTenant.phone,
-                    });
-                    const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Pakbon-${order.order_number}.pdf`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  } catch (err) {
-                    toast.error('Fout bij genereren pakbon');
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download pakbon
-              </Button>
+              {/* Pakbon - Download + Print */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={async () => {
+                    if (!order || !currentTenant) return;
+                    try {
+                      const pdfBytes = await generatePackingSlipPdf(order, {
+                        name: currentTenant.name,
+                        address: currentTenant.address,
+                        city: currentTenant.city,
+                        postal_code: currentTenant.postal_code,
+                        country: currentTenant.country,
+                        phone: currentTenant.phone,
+                        logo_url: currentTenant.logo_url,
+                        document_logo_url: (currentTenant as any).document_logo_url,
+                      });
+                      const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
+                      const url = URL.createObjectURL(blob);
+                      // Use window.open for mobile compatibility (a.click() fails on iOS Safari)
+                      const newWindow = window.open(url, '_blank');
+                      if (!newWindow) {
+                        // Fallback: direct location change
+                        window.location.href = url;
+                      }
+                      setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    } catch (err) {
+                      toast.error('Fout bij genereren pakbon');
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Pakbon
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={async () => {
+                    if (!order || !currentTenant) return;
+                    try {
+                      const pdfBytes = await generatePackingSlipPdf(order, {
+                        name: currentTenant.name,
+                        address: currentTenant.address,
+                        city: currentTenant.city,
+                        postal_code: currentTenant.postal_code,
+                        country: currentTenant.country,
+                        phone: currentTenant.phone,
+                        logo_url: currentTenant.logo_url,
+                        document_logo_url: (currentTenant as any).document_logo_url,
+                      });
+                      const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
+                      const url = URL.createObjectURL(blob);
+                      // Open in iframe for printing (works on mobile)
+                      const printWindow = window.open(url, '_blank');
+                      if (printWindow) {
+                        printWindow.addEventListener('load', () => {
+                          printWindow.print();
+                        });
+                      } else {
+                        // Fallback: just open the PDF
+                        window.location.href = url;
+                      }
+                      setTimeout(() => URL.revokeObjectURL(url), 30000);
+                    } catch (err) {
+                      toast.error('Fout bij printen pakbon');
+                    }
+                  }}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </Button>
+              </div>
 
               {/* Bol.com acties */}
               <BolActionsCard order={order} embedded />
@@ -546,6 +650,16 @@ export default function OrderDetailPage() {
         customerId={order.customer_id || undefined}
         orderNumber={order.order_number}
       />
+
+      {/* Refund Dialog */}
+      {order && (
+        <OrderRefundDialog
+          open={showRefundDialog}
+          onOpenChange={setShowRefundDialog}
+          order={order}
+          formatCurrency={formatCurrency}
+        />
+      )}
     </div>
   );
 }

@@ -8,7 +8,12 @@ import {
   Check,
   AlertCircle,
   Info,
+  Eye,
+  Lock,
+  EyeOff,
 } from 'lucide-react';
+import { CustomFrontendConfigPanel } from './CustomFrontendConfigPanel';
+import { CustomFrontendConfig, DEFAULT_CUSTOM_FRONTEND_CONFIG } from '@/types/custom-frontend-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +22,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+const STATUS_OPTIONS = [
+  { value: 'online', label: 'Online', description: 'Publiek toegankelijk voor iedereen', icon: Eye, color: 'text-green-600' },
+  { value: 'password', label: 'Wachtwoord', description: 'Bezoekers moeten een wachtwoord invoeren', icon: Lock, color: 'text-amber-600' },
+  { value: 'offline', label: 'Offline', description: 'Webshop is niet bereikbaar', icon: EyeOff, color: 'text-destructive' },
+] as const;
 
 export function StorefrontSettings() {
   const { currentTenant } = useTenant();
@@ -32,19 +45,32 @@ export function StorefrontSettings() {
     use_custom_frontend: false,
     custom_frontend_url: '',
     custom_head_scripts: '',
+    storefront_status: 'online' as string,
+    storefront_password: '',
+    custom_frontend_config: DEFAULT_CUSTOM_FRONTEND_CONFIG as CustomFrontendConfig,
   });
 
   useEffect(() => {
     if (themeSettings) {
+      const ts = themeSettings as any;
       setFormData({
         use_custom_frontend: themeSettings.use_custom_frontend,
         custom_frontend_url: themeSettings.custom_frontend_url || '',
         custom_head_scripts: themeSettings.custom_head_scripts || '',
+        storefront_status: ts.storefront_status || 'online',
+        storefront_password: ts.storefront_password || '',
+        custom_frontend_config: ts.custom_frontend_config 
+          ? { ...DEFAULT_CUSTOM_FRONTEND_CONFIG, ...ts.custom_frontend_config }
+          : DEFAULT_CUSTOM_FRONTEND_CONFIG,
       });
     }
   }, [themeSettings]);
 
   const handleSave = () => {
+    if (formData.storefront_status === 'password' && !formData.storefront_password.trim()) {
+      toast.error('Voer een wachtwoord in voor de wachtwoord-modus');
+      return;
+    }
     saveThemeSettings.mutate(formData);
   };
 
@@ -61,8 +87,66 @@ export function StorefrontSettings() {
     ? `https://${canonicalDomain.domain}`
     : `/shop/${currentTenant?.slug}`;
 
+  const currentStatusOption = STATUS_OPTIONS.find(o => o.value === formData.storefront_status) || STATUS_OPTIONS[0];
+
   return (
     <div className="space-y-6">
+      {/* Storefront Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <currentStatusOption.icon className={cn("h-5 w-5", currentStatusOption.color)} />
+            Webshop Status
+          </CardTitle>
+          <CardDescription>
+            Bepaal wie toegang heeft tot je webshop
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RadioGroup
+            value={formData.storefront_status}
+            onValueChange={(value) => setFormData({ ...formData, storefront_status: value })}
+            className="grid gap-3"
+          >
+            {STATUS_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className={cn(
+                  "flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors",
+                  formData.storefront_status === option.value
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                )}
+              >
+                <RadioGroupItem value={option.value} className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <option.icon className={cn("h-4 w-4", option.color)} />
+                    <span className="font-medium text-sm">{option.label}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                </div>
+              </label>
+            ))}
+          </RadioGroup>
+
+          {formData.storefront_status === 'password' && (
+            <div className="space-y-2 pl-4 border-l-2 border-primary/50">
+              <Label>Wachtwoord</Label>
+              <Input
+                type="text"
+                value={formData.storefront_password}
+                onChange={(e) => setFormData({ ...formData, storefront_password: e.target.value })}
+                placeholder="Voer een wachtwoord in"
+              />
+              <p className="text-xs text-muted-foreground">
+                Bezoekers moeten dit wachtwoord invoeren om de webshop te bekijken
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Domain Summary */}
       <Card>
         <CardHeader>
@@ -96,7 +180,6 @@ export function StorefrontSettings() {
             </Button>
           </div>
 
-          {/* Additional domains info */}
           {activeDomains.length > 0 && (
             <p className="text-sm text-muted-foreground">
               {verifiedDomains.length} van {activeDomains.length} domeinen geverifieerd
@@ -104,7 +187,6 @@ export function StorefrontSettings() {
             </p>
           )}
 
-          {/* SellQo fallback URL if custom domains exist */}
           {canonicalDomain && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Technische URL:</span>
@@ -148,90 +230,16 @@ export function StorefrontSettings() {
               onCheckedChange={(checked) => setFormData({ ...formData, use_custom_frontend: checked })}
             />
           </div>
-
-          {formData.use_custom_frontend && (
-            <div className="space-y-4 pl-4 border-l-2">
-              <div className="space-y-2">
-                <Label>Custom Frontend URL</Label>
-                <Input
-                  value={formData.custom_frontend_url}
-                  onChange={(e) => setFormData({ ...formData, custom_frontend_url: e.target.value })}
-                  placeholder="https://mijn-custom-shop.lovable.app"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Je domeinen serveren deze URL — klanten zien alleen hun eigen domein
-                </p>
-              </div>
-
-              {/* Hint: no domains configured */}
-              {activeDomains.length === 0 && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Koppel een eigen domein</AlertTitle>
-                  <AlertDescription>
-                    Zonder eigen domein zien klanten de technische URL. Koppel een domein zodat klanten altijd je eigen domeinnaam zien.
-                    <Button variant="link" size="sm" className="px-0 ml-1" asChild>
-                      <a href="/admin/settings?tab=domains">Domein toevoegen →</a>
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Show which domains serve the custom frontend */}
-              {verifiedDomains.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Domeinen die je custom frontend serveren:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {verifiedDomains.map(d => (
-                      <Badge key={d.id} variant="secondary" className="text-xs">
-                        {d.domain}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Alert>
-                <Code className="h-4 w-4" />
-                <AlertTitle>API Toegang</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p>Je custom frontend kan data ophalen via de SellQo API:</p>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs bg-muted px-2 py-1 rounded truncate">
-                        {`${window.location.origin}/api/storefront`}
-                      </code>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => copyToClipboard(`${window.location.origin}/api/storefront`, 'api')}
-                      >
-                        {copied === 'api' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Gebruik de <code className="bg-muted px-1 rounded">resolve_domain</code> actie om automatisch de tenant en locale te detecteren op basis van het domein.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Tenant ID:</span>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        {currentTenant?.id}
-                      </code>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => copyToClipboard(currentTenant?.id || '', 'tenant')}
-                      >
-                        {copied === 'tenant' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Custom Frontend Configuration Panel */}
+      {formData.use_custom_frontend && (
+        <CustomFrontendConfigPanel
+          config={formData.custom_frontend_config}
+          onChange={(newConfig) => setFormData({ ...formData, custom_frontend_config: newConfig })}
+        />
+      )}
 
       {/* Tracking & Scripts */}
       <Card>

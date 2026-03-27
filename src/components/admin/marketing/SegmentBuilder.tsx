@@ -5,6 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { nl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { SegmentFilterRules } from '@/types/marketing';
 
 interface SegmentBuilderProps {
@@ -19,6 +25,18 @@ const COUNTRIES = [
   { code: 'DE', name: 'Duitsland' },
   { code: 'FR', name: 'Frankrijk' },
   { code: 'LU', name: 'Luxemburg' },
+];
+
+const AUTO_TAGS = [
+  { value: 'VIP', label: 'VIP', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'Loyal', label: 'Loyal', color: 'bg-green-100 text-green-800' },
+  { value: 'New', label: 'Nieuw', color: 'bg-blue-100 text-blue-800' },
+  { value: 'Sleeping', label: 'Slapend', color: 'bg-gray-100 text-gray-800' },
+  { value: 'At Risk', label: 'Risico', color: 'bg-orange-100 text-orange-800' },
+  { value: 'Lost', label: 'Verloren', color: 'bg-red-100 text-red-800' },
+  { value: 'B2B Verified', label: 'B2B Geverifieerd', color: 'bg-purple-100 text-purple-800' },
+  { value: 'Omni-channel', label: 'Omni-channel', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'High Value', label: 'Hoge waarde', color: 'bg-emerald-100 text-emerald-800' },
 ];
 
 export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBuilderProps) {
@@ -42,6 +60,15 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
   const removeCountry = (code: string) => {
     const countries = filterRules.countries || [];
     updateRule('countries', countries.filter(c => c !== code));
+  };
+
+  const toggleAutoTag = (tag: string) => {
+    const tags = filterRules.auto_tags || [];
+    if (tags.includes(tag)) {
+      updateRule('auto_tags', tags.filter(t => t !== tag));
+    } else {
+      updateRule('auto_tags', [...tags, tag]);
+    }
   };
 
   return (
@@ -70,6 +97,35 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               <SelectItem value="b2b">Zakelijk (B2B)</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Auto Tags */}
+        <div className="space-y-2">
+          <Label>Klanttags (auto-tagging)</Label>
+          <div className="flex flex-wrap gap-2">
+            {AUTO_TAGS.map(tag => {
+              const isSelected = (filterRules.auto_tags || []).includes(tag.value);
+              return (
+                <button
+                  key={tag.value}
+                  type="button"
+                  onClick={() => toggleAutoTag(tag.value)}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                      : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  {tag.label}
+                  {isSelected && <X className="h-3 w-3" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Selecteer tags om klanten te filteren op basis van automatische classificatie
+          </p>
         </div>
 
         {/* Countries */}
@@ -173,6 +229,54 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               onChange={(e) => updateRule('no_order_since_days', e.target.value ? parseInt(e.target.value) : undefined)}
               placeholder="bijv. 90"
             />
+          </div>
+        </div>
+
+        {/* Registration Date Range */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Geregistreerd vanaf</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !filterRules.registration_date_from && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {filterRules.registration_date_from 
+                    ? format(new Date(filterRules.registration_date_from), 'dd MMM yyyy', { locale: nl })
+                    : 'Kies datum'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterRules.registration_date_from ? new Date(filterRules.registration_date_from) : undefined}
+                  onSelect={(d) => updateRule('registration_date_from', d?.toISOString())}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-2">
+            <Label>Geregistreerd tot</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !filterRules.registration_date_to && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {filterRules.registration_date_to 
+                    ? format(new Date(filterRules.registration_date_to), 'dd MMM yyyy', { locale: nl })
+                    : 'Kies datum'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterRules.registration_date_to ? new Date(filterRules.registration_date_to) : undefined}
+                  onSelect={(d) => updateRule('registration_date_to', d?.toISOString())}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 

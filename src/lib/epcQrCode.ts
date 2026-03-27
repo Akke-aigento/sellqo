@@ -67,3 +67,18 @@ export function isValidIBAN(iban: string): boolean {
 export function isValidBIC(bic: string): boolean {
   return /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(bic.toUpperCase());
 }
+
+/**
+ * Generate a payto:// URI for mobile banking deep links (RFC 8905)
+ * Opens the user's banking app with pre-filled payment details
+ */
+export function generatePaytoURI(data: EPCData): string {
+  const iban = data.iban.replace(/\s/g, '').toUpperCase();
+  const params = new URLSearchParams();
+  params.set('amount', `EUR:${data.amount.toFixed(2)}`);
+  if (data.reference) params.set('message', data.reference);
+  if (data.beneficiaryName) params.set('receiver-name', data.beneficiaryName);
+  
+  const bicPath = data.bic ? `${data.bic}/` : '';
+  return `payto://iban/${bicPath}${iban}?${params.toString()}`;
+}

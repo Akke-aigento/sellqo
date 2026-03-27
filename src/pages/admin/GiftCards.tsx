@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsCompact } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 export default function GiftCards() {
+  const isCompact = useIsCompact();
   const { data: giftCards = [], isLoading } = useGiftCards();
   const { data: stats } = useGiftCardStats();
   const updateGiftCard = useUpdateGiftCard();
@@ -218,6 +220,32 @@ export default function GiftCards() {
                   Nieuwe cadeaukaart
                 </Button>
               )}
+            </div>
+          ) : isCompact ? (
+            <div className="space-y-2">
+              {filteredCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
+                  onClick={() => setSelectedCard(card)}
+                >
+                  <div className="flex items-center justify-between">
+                    <code className="text-sm bg-muted px-2 py-0.5 rounded">{maskCode(card.code)}</code>
+                    <Badge variant="secondary" className={giftCardStatusInfo[card.status].color}>
+                      {giftCardStatusInfo[card.status].label}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 truncate">
+                    {card.recipient_name || card.recipient_email || '-'}
+                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(card.created_at), 'd MMM yyyy', { locale: nl })}
+                    </span>
+                    <span className="font-medium">€{Number(card.current_balance).toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto -mx-6">

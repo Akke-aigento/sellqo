@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
-import { AD_PLATFORMS, type AdPlatform, type AdCampaignStatus } from '@/types/ads';
+import { AD_PLATFORMS, type AdPlatform } from '@/types/ads';
 import { CampaignCard } from './CampaignCard';
 import { CampaignWizard } from './CampaignWizard';
+import { CampaignDetailPage } from './CampaignDetailPage';
 import { Plus, Search, Filter, Target } from 'lucide-react';
 
 export function CampaignsList() {
@@ -17,6 +18,7 @@ export function CampaignsList() {
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showWizard, setShowWizard] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(search.toLowerCase());
@@ -24,6 +26,15 @@ export function CampaignsList() {
     const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
     return matchesSearch && matchesPlatform && matchesStatus;
   });
+
+  if (selectedCampaignId) {
+    return (
+      <CampaignDetailPage 
+        campaignId={selectedCampaignId} 
+        onBack={() => setSelectedCampaignId(null)} 
+      />
+    );
+  }
 
   if (showWizard) {
     return <CampaignWizard onClose={() => setShowWizard(false)} />;
@@ -84,7 +95,11 @@ export function CampaignsList() {
       ) : filteredCampaigns.length > 0 ? (
         <div className="space-y-3">
           {filteredCampaigns.map(campaign => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
+            <CampaignCard 
+              key={campaign.id} 
+              campaign={campaign} 
+              onClick={() => setSelectedCampaignId(campaign.id)}
+            />
           ))}
         </div>
       ) : campaigns.length === 0 ? (

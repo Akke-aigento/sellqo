@@ -18,7 +18,7 @@ export interface InboxMessage {
   customer_id: string | null;
   order_id: string | null;
   quote_id: string | null;
-  direction: 'outbound' | 'inbound';
+  direction: 'outbound' | 'inbound' | 'internal';
   subject: string;
   body_html: string;
   body_text: string | null;
@@ -30,6 +30,8 @@ export interface InboxMessage {
   message_status?: MessageStatus;
   folder_id?: string | null;
   deleted_at?: string | null;
+  is_pinned?: boolean;
+  snoozed_until?: string | null;
   whatsapp_status: string | null;
   read_at: string | null;
   read_by: string | null;
@@ -71,6 +73,8 @@ export interface Conversation {
   replyToEmail?: string;
   messageStatus: MessageStatus;
   folderId: string | null;
+  isPinned: boolean;
+  snoozedUntil: string | null;
 }
 
 export interface SearchOptions {
@@ -281,6 +285,8 @@ export function useInbox() {
       // Determine conversation status from last message
       const messageStatus = (lastMessage.message_status as MessageStatus) || 'active';
       const folderId = lastMessage.folder_id || null;
+      const isPinned = msgs.some(m => m.is_pinned);
+      const snoozedUntil = lastMessage.snoozed_until || null;
 
       convos.push({
         id: key,
@@ -305,11 +311,14 @@ export function useInbox() {
         replyToEmail,
         messageStatus,
         folderId,
+        isPinned,
+        snoozedUntil,
       });
     }
 
-    // Sort by unread first, then by date
+    // Sort: pinned first, then unread, then by date
     return convos.sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
       if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
       return new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime();
@@ -381,6 +390,32 @@ export function useInbox() {
           read_by: user.id,
         })
         .in('id', unreadIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+    },
+  });
+
+  // Mark conversation as unread (clear read_at on last inbound message)
+  const markConversationAsUnread = useMutation({
+    mutationFn: async (conversationId: string) => {
+      if (!currentTenant?.id) throw new Error('Not authenticated');
+
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) return;
+
+      // Find the last inbound message that was read
+      const lastReadInbound = conversation.messages.find(
+        (m) => m.direction === 'inbound' && m.read_at
+      );
+      if (!lastReadInbound) return;
+
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ read_at: null, read_by: null })
+        .eq('id', lastReadInbound.id);
 
       if (error) throw error;
     },
@@ -524,6 +559,44 @@ export function useInbox() {
     },
   });
 
+  // Pin/unpin conversation
+  const pinConversation = useMutation({
+    mutationFn: async ({ conversationId, pinned }: { conversationId: string; pinned: boolean }) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+      const messageIds = conversation.messages.map((m) => m.id);
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ is_pinned: pinned })
+        .in('id', messageIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+    },
+  });
+
+  // Snooze conversation
+  const snoozeConversation = useMutation({
+    mutationFn: async ({ conversationId, until }: { conversationId: string; until: Date | null }) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error('Conversation not found');
+      const messageIds = conversation.messages.map((m) => m.id);
+      const { error } = await supabase
+        .from('customer_messages')
+        .update({ snoozed_until: until?.toISOString() || null })
+        .in('id', messageIds);
+      if (error) throw error;
+    },
+    onSuccess: (_, { until }) => {
+      queryClient.invalidateQueries({ queryKey: ['inbox-messages'] });
+      toast({
+        title: until ? 'Gesprek gesnoozed' : 'Snooze opgeheven',
+        description: until ? 'Het gesprek komt later terug in je inbox.' : 'Het gesprek is weer zichtbaar.',
+      });
+    },
+  });
+
   // Realtime subscription
   useEffect(() => {
     if (!currentTenant?.id) return;
@@ -578,9 +651,12 @@ export function useInbox() {
     setFilters,
     markAsRead: markAsRead.mutate,
     markConversationAsRead: markConversationAsRead.mutate,
+    markConversationAsUnread: markConversationAsUnread.mutate,
     archiveConversation: archiveConversation.mutate,
     deleteConversation: deleteConversation.mutate,
     restoreConversation: restoreConversation.mutate,
     moveToFolder: moveToFolder.mutate,
+    pinConversation: pinConversation.mutate,
+    snoozeConversation: snoozeConversation.mutate,
   };
 }

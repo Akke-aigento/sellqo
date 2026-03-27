@@ -21,6 +21,72 @@ interface NotificationRequest {
   skip_in_app?: boolean;
 }
 
+// Default email settings matching NOTIFICATION_CONFIG in src/types/notification.ts
+const DEFAULT_EMAIL_ENABLED: Record<string, boolean> = {
+  // Orders
+  'order_new': true,
+  'order_paid': false,
+  'order_payment_failed': true,
+  'order_cancelled': false,
+  'order_refund_requested': true,
+  'order_shipped': false,
+  'order_delivered': false,
+  'order_high_value': true,
+  'marketplace_order_new': true,
+  // Invoices
+  'invoice_created': false,
+  'invoice_sent': false,
+  'invoice_paid': false,
+  'invoice_overdue': true,
+  'invoice_overdue_7days': true,
+  'invoice_overdue_30days': true,
+  'invoice_reminder_sent': false,
+  'peppol_invoice_accepted': false,
+  'peppol_invoice_rejected': true,
+  // Payments
+  'payment_received': false,
+  'payout_available': true,
+  'payout_completed': false,
+  'stripe_account_issue': true,
+  'chargeback_received': true,
+  // Customers
+  'customer_new': false,
+  'customer_first_order': false,
+  'customer_vip_status': false,
+  'customer_message_received': true,
+  'newsletter_signup': false,
+  // Products
+  'stock_low': true,
+  'stock_critical': true,
+  'stock_out': true,
+  'stock_replenished': false,
+  'product_bestseller': false,
+  // Quotes
+  'quote_accepted': true,
+  'quote_expiring_soon': true,
+  // Subscriptions
+  'subscription_new': true,
+  'subscription_cancelled': true,
+  'subscription_payment_failed': true,
+  'subscription_expiring': true,
+  // Marketing
+  'campaign_bounce_alert': true,
+  'ai_credits_low': true,
+  'ai_credits_empty': true,
+  // Team
+  'login_new_device': true,
+  'login_failed_attempts': true,
+  // System
+  'platform_gift': true,
+  'usage_limit_80': true,
+  'usage_limit_reached': true,
+  'integration_error': true,
+  // Integrations
+  'shopify_request_approved': true,
+  'shopify_request_completed': true,
+  'shopify_request_rejected': true,
+};
+
 const prioritySubjects: Record<string, string> = {
   urgent: '🚨 URGENT: ',
   high: '⚠️ ',
@@ -75,6 +141,24 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // 2. Check if email should be sent
+    // Only send email when called via DB trigger (skip_in_app=true)
+    // This prevents duplicate emails: the DB trigger path is the single source of truth for emails
+    if (!skipInApp) {
+      console.log('Direct call (skip_in_app=false) - skipping email, DB trigger will handle it');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          notification_id: notificationId,
+          email_sent: false,
+          reason: 'email_delegated_to_trigger'
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const { data: settings } = await supabase
       .from('tenant_notification_settings')
       .select('email_enabled, email_recipients')
@@ -84,7 +168,9 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     // Default to sending email for high/urgent if no settings exist
-    const shouldSendEmail = settings?.email_enabled ?? (priority === 'urgent' || priority === 'high');
+    const shouldSendEmail = settings?.email_enabled 
+      ?? DEFAULT_EMAIL_ENABLED[notification.type] 
+      ?? (priority === 'urgent' || priority === 'high');
 
     if (shouldSendEmail && resendApiKey) {
       // Get tenant info for email including branding and notification_email

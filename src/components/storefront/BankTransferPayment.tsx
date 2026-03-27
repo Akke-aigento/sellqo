@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Copy, Clock, Smartphone, QrCode } from 'lucide-react';
+import { CheckCircle, Copy, Clock, Smartphone, QrCode, Landmark } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateEPCString, formatIBAN } from '@/lib/epcQrCode';
+import { generateEPCString, formatIBAN, generatePaytoURI } from '@/lib/epcQrCode';
 import { formatOGM } from '@/lib/ogm';
 import QRCode from 'react-qr-code';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BankTransferPaymentProps {
   orderNumber: string;
@@ -34,9 +35,22 @@ export function BankTransferPayment({
   showConfirmButton = false,
   isConfirming = false,
 }: BankTransferPaymentProps) {
+  const isMobile = useIsMobile();
+
   // Generate EPC QR code string
   const epcString = useMemo(() => {
     return generateEPCString({
+      beneficiaryName,
+      iban: iban.replace(/\s/g, ''),
+      amount,
+      reference: ogmReference,
+      bic,
+    });
+  }, [beneficiaryName, iban, amount, ogmReference, bic]);
+
+  // Generate payto:// URI for mobile deep linking
+  const paytoURI = useMemo(() => {
+    return generatePaytoURI({
       beneficiaryName,
       iban: iban.replace(/\s/g, ''),
       amount,
@@ -79,23 +93,45 @@ export function BankTransferPayment({
       
       <CardContent className="p-6">
         <div className="grid md:grid-cols-2 gap-6">
-          {/* QR Code Section */}
+          {/* QR Code Section (desktop) / Deep Link (mobile) */}
           <div className="flex flex-col items-center">
-            <div className="bg-background p-4 rounded-xl shadow-sm border">
-              <QRCode
-                value={epcString}
-                size={180}
-                level="M"
-                className="w-full h-auto"
-              />
-            </div>
-            <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-              <Smartphone className="h-4 w-4" />
-              <span>Scan met je bank-app</span>
-            </div>
-            <p className="text-xs text-center text-muted-foreground mt-2 max-w-[200px]">
-              De betaalgegevens worden automatisch ingevuld in je bank-app
-            </p>
+            {isMobile ? (
+              <>
+                <a
+                  href={paytoURI}
+                  className="w-full inline-flex items-center justify-center gap-3 rounded-xl bg-primary text-primary-foreground px-6 py-4 text-lg font-semibold shadow-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Landmark className="h-6 w-6" />
+                  Open je bank-app
+                </a>
+                <p className="text-xs text-center text-muted-foreground mt-3 max-w-[260px]">
+                  Alle betaalgegevens worden automatisch ingevuld. Bevestig met Face ID, vingerafdruk of PIN.
+                </p>
+                <p className="text-[11px] text-center text-muted-foreground/70 mt-2">
+                  Werkt met KBC, BNP Paribas Fortis, Belfius, ING, Argenta en meer
+                </p>
+                <Separator className="my-4 w-full" />
+                <p className="text-xs text-muted-foreground">Opent niet? Kopieer de gegevens hieronder</p>
+              </>
+            ) : (
+              <>
+                <div className="bg-background p-4 rounded-xl shadow-sm border">
+                  <QRCode
+                    value={epcString}
+                    size={180}
+                    level="M"
+                    className="w-full h-auto"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                  <Smartphone className="h-4 w-4" />
+                  <span>Scan met je bank-app</span>
+                </div>
+                <p className="text-xs text-center text-muted-foreground mt-2 max-w-[200px]">
+                  De betaalgegevens worden automatisch ingevuld in je bank-app
+                </p>
+              </>
+            )}
           </div>
 
           {/* Manual Transfer Details */}

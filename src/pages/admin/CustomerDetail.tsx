@@ -16,9 +16,12 @@ import {
   Trash2,
   ExternalLink,
   UserPlus,
-  Loader2
+  Loader2,
+  Globe,
+  Clock
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
+import { CustomerTimeline } from '@/components/admin/CustomerTimeline';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
 import { useTenant } from '@/hooks/useTenant';
 import { useQuery } from '@tanstack/react-query';
@@ -45,6 +48,22 @@ export default function CustomerDetailPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const { createCustomer } = useCustomers();
+
+  // Query linked storefront account
+  const sfCustomerId = (customer as any)?.storefront_customer_id;
+  const { data: storefrontAccount } = useQuery({
+    queryKey: ['storefront-account', sfCustomerId],
+    queryFn: async () => {
+      if (!sfCustomerId) return null;
+      const { data } = await (supabase as any)
+        .from('storefront_customers')
+        .select('id, email, first_name, last_name, is_active, created_at, last_login_at, newsletter_opted_in, newsletter_opted_in_at, company_name, vat_number, vat_verified, addresses')
+        .eq('id', sfCustomerId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!sfCustomerId,
+  });
 
   // Query customer_messages for from_email when customer not found
   const { data: messageData } = useQuery({
@@ -250,6 +269,16 @@ export default function CustomerDetailPage() {
             <User className="h-4 w-4" />
             Gegevens
           </TabsTrigger>
+          <TabsTrigger value="timeline" className="gap-2">
+            <Clock className="h-4 w-4" />
+            Timeline
+          </TabsTrigger>
+          {storefrontAccount && (
+            <TabsTrigger value="webshop" className="gap-2">
+              <Globe className="h-4 w-4" />
+              Webshop Account
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Orders Tab */}
@@ -427,6 +456,101 @@ export default function CustomerDetailPage() {
             )}
           </div>
         </TabsContent>
+
+        {/* Timeline Tab */}
+        <TabsContent value="timeline">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Klant-timeline</CardTitle>
+              <CardDescription>Alle interacties chronologisch</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CustomerTimeline customerId={customerId!} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Webshop Account Tab */}
+        {storefrontAccount && (
+          <TabsContent value="webshop">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Account Info</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Status</div>
+                    <div>
+                      {storefrontAccount.is_active ? (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Actief</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Inactief</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Geregistreerd</div>
+                    <div>{format(new Date(storefrontAccount.created_at), 'd MMM yyyy HH:mm', { locale: nl })}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Laatste login</div>
+                    <div>{storefrontAccount.last_login_at ? format(new Date(storefrontAccount.last_login_at), 'd MMM yyyy HH:mm', { locale: nl }) : 'Nooit'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Nieuwsbrief</div>
+                    <div>
+                      {storefrontAccount.newsletter_opted_in ? (
+                        <span className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Aangemeld</Badge>
+                          {storefrontAccount.newsletter_opted_in_at && (
+                            <span className="text-xs text-muted-foreground">
+                              sinds {format(new Date(storefrontAccount.newsletter_opted_in_at), 'd MMM yyyy', { locale: nl })}
+                            </span>
+                          )}
+                        </span>
+                      ) : 'Niet aangemeld'}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Bedrijfsgegevens</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {storefrontAccount.company_name ? (
+                    <>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Bedrijfsnaam</div>
+                        <div>{storefrontAccount.company_name}</div>
+                      </div>
+                      {storefrontAccount.vat_number && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">BTW-nummer</div>
+                          <div className="flex items-center gap-2">
+                            {storefrontAccount.vat_number}
+                            {storefrontAccount.vat_verified && (
+                              <Badge variant="secondary" className="text-xs">VIES ✓</Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Geen bedrijfsgegevens</div>
+                  )}
+
+                  <div>
+                    <div className="text-sm text-muted-foreground">Opgeslagen adressen</div>
+                    <div>{Array.isArray(storefrontAccount.addresses) ? storefrontAccount.addresses.length : 0} adres(sen)</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

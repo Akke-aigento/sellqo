@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
-import type { NotificationSetting, NotificationCategory, NOTIFICATION_CONFIG } from '@/types/notification';
+import { NOTIFICATION_CONFIG } from '@/types/notification';
+import type { NotificationSetting, NotificationCategory } from '@/types/notification';
 
 export function useNotificationSettings() {
   const { currentTenant } = useTenant();
@@ -10,6 +11,37 @@ export function useNotificationSettings() {
   const [settings, setSettings] = useState<NotificationSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const initializedRef = useRef(false);
+
+  const initializeDefaults = useCallback(async (tenantId: string) => {
+    // Build all default rows from NOTIFICATION_CONFIG
+    const rows = NOTIFICATION_CONFIG.flatMap(cat =>
+      cat.types.map(t => ({
+        tenant_id: tenantId,
+        category: cat.category,
+        notification_type: t.type,
+        in_app_enabled: t.defaultInApp,
+        email_enabled: t.defaultEmail,
+        email_recipients: [] as string[],
+      }))
+    );
+
+    const { data, error } = await supabase
+      .from('tenant_notification_settings')
+      .insert(rows)
+      .select();
+
+    if (error) {
+      console.error('Error initializing notification defaults:', error);
+      return [];
+    }
+
+    return (data || []).map(s => ({
+      ...s,
+      category: s.category as NotificationCategory,
+      email_recipients: s.email_recipients || [],
+    }));
+  }, []);
 
   const fetchSettings = useCallback(async () => {
     if (!currentTenant?.id) return;
@@ -22,19 +54,25 @@ export function useNotificationSettings() {
 
       if (error) throw error;
 
-      const typedData = (data || []).map(s => ({
-        ...s,
-        category: s.category as NotificationCategory,
-        email_recipients: s.email_recipients || [],
-      }));
-
-      setSettings(typedData);
+      // If no settings exist, initialize defaults once
+      if ((!data || data.length === 0) && !initializedRef.current) {
+        initializedRef.current = true;
+        const initialized = await initializeDefaults(currentTenant.id);
+        setSettings(initialized);
+      } else {
+        const typedData = (data || []).map(s => ({
+          ...s,
+          category: s.category as NotificationCategory,
+          email_recipients: s.email_recipients || [],
+        }));
+        setSettings(typedData);
+      }
     } catch (error) {
       console.error('Error fetching notification settings:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [currentTenant?.id]);
+  }, [currentTenant?.id, initializeDefaults]);
 
   useEffect(() => {
     fetchSettings();

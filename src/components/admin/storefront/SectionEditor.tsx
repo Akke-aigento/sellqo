@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent, TestimonialsContent } from '@/types/storefront';
+import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent, TestimonialsContent, CategoriesGridContent, UspBarContent, CtaBannerContent } from '@/types/storefront';
 import { useCategories } from '@/hooks/useCategories';
 import { useProducts } from '@/hooks/useProducts';
 import { VisualMediaPicker } from './visual-editor/VisualMediaPicker';
@@ -478,6 +478,193 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
                   onChange={(e) => handleContentChange('link_text', e.target.value)}
                   placeholder="Meer info →"
                 />
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      case 'categories_grid': {
+        const catContent = formData.content as CategoriesGridContent;
+        const selectedCatIds = catContent.category_ids || [];
+        const toggleCategory = (id: string) => {
+          const next = selectedCatIds.includes(id)
+            ? selectedCatIds.filter(cid => cid !== id)
+            : [...selectedCatIds, id];
+          handleContentChange('category_ids', next);
+        };
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Categorieën selecteren (laat leeg voor alle)</Label>
+              <div className="border rounded-md max-h-48 overflow-y-auto">
+                {categories.map((cat) => (
+                  <label key={cat.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b last:border-b-0">
+                    <Checkbox
+                      checked={selectedCatIds.includes(cat.id)}
+                      onCheckedChange={() => toggleCategory(cat.id)}
+                    />
+                    <span className="text-sm">{cat.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Kolommen</Label>
+              <Select
+                value={String(catContent.columns || 3)}
+                onValueChange={(v) => handleContentChange('columns', parseInt(v))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 kolommen</SelectItem>
+                  <SelectItem value="3">3 kolommen</SelectItem>
+                  <SelectItem value="4">4 kolommen</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Toon beschrijving</Label>
+              <Switch
+                checked={catContent.show_description === true}
+                onCheckedChange={(checked) => handleContentChange('show_description', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Toon productaantal</Label>
+              <Switch
+                checked={catContent.show_product_count === true}
+                onCheckedChange={(checked) => handleContentChange('show_product_count', checked)}
+              />
+            </div>
+          </div>
+        );
+      }
+
+      case 'usp_bar': {
+        const uspContent = formData.content as UspBarContent;
+        const items = uspContent.items || [];
+        const addItem = () => {
+          handleContentChange('items', [...items, { icon: 'check', title: '', description: '' }]);
+        };
+        const updateItem = (idx: number, field: string, value: string) => {
+          const updated = items.map((item, i) => i === idx ? { ...item, [field]: value } : item);
+          handleContentChange('items', updated);
+        };
+        const removeItem = (idx: number) => {
+          handleContentChange('items', items.filter((_, i) => i !== idx));
+        };
+        const iconOptions = [
+          { value: 'truck', label: 'Verzending' },
+          { value: 'refresh', label: 'Retour' },
+          { value: 'shield', label: 'Veilig' },
+          { value: 'lock', label: 'Beveiligd' },
+          { value: 'credit_card', label: 'Betaling' },
+          { value: 'award', label: 'Keurmerk' },
+          { value: 'clock', label: 'Klok' },
+          { value: 'heart', label: 'Hart' },
+          { value: 'headphones', label: 'Support' },
+          { value: 'check', label: 'Vinkje' },
+        ];
+        return (
+          <div className="space-y-4">
+            {items.map((item, idx) => (
+              <div key={idx} className="border rounded-lg p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">USP {idx + 1}</Label>
+                  <Button variant="ghost" size="sm" onClick={() => removeItem(idx)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Icoon</Label>
+                    <Select value={item.icon} onValueChange={(v) => updateItem(idx, 'icon', v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {iconOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Titel</Label>
+                    <Input
+                      value={item.title}
+                      onChange={(e) => updateItem(idx, 'title', e.target.value)}
+                      placeholder="Gratis verzending"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Beschrijving (opt.)</Label>
+                    <Input
+                      value={item.description || ''}
+                      onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                      placeholder="Vanaf €50"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={addItem} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              USP toevoegen
+            </Button>
+          </div>
+        );
+      }
+
+      case 'cta_banner': {
+        const ctaContent = formData.content as CtaBannerContent;
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Achtergrond Afbeelding (optioneel)</Label>
+              <VisualMediaPicker
+                value={ctaContent.background_image || ''}
+                onSelect={(url) => handleContentChange('background_image', url)}
+                aspectRatio="video"
+                placeholder="Klik om achtergrondafbeelding te uploaden"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Achtergrondkleur (als geen afbeelding)</Label>
+              <Input
+                type="color"
+                value={ctaContent.background_color || '#000000'}
+                onChange={(e) => handleContentChange('background_color', e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Knop Tekst</Label>
+                <Input
+                  value={ctaContent.button_text || ''}
+                  onChange={(e) => handleContentChange('button_text', e.target.value)}
+                  placeholder="Bekijk Aanbiedingen"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Knop Link</Label>
+                <Select
+                  value={ctaContent.button_link || ''}
+                  onValueChange={(value) => handleContentChange('button_link', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer pagina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="/products">Alle Producten</SelectItem>
+                    <SelectItem value="/cart">Winkelwagen</SelectItem>
+                    <SelectItem value="/">Homepage</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={`/products?category=${cat.slug}`}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

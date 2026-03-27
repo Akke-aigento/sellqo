@@ -434,30 +434,8 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Send marketplace order notification
-            try {
-              await supabase.functions.invoke('create-notification', {
-                body: {
-                  tenant_id: connection.tenant_id,
-                  category: 'orders',
-                  type: 'marketplace_order_new',
-                  title: `Bol.com bestelling: ${orderNumber}`,
-                  message: `Nieuwe Bol.com bestelling van €${safeSubtotal.toFixed(2)} ontvangen`,
-                  priority: 'medium',
-                  action_url: `/admin/orders/${newOrder.id}`,
-                  data: {
-                    order_id: newOrder.id,
-                    order_number: orderNumber,
-                    marketplace_order_id: bolOrder.orderId,
-                    marketplace: 'bol_com',
-                    total: safeSubtotal
-                  }
-                }
-              })
-            } catch (notificationError) {
-              console.error('Failed to send marketplace notification:', notificationError)
-              // Non-blocking - continue with sync
-            }
+            // Notification is handled automatically by DB trigger on orders table (handle_order_notification)
+            // No explicit create-notification call needed - prevents duplicate emails
 
             console.log(`Successfully imported order ${bolOrder.orderId} (${customerName}, €${safeSubtotal.toFixed(2)})`)
             totalImported++
@@ -485,9 +463,12 @@ Deno.serve(async (req) => {
                 const acceptBody = await acceptRes.text()
                 
                 if (acceptRes.ok) {
-                  console.log(`Order ${bolOrder.orderId} auto-accepted successfully: ${acceptBody}`)
+                  console.log(`Order ${bolOrder.orderId} auto-accepted locally: ${acceptBody}`)
                   
                   // Auto-create VVB label if enabled
+                  // NOTE: VVB label creation (POST /retailer/shipping-labels) is what actually
+                  // "accepts" the order at Bol.com. Without a successful label, Bol.com still
+                  // shows the order as unaccepted.
                   const vvbEnabled = settings.vvbEnabled as boolean
                   if (vvbEnabled) {
                     try {
@@ -509,11 +490,35 @@ Deno.serve(async (req) => {
                       
                       if (vvbRes.ok) {
                         console.log(`VVB label created for order ${bolOrder.orderId}: ${vvbBody}`)
+                        // Check current sync_status — don't overwrite if already shipped/shipped_awaiting_tracking
+                        const { data: currentOrder } = await supabase.from('orders')
+                          .select('sync_status').eq('id', newOrder.id).single()
+                        const currentStatus = currentOrder?.sync_status
+                        if (!currentStatus || currentStatus === 'pending' || currentStatus === 'accept_pending') {
+                          await supabase.from('orders').update({
+                            sync_status: 'accepted',
+                            updated_at: new Date().toISOString()
+                          }).eq('id', newOrder.id)
+                          console.log(`Order ${bolOrder.orderId} marked as accepted after successful VVB label creation`)
+                        } else {
+                          console.log(`Order ${bolOrder.orderId} already has sync_status '${currentStatus}', not overwriting to accepted`)
+                        }
                       } else {
                         console.error(`VVB label creation failed for order ${bolOrder.orderId}: ${vvbRes.status} ${vvbBody}`)
+                        // Revert to pending so retry mechanism picks it up
+                        await supabase.from('orders').update({
+                          sync_status: 'pending',
+                          updated_at: new Date().toISOString()
+                        }).eq('id', newOrder.id)
+                        console.log(`Order ${bolOrder.orderId} reverted to pending (VVB label failed)`)
                       }
                     } catch (vvbError) {
                       console.error(`Failed to create VVB label for order ${bolOrder.orderId}:`, vvbError)
+                      // Revert to pending so retry mechanism picks it up
+                      await supabase.from('orders').update({
+                        sync_status: 'pending',
+                        updated_at: new Date().toISOString()
+                      }).eq('id', newOrder.id)
                     }
                   }
                 } else {
@@ -619,8 +624,14 @@ Deno.serve(async (req) => {
                     }
                   } else {
                     console.error(`[RETRY] Accept failed for ${missed.marketplace_order_id}: HTTP ${acceptRes.status} - ${acceptBody}`)
-                    // Do NOT blindly mark as accepted on 403 - the accept-bol-order function
-                    // now handles verification via process-status polling
+                    // Mark as accept_failed on persistent errors to stop infinite retries
+                    if (acceptRes.status === 403 || acceptRes.status === 400 || acceptRes.status === 500) {
+                      await supabase.from('orders').update({ 
+                        sync_status: 'accept_failed', 
+                        updated_at: new Date().toISOString() 
+                      }).eq('id', missed.id)
+                      console.log(`[RETRY] Marked ${missed.marketplace_order_id} as accept_failed to stop retries`)
+                    }
                   }
 
                   await rateLimitDelay(500)

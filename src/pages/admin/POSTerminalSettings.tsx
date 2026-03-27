@@ -10,6 +10,8 @@ import {
   Settings2,
   Trash2,
   CreditCard,
+  HelpCircle,
+  TestTube,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { usePOSTerminals } from '@/hooks/usePOS';
+import { usePOSPrinter } from '@/hooks/usePOSPrinter';
 import { toast } from 'sonner';
 import type { POSTerminalStatus } from '@/types/pos';
 
@@ -45,6 +48,7 @@ export default function POSTerminalSettingsPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   const { terminals, updateTerminal, deleteTerminal, isLoading } = usePOSTerminals();
+  const { printReceipt, openCashDrawer } = usePOSPrinter();
   
   const terminal = terminals.find(t => t.id === terminalId);
   
@@ -297,6 +301,91 @@ export default function POSTerminalSettingsPage() {
                 </div>
               </div>
               <Switch checked={hasCashDrawer} onCheckedChange={setHasCashDrawer} />
+            </div>
+
+            <Separator />
+
+            {/* Hardware Help & Testing */}
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <HelpCircle className="h-4 w-4 text-primary" />
+                Installatie & testen
+              </div>
+
+              {hasScanner && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Barcode Scanner</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sluit een USB of Bluetooth barcodescanner aan op dit apparaat. De scanner werkt automatisch als toetsenbordinvoer — 
+                    geen extra software nodig. Scan een barcode in het POS-scherm en het product wordt direct toegevoegd.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Ondersteunde types: alle HID-scanners (bijv. Honeywell, Zebra, Inateck).
+                  </p>
+                </div>
+              )}
+
+              {hasPrinter && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Bonprinter</p>
+                  <p className="text-xs text-muted-foreground">
+                    Gebruik een ESC/POS-compatibele thermische printer (bijv. Epson TM-T20, Star TSP143, Bixolon SRP-330). 
+                    Stel de printer in als standaardprinter in je besturingssysteem. Bonnen worden via het printdialoogvenster afgedrukt.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      const testEl = document.createElement('div');
+                      testEl.innerHTML = `
+                        <div style="text-align:center;font-family:monospace;padding:8px;">
+                          <p style="font-size:14px;font-weight:bold;margin-bottom:4px;">*** TESTPRINT ***</p>
+                          <p style="font-size:11px;margin-bottom:8px;">${terminal?.name || 'Terminal'}</p>
+                          <p style="font-size:10px;">${new Date().toLocaleString('nl-NL')}</p>
+                          <p style="font-size:10px;margin-top:4px;">1234567890</p>
+                          <p style="border-top:1px dashed #000;margin:8px 0;"></p>
+                          <p style="font-size:10px;">Als u dit kunt lezen, werkt uw printer correct.</p>
+                          <p style="font-size:14px;font-weight:bold;margin-top:8px;">✓ Printer OK</p>
+                        </div>
+                      `;
+                      printReceipt(testEl);
+                      toast.success('Testprint verzonden naar printer');
+                    }}
+                  >
+                    <TestTube className="mr-1 h-3 w-3" />
+                    Testprint
+                  </Button>
+                </div>
+              )}
+
+              {hasCashDrawer && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Kassalade</p>
+                  <p className="text-xs text-muted-foreground">
+                    De kassalade wordt automatisch geopend bij contante betalingen via de bonprinter (ESC/POS pulse-commando).
+                    Zorg dat de kassalade is aangesloten op de RJ11-poort van uw bonprinter.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      openCashDrawer();
+                      toast.success('Kaslade-commando verzonden');
+                    }}
+                  >
+                    <TestTube className="mr-1 h-3 w-3" />
+                    Kaslade testen
+                  </Button>
+                </div>
+              )}
+
+              {!hasScanner && !hasPrinter && !hasCashDrawer && (
+                <p className="text-xs text-muted-foreground">
+                  Activeer hardware hierboven om installatie-instructies en testknoppen te zien.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -154,6 +154,15 @@ export interface Category {
   hide_from_storefront: boolean;
   created_at: string;
   updated_at: string;
+  // Multilingual SEO fields
+  meta_title_nl?: string | null;
+  meta_title_en?: string | null;
+  meta_title_de?: string | null;
+  meta_title_fr?: string | null;
+  meta_description_nl?: string | null;
+  meta_description_en?: string | null;
+  meta_description_de?: string | null;
+  meta_description_fr?: string | null;
   parent?: Category;
   children?: Category[];
 }

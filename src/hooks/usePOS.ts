@@ -171,6 +171,30 @@ export function usePOSSessions(terminalId?: string) {
     mutationFn: async (data: POSSessionOpenData) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
+      // Close any existing open sessions for this terminal first
+      const { data: openSessions, error: fetchError } = await supabase
+        .from('pos_sessions')
+        .select('id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('terminal_id', data.terminal_id)
+        .eq('status', 'open');
+
+      if (fetchError) throw fetchError;
+
+      if (openSessions && openSessions.length > 0) {
+        const { error: closeError } = await supabase
+          .from('pos_sessions')
+          .update({
+            status: 'closed',
+            closed_by: user.id,
+            closed_at: new Date().toISOString(),
+            notes: 'Automatisch gesloten bij openen nieuwe sessie',
+          })
+          .in('id', openSessions.map(s => s.id));
+
+        if (closeError) throw closeError;
+      }
+
       const { data: session, error } = await supabase
         .from('pos_sessions')
         .insert({
@@ -282,6 +306,7 @@ export function usePOSTransactions(sessionId?: string) {
       stripePaymentIntentId,
       cardBrand,
       cardLast4,
+      posCashierId,
     }: {
       terminalId: string;
       sessionId: string | null;
@@ -293,6 +318,7 @@ export function usePOSTransactions(sessionId?: string) {
       stripePaymentIntentId?: string;
       cardBrand?: string;
       cardLast4?: string;
+      posCashierId?: string;
     }) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
@@ -312,6 +338,7 @@ export function usePOSTransactions(sessionId?: string) {
           session_id: sessionId,
           cashier_id: user.id,
           customer_id: customerId || null,
+          pos_cashier_id: posCashierId || null,
           items: JSON.parse(JSON.stringify(items)),
           payments: JSON.parse(JSON.stringify(payments)),
           cash_received: cashReceived || null,
@@ -330,6 +357,72 @@ export function usePOSTransactions(sessionId?: string) {
 
       if (error) throw error;
 
+      // === CREATE ORDER FOR UNIFIED REPORTING ===
+      let orderId: string | null = null;
+      try {
+        const { data: orderNumber } = await supabase.rpc('generate_order_number', {
+          _tenant_id: currentTenant.id,
+        });
+
+        let customerName: string | null = null;
+        let customerEmail = 'pos@local';
+        let customerPhone: string | null = null;
+        if (customerId) {
+          const { data: customer } = await supabase
+            .from('customers')
+            .select('first_name, last_name, email, phone')
+            .eq('id', customerId)
+            .single();
+          if (customer) {
+            customerName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || null;
+            customerEmail = customer.email || 'pos@local';
+            customerPhone = customer.phone || null;
+          }
+        }
+
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert([{
+            tenant_id: currentTenant.id,
+            order_number: orderNumber || '#POS',
+            customer_id: customerId || null,
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: customerPhone,
+            status: 'delivered',
+            payment_status: 'paid',
+            subtotal,
+            tax_amount: taxTotal,
+            shipping_cost: 0,
+            discount_amount: discountTotal,
+            total,
+            sales_channel: 'pos',
+          }])
+          .select('id')
+          .single();
+
+        if (orderError) throw orderError;
+        orderId = orderData.id;
+
+        const orderItems = items.map((item) => ({
+          order_id: orderId!,
+          product_id: item.product_id,
+          product_name: item.name,
+          product_sku: item.sku,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.total,
+        }));
+        await supabase.from('order_items').insert(orderItems);
+
+        await supabase
+          .from('pos_transactions')
+          .update({ order_id: orderId })
+          .eq('id', data.id);
+      } catch (orderErr) {
+        console.warn('Failed to create order from POS transaction:', orderErr);
+      }
+
       // Record transaction for usage tracking
       const primaryMethod = payments[0]?.method;
       const transactionType = primaryMethod === 'cash' ? 'pos_cash' : 
@@ -340,7 +433,7 @@ export function usePOSTransactions(sessionId?: string) {
         await supabase.rpc('record_transaction', {
           p_tenant_id: currentTenant.id,
           p_transaction_type: transactionType,
-          p_order_id: null,
+          p_order_id: orderId,
         });
       } catch (txError) {
         console.warn('Failed to record transaction for usage tracking:', txError);
@@ -350,8 +443,9 @@ export function usePOSTransactions(sessionId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });
-      // Invalidate product queries to reflect stock changes from database trigger
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order-stats'] });
       toast({ title: 'Verkoop voltooid' });
     },
     onError: (error: Error) => {

@@ -27,6 +27,8 @@ export function InboundEmailSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [forwardEmail, setForwardEmail] = useState(currentTenant?.email_forward_address || '');
+  const [savingForward, setSavingForward] = useState(false);
 
   // Fetch inbound stats
   const { data: stats } = useQuery({
@@ -209,6 +211,76 @@ export function InboundEmailSettings() {
               Open Bol.com Winkelsettings
             </a>
           </Button>
+        </div>
+
+        {/* Email Forwarding */}
+        <div className="space-y-4 border-t pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5 text-primary" />
+              <div>
+                <h4 className="font-medium">E-mail doorsturen</h4>
+                <p className="text-sm text-muted-foreground">
+                  Ontvang een kopie van alle inkomende berichten in je eigen mailbox
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={currentTenant?.email_forward_enabled ?? false}
+              onCheckedChange={async (checked) => {
+                if (!currentTenant?.id) return;
+                const { error } = await supabase
+                  .from('tenants')
+                  .update({ email_forward_enabled: checked })
+                  .eq('id', currentTenant.id);
+                if (error) {
+                  toast({ title: 'Fout bij opslaan', description: error.message, variant: 'destructive' });
+                } else {
+                  await refreshTenants();
+                  queryClient.invalidateQueries({ queryKey: ['tenant'] });
+                  toast({ title: checked ? 'Doorsturen geactiveerd' : 'Doorsturen uitgeschakeld' });
+                }
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Doorstuur e-mailadres</Label>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                value={forwardEmail}
+                onChange={(e) => setForwardEmail(e.target.value)}
+                placeholder="info@jouwbedrijf.nl"
+                disabled={savingForward}
+              />
+              <Button
+                variant="outline"
+                disabled={savingForward || !forwardEmail.trim()}
+                onClick={async () => {
+                  if (!currentTenant?.id) return;
+                  setSavingForward(true);
+                  const { error } = await supabase
+                    .from('tenants')
+                    .update({ email_forward_address: forwardEmail.trim() })
+                    .eq('id', currentTenant.id);
+                  setSavingForward(false);
+                  if (error) {
+                    toast({ title: 'Fout bij opslaan', description: error.message, variant: 'destructive' });
+                  } else {
+                    await refreshTenants();
+                    queryClient.invalidateQueries({ queryKey: ['tenant'] });
+                    toast({ title: 'Doorstuuradres opgeslagen' });
+                  }
+                }}
+              >
+                Opslaan
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Berichten uit de inbox en het contactformulier worden automatisch doorgestuurd naar dit adres.
+            </p>
+          </div>
         </div>
 
         {/* Info about reply flow */}
