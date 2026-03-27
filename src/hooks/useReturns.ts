@@ -55,12 +55,6 @@ export function useReturns() {
     enabled: !!currentTenant?.id,
   });
 
-  const { data: orderReturns = [], isLoading: orderReturnsLoading } = useQuery({
-    queryKey: ['returns', 'none'],
-    enabled: false, // placeholder, use useOrderReturns instead
-    queryFn: async () => [],
-  });
-
   return { returns, isLoading };
 }
 
@@ -82,6 +76,43 @@ export function useOrderReturns(orderId: string | undefined) {
   });
 
   return { returns, isLoading };
+}
+
+export function useUpdateReturnStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      returnId: string;
+      status?: string;
+      internal_notes?: string;
+      refund_status?: string;
+    }) => {
+      const { returnId, ...updates } = params;
+      const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.status !== undefined) updatePayload.status = updates.status;
+      if (updates.internal_notes !== undefined) updatePayload.internal_notes = updates.internal_notes;
+      if (updates.refund_status !== undefined) updatePayload.refund_status = updates.refund_status;
+
+      const { data, error } = await supabase
+        .from('returns')
+        .update(updatePayload)
+        .eq('id', returnId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['returns'] });
+      queryClient.invalidateQueries({ queryKey: ['order-returns'] });
+      toast.success('Retour bijgewerkt');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Fout bij bijwerken retour');
+    },
+  });
 }
 
 export function useProcessRefund() {
