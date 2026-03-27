@@ -1,47 +1,37 @@
 
 
-## Retouren Overzicht Uitbreiden — Van Raadplegen naar Beheren
+## Fix: Bol.com Retouren Pagina Niet Gevonden
 
-### Probleem
-De "Retouren" tab op de Bestellingen-pagina is puur een leeslijst. Geen acties, geen detail, geen statuswijziging. De Bol.com `BolReturnsTab` heeft wél: detail sheet, accepteren/afwijzen, notities, stats. Dat patroon moet overgenomen worden naar het centrale overzicht.
+### Waarschijnlijke oorzaak
 
-### Wat we bouwen
+De `MarketplaceDetailPage` (`/admin/connect/:connectionId`) laadt de connectie via `useMarketplaceConnection(connectionId)`. Als deze query faalt of `null` retourneert, toont de pagina: **"Connectie niet gevonden"** — wat lijkt op "pagina niet gevonden".
 
-**1. Statistieken bovenaan** (zelfde patroon als BolReturnsTab)
-- Totaal retouren, Open/in behandeling, Afgehandeld, Afgewezen
-- 4 compacte stat-cards
+Mogelijke redenen:
+- De `marketplace_connections` query wordt geblokkeerd door RLS-policies (de detail-query filtert **niet op tenant_id**, terwijl de lijst-query dat wél doet)
+- De connection `is_active` staat op `false` waardoor `getConnectionByType` in de Marketplaces pagina `undefined` retourneert → `handleSettings` navigeert nergens heen
 
-**2. Filters**
-- Bron: Alle / Webshop / Marketplace
-- Status: Alle / Geregistreerd / Goedgekeurd / Afgewezen / Ontvangen
-- Zoeken op bestelnummer of klantnaam
+### Oplossing
 
-**3. Klikbare rijen → Detail Sheet**
-- Zelfde Sheet-patroon als BolReturnsTab
-- Toont: klantgegevens, reden, items lijst, refund info (bedrag, methode, status)
-- Interne notities (bewerkbaar + opslaan)
-- Link naar bestelling
+**1. `useMarketplaceConnection` hook verbeteren** (`src/hooks/useMarketplaceConnections.ts`)
+- Tenant context meegeven aan de query zodat RLS geen probleem is
+- Error logging toevoegen zodat de oorzaak zichtbaar is in de console
 
-**4. Status wijzigen in detail sheet**
-- Dropdown of knoppen: Geregistreerd → Goedgekeurd / Afgewezen / Ontvangen
-- Direct update via Supabase `.update()` op `returns` tabel
-- Bij statuswijziging naar "Goedgekeurd": optioneel refund triggeren (als nog niet verwerkt)
+**2. `MarketplaceDetailPage` — betere foutafhandeling** (`src/pages/admin/MarketplaceDetail.tsx`)
+- Bij "Connectie niet gevonden": toon een duidelijkere foutmelding met de daadwerkelijke error
+- Console error loggen als de query faalt, zodat we de exacte oorzaak kunnen zien
 
-**5. Refund status weergave + actie**
-- Als refund_status = 'pending' of 'failed': knop "Terugbetaling verwerken" (roept `process-order-refund` aan)
-- Als refund_status = 'processed': groene badge met methode
+**3. Directe deep-link naar Retouren tab** (`src/pages/admin/Marketplaces.tsx`)
+- `activeTab` state initialiseren vanuit URL query parameter (bijv. `?tab=returns`)
+- Vanuit de MarketplaceCard een "Retouren" snelkoppeling toevoegen voor verbonden Bol.com die navigeert naar `/admin/connect/:id?tab=returns`
 
-### Technische aanpak
+**4. `MarketplaceDetailPage` — tab uit URL lezen**
+- `activeTab` initialiseren vanuit `?tab=` search parameter i.p.v. hardcoded `'overview'`
+- Zo werken deep-links naar specifieke tabs
+
+### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/admin/ReturnsOverview.tsx` | Volledig uitbreiden: stats, filters, klikbare rijen, detail Sheet |
-| `src/hooks/useReturns.ts` | `useUpdateReturnStatus` mutation toevoegen |
-
-- Hergebruik patronen uit `BolReturnsTab` (Sheet, notities, status badges)
-- Geen nieuwe database kolommen nodig — alles bestaat al
-- Geen nieuwe edge functions — status update gaat via directe Supabase update
-
-### Resultaat
-De Retouren-tab wordt een volwaardig beheerscherm: filteren, detail bekijken, status aanpassen, notities toevoegen, en refund status monitoren — voor alle kanalen in één view.
+| `src/hooks/useMarketplaceConnections.ts` | Tenant-aware detail query + error logging |
+| `src/pages/admin/MarketplaceDetail.tsx` | Tab uit URL lezen + betere error state |
 
