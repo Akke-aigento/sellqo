@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight, EyeOff, Store } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,8 +51,11 @@ export function CategoryTreeItem({
     attributes,
     listeners,
     setNodeRef: setSortableRef,
+    transform,
+    transition,
     isDragging,
-  } = useSortable({ 
+    isOver: isSortableOver,
+  } = useSortable({
     id: category.id,
     data: {
       type: 'category',
@@ -76,24 +79,42 @@ export function CategoryTreeItem({
     setDroppableRef(element);
   };
 
-  // Show drop indicator when another item is dragged over this one
+  // Apply transform/transition for smooth drag animations — only translate Y, no scale
+  const style = {
+    transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  // Show drop indicator when another item is dragged over this one (for reparenting)
   const showDropIndicator = isOver && activeId && activeId !== category.id;
+  // Show insertion line when sortable detects this as the drop target (for reordering)
+  const showInsertionLine = isSortableOver && activeId && activeId !== category.id && !isOver;
 
   return (
-    <div 
-      ref={setRefs} 
+    <div
+      ref={setRefs}
+      style={style}
       className={cn(
-        "select-none",
-        // Make original item invisible when dragging - only DragOverlay shows
-        isDragging && "opacity-0"
+        "select-none relative",
+        isDragging && "opacity-40 z-50"
       )}
     >
+      {/* Insertion line indicator — shows WHERE the item will be inserted */}
+      {showInsertionLine && (
+        <div className="absolute -top-[1px] left-2 right-2 z-40 flex items-center pointer-events-none">
+          <div className="w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary shrink-0 -ml-1" />
+          <div className="flex-1 h-[2px] bg-primary" />
+          <div className="w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary shrink-0 -mr-1" />
+        </div>
+      )}
+
       <div
         className={cn(
-          "group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all",
+          "group relative flex items-center gap-2 py-2.5 px-3 rounded-lg transition-colors duration-150",
           "hover:bg-muted/50",
           isSelected && "bg-primary/5 ring-1 ring-primary/20",
-          // Drop indicator - highlight when item is dragged over this category
+          // Drop indicator - highlight when item is dragged over this category (reparenting)
           showDropIndicator && "ring-2 ring-primary bg-primary/10"
         )}
       >
@@ -127,7 +148,7 @@ export function CategoryTreeItem({
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </button>
-        
+
         {hasChildren ? (
           <button
             onClick={() => onToggleExpand(category.id)}
@@ -217,7 +238,7 @@ export function CategoryTreeItem({
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
-        {/* Drop hint text */}
+        {/* Drop hint text for reparenting */}
         {showDropIndicator && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded">
             Subcategorie maken
@@ -253,21 +274,29 @@ export function CategoryTreeItem({
 }
 
 // Root drop zone component for making items top-level
+// Always rendered with consistent height to prevent layout shifts
 export function RootDropZone({ isOver, activeId }: { isOver: boolean; activeId: string | null }) {
-  if (!activeId) return null;
-  
   return (
     <div
       className={cn(
-        "py-3 px-4 rounded-lg border-2 border-dashed transition-all mb-3",
-        isOver 
-          ? "border-primary bg-primary/10 text-primary" 
-          : "border-muted-foreground/30 text-muted-foreground"
+        "overflow-hidden transition-all duration-200 ease-in-out",
+        activeId
+          ? "max-h-16 opacity-100 mb-3"
+          : "max-h-0 opacity-0 mb-0"
       )}
     >
-      <div className="flex items-center gap-2 text-sm">
-        <Folder className="h-4 w-4" />
-        <span>{isOver ? "Loslaten om hoofdcategorie te maken" : "Sleep hier voor hoofdcategorie (geen parent)"}</span>
+      <div
+        className={cn(
+          "py-3 px-4 rounded-lg border-2 border-dashed transition-colors duration-150",
+          isOver
+            ? "border-primary bg-primary/10 text-primary"
+            : "border-muted-foreground/30 text-muted-foreground"
+        )}
+      >
+        <div className="flex items-center gap-2 text-sm">
+          <Folder className="h-4 w-4" />
+          <span>{isOver ? "Loslaten om hoofdcategorie te maken" : "Sleep hier voor hoofdcategorie (geen parent)"}</span>
+        </div>
       </div>
     </div>
   );

@@ -421,11 +421,11 @@ export default function CategoriesPage() {
               onDragEnd={handleDragEnd}
             >
               <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
-                {/* Root drop zone */}
+                {/* Root drop zone — always in DOM, animates in/out */}
                 <div ref={setRootDropRef}>
                   <RootDropZone isOver={isOverRoot} activeId={activeId} />
                 </div>
-                
+
                 <div className="space-y-0.5">
                   {filteredTree.map((category) => (
                     <CategoryTreeItem
@@ -447,9 +447,14 @@ export default function CategoriesPage() {
                   ))}
                 </div>
               </SortableContext>
-              <DragOverlay dropAnimation={null}>
+              <DragOverlay
+                dropAnimation={{
+                  duration: 200,
+                  easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                }}
+              >
                 {activeCategory ? (
-                  <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-background shadow-xl border-2 border-primary">
+                  <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-background shadow-xl border-2 border-primary cursor-grabbing">
                     <Folder className="h-4 w-4 text-primary" />
                     <span className="font-medium">{activeCategory.name}</span>
                   </div>
