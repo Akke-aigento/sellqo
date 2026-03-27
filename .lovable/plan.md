@@ -1,81 +1,47 @@
 
 
-## Analyse: Retourenlogica — Huidige Staat & Wat Ontbreekt
+## Retouren Overzicht Uitbreiden — Van Raadplegen naar Beheren
 
-### Hoe Bol.com retouren nu binnenkomen
-- De `sync-bol-returns` edge function haalt retouren op van de Bol.com API en slaat ze op in de `returns` tabel
-- De `useAutoSync` hook triggert dit automatisch (elke 30 min)
-- Retouren zijn **alleen zichtbaar** in de Bol.com marketplace detail pagina → tab "Retouren" (`BolReturnsTab`)
-- Ze verschijnen **niet** in de bestellingenlijst en **niet** op de order detail pagina
+### Probleem
+De "Retouren" tab op de Bestellingen-pagina is puur een leeslijst. Geen acties, geen detail, geen statuswijziging. De Bol.com `BolReturnsTab` heeft wél: detail sheet, accepteren/afwijzen, notities, stats. Dat patroon moet overgenomen worden naar het centrale overzicht.
 
-### Wat ontbreekt (kritiek)
+### Wat we bouwen
 
-| Probleem | Impact |
-|---|---|
-| **Geen handmatige retour voor webshop-bestellingen** | Tenants kunnen alleen Bol.com retouren afhandelen, niet hun eigen webshop orders |
-| **Geen automatische terugbetaling** | Bij accepteren van een retour wordt er geen Stripe refund geïnitieerd (terwijl `pos-refund-payment` dit al kan voor POS) |
-| **Returns tabel vereist `marketplace_connection_id`** (NOT NULL) | Webshop-retouren kunnen er niet in worden opgeslagen |
-| **Geen retour-sectie op OrderDetail pagina** | Merchant ziet niet of er een retour is voor een specifieke bestelling |
-| **Geen gecentraliseerd retouroverzicht** | Retouren van alle kanalen (Bol, webshop, etc.) zijn niet op één plek te beheren |
-| **`internal_notes` kolom ontbreekt** | De code schrijft `internal_notes` maar de `returns` tabel heeft die kolom niet |
+**1. Statistieken bovenaan** (zelfde patroon als BolReturnsTab)
+- Totaal retouren, Open/in behandeling, Afgehandeld, Afgewezen
+- 4 compacte stat-cards
 
-### Plan
+**2. Filters**
+- Bron: Alle / Webshop / Marketplace
+- Status: Alle / Geregistreerd / Goedgekeurd / Afgewezen / Ontvangen
+- Zoeken op bestelnummer of klantnaam
 
-**1. Database migratie**
-- `marketplace_connection_id` nullable maken (webshop retouren hebben geen marketplace)
-- `internal_notes TEXT` kolom toevoegen
-- `refund_amount NUMERIC(10,2)` toevoegen (terugbetaald bedrag)
-- `refund_status VARCHAR` toevoegen (pending, processed, failed, manual)
-- `refund_method VARCHAR` toevoegen (stripe, bank_transfer, manual)
-- `stripe_refund_id TEXT` toevoegen
-- `source VARCHAR DEFAULT 'marketplace'` toevoegen (marketplace / manual)
+**3. Klikbare rijen → Detail Sheet**
+- Zelfde Sheet-patroon als BolReturnsTab
+- Toont: klantgegevens, reden, items lijst, refund info (bedrag, methode, status)
+- Interne notities (bewerkbaar + opslaan)
+- Link naar bestelling
 
-**2. Edge function: `process-order-refund`**
-- Ontvangt: `orderId`, `items` (welke items + qty), `reason`, `refundAmount`
-- Checkt of de order een `stripe_payment_intent_id` heeft
-  - **Ja** → automatische Stripe refund via Connect (zelfde patroon als `pos-refund-payment`)
-  - **Nee** (bankoverschrijving) → markeert als "handmatige terugbetaling nodig" met IBAN info
-- Maakt een `returns` record aan
-- Zet order `payment_status` naar `refunded` (of `partially_refunded` bij gedeeltelijke retour)
-- Optioneel: past voorraad aan (restock)
+**4. Status wijzigen in detail sheet**
+- Dropdown of knoppen: Geregistreerd → Goedgekeurd / Afgewezen / Ontvangen
+- Direct update via Supabase `.update()` op `returns` tabel
+- Bij statuswijziging naar "Goedgekeurd": optioneel refund triggeren (als nog niet verwerkt)
 
-**3. OrderDetail.tsx — Retour-sectie toevoegen**
-- Nieuwe "Retour" knop in de Acties & Status card (alleen zichtbaar bij betaalde orders)
-- Opent een `OrderRefundDialog` (vergelijkbaar met `POSRefundDialog`):
-  - Item selectie met hoeveelheid
-  - Reden (verplicht)
-  - Berekend terugbetaalbedrag
-  - Indicator: "Automatische Stripe terugbetaling" vs "Handmatige bankoverschrijving"
-  - Optie: "Voorraad herstellen"
-- Na verwerking: retour verschijnt in tijdlijn + status updates
+**5. Refund status weergave + actie**
+- Als refund_status = 'pending' of 'failed': knop "Terugbetaling verwerken" (roept `process-order-refund` aan)
+- Als refund_status = 'processed': groene badge met methode
 
-**4. Gecentraliseerd retouroverzicht**
-- Nieuwe tab "Retouren" op de Orders pagina (naast de bestellingenlijst)
-- Toont alle retouren van alle kanalen (Bol.com + webshop + POS) in één tabel
-- Filter op bron, status, datum
-- Klikbaar naar order detail
-
-**5. Bestaande Bol.com retour-flow uitbreiden**
-- Bij "Accepteren" van een Bol.com retour: optioneel Stripe refund triggeren als de order via Stripe is betaald
-
-### Bestanden
+### Technische aanpak
 
 | Bestand | Wijziging |
 |---|---|
-| Nieuwe migratie | Kolommen toevoegen, nullable maken |
-| `supabase/functions/process-order-refund/index.ts` | Nieuw: retour + refund logica |
-| `src/components/admin/OrderRefundDialog.tsx` | Nieuw: retour-aanmaak dialog |
-| `src/pages/admin/OrderDetail.tsx` | Retour-knop + retourstatus weergave |
-| `src/pages/admin/Orders.tsx` | Tab "Retouren" toevoegen |
-| `src/components/admin/ReturnsOverview.tsx` | Nieuw: gecentraliseerde retourlijst |
-| `src/hooks/useReturns.ts` | Nieuw: query hook voor returns |
+| `src/components/admin/ReturnsOverview.tsx` | Volledig uitbreiden: stats, filters, klikbare rijen, detail Sheet |
+| `src/hooks/useReturns.ts` | `useUpdateReturnStatus` mutation toevoegen |
 
-### Verwacht gedrag
+- Hergebruik patronen uit `BolReturnsTab` (Sheet, notities, status badges)
+- Geen nieuwe database kolommen nodig — alles bestaat al
+- Geen nieuwe edge functions — status update gaat via directe Supabase update
 
-| Scenario | Resultaat |
-|---|---|
-| Webshop order betaald via Stripe → retour | Automatische Stripe refund + retour record |
-| Webshop order betaald via bankoverschrijving → retour | Retour record + melding "handmatig terugbetalen naar IBAN" |
-| Bol.com retour geaccepteerd | Bestaand gedrag + optioneel Stripe refund |
-| Alle retouren bekijken | Eén overzicht onder Orders → Retouren tab |
+### Resultaat
+De Retouren-tab wordt een volwaardig beheerscherm: filteren, detail bekijken, status aanpassen, notities toevoegen, en refund status monitoren — voor alle kanalen in één view.
 
