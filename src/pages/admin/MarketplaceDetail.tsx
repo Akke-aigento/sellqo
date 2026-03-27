@@ -87,7 +87,7 @@ export default function MarketplaceDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
-  const { connection, isLoading } = useMarketplaceConnection(connectionId);
+  const { connection, isLoading, error: connectionError } = useMarketplaceConnection(connectionId);
   const { updateConnection, deleteConnection } = useMarketplaceConnections();
 
   // Enable auto-sync when viewing this page
@@ -100,7 +100,10 @@ export default function MarketplaceDetailPage() {
   const [syncingInventory, setSyncingInventory] = useState(false);
   const [importingHistorical, setImportingHistorical] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  // Read initial tab from URL query parameter for deep-linking
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTab = urlParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
   
   // Settings state
   const [connectionName, setConnectionName] = useState('');
@@ -383,7 +386,13 @@ export default function MarketplaceDetailPage() {
   if (!connection || !info) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Connectie niet gevonden</p>
+        <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+        <p className="text-muted-foreground mb-1">Connectie niet gevonden</p>
+        {connectionError && (
+          <p className="text-sm text-destructive mb-3">
+            Fout: {connectionError instanceof Error ? connectionError.message : 'Onbekende fout'}
+          </p>
+        )}
         <Button variant="link" onClick={() => navigate('/admin/connect')}>
           Terug naar overzicht
         </Button>
