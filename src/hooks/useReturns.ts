@@ -51,7 +51,8 @@ export function useReturns() {
         .from('returns')
         .select(`
           *,
-          order:orders (order_number, total, customer_email)
+          order:orders (order_number, total, customer_email, customer_id),
+          customer:customers (id, first_name, last_name, email)
         `)
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false })

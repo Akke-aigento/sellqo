@@ -111,6 +111,7 @@ serve(async (req) => {
       .insert({
         tenant_id: order.tenant_id,
         order_id: orderId,
+        customer_id: order.customer_id || null,
         marketplace_return_id: null,
         marketplace_connection_id: null,
         status: refundStatus === "processed" ? "approved" : "registered",
