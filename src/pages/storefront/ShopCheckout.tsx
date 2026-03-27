@@ -886,8 +886,9 @@ export default function ShopCheckout() {
           </Button>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
+          {/* Main Content */}
+          <div className="md:col-span-2">
             {step === 'details' && (
               <Card>
                 <CardHeader>

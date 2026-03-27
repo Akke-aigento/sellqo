@@ -18,7 +18,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
         <Link
           to={basePath}
           className={cn(
-            "flex flex-col items-center gap-0.5 text-xs",
+            "flex flex-col items-center gap-0.5 text-[11px] min-w-[44px] min-h-[44px] justify-center",
             isActive(basePath) ? "text-primary" : "text-muted-foreground"
           )}
         >
@@ -28,7 +28,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
 
         <button
           onClick={onSearchClick}
-          className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground"
+          className="flex flex-col items-center gap-0.5 text-[11px] text-muted-foreground min-w-[44px] min-h-[44px] justify-center"
         >
           <Search className="h-5 w-5" />
           <span>Zoeken</span>
@@ -37,7 +37,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
         <Link
           to={`${basePath}/products`}
           className={cn(
-            "flex flex-col items-center gap-0.5 text-xs",
+            "flex flex-col items-center gap-0.5 text-[11px] min-w-[44px] min-h-[44px] justify-center",
             isActive(`${basePath}/products`) ? "text-primary" : "text-muted-foreground"
           )}
         >
@@ -48,7 +48,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
         <Link
           to={`${basePath}/cart`}
           className={cn(
-            "relative flex flex-col items-center gap-0.5 text-xs",
+            "relative flex flex-col items-center gap-0.5 text-[11px] min-w-[44px] min-h-[44px] justify-center",
             isActive(`${basePath}/cart`) ? "text-primary" : "text-muted-foreground"
           )}
         >

@@ -27,8 +27,8 @@ export function AdminHeader() {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => navigate('/admin')}
-          className="lg:hidden h-8 w-8"
+          onClick={() => navigate(-1)}
+          className="lg:hidden h-10 w-10"
         >
           <ArrowLeft className="h-4 w-4" />
           <span className="sr-only">Terug</span>

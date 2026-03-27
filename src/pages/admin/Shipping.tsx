@@ -236,7 +236,7 @@ export default function ShippingPage() {
               ))}
             </div>
           ) : (
-            <div className="min-w-[650px]">
+            <div className="overflow-x-auto -mx-4 sm:mx-0"><div className="min-w-[550px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -318,7 +318,7 @@ export default function ShippingPage() {
                 ))}
               </TableBody>
             </Table>
-            </div>
+            </div></div>
           )}
         </CardContent>
       </Card>

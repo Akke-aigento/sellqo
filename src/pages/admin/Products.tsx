@@ -581,8 +581,8 @@ export default function ProductsPage() {
           )}
         </div>
       ) : (
-        <div className="rounded-md border overflow-x-auto">
-          <div className="min-w-[700px]">
+        <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
+          <div className="min-w-[600px]">
           <Table>
             <TableHeader>
               <TableRow>

@@ -122,7 +122,7 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
-            <SellqoLogo variant="tagline" width={280} />
+            <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />
           </div>
 
           <Card>
@@ -155,7 +155,7 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Sellqo Logo with Tagline */}
         <div className="flex justify-center mb-8">
-          <SellqoLogo variant="tagline" width={280} />
+          <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />
         </div>
 
         <Card>

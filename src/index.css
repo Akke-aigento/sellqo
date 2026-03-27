@@ -1,5 +1,12 @@
 @tailwind base;
 
+/* Responsive product grid: uses CSS variable for configurable columns on lg+ */
+@media (min-width: 1024px) {
+  .product-grid-responsive {
+    grid-template-columns: repeat(var(--cols-lg, 3), minmax(0, 1fr)) !important;
+  }
+}
+
 @keyframes shrink {
   from {
     transform: scaleX(1);

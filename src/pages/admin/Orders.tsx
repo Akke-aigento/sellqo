@@ -214,67 +214,8 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
-            isCompact ? (
-              <div className="space-y-2 px-3 sm:px-0">
-                {/* Select all toggle for mobile */}
-                {orders.length > 0 && (
-                  <div className="flex items-center gap-2 py-1 px-1">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Selecteer alle orders"
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {selectedOrderIds.length > 0
-                        ? `${selectedOrderIds.length} van ${orders.length} geselecteerd`
-                        : 'Selecteer alle'}
-                    </span>
-                  </div>
-                )}
-                {orders.map((order) => {
-                  const isSelected = selectedOrderIds.includes(order.id);
-                  return (
-                    <div
-                      key={order.id}
-                      className={`rounded-lg border bg-card p-3 transition-colors ${isSelected ? 'border-primary bg-primary/5' : ''}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div
-                          className="pt-0.5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
-                            aria-label={`Selecteer order ${order.order_number}`}
-                          />
-                        </div>
-                        <div
-                          className="flex-1 min-w-0 cursor-pointer active:bg-muted/50"
-                          onClick={() => navigate(`/admin/orders/${order.id}`)}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium text-sm">{order.order_number}</span>
-                            <OrderStatusBadge status={order.status} />
-                          </div>
-                          <div className="mt-1 text-sm text-muted-foreground truncate">
-                            {order.customer_name || order.customer_email || '-'}
-                          </div>
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(order.original_created_at || order.created_at), 'd MMM yyyy', { locale: nl })}
-                            </span>
-                            <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-            <div className="overflow-x-auto">
-            <Table className="min-w-[600px]">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[40px]">

@@ -294,7 +294,7 @@ export default function QuoteFormPage() {
                     type="number"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                    className="w-24 h-8 text-right"
+                    className="w-24 h-10 text-right"
                     min={0}
                     step={0.01}
                   />

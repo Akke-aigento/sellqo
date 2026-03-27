@@ -159,9 +159,9 @@ export default function ShopCart() {
             </Button>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
             {/* Cart Items */}
-            <div className="lg:col-span-2">
+            <div className="md:col-span-2">
               <div className="space-y-4">
                 {cartItems.map(item => (
                   <div key={item.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 border rounded-lg">
