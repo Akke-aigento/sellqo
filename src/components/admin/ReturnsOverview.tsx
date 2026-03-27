@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
   RotateCcw, ExternalLink, Package, Search, SlidersHorizontal,
-  CheckCircle2, XCircle, Clock, Archive, MessageSquare, CreditCard
+  CheckCircle2, XCircle, Clock, Archive, MessageSquare, CreditCard,
+  Mail, User
 } from 'lucide-react';
 import { useReturns, useUpdateReturnStatus, useProcessRefund, ReturnRecord } from '@/hooks/useReturns';
 import { useTenant } from '@/hooks/useTenant';
@@ -278,12 +279,35 @@ export function ReturnsOverview() {
                 {/* Customer info */}
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Klant</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedReturn.customer_name || '—'}
-                  </p>
-                  {selectedReturn.order?.customer_email && (
-                    <p className="text-xs text-muted-foreground">{selectedReturn.order.customer_email}</p>
-                  )}
+                  {(() => {
+                    const customerId = selectedReturn.customer_id || selectedReturn.customer?.id || selectedReturn.order?.customer_id;
+                    const customerName = selectedReturn.customer
+                      ? [selectedReturn.customer.first_name, selectedReturn.customer.last_name].filter(Boolean).join(' ') || selectedReturn.customer_name
+                      : selectedReturn.customer_name;
+                    const customerEmail = selectedReturn.customer?.email || selectedReturn.order?.customer_email;
+
+                    return (
+                      <>
+                        {customerId ? (
+                          <button
+                            className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                            onClick={() => {
+                              setSelectedReturn(null);
+                              navigate(`/admin/customers/${customerId}`);
+                            }}
+                          >
+                            <User className="h-3.5 w-3.5" />
+                            {customerName || '—'}
+                          </button>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{customerName || '—'}</p>
+                        )}
+                        {customerEmail && (
+                          <p className="text-xs text-muted-foreground">{customerEmail}</p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Reason */}
@@ -379,20 +403,42 @@ export function ReturnsOverview() {
 
                 <Separator />
 
-                {/* Link to order */}
-                {selectedReturn.order_id && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setSelectedReturn(null);
-                      navigate(`/admin/orders/${selectedReturn.order_id}`);
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Bekijk bestelling
-                  </Button>
-                )}
+                {/* Action buttons */}
+                <div className="space-y-2">
+                  {selectedReturn.order_id && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedReturn(null);
+                        navigate(`/admin/orders/${selectedReturn.order_id}`);
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Bekijk bestelling
+                    </Button>
+                  )}
+
+                  {(() => {
+                    const email = selectedReturn.customer?.email || selectedReturn.order?.customer_email;
+                    if (!email) return null;
+                    const orderNumber = selectedReturn.order?.order_number || '';
+                    const subject = encodeURIComponent(`Retour ${orderNumber}`.trim());
+                    return (
+                      <Button
+                        variant="default"
+                        className="w-full"
+                        onClick={() => {
+                          setSelectedReturn(null);
+                          navigate(`/admin/inbox?compose=true&to=${encodeURIComponent(email)}&subject=${subject}`);
+                        }}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Gesprek starten
+                      </Button>
+                    );
+                  })()}
+                </div>
 
                 {/* Dates */}
                 <div className="text-xs text-muted-foreground space-y-0.5">

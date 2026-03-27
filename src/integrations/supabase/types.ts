@@ -9566,6 +9566,7 @@ export type Database = {
       returns: {
         Row: {
           created_at: string
+          customer_id: string | null
           customer_name: string | null
           handling_result: string | null
           id: string
@@ -9591,6 +9592,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           customer_name?: string | null
           handling_result?: string | null
           id?: string
@@ -9616,6 +9618,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           customer_name?: string | null
           handling_result?: string | null
           id?: string
@@ -9640,6 +9643,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "returns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "returns_marketplace_connection_id_fkey"
             columns: ["marketplace_connection_id"]

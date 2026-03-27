@@ -7,6 +7,7 @@ export interface ReturnRecord {
   id: string;
   tenant_id: string;
   order_id: string | null;
+  customer_id: string | null;
   marketplace_connection_id: string | null;
   marketplace_return_id: string | null;
   status: string;
@@ -28,6 +29,13 @@ export interface ReturnRecord {
     order_number: string;
     total: number;
     customer_email: string;
+    customer_id: string | null;
+  } | null;
+  customer?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
   } | null;
 }
 
@@ -43,7 +51,8 @@ export function useReturns() {
         .from('returns')
         .select(`
           *,
-          order:orders (order_number, total, customer_email)
+          order:orders (order_number, total, customer_email, customer_id),
+          customer:customers (id, first_name, last_name, email)
         `)
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false })
