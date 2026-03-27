@@ -21,7 +21,7 @@ function findMigratableAddons(
 ): typeof peppolAddon[] {
   return activeAddons.filter(addon => {
     const featureKey = addon.addon_type.replace('_addon', '');
-    const targetFeatures = targetPlan.features as Record<string, boolean>;
+    const targetFeatures = targetPlan.features as unknown as Record<string, boolean>;
     return targetFeatures?.[featureKey] === true;
   });
 }

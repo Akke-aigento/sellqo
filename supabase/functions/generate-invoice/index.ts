@@ -1376,14 +1376,14 @@ serve(async (req) => {
         order_id: order.id,
         customer_id: order.customer_id,
         invoice_number: invoiceNumber,
-        status: 'draft',
+        status: order.payment_status === 'paid' ? 'paid' : 'draft',
         subtotal: subtotalExcl, // Net subtotal (without VAT)
         tax_amount: calculatedTaxAmount,
         total: finalTotal,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
         ogm_reference: ogmReference,
-        paid_at: new Date().toISOString(),
+        paid_at: order.payment_status === 'paid' ? new Date().toISOString() : null,
         is_b2b: isB2B,
         peppol_status: peppolStatus,
       })

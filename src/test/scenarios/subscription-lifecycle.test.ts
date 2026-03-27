@@ -158,7 +158,7 @@ describe('Subscription Lifecycle Scenarios', () => {
     });
 
     it('peppol addon gets migrated when upgrading to Pro', () => {
-      const proFeatures = proPlan.features as Record<string, boolean>;
+      const proFeatures = proPlan.features as unknown as Record<string, boolean>;
       expect(proFeatures['peppol']).toBe(true);
       // Addon would be cancelled since feature is now included
     });
@@ -182,7 +182,7 @@ describe('Subscription Lifecycle Scenarios', () => {
 
     it('downgrade does not migrate addons (target lacks features)', () => {
       // If tenant has peppol addon and downgrades to Starter
-      const starterFeatures = starterPlan.features as Record<string, boolean>;
+      const starterFeatures = starterPlan.features as unknown as Record<string, boolean>;
       expect(starterFeatures['peppol']).toBe(false);
       // Addon should remain active (charged separately)
     });

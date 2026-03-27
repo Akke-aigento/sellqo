@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 
 // Use vi.hoisted so mocks are available when vi.mock factories run
 const { mockMaybeSingle, mockTenant } = vi.hoisted(() => ({
@@ -35,7 +35,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
   });
@@ -47,7 +47,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -67,7 +67,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -95,7 +95,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -124,7 +124,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -149,7 +149,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -175,7 +175,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -200,7 +200,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -224,7 +224,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -247,7 +247,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -278,7 +278,7 @@ describe('useTrialStatus', () => {
 
     const { result } = renderHook(() => useTrialStatus());
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
