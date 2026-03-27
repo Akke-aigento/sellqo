@@ -100,7 +100,10 @@ export default function MarketplaceDetailPage() {
   const [syncingInventory, setSyncingInventory] = useState(false);
   const [importingHistorical, setImportingHistorical] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  // Read initial tab from URL query parameter for deep-linking
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTab = urlParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
   
   // Settings state
   const [connectionName, setConnectionName] = useState('');
