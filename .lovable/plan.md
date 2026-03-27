@@ -1,48 +1,64 @@
 
 
-## Retouren Koppelen aan Bestellingen & Klantgesprek Starten
+## Analyse: Abonnementensysteem — Wat Werkt & Wat Ontbreekt
 
-### Huidige staat
-- `returns` tabel heeft `order_id` (nullable) maar **geen `customer_id`**
-- De detail-sheet toont `customer_name` als tekst, maar kan niet doorlinken naar de klant
-- Er is geen manier om vanuit een retour een gesprek met de klant te starten
-- De `order` join haalt al `order_number`, `total`, `customer_email` op — maar niet `customer_id`
+### ✅ Wat WEL werkt
 
-### Plan
+| Onderdeel | Status |
+|---|---|
+| **Stripe Checkout** | `create-platform-checkout` maakt checkout sessies met juiste priceId, billing adres, BTW collectie, promo codes |
+| **Webhook: subscription.created/updated** | `platform-stripe-webhook` vangt dit op, upsert naar `tenant_subscriptions`, update tenant plan |
+| **Webhook: subscription.deleted** | Tenant wordt gedowngraded naar `free` plan, status op `canceled` |
+| **Webhook: invoice.paid** | Factuur wordt opgeslagen in `platform_invoices` met PDF URL, hosted URL, bedrag, periode |
+| **Webhook: invoice.payment_failed** | Status wordt op `past_due` gezet op subscription én tenant |
+| **Feature gating** | `checkFeature()` controleert plan features + add-ons, `FeatureGate` component blokkeert UI |
+| **Limieten** | `checkLimit()` / `enforceLimit()` voor producten, orders, klanten, users |
+| **Trial blocker** | `TrialExpiredBlocker` blokkeert hele admin na trial expiry, toont upgrade opties |
+| **Customer Portal** | `platform-customer-portal` functie bestaat voor beheer/annulering |
 
-**1. Database: `customer_id` toevoegen aan `returns`**
-- Nieuwe kolom `customer_id UUID REFERENCES customers(id) ON DELETE SET NULL`
-- Index voor snelle lookups
-- Bestaande retouren: backfill via `UPDATE returns SET customer_id = orders.customer_id FROM orders WHERE returns.order_id = orders.id`
+### ❌ Wat ONTBREEKT
 
-**2. Edge function `process-order-refund` aanpassen**
-- Bij aanmaken retour: `customer_id` meesturen vanuit de order
+| Probleem | Impact | Ernst |
+|---|---|---|
+| **Geen e-mail bij betaling mislukt** | Regel 307: `// TODO: Send payment failed email via Resend` — tenant weet niet dat betaling faalde | **Hoog** |
+| **Geen e-mail bij trial bijna afgelopen** | Regel 329: `// TODO: Send trial ending email via Resend` — geen herinnering 3 dagen voor expiry | **Hoog** |
+| **Geen factuur-e-mail bij platformbetaling** | `invoice.paid` slaat factuur op maar stuurt GEEN e-mail met de factuur naar de tenant | **Hoog** |
+| **`past_due` blokkeert NIET** | Bij mislukte betaling: status wordt `past_due` maar `shouldBlockAccess()` checkt alleen `isTrialExpired` — tenant kan gewoon doorwerken | **Kritiek** |
+| **Geen grace period logica** | Na `past_due` zou er X dagen grace moeten zijn → dan pas blokkeren of downgraden naar free | **Gemiddeld** |
+| **Geen automatische downgrade bij aanhoudend unpaid** | Stripe stuurt uiteindelijk `subscription.deleted` maar tot die tijd is er geen tussenactie | **Gemiddeld** |
+| **Webhook is niet geregistreerd in Stripe** | Er is een `platform-stripe-webhook` edge function maar er is **geen bewijs** dat deze daadwerkelijk als endpoint in Stripe is geconfigureerd — zonder dat doen alle webhooks niets | **Kritiek** |
 
-**3. `useReturns` hook uitbreiden**
-- Join uitbreiden: `order:orders (order_number, total, customer_email, customer_id)` + `customer:customers (id, first_name, last_name, email)`
-- `ReturnRecord` type uitbreiden met `customer_id` en `customer` join
+### Plan: Volledige Fix
 
-**4. ReturnsOverview detail-sheet uitbreiden**
-- **Klantnaam klikbaar** → navigeert naar `/admin/customers/:customerId`
-- **Bestelnummer klikbaar** → navigeert naar `/admin/orders/:orderId` (al deels aanwezig)
-- **"Gesprek starten" knop** → navigeert naar inbox met pre-filled context:
-  - Route: `/admin/inbox?compose=true&to={customer_email}&subject=Retour {order_number}`
-  - Of: opent `ComposeDialog` direct met retour-context
+**Stap 1: `shouldBlockAccess()` uitbreiden** — `useTrialStatus.ts`
+- Blokkeer ook bij `past_due`, `unpaid`, en `canceled` (niet alleen trial expired)
+- Grace period: bij `past_due` blokkeer na 7 dagen
 
-**5. Inbox compose integratie**
-- De bestaande `ComposeDialog` accepteert al query params of kan via state worden aangestuurd
-- We navigeren naar `/admin/inbox` met search params die de compose dialog triggeren met het juiste e-mailadres en onderwerp
+**Stap 2: E-mail notificaties toevoegen** — 3 nieuwe edge function calls in `platform-stripe-webhook`
+- `invoice.payment_failed` → stuur e-mail "Je betaling is mislukt, update je betaalmethode"
+- `customer.subscription.trial_will_end` → stuur e-mail "Je trial verloopt over 3 dagen"
+- `invoice.paid` → stuur e-mail met factuur PDF link
+
+Alle drie gebruiken de bestaande `send-tenant-email` of `create-notification` flow (met `skip_in_app: true` voor e-mail delivery).
+
+**Stap 3: Blocker UI uitbreiden** — `TrialExpiredBlocker.tsx`
+- Ondersteuning voor `past_due` status: toon "Betaling mislukt" bericht + link naar Customer Portal
+- Verschil maken tussen trial expired vs. betaling mislukt
+
+**Stap 4: Stripe webhook URL documenteren**
+- Duidelijk aangeven welke URL in Stripe Dashboard moet staan:
+  `https://{project-ref}.supabase.co/functions/v1/platform-stripe-webhook`
+- Welke events aan moeten staan: `customer.subscription.*`, `invoice.paid`, `invoice.payment_failed`, `checkout.session.completed`, `payout.*`
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| Nieuwe migratie | `customer_id` kolom + backfill + index |
-| `supabase/functions/process-order-refund/index.ts` | `customer_id` meesturen bij insert |
-| `src/hooks/useReturns.ts` | Join uitbreiden, type updaten |
-| `src/components/admin/ReturnsOverview.tsx` | Klikbare klant, klikbare order, "Gesprek starten" knop |
+| `src/hooks/useTrialStatus.ts` | `shouldBlockAccess()` uitbreiden met `past_due`/`unpaid`/`canceled` check |
+| `src/components/admin/TrialExpiredBlocker.tsx` | Aparte UI voor `past_due` vs. trial expired |
+| `supabase/functions/platform-stripe-webhook/index.ts` | E-mails sturen bij `invoice.payment_failed`, `trial_will_end`, `invoice.paid` |
 
-### Resultaat
-- Elke retour is direct gekoppeld aan klant + bestelling
-- Vanuit retour-detail: 1 klik naar klantpagina, 1 klik naar bestelling, 1 klik om e-mail te sturen over de retour
+### Samenvatting
+
+De **basis-infrastructuur staat er** (checkout, webhooks, feature gating, trial blocker). Maar er zitten **3 kritieke gaten**: (1) tenant wordt niet geblokkeerd bij mislukte betaling, (2) er worden geen e-mails gestuurd bij betaal/trial events, en (3) de webhook URL moet daadwerkelijk in Stripe geconfigureerd zijn. Dit plan fixt alle drie.
 
