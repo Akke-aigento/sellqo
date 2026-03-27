@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { activeSubscription, starterPlan } from '../fixtures/billing';
@@ -97,7 +97,7 @@ describe('useTenantSubscription', () => {
         result.current.createCheckout.mutate({ planId: 'pro', interval: 'monthly' });
       });
 
-      await waitFor(() => {
+      await vi.waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('create-platform-checkout', {
           body: { planId: 'pro', interval: 'monthly' },
         });
@@ -121,7 +121,7 @@ describe('useTenantSubscription', () => {
         result.current.createCheckout.mutate({ planId: 'pro', interval: 'monthly' });
       });
 
-      await waitFor(() => {
+      await vi.waitFor(() => {
         expect(openSpy).toHaveBeenCalledWith('https://checkout.stripe.com/test', '_blank');
       });
 
@@ -141,7 +141,7 @@ describe('useTenantSubscription', () => {
         result.current.createCheckout.mutate({ planId: 'pro', interval: 'monthly' });
       });
 
-      await waitFor(() => {
+      await vi.waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({ variant: 'destructive' })
         );
@@ -165,7 +165,7 @@ describe('useTenantSubscription', () => {
         result.current.openCustomerPortal.mutate();
       });
 
-      await waitFor(() => {
+      await vi.waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('platform-customer-portal', {});
       });
 
@@ -185,7 +185,7 @@ describe('useTenantSubscription', () => {
         result.current.openCustomerPortal.mutate();
       });
 
-      await waitFor(() => {
+      await vi.waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
             title: 'Fout bij openen portaal',
