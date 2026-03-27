@@ -180,7 +180,7 @@ export default function InvoicesPage() {
               </p>
             </div>
           ) : (
-            <div>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>

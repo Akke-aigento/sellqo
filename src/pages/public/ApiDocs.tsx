@@ -210,7 +210,7 @@ export default function ApiDocs() {
       <section className="max-w-3xl mx-auto mb-16">
         <h2 className="text-2xl font-bold text-foreground text-center mb-8">Rate Limits</h2>
         <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="grid grid-cols-3 bg-secondary/50 px-4 py-3 border-b border-border font-medium text-foreground text-sm">
+          <div className="grid grid-cols-3 bg-secondary/50 px-3 sm:px-4 py-3 border-b border-border font-medium text-foreground text-xs sm:text-sm">
             <span>Plan</span>
             <span>Requests</span>
             <span>Burst</span>

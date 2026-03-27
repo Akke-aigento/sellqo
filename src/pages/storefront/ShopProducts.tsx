@@ -136,7 +136,7 @@ export default function ShopProducts() {
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 placeholder="Zoeken..."
-                className="w-64 pl-10"
+                className="w-full sm:w-64 pl-10"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </form>
@@ -213,7 +213,7 @@ export default function ShopProducts() {
 
           <div>
             {isLoading ? (
-              <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${(themeSettings as any)?.products_per_row || 3}, minmax(0, 1fr))` }}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 product-grid-responsive" style={{ '--cols-lg': (themeSettings as any)?.products_per_row || 3 } as React.CSSProperties}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
                     <div className="bg-muted aspect-square rounded-lg mb-3" />
@@ -230,9 +230,9 @@ export default function ShopProducts() {
                 )}
               </div>
             ) : (
-              <div 
-                className="grid gap-6"
-                style={{ gridTemplateColumns: `repeat(${(themeSettings as any)?.products_per_row || 3}, minmax(0, 1fr))` }}
+              <div
+                className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6"
+                style={{ gridTemplateColumns: undefined } as React.CSSProperties}
               >
                 {products.map(product => (
                   <ProductCard 

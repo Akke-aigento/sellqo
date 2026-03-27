@@ -141,7 +141,7 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : (
-            <div>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>

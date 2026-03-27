@@ -287,7 +287,7 @@ export default function BillingPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-16 bg-muted rounded flex items-center justify-center text-xs font-medium">
                   VISA
@@ -394,7 +394,7 @@ export default function BillingPage() {
 
       {/* Plan Switch Preview Dialog */}
       <Dialog open={showPlanSwitchDialog} onOpenChange={setShowPlanSwitchDialog}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden">
           {planSwitchPreview && (
             <PlanSwitchPreviewCard
               preview={planSwitchPreview}

@@ -857,7 +857,7 @@ export default function ProductForm() {
                                 <CardDescription>Beheer de licentiecodes die worden toegewezen bij aankoop</CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                   <div className="bg-muted/50 rounded-lg p-4 text-center">
                                     <p className="text-2xl font-bold text-green-600">{availableCount}</p>
                                     <p className="text-sm text-muted-foreground">Beschikbaar</p>
@@ -1049,7 +1049,7 @@ export default function ProductForm() {
                           </label>
                         </div>
                         {form.watch('images').length > 0 && (
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {form.watch('images').map((url, index) => (
                               <div key={url} className={cn(
                                 "relative group aspect-square rounded-lg overflow-hidden border-2",

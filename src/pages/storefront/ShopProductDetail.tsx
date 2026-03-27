@@ -191,7 +191,7 @@ export default function ShopProductDetail() {
           </nav>
         )}
 
-        <div className="grid md:grid-cols-2 gap-12">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-12">
           {/* Images */}
           <div>
             <div 

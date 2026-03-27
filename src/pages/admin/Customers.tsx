@@ -80,7 +80,7 @@ export default function CustomersPage() {
           />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -122,7 +122,7 @@ export default function CustomersPage() {
               </p>
             </div>
           ) : (
-            <div className="min-w-[650px]">
+            <div className="overflow-x-auto -mx-4 sm:mx-0"><div className="min-w-[550px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -146,7 +146,7 @@ export default function CustomersPage() {
                 ))}
               </TableBody>
             </Table>
-            </div>
+            </div></div>
           )}
         </CardContent>
       </Card>
