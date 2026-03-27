@@ -373,8 +373,27 @@ serve(async (req) => {
           .eq("id", tenantId)
           .single();
 
-        logStep("Trial ending soon", { tenantId, email: tenant?.owner_email });
-        // TODO: Send trial ending email via Resend
+        // Send trial ending email
+        if (tenant) {
+          await supabase.functions.invoke("create-notification", {
+            body: {
+              tenant_id: tenantId,
+              category: "billing",
+              type: "trial_ending",
+              title: "Je trial verloopt over 3 dagen",
+              message: `Hoi ${tenant.name || ''}! Je proefperiode verloopt binnenkort. Kies een plan om zonder onderbreking door te gaan met verkopen.`,
+              priority: "high",
+              action_url: "/admin/settings?tab=subscription",
+              data: {
+                trial_end: subscription.trial_end 
+                  ? new Date(subscription.trial_end * 1000).toISOString()
+                  : null,
+              },
+              skip_in_app: true,
+            },
+          });
+          logStep("Trial ending email sent", { tenantId, email: tenant.owner_email });
+        }
         break;
       }
 
