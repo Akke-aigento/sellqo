@@ -269,10 +269,40 @@ serve(async (req) => {
           .update({
             last_payment_date: new Date().toISOString(),
             last_payment_amount: (invoice.amount_paid || 0) / 100,
+            status: "active",
           })
           .eq("tenant_id", tenant.id);
 
-        logStep("Invoice saved", { invoiceId: invoice.id, tenantId: tenant.id });
+        // Update tenant status back to active (in case it was past_due)
+        await supabase
+          .from("tenants")
+          .update({ subscription_status: "active" })
+          .eq("id", tenant.id);
+
+        // Send invoice paid notification email
+        const invoiceAmount = formatAmount(invoice.amount_paid || 0, invoice.currency || 'eur');
+        await supabase.functions.invoke("create-notification", {
+          body: {
+            tenant_id: tenant.id,
+            category: "billing",
+            type: "invoice_paid",
+            title: `Factuur betaald: ${invoiceAmount}`,
+            message: invoice.invoice_pdf 
+              ? `Je factuur ${invoice.number || ''} van ${invoiceAmount} is betaald. [Bekijk factuur](${invoice.invoice_pdf})`
+              : `Je factuur ${invoice.number || ''} van ${invoiceAmount} is succesvol betaald.`,
+            priority: "low",
+            action_url: "/admin/settings?tab=subscription",
+            data: {
+              invoice_id: invoice.id,
+              invoice_number: invoice.number,
+              amount: (invoice.amount_paid || 0) / 100,
+              invoice_pdf_url: invoice.invoice_pdf,
+            },
+            skip_in_app: true,
+          },
+        });
+
+        logStep("Invoice saved + email sent", { invoiceId: invoice.id, tenantId: tenant.id });
         break;
       }
 
