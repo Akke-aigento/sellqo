@@ -279,12 +279,35 @@ export function ReturnsOverview() {
                 {/* Customer info */}
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Klant</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedReturn.customer_name || '—'}
-                  </p>
-                  {selectedReturn.order?.customer_email && (
-                    <p className="text-xs text-muted-foreground">{selectedReturn.order.customer_email}</p>
-                  )}
+                  {(() => {
+                    const customerId = selectedReturn.customer_id || selectedReturn.customer?.id || selectedReturn.order?.customer_id;
+                    const customerName = selectedReturn.customer
+                      ? [selectedReturn.customer.first_name, selectedReturn.customer.last_name].filter(Boolean).join(' ') || selectedReturn.customer_name
+                      : selectedReturn.customer_name;
+                    const customerEmail = selectedReturn.customer?.email || selectedReturn.order?.customer_email;
+
+                    return (
+                      <>
+                        {customerId ? (
+                          <button
+                            className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                            onClick={() => {
+                              setSelectedReturn(null);
+                              navigate(`/admin/customers/${customerId}`);
+                            }}
+                          >
+                            <User className="h-3.5 w-3.5" />
+                            {customerName || '—'}
+                          </button>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{customerName || '—'}</p>
+                        )}
+                        {customerEmail && (
+                          <p className="text-xs text-muted-foreground">{customerEmail}</p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Reason */}
