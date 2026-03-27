@@ -33,7 +33,7 @@ serve(async (req) => {
     // Get order with tenant info
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
-      .select("id, tenant_id, order_number, total, payment_status, stripe_payment_intent_id, customer_name, customer_email")
+      .select("id, tenant_id, order_number, total, payment_status, stripe_payment_intent_id, customer_name, customer_email, customer_id")
       .eq("id", orderId)
       .single();
 
