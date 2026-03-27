@@ -386,7 +386,13 @@ export default function MarketplaceDetailPage() {
   if (!connection || !info) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Connectie niet gevonden</p>
+        <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+        <p className="text-muted-foreground mb-1">Connectie niet gevonden</p>
+        {error && (
+          <p className="text-sm text-destructive mb-3">
+            Fout: {error instanceof Error ? error.message : 'Onbekende fout'}
+          </p>
+        )}
         <Button variant="link" onClick={() => navigate('/admin/connect')}>
           Terug naar overzicht
         </Button>
