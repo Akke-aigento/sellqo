@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 
 // Use vi.hoisted so mocks are available when vi.mock factories run
 const { mockMaybeSingle, mockTenant } = vi.hoisted(() => ({
