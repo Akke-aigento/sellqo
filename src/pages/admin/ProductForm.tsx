@@ -1121,6 +1121,25 @@ export default function ProductForm() {
                           </div>
                         </div>
 
+                        {/* Fixed pricing - price input */}
+                        {bundlePricingModel === 'fixed' && (
+                          <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
+                            <FormField control={form.control} name="price" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vaste bundelprijs *</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                                    <Input {...field} type="number" step="0.01" min="0" className="pl-7" />
+                                  </div>
+                                </FormControl>
+                                <FormDescription>De totaalprijs waarvoor de bundel wordt verkocht</FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                          </div>
+                        )}
+
                         {/* Dynamic pricing discount */}
                         {bundlePricingModel === 'dynamic' && (
                           <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
