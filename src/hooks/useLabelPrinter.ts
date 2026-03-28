@@ -350,17 +350,7 @@ export function useLabelPrinter() {
   // Browser print fallback
   const printViaBrowser = useCallback((pdfUrl: string): boolean => {
     try {
-      // Mobile browsers can't print from hidden iframes (cross-origin + no print() support)
-      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-        || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
-
-      if (isMobileDevice) {
-        window.open(pdfUrl, '_blank');
-        setLastPrintTime(new Date());
-        return true;
-      }
-
-      // Desktop: use hidden iframe approach
+      // Create an iframe for printing
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.right = '0';
@@ -373,10 +363,12 @@ export function useLabelPrinter() {
       iframe.onload = () => {
         try {
           iframe.contentWindow?.print();
+          // Remove iframe after print dialog closes
           setTimeout(() => {
             document.body.removeChild(iframe);
           }, 1000);
         } catch (e) {
+          // If same-origin policy blocks printing, open in new tab
           window.open(pdfUrl, '_blank');
           document.body.removeChild(iframe);
         }

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, Camera, ImageIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,16 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
 import { useProducts } from '@/hooks/useProducts';
-import { useImageUpload } from '@/hooks/useImageUpload';
-import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 
 interface ProductVariantsTabProps {
   productId: string;
-  trackInventory?: boolean;
 }
 
-export function ProductVariantsTab({ productId, trackInventory = true }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -29,10 +26,6 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
     generateVariants,
   } = useProductVariants(productId);
   const { products } = useProducts();
-  const { uploadImage, uploading } = useImageUpload();
-  const { currentTenant } = useTenant();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingVariantId, setUploadingVariantId] = useState<string | null>(null);
 
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
@@ -86,26 +79,8 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
       compare_at_price: variant.compare_at_price,
       stock: variant.stock,
       sku: variant.sku,
-      barcode: variant.barcode,
-      internal_reference: variant.internal_reference,
       is_active: variant.is_active,
-      image_url: variant.image_url,
     });
-  };
-
-  const handleVariantImageUpload = async (variantId: string, file: File) => {
-    if (!currentTenant) return;
-    setUploadingVariantId(variantId);
-    const customPath = `${currentTenant.id}/variants/${variantId}_${Date.now()}`;
-    const url = await uploadImage(file, 'product-images', customPath);
-    if (url) {
-      updateVariant.mutate({ id: variantId, data: { image_url: url } });
-    }
-    setUploadingVariantId(null);
-  };
-
-  const handleRemoveVariantImage = (variantId: string) => {
-    updateVariant.mutate({ id: variantId, data: { image_url: null } });
   };
 
   const saveEditVariant = () => {
@@ -162,15 +137,7 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
           {options.map(option => (
             <div key={option.id} className="flex items-start gap-3 p-3 border rounded-lg">
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Label className="font-medium">{option.name}</Label>
-                  <span className="text-xs text-muted-foreground">({option.values.length} {option.values.length === 1 ? 'waarde' : 'waarden'})</span>
-                  {option.values.length === 1 && (
-                    <Badge variant="outline" className="text-xs text-destructive border-destructive/30 bg-destructive/10">
-                      ⚠ Slechts 1 waarde — bedoelde je dit als waarde van een andere optie?
-                    </Badge>
-                  )}
-                </div>
+                <Label className="font-medium">{option.name}</Label>
                 {editingOptionId === option.id ? (
                   <div className="flex items-center gap-2 mt-1">
                     <Input
@@ -179,10 +146,10 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                       placeholder="Waarden, komma gescheiden"
                       className="flex-1"
                     />
-                    <Button type="button" size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
+                    <Button size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button type="button" size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
+                    <Button size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -192,7 +159,6 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                       <Badge key={v} variant="secondary">{v}</Badge>
                     ))}
                     <Button
-                      type="button"
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6"
@@ -208,7 +174,7 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" size="icon" variant="ghost" className="text-destructive">
+                  <Button size="icon" variant="ghost" className="text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
@@ -245,25 +211,19 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
               <Input
                 value={newOptionValues}
                 onChange={e => setNewOptionValues(e.target.value)}
-                placeholder="bijv. XS, S, M, L, XL"
+                placeholder="bijv. Rood, Blauw, Groen"
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
               />
             </div>
-            <Button type="button" onClick={handleAddOption} disabled={createOption.isPending}>
+            <Button onClick={handleAddOption} disabled={createOption.isPending}>
               <Plus className="h-4 w-4 mr-1" />
               Toevoegen
             </Button>
           </div>
 
-          {/* Helptext */}
-          <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-            💡 <strong>Tip:</strong> Voeg alle waarden voor 1 eigenschap toe in een enkele optie. Voorbeeld: Optienaam <em>"Maat"</em> met waarden <em>"XS, S, M, L, XL"</em>. Voor kleuren: Optienaam <em>"Kleur"</em> met waarden <em>"Rood, Blauw, Groen"</em>.
-          </p>
-
           {/* Generate variants button */}
           {options.length > 0 && (
             <Button
-              type="button"
               onClick={handleGenerateVariants}
               disabled={generateVariants.isPending}
               variant="outline"
@@ -294,11 +254,8 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[60px]">Afbeelding</TableHead>
                     <TableHead>Variant</TableHead>
                     <TableHead>SKU</TableHead>
-                    <TableHead>EAN/Barcode</TableHead>
-                    <TableHead>Interne ref.</TableHead>
                     <TableHead>Prijs</TableHead>
                     <TableHead>Voorraad</TableHead>
                     <TableHead>Actief</TableHead>
@@ -309,44 +266,6 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                 <TableBody>
                   {variants.map(variant => (
                     <TableRow key={variant.id}>
-                      <TableCell>
-                        <div className="relative w-10 h-10 group">
-                          {variant.image_url ? (
-                            <>
-                              <img
-                                src={variant.image_url}
-                                alt={variant.title}
-                                className="w-10 h-10 rounded object-cover border"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveVariantImage(variant.id)}
-                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <label className="w-10 h-10 rounded border border-dashed flex items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                              {uploadingVariantId === variant.id ? (
-                                <span className="animate-spin text-xs">⏳</span>
-                              ) : (
-                                <Camera className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/gif"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleVariantImageUpload(variant.id, file);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
-                      </TableCell>
                       <TableCell>
                         <div>
                           <span className="font-medium">{variant.title}</span>
@@ -359,76 +278,43 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
+                      <TableCell>
                         {editingVariantId === variant.id ? (
                           <Input
                             value={editVariantData.sku ?? ''}
                             onChange={e => setEditVariantData(prev => ({ ...prev, sku: e.target.value }))}
-                            onClick={e => e.stopPropagation()}
                             className="w-24"
                           />
                         ) : (
                           <span className="text-sm text-muted-foreground">{variant.sku || '—'}</span>
                         )}
                       </TableCell>
-                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
-                        {editingVariantId === variant.id ? (
-                          <Input
-                            value={editVariantData.barcode ?? ''}
-                            onChange={e => setEditVariantData(prev => ({ ...prev, barcode: e.target.value }))}
-                            onClick={e => e.stopPropagation()}
-                            placeholder="EAN-13"
-                            className="w-28"
-                          />
-                        ) : (
-                          <span className="text-sm text-muted-foreground">{variant.barcode || '—'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
-                        {editingVariantId === variant.id ? (
-                          <Input
-                            value={editVariantData.internal_reference ?? ''}
-                            onChange={e => setEditVariantData(prev => ({ ...prev, internal_reference: e.target.value }))}
-                            onClick={e => e.stopPropagation()}
-                            placeholder="Ref."
-                            className="w-24"
-                          />
-                        ) : (
-                          <span className="text-sm text-muted-foreground">{(variant as any).internal_reference || '—'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
+                      <TableCell>
                         {editingVariantId === variant.id ? (
                           <Input
                             type="number"
                             step="0.01"
                             value={editVariantData.price ?? ''}
                             onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))}
-                            onClick={e => e.stopPropagation()}
                             className="w-24"
                           />
                         ) : (
                           <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
                         )}
                       </TableCell>
-                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
-                        {trackInventory ? (
-                          editingVariantId === variant.id ? (
-                            <Input
-                              type="number"
-                              value={editVariantData.stock ?? 0}
-                              onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))}
-                              onClick={e => e.stopPropagation()}
-                              className="w-20"
-                            />
-                          ) : (
-                            <span>{variant.stock}</span>
-                          )
+                      <TableCell>
+                        {editingVariantId === variant.id ? (
+                          <Input
+                            type="number"
+                            value={editVariantData.stock ?? 0}
+                            onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))}
+                            className="w-20"
+                          />
                         ) : (
-                          <span className="text-muted-foreground" title="Voorraad wordt niet bijgehouden">∞</span>
+                          <span>{variant.stock}</span>
                         )}
                       </TableCell>
-                      <TableCell className="cursor-pointer" onClick={() => editingVariantId !== variant.id && startEditVariant(variant)}>
+                      <TableCell>
                         {editingVariantId === variant.id ? (
                           <Switch
                             checked={editVariantData.is_active ?? true}
@@ -448,7 +334,6 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                               {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
                             </Badge>
                             <Button
-                              type="button"
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
@@ -459,7 +344,6 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                           </div>
                         ) : (
                           <Button
-                            type="button"
                             size="sm"
                             variant="ghost"
                             onClick={() => openLinkDialog(variant.id)}
@@ -473,21 +357,21 @@ export function ProductVariantsTab({ productId, trackInventory = true }: Product
                         <div className="flex items-center gap-1">
                           {editingVariantId === variant.id ? (
                             <>
-                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveEditVariant(); }}>
+                              <Button size="icon" variant="ghost" onClick={saveEditVariant}>
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingVariantId(null); }}>
+                              <Button size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
                             <>
-                              <Button type="button" size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditVariant(variant); }}>
+                              <Button size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button type="button" size="icon" variant="ghost" className="text-destructive">
+                                  <Button size="icon" variant="ghost" className="text-destructive">
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>

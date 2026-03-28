@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
-import { useProductCategories } from '@/hooks/useProductCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
@@ -42,8 +41,7 @@ import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
-import { giftCardTemplates, GiftCardTemplatePreview, GiftCardTemplateRenderer } from '@/components/shared/GiftCardTemplates';
-import { toPng } from 'html-to-image';
+import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -71,11 +69,7 @@ import {
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronRight, ChevronDown } from 'lucide-react';
-import { BundleProductsSection, type BundleItem } from '@/components/admin/products/BundleProductsSection';
-import { supabase } from '@/integrations/supabase/client';
+import { ChevronRight } from 'lucide-react';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
@@ -141,11 +135,10 @@ export default function ProductForm() {
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { createProduct, updateProduct } = useProducts();
   const { categories } = useCategories();
-  const { categoryIds: savedCategoryIds, primaryCategoryId: savedPrimaryCategoryId, syncCategories, isLoading: isCategoriesLoading } = useProductCategories(id);
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
-  
+  const { data: giftCardDesigns = [] } = useGiftCardDesigns();
   const { primaryKeywords: seoKeywords } = useSEOKeywords();
   
   const [tagsInput, setTagsInput] = useState('');
@@ -153,12 +146,6 @@ export default function ProductForm() {
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [denominationInput, setDenominationInput] = useState('');
   const [descOpen, setDescOpen] = useState(false);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(null);
-  const [categoriesInitialized, setCategoriesInitialized] = useState(false);
-  const hasCategoryInteraction = useRef(false);
-  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
-  const downloadRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -244,65 +231,12 @@ export default function ProductForm() {
   const digitalDeliveryType = form.watch('digital_delivery_type');
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
-  const isBundle = productType === 'bundle';
-
-  const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
-  const [initialBundleItems, setInitialBundleItems] = useState<BundleItem[]>([]);
-
-  const isBundleItemsDirty = JSON.stringify(bundleItems) !== JSON.stringify(initialBundleItems);
-  const hasUnsavedChanges = form.formState.isDirty || isBundleItemsDirty;
-
-  // Load bundle items when editing a bundle product
-  useEffect(() => {
-    if (isEditing && id && product?.product_type === 'bundle') {
-      supabase
-        .from('bundle_products')
-        .select('product_id, quantity, is_required')
-        .eq('bundle_id', id)
-        .order('sort_order')
-        .then(({ data }) => {
-          const items = (data && data.length > 0) ? data.map(d => ({
-            product_id: d.product_id,
-            quantity: d.quantity,
-            is_required: d.is_required,
-          })) : [];
-          setBundleItems(items);
-          setInitialBundleItems(items);
-        });
-    }
-  }, [isEditing, id, product?.product_type]);
-
-  // Initialize selected categories from saved data via useEffect
-  // to avoid race conditions when data is still loading
-  useEffect(() => {
-    if (!isEditing && !categoriesInitialized) {
-      setCategoriesInitialized(true);
-    } else if (isEditing && !categoriesInitialized && !isCategoriesLoading) {
-      // Only hydrate if user hasn't already interacted with categories
-      if (!hasCategoryInteraction.current) {
-        setSelectedCategoryIds(savedCategoryIds);
-        setPrimaryCategoryId(savedPrimaryCategoryId);
-      }
-      setCategoriesInitialized(true);
-    }
-  }, [isEditing, savedCategoryIds, savedPrimaryCategoryId, categoriesInitialized, isCategoriesLoading]);
-
-  // Wrapped setters that track user interaction
-  const handleSetSelectedCategoryIds = useCallback((ids: string[] | ((prev: string[]) => string[])) => {
-    hasCategoryInteraction.current = true;
-    setSelectedCategoryIds(ids);
-  }, []);
-
-  const handleSetPrimaryCategoryId = useCallback((id: string | null) => {
-    hasCategoryInteraction.current = true;
-    setPrimaryCategoryId(id);
-  }, []);
 
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
     short_description: form.watch('short_description'),
     description: form.watch('description'),
-    category_name: categories?.find(c => c.id === (primaryCategoryId || selectedCategoryIds[0]))?.name,
+    category_name: categories?.find(c => c.id === form.watch('category_id'))?.name,
     price: form.watch('price'),
     weight: form.watch('weight'),
     tags: form.watch('tags'),
@@ -334,7 +268,7 @@ export default function ProductForm() {
 
   const handleProductTypeChange = (type: ProductType) => {
     form.setValue('product_type', type);
-    if (type === 'digital' || type === 'service' || type === 'gift_card' || type === 'bundle') {
+    if (type === 'digital' || type === 'service' || type === 'gift_card') {
       form.setValue('requires_shipping', false);
       form.setValue('track_inventory', false);
     } else if (type === 'physical') {
@@ -428,105 +362,19 @@ export default function ProductForm() {
   };
 
   const onSubmit = async (data: FormValues) => {
-    try {
-      // Set primary category_id for backward compatibility
-      const effectivePrimary = primaryCategoryId && selectedCategoryIds.includes(primaryCategoryId)
-        ? primaryCategoryId
-        : selectedCategoryIds[0] || null;
-
-      const submitData = {
-        ...data,
-        category_id: effectivePrimary,
-        sku: data.sku?.trim() || null,
-        barcode: data.barcode?.trim() || null,
-      };
-      let productId = id;
-      if (isEditing && id) {
-        await updateProduct.mutateAsync({ id, data: submitData });
-      } else {
-        const created = await createProduct.mutateAsync(submitData as any);
-        productId = created.id;
-      }
-      // Always sync multi-categories
-      if (productId) {
-        await syncCategories.mutateAsync({
-          productId,
-          categoryIds: selectedCategoryIds,
-          primaryCategoryId: effectivePrimary,
-        });
-      }
-      // Save bundle items
-      if (productId && data.product_type === 'bundle' && currentTenant) {
-        // Upsert a product_bundles record using the product ID
-        const bundleSlug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + productId!.slice(0, 8);
-        const { error: bundleError } = await supabase.from('product_bundles').upsert({
-          id: productId,
-          name: data.name,
-          slug: bundleSlug,
-          description: data.description || null,
-          bundle_type: 'fixed',
-          discount_type: 'percentage',
-          discount_value: 0,
-          is_active: data.is_active,
-          tenant_id: currentTenant.id,
-        }, { onConflict: 'id' });
-
-        if (bundleError) throw new Error(`Bundel opslaan mislukt: ${bundleError.message}`);
-
-        // Remove existing bundle products and re-insert
-        const { error: deleteError } = await supabase.from('bundle_products').delete().eq('bundle_id', productId);
-        if (deleteError) throw new Error(`Bundel items verwijderen mislukt: ${deleteError.message}`);
-
-        if (bundleItems.length > 0) {
-          const items = bundleItems.map((item, index) => ({
-            bundle_id: productId!,
-            product_id: item.product_id,
-            quantity: item.quantity,
-            is_required: item.is_required,
-            sort_order: index,
-          }));
-          const { error: insertError } = await supabase.from('bundle_products').insert(items);
-          if (insertError) throw new Error(`Bundel items opslaan mislukt: ${insertError.message}`);
-        }
-      }
-      navigate('/admin/products');
-    } catch (err: any) {
-      console.error('Product save failed:', err);
-      toast.error(err?.message || 'Opslaan mislukt');
+    const submitData = {
+      ...data,
+      category_id: data.category_id || null,
+    };
+    if (isEditing && id) {
+      await updateProduct.mutateAsync({ id, data: submitData });
+    } else {
+      await createProduct.mutateAsync(submitData as any);
     }
+    navigate('/admin/products');
   };
 
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
-
-  const handleDownloadTemplate = async () => {
-    if (!downloadRef.current) return;
-    setDownloadingTemplate(true);
-    try {
-      // Temporarily make visible for capture
-      const el = downloadRef.current;
-      el.style.opacity = '1';
-      el.style.position = 'fixed';
-      el.style.top = '0';
-      el.style.left = '0';
-      el.style.zIndex = '99999';
-      // Wait for render
-      await new Promise(r => setTimeout(r, 100));
-      const dataUrl = await toPng(el, { pixelRatio: 2, cacheBust: true, backgroundColor: undefined });
-      // Hide again
-      el.style.opacity = '0';
-      el.style.zIndex = '-50';
-      const link = document.createElement('a');
-      link.download = `cadeaukaart-${form.getValues('gift_card_design_id') || 'elegant'}.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success('Productfoto gedownload');
-    } catch (err) {
-      console.error('Download failed:', err);
-      toast.error('Download mislukt');
-    } finally {
-      setDownloadingTemplate(false);
-    }
-  };
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return 'Onbekend';
@@ -553,7 +401,7 @@ export default function ProductForm() {
   }
 
   return (
-    <div className={cn("space-y-6", hasUnsavedChanges && "pb-20")}>
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin/products')}>
@@ -567,6 +415,24 @@ export default function ProductForm() {
             {isEditing ? `Bewerk ${product?.name}` : 'Voeg een nieuw product toe aan je catalogus'}
           </p>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/admin/products')}>
+            Annuleren
+          </Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Opslaan...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Opslaan
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <Form {...form}>
@@ -579,7 +445,7 @@ export default function ProductForm() {
 
             {/* Product Tab - One-page 2-column layout */}
             <TabsContent value="product" className="space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
                   {/* Product Type */}
@@ -786,8 +652,7 @@ export default function ProductForm() {
                     </CardContent>
                   </Card>
 
-                  {/* Pricing - hidden for gift cards */}
-                  {!isGiftCard && (
+                  {/* Pricing */}
                   <Card>
                     <CardHeader>
                       <CardTitle>Prijzen</CardTitle>
@@ -836,10 +701,8 @@ export default function ProductForm() {
                       </div>
                     </CardContent>
                   </Card>
-                  )}
 
-                  {/* Inventory & Identification - hidden for gift cards */}
-                  {!isGiftCard && (
+                  {/* Inventory & Identification */}
                   <Card>
                     <CardHeader>
                       <CardTitle>Voorraad & Identificatie</CardTitle>
@@ -928,7 +791,6 @@ export default function ProductForm() {
                       )}
                     </CardContent>
                   </Card>
-                  )}
 
                   {/* Conditional: Digital Files */}
                   {isDigital && (
@@ -1106,83 +968,62 @@ export default function ProductForm() {
                           </div>
                         )}
 
-                        <div className="space-y-3">
-                          <Label>Standaard ontwerp</Label>
-                          <p className="text-sm text-muted-foreground">Kies een template die klanten standaard zien. Zij kunnen bij aankoop ook een ander ontwerp kiezen.</p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {giftCardTemplates.map((template) => (
-                              <GiftCardTemplatePreview
-                                key={template.id}
-                                template={template}
-                                selected={form.watch('gift_card_design_id') === template.id}
-                                onClick={() => form.setValue('gift_card_design_id', template.id)}
-                                amount={25}
-                                storeName={currentTenant?.name || 'Uw winkel'}
-                                logoUrl={currentTenant?.logo_url || undefined}
-                                compact
-                              />
-                            ))}
-                          </div>
+                        <FormField control={form.control} name="gift_card_design_id" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Standaard ontwerp</FormLabel>
+                            <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Selecteer een ontwerp" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Geen standaard ontwerp</SelectItem>
+                                {giftCardDesigns.filter(d => d.is_active).map((design) => (
+                                  <SelectItem key={design.id} value={design.id}>{design.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>Klanten kunnen bij aankoop ook een ander ontwerp kiezen</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
 
-                          {/* Download as product image */}
-                          <div className="pt-2">
-                            <div ref={downloadRef} className="fixed top-0 left-0 w-[800px] opacity-0 pointer-events-none -z-50" aria-hidden>
-                              <GiftCardTemplateRenderer
-                                templateId={form.watch('gift_card_design_id') || 'elegant'}
-                                storeName={currentTenant?.name || 'Uw winkel'}
-                                amount={25}
-                                logoUrl={currentTenant?.logo_url || undefined}
-                              />
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleDownloadTemplate}
-                              disabled={downloadingTemplate}
-                            >
-                              {downloadingTemplate ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                              Download als productfoto
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-1">Download het ontwerp als PNG om als productfoto te gebruiken</p>
-                          </div>
-                        </div>
+                        <FormField control={form.control} name="gift_card_expiry_months" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Geldigheid (maanden)</FormLabel>
+                            <FormControl><Input {...field} type="number" min="1" placeholder="Onbeperkt geldig" value={field.value ?? ''} /></FormControl>
+                            <FormDescription>Laat leeg voor onbeperkte geldigheid</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
                       </CardContent>
                     </Card>
                   )}
 
-                  {/* Conditional: Bundle */}
-                  {isBundle && (
-                    <BundleProductsSection
-                      value={bundleItems}
-                      onChange={setBundleItems}
-                      currentProductId={id}
-                    />
+                  {/* Varianten */}
+                  {isEditing && id ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Varianten</CardTitle>
+                        <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ProductVariantsTab productId={id} />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
+                      </CardContent>
+                    </Card>
                   )}
 
-
-                  {!isGiftCard && (
-                    <>
-                    {isEditing && id ? (
-                      <ProductVariantsTab productId={id} trackInventory={form.watch('track_inventory')} />
-                    ) : (
-                      <Card>
-                        <CardContent className="py-8 text-center">
-                          <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                    </>
-                  )}
-
-                  {/* Technische Specificaties - hidden for gift cards */}
-                  {!isGiftCard && isEditing && id && (
+                  {/* Technische Specificaties */}
+                  {isEditing && id && (
                     <ProductSpecificationsSection productId={id} />
                   )}
                 </div>
 
                 {/* Right Column - Sidebar */}
-                <div className="space-y-6 order-first xl:order-none">
+                <div className="space-y-6">
                   {/* Images */}
                   <Card>
                     <CardHeader>
@@ -1242,94 +1083,21 @@ export default function ProductForm() {
                       <CardTitle>Organisatie</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Multi-category selector */}
-                      <div className="space-y-2">
-                        <Label>Categorieën</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-between font-normal">
-                              {selectedCategoryIds.length === 0
-                                ? 'Selecteer categorieën...'
-                                : `${selectedCategoryIds.length} ${selectedCategoryIds.length === 1 ? 'categorie' : 'categorieën'} geselecteerd`}
-                              <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
-                            <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                              {categories.map((cat) => {
-                                const isSelected = selectedCategoryIds.includes(cat.id);
-                                const isPrimary = primaryCategoryId === cat.id;
-                                return (
-                                  <div key={cat.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
-                                    <Checkbox
-                                      checked={isSelected}
-                                      onCheckedChange={(checked) => {
-                                        if (checked) {
-                                          const newIds = [...selectedCategoryIds, cat.id];
-                                          handleSetSelectedCategoryIds(newIds);
-                                          if (newIds.length === 1) handleSetPrimaryCategoryId(cat.id);
-                                        } else {
-                                          const newIds = selectedCategoryIds.filter(id => id !== cat.id);
-                                          handleSetSelectedCategoryIds(newIds);
-                                          if (isPrimary) handleSetPrimaryCategoryId(newIds[0] || null);
-                                        }
-                                      }}
-                                    />
-                                    <span className="flex-1 text-sm">{cat.name}</span>
-                                    {isSelected && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSetPrimaryCategoryId(cat.id);
-                                        }}
-                                        className={cn(
-                                          "text-xs px-1.5 py-0.5 rounded",
-                                          isPrimary
-                                            ? "bg-primary text-primary-foreground"
-                                            : "bg-muted text-muted-foreground hover:bg-accent"
-                                        )}
-                                      >
-                                        {isPrimary ? 'Primair' : 'Maak primair'}
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {categories.length === 0 && (
-                                <p className="text-sm text-muted-foreground p-2">Geen categorieën beschikbaar</p>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                        {/* Selected categories display */}
-                        {selectedCategoryIds.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {selectedCategoryIds.map(catId => {
-                              const cat = categories.find(c => c.id === catId);
-                              if (!cat) return null;
-                              const isPrimary = primaryCategoryId === catId;
-                              return (
-                                <Badge key={catId} variant={isPrimary ? "default" : "secondary"} className="gap-1">
-                                  {isPrimary && <Star className="h-3 w-3" />}
-                                  {cat.name}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newIds = selectedCategoryIds.filter(id => id !== catId);
-                                      handleSetSelectedCategoryIds(newIds);
-                                      if (isPrimary) handleSetPrimaryCategoryId(newIds[0] || null);
-                                    }}
-                                    className="ml-0.5 hover:text-destructive"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      <FormField control={form.control} name="category_id" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Categorie</FormLabel>
+                          <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecteer categorie" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Geen categorie</SelectItem>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
                       <div className="space-y-2">
                         <Label>Tags</Label>
                         <div className="flex gap-2">
@@ -1477,35 +1245,6 @@ export default function ProductForm() {
           </Tabs>
         </form>
       </Form>
-
-      {/* Floating action bar */}
-      {hasUnsavedChanges && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width)] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg animate-in slide-in-from-bottom-2 duration-300">
-          <div className="flex items-center justify-between px-6 py-3">
-            <p className="text-sm text-muted-foreground font-medium">
-              Onopgeslagen wijzigingen
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => { form.reset(); setBundleItems(initialBundleItems); }}>
-                Annuleren
-              </Button>
-              <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Opslaan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Opslaan
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

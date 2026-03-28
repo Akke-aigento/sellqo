@@ -29,9 +29,6 @@ export function useOrders(filters?: OrderFilters) {
       if (filters?.payment_status) {
         query = query.eq('payment_status', filters.payment_status);
       }
-      if (filters?.sales_channel) {
-        query = query.eq('sales_channel', filters.sales_channel);
-      }
       if (filters?.search) {
         query = query.or(`order_number.ilike.%${filters.search}%,customer_email.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%`);
       }
@@ -60,15 +57,13 @@ export function useOrders(filters?: OrderFilters) {
 
   const updateOrderStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      const updateData: Partial<Order> & { fulfillment_status?: string } = { status };
+      const updateData: Partial<Order> = { status };
       
-      // Set timestamps and sync fulfillment_status based on status
+      // Set timestamps based on status
       if (status === 'shipped') {
         updateData.shipped_at = new Date().toISOString();
-        updateData.fulfillment_status = 'shipped';
       } else if (status === 'delivered') {
         updateData.delivered_at = new Date().toISOString();
-        updateData.fulfillment_status = 'delivered';
       } else if (status === 'cancelled') {
         updateData.cancelled_at = new Date().toISOString();
       }
@@ -82,7 +77,6 @@ export function useOrders(filters?: OrderFilters) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['order'] });
       toast({ title: 'Status bijgewerkt' });
     },
     onError: (error) => {
@@ -101,7 +95,6 @@ export function useOrders(filters?: OrderFilters) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['order'] });
       toast({ title: 'Betaalstatus bijgewerkt' });
     },
     onError: (error) => {

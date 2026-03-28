@@ -165,49 +165,6 @@ Deno.serve(async (req) => {
             result.error = (result.error ? result.error + "; " : "") + `Inventory sync failed: ${errorText}`;
           }
         }
-
-        // Sync returns for Bol.com
-        if (conn.marketplace_type === 'bol_com') {
-          try {
-            const returnsResponse = await fetch(`${supabaseUrl}/functions/v1/sync-bol-returns`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${supabaseAnonKey}`,
-              },
-              body: JSON.stringify({ connectionId: conn.id }),
-            });
-            if (returnsResponse.ok) {
-              const returnsData = await returnsResponse.json();
-              console.log(`[marketplace-sync-scheduler] Returns synced for ${conn.id}: ${returnsData.returnsImported ?? 0} imported`);
-            }
-          } catch (retErr) {
-            console.error(`[marketplace-sync-scheduler] Returns sync error for ${conn.id}:`, retErr);
-          }
-        }
-
-        // Sync tracking/shipments for Bol.com
-        if (conn.marketplace_type === 'bol_com') {
-          console.log(`[marketplace-sync-scheduler] Triggering update-bol-tracking for connection ${conn.id}`);
-          try {
-            const trackingResponse = await fetch(`${supabaseUrl}/functions/v1/update-bol-tracking`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${supabaseAnonKey}`,
-              },
-              body: JSON.stringify({ batch: true }),
-            });
-            if (trackingResponse.ok) {
-              const trackingData = await trackingResponse.json();
-              console.log(`[marketplace-sync-scheduler] Tracking synced for ${conn.id}: ${trackingData.updated ?? 0} updated`);
-            } else {
-              console.error(`[marketplace-sync-scheduler] Tracking sync failed for ${conn.id}:`, await trackingResponse.text());
-            }
-          } catch (trackErr) {
-            console.error(`[marketplace-sync-scheduler] Tracking sync error for ${conn.id}:`, trackErr);
-          }
-        }
       } catch (syncError) {
         console.error(`[marketplace-sync-scheduler] Error syncing connection ${conn.id}:`, syncError);
         result.error = syncError instanceof Error ? syncError.message : String(syncError);

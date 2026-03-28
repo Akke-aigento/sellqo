@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,17 +42,6 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
       description: segment?.description || '',
     },
   });
-
-  // Reset form when segment changes (edit vs create)
-  useEffect(() => {
-    if (open) {
-      form.reset({
-        name: segment?.name || '',
-        description: segment?.description || '',
-      });
-      setFilterRules(segment?.filter_rules || {});
-    }
-  }, [open, segment]);
 
   const handleSubmit = (data: SegmentFormData) => {
     if (!currentTenant?.id) return;

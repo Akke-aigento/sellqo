@@ -69,25 +69,6 @@ export function useAutoSync({
         console.log(`[useAutoSync] Orders synced: ${imported} imported`);
       }
 
-      // Sync returns for bol_com
-      if (conn.marketplace_type === 'bol_com' || !conn.marketplace_type) {
-        try {
-          const returnsResult = await supabase.functions.invoke('sync-bol-returns', {
-            body: { connectionId: conn.id }
-          });
-          if (returnsResult.error) {
-            console.error('[useAutoSync] Returns sync error:', returnsResult.error);
-          } else {
-            const synced = returnsResult.data?.returnsImported ?? 0;
-            if (synced > 0) {
-              console.log(`[useAutoSync] Returns synced: ${synced}`);
-            }
-          }
-        } catch (e) {
-          console.error('[useAutoSync] Returns sync exception:', e);
-        }
-      }
-
       // Sync inventory if enabled
       if (conn.settings?.autoSyncInventory !== false) {
         const inventoryResult = await supabase.functions.invoke(syncFns.inventory, {

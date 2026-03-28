@@ -133,8 +133,6 @@ export function OrderBulkActions({
         phone: currentTenant.phone,
         email: currentTenant.owner_email,
         kvk_number: currentTenant.kvk_number,
-        logo_url: currentTenant.logo_url,
-        document_logo_url: (currentTenant as any).document_logo_url,
       };
 
       // Generate and merge PDFs
@@ -235,7 +233,7 @@ export function OrderBulkActions({
 
   return (
     <>
-      <div className="hidden lg:flex fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width)] flex-wrap items-center gap-2 sm:gap-3 p-3 bg-background/95 backdrop-blur-sm border-t shadow-lg animate-in slide-in-from-bottom-2 duration-200" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border">
         <span className="text-sm font-medium whitespace-nowrap">
           {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
         </span>

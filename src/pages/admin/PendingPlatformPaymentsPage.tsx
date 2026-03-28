@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useIsCompact } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Clock, 
@@ -64,7 +63,6 @@ interface PendingPayment {
 
 export function PendingPlatformPaymentsPage() {
   const queryClient = useQueryClient();
-  const isCompact = useIsCompact();
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmDialog, setConfirmDialog] = useState<PendingPayment | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -226,42 +224,6 @@ export function PendingPlatformPaymentsPage() {
               <p>Geen openstaande betalingen</p>
             </div>
           ) : (
-            isCompact ? (
-              <div className="space-y-2 px-3 sm:px-0">
-                {pendingPayments.map((payment) => (
-                  <div key={payment.id} className="rounded-lg border bg-card p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm">{payment.tenants?.name || 'Onbekend'}</div>
-                        <div className="text-xs text-muted-foreground">{payment.tenants?.slug}</div>
-                      </div>
-                      <span className="font-semibold text-sm">{formatCurrency(payment.amount)}</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        {getPaymentTypeIcon(payment.payment_type)}
-                        <span className="text-xs">{getPaymentTypeLabel(payment)}</span>
-                      </div>
-                      <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{payment.ogm_reference}</code>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(payment.created_at), { addSuffix: true, locale: nl })}
-                        {' · Verloopt '}{format(new Date(payment.expires_at), 'd MMM', { locale: nl })}
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={() => setConfirmDialog(payment)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Bevestigen
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
             <div className="min-w-[700px]">
             <Table>
               <TableHeader>
@@ -269,9 +231,9 @@ export function PendingPlatformPaymentsPage() {
                   <TableHead>Tenant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bedrag</TableHead>
-                  <TableHead>OGM Referentie</TableHead>
-                  <TableHead>Aangemaakt</TableHead>
-                  <TableHead>Verloopt</TableHead>
+                  <TableHead className="hidden md:table-cell">OGM Referentie</TableHead>
+                  <TableHead className="hidden sm:table-cell">Aangemaakt</TableHead>
+                  <TableHead className="hidden sm:table-cell">Verloopt</TableHead>
                   <TableHead className="text-right">Acties</TableHead>
                 </TableRow>
               </TableHeader>
@@ -293,7 +255,7 @@ export function PendingPlatformPaymentsPage() {
                     <TableCell className="font-medium">
                       {formatCurrency(payment.amount)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-1">
                         <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                           {payment.ogm_reference}
@@ -308,10 +270,10 @@ export function PendingPlatformPaymentsPage() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(payment.created_at), { addSuffix: true, locale: nl })}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {format(new Date(payment.expires_at), 'd MMM', { locale: nl })}
                     </TableCell>
                     <TableCell className="text-right">
@@ -329,7 +291,6 @@ export function PendingPlatformPaymentsPage() {
               </TableBody>
               </Table>
             </div>
-            )
           )}
         </CardContent>
       </Card>
@@ -341,31 +302,7 @@ export function PendingPlatformPaymentsPage() {
             <CardTitle>Geschiedenis</CardTitle>
             <CardDescription>Eerder verwerkte betalingen</CardDescription>
           </CardHeader>
-          <CardContent className="px-0 sm:px-6">
-            {isCompact ? (
-              <div className="space-y-2 px-3 sm:px-0">
-                {processedPayments.slice(0, 20).map((payment) => (
-                  <div key={payment.id} className="rounded-lg border bg-card p-3 opacity-70">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm">{payment.tenants?.name || 'Onbekend'}</span>
-                      {getStatusBadge(payment.status)}
-                    </div>
-                    <div className="mt-1 flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
-                        {getPaymentTypeIcon(payment.payment_type)}
-                        <span className="text-xs">{getPaymentTypeLabel(payment)}</span>
-                      </div>
-                      <span>{formatCurrency(payment.amount)}</span>
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {payment.confirmed_at
-                        ? format(new Date(payment.confirmed_at), 'd MMM yyyy', { locale: nl })
-                        : '-'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
+          <CardContent className="overflow-x-auto px-0 sm:px-6">
             <div className="min-w-[600px]">
             <Table>
               <TableHeader>
@@ -373,9 +310,9 @@ export function PendingPlatformPaymentsPage() {
                   <TableHead>Tenant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bedrag</TableHead>
-                  <TableHead>OGM</TableHead>
+                  <TableHead className="hidden md:table-cell">OGM</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Verwerkt</TableHead>
+                  <TableHead className="hidden sm:table-cell">Verwerkt</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -389,11 +326,11 @@ export function PendingPlatformPaymentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <code className="text-xs">{payment.ogm_reference}</code>
                     </TableCell>
                     <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {payment.confirmed_at 
                         ? format(new Date(payment.confirmed_at), 'd MMM yyyy', { locale: nl })
                         : '-'}
@@ -403,7 +340,6 @@ export function PendingPlatformPaymentsPage() {
               </TableBody>
             </Table>
             </div>
-            )}
           </CardContent>
         </Card>
       )}

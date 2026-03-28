@@ -1941,7 +1941,6 @@ export type Database = {
       }
       bundle_products: {
         Row: {
-          allow_quantity_change: boolean
           bundle_id: string
           created_at: string
           group_name: string | null
@@ -1952,7 +1951,6 @@ export type Database = {
           sort_order: number
         }
         Insert: {
-          allow_quantity_change?: boolean
           bundle_id: string
           created_at?: string
           group_name?: string | null
@@ -1963,7 +1961,6 @@ export type Database = {
           sort_order?: number
         }
         Update: {
-          allow_quantity_change?: boolean
           bundle_id?: string
           created_at?: string
           group_name?: string | null
@@ -2813,7 +2810,6 @@ export type Database = {
           folder_id: string | null
           from_email: string
           id: string
-          is_pinned: boolean
           message_status: string | null
           meta_message_id: string | null
           meta_page_id: string | null
@@ -2828,7 +2824,6 @@ export type Database = {
           reply_to_email: string | null
           resend_id: string | null
           sent_at: string | null
-          snoozed_until: string | null
           subject: string
           tenant_id: string
           to_email: string
@@ -2852,7 +2847,6 @@ export type Database = {
           folder_id?: string | null
           from_email: string
           id?: string
-          is_pinned?: boolean
           message_status?: string | null
           meta_message_id?: string | null
           meta_page_id?: string | null
@@ -2867,7 +2861,6 @@ export type Database = {
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
-          snoozed_until?: string | null
           subject: string
           tenant_id: string
           to_email: string
@@ -2891,7 +2884,6 @@ export type Database = {
           folder_id?: string | null
           from_email?: string
           id?: string
-          is_pinned?: boolean
           message_status?: string | null
           meta_message_id?: string | null
           meta_page_id?: string | null
@@ -2906,7 +2898,6 @@ export type Database = {
           reply_to_email?: string | null
           resend_id?: string | null
           sent_at?: string | null
-          snoozed_until?: string | null
           subject?: string
           tenant_id?: string
           to_email?: string
@@ -3056,7 +3047,6 @@ export type Database = {
           sms_marketing_level: string | null
           sms_marketing_status: string | null
           sms_subscribed: boolean | null
-          storefront_customer_id: string | null
           tags: string[] | null
           tax_exempt: boolean | null
           tax_exempt_reason: string | null
@@ -3117,7 +3107,6 @@ export type Database = {
           sms_marketing_level?: string | null
           sms_marketing_status?: string | null
           sms_subscribed?: boolean | null
-          storefront_customer_id?: string | null
           tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
@@ -3178,7 +3167,6 @@ export type Database = {
           sms_marketing_level?: string | null
           sms_marketing_status?: string | null
           sms_subscribed?: boolean | null
-          storefront_customer_id?: string | null
           tags?: string[] | null
           tax_exempt?: boolean | null
           tax_exempt_reason?: string | null
@@ -3200,13 +3188,6 @@ export type Database = {
             columns: ["import_job_id"]
             isOneToOne: false
             referencedRelation: "import_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "customers_storefront_customer_id_fkey"
-            columns: ["storefront_customer_id"]
-            isOneToOne: false
-            referencedRelation: "storefront_customers"
             referencedColumns: ["id"]
           },
           {
@@ -3900,47 +3881,6 @@ export type Database = {
           },
           {
             foreignKeyName: "email_preferences_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      email_signatures: {
-        Row: {
-          body_html: string
-          created_at: string
-          id: string
-          is_default: boolean
-          name: string
-          tenant_id: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          body_html?: string
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          name?: string
-          tenant_id: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          body_html?: string
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          name?: string
-          tenant_id?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_signatures_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5820,53 +5760,6 @@ export type Database = {
           },
         ]
       }
-      message_templates: {
-        Row: {
-          body: string
-          category: string | null
-          channel: string | null
-          created_at: string
-          id: string
-          name: string
-          shortcut: string | null
-          tenant_id: string
-          updated_at: string
-          usage_count: number
-        }
-        Insert: {
-          body: string
-          category?: string | null
-          channel?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          shortcut?: string | null
-          tenant_id: string
-          updated_at?: string
-          usage_count?: number
-        }
-        Update: {
-          body?: string
-          category?: string | null
-          channel?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          shortcut?: string | null
-          tenant_id?: string
-          updated_at?: string
-          usage_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_templates_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       meta_messaging_connections: {
         Row: {
           created_at: string | null
@@ -6317,7 +6210,6 @@ export type Database = {
         Row: {
           created_at: string | null
           gift_card_id: string | null
-          gift_card_metadata: Json | null
           id: string
           marketplace_order_item_id: string | null
           order_id: string
@@ -6330,13 +6222,11 @@ export type Database = {
           unit_price: number
           variant_id: string | null
           variant_title: string | null
-          vat_rate: number | null
           vendor: string | null
         }
         Insert: {
           created_at?: string | null
           gift_card_id?: string | null
-          gift_card_metadata?: Json | null
           id?: string
           marketplace_order_item_id?: string | null
           order_id: string
@@ -6349,13 +6239,11 @@ export type Database = {
           unit_price: number
           variant_id?: string | null
           variant_title?: string | null
-          vat_rate?: number | null
           vendor?: string | null
         }
         Update: {
           created_at?: string | null
           gift_card_id?: string | null
-          gift_card_metadata?: Json | null
           id?: string
           marketplace_order_item_id?: string | null
           order_id?: string
@@ -6368,7 +6256,6 @@ export type Database = {
           unit_price?: number
           variant_id?: string | null
           variant_title?: string | null
-          vat_rate?: number | null
           vendor?: string | null
         }
         Relationships: [
@@ -6452,7 +6339,6 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data: Json | null
           risk_level: string | null
-          sales_channel: string | null
           service_point_data: Json | null
           service_point_id: string | null
           shipped_at: string | null
@@ -6519,7 +6405,6 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
           risk_level?: string | null
-          sales_channel?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
           shipped_at?: string | null
@@ -6586,7 +6471,6 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
           risk_level?: string | null
-          sales_channel?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
           shipped_at?: string | null
@@ -7418,47 +7302,6 @@ export type Database = {
           },
         ]
       }
-      pos_cashiers: {
-        Row: {
-          avatar_color: string | null
-          created_at: string
-          display_name: string
-          id: string
-          is_active: boolean
-          pin_hash: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          avatar_color?: string | null
-          created_at?: string
-          display_name: string
-          id?: string
-          is_active?: boolean
-          pin_hash: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_color?: string | null
-          created_at?: string
-          display_name?: string
-          id?: string
-          is_active?: boolean
-          pin_hash?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pos_cashiers_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pos_offline_queue: {
         Row: {
           created_at: string
@@ -7796,7 +7639,6 @@ export type Database = {
           items: Json
           order_id: string | null
           payments: Json
-          pos_cashier_id: string | null
           receipt_number: string | null
           receipt_printed_at: string | null
           refunded_at: string | null
@@ -7829,7 +7671,6 @@ export type Database = {
           items?: Json
           order_id?: string | null
           payments?: Json
-          pos_cashier_id?: string | null
           receipt_number?: string | null
           receipt_printed_at?: string | null
           refunded_at?: string | null
@@ -7862,7 +7703,6 @@ export type Database = {
           items?: Json
           order_id?: string | null
           payments?: Json
-          pos_cashier_id?: string | null
           receipt_number?: string | null
           receipt_printed_at?: string | null
           refunded_at?: string | null
@@ -7902,13 +7742,6 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders_warehouse"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_transactions_pos_cashier_id_fkey"
-            columns: ["pos_cashier_id"]
-            isOneToOne: false
-            referencedRelation: "pos_cashiers"
             referencedColumns: ["id"]
           },
           {
@@ -8079,48 +7912,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      product_categories: {
-        Row: {
-          category_id: string
-          created_at: string | null
-          id: string
-          is_primary: boolean
-          product_id: string
-          sort_order: number
-        }
-        Insert: {
-          category_id: string
-          created_at?: string | null
-          id?: string
-          is_primary?: boolean
-          product_id: string
-          sort_order?: number
-        }
-        Update: {
-          category_id?: string
-          created_at?: string | null
-          id?: string
-          is_primary?: boolean
-          product_id?: string
-          sort_order?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_categories_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_categories_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -8549,7 +8340,6 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
-          internal_reference: string | null
           is_active: boolean
           linked_product_id: string | null
           position: number
@@ -8571,7 +8361,6 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
-          internal_reference?: string | null
           is_active?: boolean
           linked_product_id?: string | null
           position?: number
@@ -8593,7 +8382,6 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
-          internal_reference?: string | null
           is_active?: boolean
           linked_product_id?: string | null
           position?: number
@@ -9019,6 +8807,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_gift_card_design_id_fkey"
+            columns: ["gift_card_design_id"]
+            isOneToOne: false
+            referencedRelation: "gift_card_designs"
             referencedColumns: ["id"]
           },
           {
@@ -9563,123 +9358,6 @@ export type Database = {
           },
         ]
       }
-      returns: {
-        Row: {
-          created_at: string
-          customer_id: string | null
-          customer_name: string | null
-          handling_result: string | null
-          id: string
-          internal_notes: string | null
-          items: Json | null
-          marketplace_connection_id: string | null
-          marketplace_order_id: string | null
-          marketplace_return_id: string | null
-          order_id: string | null
-          raw_marketplace_data: Json | null
-          refund_amount: number | null
-          refund_method: string | null
-          refund_notes: string | null
-          refund_status: string | null
-          registration_date: string | null
-          return_reason: string | null
-          return_reason_code: string | null
-          source: string | null
-          status: Database["public"]["Enums"]["return_status"]
-          stripe_refund_id: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          customer_id?: string | null
-          customer_name?: string | null
-          handling_result?: string | null
-          id?: string
-          internal_notes?: string | null
-          items?: Json | null
-          marketplace_connection_id?: string | null
-          marketplace_order_id?: string | null
-          marketplace_return_id?: string | null
-          order_id?: string | null
-          raw_marketplace_data?: Json | null
-          refund_amount?: number | null
-          refund_method?: string | null
-          refund_notes?: string | null
-          refund_status?: string | null
-          registration_date?: string | null
-          return_reason?: string | null
-          return_reason_code?: string | null
-          source?: string | null
-          status?: Database["public"]["Enums"]["return_status"]
-          stripe_refund_id?: string | null
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          customer_id?: string | null
-          customer_name?: string | null
-          handling_result?: string | null
-          id?: string
-          internal_notes?: string | null
-          items?: Json | null
-          marketplace_connection_id?: string | null
-          marketplace_order_id?: string | null
-          marketplace_return_id?: string | null
-          order_id?: string | null
-          raw_marketplace_data?: Json | null
-          refund_amount?: number | null
-          refund_method?: string | null
-          refund_notes?: string | null
-          refund_status?: string | null
-          registration_date?: string | null
-          return_reason?: string | null
-          return_reason_code?: string | null
-          source?: string | null
-          status?: Database["public"]["Enums"]["return_status"]
-          stripe_refund_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "returns_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "returns_marketplace_connection_id_fkey"
-            columns: ["marketplace_connection_id"]
-            isOneToOne: false
-            referencedRelation: "marketplace_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "returns_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "returns_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders_warehouse"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "returns_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       review_platform_connections: {
         Row: {
           api_key: string | null
@@ -10148,7 +9826,7 @@ export type Database = {
           ai_search_score: number | null
           content_score: number | null
           created_at: string | null
-          entity_id: string
+          entity_id: string | null
           entity_type: string
           id: string
           issues: Json | null
@@ -10164,7 +9842,7 @@ export type Database = {
           ai_search_score?: number | null
           content_score?: number | null
           created_at?: string | null
-          entity_id: string
+          entity_id?: string | null
           entity_type: string
           id?: string
           issues?: Json | null
@@ -10180,7 +9858,7 @@ export type Database = {
           ai_search_score?: number | null
           content_score?: number | null
           created_at?: string | null
-          entity_id?: string
+          entity_id?: string | null
           entity_type?: string
           id?: string
           issues?: Json | null
@@ -10927,52 +10605,10 @@ export type Database = {
           },
         ]
       }
-      storefront_api_keys: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          key_hash: string
-          key_prefix: string
-          last_used_at: string | null
-          name: string | null
-          tenant_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          key_hash: string
-          key_prefix: string
-          last_used_at?: string | null
-          name?: string | null
-          tenant_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          key_hash?: string
-          key_prefix?: string
-          last_used_at?: string | null
-          name?: string | null
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "storefront_api_keys_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       storefront_cart_items: {
         Row: {
           cart_id: string
           created_at: string
-          gift_card_metadata: Json | null
           id: string
           product_id: string
           quantity: number
@@ -10982,7 +10618,6 @@ export type Database = {
         Insert: {
           cart_id: string
           created_at?: string
-          gift_card_metadata?: Json | null
           id?: string
           product_id: string
           quantity?: number
@@ -10992,7 +10627,6 @@ export type Database = {
         Update: {
           cart_id?: string
           created_at?: string
-          gift_card_metadata?: Json | null
           id?: string
           product_id?: string
           quantity?: number
@@ -11077,81 +10711,51 @@ export type Database = {
       storefront_customers: {
         Row: {
           addresses: Json
-          company_name: string | null
           created_at: string
           email: string
-          email_verification_expires_at: string | null
-          email_verification_token: string | null
-          email_verified: boolean
           first_name: string
           id: string
           is_active: boolean
           last_login_at: string | null
           last_name: string
-          marketing_consent: boolean | null
-          newsletter_opted_in: boolean | null
-          newsletter_opted_in_at: string | null
-          password_hash: string | null
+          password_hash: string
           password_reset_expires_at: string | null
           password_reset_token: string | null
           phone: string | null
           tenant_id: string
           updated_at: string
-          vat_number: string | null
-          vat_verified: boolean | null
-          vat_verified_at: string | null
         }
         Insert: {
           addresses?: Json
-          company_name?: string | null
           created_at?: string
           email: string
-          email_verification_expires_at?: string | null
-          email_verification_token?: string | null
-          email_verified?: boolean
           first_name?: string
           id?: string
           is_active?: boolean
           last_login_at?: string | null
           last_name?: string
-          marketing_consent?: boolean | null
-          newsletter_opted_in?: boolean | null
-          newsletter_opted_in_at?: string | null
-          password_hash?: string | null
+          password_hash: string
           password_reset_expires_at?: string | null
           password_reset_token?: string | null
           phone?: string | null
           tenant_id: string
           updated_at?: string
-          vat_number?: string | null
-          vat_verified?: boolean | null
-          vat_verified_at?: string | null
         }
         Update: {
           addresses?: Json
-          company_name?: string | null
           created_at?: string
           email?: string
-          email_verification_expires_at?: string | null
-          email_verification_token?: string | null
-          email_verified?: boolean
           first_name?: string
           id?: string
           is_active?: boolean
           last_login_at?: string | null
           last_name?: string
-          marketing_consent?: boolean | null
-          newsletter_opted_in?: boolean | null
-          newsletter_opted_in_at?: string | null
-          password_hash?: string | null
+          password_hash?: string
           password_reset_expires_at?: string | null
           password_reset_token?: string | null
           phone?: string | null
           tenant_id?: string
           updated_at?: string
-          vat_number?: string | null
-          vat_verified?: boolean | null
-          vat_verified_at?: string | null
         }
         Relationships: [
           {
@@ -11255,53 +10859,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "storefront_pages_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      storefront_webhooks: {
-        Row: {
-          created_at: string | null
-          events: string[] | null
-          id: string
-          is_active: boolean | null
-          last_delivery_at: string | null
-          last_delivery_status: number | null
-          secret: string | null
-          tenant_id: string
-          updated_at: string | null
-          url: string
-        }
-        Insert: {
-          created_at?: string | null
-          events?: string[] | null
-          id?: string
-          is_active?: boolean | null
-          last_delivery_at?: string | null
-          last_delivery_status?: number | null
-          secret?: string | null
-          tenant_id: string
-          updated_at?: string | null
-          url: string
-        }
-        Update: {
-          created_at?: string | null
-          events?: string[] | null
-          id?: string
-          is_active?: boolean | null
-          last_delivery_at?: string | null
-          last_delivery_status?: number | null
-          secret?: string | null
-          tenant_id?: string
-          updated_at?: string | null
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "storefront_webhooks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -12198,7 +11755,6 @@ export type Database = {
           created_at: string
           dns_verified: boolean
           domain: string
-          hosting_mode: string
           id: string
           is_active: boolean
           is_canonical: boolean
@@ -12212,7 +11768,6 @@ export type Database = {
           created_at?: string
           dns_verified?: boolean
           domain: string
-          hosting_mode?: string
           id?: string
           is_active?: boolean
           is_canonical?: boolean
@@ -12226,7 +11781,6 @@ export type Database = {
           created_at?: string
           dns_verified?: boolean
           domain?: string
-          hosting_mode?: string
           id?: string
           is_active?: boolean
           is_canonical?: boolean
@@ -12681,7 +12235,6 @@ export type Database = {
           cookie_banner_style: string | null
           created_at: string | null
           custom_css: string | null
-          custom_frontend_config: Json | null
           custom_frontend_url: string | null
           custom_head_scripts: string | null
           exit_intent_popup: boolean | null
@@ -12731,8 +12284,6 @@ export type Database = {
           storefront_language_selector_style: string | null
           storefront_languages: Json | null
           storefront_multilingual_enabled: boolean | null
-          storefront_password: string | null
-          storefront_status: string
           tenant_id: string
           text_color: string | null
           theme_id: string | null
@@ -12757,7 +12308,6 @@ export type Database = {
           cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
-          custom_frontend_config?: Json | null
           custom_frontend_url?: string | null
           custom_head_scripts?: string | null
           exit_intent_popup?: boolean | null
@@ -12807,8 +12357,6 @@ export type Database = {
           storefront_language_selector_style?: string | null
           storefront_languages?: Json | null
           storefront_multilingual_enabled?: boolean | null
-          storefront_password?: string | null
-          storefront_status?: string
           tenant_id: string
           text_color?: string | null
           theme_id?: string | null
@@ -12833,7 +12381,6 @@ export type Database = {
           cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
-          custom_frontend_config?: Json | null
           custom_frontend_url?: string | null
           custom_head_scripts?: string | null
           exit_intent_popup?: boolean | null
@@ -12883,8 +12430,6 @@ export type Database = {
           storefront_language_selector_style?: string | null
           storefront_languages?: Json | null
           storefront_multilingual_enabled?: boolean | null
-          storefront_password?: string | null
-          storefront_status?: string
           tenant_id?: string
           text_color?: string | null
           theme_id?: string | null
@@ -13030,11 +12575,8 @@ export type Database = {
           currency: string | null
           custom_domain: string | null
           default_vat_handling: string | null
-          document_logo_url: string | null
           domain_verification_token: string | null
           domain_verified: boolean | null
-          email_forward_address: string | null
-          email_forward_enabled: boolean | null
           enable_b2b_checkout: boolean | null
           export_text: string | null
           iban: string | null
@@ -13129,11 +12671,8 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
-          document_logo_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
-          email_forward_address?: string | null
-          email_forward_enabled?: boolean | null
           enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
@@ -13228,11 +12767,8 @@ export type Database = {
           currency?: string | null
           custom_domain?: string | null
           default_vat_handling?: string | null
-          document_logo_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
-          email_forward_address?: string | null
-          email_forward_enabled?: boolean | null
           enable_b2b_checkout?: boolean | null
           export_text?: string | null
           iban?: string | null
@@ -13813,54 +13349,6 @@ export type Database = {
           },
         ]
       }
-      webhook_deliveries: {
-        Row: {
-          delivered_at: string | null
-          event: string
-          id: string
-          payload: Json | null
-          response_body: string | null
-          response_status: number | null
-          tenant_id: string
-          webhook_id: string
-        }
-        Insert: {
-          delivered_at?: string | null
-          event: string
-          id?: string
-          payload?: Json | null
-          response_body?: string | null
-          response_status?: number | null
-          tenant_id: string
-          webhook_id: string
-        }
-        Update: {
-          delivered_at?: string | null
-          event?: string
-          id?: string
-          payload?: Json | null
-          response_body?: string | null
-          response_status?: number | null
-          tenant_id?: string
-          webhook_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "webhook_deliveries_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
-            columns: ["webhook_id"]
-            isOneToOne: false
-            referencedRelation: "storefront_webhooks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       whatsapp_connections: {
         Row: {
           access_token_encrypted: string
@@ -14200,15 +13688,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_pos_cashier: {
-        Args: {
-          p_avatar_color?: string
-          p_display_name: string
-          p_pin: string
-          p_tenant_id: string
-        }
-        Returns: string
-      }
       create_sync_conflict: {
         Args: {
           p_conflict_fields?: string[]
@@ -14274,7 +13753,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      hash_cashier_pin: { Args: { p_pin: string }; Returns: string }
       increment_campaign_bounced: {
         Args: { p_campaign_id: string }
         Returns: undefined
@@ -14388,10 +13866,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      update_cashier_pin: {
-        Args: { p_cashier_id: string; p_new_pin: string }
-        Returns: undefined
-      }
       update_user_learning_pattern: {
         Args: {
           p_learned_value: Json
@@ -14418,10 +13892,6 @@ export type Database = {
             Returns: boolean
           }
       use_ai_help_credit: { Args: { p_tenant_id: string }; Returns: boolean }
-      verify_cashier_pin: {
-        Args: { p_cashier_id: string; p_pin: string }
-        Returns: boolean
-      }
     }
     Enums: {
       app_role:
@@ -14526,14 +13996,6 @@ export type Database = {
         | "declined"
         | "expired"
         | "converted"
-      return_status:
-        | "registered"
-        | "in_transit"
-        | "received"
-        | "approved"
-        | "rejected"
-        | "exchanged"
-        | "repaired"
       supplier_document_type:
         | "invoice"
         | "quote"
@@ -14803,15 +14265,6 @@ export const Constants = {
         "declined",
         "expired",
         "converted",
-      ],
-      return_status: [
-        "registered",
-        "in_transit",
-        "received",
-        "approved",
-        "rejected",
-        "exchanged",
-        "repaired",
       ],
       supplier_document_type: [
         "invoice",

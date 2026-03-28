@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useIsCompact } from '@/hooks/use-mobile';
 import {
   Plus,
   Truck,
@@ -45,7 +44,6 @@ import { useShippingMethods } from "@/hooks/useShippingMethods";
 import type { ShippingMethod, ShippingMethodFormData } from "@/types/shipping";
 
 export default function ShippingPage() {
-  const isCompact = useIsCompact();
   const {
     shippingMethods,
     isLoading,
@@ -202,38 +200,6 @@ export default function ShippingPage() {
                 <Plus className="mr-2 h-4 w-4" />
                 Verzendmethode toevoegen
               </Button>
-            </div>
-          ) : isCompact ? (
-            <div className="space-y-2 px-3">
-              {shippingMethods.map((method) => (
-                <div key={method.id} className="rounded-lg border bg-card p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{method.name}</span>
-                      {method.is_default && <Badge variant="secondary" className="text-xs">Standaard</Badge>}
-                    </div>
-                    <Switch checked={method.is_active} onCheckedChange={() => handleToggleActive(method)} />
-                  </div>
-                  {method.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{method.description}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-muted-foreground">
-                      {method.free_above ? `Gratis boven ${formatPrice(method.free_above)}` : formatDeliveryTime(method.estimated_days_min, method.estimated_days_max)}
-                    </span>
-                    <span className="font-medium">{formatPrice(method.price)}</span>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(method)}>
-                      <Pencil className="h-3 w-3 mr-1" />
-                      Bewerken
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleDelete(method)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
             </div>
           ) : (
             <div className="overflow-x-auto -mx-4 sm:mx-0"><div className="min-w-[550px]">

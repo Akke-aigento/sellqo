@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -19,6 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -26,13 +33,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { 
   PackageCheck, 
@@ -44,10 +44,7 @@ import {
   Printer,
   CheckCircle2,
   Upload,
-  Eye,
-  Clock,
-  FileText,
-  MoreVertical,
+  Eye
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -55,8 +52,6 @@ import { CARRIER_PATTERNS, generateTrackingUrl } from '@/lib/carrierPatterns';
 import { useNavigate } from 'react-router-dom';
 import { TrackingImportDialog } from '@/components/admin/fulfillment/TrackingImportDialog';
 import { FulfillmentBulkActions } from '@/components/admin/FulfillmentBulkActions';
-import { FulfillmentOrderSheet } from '@/components/admin/FulfillmentOrderSheet';
-import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 
 type FulfillmentStatus = 'unfulfilled' | 'partial' | 'shipped' | 'delivered';
 
@@ -75,7 +70,6 @@ interface FulfillmentOrder {
 }
 
 export default function Fulfillment() {
-  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const { isWarehouse, hasFinancialAccess } = useAuth();
   const { toast } = useToast();
@@ -91,78 +85,6 @@ export default function Fulfillment() {
   const [trackingCarrier, setTrackingCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [customTrackingUrl, setCustomTrackingUrl] = useState('');
-  const [sheetOrderId, setSheetOrderId] = useState<string | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  // Stats query
-  const { data: stats } = useQuery({
-    queryKey: ['fulfillment-stats', currentTenant?.id],
-    queryFn: async () => {
-      if (!currentTenant?.id) return null;
-      const { data, error } = await supabase
-        .from('orders')
-        .select('fulfillment_status, shipped_at')
-        .eq('tenant_id', currentTenant.id);
-      if (error) throw error;
-
-      const today = new Date().toISOString().split('T')[0];
-      const toShip = (data || []).filter(o => !o.fulfillment_status || o.fulfillment_status === 'unfulfilled' || o.fulfillment_status === 'pending').length;
-      const shippedToday = (data || []).filter(o => o.shipped_at && o.shipped_at.startsWith(today)).length;
-      const shipped = (data || []).filter(o => o.fulfillment_status === 'shipped' || o.fulfillment_status === 'fulfilled').length;
-      return { toShip, shippedToday, shipped };
-    },
-    enabled: !!currentTenant?.id,
-  });
-
-  // Quick status update per row
-  const quickStatusUpdate = useMutation({
-    mutationFn: async ({ orderId, newStatus }: { orderId: string; newStatus: string }) => {
-      const updateData: Record<string, unknown> = { fulfillment_status: newStatus };
-      if (newStatus === 'shipped') { updateData.status = 'shipped'; updateData.shipped_at = new Date().toISOString(); }
-      else if (newStatus === 'delivered') { updateData.status = 'delivered'; updateData.delivered_at = new Date().toISOString(); }
-      const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['fulfillment-stats'] });
-      toast({ title: 'Status bijgewerkt' });
-    },
-  });
-
-  const openSheet = (orderId: string) => {
-    setSheetOrderId(orderId);
-    setSheetOpen(true);
-  };
-
-  const handleSinglePackingSlip = async (order: FulfillmentOrder) => {
-    if (!currentTenant) return;
-    try {
-      // fetch items for this order
-      const { data: items } = await supabase.from('order_items').select('product_name, product_sku, quantity').eq('order_id', order.id);
-      const pdfBytes = await generatePackingSlipPdf(
-        {
-          order_number: order.order_number,
-          created_at: order.created_at,
-          customer_name: order.customer_name,
-          customer_email: '',
-          shipping_address: order.shipping_address,
-          order_items: items?.map(i => ({ product_name: i.product_name, product_sku: i.product_sku, quantity: i.quantity })),
-        },
-        {
-          name: currentTenant.name, address: currentTenant.address, city: currentTenant.city,
-          postal_code: currentTenant.postal_code, country: currentTenant.country,
-          phone: currentTenant.phone, email: currentTenant.owner_email,
-          kvk_number: currentTenant.kvk_number, logo_url: currentTenant.logo_url,
-          document_logo_url: (currentTenant as any).document_logo_url,
-        },
-      );
-      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
-      window.open(URL.createObjectURL(blob), '_blank');
-    } catch (err: any) {
-      toast({ title: 'Fout bij pakbon', description: err.message, variant: 'destructive' });
-    }
-  };
 
   // Fetch orders for fulfillment
   const { data: orders, isLoading, refetch } = useQuery({
@@ -192,9 +114,6 @@ export default function Fulfillment() {
       // Filter by status
       if (statusFilter === 'unfulfilled') {
         query = query.or('fulfillment_status.is.null,fulfillment_status.eq.unfulfilled,fulfillment_status.eq.pending');
-      } else if (statusFilter === 'shipped') {
-        // Include legacy 'fulfilled' value as 'shipped'
-        query = query.or('fulfillment_status.eq.shipped,fulfillment_status.eq.fulfilled');
       } else if (statusFilter !== 'all') {
         query = query.eq('fulfillment_status', statusFilter);
       }
@@ -371,45 +290,6 @@ export default function Fulfillment() {
         </div>
       </div>
 
-      {/* Stats Header */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-orange-500" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.toShip}</p>
-                  <p className="text-xs text-muted-foreground">Te verzenden</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.shippedToday}</p>
-                  <p className="text-xs text-muted-foreground">Vandaag verzonden</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.shipped}</p>
-                  <p className="text-xs text-muted-foreground">Onderweg</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
@@ -472,117 +352,110 @@ export default function Fulfillment() {
               <p>Geen orders gevonden</p>
             </div>
           ) : (
-            <div className="space-y-2 px-3 sm:px-0">
-              {/* Select all */}
-              {!isMobile && (
-                <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground">
-                  <Checkbox
-                    checked={orders.length > 0 && selectedOrders.size === orders.length}
-                    onCheckedChange={handleSelectAll}
-                  />
-                  <span>Alles selecteren</span>
-                </div>
-              )}
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="rounded-lg border bg-card p-3 sm:p-4 cursor-pointer transition-all hover:border-primary/50 hover:shadow-sm active:bg-muted/50"
-                  onClick={() => openSheet(order.id)}
-                >
-                  {/* Row 1: checkbox + order number + status + actions */}
-                  <div className="flex items-center gap-3">
-                    {!isMobile && (
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedOrders.has(order.id)}
-                          onCheckedChange={() => handleSelectOrder(order.id)}
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{order.order_number}</span>
+            <div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedOrders.size === orders.length}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Klant</TableHead>
+                  <TableHead className="hidden sm:table-cell">Items</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Tracking</TableHead>
+                  <TableHead className="text-right">Acties</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedOrders.has(order.id)}
+                        onCheckedChange={() => handleSelectOrder(order.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{order.order_number}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        {formatDistanceToNow(new Date(order.created_at), {
+                          addSuffix: true,
+                          locale: nl,
+                        })}
                         {getMarketplaceBadge(order.marketplace_source)}
-                        {getStatusBadge(order.fulfillment_status)}
                       </div>
-                      <div className="flex items-center gap-2 sm:gap-4 mt-1 flex-wrap">
-                        <span className="text-sm text-muted-foreground truncate">
-                          {order.customer_name || 'Onbekend'}
-                        </span>
-                        <span className="hidden sm:inline text-xs text-muted-foreground truncate max-w-[250px]">
-                          {parseAddress(order.shipping_address)}
-                        </span>
+                    </TableCell>
+                    <TableCell>
+                      <div>{order.customer_name || 'Onbekend'}</div>
+                      <div className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        {parseAddress(order.shipping_address)}
                       </div>
-                    </div>
-                    {/* Right side: meta + actions */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="hidden sm:flex flex-col items-end gap-0.5 text-right mr-1">
-                        <span className="text-xs text-muted-foreground">
-                          {order.item_count} items
-                        </span>
-                        {order.tracking_number ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-mono text-muted-foreground">{order.tracking_number}</span>
-                            {order.tracking_url && (
-                              <a
-                                href={order.tracking_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                          </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="secondary">{order.item_count} items</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(order.fulfillment_status)}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {order.tracking_number ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono">{order.tracking_number}</span>
+                          {order.tracking_url && (
+                            <a
+                              href={order.tracking_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1 sm:gap-2">
+                        {!order.tracking_number ? (
+                          <Button
+                            size="sm"
+                            onClick={() => openTrackingDialog(order)}
+                          >
+                            <Truck className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Tracking</span>
+                          </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
-                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openTrackingDialog(order)}
+                          >
+                            <span className="hidden sm:inline">Bewerken</span>
+                            <span className="sm:hidden">Edit</span>
+                          </Button>
+                        )}
+                        {!isWarehouse && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/admin/orders/${order.id}`)}
+                          >
+                            <span className="hidden sm:inline">Details</span>
+                            <Eye className="h-4 w-4 sm:hidden" />
+                          </Button>
                         )}
                       </div>
-                      {/* Mobile: compact info */}
-                      <div className="sm:hidden text-right mr-1">
-                        <span className="text-xs text-muted-foreground">
-                          {order.item_count} items · {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
-                        </span>
-                      </div>
-                      {/* Actions dropdown */}
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => openSheet(order.id)}>
-                              <Eye className="h-4 w-4 mr-2" /> Details bekijken
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {(!order.fulfillment_status || order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'pending') && (
-                              <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'shipped' })}>
-                                <Truck className="h-4 w-4 mr-2" /> Markeer als verzonden
-                              </DropdownMenuItem>
-                            )}
-                            {(order.fulfillment_status === 'shipped' || order.fulfillment_status === 'fulfilled') && (
-                              <DropdownMenuItem onClick={() => quickStatusUpdate.mutate({ orderId: order.id, newStatus: 'delivered' })}>
-                                <CheckCircle2 className="h-4 w-4 mr-2" /> Markeer als afgeleverd
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleSinglePackingSlip(order)}>
-                              <Printer className="h-4 w-4 mr-2" /> Pakbon
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openTrackingDialog(order)}>
-                              <Truck className="h-4 w-4 mr-2" /> {order.tracking_number ? 'Tracking bewerken' : 'Tracking toevoegen'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             </div>
           )}
         </CardContent>
@@ -652,14 +525,6 @@ export default function Fulfillment() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onImportComplete={() => refetch()}
-      />
-
-      {/* Order Detail Sheet */}
-      <FulfillmentOrderSheet
-        orderId={sheetOrderId}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        onStatusChange={() => refetch()}
       />
     </div>
   );

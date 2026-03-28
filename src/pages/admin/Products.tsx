@@ -1,7 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useIsCompact } from '@/hooks/use-mobile';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Plus, 
@@ -19,7 +16,6 @@ import {
   List,
   Grid3X3,
   Sparkles,
-  X,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -70,8 +66,6 @@ import { cn } from '@/lib/utils';
 import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
 
 export default function ProductsPage() {
-  const isCompact = useIsCompact();
-  const { toast } = useToast();
   const { currentTenant } = useTenant();
   const { 
     products, 
@@ -83,7 +77,6 @@ export default function ProductsPage() {
     bulkAdjustStock,
     bulkUpdateTags,
     bulkUpdateSocialChannels,
-    refetch,
   } = useProducts();
   const { categories } = useCategories();
   
@@ -100,30 +93,9 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Filter products
-  // Fetch product_categories for category filtering
-  const [productCategoryMap, setProductCategoryMap] = useState<Record<string, string[]>>({});
-  
-  const refreshProductCategoryMap = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from('product_categories')
-      .select('product_id, category_id')
-      .order('sort_order', { ascending: true });
-    if (data) {
-      const map: Record<string, string[]> = {};
-      for (const row of data) {
-        if (!map[row.product_id]) map[row.product_id] = [];
-        map[row.product_id].push(row.category_id);
-      }
-      setProductCategoryMap(map);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshProductCategoryMap();
-  }, [products, refreshProductCategoryMap]);
-
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
+      // Search filter
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesSearch = 
@@ -133,30 +105,27 @@ export default function ProductsPage() {
         if (!matchesSearch) return false;
       }
 
+      // Status filter
       if (statusFilter === 'active' && !product.is_active) return false;
       if (statusFilter === 'inactive' && product.is_active) return false;
 
+      // Visibility filter
       const hideFromStorefront = (product as any).hide_from_storefront || false;
       if (visibilityFilter === 'online' && (hideFromStorefront || !product.is_active)) return false;
       if (visibilityFilter === 'store_only' && (!hideFromStorefront || !product.is_active)) return false;
       if (visibilityFilter === 'hidden' && product.is_active) return false;
 
-      const trackInventory = (product as any).track_inventory !== false;
-      const effectivelyInStock = !trackInventory || product.stock > 0;
-      if (stockFilter === 'out_of_stock' && effectivelyInStock) return false;
-      if (stockFilter === 'low_stock' && (!trackInventory || product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
-      if (stockFilter === 'in_stock' && !effectivelyInStock) return false;
+      // Stock filter
+      if (stockFilter === 'out_of_stock' && product.stock > 0) return false;
+      if (stockFilter === 'low_stock' && (product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
+      if (stockFilter === 'in_stock' && product.stock <= 0) return false;
 
-      // Category filter - check via product_categories map (multi-category aware)
-      if (categoryFilter !== 'all') {
-        const cats = productCategoryMap[product.id] || [];
-        // Fallback to product.category_id for products not yet in junction table
-        if (!cats.includes(categoryFilter) && product.category_id !== categoryFilter) return false;
-      }
+      // Category filter
+      if (categoryFilter !== 'all' && product.category_id !== categoryFilter) return false;
 
       return true;
     });
-  }, [products, search, statusFilter, visibilityFilter, stockFilter, categoryFilter, productCategoryMap]);
+  }, [products, search, statusFilter, visibilityFilter, stockFilter, categoryFilter]);
 
   // Selection handlers
   const toggleSelectAll = () => {
@@ -196,135 +165,68 @@ export default function ProductsPage() {
 
   const handleBulkEdit = async (state: BulkEditState, enabledFields: Set<string>) => {
     const ids = Array.from(selectedIds);
-    let successCount = 0;
-    let failCount = 0;
-    const errors: string[] = [];
-
-    const tryOp = async (label: string, fn: () => Promise<any>) => {
-      try {
-        await fn();
-        successCount++;
-      } catch (e: any) {
-        failCount++;
-        errors.push(label + ': ' + (e?.message || 'onbekende fout'));
-      }
-    };
-
+    
+    // Process each enabled field
     if (enabledFields.has('price_adjustment') && state.price_adjustment) {
-      await tryOp('Prijsaanpassing', () => bulkAdjustPrices.mutateAsync({
+      await bulkAdjustPrices.mutateAsync({
         ids,
-        adjustmentType: state.price_adjustment!.type,
-        adjustmentValue: state.price_adjustment!.value,
-      }));
+        adjustmentType: state.price_adjustment.type,
+        adjustmentValue: state.price_adjustment.value,
+      });
     }
-
+    
     if (enabledFields.has('compare_at_price') && state.compare_at_price_action) {
-      await tryOp('Vergelijkingsprijs', () => bulkAdjustPrices.mutateAsync({
+      await bulkAdjustPrices.mutateAsync({
         ids,
-        adjustmentType: state.compare_at_price_action!,
+        adjustmentType: state.compare_at_price_action,
         adjustmentValue: state.compare_at_price_value || 0,
         priceField: 'compare_at_price',
-      }));
+      });
     }
-
+    
     if (enabledFields.has('cost_price') && state.cost_price_action) {
-      await tryOp('Kostprijs', () => bulkAdjustPrices.mutateAsync({
+      await bulkAdjustPrices.mutateAsync({
         ids,
-        adjustmentType: state.cost_price_action!,
+        adjustmentType: state.cost_price_action,
         adjustmentValue: state.cost_price || 0,
         priceField: 'cost_price',
-      }));
+      });
     }
-
+    
     if (enabledFields.has('stock_adjustment') && state.stock_adjustment) {
-      await tryOp('Voorraad', () => bulkAdjustStock.mutateAsync({
+      await bulkAdjustStock.mutateAsync({
         ids,
-        adjustmentType: state.stock_adjustment!.type,
-        adjustmentValue: state.stock_adjustment!.value,
-      }));
+        adjustmentType: state.stock_adjustment.type,
+        adjustmentValue: state.stock_adjustment.value,
+      });
     }
-
+    
     if (enabledFields.has('tags_to_add') || enabledFields.has('tags_to_remove')) {
-      await tryOp('Tags', () => bulkUpdateTags.mutateAsync({
+      await bulkUpdateTags.mutateAsync({
         ids,
         tagsToAdd: state.tags_to_add || [],
         tagsToRemove: state.tags_to_remove || [],
-      }));
+      });
     }
-
+    
     if (enabledFields.has('tags_replace_all') && state.tags_replace_all) {
-      await tryOp('Tags vervangen', () => bulkUpdateTags.mutateAsync({
+      await bulkUpdateTags.mutateAsync({
         ids,
         replaceAll: true,
         replacementTags: state.tags_replace_all,
-      }));
-    }
-
-    if (enabledFields.has('social_channels') && state.social_channels) {
-      await tryOp('Kanalen', () => bulkUpdateSocialChannels.mutateAsync({
-        ids,
-        socialChannels: state.social_channels!,
-      }));
-    }
-
-    const hasCategoryChanges = (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) ||
-      (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length);
-
-    if (hasCategoryChanges) {
-      await tryOp('Categorieën', async () => {
-        for (const productId of ids) {
-          // 1. Fetch current categories for this product
-          const { data: existing } = await (supabase as any)
-            .from('product_categories')
-            .select('category_id')
-            .eq('product_id', productId);
-          
-          let currentCats = new Set<string>((existing || []).map((r: any) => r.category_id));
-
-          // 2. Apply add/remove
-          if (enabledFields.has('category_ids_to_add') && state.category_ids_to_add?.length) {
-            for (const catId of state.category_ids_to_add) currentCats.add(catId);
-          }
-          if (enabledFields.has('category_ids_to_remove') && state.category_ids_to_remove?.length) {
-            for (const catId of state.category_ids_to_remove) currentCats.delete(catId);
-          }
-
-          const desiredArr = Array.from(currentCats);
-
-          // 3. Delete all existing and upsert desired
-          await (supabase as any)
-            .from('product_categories')
-            .delete()
-            .eq('product_id', productId);
-
-          if (desiredArr.length > 0) {
-            const rows = desiredArr.map((catId, idx) => ({
-              product_id: productId,
-              category_id: catId,
-              is_primary: idx === 0,
-              sort_order: idx,
-            }));
-            const { error: upsertErr } = await (supabase as any)
-              .from('product_categories')
-              .insert(rows);
-            if (upsertErr) throw upsertErr;
-          }
-
-          // 4. Sync legacy category_id on products table
-          const primaryCatId = desiredArr.length > 0 ? desiredArr[0] : null;
-          await supabase
-            .from('products')
-            .update({ category_id: primaryCatId })
-            .eq('id', productId);
-        }
-
-        // 5. Refresh the category map immediately
-        await refreshProductCategoryMap();
       });
     }
-
-    // Simple field updates
+    
+    if (enabledFields.has('social_channels') && state.social_channels) {
+      await bulkUpdateSocialChannels.mutateAsync({
+        ids,
+        socialChannels: state.social_channels,
+      });
+    }
+    
+    // Simple field updates via bulkUpdateProducts
     const simpleUpdates: Record<string, any> = {};
+    if (enabledFields.has('category_id')) simpleUpdates.category_id = state.category_id;
     if (enabledFields.has('vat_rate_id')) simpleUpdates.vat_rate_id = state.vat_rate_id;
     if (enabledFields.has('product_type')) simpleUpdates.product_type = state.product_type;
     if (enabledFields.has('is_active')) simpleUpdates.is_active = state.is_active;
@@ -334,23 +236,11 @@ export default function ProductsPage() {
     if (enabledFields.has('track_inventory')) simpleUpdates.track_inventory = state.track_inventory;
     if (enabledFields.has('allow_backorder')) simpleUpdates.allow_backorder = state.allow_backorder;
     if (enabledFields.has('low_stock_threshold')) simpleUpdates.low_stock_threshold = state.low_stock_threshold;
-
+    
     if (Object.keys(simpleUpdates).length > 0) {
-      await tryOp('Velden bijwerken', () => bulkUpdateProducts.mutateAsync({ ids, data: simpleUpdates }));
+      await bulkUpdateProducts.mutateAsync({ ids, data: simpleUpdates });
     }
-
-    if (failCount > 0) {
-      toast({
-        title: `${successCount} van ${successCount + failCount} operaties geslaagd`,
-        description: errors.join('; '),
-        variant: 'destructive',
-      });
-      throw new Error(`${failCount} operatie(s) mislukt`);
-    }
-
-    toast({ title: 'Bulk bewerking voltooid', description: `${successCount} operatie(s) succesvol toegepast op ${ids.length} producten.` });
-    await refetch();
-    await refreshProductCategoryMap();
+    
     setSelectedIds(new Set());
   };
 
@@ -363,9 +253,6 @@ export default function ProductsPage() {
 
   // Stock badge color
   const getStockBadge = (product: Product) => {
-    if (!product.track_inventory) {
-      return <Badge variant="secondary">∞</Badge>;
-    }
     if (product.stock === 0) {
       return <Badge variant="destructive">Uitverkocht</Badge>;
     }
@@ -494,38 +381,32 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Floating bulk actions bar */}
+      {/* Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 lg:left-[var(--sidebar-width,280px)] border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 duration-200 hidden lg:block" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <div className="flex flex-wrap items-center gap-4 px-6 py-3">
-            <span className="text-sm font-medium">
-              {selectedIds.size} geselecteerd
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
-                <Settings2 className="mr-2 h-4 w-4" />
-                Bewerken
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleBulkActivate}>
-                <Eye className="mr-2 h-4 w-4" />
-                Activeren
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
-                <EyeOff className="mr-2 h-4 w-4" />
-                Deactiveren
-              </Button>
-              <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Verwijderen
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                AI Genereer
-              </Button>
-            </div>
-            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="ml-auto">
-              <X className="mr-2 h-4 w-4" />
-              Deselecteer
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-muted/50 p-3">
+          <span className="text-sm font-medium">
+            {selectedIds.size} geselecteerd
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
+              <Settings2 className="mr-2 h-4 w-4" />
+              Bewerken
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkActivate}>
+              <Eye className="mr-2 h-4 w-4" />
+              Activeren
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
+              <EyeOff className="mr-2 h-4 w-4" />
+              Deactiveren
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Verwijderen
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI Genereer
             </Button>
           </div>
         </div>
@@ -533,52 +414,8 @@ export default function ProductsPage() {
 
       {/* Grid or Table View */}
       {viewMode === 'grid' ? (
-        <div className={cn("min-h-[400px]", selectedIds.size > 0 && "pb-20")}>
-          <ProductGridView
-            products={filteredProducts}
-            selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAll}
-          />
-        </div>
-      ) : isCompact ? (
-        <div className="space-y-2">
-          {isLoading ? (
-            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
-          ) : filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12">
-              <Package className="h-8 w-8 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {products.length === 0 ? 'Nog geen producten' : 'Geen producten gevonden'}
-              </p>
-            </div>
-          ) : (
-            filteredProducts.map((product) => (
-              <Link
-                key={product.id}
-                to={`/admin/products/${product.id}/edit`}
-                className="flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer active:bg-muted/50"
-              >
-                {product.featured_image ? (
-                  <img src={product.featured_image} alt={product.name} className="h-12 w-12 rounded object-cover flex-shrink-0" />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded bg-muted flex-shrink-0">
-                    <Package className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium truncate">{product.name}</span>
-                    {getStockBadge(product)}
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm text-muted-foreground">{product.sku || 'Geen SKU'}</span>
-                    <span className="font-medium">{formatPrice(product.price)}</span>
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
+        <div className="min-h-[400px]">
+          <ProductGridView products={filteredProducts} />
         </div>
       ) : (
         <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
@@ -679,25 +516,11 @@ export default function ProductsPage() {
                       {product.sku || '-'}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {(() => {
-                        const catIds = productCategoryMap[product.id] || [];
-                        if (catIds.length === 0) {
-                          return <span className="text-muted-foreground">-</span>;
-                        }
-                        return (
-                          <div className="flex flex-wrap gap-1">
-                            {catIds.slice(0, 3).map(catId => {
-                              const cat = categories.find(c => c.id === catId);
-                              return cat ? (
-                                <Badge key={catId} variant="outline">{cat.name}</Badge>
-                              ) : null;
-                            })}
-                            {catIds.length > 3 && (
-                              <Badge variant="secondary">+{catIds.length - 3}</Badge>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      {product.category ? (
+                        <Badge variant="outline">{product.category.name}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatPrice(product.price)}

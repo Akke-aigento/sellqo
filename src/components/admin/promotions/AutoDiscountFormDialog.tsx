@@ -29,8 +29,6 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useCreateAutoDiscount, useUpdateAutoDiscount } from '@/hooks/useAutoDiscounts';
-import { ProductMultiSelect } from './ProductMultiSelect';
-import { CategoryMultiSelect } from './CategoryMultiSelect';
 import type { AutomaticDiscount, AutomaticDiscountFormData } from '@/types/promotions';
 
 const formSchema = z.object({
@@ -38,12 +36,9 @@ const formSchema = z.object({
   description: z.string().optional(),
   trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
-  trigger_product_ids: z.array(z.string()).optional(),
   discount_type: z.string(),
   discount_value: z.coerce.number().optional(),
   applies_to: z.string(),
-  product_ids: z.array(z.string()).optional(),
-  category_ids: z.array(z.string()).optional(),
   max_discount_amount: z.coerce.number().optional(),
   priority: z.coerce.number().min(1).default(10),
   is_active: z.boolean(),
@@ -75,12 +70,9 @@ export function AutoDiscountFormDialog({
       description: '',
       trigger_type: 'cart_total',
       trigger_value: 50,
-      trigger_product_ids: [],
       discount_type: 'percentage',
       discount_value: 10,
       applies_to: 'all',
-      product_ids: [],
-      category_ids: [],
       max_discount_amount: undefined,
       priority: 10,
       is_active: true,
@@ -96,12 +88,9 @@ export function AutoDiscountFormDialog({
         description: discount.description || '',
         trigger_type: discount.trigger_type,
         trigger_value: discount.trigger_value || undefined,
-        trigger_product_ids: discount.trigger_product_ids || [],
         discount_type: discount.discount_type,
         discount_value: discount.discount_value || undefined,
         applies_to: discount.applies_to,
-        product_ids: discount.product_ids || [],
-        category_ids: (discount as any).category_ids || [],
         max_discount_amount: discount.max_discount_amount || undefined,
         priority: discount.priority,
         is_active: discount.is_active,
@@ -114,12 +103,9 @@ export function AutoDiscountFormDialog({
         description: '',
         trigger_type: 'cart_total',
         trigger_value: 50,
-        trigger_product_ids: [],
         discount_type: 'percentage',
         discount_value: 10,
         applies_to: 'all',
-        product_ids: [],
-        category_ids: [],
         max_discount_amount: undefined,
         priority: 10,
         is_active: true,
@@ -135,11 +121,9 @@ export function AutoDiscountFormDialog({
       description: data.description,
       trigger_type: data.trigger_type,
       trigger_value: data.trigger_value,
-      trigger_product_ids: data.trigger_type === 'specific_products' && data.trigger_product_ids?.length ? data.trigger_product_ids : undefined,
       discount_type: data.discount_type,
       discount_value: data.discount_value,
       applies_to: data.applies_to,
-      product_ids: data.applies_to === 'specific_products' && data.product_ids?.length ? data.product_ids : undefined,
       max_discount_amount: data.max_discount_amount,
       priority: data.priority,
       is_active: data.is_active,
@@ -161,11 +145,10 @@ export function AutoDiscountFormDialog({
 
   const watchTriggerType = form.watch('trigger_type');
   const watchDiscountType = form.watch('discount_type');
-  const watchAppliesTo = form.watch('applies_to');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Automatische Korting Bewerken' : 'Nieuwe Automatische Korting'}
@@ -227,7 +210,7 @@ export function AutoDiscountFormDialog({
                 )}
               />
 
-              {watchTriggerType !== 'first_order' && watchTriggerType !== 'specific_products' && (
+              {watchTriggerType !== 'first_order' && (
                 <FormField
                   control={form.control}
                   name="trigger_value"
@@ -245,25 +228,6 @@ export function AutoDiscountFormDialog({
                 />
               )}
             </div>
-
-            {watchTriggerType === 'specific_products' && (
-              <FormField
-                control={form.control}
-                name="trigger_product_ids"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trigger-producten</FormLabel>
-                    <FormDescription>Korting wordt geactiveerd als deze producten in de winkelwagen zitten</FormDescription>
-                    <ProductMultiSelect
-                      selectedIds={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Selecteer trigger-producten..."
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -331,42 +295,6 @@ export function AutoDiscountFormDialog({
                 </FormItem>
               )}
             />
-
-            {watchAppliesTo === 'specific_products' && (
-              <FormField
-                control={form.control}
-                name="product_ids"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Korting toepassen op producten</FormLabel>
-                    <ProductMultiSelect
-                      selectedIds={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Selecteer producten..."
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {watchAppliesTo === 'specific_categories' && (
-              <FormField
-                control={form.control}
-                name="category_ids"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Korting toepassen op categorieën</FormLabel>
-                    <CategoryMultiSelect
-                      selectedIds={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Selecteer categorieën..."
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

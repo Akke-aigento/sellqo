@@ -168,27 +168,6 @@ export const generateExcelMultiSheet = (
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     worksheet['!cols'] = sheet.columns.map(col => ({ wch: Math.max(col.header.length, 15) }));
     
-    // Apply number formats to cells
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    for (let R = range.s.r + 1; R <= range.e.r; R++) {
-      for (let C = range.s.c; C <= range.e.c; C++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-        const cell = worksheet[cellAddress];
-        if (!cell) continue;
-        
-        const col = sheet.columns[C];
-        if (col?.format === 'currency') {
-          cell.z = '€ #,##0.00';
-        } else if (col?.format === 'percentage') {
-          cell.z = '0.00%';
-        } else if (col?.format === 'date') {
-          cell.z = 'dd-mm-yyyy';
-        } else if (col?.format === 'datetime') {
-          cell.z = 'dd-mm-yyyy hh:mm';
-        }
-      }
-    }
-    
     XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name.substring(0, 31)); // Sheet names max 31 chars
   });
   

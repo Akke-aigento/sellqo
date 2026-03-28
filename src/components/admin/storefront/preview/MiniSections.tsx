@@ -1,4 +1,4 @@
-import { Play, Star, Mail, Megaphone, Grid3X3, Shield, CheckCircle } from 'lucide-react';
+import { Play, Star, Mail, Megaphone } from 'lucide-react';
 import type { HomepageSection } from '@/types/storefront';
 
 interface MiniSectionProps {
@@ -155,49 +155,6 @@ export function MiniAnnouncement({ section, primaryColor }: MiniSectionProps) {
   );
 }
 
-export function MiniCategoriesGrid({ section, secondaryColor, textColor, headingFont }: MiniSectionProps) {
-  return (
-    <div className="px-3 py-2">
-      <p className="text-[8px] font-bold mb-1" style={{ fontFamily: `"${headingFont}", serif`, color: textColor }}>
-        {section.title || 'Categorieën'}
-      </p>
-      <div className="grid grid-cols-3 gap-1">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="aspect-[4/3] rounded-sm flex items-center justify-center" style={{ backgroundColor: secondaryColor + '15' }}>
-            <Grid3X3 className="h-2 w-2 opacity-30" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function MiniUspBar({ section, primaryColor }: MiniSectionProps) {
-  return (
-    <div className="px-3 py-2 flex items-center justify-center gap-3 border-y" style={{ backgroundColor: primaryColor + '05' }}>
-      {[1, 2, 3].map(i => (
-        <div key={i} className="flex items-center gap-0.5">
-          <CheckCircle className="h-2 w-2 opacity-30" />
-          <div className="h-1 w-6 rounded bg-current opacity-10" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function MiniCtaBanner({ section, primaryColor, textColor, headingFont }: MiniSectionProps) {
-  return (
-    <div className="px-3 py-4 text-center" style={{ backgroundColor: primaryColor + '12' }}>
-      <p className="text-[9px] font-bold mb-1" style={{ fontFamily: `"${headingFont}", serif`, color: textColor }}>
-        {section.title || 'CTA Banner'}
-      </p>
-      <div className="inline-block rounded-full px-3 py-0.5 text-[6px] font-medium text-white" style={{ backgroundColor: primaryColor }}>
-        Actie →
-      </div>
-    </div>
-  );
-}
-
 export function renderMiniSection(section: HomepageSection, props: Omit<MiniSectionProps, 'section'>) {
   const sectionProps = { section, ...props };
   switch (section.section_type) {
@@ -210,9 +167,6 @@ export function renderMiniSection(section: HomepageSection, props: Omit<MiniSect
     case 'video': return <MiniVideo key={section.id} {...sectionProps} />;
     case 'announcement': return <MiniAnnouncement key={section.id} {...sectionProps} />;
     case 'external_reviews': return <MiniExternalReviews key={section.id} {...sectionProps} />;
-    case 'categories_grid': return <MiniCategoriesGrid key={section.id} {...sectionProps} />;
-    case 'usp_bar': return <MiniUspBar key={section.id} {...sectionProps} />;
-    case 'cta_banner': return <MiniCtaBanner key={section.id} {...sectionProps} />;
     default: return null;
   }
 }

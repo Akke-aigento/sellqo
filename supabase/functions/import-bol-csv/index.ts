@@ -227,7 +227,6 @@ Deno.serve(async (req: Request) => {
             shipping_cost: shippingCost,
             total,
             status: 'shipped',
-            fulfillment_status: 'shipped',
             payment_status: 'paid',
             created_at: firstItem.orderDate ? `${firstItem.orderDate}T12:00:00Z` : new Date().toISOString(),
             shipped_at: firstItem.shippedAt ? `${firstItem.shippedAt}T12:00:00Z` : null,

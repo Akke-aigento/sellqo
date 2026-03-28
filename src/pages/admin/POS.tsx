@@ -5,10 +5,12 @@ import {
   Plus, 
   Settings, 
   Play, 
+  Pause, 
   MoreHorizontal,
   MapPin,
   Clock,
-  Maximize,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -186,30 +188,92 @@ export default function POSPage() {
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <Button 
-                      className="flex-1" 
-                      onClick={() => handleOpenPOS(terminal)}
-                      variant={activeSession ? "default" : "outline"}
-                    >
-                      <Play className="mr-2 h-4 w-4" />
-                      {activeSession ? 'Kassa Openen' : 'Dag Starten'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => navigate(`/kassa/${terminal.id}?fullscreen=1`)}
-                      title="Fullscreen kassaweergave"
-                    >
-                      <Maximize className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {/* Action Button */}
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleOpenPOS(terminal)}
+                    variant={activeSession ? "default" : "outline"}
+                  >
+                    {activeSession ? (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Kassa Openen
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Dag Starten
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+      )}
+
+      {/* Recent Sessions Summary */}
+      {sessions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recente Sessies</CardTitle>
+            <CardDescription>Overzicht van de laatste kassadagen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {sessions.slice(0, 5).map((session) => (
+                <div 
+                  key={session.id} 
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                >
+                  <div className="flex items-center gap-3">
+                    {session.status === 'open' ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : session.cash_difference && session.cash_difference !== 0 ? (
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="font-medium">
+                        {session.terminal?.name || 'Terminal'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(session.opened_at).toLocaleDateString('nl-NL', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={session.status === 'open' ? 'default' : 'secondary'}>
+                      {session.status === 'open' ? 'Actief' : 'Gesloten'}
+                    </Badge>
+                    {session.status === 'closed' && session.cash_difference !== null && (
+                      <p className={`text-sm mt-1 ${
+                        session.cash_difference === 0 
+                          ? 'text-green-600' 
+                          : session.cash_difference > 0 
+                            ? 'text-blue-600' 
+                            : 'text-red-600'
+                      }`}>
+                        {session.cash_difference === 0 
+                          ? 'Kloppend' 
+                          : session.cash_difference > 0 
+                            ? `+€${session.cash_difference.toFixed(2)}` 
+                            : `-€${Math.abs(session.cash_difference).toFixed(2)}`
+                        }
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Create Terminal Dialog */}

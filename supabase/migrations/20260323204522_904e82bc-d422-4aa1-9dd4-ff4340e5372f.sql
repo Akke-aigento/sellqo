@@ -1,1 +1,0 @@
-ALTER TABLE public.tenant_domains ADD COLUMN hosting_mode text NOT NULL DEFAULT 'sellqo';

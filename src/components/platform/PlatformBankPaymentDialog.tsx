@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Banknote, Copy, Clock, CheckCircle2, Landmark } from 'lucide-react';
+import { Banknote, Copy, Clock, CheckCircle2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import {
   Dialog,
@@ -13,9 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/utils';
-import { generateEPCString, formatIBAN, generatePaytoURI } from '@/lib/epcQrCode';
+import { generateEPCString, formatIBAN } from '@/lib/epcQrCode';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 // SellQo platform bank details (placeholder - update with real values)
 const SELLQO_BANK = {
@@ -43,22 +42,9 @@ export function PlatformBankPaymentDialog({
   description,
   onComplete,
 }: PlatformBankPaymentDialogProps) {
-  const isMobile = useIsMobile();
-
   // Generate EPC QR code data
   const epcQRData = useMemo(() => {
     return generateEPCString({
-      iban: SELLQO_BANK.iban,
-      bic: SELLQO_BANK.bic,
-      beneficiaryName: SELLQO_BANK.beneficiary,
-      amount,
-      reference: ogmReference,
-    });
-  }, [amount, ogmReference]);
-
-  // Generate payto:// URI for mobile
-  const paytoURI = useMemo(() => {
-    return generatePaytoURI({
       iban: SELLQO_BANK.iban,
       bic: SELLQO_BANK.bic,
       beneficiaryName: SELLQO_BANK.beneficiary,
@@ -93,30 +79,12 @@ export function PlatformBankPaymentDialog({
         </DialogHeader>
 
         <div className="space-y-5 py-4">
-          {/* QR Code (desktop) / Deep Link (mobile) */}
-          {isMobile ? (
-            <div className="flex flex-col items-center gap-3">
-              <a
-                href={paytoURI}
-                className="w-full inline-flex items-center justify-center gap-3 rounded-xl bg-primary text-primary-foreground px-6 py-4 text-lg font-semibold shadow-lg hover:bg-primary/90 transition-colors"
-              >
-                <Landmark className="h-6 w-6" />
-                Open je bank-app
-              </a>
-              <p className="text-xs text-center text-muted-foreground">
-                Alle gegevens worden automatisch ingevuld. Bevestig met Face ID, vingerafdruk of PIN.
-              </p>
-              <p className="text-[11px] text-center text-muted-foreground/70">
-                Werkt met KBC, BNP Paribas Fortis, Belfius, ING, Argenta en meer
-              </p>
+          {/* QR Code */}
+          <div className="flex justify-center">
+            <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <QRCode value={epcQRData} size={180} level="M" />
             </div>
-          ) : (
-            <div className="flex justify-center">
-              <div className="bg-white p-4 rounded-xl shadow-sm border">
-                <QRCode value={epcQRData} size={180} level="M" />
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Amount */}
           <div className="text-center">

@@ -1,1 +1,0 @@
-DROP TRIGGER IF EXISTS on_order_notification ON public.orders;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Globe, 
@@ -15,9 +15,7 @@ import {
   Play,
   Loader2,
   ExternalLink,
-  Sparkles,
 } from 'lucide-react';
-import { useAICredits } from '@/hooks/useAICredits';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useTenant } from '@/hooks/useTenant';
 import { useProducts } from '@/hooks/useProducts';
@@ -89,28 +87,10 @@ export default function TranslationHub() {
   } = useTranslations();
   const { products } = useProducts();
   const { categories } = useCategories();
-  const { credits, isUnlimited } = useAICredits();
 
   const [selectedEntityType, setSelectedEntityType] = useState<TranslatableEntityType>('product');
   const [selectedLanguage, setSelectedLanguage] = useState<TranslationLanguage>('en');
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-
-  // Estimate credits needed for bulk translation
-  const estimatedCredits = useMemo(() => {
-    const targetLangs = settings?.target_languages || ['en', 'de', 'fr'];
-    const fieldsPerProduct = 5;
-    const fieldsPerCategory = 4;
-    
-    if (selectedEntityType === 'product') {
-      const count = pendingEntities?.products?.length || 0;
-      return count * fieldsPerProduct * targetLangs.length;
-    }
-    if (selectedEntityType === 'category') {
-      const count = pendingEntities?.categories?.length || 0;
-      return count * fieldsPerCategory * targetLangs.length;
-    }
-    return 0;
-  }, [selectedEntityType, pendingEntities, settings]);
 
   if (!currentTenant) {
     return (
@@ -229,56 +209,19 @@ export default function TranslationHub() {
                   Bestaande niet-vergrendelde vertalingen worden overschreven.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <div className="py-4 space-y-3">
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
-                      <Badge key={lang.code} variant="secondary" className="text-sm">
-                        {lang.flag} {lang.label}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Credit estimate */}
-                <div className="rounded-lg border bg-muted/50 p-3">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    Credit schatting
-                  </div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    {isUnlimited ? (
-                      <span>Onbeperkte credits (platform eigenaar)</span>
-                    ) : estimatedCredits === 0 ? (
-                      <span>Geen items om te vertalen</span>
-                    ) : (
-                      <>
-                        <span>~{estimatedCredits} credits nodig</span>
-                        <span className="mx-1">•</span>
-                        <span className={
-                          (credits?.available || 0) >= estimatedCredits 
-                            ? 'text-green-600 dark:text-green-400' 
-                            : 'text-destructive'
-                        }>
-                          {credits?.available || 0} beschikbaar
-                        </span>
-                        {(credits?.available || 0) < estimatedCredits && (
-                          <p className="mt-1 text-destructive text-xs">
-                            ⚠️ Niet genoeg credits. Koop extra credits via Marketing → AI Credits.
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
+              <div className="py-4">
+                <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
+                <div className="flex flex-wrap gap-2">
+                  {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
+                    <Badge key={lang.code} variant="secondary" className="text-sm">
+                      {lang.flag} {lang.label}
+                    </Badge>
+                  ))}
                 </div>
               </div>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleBulkTranslate} 
-                  disabled={startBulkTranslation.isPending || (!isUnlimited && (credits?.available || 0) < estimatedCredits)}
-                >
+                <AlertDialogAction onClick={handleBulkTranslate} disabled={startBulkTranslation.isPending}>
                   {startBulkTranslation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Start Vertaling
                 </AlertDialogAction>

@@ -175,10 +175,7 @@ export type HomepageSectionType =
   | 'testimonials'
   | 'video'
   | 'announcement'
-  | 'external_reviews'
-  | 'categories_grid'
-  | 'usp_bar'
-  | 'cta_banner';
+  | 'external_reviews';
 
 export interface HomepageSection {
   id: string;
@@ -255,24 +252,6 @@ export interface ExternalReviewsContent {
   platforms?: string[];
 }
 
-export interface CategoriesGridContent {
-  category_ids?: string[];
-  columns?: number;
-  show_description?: boolean;
-  show_product_count?: boolean;
-}
-
-export interface UspBarContent {
-  items?: Array<{ icon: string; title: string; description?: string }>;
-}
-
-export interface CtaBannerContent {
-  background_image?: string;
-  button_text?: string;
-  button_link?: string;
-  background_color?: string;
-}
-
 export type HomepageSectionContent = 
   | HeroContent 
   | FeaturedProductsContent 
@@ -282,9 +261,6 @@ export type HomepageSectionContent =
   | TestimonialsContent
   | VideoContent
   | ExternalReviewsContent
-  | CategoriesGridContent
-  | UspBarContent
-  | CtaBannerContent
   | Record<string, unknown>;
 
 export interface HomepageSectionSettings {
@@ -372,7 +348,4 @@ export const SECTION_TYPES: Array<{ type: HomepageSectionType; label: string; ic
   { type: 'video', label: 'Video', icon: 'Play', description: 'Video sectie' },
   { type: 'announcement', label: 'Aankondiging', icon: 'Megaphone', description: 'Opvallende banner met bericht' },
   { type: 'external_reviews', label: 'Externe Reviews', icon: 'StarHalf', description: 'Reviews van Google, Trustpilot, etc.' },
-  { type: 'categories_grid', label: 'Categorieën Grid', icon: 'Grid3X3', description: 'Visueel overzicht van categorieën' },
-  { type: 'usp_bar', label: 'USP Balk', icon: 'Shield', description: 'Vertrouwenspunten zoals gratis verzending' },
-  { type: 'cta_banner', label: 'CTA Banner', icon: 'Megaphone', description: 'Promotie banner met actieknop' },
 ];

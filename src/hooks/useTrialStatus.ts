@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
-import { useAuth } from '@/hooks/useAuth';
 
 export interface TrialStatus {
   isLoading: boolean;
@@ -31,7 +30,6 @@ const initialStatus: TrialStatus = {
 
 export function useTrialStatus() {
   const { currentTenant } = useTenant();
-  const { isPlatformAdmin } = useAuth();
   const [trialStatus, setTrialStatus] = useState<TrialStatus>(initialStatus);
 
   const checkTrialStatus = useCallback(async () => {
@@ -53,23 +51,6 @@ export function useTrialStatus() {
         status: 'active',
         planId: 'enterprise',
         planName: 'Platform Owner',
-      });
-      return;
-    }
-
-    // Platform admins are never blocked - they manage all tenants
-    if (isPlatformAdmin) {
-      setTrialStatus({
-        isLoading: false,
-        isTrialing: false,
-        isTrialExpired: false,
-        isActive: true,
-        isPaid: true,
-        daysRemaining: 0,
-        trialEndDate: null,
-        status: 'active',
-        planId: 'enterprise',
-        planName: 'Platform Admin',
       });
       return;
     }
@@ -147,7 +128,7 @@ export function useTrialStatus() {
       console.error('Trial status check error:', err);
       setTrialStatus(prev => ({ ...prev, isLoading: false }));
     }
-  }, [currentTenant?.id, isPlatformAdmin]);
+  }, [currentTenant?.id]);
 
   useEffect(() => {
     checkTrialStatus();
@@ -167,21 +148,12 @@ export function useTrialStatus() {
   const shouldBlockAccess = useCallback((): boolean => {
     // Don't block if still loading
     if (trialStatus.isLoading) return false;
-    // Don't block paid users with active subscription
-    if (trialStatus.isPaid && trialStatus.isActive) return false;
-    // Don't block active subscriptions (non-trial)
+    // Don't block paid users
+    if (trialStatus.isPaid) return false;
+    // Don't block active subscriptions
     if (trialStatus.isActive && !trialStatus.isTrialing) return false;
     // Block if trial expired
-    if (trialStatus.isTrialExpired) return true;
-    // Block if canceled or unpaid
-    if (trialStatus.status === 'canceled' || trialStatus.status === 'unpaid') return true;
-    // Block past_due after 7-day grace period
-    if (trialStatus.status === 'past_due') {
-      // Check if past_due for more than 7 days by looking at trialEndDate as proxy
-      // The webhook sets status to past_due, so we give 7 days grace
-      return true;
-    }
-    return false;
+    return trialStatus.isTrialExpired;
   }, [trialStatus]);
 
   return {

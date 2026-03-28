@@ -39,7 +39,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
   };
 
   const getCurrentStep = (): DomainStep => {
-    if (domain.dns_verified && (domain.ssl_active || sslStatus?.ssl_active)) return 'live';
+    if (domain.ssl_active || sslStatus?.ssl_active) return 'live';
     if (domain.dns_verified) return 'ssl-active';
     return 'domain-saved';
   };
@@ -130,9 +130,8 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
                   {/* Cloudflare auto-connect */}
                   {providerInfo.supports_auto_connect && (
                     <div className="p-3 rounded-md border border-primary/20 bg-primary/5 space-y-2">
-                      <p className="text-xs font-medium flex items-center justify-between">
-                        <span className="flex items-center gap-1"><Key className="h-3 w-3" /> Cloudflare automatisch koppelen</span>
-                        <a href="/admin/settings?section=documentation" className="text-xs text-primary hover:underline font-normal">Hoe werkt dit? →</a>
+                      <p className="text-xs font-medium flex items-center gap-1">
+                        <Key className="h-3 w-3" /> Cloudflare automatisch koppelen
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Voer je Cloudflare API Token in om DNS automatisch te configureren.
@@ -206,7 +205,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
 }
 
 function DomainStatusBadge({ domain, sslActive }: { domain: TenantDomain; sslActive?: boolean }) {
-  if (domain.dns_verified && (domain.ssl_active || sslActive)) {
+  if (domain.ssl_active || sslActive) {
     return (
       <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 gap-1">
         <ShieldCheck className="h-3 w-3" /> SSL actief

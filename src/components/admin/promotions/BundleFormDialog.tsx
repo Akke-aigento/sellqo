@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -15,7 +15,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,18 +27,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Package } from 'lucide-react';
 import { useCreateBundle, useUpdateBundle } from '@/hooks/useBundles';
-import { ProductMultiSelect } from './ProductMultiSelect';
 import type { ProductBundle, ProductBundleFormData } from '@/types/promotions';
-
-const bundleProductSchema = z.object({
-  product_id: z.string().min(1, 'Product is verplicht'),
-  quantity: z.coerce.number().min(1, 'Min. 1'),
-  is_required: z.boolean(),
-  allow_quantity_change: z.boolean(),
-  group_name: z.string().optional(),
-});
 
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
@@ -52,7 +41,6 @@ const formSchema = z.object({
   valid_until: z.string().optional(),
   min_items: z.coerce.number().min(1).optional(),
   max_items: z.coerce.number().min(1).optional(),
-  products: z.array(bundleProductSchema),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -85,13 +73,7 @@ export function BundleFormDialog({
       valid_until: '',
       min_items: 2,
       max_items: 5,
-      products: [],
     },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'products',
   });
 
   useEffect(() => {
@@ -107,13 +89,6 @@ export function BundleFormDialog({
         valid_until: bundle.valid_until || '',
         min_items: bundle.min_items || 2,
         max_items: bundle.max_items || 5,
-        products: bundle.products?.map((p) => ({
-          product_id: p.product_id,
-          quantity: p.quantity,
-          is_required: p.is_required,
-          allow_quantity_change: p.allow_quantity_change ?? false,
-          group_name: p.group_name || '',
-        })) || [],
       });
     } else {
       form.reset({
@@ -127,7 +102,6 @@ export function BundleFormDialog({
         valid_until: '',
         min_items: 2,
         max_items: 5,
-        products: [],
       });
     }
   }, [bundle, form]);
@@ -144,13 +118,12 @@ export function BundleFormDialog({
       valid_until: data.valid_until || undefined,
       min_items: data.min_items,
       max_items: data.max_items,
-      products: data.products.map((p) => ({
+      products: bundle?.products?.map(p => ({
         product_id: p.product_id,
         quantity: p.quantity,
         is_required: p.is_required,
-        allow_quantity_change: p.allow_quantity_change,
         group_name: p.group_name || undefined,
-      })),
+      })) || [],
     };
 
     if (isEditing && bundle) {
@@ -165,11 +138,9 @@ export function BundleFormDialog({
     }
   };
 
-  const bundleType = form.watch('bundle_type');
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Bundel Bewerken' : 'Nieuwe Bundel'}
@@ -199,7 +170,10 @@ export function BundleFormDialog({
                 <FormItem>
                   <FormLabel>Beschrijving</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Beschrijf de bundel..." {...field} />
+                    <Textarea
+                      placeholder="Beschrijf de bundel..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -213,7 +187,10 @@ export function BundleFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -235,7 +212,10 @@ export function BundleFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Korting type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -271,7 +251,7 @@ export function BundleFormDialog({
               )}
             />
 
-            {bundleType === 'mix_match' && (
+            {form.watch('bundle_type') === 'mix_match' && (
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -286,6 +266,7 @@ export function BundleFormDialog({
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="max_items"
@@ -302,157 +283,6 @@ export function BundleFormDialog({
               </div>
             )}
 
-            {/* Products section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <FormLabel className="text-base font-semibold">Producten in bundel</FormLabel>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    append({
-                      product_id: '',
-                      quantity: 1,
-                      is_required: true,
-                      allow_quantity_change: false,
-                      group_name: '',
-                    })
-                  }
-                >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Product toevoegen
-                </Button>
-              </div>
-
-              {fields.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 border border-dashed rounded-lg">
-                  <Package className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Nog geen producten toegevoegd
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      append({
-                        product_id: '',
-                        quantity: 1,
-                        is_required: true,
-                        allow_quantity_change: false,
-                        group_name: '',
-                      })
-                    }
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Product toevoegen
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {fields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="p-3 border rounded-lg space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <FormField
-                            control={form.control}
-                            name={`products.${index}.product_id`}
-                            render={({ field: f }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs">Product</FormLabel>
-                                <ProductMultiSelect
-                                  selectedIds={f.value ? [f.value] : []}
-                                  onChange={(ids) => f.onChange(ids[0] || '')}
-                                  singleSelect
-                                  placeholder="Selecteer product..."
-                                />
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="mt-6 shrink-0"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <FormField
-                          control={form.control}
-                          name={`products.${index}.quantity`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Kwantiteit</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="1" {...f} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        {bundleType === 'mix_match' && (
-                          <FormField
-                            control={form.control}
-                            name={`products.${index}.group_name`}
-                            render={({ field: f }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs">Groep</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="bv. Kies smaak" {...f} />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        <FormField
-                          control={form.control}
-                          name={`products.${index}.is_required`}
-                          render={({ field: f }) => (
-                            <FormItem className="flex flex-col justify-end">
-                              <FormLabel className="text-xs">Verplicht</FormLabel>
-                              <div className="flex items-center h-9">
-                                <Switch
-                                  checked={f.value}
-                                  onCheckedChange={f.onChange}
-                                />
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`products.${index}.allow_quantity_change`}
-                          render={({ field: f }) => (
-                            <FormItem className="flex flex-col justify-end">
-                              <FormLabel className="text-xs">Klant past aan</FormLabel>
-                              <div className="flex items-center h-9">
-                                <Switch
-                                  checked={f.value}
-                                  onCheckedChange={f.onChange}
-                                />
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -467,6 +297,7 @@ export function BundleFormDialog({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="valid_until"

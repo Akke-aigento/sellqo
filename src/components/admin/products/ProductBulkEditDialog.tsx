@@ -65,9 +65,6 @@ export function ProductBulkEditDialog({
       setState({});
       setEnabledFields(new Set());
       onOpenChange(false);
-    } catch (e: any) {
-      // Dialog blijft open bij fouten — toast wordt al getoond door handleBulkEdit
-      console.error('Bulk edit error:', e);
     } finally {
       setIsApplying(false);
     }
@@ -90,7 +87,7 @@ export function ProductBulkEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col min-h-0 overflow-visible">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Bulk bewerking</DialogTitle>
           <DialogDescription>
@@ -98,7 +95,7 @@ export function ProductBulkEditDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="basis">Basis</TabsTrigger>
             <TabsTrigger value="prijzen">Prijzen</TabsTrigger>
@@ -109,7 +106,7 @@ export function ProductBulkEditDialog({
             <TabsTrigger value="specs">Specs</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto mt-4 pr-2 min-h-0">
+          <div className="flex-1 overflow-y-auto mt-4 pr-2">
             <TabsContent value="basis" className="mt-0">
               <BulkBasicTab {...tabProps} />
             </TabsContent>

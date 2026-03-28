@@ -27,42 +27,13 @@ export function useCategories() {
   });
 
   const createCategory = useMutation({
-    mutationFn: async (formData: CategoryFormData) => {
+    mutationFn: async (data: CategoryFormData) => {
       if (!currentTenant) throw new Error('No tenant selected');
-
-      let slug = formData.slug;
-
-      // Check if slug already exists for this tenant
-      const { data: existing } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('tenant_id', currentTenant.id)
-        .eq('slug', slug)
-        .maybeSingle();
-
-      if (existing) {
-        // Find available slug with suffix
-        let suffix = 2;
-        let newSlug = `${slug}-${suffix}`;
-        while (suffix < 100) {
-          const { data: check } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('tenant_id', currentTenant.id)
-            .eq('slug', newSlug)
-            .maybeSingle();
-          if (!check) break;
-          suffix++;
-          newSlug = `${slug}-${suffix}`;
-        }
-        slug = newSlug;
-      }
 
       const { data: category, error } = await supabase
         .from('categories')
         .insert({
-          ...formData,
-          slug,
+          ...data,
           tenant_id: currentTenant.id,
         })
         .select()
@@ -76,10 +47,7 @@ export function useCategories() {
       toast({ title: 'Categorie aangemaakt', description: 'De categorie is succesvol toegevoegd.' });
     },
     onError: (error: Error) => {
-      const msg = error.message?.includes('23505')
-        ? 'Er bestaat al een categorie met deze slug. Kies een andere naam of slug.'
-        : error.message;
-      toast({ title: 'Fout', description: msg, variant: 'destructive' });
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -115,15 +83,10 @@ export function useCategories() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['product-categories'] });
       toast({ title: 'Categorie verwijderd' });
     },
     onError: (error: Error) => {
-      const msg = error.message?.includes('23505')
-        ? 'Kan niet verwijderen: er bestaat al een categorie met dezelfde slug.'
-        : error.message;
-      toast({ title: 'Fout', description: msg, variant: 'destructive' });
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -201,8 +164,6 @@ export function useCategories() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', currentTenant?.id] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['product-categories'] });
       toast({ title: 'Categorieën verwijderd' });
     },
     onError: (error: Error) => {

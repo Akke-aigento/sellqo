@@ -8,4 +8,3 @@ export { LowStockWidget } from './LowStockWidget';
 export { ShopHealthWidget } from './ShopHealthWidget';
 export { TodayWidget } from './TodayWidget';
 export { BadgesWidget } from './BadgesWidget';
-export { CustomerHealthWidget } from './CustomerHealthWidget';

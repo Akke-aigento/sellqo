@@ -304,23 +304,13 @@ serve(async (req) => {
       }
     }
 
-    // Update invoice: set sent_at, only change status if not already 'paid'
-    const { data: currentInvoice } = await supabaseClient
-      .from("invoices")
-      .select("status")
-      .eq("id", invoice_id)
-      .single();
-
-    const updateData: Record<string, any> = {
-      sent_at: new Date().toISOString(),
-    };
-    if (currentInvoice?.status !== 'paid') {
-      updateData.status = 'sent';
-    }
-
+    // Update invoice status to sent
     await supabaseClient
       .from("invoices")
-      .update(updateData)
+      .update({
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+      })
       .eq("id", invoice_id);
 
     return new Response(JSON.stringify({ 

@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram, Pin, Clock } from 'lucide-react';
+import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Conversation, ConversationChannel } from '@/hooks/useInbox';
@@ -12,9 +12,8 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({ conversation, isSelected, onClick }: ConversationItemProps) {
-  const { customer, lastMessage, unreadCount, channel, isPinned, snoozedUntil } = conversation;
+  const { customer, lastMessage, unreadCount, channel } = conversation;
   const isUnread = unreadCount > 0;
-  const isSnoozed = snoozedUntil && new Date(snoozedUntil) > new Date();
   const isReplied = lastMessage.direction === 'inbound' && lastMessage.replied_at;
   
   // Check for marketplace source
@@ -106,15 +105,6 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
             )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-            {isPinned && <Pin className="h-3 w-3 text-primary" />}
-            {isSnoozed && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Clock className="h-3 w-3 text-amber-500" />
-                </TooltipTrigger>
-                <TooltipContent>Gesnoozed</TooltipContent>
-              </Tooltip>
-            )}
             <span>
               {formatDistanceToNow(new Date(lastMessage.created_at), {
                 addSuffix: false,

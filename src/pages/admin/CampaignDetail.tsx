@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useIsCompact } from '@/hooks/use-mobile';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, Mail, MousePointerClick, Users, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,6 @@ import { nl } from 'date-fns/locale';
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isCompact = useIsCompact();
   const { campaign, isLoading: campaignLoading } = useEmailCampaign(id);
   const { sends, isLoading: sendsLoading } = useCampaignSends(id);
   const { linkClicks, hourlyStats, isLoading: analyticsLoading } = useCampaignAnalytics(id);
@@ -278,57 +276,27 @@ export default function CampaignDetailPage() {
                   <p>Nog geen ontvangers</p>
                 </div>
               ) : (
-                isCompact ? (
-                  <div className="space-y-2 px-3 sm:px-0">
-                    {sends.map((send) => (
-                      <div key={send.id} className="rounded-lg border bg-card p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-sm truncate">{send.email}</span>
-                          <RecipientStatusBadge status={send.status} />
-                        </div>
-                        {send.customer_name && (
-                          <div className="mt-0.5 text-xs text-muted-foreground">{send.customer_name}</div>
-                        )}
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          {send.sent_at && <span>Verzonden: {format(new Date(send.sent_at), 'dd/MM HH:mm')}</span>}
-                          {send.opened_at && (
-                            <span className="text-green-600 flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Geopend
-                            </span>
-                          )}
-                          {send.clicked_at && (
-                            <span className="text-orange-600 flex items-center gap-1">
-                              <MousePointerClick className="h-3 w-3" />
-                              Geklikt
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
                 <div className="min-w-[650px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
-                      <TableHead>Naam</TableHead>
+                      <TableHead className="hidden sm:table-cell">Naam</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Geopend</TableHead>
-                      <TableHead>Geklikt</TableHead>
-                      <TableHead>Verzonden</TableHead>
+                      <TableHead className="hidden md:table-cell">Geopend</TableHead>
+                      <TableHead className="hidden md:table-cell">Geklikt</TableHead>
+                      <TableHead className="hidden sm:table-cell">Verzonden</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sends.map((send) => (
                       <TableRow key={send.id}>
                         <TableCell className="font-mono text-sm">{send.email}</TableCell>
-                        <TableCell>{send.customer_name || '-'}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{send.customer_name || '-'}</TableCell>
                         <TableCell>
                           <RecipientStatusBadge status={send.status} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {send.opened_at ? (
                             <span className="text-green-600 flex items-center gap-1">
                               <CheckCircle2 className="h-3 w-3" />
@@ -338,7 +306,7 @@ export default function CampaignDetailPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {send.clicked_at ? (
                             <span className="text-orange-600 flex items-center gap-1">
                               <MousePointerClick className="h-3 w-3" />
@@ -348,7 +316,7 @@ export default function CampaignDetailPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                           {send.sent_at ? format(new Date(send.sent_at), 'dd/MM HH:mm') : '-'}
                         </TableCell>
                       </TableRow>
@@ -356,7 +324,6 @@ export default function CampaignDetailPage() {
                   </TableBody>
                 </Table>
                 </div>
-                )
               )}
             </CardContent>
           </Card>

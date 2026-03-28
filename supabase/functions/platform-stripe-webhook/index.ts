@@ -269,40 +269,10 @@ serve(async (req) => {
           .update({
             last_payment_date: new Date().toISOString(),
             last_payment_amount: (invoice.amount_paid || 0) / 100,
-            status: "active",
           })
           .eq("tenant_id", tenant.id);
 
-        // Update tenant status back to active (in case it was past_due)
-        await supabase
-          .from("tenants")
-          .update({ subscription_status: "active" })
-          .eq("id", tenant.id);
-
-        // Send invoice paid notification email
-        const invoiceAmount = formatAmount(invoice.amount_paid || 0, invoice.currency || 'eur');
-        await supabase.functions.invoke("create-notification", {
-          body: {
-            tenant_id: tenant.id,
-            category: "billing",
-            type: "invoice_paid",
-            title: `Factuur betaald: ${invoiceAmount}`,
-            message: invoice.invoice_pdf 
-              ? `Je factuur ${invoice.number || ''} van ${invoiceAmount} is betaald. [Bekijk factuur](${invoice.invoice_pdf})`
-              : `Je factuur ${invoice.number || ''} van ${invoiceAmount} is succesvol betaald.`,
-            priority: "low",
-            action_url: "/admin/settings?tab=subscription",
-            data: {
-              invoice_id: invoice.id,
-              invoice_number: invoice.number,
-              amount: (invoice.amount_paid || 0) / 100,
-              invoice_pdf_url: invoice.invoice_pdf,
-            },
-            skip_in_app: true,
-          },
-        });
-
-        logStep("Invoice saved + email sent", { invoiceId: invoice.id, tenantId: tenant.id });
+        logStep("Invoice saved", { invoiceId: invoice.id, tenantId: tenant.id });
         break;
       }
 
@@ -334,26 +304,8 @@ serve(async (req) => {
           .update({ subscription_status: "past_due" })
           .eq("id", tenant.id);
 
-        // Send payment failed email
-        const failedAmount = formatAmount(invoice.amount_due || 0, invoice.currency || 'eur');
-        await supabase.functions.invoke("create-notification", {
-          body: {
-            tenant_id: tenant.id,
-            category: "billing",
-            type: "payment_failed",
-            title: `Betaling mislukt: ${failedAmount}`,
-            message: `Je betaling van ${failedAmount} kon niet worden verwerkt. Update je betaalmethode om je abonnement actief te houden.`,
-            priority: "urgent",
-            action_url: "/admin/settings?tab=subscription",
-            data: {
-              invoice_id: invoice.id,
-              amount: (invoice.amount_due || 0) / 100,
-            },
-            skip_in_app: true,
-          },
-        });
-
-        logStep("Payment failed notification sent", { tenantId: tenant.id, email: tenant.owner_email });
+        // TODO: Send payment failed email via Resend
+        logStep("Payment failed notification pending", { email: tenant.owner_email });
         break;
       }
 
@@ -373,27 +325,8 @@ serve(async (req) => {
           .eq("id", tenantId)
           .single();
 
-        // Send trial ending email
-        if (tenant) {
-          await supabase.functions.invoke("create-notification", {
-            body: {
-              tenant_id: tenantId,
-              category: "billing",
-              type: "trial_ending",
-              title: "Je trial verloopt over 3 dagen",
-              message: `Hoi ${tenant.name || ''}! Je proefperiode verloopt binnenkort. Kies een plan om zonder onderbreking door te gaan met verkopen.`,
-              priority: "high",
-              action_url: "/admin/settings?tab=subscription",
-              data: {
-                trial_end: subscription.trial_end 
-                  ? new Date(subscription.trial_end * 1000).toISOString()
-                  : null,
-              },
-              skip_in_app: true,
-            },
-          });
-          logStep("Trial ending email sent", { tenantId, email: tenant.owner_email });
-        }
+        logStep("Trial ending soon", { tenantId, email: tenant?.owner_email });
+        // TODO: Send trial ending email via Resend
         break;
       }
 

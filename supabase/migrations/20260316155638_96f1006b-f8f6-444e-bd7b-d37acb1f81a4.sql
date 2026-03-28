@@ -1,1 +1,0 @@
-ALTER TABLE public.bundle_products ADD COLUMN IF NOT EXISTS allow_quantity_change boolean NOT NULL DEFAULT false;

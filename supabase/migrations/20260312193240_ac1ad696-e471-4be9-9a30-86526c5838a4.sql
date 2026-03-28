@@ -1,1 +1,0 @@
-ALTER TABLE public.storefront_cart_items ADD COLUMN gift_card_metadata jsonb DEFAULT NULL;

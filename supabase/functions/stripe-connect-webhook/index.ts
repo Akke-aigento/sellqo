@@ -307,21 +307,15 @@ serve(async (req) => {
           }
         }
 
-        // Update stock for each order item (variant-level if applicable, skip gift cards)
+        // Update stock for each order item
         const { data: orderItems } = await supabaseClient
           .from("order_items")
-          .select("product_id, quantity, variant_id, gift_card_metadata")
+          .select("product_id, quantity")
           .eq("order_id", orderId);
 
         if (orderItems) {
           for (const item of orderItems) {
-            if (item.gift_card_metadata) continue; // Skip gift card items
-            if (item.variant_id) {
-              await supabaseClient.rpc("decrement_variant_stock", {
-                p_variant_id: item.variant_id,
-                p_quantity: item.quantity,
-              });
-            } else if (item.product_id) {
+            if (item.product_id) {
               await supabaseClient.rpc("decrement_stock", {
                 p_product_id: item.product_id,
                 p_quantity: item.quantity,
@@ -329,76 +323,6 @@ serve(async (req) => {
             }
           }
           logStep("Stock updated for order items");
-        }
-
-        // Clear the cart (was deferred from checkout for Stripe payments)
-        const cartId = session.metadata?.cart_id;
-        if (cartId) {
-          await supabaseClient.from("storefront_cart_items").delete().eq("cart_id", cartId);
-          await supabaseClient.from("storefront_carts").delete().eq("id", cartId);
-          logStep("Cart cleared", { cartId });
-        }
-
-        // Register discount code usage (was deferred from checkout for Stripe payments)
-        const { data: orderForDiscount } = await supabaseClient
-          .from("orders")
-          .select("discount_code, discount_amount, customer_email")
-          .eq("id", orderId)
-          .single();
-
-        if (orderForDiscount?.discount_code && orderForDiscount?.discount_amount > 0) {
-          const { data: dcLookup } = await supabaseClient
-            .from("discount_codes")
-            .select("id, usage_count")
-            .eq("tenant_id", orderData.tenant_id)
-            .eq("code", orderForDiscount.discount_code)
-            .maybeSingle();
-
-          if (dcLookup) {
-            await supabaseClient.from("discount_code_usage").insert({
-              discount_code_id: dcLookup.id,
-              order_id: orderId,
-              customer_email: orderForDiscount.customer_email,
-              discount_amount: orderForDiscount.discount_amount,
-            });
-            await supabaseClient
-              .from("discount_codes")
-              .update({ usage_count: (dcLookup.usage_count || 0) + 1 })
-              .eq("id", dcLookup.id);
-            logStep("Discount code usage registered", { code: orderForDiscount.discount_code });
-          }
-        }
-
-        // Process gift card items (was deferred from checkout for Stripe payments)
-        if (orderItems) {
-          const giftCardOrderItems = orderItems.filter((item: any) => item.gift_card_metadata);
-          if (giftCardOrderItems.length > 0) {
-            try {
-              const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-              await fetch(`${supabaseUrl}/functions/v1/process-gift-card-order`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                },
-                body: JSON.stringify({
-                  order_id: orderId,
-                  tenant_id: orderData.tenant_id,
-                  items: giftCardOrderItems.map((item: any) => ({
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    gift_card_metadata: item.gift_card_metadata,
-                  })),
-                }),
-              });
-              logStep("Gift card processing triggered");
-            } catch (gcError) {
-              logStep("Gift card processing error (non-blocking)", {
-                error: gcError instanceof Error ? gcError.message : String(gcError),
-              });
-            }
-          }
         }
 
         // Generate invoice after successful payment

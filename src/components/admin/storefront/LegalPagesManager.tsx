@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Shield, 
   FileText, 
@@ -19,14 +18,10 @@ import {
   RefreshCw,
   Sparkles,
   AlertCircle,
-  Loader2,
 } from "lucide-react";
 import { useLegalPages } from "@/hooks/useLegalPages";
-import { useTenant } from "@/hooks/useTenant";
 import { LEGAL_PAGE_TYPES, LegalPageType, SUPPORTED_LANGUAGES } from "@/types/legal-pages";
 import { LegalPageEditor } from "./LegalPageEditor";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const iconMap: Record<string, React.ReactNode> = {
   Shield: <Shield className="h-5 w-5" />,
@@ -42,7 +37,6 @@ export function LegalPagesManager() {
   const { 
     legalPages, 
     isLoading, 
-    refetch,
     initializeLegalPages, 
     updateLegalPage,
     getMissingPages,
@@ -50,60 +44,9 @@ export function LegalPagesManager() {
     isCreating,
   } = useLegalPages();
   
-  const { currentTenant } = useTenant();
-  
   const [editingPageType, setEditingPageType] = useState<LegalPageType | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{ missingFields: string[]; missingFieldsByPage: Record<string, string[]> } | null>(null);
   
   const missingPages = getMissingPages();
-
-  const handleGenerateWithAI = async () => {
-    if (!currentTenant?.id) return;
-    setIsGenerating(true);
-    setValidationErrors(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-legal-pages', {
-        body: { tenant_id: currentTenant.id },
-      });
-
-      if (error) {
-        // Try to parse body for structured error
-        const body = typeof error === 'object' && 'message' in error ? error.message : String(error);
-        toast.error(`Fout: ${body}`);
-        return;
-      }
-
-      if (data?.error === 'missing_fields') {
-        setValidationErrors({
-          missingFields: data.missingFields || [],
-          missingFieldsByPage: data.missingFieldsByPage || {},
-        });
-        return;
-      }
-
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      await refetch();
-      const msg = `${data.created || 0} aangemaakt, ${data.updated || 0} bijgewerkt`;
-      toast.success(`Pagina's gegenereerd! ${msg}`);
-
-      if (data.skipped && Object.keys(data.skipped).length > 0) {
-        setValidationErrors({
-          missingFields: [...new Set(Object.values(data.skipped as Record<string, string[]>).flat())],
-          missingFieldsByPage: data.skipped,
-        });
-      }
-    } catch (err: any) {
-      toast.error(`Fout bij genereren: ${err.message || 'Onbekende fout'}`);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -145,55 +88,19 @@ export function LegalPagesManager() {
                 Beheer je wettelijk verplichte pagina's. Deze worden automatisch in de footer van je webshop getoond.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            {missingPages.length > 0 && (
               <Button 
-                onClick={handleGenerateWithAI}
-                disabled={isGenerating}
-                variant="default"
+                onClick={initializeLegalPages}
+                disabled={isCreating}
+                variant="outline"
               >
-                {isGenerating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                {isGenerating ? 'Genereren...' : 'Genereer met AI'}
+                <Plus className="h-4 w-4 mr-2" />
+                Ontbrekende pagina's aanmaken ({missingPages.length})
               </Button>
-              {missingPages.length > 0 && (
-                <Button 
-                  onClick={initializeLegalPages}
-                  disabled={isCreating}
-                  variant="outline"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ontbrekende aanmaken ({missingPages.length})
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {validationErrors && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Ontbrekende bedrijfsgegevens</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">Vul eerst de volgende gegevens in bij <a href="/admin/settings" className="underline font-medium">Instellingen</a>:</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  {validationErrors.missingFields.map(field => (
-                    <li key={field} className="text-sm">{field}</li>
-                  ))}
-                </ul>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="mt-2 -ml-2"
-                  onClick={() => setValidationErrors(null)}
-                >
-                  Sluiten
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+        <CardContent>
           {legalPages.length === 0 ? (
             <div className="text-center py-8 bg-muted/30 rounded-lg">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

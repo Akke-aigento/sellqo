@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2, ChevronRight, RotateCcw } from 'lucide-react';
-import { useIsCompact } from '@/hooks/use-mobile';
+import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
 import { useTenant } from '@/hooks/useTenant';
-import { useBulkSelection } from '@/contexts/BulkSelectionContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,76 +17,18 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderSt
 import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
-import { ReturnsOverview } from '@/components/admin/ReturnsOverview';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 
 export default function OrdersPage() {
-  const isCompact = useIsCompact();
   const navigate = useNavigate();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
-  const { setSelectedCount, setBulkActions, clearBulk } = useBulkSelection();
   
   // Batch selection state
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
-
-  // Sync selection count to BulkSelectionContext for dynamic footer
-  useEffect(() => {
-    setSelectedCount(selectedOrderIds.length);
-    if (selectedOrderIds.length > 0) {
-      setBulkActions([
-        {
-          label: 'Verzonden',
-          icon: <Truck className="h-5 w-5" />,
-          primary: true,
-          onClick: () => {
-            selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'shipped' }));
-            setSelectedOrderIds([]);
-          },
-        },
-        {
-          label: 'Afgeleverd',
-          icon: <CheckCircle className="h-5 w-5" />,
-          primary: true,
-          onClick: () => {
-            selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'delivered' }));
-            setSelectedOrderIds([]);
-          },
-        },
-        {
-          label: 'Annuleren',
-          icon: <XCircle className="h-4 w-4" />,
-          variant: 'destructive' as const,
-          primary: false,
-          onClick: () => {
-            selectedOrderIds.forEach(id => updateOrderStatus.mutate({ orderId: id, status: 'cancelled' }));
-            setSelectedOrderIds([]);
-          },
-        },
-        {
-          label: 'Verwijderen',
-          icon: <Trash2 className="h-4 w-4" />,
-          variant: 'destructive' as const,
-          primary: false,
-          onClick: () => {
-            selectedOrderIds.forEach(id => deleteOrder.mutate(id));
-            setSelectedOrderIds([]);
-          },
-        },
-      ]);
-    } else {
-      setBulkActions([]);
-    }
-  }, [selectedOrderIds, setSelectedCount, setBulkActions, updateOrderStatus]);
-
-  // Clear bulk on unmount
-  useEffect(() => {
-    return () => clearBulk();
-  }, [clearBulk]);
 
   const handleDeleteOrder = (order: Order) => {
     setOrderToDelete(order);
@@ -161,19 +101,6 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="orders" className="w-full">
-        <TabsList>
-          <TabsTrigger value="orders" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Bestellingen
-          </TabsTrigger>
-          <TabsTrigger value="returns" className="flex items-center gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Retouren
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="orders" className="space-y-6">
       {/* Filters */}
       <OrderFilters filters={filters} onFiltersChange={setFilters} />
 
@@ -186,7 +113,7 @@ export default function OrdersPage() {
       />
 
       {/* Orders Table */}
-      <Card className={selectedOrderIds.length > 0 ? 'pb-20' : ''}>
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
@@ -252,29 +179,9 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
             </div>
-            )
           )}
         </CardContent>
       </Card>
-        </TabsContent>
-
-        <TabsContent value="returns">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <RotateCcw className="h-4 w-4" />
-                Alle retouren
-              </CardTitle>
-              <CardDescription>
-                Retouren van alle kanalen (webshop, marktplaatsen, POS)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ReturnsOverview />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -332,7 +239,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <div className="text-sm text-muted-foreground truncate">{order.customer_email}</div>
       </TableCell>
       <TableCell className="hidden lg:table-cell" onClick={onView}>
-        <OrderMarketplaceBadge source={order.marketplace_source} salesChannel={order.sales_channel} />
+        <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
       <TableCell onClick={onView}>
         <OrderStatusBadge status={order.status} />

@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { OrderStatus, PaymentStatus, MarketplaceSource, SalesChannel, OrderFilters as OrderFiltersType } from '@/types/order';
+import type { OrderStatus, PaymentStatus, MarketplaceSource, OrderFilters as OrderFiltersType } from '@/types/order';
 
 interface OrderFiltersProps {
   filters: OrderFiltersType;
@@ -10,7 +10,7 @@ interface OrderFiltersProps {
 }
 
 export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
-  const hasFilters = filters.status || filters.payment_status || filters.search || filters.marketplace_source || filters.sales_channel;
+  const hasFilters = filters.status || filters.payment_status || filters.search || filters.marketplace_source;
 
   const clearFilters = () => {
     onFiltersChange({});
@@ -29,21 +29,20 @@ export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
         />
       </div>
 
-      {/* Sales Channel Filter */}
+      {/* Marketplace Source Filter */}
       <Select
-        value={filters.sales_channel || 'all'}
+        value={filters.marketplace_source || 'all'}
         onValueChange={(value) => onFiltersChange({ 
           ...filters, 
-          sales_channel: value === 'all' ? undefined : value as SalesChannel 
+          marketplace_source: value === 'all' ? undefined : value as MarketplaceSource 
         })}
       >
-        <SelectTrigger className="w-full sm:w-[160px]">
-          <SelectValue placeholder="Verkoopkanaal" />
+        <SelectTrigger className="w-full sm:w-[140px]">
+          <SelectValue placeholder="Bron" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Alle kanalen</SelectItem>
-          <SelectItem value="webshop">Webshop</SelectItem>
-          <SelectItem value="pos">POS / Kassa</SelectItem>
+          <SelectItem value="all">Alle bronnen</SelectItem>
+          <SelectItem value="sellqo_webshop">SellQo Webshop</SelectItem>
           <SelectItem value="bol_com">Bol.com</SelectItem>
           <SelectItem value="amazon">Amazon</SelectItem>
         </SelectContent>

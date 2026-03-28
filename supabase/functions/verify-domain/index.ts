@@ -146,20 +146,6 @@ Deno.serve(async (req) => {
         result.error = 'DNS nog niet gevonden';
         result.error_details = 'De DNS records zijn nog niet gepropageerd. Dit kan tot 48 uur duren. Probeer het later opnieuw.';
       }
-
-      // Add specific TXT mismatch info when A is OK but TXT fails
-      if (aRecordValid && !txtRecordValid) {
-        const currentTxt = txtRecords.length > 0 ? txtRecords[0] : null;
-        if (currentTxt) {
-          result.error_type = result.error_type || 'unknown';
-          result.error = 'TXT verificatie mislukt';
-          result.error_details = `Het _sellqo TXT record bevat "${currentTxt}" maar verwacht wordt "${expectedTxtValue}". Verwijder het oude record en voeg het juiste toe, of gebruik de automatische koppeling.`;
-        } else {
-          result.error_type = result.error_type || 'not_propagated';
-          result.error = result.error || 'TXT record niet gevonden';
-          result.error_details = result.error_details || `Het _sellqo TXT record is nog niet gevonden. Voeg een TXT record toe met naam "_sellqo" en waarde "${expectedTxtValue}".`;
-        }
-      }
     }
 
     // Update verification status

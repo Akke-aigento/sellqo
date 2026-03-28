@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram, StickyNote } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,9 +10,6 @@ import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionBox } from './AISuggestionBox';
 import { AttachmentUploader } from './AttachmentUploader';
-import { TemplatePicker } from './TemplatePicker';
-import { ComposeRichEditor, type ComposeRichEditorRef } from './ComposeRichEditor';
-import { useEmailSignatures } from '@/hooks/useEmailSignature';
 import type { Conversation, MessageChannel, isSocialChannel } from '@/hooks/useInbox';
 
 type ReplyChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
@@ -29,23 +24,12 @@ interface ReplyComposerProps {
   onSent: () => void;
 }
 
-function stripHtml(html: string): string {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || div.innerText || '';
-}
-
 export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<ComposeRichEditorRef>(null);
   const [message, setMessage] = useState('');
-  const [isNoteMode, setIsNoteMode] = useState(false);
-  const [signatureAppended, setSignatureAppended] = useState(false);
-
-  const { defaultSignature } = useEmailSignatures();
-
+  
   // Determine initial channel based on conversation
   const getInitialChannel = (): ReplyChannel => {
     const ch = conversation.channel;
@@ -58,23 +42,6 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const [channel, setChannel] = useState<ReplyChannel>(getInitialChannel());
   const [isSending, setIsSending] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
-
-  const isEmailChannel = channel === 'email';
-
-  // Auto-append signature for email channel
-  useEffect(() => {
-    if (isEmailChannel && defaultSignature && !signatureAppended && !message) {
-      const sigHtml = `<p></p><p>--</p>${defaultSignature.body_html}`;
-      setMessage(sigHtml);
-      setSignatureAppended(true);
-    }
-  }, [isEmailChannel, defaultSignature, signatureAppended, message]);
-
-  // Reset signature flag when conversation changes
-  useEffect(() => {
-    setSignatureAppended(false);
-    setMessage('');
-  }, [conversation.id]);
 
   // AI Suggestion integration
   const { config: aiConfig } = useAIAssistant();
@@ -90,6 +57,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   const canSendWhatsApp = conversation.customer?.phone && currentTenant?.whatsapp_enabled;
   const canSendEmail = !!conversation.customer?.email;
   
+  // Check for Meta messaging - based on conversation channel or customer IDs
   const canSendFacebook = conversation.channel === 'facebook' || 
     (conversation.lastMessage?.meta_sender_id && conversation.lastMessage?.channel === 'facebook');
   const canSendInstagram = conversation.channel === 'instagram' || 
@@ -97,15 +65,18 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   
   const hasMultipleChannels = [canSendEmail, canSendWhatsApp, canSendFacebook, canSendInstagram].filter(Boolean).length > 1;
 
+  // Check if AI suggestions are enabled for this channel
   const shouldShowAISuggestion = aiConfig?.reply_suggestions_enabled && (
     (channel === 'email' && aiConfig.reply_suggestions_for_email) ||
     (['whatsapp', 'facebook', 'instagram'].includes(channel) && aiConfig.reply_suggestions_for_whatsapp)
   );
 
+  // Get the last inbound message ID for caching
   const lastInboundMessage = conversation.lastMessage?.direction === 'inbound' 
     ? conversation.lastMessage 
     : null;
 
+  // Load cached suggestion or auto-fetch when conversation changes
   useEffect(() => {
     if (!shouldShowAISuggestion || !lastInboundMessage) return;
     
@@ -114,7 +85,9 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     
     if (!messageContent) return;
 
+    // First try to load cached suggestion (per message, not per conversation)
     loadCachedSuggestion(messageId).then((cached) => {
+      // If no cache and auto-generate is enabled, fetch new suggestion
       if (!cached && aiConfig?.reply_suggestions_auto_generate) {
         fetchSuggestion({
           conversationId: conversation.id,
@@ -131,6 +104,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     });
   }, [conversation.id, lastInboundMessage?.id, shouldShowAISuggestion, aiConfig?.reply_suggestions_auto_generate]);
 
+  // Auto-fill suggestion if auto_draft is enabled
   useEffect(() => {
     if (suggestion && aiConfig?.reply_suggestions_auto_draft && !message) {
       setMessage(suggestion);
@@ -140,22 +114,14 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
 
   const handleAcceptSuggestion = () => {
     if (suggestion) {
-      if (isEmailChannel && editorRef.current) {
-        editorRef.current.insertContent(suggestion);
-      } else {
-        setMessage(suggestion);
-      }
+      setMessage(suggestion);
       clearSuggestion();
     }
   };
 
   const handleEditSuggestion = () => {
     if (suggestion) {
-      if (isEmailChannel && editorRef.current) {
-        editorRef.current.insertContent(suggestion);
-      } else {
-        setMessage(suggestion);
-      }
+      setMessage(suggestion);
       clearSuggestion();
     }
   };
@@ -218,92 +184,37 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     });
   };
 
-  const getMessageContent = () => {
-    if (isEmailChannel) {
-      return { html: message, text: stripHtml(message) };
-    }
-    return { html: message.trim().replace(/\n/g, '<br>'), text: message.trim() };
-  };
-
-  const isMessageEmpty = () => {
-    if (isEmailChannel) {
-      const text = stripHtml(message).trim();
-      // If only signature remains, treat as empty
-      const sigText = defaultSignature ? stripHtml(`--${defaultSignature.body_html}`).trim() : '';
-      return !text || text === sigText || text === '--';
-    }
-    return !message.trim();
-  };
-
   const handleSend = async () => {
-    if (isMessageEmpty() || !currentTenant?.id) return;
-
-    // Handle internal note
-    if (isNoteMode) {
-      setIsSending(true);
-      try {
-        const { html, text } = getMessageContent();
-        const { error } = await supabase
-          .from('customer_messages')
-          .insert({
-            tenant_id: currentTenant.id,
-            direction: 'internal',
-            subject: conversation.lastMessage.subject || 'Interne notitie',
-            body_html: html,
-            body_text: text,
-            from_email: 'system',
-            to_email: 'internal',
-            channel: conversation.channel === 'mixed' || conversation.channel === 'social' ? 'email' : conversation.channel,
-            delivery_status: 'sent',
-            message_status: conversation.messageStatus || 'active',
-            customer_id: conversation.customer?.id || null,
-            order_id: conversation.lastMessage.order_id || null,
-            folder_id: conversation.folderId || null,
-          });
-        if (error) throw error;
-        toast({ title: 'Notitie toegevoegd', description: 'Interne notitie is opgeslagen.' });
-        setMessage('');
-        setSignatureAppended(false);
-        setIsNoteMode(false);
-        onSent();
-      } catch (error) {
-        console.error('Error saving note:', error);
-        toast({ title: 'Fout', description: 'Kon notitie niet opslaan.', variant: 'destructive' });
-      } finally {
-        setIsSending(false);
-      }
-      return;
-    }
+    if (!message.trim() || !currentTenant?.id) return;
 
     setIsSending(true);
     try {
-      const { html, text } = getMessageContent();
-
       if (channel === 'whatsapp') {
         const { error } = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
             tenant_id: currentTenant.id,
             customer_id: conversation.customer?.id,
             to_phone: conversation.customer?.phone,
-            message: text,
+            message: message.trim(),
             template_type: 'custom',
           },
         });
         if (error) throw error;
       } else if (channel === 'facebook' || channel === 'instagram') {
+        // Send via Meta Messaging (Facebook/Instagram)
         const { error } = await supabase.functions.invoke('send-meta-message', {
           body: {
             tenant_id: currentTenant.id,
             platform: channel,
             recipient_id: conversation.lastMessage?.meta_sender_id,
             page_id: conversation.lastMessage?.meta_page_id,
-            message: text,
+            message: message.trim(),
             customer_id: conversation.customer?.id,
           },
         });
         if (error) throw error;
       } else {
-        // Email
+        // Get threading headers from the last inbound message
         const conversationMessages = conversation.messages || [];
         const lastInbound = conversationMessages.find(m => m.direction === 'inbound');
         const contextData = (lastInbound as any)?.context_data || {};
@@ -312,14 +223,15 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           ? `${contextData.references} ${inReplyTo || ''}`.trim()
           : inReplyTo || null;
 
+        // Send via email
         const { error } = await supabase.functions.invoke('send-customer-message', {
           body: {
             tenant_id: currentTenant.id,
             customer_email: conversation.replyToEmail || conversation.customer?.email,
             customer_name: conversation.customer?.name,
             subject: `Re: ${conversation.lastMessage.subject || 'Uw bericht'}`,
-            body_html: html,
-            body_text: text,
+            body_html: message.trim().replace(/\n/g, '<br>'),
+            body_text: message.trim(),
             context_type: 'general',
             customer_id: conversation.customer?.id,
             in_reply_to: inReplyTo,
@@ -338,7 +250,9 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       if (lastInboundToMark) {
         await supabase
           .from('customer_messages')
-          .update({ replied_at: new Date().toISOString() })
+          .update({ 
+            replied_at: new Date().toISOString(),
+          })
           .eq('id', lastInboundToMark.id);
       }
 
@@ -355,7 +269,6 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       });
 
       setMessage('');
-      setSignatureAppended(false);
       setAttachments([]);
       clearSuggestion();
       onSent();
@@ -371,16 +284,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     }
   };
 
-  const handleTemplateSelect = (body: string) => {
-    if (isEmailChannel && editorRef.current) {
-      editorRef.current.insertContent(body);
-    } else {
-      setMessage(prev => prev ? prev + '\n' + body : body);
-    }
-  };
-
   return (
-    <div className={cn('border-t p-4', isNoteMode ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-background')}>
+    <div className="border-t p-4 bg-background">
       {/* Channel selector */}
       {hasMultipleChannels && (
         <Tabs value={channel} onValueChange={(v) => setChannel(v as ReplyChannel)} className="mb-3">
@@ -459,70 +364,29 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       {/* Message input */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
-          {isEmailChannel && !isNoteMode ? (
-            <ComposeRichEditor
-              ref={editorRef}
-              content={message}
-              onChange={setMessage}
-              onSubmit={handleSend}
-              placeholder="Typ je antwoord..."
-            />
-          ) : (
-            <Textarea
-              placeholder={isNoteMode ? 'Schrijf een interne notitie... (alleen zichtbaar voor het team)' : 'Typ je antwoord...'}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className={cn('min-h-[120px] resize-y pr-10', isNoteMode && 'border-amber-300 dark:border-amber-700')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                  handleSend();
-                }
-              }}
-            />
-          )}
-          {!isEmailChannel && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 bottom-1 h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={handleAttachmentClick}
-              type="button"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-          )}
+          <Textarea
+            placeholder="Typ je antwoord..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="min-h-[120px] resize-y pr-10"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                handleSend();
+              }
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 bottom-1 h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={handleAttachmentClick}
+            type="button"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
         </div>
         <div className="flex flex-col gap-1 self-end">
-          {/* Attachment for email */}
-          {isEmailChannel && !isNoteMode && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleAttachmentClick}>
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Bijlage toevoegen</TooltipContent>
-            </Tooltip>
-          )}
-          {/* Template picker */}
-          {!isNoteMode && (
-            <TemplatePicker onSelect={handleTemplateSelect} />
-          )}
-          {/* Internal note toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isNoteMode ? 'default' : 'outline'}
-                size="icon"
-                className={cn('h-8 w-8', isNoteMode && 'bg-amber-500 hover:bg-amber-600')}
-                onClick={() => setIsNoteMode(!isNoteMode)}
-              >
-                <StickyNote className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isNoteMode ? 'Terug naar antwoord' : 'Interne notitie'}</TooltipContent>
-          </Tooltip>
-          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && !isNoteMode && (
+          {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && (
             <Button
               variant="outline"
               size="icon"
@@ -535,16 +399,16 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
           )}
           <Button
             onClick={handleSend}
-            disabled={isMessageEmpty() || isSending}
-            className={cn('h-auto', isNoteMode && 'bg-amber-500 hover:bg-amber-600')}
+            disabled={!message.trim() || isSending}
+            className="h-auto"
           >
-            {isNoteMode ? <StickyNote className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            <Send className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground mt-2">
-        {isNoteMode ? '📝 Notitie modus — alleen zichtbaar voor het team' : 'Druk op Cmd+Enter om te verzenden'}
+        Druk op Cmd+Enter om te verzenden
       </p>
     </div>
   );

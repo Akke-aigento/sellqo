@@ -1,1 +1,0 @@
-ALTER TABLE public.product_variants ADD COLUMN internal_reference text;

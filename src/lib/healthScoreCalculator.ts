@@ -95,29 +95,6 @@ export function calculateOrdersHealth(data: HealthData): HealthCategory {
   let score = maxScore;
   const items: HealthItem[] = [];
   
-  // Empty shop detection — no products means no orders possible
-  if (data.activeProducts === 0) {
-    score = 15;
-    items.push({
-      label: 'Wachtend op eerste bestelling',
-      status: 'ok',
-      value: 'Start met producten',
-      action: { label: 'Producten toevoegen', url: '/admin/products' },
-    });
-    
-    return {
-      id: 'orders',
-      name: 'Bestellingen',
-      icon: 'ShoppingCart',
-      maxScore,
-      currentScore: score,
-      status: 'attention',
-      items,
-      emotionalMessage: 'Voeg producten toe om je eerste bestellingen te ontvangen! 🛒',
-      actionUrl: '/admin/products',
-    };
-  }
-  
   // Pending orders penalty (max -10 points)
   const pendingTotal = data.pendingOrders + data.processingOrders;
   if (pendingTotal > 0) {
@@ -179,29 +156,6 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   const maxScore = 20;
   let score = maxScore;
   const items: HealthItem[] = [];
-  
-  // Empty shop detection — no products at all
-  if (data.activeProducts === 0) {
-    score = 10;
-    items.push({
-      label: 'Nog geen producten',
-      status: 'ok',
-      value: 'Begin hier',
-      action: { label: 'Product toevoegen', url: '/admin/products' },
-    });
-    
-    return {
-      id: 'inventory',
-      name: 'Voorraad',
-      icon: 'Package',
-      maxScore,
-      currentScore: score,
-      status: 'attention',
-      items,
-      emotionalMessage: 'Voeg je eerste product toe om te beginnen! 📦',
-      actionUrl: '/admin/products',
-    };
-  }
   
   // Out of stock penalty (max -10 points)
   if (data.outOfStockCount > 0) {
@@ -268,34 +222,15 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
 }
 
 export function calculateCustomerServiceHealth(data: HealthData): HealthCategory {
-  const maxScore = 20;
+  const maxScore = 15;
   let score = maxScore;
   const items: HealthItem[] = [];
-  
-  // Neutral state — no messages ever received
-  const hasNoMessages = data.unreadMessages === 0 && data.pendingQuotes === 0;
-  if (hasNoMessages && data.activeProducts === 0) {
-    score = 12;
-    items.push({ label: 'Nog geen berichten', status: 'ok', value: 'Komt vanzelf' });
-    
-    return {
-      id: 'customerService',
-      name: 'Klantservice',
-      icon: 'MessageCircle',
-      maxScore,
-      currentScore: score,
-      status: 'attention',
-      items,
-      emotionalMessage: 'Berichten komen vanzelf zodra je winkel draait! 💬',
-      actionUrl: '/admin/messages',
-    };
-  }
   
   // Unread messages penalty
   if (data.unreadMessages > 0) {
     // Penalty increases with wait time
     if (data.oldestUnreadHours > 48) {
-      score -= 14;
+      score -= 10;
       items.push({
         label: 'Onbeantwoord (48+ uur)',
         status: 'critical',
@@ -303,7 +238,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
         action: { label: 'Beantwoorden', url: '/admin/messages' },
       });
     } else if (data.oldestUnreadHours > 24) {
-      score -= 8;
+      score -= 6;
       items.push({
         label: 'Onbeantwoord (24+ uur)',
         status: 'warning',
@@ -311,7 +246,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
         action: { label: 'Beantwoorden', url: '/admin/messages' },
       });
     } else {
-      score -= Math.min(data.unreadMessages * 2, 6);
+      score -= Math.min(data.unreadMessages * 2, 5);
       items.push({
         label: 'Wachtend op antwoord',
         status: 'warning',
@@ -325,7 +260,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
   
   // Pending quotes
   if (data.pendingQuotes > 0) {
-    score -= Math.min(data.pendingQuotes * 1, 4);
+    score -= Math.min(data.pendingQuotes * 1, 3);
     items.push({
       label: 'Openstaande offertes',
       status: 'warning',
@@ -362,16 +297,16 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
 }
 
 export function calculateFinanceHealth(data: HealthData): HealthCategory {
-  const maxScore = 15;
+  const maxScore = 20;
   let score = maxScore;
   const items: HealthItem[] = [];
   
-  // Stripe not connected — reduced penalty (was -12, now -6)
+  // Stripe not connected is critical
   if (!data.stripeConnected) {
-    score -= 6;
+    score -= 12;
     items.push({
       label: 'Stripe',
-      status: 'warning',
+      status: 'critical',
       value: 'Niet gekoppeld',
       action: { label: 'Koppelen', url: '/admin/settings?tab=payments' },
     });
@@ -379,7 +314,7 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
     items.push({ label: 'Stripe', status: 'ok', value: 'Actief ✓' });
   }
   
-  // Overdue invoices penalty (max -8)
+  // Overdue invoices penalty
   if (data.overdueInvoicesCount > 0) {
     score -= Math.min(data.overdueInvoicesCount * 2, 8);
     items.push({
@@ -498,9 +433,22 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
   let score = maxScore;
   const items: HealthItem[] = [];
   
-  // Missing legal pages (max -7 penalty — most important compliance factor)
+  // Onboarding not completed
+  if (!data.onboardingCompleted) {
+    score -= 3;
+    items.push({
+      label: 'Setup wizard',
+      status: 'warning',
+      value: 'Niet voltooid',
+      action: { label: 'Voltooien', url: '/admin/settings' },
+    });
+  } else {
+    items.push({ label: 'Setup wizard', status: 'ok', value: 'Voltooid ✓' });
+  }
+  
+  // Missing legal pages
   if (data.missingLegalPages > 0) {
-    const penalty = Math.min(data.missingLegalPages * 2, 7);
+    const penalty = Math.min(data.missingLegalPages * 1.5, 5);
     score -= penalty;
     items.push({
       label: 'Juridische pagina\'s',
@@ -512,9 +460,9 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
     items.push({ label: 'Juridische pagina\'s', status: 'ok', value: '7/7 ✓' });
   }
   
-  // Company info (-2 penalty)
+  // Company info
   if (!data.companyInfoComplete) {
-    score -= 2;
+    score -= 1.5;
     items.push({
       label: 'Bedrijfsgegevens',
       status: 'warning',
@@ -523,15 +471,9 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
     });
   }
   
-  // Logo (-1 penalty)
+  // Logo
   if (!data.logoUploaded) {
-    score -= 1;
-    items.push({
-      label: 'Logo',
-      status: 'warning',
-      value: 'Ontbreekt',
-      action: { label: 'Uploaden', url: '/admin/settings' },
-    });
+    score -= 0.5;
   }
   
   score = Math.max(0, score);

@@ -96,41 +96,10 @@ serve(async (req) => {
     let creditsNeeded = 0;
     for (const e of entitiesToTranslate) creditsNeeded += Object.keys(e.fields).length * targetLanguages.length;
 
-    // Fetch available credits before attempting to use them
-    const { data: creditData } = await supabase
-      .from('tenant_ai_credits')
-      .select('credits_total, credits_used, credits_purchased')
-      .eq('tenant_id', tenantId)
-      .maybeSingle();
-
-    const creditsAvailable = creditData 
-      ? (creditData.credits_total + creditData.credits_purchased - creditData.credits_used) 
-      : 0;
-
-    // Check if platform owner (unlimited)
-    const { data: tenantData } = await supabase
-      .from('tenants')
-      .select('is_internal_tenant')
-      .eq('id', tenantId)
-      .single();
-
-    const isUnlimited = tenantData?.is_internal_tenant === true;
-
-    if (!isUnlimited && creditsAvailable < creditsNeeded) {
-      return new Response(JSON.stringify({ 
-        error: "Onvoldoende AI credits", 
-        creditsNeeded, 
-        creditsAvailable 
-      }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     const { data: creditResult } = await supabase.rpc('use_ai_credits', { p_tenant_id: tenantId, p_credits_needed: creditsNeeded });
     if (!creditResult) {
-      return new Response(JSON.stringify({ 
-        error: "Onvoldoende AI credits", 
-        creditsNeeded, 
-        creditsAvailable 
-      }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Onvoldoende AI credits" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let translationsCreated = 0;
@@ -139,7 +108,7 @@ serve(async (req) => {
       for (const targetLang of targetLanguages) {
         const fieldsToTranslate = Object.entries(entity.fields);
         
-        const systemPrompt = `You are a professional translator. Translate from ${LANGUAGE_NAMES[sourceLanguage]} to ${LANGUAGE_NAMES[targetLang]}. Return JSON with same keys. Do not wrap in markdown code fences.`;
+        const systemPrompt = `You are a professional translator. Translate from ${LANGUAGE_NAMES[sourceLanguage]} to ${LANGUAGE_NAMES[targetLang]}. Return JSON with same keys.`;
         const userPrompt = `Translate: ${JSON.stringify(Object.fromEntries(fieldsToTranslate))}`;
 
         try {
@@ -154,11 +123,7 @@ serve(async (req) => {
 
           if (!aiResponse.ok) continue;
           const aiResult = await aiResponse.json();
-          
-          // Strip markdown code fences if present
-          let content = aiResult.choices[0].message.content;
-          content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '').trim();
-          const translatedContent = JSON.parse(content);
+          const translatedContent = JSON.parse(aiResult.choices[0].message.content);
 
           for (const [fieldName, sourceContent] of fieldsToTranslate) {
             const translatedValue = translatedContent[fieldName];
@@ -172,10 +137,7 @@ serve(async (req) => {
               translationsCreated++;
             }
           }
-        } catch (parseError) {
-          console.error(`Translation parse error for ${entity.type}/${entity.id} -> ${targetLang}:`, parseError);
-          continue;
-        }
+        } catch { /* continue on error */ }
       }
     }
 

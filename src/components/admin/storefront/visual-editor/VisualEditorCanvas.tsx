@@ -56,9 +56,6 @@ const sectionIcons: Record<HomepageSectionType, React.ReactNode> = {
   video: <Play className="h-4 w-4" />,
   announcement: <MessageSquare className="h-4 w-4" />,
   external_reviews: <Star className="h-4 w-4" />,
-  categories_grid: <Grid3X3 className="h-4 w-4" />,
-  usp_bar: <Star className="h-4 w-4" />,
-  cta_banner: <MessageSquare className="h-4 w-4" />,
 };
 
 function VisualEditorCanvasInner() {

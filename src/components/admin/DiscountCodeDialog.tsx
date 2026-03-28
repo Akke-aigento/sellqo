@@ -25,8 +25,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Wand2 } from 'lucide-react';
-import { ProductMultiSelect } from './promotions/ProductMultiSelect';
-import { CategoryMultiSelect } from './promotions/CategoryMultiSelect';
 import type { DiscountCode, DiscountCodeFormData, DiscountType, DiscountAppliesTo } from '@/types/discount';
 import { generateRandomCode } from '@/hooks/useDiscountCodes';
 
@@ -43,8 +41,6 @@ const formSchema = z.object({
   valid_until: z.string().optional().nullable(),
   is_active: z.boolean(),
   applies_to: z.enum(['all', 'specific_products', 'specific_categories']),
-  product_ids: z.array(z.string()).default([]),
-  category_ids: z.array(z.string()).default([]),
   first_order_only: z.boolean(),
 });
 
@@ -80,8 +76,6 @@ export function DiscountCodeDialog({
       valid_until: null,
       is_active: true,
       applies_to: 'all',
-      product_ids: [],
-      category_ids: [],
       first_order_only: false,
     },
   });
@@ -101,8 +95,6 @@ export function DiscountCodeDialog({
         valid_until: discountCode.valid_until ? discountCode.valid_until.split('T')[0] : null,
         is_active: discountCode.is_active,
         applies_to: discountCode.applies_to as DiscountAppliesTo,
-        product_ids: discountCode.product_ids || [],
-        category_ids: discountCode.category_ids || [],
         first_order_only: discountCode.first_order_only,
       });
     } else {
@@ -119,8 +111,6 @@ export function DiscountCodeDialog({
         valid_until: null,
         is_active: true,
         applies_to: 'all',
-        product_ids: [],
-        category_ids: [],
         first_order_only: false,
       });
     }
@@ -140,8 +130,8 @@ export function DiscountCodeDialog({
       valid_until: values.valid_until ? new Date(values.valid_until).toISOString() : null,
       is_active: values.is_active,
       applies_to: values.applies_to,
-      product_ids: values.applies_to === 'specific_products' ? values.product_ids : [],
-      category_ids: values.applies_to === 'specific_categories' ? values.category_ids : [],
+      product_ids: [],
+      category_ids: [],
       first_order_only: values.first_order_only,
     };
     onSave(formData);
@@ -152,7 +142,6 @@ export function DiscountCodeDialog({
   };
 
   const discountType = form.watch('discount_type');
-  const appliesTo = form.watch('applies_to');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -296,82 +285,6 @@ export function DiscountCodeDialog({
                 />
               )}
             </div>
-
-            <Separator />
-
-            {/* Applies To */}
-            <FormField
-              control={form.control}
-              name="applies_to"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Toepassen op</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={(val) => {
-                        field.onChange(val);
-                        if (val !== 'specific_products') form.setValue('product_ids', []);
-                        if (val !== 'specific_categories') form.setValue('category_ids', []);
-                      }}
-                      value={field.value}
-                      className="flex flex-col gap-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="all" id="applies_all" />
-                        <Label htmlFor="applies_all">Hele bestelling</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="specific_products" id="applies_products" />
-                        <Label htmlFor="applies_products">Specifieke producten</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="specific_categories" id="applies_categories" />
-                        <Label htmlFor="applies_categories">Specifieke categorieën</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {appliesTo === 'specific_products' && (
-              <FormField
-                control={form.control}
-                name="product_ids"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Producten</FormLabel>
-                    <FormDescription>Selecteer de producten waarop deze code van toepassing is</FormDescription>
-                    <ProductMultiSelect
-                      selectedIds={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Selecteer producten..."
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {appliesTo === 'specific_categories' && (
-              <FormField
-                control={form.control}
-                name="category_ids"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categorieën</FormLabel>
-                    <FormDescription>Selecteer de categorieën waarop deze code van toepassing is</FormDescription>
-                    <CategoryMultiSelect
-                      selectedIds={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Selecteer categorieën..."
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <Separator />
 

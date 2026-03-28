@@ -28,8 +28,6 @@ interface Order {
   subtotal: number;
   shipping_cost: number;
   tax_amount: number;
-  discount_amount: number;
-  discount_code: string | null;
   total: number;
   ogm_reference?: string | null;
   created_at: string;
@@ -53,36 +51,25 @@ export default function ShopOrderConfirmation() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load order with retry logic for race conditions
+  // Load order and set up realtime subscription
   useEffect(() => {
-    const fetchOrder = async (retryCount = 0): Promise<Order | null> => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, discount_code, total, ogm_reference, created_at, shipping_address')
-        .eq('id', orderId!)
-        .maybeSingle();
-
-      if (error) {
-        console.error(`[OrderConfirmation] Error loading order (attempt ${retryCount + 1}):`, error);
-        return null;
-      }
-
-      if (!data && retryCount < 3) {
-        console.warn(`[OrderConfirmation] Order not found, retrying in ${(retryCount + 1) * 1000}ms...`);
-        await new Promise(r => setTimeout(r, (retryCount + 1) * 1000));
-        return fetchOrder(retryCount + 1);
-      }
-
-      return data as unknown as Order | null;
-    };
-
     const loadOrder = async () => {
       if (!orderId) return;
 
-      const orderData = await fetchOrder();
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderError) {
+        console.error('Error loading order:', orderError);
+        setIsLoading(false);
+        return;
+      }
 
       if (orderData) {
-        setOrder(orderData);
+        setOrder(orderData as unknown as Order);
 
         const { data: itemsData } = await supabase
           .from('order_items')
@@ -92,8 +79,6 @@ export default function ShopOrderConfirmation() {
         if (itemsData) {
           setOrderItems(itemsData);
         }
-      } else {
-        console.error('[OrderConfirmation] Order not found after retries, orderId:', orderId);
       }
 
       setIsLoading(false);
@@ -331,12 +316,6 @@ export default function ShopOrderConfirmation() {
                     <span className="text-muted-foreground">Subtotaal</span>
                     <span>{formatPrice(order.subtotal)}</span>
                   </div>
-                  {order.discount_amount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Korting{order.discount_code ? ` (${order.discount_code})` : ''}</span>
-                      <span>-{formatPrice(order.discount_amount)}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
                     <span>{order.shipping_cost > 0 ? formatPrice(order.shipping_cost) : 'Gratis'}</span>

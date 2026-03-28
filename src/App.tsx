@@ -7,10 +7,8 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { TenantProvider } from "@/hooks/useTenant";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
-import { StorefrontAuthProvider } from "@/context/StorefrontAuthContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import LandingPage from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -27,8 +25,6 @@ import InvoicesPage from "./pages/admin/Invoices";
 import CreditNotesPage from "./pages/admin/CreditNotes";
 import CustomersPage from "./pages/admin/Customers";
 import CustomerDetailPage from "./pages/admin/CustomerDetail";
-import StorefrontAccountsPage from "./pages/admin/StorefrontAccounts";
-import CustomerIntelligencePage from "./pages/admin/CustomerIntelligence";
 import ShippingPage from "./pages/admin/Shipping";
 import TenantsPage from "./pages/admin/Tenants";
 import SubscriptionsPage from "./pages/admin/Subscriptions";
@@ -97,7 +93,6 @@ import SyncConflictsPage from "./pages/admin/SyncConflicts";
 import PaymentsPage from "./pages/admin/Payments";
 import HelpPage from "./pages/admin/Help";
 import PlatformDocs from "./pages/admin/PlatformDocs";
-import CustomFrontendConfigurator from "./pages/platform/CustomFrontendConfigurator";
 import ChannelFieldMappingAdmin from "./pages/admin/ChannelFieldMappingAdmin";
 
 import ShopHome from "./pages/storefront/ShopHome";
@@ -109,11 +104,6 @@ import ShopCheckout from "./pages/storefront/ShopCheckout";
 import ShopOrderConfirmation from "./pages/storefront/ShopOrderConfirmation";
 import ShopLegalPage from "./pages/storefront/ShopLegalPage";
 import ShopWishlist from "./pages/storefront/ShopWishlist";
-import ShopContact from "./pages/storefront/ShopContact";
-import ShopAuth from "./pages/storefront/ShopAuth";
-import ShopResetPassword from "./pages/storefront/ShopResetPassword";
-import ShopVerifyEmail from "./pages/storefront/ShopVerifyEmail";
-import ShopAccount from "./pages/storefront/ShopAccount";
 
 const queryClient = new QueryClient();
 
@@ -143,30 +133,16 @@ const App = () => (
             <Route path="/api/shopify/callback" element={<ShopifyCallback />} />
             
             {/* Public Storefront routes - wrapped in CartProvider */}
-            <Route path="/shop/:tenantSlug" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopHome /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/products" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopProducts /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/product/:productSlug" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopProductDetail /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopPage /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/cart" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopCart /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopCheckout /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopOrderConfirmation /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopLegalPage /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopWishlist /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/contact" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopContact /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/login" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAuth /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/reset-password" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopResetPassword /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/verify-email" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopVerifyEmail /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
-            <Route path="/shop/:tenantSlug/account" element={<CartProvider><WishlistProvider><StorefrontAuthProvider><ShopAccount /></StorefrontAuthProvider></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug" element={<CartProvider><WishlistProvider><ShopHome /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/products" element={<CartProvider><WishlistProvider><ShopProducts /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/product/:productSlug" element={<CartProvider><WishlistProvider><ShopProductDetail /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/page/:pageSlug" element={<CartProvider><WishlistProvider><ShopPage /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/cart" element={<CartProvider><WishlistProvider><ShopCart /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><WishlistProvider><ShopCheckout /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><WishlistProvider><ShopOrderConfirmation /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><ShopLegalPage /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><ShopWishlist /></WishlistProvider></CartProvider>} />
             
-            {/* Dedicated kassa route - outside AdminLayout for tablet kiosk mode */}
-            <Route path="/kassa/:terminalId" element={
-              <ProtectedRoute>
-                <TenantProvider>
-                  <POSTerminalPage standalone />
-                </TenantProvider>
-              </ProtectedRoute>
-            } />
-
             {/* Admin routes */}
             <Route path="/admin" element={
               <ProtectedRoute>
@@ -202,8 +178,6 @@ const App = () => (
               <Route path="promotions/stacking" element={<StackingRulesPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
-              <Route path="storefront-accounts" element={<StorefrontAccountsPage />} />
-              <Route path="customer-intelligence" element={<CustomerIntelligencePage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="payments" element={<PaymentsPage />} />
@@ -284,11 +258,6 @@ const App = () => (
               <Route path="platform/docs" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <PlatformDocs />
-                </ProtectedRoute>
-              } />
-              <Route path="platform/docs/custom-frontend" element={
-                <ProtectedRoute requirePlatformAdmin>
-                  <CustomFrontendConfigurator />
                 </ProtectedRoute>
               } />
               <Route path="platform/field-mappings" element={

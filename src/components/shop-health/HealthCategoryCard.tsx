@@ -94,10 +94,8 @@ export function HealthCategoryCardCompact({ category }: { category: HealthCatego
   const Icon = iconComponents[category.icon] || Package;
   const mainItem = category.items.find(i => i.status !== 'ok') || category.items[0];
   
-  const targetUrl = mainItem?.action?.url || category.actionUrl || '#';
-  
   return (
-    <Link to={targetUrl}>
+    <Link to={category.actionUrl || '#'}>
       <Card className={cn(
         'transition-all hover:shadow-md cursor-pointer h-full min-h-[88px]',
         statusStyles[category.status]

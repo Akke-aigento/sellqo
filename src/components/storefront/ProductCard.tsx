@@ -15,9 +15,6 @@ interface ProductCardProps {
     category?: { id: string; name: string; slug: string } | null;
     has_variants?: boolean;
     short_description?: string;
-    product_type?: string;
-    gift_card_denominations?: number[] | null;
-    gift_card_min_amount?: number | null;
   };
   basePath: string;
   showPrice?: boolean;
@@ -43,12 +40,14 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
   return (
     <div 
       className="group relative"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Wishlist heart */}
       {onToggleWishlist && (
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(product); }}
-          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm rounded-full md:opacity-0 md:group-hover:opacity-100 transition-all hover:scale-110"
+          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
         >
           <Heart className={cn("h-4 w-4 transition-colors", isWishlisted ? "fill-red-500 text-red-500" : "text-foreground")} />
         </button>
@@ -115,9 +114,12 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
             </div>
           )}
 
-          {/* Hover overlay with actions - hidden on mobile/touch */}
+          {/* Hover overlay with actions */}
           {product.in_stock && (
-            <div className="absolute bottom-0 left-0 right-0 p-3 hidden md:flex gap-2 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-[2]">
+            <div className={cn(
+              "absolute bottom-0 left-0 right-0 p-3 flex gap-2 transition-all duration-300 z-[2]",
+              hovered ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+            )}>
               {onQuickView && (
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickView(product); }}
@@ -149,7 +151,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           )}
           
           <h3 className={cn(
-            "font-medium line-clamp-2 break-words group-hover:text-primary transition-colors",
+            "font-medium line-clamp-2 group-hover:text-primary transition-colors",
             cardStyle === 'minimal' ? 'text-xs' : 'text-sm'
           )}>
             {product.name}
@@ -158,36 +160,20 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           {/* Price - standard and detailed only */}
           {cardStyle !== 'minimal' && showPrice && (
             <div className="mt-1 flex items-center gap-2">
-              {product.product_type === 'gift_card' ? (
-                (() => {
-                  const denominations = product.gift_card_denominations;
-                  const minAmount = product.gift_card_min_amount;
-                  const lowestPrice = denominations && denominations.length > 0
-                    ? Math.min(...denominations)
-                    : minAmount || null;
-                  return lowestPrice ? (
-                    <span className="font-semibold">Vanaf {formatPrice(lowestPrice)}</span>
-                  ) : null;
-                })()
-              ) : (
-                <>
-                  <span className="font-semibold">{formatPrice(product.price)}</span>
-                  {hasDiscount && (
-                    <span className="text-sm text-muted-foreground line-through">
-                      {formatPrice(product.compare_at_price!)}
-                    </span>
-                  )}
-                </>
+              <span className="font-semibold">{formatPrice(product.price)}</span>
+              {hasDiscount && (
+                <span className="text-sm text-muted-foreground line-through">
+                  {formatPrice(product.compare_at_price!)}
+                </span>
               )}
             </div>
           )}
 
           {/* Short description - detailed only */}
           {cardStyle === 'detailed' && product.short_description && (
-            <div 
-              className="text-xs text-muted-foreground mt-1.5 line-clamp-2"
-              dangerouslySetInnerHTML={{ __html: product.short_description }}
-            />
+            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
+              {product.short_description}
+            </p>
           )}
         </div>
       </Link>

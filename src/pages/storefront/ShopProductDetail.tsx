@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package, Layers } from 'lucide-react';
+import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,13 +13,10 @@ import { VariantSelector } from '@/components/storefront/VariantSelector';
 import { ImageLightbox } from '@/components/storefront/ImageLightbox';
 import { RelatedProducts } from '@/components/storefront/RelatedProducts';
 import { ProductReviewsSection, StarRating } from '@/components/storefront/ProductReviewsSection';
-import { GiftCardPurchaseForm } from '@/components/storefront/GiftCardPurchaseForm';
-import { BundleContentsSection } from '@/components/storefront/BundleContentsSection';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
-
 
 export default function ShopProductDetail() {
   const { tenantSlug, productSlug } = useParams<{ tenantSlug: string; productSlug: string }>();
@@ -69,7 +66,7 @@ export default function ShopProductDetail() {
   const hasDiscount = displayComparePrice && displayComparePrice > displayPrice;
   const discountPercentage = hasDiscount ? Math.round((1 - displayPrice / displayComparePrice!) * 100) : 0;
   const inStock = selectedVariant ? selectedVariant.in_stock : product?.in_stock;
-  const stockCount = product?.track_inventory ? (selectedVariant?.stock ?? product?.stock) : undefined;
+  const stockCount = selectedVariant?.stock ?? product?.stock;
 
   const displayImages = useMemo(() => {
     if (!product) return [];
@@ -125,20 +122,6 @@ export default function ShopProductDetail() {
     // Cart drawer opens automatically via CartContext
   };
 
-  const handleAddBundleToCart = () => {
-    if (!product?.bundle_items?.length) return;
-    for (const item of product.bundle_items) {
-      addToCart({
-        productId: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        image: item.product.images?.[0],
-      });
-    }
-    toast.success('Bundel toegevoegd aan winkelwagen');
-  };
-
   const handleImageClick = () => {
     if (imageZoom === 'lightbox') setLightboxOpen(true);
   };
@@ -147,7 +130,7 @@ export default function ShopProductDetail() {
     return (
       <ShopLayout>
         <div className="container mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-2 gap-6 md:gap-12">
+          <div className="grid md:grid-cols-2 gap-12">
             <div className="animate-pulse bg-muted aspect-square rounded-lg" />
             <div className="space-y-4">
               <div className="animate-pulse bg-muted h-8 rounded w-3/4" />
@@ -193,18 +176,18 @@ export default function ShopProductDetail() {
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
         {themeSettings?.show_breadcrumbs !== false && (
-          <nav className="flex items-center gap-1.5 sm:gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
-            <Link to={`/shop/${tenantSlug}`} className="hover:text-foreground shrink-0">Home</Link>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <Link to={`/shop/${tenantSlug}/products`} className="hover:text-foreground shrink-0">Producten</Link>
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+            <Link to={`/shop/${tenantSlug}`} className="hover:text-foreground">Home</Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link to={`/shop/${tenantSlug}/products`} className="hover:text-foreground">Producten</Link>
             {product.category && (
               <>
-                <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="hover:text-foreground shrink-0">{product.category.name}</Link>
+                <ChevronRight className="h-4 w-4" />
+                <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="hover:text-foreground">{product.category.name}</Link>
               </>
             )}
-            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <span className="text-foreground truncate max-w-[150px] sm:max-w-none">{product.name}</span>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground">{product.name}</span>
           </nav>
         )}
 
@@ -243,12 +226,12 @@ export default function ShopProductDetail() {
           </div>
 
           {/* Product Info */}
-           <div className="min-w-0">
+          <div>
             {product.category && (
               <Link to={`/shop/${tenantSlug}/products?category=${product.category.slug}`} className="text-sm text-muted-foreground hover:text-primary">{product.category.name}</Link>
             )}
 
-            <h1 className="text-2xl sm:text-3xl font-bold mt-2 mb-2 break-words" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
+            <h1 className="text-3xl font-bold mt-2 mb-2" style={{ fontFamily: themeSettings?.heading_font ? `"${themeSettings.heading_font}", serif` : undefined }}>
               {product.name}
             </h1>
 
@@ -259,8 +242,7 @@ export default function ShopProductDetail() {
               </div>
             )}
 
-            {/* Price - hide for gift cards */}
-            {product.product_type !== 'gift_card' && (
+            {/* Price */}
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-bold">{formatPrice(displayPrice)}</span>
               {hasDiscount && (
@@ -270,126 +252,59 @@ export default function ShopProductDetail() {
                 </>
               )}
             </div>
+
+            {/* Viewers count */}
+            {showViewersCount && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                <Eye className="h-4 w-4" />
+                <span>{viewerCount} mensen bekijken dit nu</span>
+              </div>
             )}
 
-            {/* Gift Card Purchase Form */}
-            {product.product_type === 'gift_card' ? (
+            {/* Variant Selection - respects variant_style setting */}
+            {product.has_variants && product.options?.length > 0 && (
               <div className="mb-6">
-                <GiftCardPurchaseForm
-                  product={product}
-                  currency={tenant?.currency || 'EUR'}
-                  themeSettings={themeSettings}
-                  logoUrl={(tenant as any)?.logo_url || undefined}
-                />
+                {variantStyle === 'dropdown' ? (
+                  <DropdownVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                ) : variantStyle === 'swatches' ? (
+                  <SwatchVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                ) : (
+                  <VariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
+                )}
               </div>
-            ) : product.product_type === 'bundle' && product.bundle_items?.length > 0 ? (
-              <>
-                <BundleContentsSection
-                  items={product.bundle_items}
-                  bundlePrice={displayPrice}
-                  individualTotal={product.bundle_individual_total || 0}
-                  currency={tenant?.currency || 'EUR'}
-                  tenantSlug={tenantSlug || ''}
-                />
-                <Button size="lg" className="w-full mb-6" onClick={handleAddBundleToCart}
-                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
-                  <Layers className="h-5 w-5 mr-2" />
-                  Voeg bundel toe aan winkelwagen
-                </Button>
-              </>
-            ) : (
-              <>
-                {/* Viewers count */}
-                {showViewersCount && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                    <Eye className="h-4 w-4" />
-                    <span>{viewerCount} mensen bekijken dit nu</span>
-                  </div>
-                )}
+            )}
 
-                {/* Variant Selection - respects variant_style setting */}
-                {product.has_variants && product.options?.length > 0 && (
-                  <div className="mb-6">
-                    {variantStyle === 'dropdown' ? (
-                      <DropdownVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
-                    ) : variantStyle === 'swatches' ? (
-                      <SwatchVariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
-                    ) : (
-                      <VariantSelector options={product.options} selectedAttributes={selectedAttributes} onAttributeChange={handleAttributeChange} />
-                    )}
-                  </div>
-                )}
-
-                {/* Add to Cart */}
-                {inStock && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6">
-                    <div className="flex items-center border rounded-lg self-start">
-                      <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-12 text-center font-medium">{quantity}</span>
-                      <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-1">
-                      <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
-                        style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
-                        <ShoppingCart className="h-5 w-5 mr-2" />
-                        <span className="truncate">Toevoegen</span>
-                        {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
-                      </Button>
-
-                      {themeSettings?.show_wishlist && product && (
-                        <Button variant="outline" size="icon" className="shrink-0 h-11 w-11" onClick={() => toggleWishlist({
-                          productId: product.id, name: product.name, price: displayPrice,
-                          image: product.images?.[0], slug: product.slug,
-                        })}>
-                          <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                        </Button>
+            {/* Stock Status - respects stock_indicator setting */}
+            {stockIndicator && (
+              <div className="flex items-center gap-2 mb-6">
+                {inStock ? (
+                  <>
+                    <Check className="h-5 w-5 text-green-600" />
+                    <span className="text-green-600 font-medium">
+                      Op voorraad
+                      {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
+                        <span className="ml-1">— Nog {stockCount} stuks</span>
                       )}
-                    </div>
-                  </div>
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-destructive font-medium">Uitverkocht</span>
                 )}
+              </div>
+            )}
 
-                {product.has_variants && !allOptionsSelected && (
-                  <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
-                )}
-
-                {/* Stock Status - respects stock_indicator setting */}
-                {stockIndicator && (
-                  <div className="flex items-center gap-2 mb-6">
-                    {inStock ? (
-                      <>
-                        <Check className="h-5 w-5 text-green-600" />
-                        <span className="text-green-600 font-medium">
-                          Op voorraad
-                          {showStockCount && stockCount != null && stockCount > 0 && stockCount <= 20 && (
-                            <span className="ml-1">— Nog {stockCount} stuks</span>
-                          )}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-destructive font-medium">Uitverkocht</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Low stock urgency */}
-                {stockIndicator && showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
-                  <div className="flex items-center gap-2 text-sm text-orange-600 mb-4">
-                    <Package className="h-4 w-4" />
-                    <span className="font-medium">Bijna uitverkocht! Bestel snel.</span>
-                  </div>
-                )}
-              </>
+            {/* Low stock urgency */}
+            {stockIndicator && showStockCount && inStock && stockCount != null && stockCount > 0 && stockCount <= 5 && (
+              <div className="flex items-center gap-2 text-sm text-orange-600 mb-4">
+                <Package className="h-4 w-4" />
+                <span className="font-medium">Bijna uitverkocht! Bestel snel.</span>
+              </div>
             )}
 
             {/* Description */}
             {product.description && (
               <div 
-                className="prose prose-sm max-w-none mb-8 dark:prose-invert overflow-hidden break-words
+                className="prose prose-sm max-w-none mb-8 dark:prose-invert
                            prose-headings:font-bold prose-headings:text-foreground
                            prose-p:text-muted-foreground prose-a:text-primary prose-a:underline
                            prose-strong:text-foreground prose-li:text-muted-foreground
@@ -398,7 +313,42 @@ export default function ShopProductDetail() {
               />
             )}
 
-            {product.product_type !== 'gift_card' && (selectedVariant?.sku || product.sku) && (
+            {/* Add to Cart */}
+            {inStock && (
+              <div className="flex items-center gap-4 mb-8">
+                <div className="flex items-center border rounded-lg">
+                  <Button variant="ghost" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <Button variant="ghost" size="icon" onClick={() => setQuantity(prev => { const max = stockCount ?? Infinity; return Math.min(prev + 1, max); })} disabled={stockCount != null && quantity >= stockCount}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.has_variants && !allOptionsSelected}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}>
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  Toevoegen aan winkelwagen
+                  {cartCount > 0 && <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>}
+                </Button>
+
+                {themeSettings?.show_wishlist && product && (
+                  <Button variant="outline" size="icon" onClick={() => toggleWishlist({
+                    productId: product.id, name: product.name, price: displayPrice,
+                    image: product.images?.[0], slug: product.slug,
+                  })}>
+                    <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {product.has_variants && !allOptionsSelected && (
+              <p className="text-sm text-muted-foreground mb-4">Selecteer alle opties om toe te voegen aan winkelwagen</p>
+            )}
+
+            {(selectedVariant?.sku || product.sku) && (
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">SKU:</span> {selectedVariant?.sku || product.sku}
               </p>

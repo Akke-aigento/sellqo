@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useIsCompact } from '@/hooks/use-mobile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +40,6 @@ export default function BogoPromotionsPage() {
   const { data: promotions = [], isLoading } = useBogoPromotions();
   const updatePromotion = useUpdateBogoPromotion();
   const deletePromotion = useDeleteBogoPromotion();
-  const isCompact = useIsCompact();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -139,56 +137,6 @@ export default function BogoPromotionsPage() {
               Geen BOGO acties gevonden
             </p>
           ) : (
-            isCompact ? (
-              <div className="space-y-2 px-3 sm:px-0">
-                {filteredPromotions.map((promotion) => (
-                  <div key={promotion.id} className="rounded-lg border bg-card p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm truncate">{promotion.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={promotion.is_active}
-                          onCheckedChange={() => handleToggleActive(promotion)}
-                        />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(promotion)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Bewerken
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(promotion)} className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Verwijderen
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">{getPromotionTypeLabel(promotion.promotion_type)}</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Koop {promotion.buy_quantity}x → Krijg {promotion.get_quantity}x
-                        {promotion.discount_type === 'percentage'
-                          ? ` ${promotion.discount_value}% korting`
-                          : promotion.discount_value === 100
-                          ? ' gratis'
-                          : ` €${promotion.discount_value.toFixed(2)} korting`}
-                      </span>
-                    </div>
-                    {promotion.valid_until && (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Geldig tot {format(new Date(promotion.valid_until), 'd MMM yyyy', { locale: nl })}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
             <div className="min-w-[650px]">
             <Table>
               <TableHeader>
@@ -198,7 +146,7 @@ export default function BogoPromotionsPage() {
                   <TableHead>Koop</TableHead>
                   <TableHead>Krijg</TableHead>
                   <TableHead>Korting</TableHead>
-                  <TableHead>Geldig tot</TableHead>
+                  <TableHead className="hidden md:table-cell">Geldig tot</TableHead>
                   <TableHead>Actief</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
@@ -221,7 +169,7 @@ export default function BogoPromotionsPage() {
                         ? 'Gratis'
                         : `€${promotion.discount_value.toFixed(2)}`}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {promotion.valid_until
                         ? format(new Date(promotion.valid_until), 'd MMM yyyy', { locale: nl })
                         : '—'}
@@ -259,7 +207,6 @@ export default function BogoPromotionsPage() {
               </TableBody>
             </Table>
             </div>
-            )
           )}
         </CardContent>
       </Card>

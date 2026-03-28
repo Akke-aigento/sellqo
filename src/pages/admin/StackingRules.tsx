@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useIsCompact } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +38,6 @@ export default function StackingRulesPage() {
   const { data: rules = [], isLoading } = useStackingRules();
   const updateRule = useUpdateStackingRule();
   const deleteRule = useDeleteStackingRule();
-  const isCompact = useIsCompact();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<DiscountStackingRule | null>(null);
@@ -152,75 +150,15 @@ export default function StackingRulesPage() {
               </Button>
             </div>
           ) : (
-            isCompact ? (
-              <div className="space-y-2 px-3 sm:px-0">
-                {rules.map((rule) => (
-                  <div key={rule.id} className="rounded-lg border bg-card p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm truncate">{rule.name}</div>
-                        {rule.description && (
-                          <div className="text-xs text-muted-foreground truncate">{rule.description}</div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={rule.is_active}
-                          onCheckedChange={() => handleToggleActive(rule)}
-                        />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(rule)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Bewerken
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(rule)} className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Verwijderen
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <Badge variant={getRuleTypeVariant(rule.rule_type)}>
-                        {getRuleTypeLabel(rule.rule_type)}
-                      </Badge>
-                      {rule.max_stack_count && (
-                        <span className="text-xs text-muted-foreground">Max: {rule.max_stack_count}x</span>
-                      )}
-                      {rule.max_total_discount_percent && (
-                        <span className="text-xs text-muted-foreground">Max korting: {rule.max_total_discount_percent}%</span>
-                      )}
-                    </div>
-                    {rule.discount_types && rule.discount_types.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {rule.discount_types.slice(0, 3).map((type) => (
-                          <Badge key={type} variant="outline" className="text-xs">{type}</Badge>
-                        ))}
-                        {rule.discount_types.length > 3 && (
-                          <Badge variant="outline" className="text-xs">+{rule.discount_types.length - 3}</Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
             <div className="min-w-[650px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Naam</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Kortingstypes</TableHead>
-                  <TableHead>Max. Stapelen</TableHead>
-                  <TableHead>Max. Korting</TableHead>
+                  <TableHead className="hidden md:table-cell">Kortingstypes</TableHead>
+                  <TableHead className="hidden sm:table-cell">Max. Stapelen</TableHead>
+                  <TableHead className="hidden sm:table-cell">Max. Korting</TableHead>
                   <TableHead>Actief</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
@@ -241,7 +179,7 @@ export default function StackingRulesPage() {
                         {getRuleTypeLabel(rule.rule_type)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {rule.discount_types?.slice(0, 3).map((type) => (
                           <Badge key={type} variant="outline" className="text-xs">
@@ -255,10 +193,10 @@ export default function StackingRulesPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {rule.max_stack_count ?? '∞'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {rule.max_total_discount_percent
                         ? `${rule.max_total_discount_percent}%`
                         : '—'}
@@ -296,7 +234,6 @@ export default function StackingRulesPage() {
               </TableBody>
             </Table>
             </div>
-            )
           )}
         </CardContent>
       </Card>

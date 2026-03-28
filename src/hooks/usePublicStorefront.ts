@@ -24,13 +24,6 @@ interface PublicTenant {
   payment_methods_enabled: string[] | null;
   pass_transaction_fee_to_customer: boolean | null;
   transaction_fee_label: string | null;
-  enable_b2b_checkout: boolean | null;
-  require_vies_validation: boolean | null;
-  block_invalid_vat_orders: boolean | null;
-  default_vat_handling: string | null;
-  tax_percentage: number | null;
-  oss_enabled: boolean | null;
-  oss_threshold_reached: boolean | null;
 }
 
 interface PublicProduct {
@@ -43,10 +36,6 @@ interface PublicProduct {
   images: string[];
   in_stock: boolean;
   category: { id: string; name: string; slug: string } | null;
-  has_variants?: boolean;
-  product_type?: string;
-  gift_card_denominations?: number[] | null;
-  gift_card_min_amount?: number | null;
 }
 
 interface PublicCategory {
@@ -71,7 +60,7 @@ export function usePublicStorefront(tenantSlug: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tenants')
-        .select('id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, enable_b2b_checkout, require_vies_validation, block_invalid_vat_orders, default_vat_handling, tax_percentage, oss_enabled, oss_threshold_reached')
+        .select('id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label')
         .eq('slug', tenantSlug)
         .maybeSingle();
       
@@ -238,22 +227,14 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
         .select(`
           id, name, slug, description, price, compare_at_price, images, 
           track_inventory, stock, category_id, 
-          categories(id, name, slug),
-          product_type, gift_card_denominations, gift_card_min_amount
+          categories(id, name, slug)
         `)
         .eq('tenant_id', tenantId!)
         .eq('is_active', true)
         .eq('hide_from_storefront', false);
 
-      // If filtering by category, find product IDs via product_categories junction table
       if (options?.categoryId) {
-        const { data: pcRows } = await (supabase as any)
-          .from('product_categories')
-          .select('product_id')
-          .eq('category_id', options.categoryId);
-        const productIdsForCategory = (pcRows || []).map((r: any) => r.product_id) as string[];
-        if (productIdsForCategory.length === 0) return [];
-        query = query.in('id', productIdsForCategory);
+        query = query.eq('category_id', options.categoryId);
       }
       if (options?.search) {
         query = query.ilike('name', `%${options.search}%`);
@@ -268,23 +249,7 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
 
-      const products = data || [];
-      const productIds = products.map(p => p.id);
-
-      // Fetch variant counts for all products in one query
-      let variantProductIds: Set<string> = new Set();
-      if (productIds.length > 0) {
-        const { data: variants } = await supabase
-          .from('product_variants')
-          .select('product_id')
-          .in('product_id', productIds)
-          .eq('is_active', true);
-        for (const v of variants || []) {
-          variantProductIds.add(v.product_id);
-        }
-      }
-
-      return products.map(product => ({
+      return (data || []).map(product => ({
         id: product.id,
         name: product.name,
         slug: product.slug,
@@ -298,10 +263,6 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
           name: product.categories.name,
           slug: product.categories.slug,
         } : null,
-        has_variants: variantProductIds.has(product.id),
-        product_type: (product as any).product_type || 'physical',
-        gift_card_denominations: (product as any).gift_card_denominations || null,
-        gift_card_min_amount: (product as any).gift_card_min_amount || null,
       })) as PublicProduct[];
     },
     enabled: !!tenantId,
@@ -315,14 +276,10 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       const { data, error } = await supabase
         .from('products')
         .select(`
-          id, name, slug, description, short_description, price, compare_at_price, images, 
+          id, name, slug, description, price, compare_at_price, images, 
           track_inventory, stock, sku, weight,
           category_id, categories(id, name, slug),
-          meta_title, meta_description,
-          product_type, hide_from_storefront,
-          gift_card_denominations, gift_card_allow_custom,
-          gift_card_min_amount, gift_card_max_amount,
-          gift_card_design_id, gift_card_expiry_months
+          meta_title, meta_description
         `)
         .eq('tenant_id', tenantId!)
         .eq('slug', productSlug)
@@ -333,55 +290,6 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       if (!data) throw new Error('Product not found');
 
       const product = data as any;
-
-      // Fetch active variants and options in parallel
-      const [variantsRes, optionsRes] = await Promise.all([
-        supabase
-          .from('product_variants')
-          .select('*')
-          .eq('product_id', product.id)
-          .eq('is_active', true)
-          .order('position', { ascending: true }),
-        supabase
-          .from('product_variant_options')
-          .select('*')
-          .eq('product_id', product.id)
-          .order('position', { ascending: true }),
-      ]);
-
-      const variants = (variantsRes.data || []).map(v => ({
-        ...v,
-        attribute_values: (v.attribute_values as Record<string, string>) || {},
-        in_stock: !product.track_inventory || v.stock > 0,
-      }));
-      const options = (optionsRes.data || []) as Array<{ id: string; name: string; values: string[]; position: number }>;
-
-      // Fetch bundle items if product is a bundle
-      let bundleItems: Array<{ product_id: string; quantity: number; is_required: boolean; product: { id: string; name: string; price: number; images: string[] | null; slug: string } }> = [];
-      if (product.product_type === 'bundle') {
-        const { data: bpData } = await supabase
-          .from('bundle_products')
-          .select('product_id, quantity, is_required, sort_order')
-          .eq('bundle_id', product.id)
-          .order('sort_order', { ascending: true });
-
-        if (bpData && bpData.length > 0) {
-          const productIds = bpData.map(bp => bp.product_id);
-          const { data: bundleProductsData } = await supabase
-            .from('products')
-            .select('id, name, price, images, slug')
-            .in('id', productIds)
-            .eq('is_active', true);
-
-          bundleItems = bpData.map(bp => ({
-            ...bp,
-            product: bundleProductsData?.find(p => p.id === bp.product_id) || { id: bp.product_id, name: 'Onbekend product', price: 0, images: null, slug: '' },
-          }));
-        }
-      }
-
-      const individualTotal = bundleItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-
       return {
         ...product,
         images: product.images || [],
@@ -391,11 +299,6 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
           name: product.categories.name,
           slug: product.categories.slug,
         } : null,
-        variants,
-        options,
-        has_variants: variants.length > 0,
-        bundle_items: bundleItems,
-        bundle_individual_total: individualTotal,
       };
     },
     enabled: !!tenantId && !!productSlug,

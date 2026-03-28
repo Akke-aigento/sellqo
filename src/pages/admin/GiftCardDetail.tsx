@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useIsCompact } from '@/hooks/use-mobile';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,6 @@ const transactionTypeLabels: Record<GiftCardTransactionType, { label: string; co
 export default function GiftCardDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isCompact = useIsCompact();
   const { data: giftCard, isLoading } = useGiftCard(id);
   const updateGiftCard = useUpdateGiftCard();
   const sendEmail = useSendGiftCardEmail();
@@ -272,31 +270,6 @@ export default function GiftCardDetail() {
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
           {giftCard.transactions && giftCard.transactions.length > 0 ? (
-            isCompact ? (
-              <div className="space-y-2 px-3 sm:px-0">
-                {giftCard.transactions
-                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .map((tx) => (
-                    <div key={tx.id} className="rounded-lg border bg-card p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="secondary" className={transactionTypeLabels[tx.transaction_type].color}>
-                          {transactionTypeLabels[tx.transaction_type].label}
-                        </Badge>
-                        <span className={`font-mono text-sm ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {tx.amount >= 0 ? '+' : ''}€{Number(tx.amount).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{format(new Date(tx.created_at), 'd MMM yyyy HH:mm', { locale: nl })}</span>
-                        <span>Saldo: €{Number(tx.balance_after).toFixed(2)}</span>
-                      </div>
-                      {tx.description && (
-                        <div className="mt-1 text-xs text-muted-foreground">{tx.description}</div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            ) : (
             <div className="min-w-[550px]">
             <Table>
               <TableHeader>
@@ -335,7 +308,6 @@ export default function GiftCardDetail() {
               </TableBody>
             </Table>
             </div>
-            )
           ) : (
             <p className="text-center py-8 text-muted-foreground">
               Nog geen transacties

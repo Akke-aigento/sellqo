@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { usePublicLegalPage } from "@/hooks/useSellqoLegal";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ForcedLightMode } from "@/components/ForcedLightMode";
 
 export default function SellqoLegal() {
-  const location = useLocation();
-  const slug = location.pathname.replace(/^\//, '');
-  const { page, isLoading, error } = usePublicLegalPage(slug);
+  const { slug } = useParams<{ slug: string }>();
+  const { page, isLoading, error } = usePublicLegalPage(slug || '');
 
   if (isLoading) {
     return (

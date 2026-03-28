@@ -139,12 +139,6 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* Prevent white flash on PWA resume */
-    background-color: hsl(212, 52%, 24%);
-  }
-
-  .dark body {
-    background-color: hsl(222, 47%, 11%);
   }
 
   html {

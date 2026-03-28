@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, RotateCcw, AlertCircle, ArrowRight } from 'lucide-react';
+import { Loader2, Save, RotateCcw, AlertCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,10 +28,9 @@ import type { SyncDataType } from '@/types/syncRules';
 interface SyncRulesTabProps {
   connection: MarketplaceConnection;
   platformName: string;
-  onNavigateToProducts?: () => void;
 }
 
-export function SyncRulesTab({ connection, platformName, onNavigateToProducts }: SyncRulesTabProps) {
+export function SyncRulesTab({ connection, platformName }: SyncRulesTabProps) {
   const { connections } = useMarketplaceConnections();
   const {
     syncRules,
@@ -59,9 +58,9 @@ export function SyncRulesTab({ connection, platformName, onNavigateToProducts }:
 
   const capabilities = PLATFORM_CAPABILITIES[connection.marketplace_type];
 
-  // Get supported data types for this platform, excluding 'products' and 'inventory' (handled in Producten tab)
+  // Get supported data types for this platform
   const supportedTypes = SYNC_DATA_TYPES.filter(
-    (dt) => capabilities[dt.type] !== null && dt.type !== 'products' && dt.type !== 'inventory'
+    (dt) => capabilities[dt.type] !== null
   );
 
   if (isLoading) {
@@ -135,23 +134,6 @@ export function SyncRulesTab({ connection, platformName, onNavigateToProducts }:
       <div className="grid lg:grid-cols-[1fr,320px] gap-6">
         {/* Main sync rules */}
         <div className="space-y-4">
-          {/* Deeplink to Producten tab */}
-          {onNavigateToProducts && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="flex items-center justify-between py-4">
-                <div>
-                  <p className="text-sm font-medium">Producten & Voorraad</p>
-                  <p className="text-xs text-muted-foreground">
-                    Beheer productkoppelingen, import/export en per-product sync velden in de Producten tab.
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={onNavigateToProducts}>
-                  Beheer producten
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
-          )}
           {supportedTypes.map((dataTypeInfo) => {
             const dataType = dataTypeInfo.type as SyncDataType;
             const typeCapabilities = getCapabilities(dataType);

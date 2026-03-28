@@ -7,7 +7,6 @@ import {
   Trophy,
   Heart,
   Grid3X3,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -125,15 +124,6 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     category: 'stats',
     icon: Trophy,
   },
-  {
-    id: 'customer-health',
-    title: 'Klant Gezondheid',
-    description: 'Klanten met dalende scores die aandacht nodig hebben',
-    defaultSize: 'md',
-    minSize: 'sm',
-    category: 'stats',
-    icon: Users,
-  },
 ];
 
 // Predefined layout presets
@@ -152,7 +142,6 @@ export const layoutPresets: LayoutPreset[] = [
       'ai-marketing',
       'pos-overview',
       'marketplace',
-      'customer-health',
       'badges',
     ],
     hiddenWidgets: [],

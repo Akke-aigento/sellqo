@@ -13,7 +13,7 @@ interface VariantSelectorProps {
   onAttributeChange: (optionName: string, value: string) => void;
 }
 
-const MAX_TOGGLE_VALUES = 8;
+const MAX_TOGGLE_VALUES = 5;
 
 export function VariantSelector({ options, selectedAttributes, onAttributeChange }: VariantSelectorProps) {
   if (!options || options.length === 0) return null;

@@ -317,37 +317,19 @@ export function useTranslations() {
         },
       });
 
-      // Parse credit-related errors from the response
-      if (response.error) {
-        // Try to extract structured error data from the response
-        const errorData = response.data;
-        if (errorData?.creditsNeeded && errorData?.creditsAvailable) {
-          const err = new Error(`Onvoldoende credits: ${errorData.creditsNeeded} nodig, ${errorData.creditsAvailable} beschikbaar`) as Error & { creditsNeeded?: number; creditsAvailable?: number };
-          err.creditsNeeded = errorData.creditsNeeded;
-          err.creditsAvailable = errorData.creditsAvailable;
-          throw err;
-        }
-        throw new Error(response.error.message);
-      }
+      if (response.error) throw new Error(response.error.message);
       return response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['translation-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['translation-stats'] });
       queryClient.invalidateQueries({ queryKey: ['pending-translations'] });
-      toast.success(`Vertaling voltooid: ${data.itemsQueued} items`, {
-        description: `${data.translationsCreated} vertalingen gemaakt — ${data.creditsUsed} credits gebruikt`,
+      toast.success(`Vertaling gestart: ${data.itemsQueued} items`, {
+        description: `${data.creditsUsed} credits gebruikt`,
       });
     },
-    onError: (error: Error & { creditsNeeded?: number; creditsAvailable?: number }) => {
-      if (error.creditsNeeded) {
-        toast.error('Onvoldoende AI credits', {
-          description: `Je hebt ${error.creditsNeeded} credits nodig maar slechts ${error.creditsAvailable} beschikbaar. Koop extra credits via Marketing → AI Credits.`,
-          duration: 8000,
-        });
-      } else {
-        toast.error('Fout bij starten vertaling', { description: error.message });
-      }
+    onError: (error) => {
+      toast.error('Fout bij starten vertaling', { description: error.message });
     },
   });
 

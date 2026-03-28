@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateTrackingUrl } from "../_shared/carrierTrackingUrls.ts";
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
@@ -33,13 +32,12 @@ async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
   const pages = pdfDoc.getPages();
   const page = pages[0];
 
-  // Bol.com VVB labels span full A4 width but only use the top portion
-  const LABEL_WIDTH = 595.28;  // Full A4 width (210mm)
-  const LABEL_HEIGHT = 360; // Tighter crop for bpost VVB labels (~127mm)
+  const A6_WIDTH = 297.64;
+  const A6_HEIGHT = 419.53;
   const { height } = page.getSize();
 
-  page.setCropBox(0, height - LABEL_HEIGHT, LABEL_WIDTH, LABEL_HEIGHT);
-  page.setMediaBox(0, height - LABEL_HEIGHT, LABEL_WIDTH, LABEL_HEIGHT);
+  page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
 
   const newPdf = await PDFDoc.create();
   const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
@@ -229,102 +227,15 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      let retryLabelId = existingLabel.external_id;
-      
-      // If no external_id stored, try to find the label via Bol.com order API
+      const retryLabelId = existingLabel.external_id;
       if (!retryLabelId) {
-        console.log("No external_id stored, looking up existing label via Bol.com order API...");
-        try {
-          const orderLookupResponse = await fetchWithTimeout(
-            `https://api.bol.com/retailer/orders/${order.marketplace_order_id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/vnd.retailer.v10+json",
-              },
-            },
-            15000,
-          );
-          
-          if (orderLookupResponse.ok) {
-            const orderData = await orderLookupResponse.json();
-            console.log("Bol.com order data received, checking for transport info...");
-            
-            // Extract transport info from order items
-            let foundTracking: string | null = null;
-            let foundCarrier: string | null = null;
-            let foundTransportId: string | null = null;
-            
-            for (const item of (orderData.orderItems || [])) {
-              const transport = item.fulfilment?.transport;
-              if (transport) {
-                if (transport.trackAndTrace) foundTracking = transport.trackAndTrace;
-                if (transport.transporterCode) foundCarrier = transport.transporterCode;
-                if (transport.transportId) foundTransportId = transport.transportId;
-                console.log("Found transport info:", JSON.stringify(transport));
-                break;
-              }
-            }
-            
-            // Update label record with any found info
-            const updateData: Record<string, unknown> = {};
-            if (foundTracking) updateData.tracking_number = foundTracking;
-            if (foundCarrier) updateData.carrier = foundCarrier;
-            if (foundTransportId) {
-              updateData.external_id = foundTransportId;
-              retryLabelId = foundTransportId;
-            }
-            
-            if (Object.keys(updateData).length > 0) {
-              await supabase.from("shipping_labels").update(updateData).eq("id", label_id);
-              console.log("Updated label with Bol.com data:", JSON.stringify(updateData));
-            }
-            
-            // Also update the order with tracking info
-            if (foundTracking) {
-              const orderUpdate: Record<string, unknown> = { tracking_number: foundTracking };
-              if (foundCarrier) orderUpdate.carrier = foundCarrier;
-              if (foundTracking) {
-                orderUpdate.tracking_url = generateTrackingUrl(foundCarrier || '', foundTracking);
-              }
-              await supabase.from("orders").update(orderUpdate).eq("id", order.id);
-              console.log("Updated order with tracking:", foundTracking);
-            }
-            
-            // If we still don't have an external_id, we can't fetch the PDF
-            if (!retryLabelId) {
-              console.log("No transportId found in Bol.com order data");
-              return new Response(
-                JSON.stringify({
-                  error: "Label nog niet beschikbaar bij Bol.com. Probeer het over een paar minuten opnieuw.",
-                  status: "pending",
-                  message: "Het label wordt nog verwerkt door Bol.com. Probeer over een paar minuten opnieuw.",
-                  tracking_number: foundTracking,
-                }),
-                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-              );
-            }
-          } else {
-            console.error("Bol.com order lookup failed:", orderLookupResponse.status);
-            return new Response(
-              JSON.stringify({
-                error: "Kan label niet ophalen bij Bol.com. Probeer het later opnieuw.",
-                status: "pending",
-                message: "Label nog niet beschikbaar bij Bol.com.",
-              }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
-          }
-        } catch (lookupError) {
-          console.error("Bol.com order lookup error:", lookupError instanceof Error ? lookupError.message : lookupError);
-          return new Response(
-            JSON.stringify({
-              error: "Fout bij ophalen label informatie. Probeer het later opnieuw.",
-              status: "pending",
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
+        console.error("Label has no external_id, cannot fetch from Bol.com");
+        return new Response(
+          JSON.stringify({
+            error: "Label has no external_id (transporterLabelId). Try creating a new label with force_new: true",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       // Race condition guard: if label already has a URL, another instance already fetched it
@@ -405,22 +316,13 @@ const handler = async (req: Request): Promise<Response> => {
         // Upload to storage
         console.log("Uploading PDF to Supabase Storage...");
         const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
-        const safeOrderNumber = (order.order_number || '').replace(/#/g, '');
-        const fileName = `bol-vvb-${safeOrderNumber}${formatSuffix}-retry-${Date.now()}.pdf`;
+        const fileName = `bol-vvb-${order.order_number}${formatSuffix}-retry-${Date.now()}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
-          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: "application/pdf", upsert: true });
+          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: "application/pdf" });
 
         if (uploadError) {
           console.error("PDF upload to storage failed:", uploadError);
-          // Fallback: try to get existing file URL on 409
-          if ((uploadError as any)?.statusCode === '409') {
-            const { data: urlData } = supabase.storage
-              .from("shipping-labels")
-              .getPublicUrl(`${order.tenant_id}/${fileName}`);
-            retryPdfUrl = urlData?.publicUrl || null;
-            console.log("409 fallback - using existing URL:", retryPdfUrl);
-          }
         } else if (uploadData) {
           const { data: urlData } = supabase.storage
             .from("shipping-labels")
@@ -473,36 +375,6 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
-      // If still no tracking, try fetching from order data (Bol.com may need time)
-      if (!retryTracking) {
-        try {
-          console.log("No tracking from HEAD, fetching from Bol.com order data...");
-          const orderTrackResponse = await fetchWithTimeout(
-            `https://api.bol.com/retailer/orders/${order.marketplace_order_id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/vnd.retailer.v10+json",
-              },
-            },
-            15000,
-          );
-          if (orderTrackResponse.ok) {
-            const orderTrackData = await orderTrackResponse.json();
-            for (const item of (orderTrackData.orderItems || [])) {
-              const transport = item.fulfilment?.transport;
-              if (transport?.trackAndTrace) {
-                retryTracking = transport.trackAndTrace;
-                console.log("Got tracking from order data:", retryTracking);
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Order tracking fetch failed (non-fatal):", e instanceof Error ? e.message : e);
-        }
-      }
-
       // Update the label record
       console.log("Updating label record in database...");
       const updateFields: Record<string, unknown> = {};
@@ -521,14 +393,12 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Update order if tracking found
       if (retryTracking) {
-        const orderUpdateFields: Record<string, unknown> = {
-          tracking_number: retryTracking,
-          carrier: existingLabel.carrier,
-          tracking_url: generateTrackingUrl(existingLabel.carrier || '', retryTracking),
-        };
         await supabase
           .from("orders")
-          .update(orderUpdateFields)
+          .update({
+            tracking_number: retryTracking,
+            carrier: existingLabel.carrier,
+          })
           .eq("id", order.id);
       }
 
@@ -550,17 +420,50 @@ const handler = async (req: Request): Promise<Response> => {
       await supabase.from("shipping_labels").delete().eq("id", label_id);
     }
 
-    // ===== AUTO-ACCEPT: Mark order as accepted locally =====
-    // Bol.com v10 FBR orders are auto-accepted. No API call needed.
+    // ===== AUTO-ACCEPT: Accept order if not yet accepted =====
     const currentSyncStatus = order.sync_status;
     if (currentSyncStatus !== "accepted" && currentSyncStatus !== "shipped") {
       console.log(
-        `Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), marking as accepted locally...`,
+        `Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), auto-accepting first...`,
       );
-      await supabase.from("orders").update({
-        sync_status: "accepted",
-        updated_at: new Date().toISOString(),
-      }).eq("id", order_id);
+      try {
+        const acceptRes = await fetchWithTimeout(
+          `${supabaseUrl}/functions/v1/accept-bol-order`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${supabaseServiceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              order_id: order.id,
+              connection_id: order.marketplace_connection_id,
+            }),
+          },
+          30000,
+        );
+        const acceptBody = await acceptRes.text();
+        if (acceptRes.ok) {
+          console.log(`Order ${order.order_number} auto-accepted successfully`);
+        } else {
+          console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
+          // Do NOT mark as accepted on 403 - let retry logic handle verification
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Order accept failed: ${acceptRes.status}`,
+              details: acceptBody,
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (acceptError) {
+        console.error(
+          "Auto-accept error (non-blocking):",
+          acceptError instanceof Error ? acceptError.message : acceptError,
+        );
+      }
     }
 
     // Get order items with Bol.com IDs
@@ -600,29 +503,6 @@ const handler = async (req: Request): Promise<Response> => {
     if (!offersResponse.ok) {
       const errorText = await offersResponse.text();
       console.error("Bol.com delivery-options error:", offersResponse.status, errorText);
-      
-      // Detect "already shipped" scenario
-      const alreadyShipped = offersResponse.status === 404 && errorText.includes('shipped already');
-      if (alreadyShipped) {
-        // Update order status to reflect reality
-        await supabase.from('orders').update({ 
-          sync_status: 'shipped', 
-          status: 'shipped',
-          shipped_at: new Date().toISOString(),
-          updated_at: new Date().toISOString() 
-        }).eq('id', order_id);
-        
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Deze bestelling is al verzonden via Bol.com. Status is bijgewerkt.',
-            code: 'ALREADY_SHIPPED',
-            details: errorText,
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      
       return new Response(
         JSON.stringify({
           success: false,
@@ -726,7 +606,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Polling process-status attempt ${attempts + 1}/${maxAttempts}...`);
 
         const statusResponse = await fetchWithTimeout(
-          `https://api.bol.com/shared/process-status/${processStatusId}`,
+          `https://api.bol.com/retailer/process-status/${processStatusId}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -796,17 +676,6 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("PDF response status:", pdfResponse.status);
 
         if (pdfResponse.ok) {
-          // Extract tracking from PDF response headers
-          const trackingFromHeader = pdfResponse.headers.get("X-Track-And-Trace-Code");
-          const carrierFromHeader = pdfResponse.headers.get("X-Transporter-Code");
-          console.log(`PDF headers - tracking: ${trackingFromHeader}, carrier: ${carrierFromHeader}`);
-          if (trackingFromHeader && !trackingNumber) {
-            trackingNumber = trackingFromHeader;
-          }
-          if (carrierFromHeader && !carrier) {
-            carrier = carrierFromHeader;
-          }
-
           const pdfBlob = await pdfResponse.blob();
           let pdfBuffer = await pdfBlob.arrayBuffer();
           console.log("PDF downloaded, size:", pdfBuffer.byteLength);
@@ -822,13 +691,11 @@ const handler = async (req: Request): Promise<Response> => {
           }
 
           const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
-          const safeOrderNumber = (order.order_number || '').replace(/#/g, '');
-          const fileName = `bol-vvb-${safeOrderNumber}${formatSuffix}-${Date.now()}.pdf`;
+          const fileName = `bol-vvb-${order.order_number}${formatSuffix}-${Date.now()}.pdf`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("shipping-labels")
             .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
               contentType: "application/pdf",
-              upsert: true,
             });
 
           if (!uploadError && uploadData) {
@@ -839,14 +706,6 @@ const handler = async (req: Request): Promise<Response> => {
             console.log("PDF uploaded to storage:", labelPdfUrl);
           } else if (uploadError) {
             console.error("PDF upload error:", uploadError);
-            // Fallback: get existing file URL on 409
-            if ((uploadError as any)?.statusCode === '409') {
-              const { data: urlData } = supabase.storage
-                .from("shipping-labels")
-                .getPublicUrl(`${order.tenant_id}/${fileName}`);
-              labelPdfUrl = urlData?.publicUrl || null;
-              console.log("409 fallback - using existing URL:", labelPdfUrl);
-            }
           }
         } else {
           console.error("PDF fetch failed:", pdfResponse.status, await pdfResponse.text());
@@ -878,43 +737,6 @@ const handler = async (req: Request): Promise<Response> => {
       } catch (headError) {
         console.error("HEAD request for tracking failed:", headError instanceof Error ? headError.message : headError);
       }
-
-      // Skip long tracking wait — tracking will be fetched later by poll-tracking-status
-      // The 10s wait was causing edge function timeouts, preventing confirm-bol-shipment from being called
-      if (!trackingNumber) {
-        console.log("No tracking yet — will be fetched later by poll-tracking-status. Proceeding with shipment confirmation...");
-      }
-
-      // Fallback 3: Try the shipments API (tracking is often available here first)
-      if (!trackingNumber) {
-        console.log("Still no tracking, trying shipments API...");
-        try {
-          const shipmentsRes = await fetchWithTimeout(
-            `https://api.bol.com/retailer/shipments?order-id=${order.marketplace_order_id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/vnd.retailer.v10+json",
-              },
-            },
-            15000,
-          );
-          if (shipmentsRes.ok) {
-            const shipmentsData = await shipmentsRes.json();
-            const shipments = shipmentsData.shipments || [];
-            for (const shipment of shipments) {
-              const tt = shipment.transport?.trackAndTrace;
-              if (tt) {
-                trackingNumber = tt;
-                console.log("Got tracking from shipments API:", trackingNumber);
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Shipments API tracking fetch failed:", e instanceof Error ? e.message : e);
-        }
-      }
     }
 
     // Create shipping label record
@@ -942,23 +764,22 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Label saved, id:", label?.id);
     }
 
-    // Update order status based on result — decouple from tracking number
-    if (transporterLabelId) {
-      console.log(`Label created (tracking: ${trackingNumber || 'pending'}), marking order as shipped...`);
-      const orderUpdate: Record<string, unknown> = {
-        carrier: selectedOffer.transporterCode,
-        status: "shipped",
-        shipped_at: new Date().toISOString(),
-        fulfillment_status: "shipped",
-        sync_status: "shipped",
-      };
-      if (trackingNumber) {
-        orderUpdate.tracking_number = trackingNumber;
-        orderUpdate.tracking_url = generateTrackingUrl(selectedOffer?.transporterCode || '', trackingNumber);
-      }
-      await supabase.from("orders").update(orderUpdate).eq("id", order.id);
+    // Update order status based on result
+    if (transporterLabelId && trackingNumber) {
+      console.log("Label complete with tracking, marking order as shipped...");
+      await supabase
+        .from("orders")
+        .update({
+          carrier: selectedOffer.transporterCode,
+          tracking_number: trackingNumber,
+          status: "shipped",
+          shipped_at: new Date().toISOString(),
+          fulfillment_status: "shipped",
+          sync_status: "shipped",
+        })
+        .eq("id", order.id);
 
-      // Confirm shipment at Bol.com (works even without tracking — Bol already assigned it via VVB)
+      // Confirm shipment at Bol.com
       try {
         console.log(`Confirming shipment to Bol.com for order ${order.order_number}...`);
         const confirmRes = await fetchWithTimeout(
@@ -971,12 +792,8 @@ const handler = async (req: Request): Promise<Response> => {
             },
             body: JSON.stringify({
               order_id: order.id,
-              tracking_number: trackingNumber || null,
+              tracking_number: trackingNumber,
               carrier: selectedOffer.transporterCode,
-              marketplace_order_id: order.marketplace_order_id,
-              marketplace_order_item_ids: bolOrderItems.map(
-                (item: { marketplace_order_item_id: string }) => item.marketplace_order_item_id,
-              ),
             }),
           },
           30000,

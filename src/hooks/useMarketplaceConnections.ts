@@ -162,27 +162,21 @@ export function useMarketplaceConnections() {
 }
 
 export function useMarketplaceConnection(connectionId: string | undefined) {
-  const { currentTenant } = useTenant();
-  
   const { data: connection, isLoading, error } = useQuery({
-    queryKey: ['marketplace-connection', connectionId, currentTenant?.id],
+    queryKey: ['marketplace-connection', connectionId],
     queryFn: async () => {
-      if (!connectionId || !currentTenant?.id) return null;
+      if (!connectionId) return null;
       
       const { data, error } = await supabase
         .from('marketplace_connections')
         .select('*')
         .eq('id', connectionId)
-        .eq('tenant_id', currentTenant.id)
         .single();
 
-      if (error) {
-        console.error('Marketplace connection query failed:', error.message, { connectionId, tenantId: currentTenant.id });
-        throw error;
-      }
+      if (error) throw error;
       return data as unknown as MarketplaceConnection;
     },
-    enabled: !!connectionId && !!currentTenant?.id,
+    enabled: !!connectionId,
   });
 
   return { connection, isLoading, error };

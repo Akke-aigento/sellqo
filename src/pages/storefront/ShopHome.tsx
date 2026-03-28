@@ -10,9 +10,6 @@ import { TestimonialsSection } from '@/components/storefront/sections/Testimonia
 import { VideoSection } from '@/components/storefront/sections/VideoSection';
 import { ExternalReviewsSection } from '@/components/storefront/sections/ExternalReviewsSection';
 import { AnnouncementSection } from '@/components/storefront/sections/AnnouncementSection';
-import { CategoriesGridSection } from '@/components/storefront/sections/CategoriesGridSection';
-import { UspBarSection } from '@/components/storefront/sections/UspBarSection';
-import { CtaBannerSection } from '@/components/storefront/sections/CtaBannerSection';
 import type { HomepageSection } from '@/types/storefront';
 import { Helmet } from 'react-helmet-async';
 
@@ -42,12 +39,6 @@ export default function ShopHome() {
         return <AnnouncementSection key={key} section={section} />;
       case 'external_reviews':
         return <ExternalReviewsSection key={key} section={section} tenantId={tenant?.id} />;
-      case 'categories_grid':
-        return <CategoriesGridSection key={key} section={section} tenantId={tenant?.id} />;
-      case 'usp_bar':
-        return <UspBarSection key={key} section={section} />;
-      case 'cta_banner':
-        return <CtaBannerSection key={key} section={section} />;
       default:
         return null;
     }
