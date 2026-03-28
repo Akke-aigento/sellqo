@@ -1,25 +1,25 @@
 
 
-## Bundel Product Zoeken: Dropdown Combobox
+## Bundel Items: Checkboxen + Min Quantity op 0
 
-### Probleem
-Het huidige zoekveld toont pas resultaten na 2 tekens typen. De gebruiker wil een dropdown die direct producten toont bij klik/focus — zoals een combobox.
+### Twee wijzigingen
 
-### Oplossing
-Vervang het huidige `Input` + custom dropdown door een `Popover` + `Command` (cmdk) combobox patroon dat al in het project gebruikt wordt. Dit toont direct alle beschikbare producten bij focus/klik, met zoekfunctionaliteit bovenaan.
+**1. Popover blijft open — checkboxen i.p.v. single-select**
+- Verwijder `setBundlePopoverOpen(false)` na selectie zodat de popover open blijft
+- Voeg een `Checkbox` toe per product in de `CommandItem`
+- Aangevinkte producten = al in bundel (klik = verwijder)
+- Niet-aangevinkte producten = klik = toevoegen
+- Zo kan je snel meerdere producten aan/uitvinken zonder steeds opnieuw te openen
 
-### Wijzigingen
+**2. Minimum quantity op 0 toestaan = "niet verplicht"**
+- Verander `min="1"` naar `min="0"` op het **Aantal** veld (regel 1251) en het **Minimum** veld (regel 1290)
+- Verander de `Math.max(1, ...)` naar `Math.max(0, ...)` in de onChange handlers
+- Quantity 0 = product is optioneel in de bundel (niet verplicht)
+- Voeg een klein label/hint toe: "Zet op 0 voor optioneel"
 
-**`src/pages/admin/ProductForm.tsx`** (regels 1164-1225)
-- Vervang `Input` + relatieve dropdown door `Popover` + `Command` component
-- `CommandInput` voor zoeken
-- `CommandList` met `CommandItem` per product (afbeelding + naam + prijs)
-- Popover opent bij klik op trigger-knop ("Zoek product om toe te voegen...")
-- Sluit automatisch na selectie
-- Filtert al toegevoegde producten en bundels eruit
+### Bestand
+`src/pages/admin/ProductForm.tsx` — alleen dit bestand wijzigt
 
-### Technisch
-- Gebruikt bestaande shadcn `Command` + `Popover` componenten (al in project)
-- Geen nieuwe dependencies
-- Zelfde `allProducts` data als nu, zelfde add-logica
+### Geen database wijzigingen nodig
+De `quantity` kolom accepteert al 0. Geen migratie vereist.
 
