@@ -375,6 +375,53 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     if (selectedVariantIndex === -1) selectedVariantIndex = null;
   }
 
+  // Fetch bundle data if product is a bundle (via matching slug in product_bundles)
+  let bundleData: Record<string, unknown> = {};
+  if (product.product_type === 'bundle') {
+    const { data: bundle } = await supabase
+      .from('product_bundles')
+      .select('id, discount_type, discount_value, bundle_type')
+      .eq('tenant_id', tenantId)
+      .eq('slug', product.slug)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (bundle) {
+      const { data: bundleProducts } = await supabase
+        .from('bundle_products')
+        .select('id, product_id, quantity, is_required, group_name, sort_order, products(id, name, slug, price, images, track_inventory, stock)')
+        .eq('bundle_id', bundle.id)
+        .order('sort_order', { ascending: true });
+
+      const items = (bundleProducts || []).map((bp: any) => ({
+        id: bp.id,
+        product_id: bp.product_id,
+        quantity: bp.quantity,
+        is_required: bp.is_required,
+        sort_order: bp.sort_order,
+        product: bp.products ? {
+          id: bp.products.id,
+          name: bp.products.name,
+          slug: bp.products.slug,
+          price: bp.products.price,
+          image: bp.products.images?.[0] || null,
+          in_stock: !bp.products.track_inventory || bp.products.stock > 0,
+        } : null,
+      }));
+
+      const individualTotal = items.reduce((s: number, bi: any) => s + (bi.product?.price || 0) * bi.quantity, 0);
+
+      bundleData = {
+        bundle_items: items,
+        bundle_individual_total: individualTotal,
+        bundle_savings: individualTotal > product.price ? individualTotal - product.price : 0,
+        bundle_discount_type: bundle.discount_type,
+        bundle_discount_value: bundle.discount_value,
+        bundle_pricing_model: bundle.bundle_type,
+      };
+    }
+  }
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -387,6 +434,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
+    product_type: product.product_type || 'physical',
     in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
@@ -405,6 +453,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
     options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
+    ...bundleData,
     seo: {
       meta_title: t.meta_title || product.meta_title || product.name,
       meta_description: t.meta_description || product.meta_description || product.description?.substring(0, 160) || '',
@@ -444,7 +493,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
@@ -520,6 +569,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
           : (!product.track_inventory || product.stock > 0),
         stock: product.track_inventory ? product.stock : null, sku: product.sku,
         tags: product.tags || [], is_featured: product.is_featured || false,
+        product_type: product.product_type || 'physical',
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
         has_variants: hasVariants,
         price_range: priceRange,
