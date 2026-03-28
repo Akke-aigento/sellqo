@@ -43,6 +43,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
