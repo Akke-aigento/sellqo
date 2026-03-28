@@ -1,30 +1,25 @@
 
-# Dynamische standaard landkeuze op checkout
 
-## Probleem
-Het land in de checkout staat hardcoded op `'BE'`. Het zou automatisch het land van de tenant (winkel) moeten gebruiken.
+## Bundel Product Zoeken: Dropdown Combobox
 
-## Oplossing
-In `src/pages/storefront/ShopCheckout.tsx`:
+### Probleem
+Het huidige zoekveld toont pas resultaten na 2 tekens typen. De gebruiker wil een dropdown die direct producten toont bij klik/focus — zoals een combobox.
 
-1. **Verwijder hardcoded `'BE'`** -- Zet de initiële `country` op een lege string `''`
-2. **Voeg een `useEffect` toe** die, zodra de tenant data geladen is, het land instelt op `tenant.country` (bijv. `'NL'`, `'BE'`, `'DE'`), maar alleen als de gebruiker het nog niet zelf heeft gewijzigd
+### Oplossing
+Vervang het huidige `Input` + custom dropdown door een `Popover` + `Command` (cmdk) combobox patroon dat al in het project gebruikt wordt. Dit toont direct alle beschikbare producten bij focus/klik, met zoekfunctionaliteit bovenaan.
 
-## Technisch detail
+### Wijzigingen
 
-Wijziging in `src/pages/storefront/ShopCheckout.tsx`:
+**`src/pages/admin/ProductForm.tsx`** (regels 1164-1225)
+- Vervang `Input` + relatieve dropdown door `Popover` + `Command` component
+- `CommandInput` voor zoeken
+- `CommandList` met `CommandItem` per product (afbeelding + naam + prijs)
+- Popover opent bij klik op trigger-knop ("Zoek product om toe te voegen...")
+- Sluit automatisch na selectie
+- Filtert al toegevoegde producten en bundels eruit
 
-- Regel 55: `country: 'BE'` wordt `country: ''`
-- Nieuw `useEffect` na bestaande effects:
-  ```typescript
-  useEffect(() => {
-    if (tenant?.country && !customerData.country) {
-      setCustomerData(prev => ({ ...prev, country: tenant.country || 'BE' }));
-    }
-  }, [tenant]);
-  ```
+### Technisch
+- Gebruikt bestaande shadcn `Command` + `Popover` componenten (al in project)
+- Geen nieuwe dependencies
+- Zelfde `allProducts` data als nu, zelfde add-logica
 
-Dit zorgt ervoor dat:
-- Een Belgische winkel standaard "Belgie" toont
-- Een Nederlandse winkel standaard "Nederland" toont
-- Als de klant het land al heeft gewijzigd, wordt het niet overschreven
