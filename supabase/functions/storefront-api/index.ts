@@ -375,6 +375,69 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     if (selectedVariantIndex === -1) selectedVariantIndex = null;
   }
 
+  // Bundle items
+  let bundleData: Record<string, any> = {};
+  if (product.product_type === 'bundle') {
+    const { data: bundleItems } = await supabase
+      .from('product_bundle_items')
+      .select('id, child_product_id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order')
+      .eq('product_id', product.id)
+      .order('sort_order', { ascending: true });
+
+    let bundleItemsWithProducts: any[] = [];
+    if (bundleItems && bundleItems.length > 0) {
+      const childIds = bundleItems.map((bi: any) => bi.child_product_id);
+      const { data: childProducts } = await supabase
+        .from('products')
+        .select('id, name, slug, price, images, featured_image, stock, track_inventory')
+        .in('id', childIds);
+
+      const childMap: Record<string, any> = {};
+      if (childProducts) {
+        for (const cp of childProducts) childMap[cp.id] = cp;
+      }
+
+      // Translations for child products
+      const childTMap = locale && childIds.length > 0
+        ? await getTranslations(supabase, tenantId, 'product', childIds, locale) : {};
+
+      bundleItemsWithProducts = bundleItems.map((bi: any) => {
+        const child = childMap[bi.child_product_id] || {};
+        const ct = childTMap[bi.child_product_id] || {};
+        return {
+          id: bi.id,
+          quantity: bi.quantity,
+          customer_can_adjust: bi.customer_can_adjust,
+          min_quantity: bi.min_quantity,
+          max_quantity: bi.max_quantity,
+          sort_order: bi.sort_order,
+          product: {
+            id: child.id,
+            name: ct.name || child.name,
+            slug: child.slug,
+            price: child.price,
+            image: child.featured_image || child.images?.[0] || null,
+            in_stock: !child.track_inventory || (child.stock ?? 0) > 0,
+          },
+        };
+      });
+    }
+
+    const individualTotal = bundleItemsWithProducts.reduce(
+      (sum: number, bi: any) => sum + (bi.product?.price || 0) * bi.quantity, 0
+    );
+    const savings = individualTotal - product.price;
+
+    bundleData = {
+      bundle_pricing_model: product.bundle_pricing_model || 'fixed',
+      bundle_discount_type: product.bundle_discount_type || null,
+      bundle_discount_value: product.bundle_discount_value || null,
+      bundle_items: bundleItemsWithProducts,
+      bundle_individual_total: Math.round(individualTotal * 100) / 100,
+      bundle_savings: savings > 0 ? Math.round(savings * 100) / 100 : 0,
+    };
+  }
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -387,6 +450,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
+    product_type: product.product_type || 'physical',
     in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
@@ -415,6 +479,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
       total_count: reviews?.length || 0,
     },
+    ...bundleData,
   };
 }
 
