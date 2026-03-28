@@ -1293,11 +1293,11 @@ export default function ProductForm() {
                                         <Label className="text-sm">Minimum</Label>
                                         <Input
                                           type="number"
-                                          min="1"
+                                          min="0"
                                           placeholder="Geen limiet"
                                           value={item.min_quantity ?? ''}
                                           onChange={(e) => {
-                                            const val = e.target.value ? Math.max(1, parseInt(e.target.value)) : null;
+                                            const val = e.target.value ? Math.max(0, parseInt(e.target.value)) : null;
                                             setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, min_quantity: val } : bi));
                                           }}
                                         />
