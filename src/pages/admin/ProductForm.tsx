@@ -1254,11 +1254,11 @@ export default function ProductForm() {
                                       <Label className="text-sm whitespace-nowrap">Aantal:</Label>
                                       <Input
                                         type="number"
-                                        min="1"
+                                      min="0"
                                         className="w-20"
                                         value={item.quantity}
                                         onChange={(e) => {
-                                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                                          const val = Math.max(0, parseInt(e.target.value) || 0);
                                           setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, quantity: val } : bi));
                                         }}
                                       />
