@@ -733,7 +733,8 @@ export default function ProductForm() {
                     </CardContent>
                   </Card>
 
-                  {/* Pricing */}
+                  {/* Pricing - hidden for bundles, they use bundle pricing config */}
+                  {!isBundle && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Prijzen</CardTitle>
@@ -782,6 +783,7 @@ export default function ProductForm() {
                       </div>
                     </CardContent>
                   </Card>
+                  )}
 
                   {/* Inventory & Identification */}
                   <Card>

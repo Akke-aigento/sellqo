@@ -8655,6 +8655,9 @@ export type Database = {
           bol_offer_id: string | null
           bol_optimized_description: string | null
           bol_optimized_title: string | null
+          bundle_discount_type: string | null
+          bundle_discount_value: number | null
+          bundle_pricing_model: string | null
           category_id: string | null
           compare_at_price: number | null
           cost_price: number | null
@@ -8782,6 +8785,9 @@ export type Database = {
           bol_offer_id?: string | null
           bol_optimized_description?: string | null
           bol_optimized_title?: string | null
+          bundle_discount_type?: string | null
+          bundle_discount_value?: number | null
+          bundle_pricing_model?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -8909,6 +8915,9 @@ export type Database = {
           bol_offer_id?: string | null
           bol_optimized_description?: string | null
           bol_optimized_title?: string | null
+          bundle_discount_type?: string | null
+          bundle_discount_value?: number | null
+          bundle_pricing_model?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
