@@ -164,6 +164,7 @@ export default function ProductForm() {
     child_product?: { id: string; name: string; price: number; images: string[] | null; featured_image: string | null };
   }>>([]);
   const [bundleSearchQuery, setBundleSearchQuery] = useState('');
+  const [bundlePopoverOpen, setBundlePopoverOpen] = useState(false);
   const [bundleItemsInitialized, setBundleItemsInitialized] = useState(false);
 
   const form = useForm<FormValues>({
