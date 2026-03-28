@@ -375,67 +375,51 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     if (selectedVariantIndex === -1) selectedVariantIndex = null;
   }
 
-  // Bundle items
-  let bundleData: Record<string, any> = {};
+  // Fetch bundle data if product is a bundle (via matching slug in product_bundles)
+  let bundleData: Record<string, unknown> = {};
   if (product.product_type === 'bundle') {
-    const { data: bundleItems } = await supabase
-      .from('product_bundle_items')
-      .select('id, child_product_id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order')
-      .eq('product_id', product.id)
-      .order('sort_order', { ascending: true });
+    const { data: bundle } = await supabase
+      .from('product_bundles')
+      .select('id, discount_type, discount_value, bundle_type')
+      .eq('tenant_id', tenantId)
+      .eq('slug', product.slug)
+      .eq('is_active', true)
+      .maybeSingle();
 
-    let bundleItemsWithProducts: any[] = [];
-    if (bundleItems && bundleItems.length > 0) {
-      const childIds = bundleItems.map((bi: any) => bi.child_product_id);
-      const { data: childProducts } = await supabase
-        .from('products')
-        .select('id, name, slug, price, images, featured_image, stock, track_inventory')
-        .in('id', childIds);
+    if (bundle) {
+      const { data: bundleProducts } = await supabase
+        .from('bundle_products')
+        .select('id, product_id, quantity, is_required, group_name, sort_order, products(id, name, slug, price, images, track_inventory, stock)')
+        .eq('bundle_id', bundle.id)
+        .order('sort_order', { ascending: true });
 
-      const childMap: Record<string, any> = {};
-      if (childProducts) {
-        for (const cp of childProducts) childMap[cp.id] = cp;
-      }
+      const items = (bundleProducts || []).map((bp: any) => ({
+        id: bp.id,
+        product_id: bp.product_id,
+        quantity: bp.quantity,
+        is_required: bp.is_required,
+        sort_order: bp.sort_order,
+        product: bp.products ? {
+          id: bp.products.id,
+          name: bp.products.name,
+          slug: bp.products.slug,
+          price: bp.products.price,
+          image: bp.products.images?.[0] || null,
+          in_stock: !bp.products.track_inventory || bp.products.stock > 0,
+        } : null,
+      }));
 
-      // Translations for child products
-      const childTMap = locale && childIds.length > 0
-        ? await getTranslations(supabase, tenantId, 'product', childIds, locale) : {};
+      const individualTotal = items.reduce((s: number, bi: any) => s + (bi.product?.price || 0) * bi.quantity, 0);
 
-      bundleItemsWithProducts = bundleItems.map((bi: any) => {
-        const child = childMap[bi.child_product_id] || {};
-        const ct = childTMap[bi.child_product_id] || {};
-        return {
-          id: bi.id,
-          quantity: bi.quantity,
-          customer_can_adjust: bi.customer_can_adjust,
-          min_quantity: bi.min_quantity,
-          max_quantity: bi.max_quantity,
-          sort_order: bi.sort_order,
-          product: {
-            id: child.id,
-            name: ct.name || child.name,
-            slug: child.slug,
-            price: child.price,
-            image: child.featured_image || child.images?.[0] || null,
-            in_stock: !child.track_inventory || (child.stock ?? 0) > 0,
-          },
-        };
-      });
+      bundleData = {
+        bundle_items: items,
+        bundle_individual_total: individualTotal,
+        bundle_savings: individualTotal > product.price ? individualTotal - product.price : 0,
+        bundle_discount_type: bundle.discount_type,
+        bundle_discount_value: bundle.discount_value,
+        bundle_pricing_model: bundle.bundle_type,
+      };
     }
-
-    const individualTotal = bundleItemsWithProducts.reduce(
-      (sum: number, bi: any) => sum + (bi.product?.price || 0) * bi.quantity, 0
-    );
-    const savings = individualTotal - product.price;
-
-    bundleData = {
-      bundle_pricing_model: product.bundle_pricing_model || 'fixed',
-      bundle_discount_type: product.bundle_discount_type || null,
-      bundle_discount_value: product.bundle_discount_value || null,
-      bundle_items: bundleItemsWithProducts,
-      bundle_individual_total: Math.round(individualTotal * 100) / 100,
-      bundle_savings: savings > 0 ? Math.round(savings * 100) / 100 : 0,
-    };
   }
 
   return {
@@ -469,6 +453,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
     options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
+    ...bundleData,
     seo: {
       meta_title: t.meta_title || product.meta_title || product.name,
       meta_description: t.meta_description || product.meta_description || product.description?.substring(0, 160) || '',
@@ -509,7 +494,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, created_at, product_type, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
