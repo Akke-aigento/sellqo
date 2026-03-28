@@ -43,6 +43,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -1180,44 +1181,50 @@ export default function ProductForm() {
                                     {allProducts
                                       .filter(p =>
                                         p.id !== id &&
-                                        p.product_type !== 'bundle' &&
-                                        !bundleItemsState.some(bi => bi.child_product_id === p.id)
+                                        p.product_type !== 'bundle'
                                       )
-                                      .map(p => (
-                                        <CommandItem
-                                          key={p.id}
-                                          value={p.name}
-                                          onSelect={() => {
-                                            setBundleItemsState(prev => [...prev, {
-                                              child_product_id: p.id,
-                                              quantity: 1,
-                                              customer_can_adjust: false,
-                                              min_quantity: null,
-                                              max_quantity: null,
-                                              sort_order: prev.length,
-                                              child_product: {
-                                                id: p.id,
-                                                name: p.name,
-                                                price: p.price,
-                                                images: p.images,
-                                                featured_image: p.featured_image,
-                                              },
-                                            }]);
-                                            setBundlePopoverOpen(false);
-                                          }}
-                                          className="flex items-center gap-3 cursor-pointer"
-                                        >
-                                          {(p.featured_image || p.images?.[0]) ? (
-                                            <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                                          ) : (
-                                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0"><Package className="h-4 w-4 text-muted-foreground" /></div>
-                                          )}
-                                          <div className="min-w-0">
-                                            <div className="text-sm font-medium truncate">{p.name}</div>
-                                            <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
+                                      .map(p => {
+                                        const isInBundle = bundleItemsState.some(bi => bi.child_product_id === p.id);
+                                        return (
+                                          <CommandItem
+                                            key={p.id}
+                                            value={p.name}
+                                            onSelect={() => {
+                                              if (isInBundle) {
+                                                setBundleItemsState(prev => prev.filter(bi => bi.child_product_id !== p.id));
+                                              } else {
+                                                setBundleItemsState(prev => [...prev, {
+                                                  child_product_id: p.id,
+                                                  quantity: 1,
+                                                  customer_can_adjust: false,
+                                                  min_quantity: null,
+                                                  max_quantity: null,
+                                                  sort_order: prev.length,
+                                                  child_product: {
+                                                    id: p.id,
+                                                    name: p.name,
+                                                    price: p.price,
+                                                    images: p.images,
+                                                    featured_image: p.featured_image,
+                                                  },
+                                                }]);
+                                              }
+                                            }}
+                                            className="flex items-center gap-3 cursor-pointer"
+                                          >
+                                            <Checkbox checked={isInBundle} className="pointer-events-none" />
+                                            {(p.featured_image || p.images?.[0]) ? (
+                                              <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                                            ) : (
+                                              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0"><Package className="h-4 w-4 text-muted-foreground" /></div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                              <div className="text-sm font-medium truncate">{p.name}</div>
+                                              <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
+                                            </div>
+                                          </CommandItem>
+                                        );
+                                      })}
                                   </CommandGroup>
                                 </CommandList>
                               </Command>
@@ -1248,11 +1255,11 @@ export default function ProductForm() {
                                       <Label className="text-sm whitespace-nowrap">Aantal:</Label>
                                       <Input
                                         type="number"
-                                        min="1"
+                                      min="0"
                                         className="w-20"
                                         value={item.quantity}
                                         onChange={(e) => {
-                                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                                          const val = Math.max(0, parseInt(e.target.value) || 0);
                                           setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, quantity: val } : bi));
                                         }}
                                       />
@@ -1287,11 +1294,11 @@ export default function ProductForm() {
                                         <Label className="text-sm">Minimum</Label>
                                         <Input
                                           type="number"
-                                          min="1"
+                                          min="0"
                                           placeholder="Geen limiet"
                                           value={item.min_quantity ?? ''}
                                           onChange={(e) => {
-                                            const val = e.target.value ? Math.max(1, parseInt(e.target.value)) : null;
+                                            const val = e.target.value ? Math.max(0, parseInt(e.target.value)) : null;
                                             setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, min_quantity: val } : bi));
                                           }}
                                         />
