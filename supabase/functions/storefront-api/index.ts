@@ -580,6 +580,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         description: t.description || product.description,
         price: product.price, compare_at_price: product.compare_at_price,
         images: product.images || [],
+        product_type: product.product_type || 'physical',
         in_stock: hasVariants
           ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
           : (!product.track_inventory || product.stock > 0),
