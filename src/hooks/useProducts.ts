@@ -290,7 +290,7 @@ export function useProductBundleItems(productId: string | undefined) {
     queryFn: async () => {
       if (!productId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('product_bundle_items')
         .select(`
           *,
@@ -327,7 +327,7 @@ export function useSaveBundleItems() {
       }>;
     }) => {
       // Delete existing items
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('product_bundle_items')
         .delete()
         .eq('product_id', productId);
@@ -336,7 +336,7 @@ export function useSaveBundleItems() {
 
       // Insert new items
       if (items.length > 0) {
-        const { error: insertError } = await supabase
+        const { error: insertError } = await (supabase as any)
           .from('product_bundle_items')
           .insert(items.map(item => ({
             product_id: productId,
