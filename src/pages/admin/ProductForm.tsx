@@ -1180,44 +1180,50 @@ export default function ProductForm() {
                                     {allProducts
                                       .filter(p =>
                                         p.id !== id &&
-                                        p.product_type !== 'bundle' &&
-                                        !bundleItemsState.some(bi => bi.child_product_id === p.id)
+                                        p.product_type !== 'bundle'
                                       )
-                                      .map(p => (
-                                        <CommandItem
-                                          key={p.id}
-                                          value={p.name}
-                                          onSelect={() => {
-                                            setBundleItemsState(prev => [...prev, {
-                                              child_product_id: p.id,
-                                              quantity: 1,
-                                              customer_can_adjust: false,
-                                              min_quantity: null,
-                                              max_quantity: null,
-                                              sort_order: prev.length,
-                                              child_product: {
-                                                id: p.id,
-                                                name: p.name,
-                                                price: p.price,
-                                                images: p.images,
-                                                featured_image: p.featured_image,
-                                              },
-                                            }]);
-                                            setBundlePopoverOpen(false);
-                                          }}
-                                          className="flex items-center gap-3 cursor-pointer"
-                                        >
-                                          {(p.featured_image || p.images?.[0]) ? (
-                                            <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                                          ) : (
-                                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0"><Package className="h-4 w-4 text-muted-foreground" /></div>
-                                          )}
-                                          <div className="min-w-0">
-                                            <div className="text-sm font-medium truncate">{p.name}</div>
-                                            <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
+                                      .map(p => {
+                                        const isInBundle = bundleItemsState.some(bi => bi.child_product_id === p.id);
+                                        return (
+                                          <CommandItem
+                                            key={p.id}
+                                            value={p.name}
+                                            onSelect={() => {
+                                              if (isInBundle) {
+                                                setBundleItemsState(prev => prev.filter(bi => bi.child_product_id !== p.id));
+                                              } else {
+                                                setBundleItemsState(prev => [...prev, {
+                                                  child_product_id: p.id,
+                                                  quantity: 1,
+                                                  customer_can_adjust: false,
+                                                  min_quantity: null,
+                                                  max_quantity: null,
+                                                  sort_order: prev.length,
+                                                  child_product: {
+                                                    id: p.id,
+                                                    name: p.name,
+                                                    price: p.price,
+                                                    images: p.images,
+                                                    featured_image: p.featured_image,
+                                                  },
+                                                }]);
+                                              }
+                                            }}
+                                            className="flex items-center gap-3 cursor-pointer"
+                                          >
+                                            <Checkbox checked={isInBundle} className="pointer-events-none" />
+                                            {(p.featured_image || p.images?.[0]) ? (
+                                              <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                                            ) : (
+                                              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0"><Package className="h-4 w-4 text-muted-foreground" /></div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                              <div className="text-sm font-medium truncate">{p.name}</div>
+                                              <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
+                                            </div>
+                                          </CommandItem>
+                                        );
+                                      })}
                                   </CommandGroup>
                                 </CommandList>
                               </Command>
