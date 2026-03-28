@@ -276,8 +276,9 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       const { data, error } = await supabase
         .from('products')
         .select(`
-          id, name, slug, description, price, compare_at_price, images, 
-          track_inventory, stock, sku, weight,
+          id, name, slug, description, price, compare_at_price, images,
+          track_inventory, stock, sku, weight, product_type,
+          bundle_pricing_model, bundle_discount_type, bundle_discount_value,
           category_id, categories(id, name, slug),
           meta_title, meta_description
         `)
@@ -290,6 +291,24 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       if (!data) throw new Error('Product not found');
 
       const product = data as any;
+
+      // Fetch bundle items if this is a bundle product
+      let bundle_items: any[] = [];
+      if (product.product_type === 'bundle') {
+        const { data: items } = await supabase
+          .from('product_bundle_items')
+          .select(`
+            id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order,
+            child_product:products!product_bundle_items_child_product_id_fkey(
+              id, name, slug, price, images, featured_image, stock, track_inventory
+            )
+          `)
+          .eq('product_id', product.id)
+          .order('sort_order', { ascending: true });
+
+        bundle_items = items || [];
+      }
+
       return {
         ...product,
         images: product.images || [],
@@ -299,6 +318,7 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
           name: product.categories.name,
           slug: product.categories.slug,
         } : null,
+        bundle_items,
       };
     },
     enabled: !!tenantId && !!productSlug,

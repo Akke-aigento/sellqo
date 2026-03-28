@@ -88,6 +88,11 @@ export interface Product {
   gift_card_allow_custom?: boolean | null;
   gift_card_expiry_months?: number | null;
   gift_card_design_id?: string | null;
+  // Bundle fields
+  bundle_pricing_model?: 'fixed' | 'dynamic' | null;
+  bundle_discount_type?: 'percentage' | 'fixed_amount' | null;
+  bundle_discount_value?: number | null;
+  bundle_items?: BundleItem[];
   // Shopify listing fields
   shopify_product_id?: string | null;
   shopify_variant_id?: string | null;
@@ -132,6 +137,29 @@ export interface Product {
   ebay_category_path?: string | null;
   // Social channels
   social_channels?: Record<string, boolean> | null;
+}
+
+// Bundle item (child product in a bundle)
+export interface BundleItem {
+  id: string;
+  product_id: string;
+  child_product_id: string;
+  quantity: number;
+  customer_can_adjust: boolean;
+  min_quantity: number | null;
+  max_quantity: number | null;
+  sort_order: number;
+  created_at: string;
+  child_product?: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[] | null;
+    featured_image: string | null;
+    stock: number | null;
+    track_inventory: boolean | null;
+    slug: string;
+  };
 }
 
 // Partial category for product listing (only id, name, slug returned by query)
@@ -198,6 +226,10 @@ export interface ProductFormData {
   gift_card_allow_custom?: boolean | null;
   gift_card_expiry_months?: number | null;
   gift_card_design_id?: string | null;
+  // Bundle fields
+  bundle_pricing_model?: 'fixed' | 'dynamic' | null;
+  bundle_discount_type?: 'percentage' | 'fixed_amount' | null;
+  bundle_discount_value?: number | null;
 }
 
 export interface CategoryFormData {

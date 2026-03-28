@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
-import type { Product, ProductFormData } from '@/types/product';
+import type { Product, ProductFormData, BundleItem } from '@/types/product';
 
 export function useProducts() {
   const { currentTenant } = useTenant();
@@ -281,5 +281,73 @@ export function useProduct(id: string | undefined) {
       return data as Product | null;
     },
     enabled: !!id && !!currentTenant,
+  });
+}
+
+export function useProductBundleItems(productId: string | undefined) {
+  return useQuery({
+    queryKey: ['product-bundle-items', productId],
+    queryFn: async () => {
+      if (!productId) return [];
+
+      const { data, error } = await supabase
+        .from('product_bundle_items')
+        .select(`
+          *,
+          child_product:products!product_bundle_items_child_product_id_fkey(
+            id, name, price, images, featured_image, stock, track_inventory, slug
+          )
+        `)
+        .eq('product_id', productId)
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        ...item,
+        child_product: item.child_product || undefined,
+      })) as BundleItem[];
+    },
+    enabled: !!productId,
+  });
+}
+
+export function useSaveBundleItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ productId, items }: {
+      productId: string;
+      items: Array<{
+        child_product_id: string;
+        quantity: number;
+        customer_can_adjust: boolean;
+        min_quantity: number | null;
+        max_quantity: number | null;
+        sort_order: number;
+      }>;
+    }) => {
+      // Delete existing items
+      const { error: deleteError } = await supabase
+        .from('product_bundle_items')
+        .delete()
+        .eq('product_id', productId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new items
+      if (items.length > 0) {
+        const { error: insertError } = await supabase
+          .from('product_bundle_items')
+          .insert(items.map(item => ({
+            product_id: productId,
+            ...item,
+          })));
+
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: (_, { productId }) => {
+      queryClient.invalidateQueries({ queryKey: ['product-bundle-items', productId] });
+    },
   });
 }
