@@ -424,10 +424,12 @@ export default function ProductForm() {
     form.setValue('tags', form.getValues('tags').filter(t => t !== tag));
   };
 
-  const onSubmit = async (data: FormValues) => {
+   const onSubmit = async (data: FormValues) => {
     const submitData = {
       ...data,
       category_id: data.category_id || null,
+      sku: data.sku?.trim() || null,
+      barcode: data.barcode?.trim() || null,
     };
     let productId = id;
     if (isEditing && id) {
