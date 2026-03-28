@@ -290,7 +290,7 @@ export function useProductBundleItems(productId: string | undefined) {
     queryFn: async () => {
       if (!productId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('product_bundle_items')
         .select(`
           *,
