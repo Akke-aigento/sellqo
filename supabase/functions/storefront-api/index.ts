@@ -375,39 +375,6 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     if (selectedVariantIndex === -1) selectedVariantIndex = null;
   }
 
-  // Fetch bundle items if product is a bundle
-  let bundleItems: any[] | undefined;
-  let bundleIndividualTotal: number | undefined;
-  let bundleSavings: number | undefined;
-  if (product.product_type === 'bundle') {
-    const { data: rawBundleItems } = await supabase
-      .from('product_bundle_items')
-      .select('id, child_product_id, quantity, is_required, sort_order, products!product_bundle_items_child_product_id_fkey(id, name, slug, price, images, track_inventory, stock, is_active)')
-      .eq('bundle_product_id', product.id)
-      .eq('tenant_id', tenantId)
-      .order('sort_order', { ascending: true });
-
-    if (rawBundleItems && rawBundleItems.length > 0) {
-      bundleItems = rawBundleItems.map((bi: any) => ({
-        id: bi.id,
-        product_id: bi.child_product_id,
-        quantity: bi.quantity,
-        is_required: bi.is_required,
-        sort_order: bi.sort_order,
-        product: bi.products ? {
-          id: bi.products.id,
-          name: bi.products.name,
-          slug: bi.products.slug,
-          price: bi.products.price,
-          image: bi.products.images?.[0] || null,
-          in_stock: !bi.products.track_inventory || bi.products.stock > 0,
-        } : null,
-      }));
-      bundleIndividualTotal = bundleItems.reduce((s: number, bi: any) => s + (bi.product?.price || 0) * bi.quantity, 0);
-      bundleSavings = bundleIndividualTotal > product.price ? bundleIndividualTotal - product.price : 0;
-    }
-  }
-
   return {
     id: product.id,
     name: t.name || product.name,
@@ -420,7 +387,6 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
-    product_type: product.product_type || 'physical',
     in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
@@ -439,12 +405,6 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
     options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
-    // Bundle data (only present when product_type === 'bundle')
-    ...(product.product_type === 'bundle' ? {
-      bundle_items: bundleItems || [],
-      bundle_individual_total: bundleIndividualTotal ?? 0,
-      bundle_savings: bundleSavings ?? 0,
-    } : {}),
     seo: {
       meta_title: t.meta_title || product.meta_title || product.name,
       meta_description: t.meta_description || product.meta_description || product.description?.substring(0, 160) || '',
@@ -555,7 +515,6 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         description: t.description || product.description,
         price: product.price, compare_at_price: product.compare_at_price,
         images: product.images || [],
-        product_type: product.product_type || 'physical',
         in_stock: hasVariants
           ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
           : (!product.track_inventory || product.stock > 0),
