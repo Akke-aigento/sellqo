@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -69,6 +69,8 @@ import {
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { ChevronRight } from 'lucide-react';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
@@ -162,6 +164,7 @@ export default function ProductForm() {
     child_product?: { id: string; name: string; price: number; images: string[] | null; featured_image: string | null };
   }>>([]);
   const [bundleSearchQuery, setBundleSearchQuery] = useState('');
+  const [bundlePopoverOpen, setBundlePopoverOpen] = useState(false);
   const [bundleItemsInitialized, setBundleItemsInitialized] = useState(false);
 
   const form = useForm<FormValues>({
@@ -1161,68 +1164,65 @@ export default function ProductForm() {
                           <Label className="text-base font-medium">Bundel inhoud</Label>
 
                           {/* Product search */}
-                          <div className="relative">
-                            <Input
-                              placeholder="Zoek product om toe te voegen..."
-                              value={bundleSearchQuery}
-                              onChange={(e) => setBundleSearchQuery(e.target.value)}
-                            />
-                            {bundleSearchQuery.length >= 2 && (
-                              <div className="absolute z-10 top-full mt-1 w-full bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                {allProducts
-                                  .filter(p =>
-                                    p.id !== id &&
-                                    p.product_type !== 'bundle' &&
-                                    p.name.toLowerCase().includes(bundleSearchQuery.toLowerCase()) &&
-                                    !bundleItemsState.some(bi => bi.child_product_id === p.id)
-                                  )
-                                  .slice(0, 8)
-                                  .map(p => (
-                                    <button
-                                      key={p.id}
-                                      type="button"
-                                      className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-3"
-                                      onClick={() => {
-                                        setBundleItemsState(prev => [...prev, {
-                                          child_product_id: p.id,
-                                          quantity: 1,
-                                          customer_can_adjust: false,
-                                          min_quantity: null,
-                                          max_quantity: null,
-                                          sort_order: prev.length,
-                                          child_product: {
-                                            id: p.id,
-                                            name: p.name,
-                                            price: p.price,
-                                            images: p.images,
-                                            featured_image: p.featured_image,
-                                          },
-                                        }]);
-                                        setBundleSearchQuery('');
-                                      }}
-                                    >
-                                      {(p.featured_image || p.images?.[0]) ? (
-                                        <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover" />
-                                      ) : (
-                                        <div className="w-8 h-8 rounded bg-muted flex items-center justify-center"><Package className="h-4 w-4 text-muted-foreground" /></div>
-                                      )}
-                                      <div>
-                                        <div className="text-sm font-medium">{p.name}</div>
-                                        <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
-                                      </div>
-                                    </button>
-                                  ))}
-                                {allProducts.filter(p =>
-                                  p.id !== id &&
-                                  p.product_type !== 'bundle' &&
-                                  p.name.toLowerCase().includes(bundleSearchQuery.toLowerCase()) &&
-                                  !bundleItemsState.some(bi => bi.child_product_id === p.id)
-                                ).length === 0 && (
-                                  <div className="px-3 py-2 text-sm text-muted-foreground">Geen producten gevonden</div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <Popover open={bundlePopoverOpen} onOpenChange={setBundlePopoverOpen}>
+                            <PopoverTrigger asChild>
+                              <Button type="button" variant="outline" role="combobox" className="w-full justify-start text-muted-foreground font-normal">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Zoek product om toe te voegen...
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Zoek op productnaam..." />
+                                <CommandList>
+                                  <CommandEmpty>Geen producten gevonden</CommandEmpty>
+                                  <CommandGroup>
+                                    {allProducts
+                                      .filter(p =>
+                                        p.id !== id &&
+                                        p.product_type !== 'bundle' &&
+                                        !bundleItemsState.some(bi => bi.child_product_id === p.id)
+                                      )
+                                      .map(p => (
+                                        <CommandItem
+                                          key={p.id}
+                                          value={p.name}
+                                          onSelect={() => {
+                                            setBundleItemsState(prev => [...prev, {
+                                              child_product_id: p.id,
+                                              quantity: 1,
+                                              customer_can_adjust: false,
+                                              min_quantity: null,
+                                              max_quantity: null,
+                                              sort_order: prev.length,
+                                              child_product: {
+                                                id: p.id,
+                                                name: p.name,
+                                                price: p.price,
+                                                images: p.images,
+                                                featured_image: p.featured_image,
+                                              },
+                                            }]);
+                                            setBundlePopoverOpen(false);
+                                          }}
+                                          className="flex items-center gap-3 cursor-pointer"
+                                        >
+                                          {(p.featured_image || p.images?.[0]) ? (
+                                            <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                                          ) : (
+                                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0"><Package className="h-4 w-4 text-muted-foreground" /></div>
+                                          )}
+                                          <div className="min-w-0">
+                                            <div className="text-sm font-medium truncate">{p.name}</div>
+                                            <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
 
                           {/* Items list */}
                           {bundleItemsState.length === 0 ? (
