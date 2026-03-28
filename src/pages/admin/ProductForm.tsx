@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -27,7 +27,7 @@ import {
   Languages,
   ExternalLink
 } from 'lucide-react';
-import { useProduct, useProducts } from '@/hooks/useProducts';
+import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
@@ -112,6 +112,9 @@ const productSchema = z.object({
   gift_card_allow_custom: z.boolean().default(false),
   gift_card_expiry_months: z.coerce.number().int().min(1).nullable().optional(),
   gift_card_design_id: z.string().nullable().optional(),
+  bundle_pricing_model: z.enum(['fixed', 'dynamic']).nullable().optional(),
+  bundle_discount_type: z.enum(['percentage', 'fixed_amount']).nullable().optional(),
+  bundle_discount_value: z.coerce.number().min(0).nullable().optional(),
 });
 
 type FormValues = z.infer<typeof productSchema>;
@@ -133,7 +136,7 @@ export default function ProductForm() {
   
   const { currentTenant } = useTenant();
   const { data: product, isLoading: productLoading } = useProduct(id);
-  const { createProduct, updateProduct } = useProducts();
+  const { products: allProducts, createProduct, updateProduct } = useProducts();
   const { categories } = useCategories();
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
@@ -141,11 +144,25 @@ export default function ProductForm() {
   const { data: giftCardDesigns = [] } = useGiftCardDesigns();
   const { primaryKeywords: seoKeywords } = useSEOKeywords();
   
+  const { data: bundleItems = [], isLoading: bundleItemsLoading } = useProductBundleItems(id);
+  const saveBundleItems = useSaveBundleItems();
+
   const [tagsInput, setTagsInput] = useState('');
   const [licenseInput, setLicenseInput] = useState('');
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [denominationInput, setDenominationInput] = useState('');
   const [descOpen, setDescOpen] = useState(false);
+  const [bundleItemsState, setBundleItemsState] = useState<Array<{
+    child_product_id: string;
+    quantity: number;
+    customer_can_adjust: boolean;
+    min_quantity: number | null;
+    max_quantity: number | null;
+    sort_order: number;
+    child_product?: { id: string; name: string; price: number; images: string[] | null; featured_image: string | null };
+  }>>([]);
+  const [bundleSearchQuery, setBundleSearchQuery] = useState('');
+  const [bundleItemsInitialized, setBundleItemsInitialized] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -186,6 +203,9 @@ export default function ProductForm() {
       gift_card_allow_custom: false,
       gift_card_expiry_months: null,
       gift_card_design_id: null,
+      bundle_pricing_model: null,
+      bundle_discount_type: null,
+      bundle_discount_value: null,
     },
     values: product ? {
       name: product.name,
@@ -224,6 +244,9 @@ export default function ProductForm() {
       gift_card_allow_custom: product.gift_card_allow_custom || false,
       gift_card_expiry_months: product.gift_card_expiry_months || null,
       gift_card_design_id: product.gift_card_design_id || null,
+      bundle_pricing_model: (product as any).bundle_pricing_model || null,
+      bundle_discount_type: (product as any).bundle_discount_type || null,
+      bundle_discount_value: (product as any).bundle_discount_value || null,
     } : undefined,
   });
 
@@ -231,6 +254,30 @@ export default function ProductForm() {
   const digitalDeliveryType = form.watch('digital_delivery_type');
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
+  const isBundle = productType === 'bundle';
+  const bundlePricingModel = form.watch('bundle_pricing_model');
+
+  // Initialize bundle items from loaded data
+  useEffect(() => {
+    if (bundleItems.length > 0 && !bundleItemsInitialized) {
+      setBundleItemsState(bundleItems.map(item => ({
+        child_product_id: item.child_product_id,
+        quantity: item.quantity,
+        customer_can_adjust: item.customer_can_adjust,
+        min_quantity: item.min_quantity,
+        max_quantity: item.max_quantity,
+        sort_order: item.sort_order,
+        child_product: item.child_product ? {
+          id: item.child_product.id,
+          name: item.child_product.name,
+          price: item.child_product.price,
+          images: item.child_product.images,
+          featured_image: item.child_product.featured_image,
+        } : undefined,
+      })));
+      setBundleItemsInitialized(true);
+    }
+  }, [bundleItems, bundleItemsInitialized]);
 
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
@@ -290,6 +337,18 @@ export default function ProductForm() {
       form.setValue('gift_card_allow_custom', false);
       form.setValue('gift_card_design_id', null);
       form.setValue('gift_card_expiry_months', null);
+    }
+    if (type === 'bundle') {
+      form.setValue('requires_shipping', false);
+      form.setValue('track_inventory', false);
+      if (!form.getValues('bundle_pricing_model')) {
+        form.setValue('bundle_pricing_model', 'fixed');
+      }
+    }
+    if (type !== 'bundle') {
+      form.setValue('bundle_pricing_model', null);
+      form.setValue('bundle_discount_type', null);
+      form.setValue('bundle_discount_value', null);
     }
   };
 
@@ -366,11 +425,29 @@ export default function ProductForm() {
       ...data,
       category_id: data.category_id || null,
     };
+    let productId = id;
     if (isEditing && id) {
       await updateProduct.mutateAsync({ id, data: submitData });
     } else {
-      await createProduct.mutateAsync(submitData as any);
+      const created = await createProduct.mutateAsync(submitData as any);
+      productId = created?.id;
     }
+
+    // Save bundle items if this is a bundle product
+    if (data.product_type === 'bundle' && productId) {
+      await saveBundleItems.mutateAsync({
+        productId,
+        items: bundleItemsState.map((item, index) => ({
+          child_product_id: item.child_product_id,
+          quantity: item.quantity,
+          customer_can_adjust: item.customer_can_adjust,
+          min_quantity: item.min_quantity,
+          max_quantity: item.max_quantity,
+          sort_order: index,
+        })),
+      });
+    }
+
     navigate('/admin/products');
   };
 
@@ -993,6 +1070,274 @@ export default function ProductForm() {
                             <FormMessage />
                           </FormItem>
                         )} />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Bundel configuratie */}
+                  {isBundle && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Bundel configuratie</CardTitle>
+                        <CardDescription>Stel de producten en het prijsmodel voor deze bundel in</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Pricing model */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-medium">Prijsmodel</Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                form.setValue('bundle_pricing_model', 'fixed');
+                                form.setValue('bundle_discount_type', null);
+                                form.setValue('bundle_discount_value', null);
+                              }}
+                              className={cn(
+                                'rounded-lg border-2 p-4 text-left transition-all',
+                                bundlePricingModel === 'fixed' ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/25'
+                              )}
+                            >
+                              <div className="font-medium">Vaste bundelprijs</div>
+                              <div className="text-sm text-muted-foreground mt-1">Je stelt zelf een totaalprijs in</div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => form.setValue('bundle_pricing_model', 'dynamic')}
+                              className={cn(
+                                'rounded-lg border-2 p-4 text-left transition-all',
+                                bundlePricingModel === 'dynamic' ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/25'
+                              )}
+                            >
+                              <div className="font-medium">Dynamische prijs</div>
+                              <div className="text-sm text-muted-foreground mt-1">Som van individuele productprijzen</div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Dynamic pricing discount */}
+                        {bundlePricingModel === 'dynamic' && (
+                          <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
+                            <Label className="text-sm font-medium">Bundelkorting (optioneel)</Label>
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <Label className="text-sm">Type korting</Label>
+                                <Select
+                                  value={form.watch('bundle_discount_type') || 'none'}
+                                  onValueChange={(value) => form.setValue('bundle_discount_type', value === 'none' ? null : value as 'percentage' | 'fixed_amount')}
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Geen korting" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Geen korting</SelectItem>
+                                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                                    <SelectItem value="fixed_amount">Vast bedrag (&euro;)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {form.watch('bundle_discount_type') && (
+                                <FormField control={form.control} name="bundle_discount_value" render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>{form.watch('bundle_discount_type') === 'percentage' ? 'Korting (%)' : 'Korting (\u20AC)'}</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step={form.watch('bundle_discount_type') === 'percentage' ? '1' : '0.01'}
+                                        max={form.watch('bundle_discount_type') === 'percentage' ? '100' : undefined}
+                                        value={field.value ?? ''}
+                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )} />
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bundle items */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-medium">Bundel inhoud</Label>
+
+                          {/* Product search */}
+                          <div className="relative">
+                            <Input
+                              placeholder="Zoek product om toe te voegen..."
+                              value={bundleSearchQuery}
+                              onChange={(e) => setBundleSearchQuery(e.target.value)}
+                            />
+                            {bundleSearchQuery.length >= 2 && (
+                              <div className="absolute z-10 top-full mt-1 w-full bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                {allProducts
+                                  .filter(p =>
+                                    p.id !== id &&
+                                    p.product_type !== 'bundle' &&
+                                    p.name.toLowerCase().includes(bundleSearchQuery.toLowerCase()) &&
+                                    !bundleItemsState.some(bi => bi.child_product_id === p.id)
+                                  )
+                                  .slice(0, 8)
+                                  .map(p => (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-3"
+                                      onClick={() => {
+                                        setBundleItemsState(prev => [...prev, {
+                                          child_product_id: p.id,
+                                          quantity: 1,
+                                          customer_can_adjust: false,
+                                          min_quantity: null,
+                                          max_quantity: null,
+                                          sort_order: prev.length,
+                                          child_product: {
+                                            id: p.id,
+                                            name: p.name,
+                                            price: p.price,
+                                            images: p.images,
+                                            featured_image: p.featured_image,
+                                          },
+                                        }]);
+                                        setBundleSearchQuery('');
+                                      }}
+                                    >
+                                      {(p.featured_image || p.images?.[0]) ? (
+                                        <img src={p.featured_image || p.images[0]} alt="" className="w-8 h-8 rounded object-cover" />
+                                      ) : (
+                                        <div className="w-8 h-8 rounded bg-muted flex items-center justify-center"><Package className="h-4 w-4 text-muted-foreground" /></div>
+                                      )}
+                                      <div>
+                                        <div className="text-sm font-medium">{p.name}</div>
+                                        <div className="text-xs text-muted-foreground">&euro;{p.price.toFixed(2)}</div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                {allProducts.filter(p =>
+                                  p.id !== id &&
+                                  p.product_type !== 'bundle' &&
+                                  p.name.toLowerCase().includes(bundleSearchQuery.toLowerCase()) &&
+                                  !bundleItemsState.some(bi => bi.child_product_id === p.id)
+                                ).length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-muted-foreground">Geen producten gevonden</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Items list */}
+                          {bundleItemsState.length === 0 ? (
+                            <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                              <Layers className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground">Nog geen producten toegevoegd aan de bundel</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {bundleItemsState.map((item, index) => (
+                                <div key={item.child_product_id} className="border rounded-lg p-4 space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    {(item.child_product?.featured_image || item.child_product?.images?.[0]) ? (
+                                      <img src={item.child_product.featured_image || item.child_product.images![0]} alt="" className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                                    ) : (
+                                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0"><Package className="h-5 w-5 text-muted-foreground" /></div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium truncate">{item.child_product?.name || 'Onbekend product'}</div>
+                                      <div className="text-sm text-muted-foreground">&euro;{(item.child_product?.price || 0).toFixed(2)} per stuk</div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Label className="text-sm whitespace-nowrap">Aantal:</Label>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        className="w-20"
+                                        value={item.quantity}
+                                        onChange={(e) => {
+                                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                                          setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, quantity: val } : bi));
+                                        }}
+                                      />
+                                    </div>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                                      setBundleItemsState(prev => prev.filter((_, i) => i !== index));
+                                    }}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+
+                                  {/* Customer can adjust toggle */}
+                                  <div className="flex items-center justify-between rounded-lg border p-3">
+                                    <div>
+                                      <div className="text-sm font-medium">Klant kan hoeveelheid aanpassen</div>
+                                      <div className="text-xs text-muted-foreground">De klant kan de hoeveelheid in de winkel wijzigen</div>
+                                    </div>
+                                    <Switch
+                                      checked={item.customer_can_adjust}
+                                      onCheckedChange={(checked) => {
+                                        setBundleItemsState(prev => prev.map((bi, i) =>
+                                          i === index ? { ...bi, customer_can_adjust: checked, min_quantity: checked ? null : null, max_quantity: checked ? null : null } : bi
+                                        ));
+                                      }}
+                                    />
+                                  </div>
+
+                                  {/* Min/Max fields when adjustable */}
+                                  {item.customer_can_adjust && (
+                                    <div className="grid grid-cols-2 gap-3 pl-4">
+                                      <div>
+                                        <Label className="text-sm">Minimum</Label>
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          placeholder="Geen limiet"
+                                          value={item.min_quantity ?? ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value ? Math.max(1, parseInt(e.target.value)) : null;
+                                            setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, min_quantity: val } : bi));
+                                          }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-sm">Maximum</Label>
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          placeholder="Geen limiet"
+                                          value={item.max_quantity ?? ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value ? Math.max(1, parseInt(e.target.value)) : null;
+                                            setBundleItemsState(prev => prev.map((bi, i) => i === index ? { ...bi, max_quantity: val } : bi));
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+
+                              {/* Bundle price summary */}
+                              {bundlePricingModel === 'dynamic' && (
+                                <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                                  <div className="flex justify-between">
+                                    <span>Som individuele prijzen:</span>
+                                    <span className="font-medium">
+                                      &euro;{bundleItemsState.reduce((sum, item) => sum + (item.child_product?.price || 0) * item.quantity, 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  {form.watch('bundle_discount_type') && form.watch('bundle_discount_value') && (
+                                    <div className="flex justify-between text-green-600 mt-1">
+                                      <span>Bundelkorting:</span>
+                                      <span>
+                                        -{form.watch('bundle_discount_type') === 'percentage'
+                                          ? `${form.watch('bundle_discount_value')}%`
+                                          : `\u20AC${(form.watch('bundle_discount_value') || 0).toFixed(2)}`}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   )}

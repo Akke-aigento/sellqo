@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package } from 'lucide-react';
+import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +32,7 @@ export default function ShopProductDetail() {
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [viewerCount] = useState(() => Math.floor(Math.random() * 8) + 2);
+  const [bundleQuantities, setBundleQuantities] = useState<Record<string, number>>({});
 
   // Read storefront config settings
   const ts = themeSettings as any;
@@ -74,6 +75,42 @@ export default function ShopProductDetail() {
     return product.images || [];
   }, [product, selectedVariant?.image_url]);
 
+  // Bundle items and pricing
+  const bundleItems = (product as any)?.bundle_items || [];
+  const isBundle = (product as any)?.product_type === 'bundle' && bundleItems.length > 0;
+  const bundlePricingModel = (product as any)?.bundle_pricing_model;
+
+  // Initialize bundle quantities from default values
+  useEffect(() => {
+    if (isBundle && Object.keys(bundleQuantities).length === 0) {
+      const initial: Record<string, number> = {};
+      bundleItems.forEach((item: any) => {
+        initial[item.id] = item.quantity;
+      });
+      setBundleQuantities(initial);
+    }
+  }, [isBundle, bundleItems, bundleQuantities]);
+
+  const bundleDynamicTotal = useMemo(() => {
+    if (!isBundle || bundlePricingModel !== 'dynamic') return 0;
+    return bundleItems.reduce((sum: number, item: any) => {
+      const qty = bundleQuantities[item.id] ?? item.quantity;
+      return sum + (item.child_product?.price || 0) * qty;
+    }, 0);
+  }, [isBundle, bundlePricingModel, bundleItems, bundleQuantities]);
+
+  const bundleDiscountedTotal = useMemo(() => {
+    if (!isBundle || bundlePricingModel !== 'dynamic') return bundleDynamicTotal;
+    const discountType = (product as any)?.bundle_discount_type;
+    const discountValue = (product as any)?.bundle_discount_value;
+    if (!discountType || !discountValue) return bundleDynamicTotal;
+    if (discountType === 'percentage') return bundleDynamicTotal * (1 - discountValue / 100);
+    if (discountType === 'fixed_amount') return Math.max(0, bundleDynamicTotal - discountValue);
+    return bundleDynamicTotal;
+  }, [isBundle, bundlePricingModel, bundleDynamicTotal, product]);
+
+  const bundleDisplayPrice = isBundle && bundlePricingModel === 'dynamic' ? bundleDiscountedTotal : displayPrice;
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: tenant?.currency || 'EUR' }).format(price);
   };
@@ -113,8 +150,9 @@ export default function ShopProductDetail() {
     const variantTitle = selectedVariant
       ? Object.values(selectedVariant.attribute_values as Record<string, string>).join(' / ')
       : undefined;
+    const cartPrice = isBundle && bundlePricingModel === 'dynamic' ? bundleDisplayPrice : displayPrice;
     addToCart({
-      productId: product.id, name: product.name, price: displayPrice, quantity,
+      productId: product.id, name: product.name, price: cartPrice, quantity,
       image: selectedVariant?.image_url ?? product.images?.[0],
       sku: selectedVariant?.sku ?? product.sku,
       variantId: selectedVariant?.id, variantTitle,
@@ -244,11 +282,22 @@ export default function ShopProductDetail() {
 
             {/* Price */}
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl font-bold">{formatPrice(displayPrice)}</span>
-              {hasDiscount && (
+              {isBundle && bundlePricingModel === 'dynamic' ? (
                 <>
-                  <span className="text-lg text-muted-foreground line-through">{formatPrice(displayComparePrice!)}</span>
-                  <span className="bg-destructive text-destructive-foreground text-sm font-medium px-2 py-1 rounded">-{discountPercentage}%</span>
+                  <span className="text-2xl font-bold">{formatPrice(bundleDisplayPrice)}</span>
+                  {bundleDynamicTotal !== bundleDiscountedTotal && (
+                    <span className="text-lg text-muted-foreground line-through">{formatPrice(bundleDynamicTotal)}</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl font-bold">{formatPrice(displayPrice)}</span>
+                  {hasDiscount && (
+                    <>
+                      <span className="text-lg text-muted-foreground line-through">{formatPrice(displayComparePrice!)}</span>
+                      <span className="bg-destructive text-destructive-foreground text-sm font-medium px-2 py-1 rounded">-{discountPercentage}%</span>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -311,6 +360,97 @@ export default function ShopProductDetail() {
                            prose-ul:list-disc prose-ol:list-decimal"
                 dangerouslySetInnerHTML={{ __html: product.description }} 
               />
+            )}
+
+            {/* Bundle Items */}
+            {isBundle && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  In deze bundel
+                </h3>
+                <div className="space-y-3">
+                  {bundleItems.map((item: any) => {
+                    const cp = item.child_product;
+                    if (!cp) return null;
+                    const itemQty = bundleQuantities[item.id] ?? item.quantity;
+                    const thumb = cp.featured_image || cp.images?.[0];
+
+                    return (
+                      <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg border">
+                        {thumb ? (
+                          <img src={thumb} alt={cp.name} className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{cp.name}</div>
+                          <div className="text-sm text-muted-foreground">{formatPrice(cp.price)}</div>
+                        </div>
+                        {item.customer_can_adjust ? (
+                          <div className="flex items-center border rounded-lg">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const min = item.min_quantity || 1;
+                                setBundleQuantities(prev => ({
+                                  ...prev,
+                                  [item.id]: Math.max(min, (prev[item.id] ?? item.quantity) - 1),
+                                }));
+                              }}
+                              disabled={itemQty <= (item.min_quantity || 1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm font-medium">{itemQty}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const max = item.max_quantity || Infinity;
+                                setBundleQuantities(prev => ({
+                                  ...prev,
+                                  [item.id]: Math.min(max, (prev[item.id] ?? item.quantity) + 1),
+                                }));
+                              }}
+                              disabled={item.max_quantity != null && itemQty >= item.max_quantity}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{itemQty}x</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bundle total for dynamic pricing */}
+                {bundlePricingModel === 'dynamic' && (
+                  <div className="mt-4 p-3 rounded-lg bg-muted/50">
+                    <div className="flex justify-between text-sm">
+                      <span>Totaal bundel:</span>
+                      <div className="text-right">
+                        {bundleDynamicTotal !== bundleDiscountedTotal && (
+                          <span className="text-muted-foreground line-through mr-2">{formatPrice(bundleDynamicTotal)}</span>
+                        )}
+                        <span className="font-bold">{formatPrice(bundleDiscountedTotal)}</span>
+                      </div>
+                    </div>
+                    {bundleDynamicTotal !== bundleDiscountedTotal && (
+                      <div className="text-sm text-green-600 text-right mt-1">
+                        Je bespaart {formatPrice(bundleDynamicTotal - bundleDiscountedTotal)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Add to Cart */}

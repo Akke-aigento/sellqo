@@ -7916,6 +7916,57 @@ export type Database = {
           },
         ]
       }
+      product_bundle_items: {
+        Row: {
+          id: string
+          product_id: string
+          child_product_id: string
+          quantity: number
+          customer_can_adjust: boolean
+          min_quantity: number | null
+          max_quantity: number | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          child_product_id: string
+          quantity?: number
+          customer_can_adjust?: boolean
+          min_quantity?: number | null
+          max_quantity?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          child_product_id?: string
+          quantity?: number
+          customer_can_adjust?: boolean
+          min_quantity?: number | null
+          max_quantity?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_child_product_id_fkey"
+            columns: ["child_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_channel_warnings: {
         Row: {
           channel_type: string
@@ -8432,6 +8483,9 @@ export type Database = {
           amazon_optimized_description: string | null
           amazon_optimized_title: string | null
           barcode: string | null
+          bundle_discount_type: string | null
+          bundle_discount_value: number | null
+          bundle_pricing_model: string | null
           bol_bullets: string[] | null
           bol_condition: string | null
           bol_delivery_code: string | null
@@ -8559,6 +8613,9 @@ export type Database = {
           amazon_optimized_description?: string | null
           amazon_optimized_title?: string | null
           barcode?: string | null
+          bundle_discount_type?: string | null
+          bundle_discount_value?: number | null
+          bundle_pricing_model?: string | null
           bol_bullets?: string[] | null
           bol_condition?: string | null
           bol_delivery_code?: string | null
@@ -8686,6 +8743,9 @@ export type Database = {
           amazon_optimized_description?: string | null
           amazon_optimized_title?: string | null
           barcode?: string | null
+          bundle_discount_type?: string | null
+          bundle_discount_value?: number | null
+          bundle_pricing_model?: string | null
           bol_bullets?: string[] | null
           bol_condition?: string | null
           bol_delivery_code?: string | null
