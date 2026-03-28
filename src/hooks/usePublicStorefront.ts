@@ -295,7 +295,7 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
       // Fetch bundle items if this is a bundle product
       let bundle_items: any[] = [];
       if (product.product_type === 'bundle') {
-        const { data: items } = await supabase
+        const { data: items } = await (supabase as any)
           .from('product_bundle_items')
           .select(`
             id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order,

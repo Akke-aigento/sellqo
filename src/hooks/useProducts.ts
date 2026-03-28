@@ -336,7 +336,7 @@ export function useSaveBundleItems() {
 
       // Insert new items
       if (items.length > 0) {
-        const { error: insertError } = await supabase
+        const { error: insertError } = await (supabase as any)
           .from('product_bundle_items')
           .insert(items.map(item => ({
             product_id: productId,
