@@ -327,7 +327,7 @@ export function useSaveBundleItems() {
       }>;
     }) => {
       // Delete existing items
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('product_bundle_items')
         .delete()
         .eq('product_id', productId);
