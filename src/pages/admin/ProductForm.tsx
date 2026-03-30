@@ -167,6 +167,10 @@ export default function ProductForm() {
   const [bundleSearchQuery, setBundleSearchQuery] = useState('');
   const [bundlePopoverOpen, setBundlePopoverOpen] = useState(false);
   const [bundleItemsInitialized, setBundleItemsInitialized] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [categoryIdsInitialized, setCategoryIdsInitialized] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
