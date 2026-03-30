@@ -749,7 +749,7 @@ Deno.serve(async (req) => {
               .from('orders')
               .select('id, marketplace_order_id, order_number')
               .eq('marketplace_connection_id', connection.id)
-              .in('sync_status', ['accepted', 'accept_skipped'])
+              .eq('sync_status', 'accepted')
               .eq('marketplace_source', 'bol_com')
               .not('status', 'in', '("cancelled","refunded")')
               .order('created_at', { ascending: true })

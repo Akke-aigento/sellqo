@@ -443,11 +443,20 @@ const handler = async (req: Request): Promise<Response> => {
           30000,
         );
         const acceptBody = await acceptRes.text();
+        // Validate accept response body - must have success: true
+        let acceptSuccess = false;
         if (acceptRes.ok) {
+          try {
+            const acceptData = JSON.parse(acceptBody);
+            acceptSuccess = acceptData.success === true;
+          } catch {
+            acceptSuccess = false;
+          }
+        }
+        if (acceptSuccess) {
           console.log(`Order ${order.order_number} auto-accepted successfully`);
         } else {
           console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
-          // Do NOT mark as accepted on 403 - let retry logic handle verification
           return new Response(
             JSON.stringify({
               success: false,
