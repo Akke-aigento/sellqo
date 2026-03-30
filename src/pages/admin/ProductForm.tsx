@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -167,6 +168,10 @@ export default function ProductForm() {
   const [bundleSearchQuery, setBundleSearchQuery] = useState('');
   const [bundlePopoverOpen, setBundlePopoverOpen] = useState(false);
   const [bundleItemsInitialized, setBundleItemsInitialized] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [categoryIdsInitialized, setCategoryIdsInitialized] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(productSchema),
@@ -283,11 +288,37 @@ export default function ProductForm() {
     }
   }, [bundleItems, bundleItemsInitialized]);
 
+  // Initialize category_ids from junction table
+  useEffect(() => {
+    if (id && product && !categoryIdsInitialized) {
+      (async () => {
+        const { data } = await (supabase as any)
+          .from('product_categories')
+          .select('category_id, is_primary, sort_order')
+          .eq('product_id', id)
+          .order('sort_order', { ascending: true });
+        if (data && data.length > 0) {
+          // Sort: primary first, then by sort_order
+          const sorted = [...data].sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return (a.sort_order || 0) - (b.sort_order || 0);
+          });
+          setSelectedCategoryIds(sorted.map((pc: any) => pc.category_id));
+        } else if (product.category_id) {
+          // Fallback: use legacy category_id
+          setSelectedCategoryIds([product.category_id]);
+        }
+        setCategoryIdsInitialized(true);
+      })();
+    }
+  }, [id, product, categoryIdsInitialized]);
+
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
     short_description: form.watch('short_description'),
     description: form.watch('description'),
-    category_name: categories?.find(c => c.id === form.watch('category_id'))?.name,
+    category_name: categories?.find(c => c.id === selectedCategoryIds[0])?.name,
     price: form.watch('price'),
     weight: form.watch('weight'),
     tags: form.watch('tags'),
@@ -425,9 +456,11 @@ export default function ProductForm() {
   };
 
    const onSubmit = async (data: FormValues) => {
+    // Set legacy category_id to primary (first selected) category
+    const primaryCategoryId = selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null;
     const submitData = {
       ...data,
-      category_id: data.category_id || null,
+      category_id: primaryCategoryId,
       sku: data.sku?.trim() || null,
       barcode: data.barcode?.trim() || null,
     };
@@ -452,6 +485,27 @@ export default function ProductForm() {
           sort_order: index,
         })),
       });
+    }
+
+    // Save category associations to junction table
+    if (productId) {
+      // Delete existing
+      await (supabase as any)
+        .from('product_categories')
+        .delete()
+        .eq('product_id', productId);
+
+      // Insert new
+      if (selectedCategoryIds.length > 0) {
+        await (supabase as any)
+          .from('product_categories')
+          .insert(selectedCategoryIds.map((catId, index) => ({
+            product_id: productId,
+            category_id: catId,
+            is_primary: index === 0,
+            sort_order: index,
+          })));
+      }
     }
 
     navigate('/admin/products');
@@ -1458,21 +1512,67 @@ export default function ProductForm() {
                       <CardTitle>Organisatie</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <FormField control={form.control} name="category_id" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categorie</FormLabel>
-                          <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Selecteer categorie" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value="none">Geen categorie</SelectItem>
-                              {categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                      <div className="space-y-2">
+                        <Label>Categorieën</Label>
+                        <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="outline" className="w-full justify-start font-normal">
+                              {selectedCategoryIds.length > 0
+                                ? `${selectedCategoryIds.length} categorie${selectedCategoryIds.length > 1 ? 'ën' : ''} geselecteerd`
+                                : 'Selecteer categorieën...'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command shouldFilter={true}>
+                              <CommandInput placeholder="Zoek categorie..." value={categorySearchQuery} onValueChange={setCategorySearchQuery} />
+                              <CommandList>
+                                <CommandEmpty>Geen categorieën gevonden</CommandEmpty>
+                                <CommandGroup>
+                                  {categories.map((cat) => {
+                                    const isSelected = selectedCategoryIds.includes(cat.id);
+                                    return (
+                                      <CommandItem
+                                        key={cat.id}
+                                        value={cat.name}
+                                        onSelect={() => {
+                                          setSelectedCategoryIds(prev =>
+                                            isSelected
+                                              ? prev.filter(id => id !== cat.id)
+                                              : [...prev, cat.id]
+                                          );
+                                        }}
+                                      >
+                                        <Checkbox checked={isSelected} className="mr-2" />
+                                        <span>{cat.name}</span>
+                                        {isSelected && selectedCategoryIds[0] === cat.id && (
+                                          <Badge variant="secondary" className="ml-auto text-xs">Primair</Badge>
+                                        )}
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        {selectedCategoryIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {selectedCategoryIds.map((catId, index) => {
+                              const cat = categories.find(c => c.id === catId);
+                              if (!cat) return null;
+                              return (
+                                <Badge key={catId} variant={index === 0 ? 'default' : 'secondary'} className="gap-1">
+                                  {cat.name}
+                                  {index === 0 && <span className="text-xs opacity-70">(primair)</span>}
+                                  <button type="button" onClick={() => setSelectedCategoryIds(prev => prev.filter(id => id !== catId))} className="hover:text-destructive">
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <div className="space-y-2">
                         <Label>Tags</Label>
                         <div className="flex gap-2">
