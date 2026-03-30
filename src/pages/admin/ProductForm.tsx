@@ -318,7 +318,7 @@ export default function ProductForm() {
     name: form.watch('name'),
     short_description: form.watch('short_description'),
     description: form.watch('description'),
-    category_name: categories?.find(c => c.id === form.watch('category_id'))?.name,
+    category_name: categories?.find(c => c.id === selectedCategoryIds[0])?.name,
     price: form.watch('price'),
     weight: form.watch('weight'),
     tags: form.watch('tags'),
