@@ -121,7 +121,10 @@ export default function ProductsPage() {
       if (stockFilter === 'in_stock' && product.stock <= 0) return false;
 
       // Category filter
-      if (categoryFilter !== 'all' && product.category_id !== categoryFilter) return false;
+      if (categoryFilter !== 'all') {
+        const allCategoryIds = (product as any).product_categories?.map((pc: any) => pc.category_id) || [];
+        if (!allCategoryIds.includes(categoryFilter) && product.category_id !== categoryFilter) return false;
+      }
 
       return true;
     });
