@@ -596,7 +596,18 @@ Deno.serve(async (req) => {
                   })
                   const acceptBody = await acceptRes.text()
 
+                  // Parse accept response body to validate real success
+                  let retryAcceptSuccess = false
                   if (acceptRes.ok) {
+                    try {
+                      const retryAcceptData = JSON.parse(acceptBody)
+                      retryAcceptSuccess = retryAcceptData.success === true
+                    } catch {
+                      retryAcceptSuccess = false
+                    }
+                  }
+
+                  if (retryAcceptSuccess) {
                     console.log(`[RETRY] Accept succeeded for ${missed.marketplace_order_id}: ${acceptBody}`)
                     
                     // Auto-create VVB label if enabled
