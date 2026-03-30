@@ -456,9 +456,11 @@ export default function ProductForm() {
   };
 
    const onSubmit = async (data: FormValues) => {
+    // Set legacy category_id to primary (first selected) category
+    const primaryCategoryId = selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null;
     const submitData = {
       ...data,
-      category_id: data.category_id || null,
+      category_id: primaryCategoryId,
       sku: data.sku?.trim() || null,
       barcode: data.barcode?.trim() || null,
     };
@@ -483,6 +485,27 @@ export default function ProductForm() {
           sort_order: index,
         })),
       });
+    }
+
+    // Save category associations to junction table
+    if (productId) {
+      // Delete existing
+      await (supabase as any)
+        .from('product_categories')
+        .delete()
+        .eq('product_id', productId);
+
+      // Insert new
+      if (selectedCategoryIds.length > 0) {
+        await (supabase as any)
+          .from('product_categories')
+          .insert(selectedCategoryIds.map((catId, index) => ({
+            product_id: productId,
+            category_id: catId,
+            is_primary: index === 0,
+            sort_order: index,
+          })));
+      }
     }
 
     navigate('/admin/products');
