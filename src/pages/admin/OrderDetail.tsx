@@ -552,6 +552,28 @@ export default function OrderDetailPage() {
         customerId={order.customer_id || undefined}
         orderNumber={order.order_number}
       />
+
+      {/* Create Return Dialog */}
+      <CreateReturnDialog
+        open={showReturnDialog}
+        onOpenChange={setShowReturnDialog}
+        orderId={order.id}
+        customerId={order.customer_id || undefined}
+        customerName={order.customer_name || undefined}
+        orderItems={(order.order_items || []).map((item: any) => ({
+          product_id: item.product_id,
+          product_name: item.product_name || 'Product',
+          variant_id: item.variant_id,
+          variant_name: item.variant_name,
+          quantity: item.quantity,
+          price: item.unit_price || 0,
+        }))}
+        paymentMethod={
+          order.marketplace_source === 'bolcom' ? 'bolcom' :
+          order.marketplace_source === 'amazon' ? 'amazon' :
+          (order as any).stripe_payment_intent_id ? 'stripe' : 'manual'
+        }
+      />
     </div>
   );
 }
