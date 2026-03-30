@@ -122,6 +122,10 @@ export default function OrderDetailPage() {
             </p>
           </div>
         </div>
+        <Button variant="outline" onClick={() => setShowReturnDialog(true)}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Retour aanmaken
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
