@@ -1,71 +1,26 @@
 
 
-## Fix: Bundel data niet gerenderd op custom frontend
+## Platform Docs: Bundel Rendering Prompt toevoegen
 
-### Root cause
+### Wat
+Een nieuw documentatie-artikel toevoegen aan **Platform Docs** met een kant-en-klare prompt voor custom frontends om bundelproducten correct te renderen.
 
-De **storefront-api** edge function zoekt bundel-items in de **oude** tabellen (`product_bundles` → `bundle_products`), maar het ProductForm slaat bundel-items nu op in de **nieuwe** tabel `product_bundle_items` (met `product_id` → `child_product_id` structuur).
+### Aanpak
 
-De API vindt dus nooit bundel-items, waardoor `bundle_items` leeg is in de response.
+**Database migratie — insert doc_category + doc_article**
 
-### Oplossing
+1. **Categorie aanmaken** (als die nog niet bestaat): "Custom Frontend Prompts" met `doc_level = 'platform'`
 
-**1. `storefront-api/index.ts` — bundel data ophalen uit `product_bundle_items`**
+2. **Artikel aanmaken**: "Bundel Product Rendering" met de volledige prompt-inhoud:
+   - API response structuur voor bundels (`product_type`, `bundle_items`, `bundle_individual_total`, `bundle_savings`, `bundle_pricing_model`)
+   - Per bundle item: `product_id`, `quantity`, `customer_can_adjust`, `min_quantity`, `max_quantity`, `sort_order`, en genest `product` object met `name`, `slug`, `price`, `image`, `in_stock`
+   - Component-logica: productenlijst met afbeelding, naam, stukprijs, subtotaal
+   - Aanpasbare aantallen wanneer `customer_can_adjust === true` met min/max grenzen
+   - Dynamische totaalprijs herberekening
+   - Kortingsbadge met `bundle_savings`
+   - Originele vs bundelprijs vergelijking
+   - Voorbeeldcode voor React component
 
-Vervang het hele bundel-blok (regels 433-478). In plaats van `product_bundles` + `bundle_products` te queryen, direct `product_bundle_items` ophalen op basis van het product ID:
-
-```typescript
-if (product.product_type === 'bundle') {
-  const { data: bundleItems } = await supabase
-    .from('product_bundle_items')
-    .select('id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order, child_product_id, products!product_bundle_items_child_product_id_fkey(id, name, slug, price, images, track_inventory, stock)')
-    .eq('product_id', product.id)
-    .order('sort_order', { ascending: true });
-
-  const items = (bundleItems || []).map(bi => ({
-    id: bi.id,
-    product_id: bi.child_product_id,
-    quantity: bi.quantity,
-    customer_can_adjust: bi.customer_can_adjust,
-    min_quantity: bi.min_quantity,
-    max_quantity: bi.max_quantity,
-    sort_order: bi.sort_order,
-    product: bi.products ? {
-      id: bi.products.id,
-      name: bi.products.name,
-      slug: bi.products.slug,
-      price: bi.products.price,
-      image: bi.products.images?.[0] || null,
-      in_stock: !bi.products.track_inventory || bi.products.stock > 0,
-    } : null,
-  }));
-
-  const individualTotal = items.reduce((s, bi) => s + (bi.product?.price || 0) * bi.quantity, 0);
-
-  bundleData = {
-    bundle_items: items,
-    bundle_individual_total: individualTotal,
-    bundle_savings: individualTotal > product.price ? individualTotal - product.price : 0,
-    bundle_pricing_model: product.bundle_pricing_model || 'fixed',
-  };
-}
-```
-
-**2. Prompt voor custom frontend project**
-
-Na de API-fix genereer ik een kant-en-klare prompt met:
-- De exacte API response structuur voor bundels
-- Component-logica: productenlijst met afbeelding, naam, aantal (aanpasbaar indien `customer_can_adjust: true`, met `min_quantity`/`max_quantity` grenzen)
-- Totaalprijs berekening: dynamisch op basis van gekozen aantallen
-- Kortingsbadge: toon `bundle_savings` als die > 0 is
-- Originele vs bundelprijs vergelijking
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| `supabase/functions/storefront-api/index.ts` | Bundel query omschrijven naar `product_bundle_items` tabel |
-
-### Geen migratie nodig
-De `product_bundle_items` tabel en RLS policies bestaan al.
+### Geen code-wijzigingen
+Alleen een migratie die data insert in bestaande `doc_categories` en `doc_articles` tabellen.
 
