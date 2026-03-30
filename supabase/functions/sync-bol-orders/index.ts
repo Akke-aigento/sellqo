@@ -549,7 +549,7 @@ Deno.serve(async (req) => {
               .eq('marketplace_connection_id', connection.id)
               .eq('sync_status', 'synced')
               .eq('marketplace_source', 'bol_com')
-              .in('status', ['processing', 'pending']) // Skip shipped/delivered/cancelled
+              .not('status', 'in', '("cancelled","refunded")') // Only skip cancelled/refunded, allow shipped orders that were never accepted
               .order('created_at', { ascending: true })
               .limit(5)
 
@@ -645,7 +645,7 @@ Deno.serve(async (req) => {
             .eq('marketplace_connection_id', connection.id)
             .eq('sync_status', 'accept_pending')
             .eq('marketplace_source', 'bol_com')
-            .in('status', ['pending', 'processing'])
+            .not('status', 'in', '("cancelled","refunded")')
             .order('created_at', { ascending: true })
             .limit(5)
 
@@ -727,9 +727,9 @@ Deno.serve(async (req) => {
               .from('orders')
               .select('id, marketplace_order_id, order_number')
               .eq('marketplace_connection_id', connection.id)
-              .eq('sync_status', 'accepted')
+              .in('sync_status', ['accepted', 'accept_skipped'])
               .eq('marketplace_source', 'bol_com')
-              .in('status', ['pending', 'processing'])
+              .not('status', 'in', '("cancelled","refunded")')
               .order('created_at', { ascending: true })
               .limit(10) // fetch a bit more, we'll filter below
 
