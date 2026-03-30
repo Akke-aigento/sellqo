@@ -94,6 +94,8 @@ import PaymentsPage from "./pages/admin/Payments";
 import HelpPage from "./pages/admin/Help";
 import PlatformDocs from "./pages/admin/PlatformDocs";
 import ChannelFieldMappingAdmin from "./pages/admin/ChannelFieldMappingAdmin";
+import ReturnsPage from "./pages/admin/Returns";
+import ReturnDetailPage from "./pages/admin/ReturnDetail";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
