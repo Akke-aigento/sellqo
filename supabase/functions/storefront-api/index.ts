@@ -241,18 +241,37 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   if (error) throw error;
   if (!categories || categories.length === 0) return [];
 
-  // Get product counts per category
+  // Get product counts per category (legacy + junction table)
   const { data: productCounts } = await supabase
     .from('products')
-    .select('category_id')
+    .select('id, category_id')
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  const countMap: Record<string, number> = {};
+  const { data: junctionLinks } = await supabase
+    .from('product_categories')
+    .select('product_id, category_id');
+
+  // Build a set of active product IDs for filtering junction links
+  const activeProductIds = new Set((productCounts || []).map((p: any) => p.id));
+
+  const countMap: Record<string, Set<string>> = {};
   if (productCounts) {
     for (const p of productCounts) {
-      if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+      if (p.category_id) {
+        if (!countMap[p.category_id]) countMap[p.category_id] = new Set();
+        countMap[p.category_id].add(p.id);
+      }
+    }
+  }
+  // Add junction-tabel counts (only for active, visible products)
+  if (junctionLinks) {
+    for (const jl of junctionLinks) {
+      if (activeProductIds.has(jl.product_id)) {
+        if (!countMap[jl.category_id]) countMap[jl.category_id] = new Set();
+        countMap[jl.category_id].add(jl.product_id);
+      }
     }
   }
 
