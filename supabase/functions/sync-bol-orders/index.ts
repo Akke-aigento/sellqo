@@ -558,7 +558,7 @@ Deno.serve(async (req) => {
               .from('orders')
               .select('id, marketplace_order_id, status, raw_marketplace_data')
               .eq('marketplace_connection_id', connection.id)
-              .eq('sync_status', 'synced')
+              .in('sync_status', ['synced', 'accept_failed', 'accept_skipped'])
               .eq('marketplace_source', 'bol_com')
               .not('status', 'in', '("cancelled","refunded")') // Only skip cancelled/refunded, allow shipped orders that were never accepted
               .order('created_at', { ascending: true })
