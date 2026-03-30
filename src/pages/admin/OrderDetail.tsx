@@ -40,6 +40,7 @@ export default function OrderDetailPage() {
   const { confirmPayment } = usePaymentConfirmation();
   const [internalNotes, setInternalNotes] = useState('');
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const handleMarkAsPaid = (data: { 
     paymentMethod: PaymentMethodType; 
