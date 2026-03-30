@@ -1,63 +1,82 @@
 
-## Herstelplan: Bol auto-accept moet weer leidend zijn (zoals vroeger)
 
-### Wat ik nu bevestigd heb
-- Laatste order `#1134 / C0002X7WJJ` staat op `sync_status = accept_skipped`.
-- `autoAcceptOrder = true` en `vvbEnabled = true` op de Bol-connectie.
-- Er is wel een VVB-record aangemaakt, maar `pending` zonder `external_id`/tracking.
-- In de huidige flow wordt een **Bol 403 bij accept** intern als **HTTP 200** teruggegeven in `accept-bol-order`, waardoor upstream code dit als “ok” behandelt en toch labelflow start.
+## Retouren Module Bouwen
 
-### Root cause (regressie)
-1. `accept-bol-order` zet bij 403 `sync_status = accept_skipped` en returnt status 200.  
-2. `sync-bol-orders` en `create-bol-vvb-label` gebruiken vooral `acceptRes.ok`; door status 200 lijkt accept “geslaagd”.  
-3. Retry voor accept kijkt nu niet structureel naar alle mislukte accept-states, terwijl VVB-retry `accept_skipped` wel meeneemt.  
-=> Resultaat: labelflow kan starten terwijl order niet bevestigd geaccepteerd is.
+### Overzicht
+Volledige "Retouren" module toevoegen aan het admin panel. De `returns` tabel bestaat al in de database met enum `return_status` (registered, in_transit, received, approved, rejected, exchanged, repaired). Er is een migratie nodig om ontbrekende kolommen/enum-waarden toe te voegen die aansluiten bij de gewenste workflow (o.a. `refunded` status).
 
----
+### Database aanpassingen
 
-## Implementatieplan
+**Migratie 1: Enum + kolommen uitbreiden**
+- `return_status` enum uitbreiden met `refunded` waarde
+- Controleren of `refund_status`, `refund_method`, `refund_amount`, `stripe_refund_id` kolommen bestaan (ze bestaan al volgens types.ts)
 
-### 1) `accept-bol-order` stricter maken
-**Bestand:** `supabase/functions/accept-bol-order/index.ts`
-- Bij echte accept-fout (incl. 403): geen “succes-achtige” 200 meer teruggeven.
-- Status zetten op `accept_failed` (niet `accept_skipped`) zodat retry mogelijk blijft.
-- Response altijd eenduidig maken (`success: false` + duidelijke foutreden) zodat callers niet kunnen misinterpreteren.
+**Geen nieuwe tabel nodig** — `returns` tabel is al aanwezig met alle benodigde kolommen.
 
-### 2) Accept-gate afdwingen vóór VVB in sync-flow
-**Bestand:** `supabase/functions/sync-bol-orders/index.ts`
-- Na call naar `accept-bol-order` niet enkel `acceptRes.ok` checken, maar response-body parsen en alleen doorgaan wanneer accept echt bevestigd is.
-- VVB auto-creatie alleen starten na geslaagde accept.
-- Retry-query voor missed accepts verbreden naar states die opnieuw geprobeerd moeten worden (o.a. bestaande `accept_skipped` records), zodat oude gevallen automatisch herstellen.
+### Nieuwe bestanden
 
-### 3) VVB-retry alleen op correcte accept-state
-**Bestand:** `supabase/functions/sync-bol-orders/index.ts`
-- VVB-retry niet langer laten lopen op `accept_skipped`.
-- Alleen orders nemen die effectief accepted-ready zijn voor labelgeneratie.
+| Bestand | Doel |
+|---|---|
+| `src/pages/admin/Returns.tsx` | Retouroverzicht pagina met tabel, filters, zoekfunctie |
+| `src/pages/admin/ReturnDetail.tsx` | Detail pagina voor individuele retour met statusflow + terugbetaling |
+| `src/hooks/useReturns.ts` | Hook voor CRUD operaties op returns tabel |
+| `src/components/admin/ReturnStatusBadge.tsx` | Status badges voor retourstatus + refund status |
+| `src/components/admin/ReturnFilters.tsx` | Filters op status, bron, datumbereik, zoeken |
+| `src/components/admin/CreateReturnDialog.tsx` | Dialog om retour aan te maken vanuit order detail |
+| `supabase/functions/process-refund/index.ts` | Edge function die Stripe refund uitvoert of status-only update doet |
+| `supabase/functions/create-return-label/index.ts` | Placeholder edge function voor toekomstige SendCloud integratie |
 
-### 4) Handmatige/losse VVB-call ook harden
-**Bestand:** `supabase/functions/create-bol-vvb-label/index.ts`
-- Bij interne auto-accept vóór label: body valideren op echte accept-success.
-- Bij accept-fout flow stoppen (niet verder naar label-aanmaak).
+### Bestaande bestanden aanpassen
 
-### 5) Recovery van huidige foutgevallen
-**Database update (migratie):**
-- Bestaande Bol-orders met `sync_status='accept_skipped'` die nog open staan naar retrybare status zetten (`accept_failed` of `synced`), zodat scheduler ze opnieuw correct door accept-flow stuurt.
-- Hiermee wordt order `#1134` automatisch meegenomen in herstel.
+| Bestand | Wijziging |
+|---|---|
+| `src/components/admin/sidebar/sidebarConfig.ts` | "Retouren" toevoegen als child van Bestellingen |
+| `src/App.tsx` | Routes `/admin/returns` en `/admin/returns/:id` toevoegen |
+| `src/pages/admin/OrderDetail.tsx` | "Retour aanmaken" knop toevoegen |
 
----
+### Functionaliteit per onderdeel
 
-## Technisch detail (kort)
-- Kernfix = **status-code + success-contract consistent maken** tussen functies.
-- Accept wordt “single source of truth”; label is downstream en mag pas lopen na accept-success.
-- Retry wordt op accept-fouten gericht; VVB-retry alleen op accepted-ready orders.
-- Geen UI-wijzigingen nodig; gedrag blijft afhankelijk van user setting `autoAcceptOrder`.
+**1. Retouroverzicht (`Returns.tsx`)**
+- Tabel: retour-ID, order-nummer, klant, status, bron, refund status, aanmaakdatum
+- Filters: status, bron (manual/bolcom/amazon), zoeken op order-ID of klantnaam
+- Klikbaar naar detail pagina
+- Zelfde UI-patronen als Orders pagina (Card, Table, filters)
 
----
+**2. Retour Detail (`ReturnDetail.tsx`)**
+- Alle retour-info: order link, klant, producten, reden, notities
+- Statusflow knoppen: Geregistreerd → In transit → Ontvangen → Goedgekeurd/Afgewezen → Terugbetaald
+- Terugbetaling sectie:
+  - Stripe order → "Terugbetalen via Stripe" knop → roept `process-refund` aan
+  - Bol.com order → melding "Terugbetaling via Bol.com"
+  - Amazon order → melding "Terugbetaling via Amazon"
+- Retourlabel knop (alleen zichtbaar als verzendplatform gekoppeld is)
+- Interne notities veld
 
-## Validatie na implementatie
-1. Nieuwe Bol-order binnenhalen met `autoAcceptOrder=true` + `vvbEnabled=true`.
-2. Controleren:
-   - eerst `sync_status` naar `accepted` (of accept-pending -> accepted),
-   - daarna pas label met `external_id`/tracking.
-3. Bestaande probleemorder (`#1134`) moet via retry alsnog door accept-flow gaan en daarna label correct afronden.
-4. Scheduler-logs moeten geen “label gestart terwijl accept faalde” meer tonen.
+**3. Retour aanmaken vanuit Order (`CreateReturnDialog.tsx`)**
+- Product-selectie met aantallen uit de order items
+- Reden selectie (defect, verkeerd product, niet naar wens, anders)
+- Maakt `returns` record aan met `source: 'manual'`, gekoppeld aan order + klant
+
+**4. Edge function `process-refund`**
+- Input: return_id
+- Checkt `refund_method`:
+  - `stripe` → Stripe Refund API via Connect (met `stripe_payment_intent_id` van de order)
+  - `bolcom` / `amazon` → alleen status update naar `refunded`
+  - `manual` → status update
+- Update `refund_status` en `stripe_refund_id` op de returns record
+
+**5. Edge function `create-return-label`**
+- Placeholder: retourneert melding dat SendCloud integratie nog niet beschikbaar is
+- Structuur voorbereid voor toekomstige implementatie
+
+### Sidebar navigatie
+"Retouren" wordt toegevoegd als child item onder "Bestellingen" (naast Alle bestellingen, Fulfillment, Facturen, Offertes):
+```
+Bestellingen
+  ├── Alle bestellingen
+  ├── Fulfillment
+  ├── Retouren        ← nieuw
+  ├── Facturen
+  └── Offertes
+```
+
