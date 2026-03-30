@@ -176,6 +176,24 @@ Deno.serve(async (req) => {
     if (!acceptResponse.ok) {
       if (acceptResponse.status === 403) {
         console.error('Bol.com 403 Forbidden - order may already be accepted or credentials lack write access')
+        // Mark as accept_skipped so it's not retried forever but VVB can still proceed
+        if (order_id) {
+          await supabase
+            .from('orders')
+            .update({
+              sync_status: 'accept_skipped',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', order_id)
+        }
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Bol.com 403 - order mogelijk al geaccepteerd of onvoldoende rechten`,
+            sync_status: 'accept_skipped'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
       throw new Error(`Failed to accept order: ${acceptResponse.status} - ${responseText}`)
     }
