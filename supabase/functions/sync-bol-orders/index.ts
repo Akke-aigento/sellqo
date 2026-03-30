@@ -645,7 +645,7 @@ Deno.serve(async (req) => {
             .eq('marketplace_connection_id', connection.id)
             .eq('sync_status', 'accept_pending')
             .eq('marketplace_source', 'bol_com')
-            .in('status', ['pending', 'processing'])
+            .not('status', 'in', '("cancelled","refunded")')
             .order('created_at', { ascending: true })
             .limit(5)
 
