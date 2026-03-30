@@ -318,18 +318,54 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   const tMap = locale ? await getTranslations(supabase, tenantId, 'product', [product.id], locale) : {};
   const t = tMap[product.id] || {};
 
-  // Related products (same category, max 8)
+  // Related products (same categories via legacy + junction table, max 8)
   let relatedProducts: any[] = [];
-  if (product.category_id) {
-    const { data: related } = await supabase
+  {
+    // Get all category IDs for this product (legacy + junction)
+    const productCategoryIds: string[] = [];
+    if (product.category_id) productCategoryIds.push(product.category_id);
+    
+    const { data: junctionCats } = await supabase
+      .from('product_categories')
+      .select('category_id')
+      .eq('product_id', product.id);
+    
+    if (junctionCats) {
+      for (const jc of junctionCats) {
+        if (!productCategoryIds.includes(jc.category_id)) {
+          productCategoryIds.push(jc.category_id);
+        }
+      }
+    }
+
+    let relatedQuery = supabase
       .from('products')
       .select('id, name, slug, price, compare_at_price, images')
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
       .eq('hide_from_storefront', false)
-      .eq('category_id', product.category_id)
       .neq('id', product.id)
       .limit(8);
+
+    if (productCategoryIds.length > 0) {
+      // Get product IDs from junction table that share any of these categories
+      const { data: junctionRelated } = await supabase
+        .from('product_categories')
+        .select('product_id')
+        .in('category_id', productCategoryIds);
+      
+      const junctionRelatedIds = (junctionRelated || []).map((jr: any) => jr.product_id).filter((id: string) => id !== product.id);
+      
+      if (junctionRelatedIds.length > 0) {
+        const categoryFilter = productCategoryIds.map(cid => `category_id.eq.${cid}`).join(',');
+        relatedQuery = relatedQuery.or(`${categoryFilter},id.in.(${junctionRelatedIds.join(',')})`);
+      } else {
+        const categoryFilter = productCategoryIds.map(cid => `category_id.eq.${cid}`).join(',');
+        relatedQuery = relatedQuery.or(categoryFilter);
+      }
+    }
+
+    const { data: related } = await relatedQuery;
 
     if (related && locale) {
       const relTMap = await getTranslations(supabase, tenantId, 'product', related.map((r: any) => r.id), locale);
