@@ -549,7 +549,7 @@ Deno.serve(async (req) => {
               .eq('marketplace_connection_id', connection.id)
               .eq('sync_status', 'synced')
               .eq('marketplace_source', 'bol_com')
-              .in('status', ['processing', 'pending']) // Skip shipped/delivered/cancelled
+              .not('status', 'in', '("cancelled","refunded")') // Only skip cancelled/refunded, allow shipped orders that were never accepted
               .order('created_at', { ascending: true })
               .limit(5)
 
