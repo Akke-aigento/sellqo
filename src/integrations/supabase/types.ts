@@ -8015,6 +8015,57 @@ export type Database = {
         }
         Relationships: []
       }
+      product_bundle_items: {
+        Row: {
+          child_product_id: string
+          created_at: string
+          customer_can_adjust: boolean
+          id: string
+          max_quantity: number | null
+          min_quantity: number | null
+          product_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          child_product_id: string
+          created_at?: string
+          customer_can_adjust?: boolean
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number | null
+          product_id: string
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          child_product_id?: string
+          created_at?: string
+          customer_can_adjust?: boolean
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number | null
+          product_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_bundle_items_child_product_id_fkey"
+            columns: ["child_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_bundles: {
         Row: {
           bundle_type: string
