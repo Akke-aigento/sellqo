@@ -241,18 +241,37 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
   if (error) throw error;
   if (!categories || categories.length === 0) return [];
 
-  // Get product counts per category
+  // Get product counts per category (legacy + junction table)
   const { data: productCounts } = await supabase
     .from('products')
-    .select('category_id')
+    .select('id, category_id')
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  const countMap: Record<string, number> = {};
+  const { data: junctionLinks } = await supabase
+    .from('product_categories')
+    .select('product_id, category_id');
+
+  // Build a set of active product IDs for filtering junction links
+  const activeProductIds = new Set((productCounts || []).map((p: any) => p.id));
+
+  const countMap: Record<string, Set<string>> = {};
   if (productCounts) {
     for (const p of productCounts) {
-      if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+      if (p.category_id) {
+        if (!countMap[p.category_id]) countMap[p.category_id] = new Set();
+        countMap[p.category_id].add(p.id);
+      }
+    }
+  }
+  // Add junction-tabel counts (only for active, visible products)
+  if (junctionLinks) {
+    for (const jl of junctionLinks) {
+      if (activeProductIds.has(jl.product_id)) {
+        if (!countMap[jl.category_id]) countMap[jl.category_id] = new Set();
+        countMap[jl.category_id].add(jl.product_id);
+      }
     }
   }
 
@@ -268,7 +287,7 @@ async function getCategories(supabase: any, tenantId: string, params: Record<str
       description: t.description || cat.description,
       image_url: cat.image_url,
       parent_id: cat.parent_id,
-      product_count: countMap[cat.id] || 0,
+      product_count: countMap[cat.id]?.size || 0,
     };
   });
 }
@@ -299,18 +318,54 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   const tMap = locale ? await getTranslations(supabase, tenantId, 'product', [product.id], locale) : {};
   const t = tMap[product.id] || {};
 
-  // Related products (same category, max 8)
+  // Related products (same categories via legacy + junction table, max 8)
   let relatedProducts: any[] = [];
-  if (product.category_id) {
-    const { data: related } = await supabase
+  {
+    // Get all category IDs for this product (legacy + junction)
+    const productCategoryIds: string[] = [];
+    if (product.category_id) productCategoryIds.push(product.category_id);
+    
+    const { data: junctionCats } = await supabase
+      .from('product_categories')
+      .select('category_id')
+      .eq('product_id', product.id);
+    
+    if (junctionCats) {
+      for (const jc of junctionCats) {
+        if (!productCategoryIds.includes(jc.category_id)) {
+          productCategoryIds.push(jc.category_id);
+        }
+      }
+    }
+
+    let relatedQuery = supabase
       .from('products')
       .select('id, name, slug, price, compare_at_price, images')
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
       .eq('hide_from_storefront', false)
-      .eq('category_id', product.category_id)
       .neq('id', product.id)
       .limit(8);
+
+    if (productCategoryIds.length > 0) {
+      // Get product IDs from junction table that share any of these categories
+      const { data: junctionRelated } = await supabase
+        .from('product_categories')
+        .select('product_id')
+        .in('category_id', productCategoryIds);
+      
+      const junctionRelatedIds = (junctionRelated || []).map((jr: any) => jr.product_id).filter((id: string) => id !== product.id);
+      
+      if (junctionRelatedIds.length > 0) {
+        const categoryFilter = productCategoryIds.map(cid => `category_id.eq.${cid}`).join(',');
+        relatedQuery = relatedQuery.or(`${categoryFilter},id.in.(${junctionRelatedIds.join(',')})`);
+      } else {
+        const categoryFilter = productCategoryIds.map(cid => `category_id.eq.${cid}`).join(',');
+        relatedQuery = relatedQuery.or(categoryFilter);
+      }
+    }
+
+    const { data: related } = await relatedQuery;
 
     if (related && locale) {
       const relTMap = await getTranslations(supabase, tenantId, 'product', related.map((r: any) => r.id), locale);
@@ -499,7 +554,21 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  if (resolvedCategoryId) query = query.eq('category_id', resolvedCategoryId);
+  if (resolvedCategoryId) {
+    // Also include products linked via junction table (non-primary categories)
+    const { data: junctionProducts } = await supabase
+      .from('product_categories')
+      .select('product_id')
+      .eq('category_id', resolvedCategoryId);
+    
+    const junctionIds = (junctionProducts || []).map((jp: any) => jp.product_id);
+    
+    if (junctionIds.length > 0) {
+      query = query.or(`category_id.eq.${resolvedCategoryId},id.in.(${junctionIds.join(',')})`);
+    } else {
+      query = query.eq('category_id', resolvedCategoryId);
+    }
+  }
   if (search) query = query.ilike('name', `%${search}%`);
   if (minPrice != null) query = query.gte('price', minPrice);
   if (maxPrice != null) query = query.lte('price', maxPrice);
