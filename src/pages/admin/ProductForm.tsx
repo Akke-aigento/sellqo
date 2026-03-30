@@ -288,6 +288,32 @@ export default function ProductForm() {
     }
   }, [bundleItems, bundleItemsInitialized]);
 
+  // Initialize category_ids from junction table
+  useEffect(() => {
+    if (id && product && !categoryIdsInitialized) {
+      (async () => {
+        const { data } = await (supabase as any)
+          .from('product_categories')
+          .select('category_id, is_primary, sort_order')
+          .eq('product_id', id)
+          .order('sort_order', { ascending: true });
+        if (data && data.length > 0) {
+          // Sort: primary first, then by sort_order
+          const sorted = [...data].sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return (a.sort_order || 0) - (b.sort_order || 0);
+          });
+          setSelectedCategoryIds(sorted.map((pc: any) => pc.category_id));
+        } else if (product.category_id) {
+          // Fallback: use legacy category_id
+          setSelectedCategoryIds([product.category_id]);
+        }
+        setCategoryIdsInitialized(true);
+      })();
+    }
+  }, [id, product, categoryIdsInitialized]);
+
   const aiContext: AIFieldContext = {
     name: form.watch('name'),
     short_description: form.watch('short_description'),
