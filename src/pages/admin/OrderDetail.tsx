@@ -569,7 +569,7 @@ export default function OrderDetailPage() {
           price: item.unit_price || 0,
         }))}
         paymentMethod={
-          order.marketplace_source === 'bolcom' ? 'bolcom' :
+          order.marketplace_source === 'bol_com' ? 'bolcom' :
           order.marketplace_source === 'amazon' ? 'amazon' :
           (order as any).stripe_payment_intent_id ? 'stripe' : 'manual'
         }

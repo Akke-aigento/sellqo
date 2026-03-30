@@ -65,7 +65,7 @@ export default function ReturnDetailPage() {
   const items = (returnRecord.items as any[]) || [];
   const currentNotes = notes ?? returnRecord.internal_notes ?? '';
   const marketplaceSource = returnRecord.orders?.marketplace_source || returnRecord.source;
-  const isMarketplaceReturn = marketplaceSource === 'bolcom' || marketplaceSource === 'amazon';
+  const isMarketplaceReturn = marketplaceSource === 'bolcom' || marketplaceSource === 'amazon' || marketplaceSource === 'bol_com';
   const isStripeReturn = returnRecord.refund_method === 'stripe';
 
   const availableActions = STATUS_FLOW.filter((sf) =>
