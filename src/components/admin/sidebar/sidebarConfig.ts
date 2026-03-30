@@ -85,6 +85,7 @@ const dailyItems: NavItem[] = [
     children: [
       { id: 'orders-all', title: 'Alle bestellingen', url: '/admin/orders' },
       { id: 'orders-fulfillment', title: 'Fulfillment', url: '/admin/fulfillment' },
+      { id: 'orders-returns', title: 'Retouren', url: '/admin/returns', excludeRoles: ['warehouse'] },
       { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse'] },
       { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse'] },
     ],

@@ -14594,6 +14594,7 @@ export type Database = {
         | "rejected"
         | "exchanged"
         | "repaired"
+        | "refunded"
       supplier_document_type:
         | "invoice"
         | "quote"
@@ -14872,6 +14873,7 @@ export const Constants = {
         "rejected",
         "exchanged",
         "repaired",
+        "refunded",
       ],
       supplier_document_type: [
         "invoice",

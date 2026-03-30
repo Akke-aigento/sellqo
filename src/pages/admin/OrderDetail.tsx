@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare, RotateCcw } from 'lucide-react';
 import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
@@ -28,6 +28,7 @@ import type { ServicePointData } from '@/types/servicePoint';
 import { useState, useCallback } from 'react';
 import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 import { toast } from 'sonner';
+import { CreateReturnDialog } from '@/components/admin/CreateReturnDialog';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,7 @@ export default function OrderDetailPage() {
   const { confirmPayment } = usePaymentConfirmation();
   const [internalNotes, setInternalNotes] = useState('');
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const handleMarkAsPaid = (data: { 
     paymentMethod: PaymentMethodType; 
@@ -120,6 +122,10 @@ export default function OrderDetailPage() {
             </p>
           </div>
         </div>
+        <Button variant="outline" onClick={() => setShowReturnDialog(true)}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Retour aanmaken
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -545,6 +551,28 @@ export default function OrderDetailPage() {
         orderId={order.id}
         customerId={order.customer_id || undefined}
         orderNumber={order.order_number}
+      />
+
+      {/* Create Return Dialog */}
+      <CreateReturnDialog
+        open={showReturnDialog}
+        onOpenChange={setShowReturnDialog}
+        orderId={order.id}
+        customerId={order.customer_id || undefined}
+        customerName={order.customer_name || undefined}
+        orderItems={(order.order_items || []).map((item: any) => ({
+          product_id: item.product_id,
+          product_name: item.product_name || 'Product',
+          variant_id: item.variant_id,
+          variant_name: item.variant_name,
+          quantity: item.quantity,
+          price: item.unit_price || 0,
+        }))}
+        paymentMethod={
+          order.marketplace_source === 'bol_com' ? 'bolcom' :
+          order.marketplace_source === 'amazon' ? 'amazon' :
+          (order as any).stripe_payment_intent_id ? 'stripe' : 'manual'
+        }
       />
     </div>
   );
