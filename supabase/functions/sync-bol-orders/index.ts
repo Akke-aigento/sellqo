@@ -484,7 +484,18 @@ Deno.serve(async (req) => {
                 })
                 const acceptBody = await acceptRes.text()
                 
+                // Parse accept response body to validate real success
+                let acceptSuccess = false
                 if (acceptRes.ok) {
+                  try {
+                    const acceptData = JSON.parse(acceptBody)
+                    acceptSuccess = acceptData.success === true
+                  } catch {
+                    acceptSuccess = false
+                  }
+                }
+
+                if (acceptSuccess) {
                   console.log(`Order ${bolOrder.orderId} auto-accepted successfully: ${acceptBody}`)
                   
                   // Auto-create VVB label if enabled
@@ -547,7 +558,7 @@ Deno.serve(async (req) => {
               .from('orders')
               .select('id, marketplace_order_id, status, raw_marketplace_data')
               .eq('marketplace_connection_id', connection.id)
-              .eq('sync_status', 'synced')
+              .in('sync_status', ['synced', 'accept_failed', 'accept_skipped'])
               .eq('marketplace_source', 'bol_com')
               .not('status', 'in', '("cancelled","refunded")') // Only skip cancelled/refunded, allow shipped orders that were never accepted
               .order('created_at', { ascending: true })
@@ -585,7 +596,18 @@ Deno.serve(async (req) => {
                   })
                   const acceptBody = await acceptRes.text()
 
+                  // Parse accept response body to validate real success
+                  let retryAcceptSuccess = false
                   if (acceptRes.ok) {
+                    try {
+                      const retryAcceptData = JSON.parse(acceptBody)
+                      retryAcceptSuccess = retryAcceptData.success === true
+                    } catch {
+                      retryAcceptSuccess = false
+                    }
+                  }
+
+                  if (retryAcceptSuccess) {
                     console.log(`[RETRY] Accept succeeded for ${missed.marketplace_order_id}: ${acceptBody}`)
                     
                     // Auto-create VVB label if enabled
@@ -727,7 +749,7 @@ Deno.serve(async (req) => {
               .from('orders')
               .select('id, marketplace_order_id, order_number')
               .eq('marketplace_connection_id', connection.id)
-              .in('sync_status', ['accepted', 'accept_skipped'])
+              .eq('sync_status', 'accepted')
               .eq('marketplace_source', 'bol_com')
               .not('status', 'in', '("cancelled","refunded")')
               .order('created_at', { ascending: true })
