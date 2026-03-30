@@ -484,7 +484,18 @@ Deno.serve(async (req) => {
                 })
                 const acceptBody = await acceptRes.text()
                 
+                // Parse accept response body to validate real success
+                let acceptSuccess = false
                 if (acceptRes.ok) {
+                  try {
+                    const acceptData = JSON.parse(acceptBody)
+                    acceptSuccess = acceptData.success === true
+                  } catch {
+                    acceptSuccess = false
+                  }
+                }
+
+                if (acceptSuccess) {
                   console.log(`Order ${bolOrder.orderId} auto-accepted successfully: ${acceptBody}`)
                   
                   // Auto-create VVB label if enabled
