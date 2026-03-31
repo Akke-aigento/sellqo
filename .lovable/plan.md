@@ -1,63 +1,42 @@
 
 
-## Bol.com Ads: Campagnes daadwerkelijk naar Bol pushen
+## Fix: Push Bol Campaign — verkeerde kolomnaam
 
-### Huidige situatie
-De wizard slaat campagnes alleen op in de lokale `ad_campaigns` tabel. Er wordt **geen API call** gedaan naar Bol.com. Daarom verschijnt de campagne niet in Bol Adverteren.
+### Root cause
+De edge function `push-bol-campaign` zoekt naar kolom `ean` in de `products` tabel, maar die kolom bestaat niet. De EAN-nummers staan in de kolom **`barcode`** (en optioneel `bol_ean`).
 
-### Wat er nodig is
+Hierdoor vindt de functie geen EANs en geeft fout: *"Geen producten met EAN gevonden"*.
 
-**1. Edge function `push-bol-campaign`**
+### Fix
 
-Nieuwe edge function die:
-- De campagne + gekoppelde producten ophaalt uit de database
-- De Bol.com Advertising API aanroept om een Sponsored Products campagne aan te maken
-- De `platform_campaign_id` en `platform_status` terugschrijft naar `ad_campaigns`
-- EAN-nummers van de geselecteerde producten meestuurt (Bol vereist EANs)
+**Bestand**: `supabase/functions/push-bol-campaign/index.ts` (regel ~175-185)
 
-Bol.com Advertising API endpoints:
-- `POST /retailer/advertising/sponsored-products/campaigns` — campagne aanmaken
-- `POST /retailer/advertising/sponsored-products/campaigns/{id}/product-targets` — producten toevoegen
-- Budget en bid strategy instellen
+Wijzig de product-query van:
+```ts
+.select("id, ean, name")
+```
+naar:
+```ts
+.select("id, barcode, bol_ean, name")
+```
 
-**2. Authenticatie**
+En de EAN-extractie van:
+```ts
+eans = products.map(p => p.ean).filter(...)
+```
+naar:
+```ts
+eans = products.map(p => p.bol_ean || p.barcode).filter(...)
+```
 
-De Bol Advertising API gebruikt **aparte** client credentials (`advertisingClientId` / `advertisingClientSecret`), die al worden opgeslagen in de marketplace connection credentials. De edge function moet:
-- De marketplace connection ophalen voor de tenant
-- Met de advertising credentials een OAuth token aanvragen bij `https://login.bol.com/token`
-- Dit token gebruiken voor de API calls
+Dit gebruikt `bol_ean` als die gevuld is (specifiek Bol EAN), anders valt het terug op `barcode`.
 
-**3. Frontend aanpassing**
-
-In `useAdCampaigns.ts` → `createCampaign`:
-- Na succesvolle lokale insert, de edge function `push-bol-campaign` aanroepen
-- Status op `pending_approval` zetten (Bol reviewt campagnes)
-- Bij succes: `platform_campaign_id` opslaan
-- Bij fout: gebruiker informeren, campagne blijft als `draft`
-
-**4. Campagne status sync**
-
-Aparte edge function `sync-bol-campaign-status` die periodiek of on-demand:
-- Alle actieve Bol-campagnes ophaalt
-- Status (active/paused/rejected), impressies, clicks, spend, conversies bijwerkt
-- Dit kan later aan de scheduler worden toegevoegd
-
-### Beperkingen / aandachtspunten
-
-- Bol.com Advertising API is **niet publiek gedocumenteerd** op dezelfde manier als de Retailer API. De exacte endpoints en payloads moeten geverifieerd worden tegen hun API docs.
-- Producten moeten een **EAN** hebben om als target toegevoegd te worden.
-- Bol reviewt campagnes — status gaat niet direct naar `active`.
+### Bijkomend issue
+Product "VanXcel 1000W Powerstation" heeft een **fout barcode** met een leidende quote: `'5430004790211`. Dit moet handmatig gecorrigeerd worden in het productbeheer (verwijder de `'`).
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `supabase/functions/push-bol-campaign/index.ts` | **Nieuw**: campagne + producten naar Bol Advertising API pushen |
-| `supabase/functions/sync-bol-campaign-status/index.ts` | **Nieuw**: campagnestatus en stats ophalen van Bol |
-| `src/hooks/useAdCampaigns.ts` | Na create/update de push-functie aanroepen |
-| `src/components/admin/ads/CampaignCard.tsx` | `platform_status` en `platform_campaign_id` tonen |
-
-### Openstaande vraag
-
-Ik moet de exacte Bol.com Advertising API documentatie raadplegen om de juiste endpoints en payloads te gebruiken. Heb je toegang tot hun API docs, of wil je dat ik het opzoek?
+| `supabase/functions/push-bol-campaign/index.ts` | `ean` → `barcode`/`bol_ean` in product query en mapping |
 
