@@ -15,6 +15,11 @@ interface ProductCardProps {
     category?: { id: string; name: string; slug: string } | null;
     has_variants?: boolean;
     short_description?: string;
+    product_type?: string;
+    bundle_pricing_model?: string | null;
+    bundle_calculated_price?: number | null;
+    bundle_individual_total?: number | null;
+    bundle_savings?: number | null;
   };
   basePath: string;
   showPrice?: boolean;
