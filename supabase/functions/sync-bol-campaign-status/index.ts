@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const BOL_TOKEN_URL = "https://login.bol.com/token";
-const BOL_ADV_BASE = "https://api.bol.com/retailer/advertising/v11";
+const BOL_ADV_BASE = "https://api.bol.com/advertiser/sponsored-products/campaign-management";
 
 async function getBolAdvertisingToken(
   clientId: string,
@@ -37,14 +37,14 @@ async function bolApi(token: string, method: string, path: string, body?: unknow
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.retailer.v11+json",
-      "Content-Type": "application/vnd.retailer.v11+json",
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
   });
 
   const text = await res.text();
-  if (!res.ok) {
+  if (!res.ok && res.status !== 207) {
     throw new Error(`Bol API ${method} ${path} (${res.status}): ${text}`);
   }
   return text ? JSON.parse(text) : null;
@@ -132,21 +132,21 @@ Deno.serve(async (req) => {
       creds.advertisingClientSecret
     );
 
-    // Fetch campaign list from Bol
+    // Fetch campaign list from Bol via POST /campaigns/list
     const campaignIds = campaigns
       .map((c: any) => c.platform_campaign_id)
       .filter(Boolean);
 
     let synced = 0;
 
-    // Get campaigns from Bol (filter by IDs)
     try {
-      const bolCampaigns = await bolApi(bolToken, "PUT", "/sponsored-products/campaigns/list", {
+      const bolCampaigns = await bolApi(bolToken, "POST", "/campaigns/list", {
         campaignIds: campaignIds.map((id: string) => parseInt(id, 10)).filter((n: number) => !isNaN(n)),
       });
 
       const bolCampaignMap = new Map<string, any>();
-      for (const bc of bolCampaigns?.campaigns || []) {
+      const campaignList = bolCampaigns?.campaigns || bolCampaigns?.success || [];
+      for (const bc of campaignList) {
         bolCampaignMap.set(String(bc.campaignId), bc);
       }
 
@@ -169,7 +169,6 @@ Deno.serve(async (req) => {
           .update({
             platform_status: bolCampaign.state?.toLowerCase(),
             status: newStatus,
-            // Budget sync
             budget_amount: bolCampaign.dailyBudget?.amount || campaign.budget_amount,
           })
           .eq("id", campaign.id);
@@ -179,9 +178,6 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error("Campaign list fetch failed:", e);
     }
-
-    // TODO: Fetch performance stats via /sponsored-products/campaigns/performance endpoint
-    // This requires date range params and returns impressions, clicks, spend, conversions
 
     return new Response(
       JSON.stringify({ success: true, synced, total: campaigns.length }),
