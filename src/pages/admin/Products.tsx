@@ -526,11 +526,17 @@ export default function ProductsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatPrice(product.price)}
-                      {product.compare_at_price && (
-                        <span className="ml-2 text-sm text-muted-foreground line-through">
-                          {formatPrice(product.compare_at_price)}
-                        </span>
+                      {product.product_type === 'bundle' && product.bundle_pricing_model === 'dynamic' ? (
+                        <span className="text-muted-foreground text-xs italic">Dynamisch</span>
+                      ) : (
+                        <>
+                          {formatPrice(product.price)}
+                          {product.compare_at_price && (
+                            <span className="ml-2 text-sm text-muted-foreground line-through">
+                              {formatPrice(product.compare_at_price)}
+                            </span>
+                          )}
+                        </>
                       )}
                     </TableCell>
                     <TableCell>{getStockBadge(product)}</TableCell>

@@ -539,7 +539,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, bundle_pricing_model, bundle_discount_value, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
@@ -609,6 +609,40 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     }
   }
 
+  // Fetch bundle items for bundle products with dynamic pricing
+  const bundleProductIds = filtered
+    .filter((p: any) => p.product_type === 'bundle' && p.bundle_pricing_model === 'dynamic')
+    .map((p: any) => p.id);
+  let bundlePriceMap: Record<string, { calculated_price: number; individual_total: number; savings: number }> = {};
+  if (bundleProductIds.length > 0) {
+    const { data: bundleItems } = await supabase
+      .from('product_bundle_items')
+      .select('product_id, quantity, child_product:products!product_bundle_items_child_product_id_fkey(price)')
+      .in('product_id', bundleProductIds);
+    if (bundleItems) {
+      const grouped: Record<string, any[]> = {};
+      for (const bi of bundleItems) {
+        if (!grouped[bi.product_id]) grouped[bi.product_id] = [];
+        grouped[bi.product_id].push(bi);
+      }
+      for (const pid of bundleProductIds) {
+        const items = grouped[pid] || [];
+        const individualTotal = items.reduce((sum: number, item: any) => {
+          const childPrice = item.child_product?.price || 0;
+          return sum + childPrice * (item.quantity || 1);
+        }, 0);
+        const parentProduct = filtered.find((p: any) => p.id === pid);
+        const discountValue = parentProduct?.bundle_discount_value || 0;
+        const calculatedPrice = Math.max(0, individualTotal - discountValue);
+        bundlePriceMap[pid] = {
+          calculated_price: calculatedPrice,
+          individual_total: individualTotal,
+          savings: individualTotal - calculatedPrice,
+        };
+      }
+    }
+  }
+
   return {
     products: filtered.map((product: any) => {
       const t = tMap[product.id] || {};
@@ -619,12 +653,18 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         const prices = pVariants.map((v: any) => v.price ?? product.price);
         priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
       }
+      const bundlePrice = bundlePriceMap[product.id] || null;
+      const effectivePrice = bundlePrice ? bundlePrice.calculated_price : product.price;
       return {
         id: product.id, name: t.name || product.name, slug: product.slug,
         description: t.description || product.description,
-        price: product.price, compare_at_price: product.compare_at_price,
+        price: effectivePrice, compare_at_price: product.compare_at_price,
         images: product.images || [],
         product_type: product.product_type || 'physical',
+        bundle_pricing_model: product.bundle_pricing_model || null,
+        bundle_calculated_price: bundlePrice?.calculated_price || null,
+        bundle_individual_total: bundlePrice?.individual_total || null,
+        bundle_savings: bundlePrice?.savings || null,
         in_stock: hasVariants
           ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
           : (!product.track_inventory || product.stock > 0),
