@@ -5,6 +5,18 @@ import type { AdCampaign, AdCampaignStatus, AdPlatform, CampaignType, AudienceTy
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
 
+async function pushBolCampaign(campaignId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
+    body: { campaign_id: campaignId },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export function useAdCampaigns() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -72,9 +84,28 @@ export function useAdCampaigns() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       toast({ title: 'Campagne aangemaakt' });
+
+      // Auto-push to Bol if it's a bol_ads campaign
+      if (data?.platform === 'bol_ads') {
+        try {
+          toast({ title: 'Campagne wordt naar Bol.com gestuurd...' });
+          const result = await pushBolCampaign(data.id);
+          queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
+          if (result?.success) {
+            toast({ title: 'Campagne live op Bol.com! 🎉', description: result.already_pushed ? 'Was al gepusht' : `Platform ID: ${result.platform_campaign_id}` });
+          }
+        } catch (pushError: any) {
+          console.error('Push to Bol failed:', pushError);
+          toast({ 
+            title: 'Campagne lokaal opgeslagen', 
+            description: `Push naar Bol.com mislukt: ${pushError?.message || 'Onbekende fout'}. Je kunt het later opnieuw proberen.`,
+            variant: 'destructive' 
+          });
+        }
+      }
     },
     onError: (error) => {
       toast({ title: 'Fout bij aanmaken', description: error.message, variant: 'destructive' });
