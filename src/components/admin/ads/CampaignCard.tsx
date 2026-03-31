@@ -73,6 +73,7 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
       if (error) throw error;
       if (data?.success) {
         toast({ title: 'Campagne live op Bol.com! 🎉' });
+        queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       } else {
         toast({ title: 'Push gestart', description: data?.message || 'Status wordt verwerkt' });
       }
