@@ -1,82 +1,100 @@
 
 
-## Retouren Module Bouwen
+## Bundle Producten Koppelen — VanXcel
 
-### Overzicht
-Volledige "Retouren" module toevoegen aan het admin panel. De `returns` tabel bestaat al in de database met enum `return_status` (registered, in_transit, received, approved, rejected, exchanged, repaired). Er is een migratie nodig om ontbrekende kolommen/enum-waarden toe te voegen die aansluiten bij de gewenste workflow (o.a. `refunded` status).
+### Huidige staat
+- **Tabel**: `product_bundle_items` (kolommen: `product_id`, `child_product_id`, `quantity`, `sort_order`, etc.)
+- **Bestaande koppelingen**: Alleen TheSMALL 200Ah heeft 4 items (Converter 1000W, Battery 200Ah, Solar Panel, Mounting Kit). Alle andere bundels zijn leeg.
+- **7 bundle producten** gevonden, waarvan "Build Your Power System" geen koppelingen nodig heeft.
 
-### Database aanpassingen
+### Ontbrekende producten in de database
 
-**Migratie 1: Enum + kolommen uitbreiden**
-- `return_status` enum uitbreiden met `refunded` waarde
-- Controleren of `refund_status`, `refund_method`, `refund_amount`, `stripe_refund_id` kolommen bestaan (ze bestaan al volgens types.ts)
+De volgende child producten bestaan **nog niet** als los product:
 
-**Geen nieuwe tabel nodig** — `returns` tabel is al aanwezig met alle benodigde kolommen.
-
-### Nieuwe bestanden
-
-| Bestand | Doel |
+| Product | Nodig voor |
 |---|---|
-| `src/pages/admin/Returns.tsx` | Retouroverzicht pagina met tabel, filters, zoekfunctie |
-| `src/pages/admin/ReturnDetail.tsx` | Detail pagina voor individuele retour met statusflow + terugbetaling |
-| `src/hooks/useReturns.ts` | Hook voor CRUD operaties op returns tabel |
-| `src/components/admin/ReturnStatusBadge.tsx` | Status badges voor retourstatus + refund status |
-| `src/components/admin/ReturnFilters.tsx` | Filters op status, bron, datumbereik, zoeken |
-| `src/components/admin/CreateReturnDialog.tsx` | Dialog om retour aan te maken vanuit order detail |
-| `supabase/functions/process-refund/index.ts` | Edge function die Stripe refund uitvoert of status-only update doet |
-| `supabase/functions/create-return-label/index.ts` | Placeholder edge function voor toekomstige SendCloud integratie |
+| **Montagelijm** (Mounting Glue) | TheSMALL + TheBIG kits |
+| **Krimpkousconnectoren** (Heat Shrink Connectors) | TheSMALL + TheBIG kits |
+| **Automatische stroomonderbreker 200A** | TheBIG kits (alleen 100A en 150A bestaan) |
+| **Zekeringhouder 8 sleuven** | TheBIG kits (alleen 6 en 12 slots bestaan) |
 
-### Bestaande bestanden aanpassen
+**Actie vereist**: Maak deze 4 producten eerst aan in SellQo voordat de TheBIG koppelingen compleet kunnen worden.
 
-| Bestand | Wijziging |
-|---|---|
-| `src/components/admin/sidebar/sidebarConfig.ts` | "Retouren" toevoegen als child van Bestellingen |
-| `src/App.tsx` | Routes `/admin/returns` en `/admin/returns/:id` toevoegen |
-| `src/pages/admin/OrderDetail.tsx` | "Retour aanmaken" knop toevoegen |
+### Wat ik ga doen
 
-### Functionaliteit per onderdeel
+**Stap 1**: Bestaande 4 koppelingen van TheSMALL 200Ah verwijderen en alle 6 bundels opnieuw volledig invullen.
 
-**1. Retouroverzicht (`Returns.tsx`)**
-- Tabel: retour-ID, order-nummer, klant, status, bron, refund status, aanmaakdatum
-- Filters: status, bron (manual/bolcom/amazon), zoeken op order-ID of klantnaam
-- Klikbaar naar detail pagina
-- Zelfde UI-patronen als Orders pagina (Card, Table, filters)
+**Stap 2**: Per bundel de volgende INSERT statements uitvoeren in `product_bundle_items`:
 
-**2. Retour Detail (`ReturnDetail.tsx`)**
-- Alle retour-info: order link, klant, producten, reden, notities
-- Statusflow knoppen: Geregistreerd → In transit → Ontvangen → Goedgekeurd/Afgewezen → Terugbetaald
-- Terugbetaling sectie:
-  - Stripe order → "Terugbetalen via Stripe" knop → roept `process-refund` aan
-  - Bol.com order → melding "Terugbetaling via Bol.com"
-  - Amazon order → melding "Terugbetaling via Amazon"
-- Retourlabel knop (alleen zichtbaar als verzendplatform gekoppeld is)
-- Interne notities veld
+---
 
-**3. Retour aanmaken vanuit Order (`CreateReturnDialog.tsx`)**
-- Product-selectie met aantallen uit de order items
-- Reden selectie (defect, verkeerd product, niet naar wens, anders)
-- Maakt `returns` record aan met `source: 'manual'`, gekoppeld aan order + klant
+#### BUNDEL 1: TheSMALL 200Ah (`7d394548`)
+| # | Child product | Qty |
+|---|---|---|
+| 1 | Converter 1000W (`07ac37b4`) | 1 |
+| 2 | 200Ah Battery (`25778975`) | 1 |
+| 3 | 150W Solar Panel (`38fdbff3`) | 1 |
+| 4 | Mounting Kit (`3f8dac6e`) | 1 |
+| 5 | Cable 6mm2 Solar Red (`b1352993`) | 1 |
+| 6 | Cable 6mm2 Solar Black (`431acc28`) | 1 |
+| 7 | Cable 2.5mm2 Red (`82990be2`) | 1 |
+| 8 | Cable 2.5mm2 Black (`f7698b5c`) | 1 |
+| 9 | Cable 35mm2 Red (`5f887b6e`) | 1 |
+| 10 | Cable 35mm2 Black (`7cfe69e1`) | 1 |
+| 11 | Battery Terminals Pack (`52443d03`) | 1 |
+| 12 | Ring Terminals 35mm2 (`4a740382`) | 1 |
+| 13 | Cable Gland Firewall (`89d5b465`) | 1 |
+| 14 | Double Cable Gland Roof (`04ff12e6`) | 1 |
+| 15 | Pack Fuses (`bb220bd8`) | 1 |
+| 16 | Automatic Fuse 100A (`461c53c8`) | 1 |
+| 17 | Fuse Holder 6 slots (`f9664d83`) | 1 |
+| 18 | Switch Panel 5 Slots (`85515f2d`) | 1 |
+| 19 | USB Wall Plug 2-Pack (`21f541de`) | 1 |
+| 20 | EU Wall Plug 2-Pack (`a0347774`) | 1 |
+| 21 | Powerstrip USB A+C (`7a704411`) | 1 |
+| 22 | Cable Ties Pack (`898bbf8f`) | 1 |
+| 23 | Heat Shrink Pack (`bd89e003`) | 1 |
 
-**4. Edge function `process-refund`**
-- Input: return_id
-- Checkt `refund_method`:
-  - `stripe` → Stripe Refund API via Connect (met `stripe_payment_intent_id` van de order)
-  - `bolcom` / `amazon` → alleen status update naar `refunded`
-  - `manual` → status update
-- Update `refund_status` en `stripe_refund_id` op de returns record
+**Ontbreekt**: Montagelijm, Krimpkousconnectoren
 
-**5. Edge function `create-return-label`**
-- Placeholder: retourneert melding dat SendCloud integratie nog niet beschikbaar is
-- Structuur voorbereid voor toekomstige implementatie
+#### BUNDEL 2: TheSMALL 300Ah (`5d80e0cd`)
+Zelfde als Bundel 1, maar met 300Ah Battery (`ef9dfa20`) ipv 200Ah.
 
-### Sidebar navigatie
-"Retouren" wordt toegevoegd als child item onder "Bestellingen" (naast Alle bestellingen, Fulfillment, Facturen, Offertes):
-```
-Bestellingen
-  ├── Alle bestellingen
-  ├── Fulfillment
-  ├── Retouren        ← nieuw
-  ├── Facturen
-  └── Offertes
-```
+#### BUNDEL 3: TheSMALL Powerstation (`0dcf911a`)
+| # | Child product | Qty |
+|---|---|---|
+| 1 | 500W Powerstation (`e8116204`) | 1 |
+| 2 | 150W Solar Panel (`38fdbff3`) | 1 |
+
+#### BUNDEL 4: TheBIG 200Ah (`59348dee`)
+Zelfde structuur als Bundel 1, maar met:
+- Converter 1500W (`66921a49`) ipv 1000W
+- Cable 50mm2 Red/Black ipv 35mm2
+- Ring Terminals 50mm2 ipv 35mm2
+- Solar Panel qty = **2** ipv 1
+- **Ontbreekt**: Automatic Fuse 200A, Fuse Holder 8 slots, Montagelijm, Krimpkousconnectoren
+
+#### BUNDEL 5: TheBIG 300Ah (`2d0dae8a`)
+Zelfde als Bundel 4, maar met 300Ah Battery.
+
+#### BUNDEL 6: TheBIG Powerstation (`2750c83f`)
+| # | Child product | Qty |
+|---|---|---|
+| 1 | 1000W Powerstation (`98893d00`) | 1 |
+| 2 | 150W Solar Panel (`38fdbff3`) | 2 |
+
+---
+
+### Aanpak
+
+1. **Eerst**: Bestaande koppelingen verwijderen voor alle 6 bundels (clean slate)
+2. **Dan**: Alle koppelingen inserten via de Supabase insert tool
+3. **TheBIG kits**: Alles koppelen wat beschikbaar is; de 4 ontbrekende producten rapporteren zodat jij ze kunt aanmaken
+
+### Vragen aan jou
+
+Voordat ik de inserts uitvoer:
+1. Kloppen de product-mappings hierboven?
+2. Wil je dat ik de TheBIG kits **gedeeltelijk** koppel (zonder de 4 ontbrekende producten), of wacht je liever tot je ze hebt aangemaakt?
+3. Voor TheBIG: moet ik **Fuse Holder 12 slots** gebruiken als tijdelijk alternatief voor de niet-bestaande 8 slots variant? En **Automatic Fuse 150A** als alternatief voor de niet-bestaande 200A?
 
