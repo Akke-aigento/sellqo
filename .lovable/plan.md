@@ -1,69 +1,63 @@
 
 
-## Analyse: Advertentiepagina — Fantoomknoppen & Functionaliteit
+## Bol.com Ads: Campagnes daadwerkelijk naar Bol pushen
 
-### Gevonden problemen
+### Huidige situatie
+De wizard slaat campagnes alleen op in de lokale `ad_campaigns` tabel. Er wordt **geen API call** gedaan naar Bol.com. Daarom verschijnt de campagne niet in Bol Adverteren.
 
-Na doorlichting van alle 5 componenten in `src/components/admin/ads/`:
+### Wat er nodig is
 
-#### Fantoomknoppen (doen letterlijk niets)
+**1. Edge function `push-bol-campaign`**
 
-| Knop | Bestand | Regel | Probleem |
-|---|---|---|---|
-| **"Beheren"** bij gekoppeld platform | `PlatformConnections.tsx` | 166 | Geen onClick, geen link — doet niets |
-| **"Bewerken"** in campagne dropdown | `CampaignCard.tsx` | 114-117 | Geen onClick — doet niets |
-| **"Bekijk in [platform]"** in campagne dropdown | `CampaignCard.tsx` | 119-122 | Geen onClick/href — doet niets |
-| **"Nieuwe Campagne"** op dashboard | `AdsDashboard.tsx` | 63 | Linkt naar `?tab=campaigns&action=new` maar query params worden nergens gelezen |
+Nieuwe edge function die:
+- De campagne + gekoppelde producten ophaalt uit de database
+- De Bol.com Advertising API aanroept om een Sponsored Products campagne aan te maken
+- De `platform_campaign_id` en `platform_status` terugschrijft naar `ad_campaigns`
+- EAN-nummers van de geselecteerde producten meestuurt (Bol vereist EANs)
 
-#### Incomplete wizard (4 van 6 stappen)
+Bol.com Advertising API endpoints:
+- `POST /retailer/advertising/sponsored-products/campaigns` — campagne aanmaken
+- `POST /retailer/advertising/sponsored-products/campaigns/{id}/product-targets` — producten toevoegen
+- Budget en bid strategy instellen
 
-De CampaignWizard heeft alleen: Platform → Type → Budget → Review.
-Ontbreekt: **Productselectie** en **Doelgroep/Segment targeting** — twee stappen die essentieel zijn voor een bruikbare campagne.
+**2. Authenticatie**
 
-#### Geen echte integraties
+De Bol Advertising API gebruikt **aparte** client credentials (`advertisingClientId` / `advertisingClientSecret`), die al worden opgeslagen in de marketplace connection credentials. De edge function moet:
+- De marketplace connection ophalen voor de tenant
+- Met de advertising credentials een OAuth token aanvragen bij `https://login.bol.com/token`
+- Dit token gebruiken voor de API calls
 
-- Connect/disconnect schrijft alleen naar de lokale `ad_platform_connections` tabel
-- Geen OAuth flows, geen echte API calls naar Bol/Meta/Google/Amazon
-- Stats (impressies, clicks, spend, ROAS) zijn altijd 0 — geen sync
-- AI Suggesties sectie is volledig placeholder
+**3. Frontend aanpassing**
 
-### Voorgesteld plan
+In `useAdCampaigns.ts` → `createCampaign`:
+- Na succesvolle lokale insert, de edge function `push-bol-campaign` aanroepen
+- Status op `pending_approval` zetten (Bol reviewt campagnes)
+- Bij succes: `platform_campaign_id` opslaan
+- Bij fout: gebruiker informeren, campagne blijft als `draft`
 
-Aangezien echte platformintegraties (OAuth, API sync) een groot apart project zijn, focus ik op het **functioneel maken van wat er is** en het **verwijderen/labelen van wat niet werkt**:
+**4. Campagne status sync**
 
-**1. Fantoomknoppen fixen of verwijderen**
+Aparte edge function `sync-bol-campaign-status` die periodiek of on-demand:
+- Alle actieve Bol-campagnes ophaalt
+- Status (active/paused/rejected), impressies, clicks, spend, conversies bijwerkt
+- Dit kan later aan de scheduler worden toegevoegd
 
-- **"Beheren"** → verwijderen (er is niets te beheren zonder echte integratie)
-- **"Bewerken"** → koppelen aan een edit-flow: wizard heropenen met bestaande campagne-data pre-filled
-- **"Bekijk in platform"** → verwijderen (geen echte platform_campaign_id zonder integratie)
-- **"Nieuwe Campagne" link** op dashboard → `setActiveTab('campaigns')` + `showWizard` triggeren, of simpelweg direct naar de wizard navigeren
+### Beperkingen / aandachtspunten
 
-**2. Wizard uitbreiden met ontbrekende stappen**
-
-- **Productselectie stap**: multi-select van bestaande producten (uit `useProducts`) met zoekfunctie
-- **Doelgroep stap**: segment selectie uit bestaande `customer_segments` of handmatige audience config
-
-Nieuwe flow: Platform → Type → **Producten** → **Doelgroep** → Budget → Review
-
-**3. Campagne bewerken**
-
-- `CampaignWizard` aanpassen om een `campaign` prop te accepteren voor edit-modus
-- Pre-fill alle velden met bestaande data
-- Bij submit: `updateCampaign` i.p.v. `createCampaign`
-
-**4. "Coming soon" eerlijk communiceren**
-
-- Meta, Google, Amazon platformkaarten: duidelijk "Binnenkort beschikbaar" (dit werkt al)
-- AI Suggesties: label als "Beta" of verwijderen als het niet werkt
-- Stats cards: toon "Geen data" i.p.v. allemaal nullen als er geen campagnes/sync is
+- Bol.com Advertising API is **niet publiek gedocumenteerd** op dezelfde manier als de Retailer API. De exacte endpoints en payloads moeten geverifieerd worden tegen hun API docs.
+- Producten moeten een **EAN** hebben om als target toegevoegd te worden.
+- Bol reviewt campagnes — status gaat niet direct naar `active`.
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `CampaignCard.tsx` | "Bewerken" koppelen aan edit-flow, "Bekijk in platform" verwijderen |
-| `PlatformConnections.tsx` | "Beheren" knop verwijderen |
-| `CampaignWizard.tsx` | Edit-modus + productselectie stap + doelgroep stap toevoegen |
-| `CampaignsList.tsx` | Edit-state beheren, query param `action=new` afhandelen |
-| `AdsDashboard.tsx` | "Nieuwe Campagne" link fixen, lege stats beter tonen |
+| `supabase/functions/push-bol-campaign/index.ts` | **Nieuw**: campagne + producten naar Bol Advertising API pushen |
+| `supabase/functions/sync-bol-campaign-status/index.ts` | **Nieuw**: campagnestatus en stats ophalen van Bol |
+| `src/hooks/useAdCampaigns.ts` | Na create/update de push-functie aanroepen |
+| `src/components/admin/ads/CampaignCard.tsx` | `platform_status` en `platform_campaign_id` tonen |
+
+### Openstaande vraag
+
+Ik moet de exacte Bol.com Advertising API documentatie raadplegen om de juiste endpoints en payloads te gebruiken. Heb je toegang tot hun API docs, of wil je dat ik het opzoek?
 
