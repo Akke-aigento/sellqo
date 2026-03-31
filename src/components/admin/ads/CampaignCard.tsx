@@ -31,6 +31,7 @@ const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default
 
 export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
+  const queryClient = useQueryClient();
   const [pushing, setPushing] = useState(false);
   const platformInfo = AD_PLATFORMS[campaign.platform];
   const statusConfig = STATUS_CONFIG[campaign.status as AdCampaignStatus] || STATUS_CONFIG.draft;
