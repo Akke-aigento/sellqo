@@ -178,12 +178,15 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
 
           {/* Price - standard and detailed only */}
           {cardStyle !== 'minimal' && showPrice && (
-            <div className="mt-1 flex items-center gap-2">
-              <span className="font-semibold">{formatPrice(product.price)}</span>
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
+              <span className="font-semibold">{formatPrice(displayPrice)}</span>
               {hasDiscount && (
                 <span className="text-sm text-muted-foreground line-through">
-                  {formatPrice(product.compare_at_price!)}
+                  {formatPrice(bundleOriginalPrice || product.compare_at_price!)}
                 </span>
+              )}
+              {isBundle && cardStyle === 'detailed' && (
+                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Bundel</span>
               )}
             </div>
           )}

@@ -539,7 +539,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, bundle_pricing_model, bundle_discount_value, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
