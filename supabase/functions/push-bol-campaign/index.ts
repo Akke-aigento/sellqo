@@ -45,6 +45,9 @@ async function bolApi(
     "Content-Type": "application/json",
   };
 
+  console.log(`[bolApi] ${method} ${url}`);
+  if (body) console.log(`[bolApi] body:`, JSON.stringify(body));
+
   const res = await fetch(url, {
     method,
     headers,
@@ -52,6 +55,8 @@ async function bolApi(
   });
 
   const text = await res.text();
+  console.log(`[bolApi] response ${res.status}:`, text);
+
   // Bol Advertising API returns 207 for multi-status responses
   if (!res.ok && res.status !== 207) {
     throw new Error(`Bol API ${method} ${path} failed (${res.status}): ${text}`);
@@ -203,37 +208,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Create campaign at Bol via POST /campaigns
+    // 5. Create campaign at Bol via POST /campaigns (bulk format)
     const isAuto = campaign.bid_strategy === "auto";
     const campaignType = isAuto ? "AUTO" : "MANUAL";
 
     const startDate =
       campaign.start_date ||
       new Date().toISOString().split("T")[0];
-    
-    const campaignPayload: any = {
+
+    const singleCampaign: any = {
       name: campaign.name,
       startDate,
       dailyBudget: {
         amount: campaign.budget_amount || 10,
         currency: "EUR",
       },
+      targetCountries: ["NL", "BE"],
+      targetChannels: ["DESKTOP", "MOBILE", "TABLET", "APP"],
       campaignType,
       state: "ENABLED",
     };
 
     if (campaign.end_date) {
-      campaignPayload.endDate = campaign.end_date;
+      singleCampaign.endDate = campaign.end_date;
     }
 
-    // For AUTO campaigns with target ROAS
     if (isAuto && campaign.target_roas) {
-      campaignPayload.acosTargetPercentage = Math.round(
+      singleCampaign.acosTargetPercentage = Math.round(
         (1 / campaign.target_roas) * 100
       );
     }
 
-    console.log("Creating Bol campaign:", JSON.stringify(campaignPayload));
+    const campaignPayload = { campaigns: [singleCampaign] };
+    console.log("Creating Bol campaign (bulk):", JSON.stringify(campaignPayload));
 
     const createResult = await bolApi(
       bolToken,
@@ -244,15 +251,31 @@ Deno.serve(async (req) => {
 
     console.log("Bol campaign create result:", JSON.stringify(createResult));
 
-    // Extract campaign ID - Bol may return it directly or in a success array
+    // Check for failures first
+    const failures = createResult?.campaigns?.failure || [];
+    if (failures.length > 0) {
+      console.error("Campaign creation failures:", JSON.stringify(failures));
+      return new Response(
+        JSON.stringify({
+          error: "Bol.com weigerde de campagne",
+          details: failures,
+          bol_response: createResult,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Extract campaign ID from bulk response
     const bolCampaignId =
-      createResult?.campaignId ||
       createResult?.campaigns?.success?.[0]?.campaignId ||
       createResult?.campaigns?.[0]?.campaignId ||
+      createResult?.campaignId ||
       createResult?.id;
 
     if (!bolCampaignId) {
-      // Store response for debugging
       await supabase
         .from("ad_campaigns")
         .update({
@@ -275,17 +298,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 6. Create ad group under campaign via POST /ad-groups
+    // 6. Create ad group under campaign via POST /ad-groups (bulk format)
     let adGroupId: string | null = null;
     try {
       const adGroupPayload = {
-        campaignId: bolCampaignId,
-        name: `${campaign.name} - Producten`,
-        state: "ENABLED",
-        targetPages: ["SEARCH", "PRODUCT", "CATEGORY"],
+        adGroups: [
+          {
+            campaignId: bolCampaignId,
+            name: `${campaign.name} - Producten`,
+            state: "ENABLED",
+          },
+        ],
       };
 
-      console.log("Creating ad group:", JSON.stringify(adGroupPayload));
+      console.log("Creating ad group (bulk):", JSON.stringify(adGroupPayload));
 
       const adGroupResult = await bolApi(
         bolToken,
@@ -297,28 +323,29 @@ Deno.serve(async (req) => {
       console.log("Ad group result:", JSON.stringify(adGroupResult));
 
       adGroupId =
-        adGroupResult?.adGroupId ||
         adGroupResult?.adGroups?.success?.[0]?.adGroupId ||
+        adGroupResult?.adGroups?.[0]?.adGroupId ||
+        adGroupResult?.adGroupId ||
         null;
       console.log("Ad group created:", adGroupId);
     } catch (e) {
       console.error("Ad group creation failed:", e);
     }
 
-    // 7. Create ads (product targets) with EANs via POST /ads
+    // 7. Create ads (product targets) with EANs via POST /ads (bulk format)
     if (adGroupId && eans.length > 0) {
       try {
-        for (const ean of eans) {
-          const adPayload = {
+        const adsPayload = {
+          ads: eans.map((ean) => ({
             adGroupId,
             ean,
             state: "ENABLED",
-          };
+          })),
+        };
 
-          console.log("Creating ad for EAN:", ean);
-          await bolApi(bolToken, "POST", "/ads", adPayload);
-          console.log(`Ad created for EAN: ${ean}`);
-        }
+        console.log("Creating ads (bulk):", JSON.stringify(adsPayload));
+        const adsResult = await bolApi(bolToken, "POST", "/ads", adsPayload);
+        console.log("Ads result:", JSON.stringify(adsResult));
       } catch (e) {
         console.error("Ad creation failed:", e);
       }
