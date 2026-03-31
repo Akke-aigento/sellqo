@@ -1,50 +1,69 @@
 
 
-## Fix: Bundelprijzen correct tonen in productoverzichten
+## Analyse: Advertentiepagina — Fantoomknoppen & Functionaliteit
 
-### Probleem
-De productdetailpagina berekent bundelprijzen correct (dynamisch op basis van child producten), maar het **productoverzicht** (ProductCard, ShopProducts, etc.) toont altijd `product.price` — ook voor bundels met `bundle_pricing_model: 'dynamic'`. Bij dynamic pricing is `product.price` vaak 0 of incorrect.
+### Gevonden problemen
 
-Twee plekken moeten aangepast worden:
+Na doorlichting van alle 5 componenten in `src/components/admin/ads/`:
 
-### 1. Storefront API — `getProducts()` verrijken met bundelprijs
+#### Fantoomknoppen (doen letterlijk niets)
 
-**Bestand**: `supabase/functions/storefront-api/index.ts` (regel 612-636)
+| Knop | Bestand | Regel | Probleem |
+|---|---|---|---|
+| **"Beheren"** bij gekoppeld platform | `PlatformConnections.tsx` | 166 | Geen onClick, geen link — doet niets |
+| **"Bewerken"** in campagne dropdown | `CampaignCard.tsx` | 114-117 | Geen onClick — doet niets |
+| **"Bekijk in [platform]"** in campagne dropdown | `CampaignCard.tsx` | 119-122 | Geen onClick/href — doet niets |
+| **"Nieuwe Campagne"** op dashboard | `AdsDashboard.tsx` | 63 | Linkt naar `?tab=campaigns&action=new` maar query params worden nergens gelezen |
 
-Nu: retourneert alleen `product.price` voor alle producten, geen bundle-aware data in de lijst.
+#### Incomplete wizard (4 van 6 stappen)
 
-Fix: Voor producten met `product_type = 'bundle'`, de `product_bundle_items` ophalen en een berekende prijs meegeven:
+De CampaignWizard heeft alleen: Platform → Type → Budget → Review.
+Ontbreekt: **Productselectie** en **Doelgroep/Segment targeting** — twee stappen die essentieel zijn voor een bruikbare campagne.
 
-- Voeg `bundle_pricing_model` toe aan de select query (regel 542)
-- Na het ophalen van producten, voor alle bundle-producten in batch de `product_bundle_items` ophalen met child product prijzen
-- Bereken `bundle_calculated_price` (som child prijzen × hoeveelheden, minus eventuele korting)
-- Retourneer `bundle_pricing_model`, `bundle_calculated_price`, en `bundle_savings` in het product-object
+#### Geen echte integraties
 
-### 2. ProductCard — bundelprijzen renderen
+- Connect/disconnect schrijft alleen naar de lokale `ad_platform_connections` tabel
+- Geen OAuth flows, geen echte API calls naar Bol/Meta/Google/Amazon
+- Stats (impressies, clicks, spend, ROAS) zijn altijd 0 — geen sync
+- AI Suggesties sectie is volledig placeholder
 
-**Bestand**: `src/components/storefront/ProductCard.tsx`
+### Voorgesteld plan
 
-Nu: toont alleen `product.price` en `compare_at_price`.
+Aangezien echte platformintegraties (OAuth, API sync) een groot apart project zijn, focus ik op het **functioneel maken van wat er is** en het **verwijderen/labelen van wat niet werkt**:
 
-Fix:
-- Interface uitbreiden met `product_type`, `bundle_pricing_model`, `bundle_calculated_price`, `bundle_savings`
-- Als `product_type === 'bundle'` en `bundle_pricing_model === 'dynamic'`: toon `bundle_calculated_price` als hoofdprijs
-- Als er `bundle_savings > 0`: toon de som van losse prijzen als doorgestreepte "van"-prijs
-- Optioneel: toon een "Bundel" badge
+**1. Fantoomknoppen fixen of verwijderen**
 
-### 3. Admin Products overzicht — ook bundelprijs tonen
+- **"Beheren"** → verwijderen (er is niets te beheren zonder echte integratie)
+- **"Bewerken"** → koppelen aan een edit-flow: wizard heropenen met bestaande campagne-data pre-filled
+- **"Bekijk in platform"** → verwijderen (geen echte platform_campaign_id zonder integratie)
+- **"Nieuwe Campagne" link** op dashboard → `setActiveTab('campaigns')` + `showWizard` triggeren, of simpelweg direct naar de wizard navigeren
 
-**Bestand**: `src/pages/admin/Products.tsx` (regel 528-534)
+**2. Wizard uitbreiden met ontbrekende stappen**
 
-Nu: toont `product.price`.
+- **Productselectie stap**: multi-select van bestaande producten (uit `useProducts`) met zoekfunctie
+- **Doelgroep stap**: segment selectie uit bestaande `customer_segments` of handmatige audience config
 
-Fix: Voor bundels met `bundle_pricing_model === 'dynamic'`, de child product prijzen meenemen in de berekening. De `useProducts` hook haalt al `product_categories` op; we voegen een aparte query toe voor bundle items bij dynamic bundles, of berekenen het inline.
+Nieuwe flow: Platform → Type → **Producten** → **Doelgroep** → Budget → Review
+
+**3. Campagne bewerken**
+
+- `CampaignWizard` aanpassen om een `campaign` prop te accepteren voor edit-modus
+- Pre-fill alle velden met bestaande data
+- Bij submit: `updateCampaign` i.p.v. `createCampaign`
+
+**4. "Coming soon" eerlijk communiceren**
+
+- Meta, Google, Amazon platformkaarten: duidelijk "Binnenkort beschikbaar" (dit werkt al)
+- AI Suggesties: label als "Beta" of verwijderen als het niet werkt
+- Stats cards: toon "Geen data" i.p.v. allemaal nullen als er geen campagnes/sync is
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `supabase/functions/storefront-api/index.ts` | `getProducts()`: bundle_pricing_model in select, batch bundle items ophalen, berekende prijs meegeven |
-| `src/components/storefront/ProductCard.tsx` | Bundle-aware prijsweergave met dynamische prijs en besparingsbadge |
-| `src/pages/admin/Products.tsx` | Dynamic bundle prijs tonen in admin overzicht |
+| `CampaignCard.tsx` | "Bewerken" koppelen aan edit-flow, "Bekijk in platform" verwijderen |
+| `PlatformConnections.tsx` | "Beheren" knop verwijderen |
+| `CampaignWizard.tsx` | Edit-modus + productselectie stap + doelgroep stap toevoegen |
+| `CampaignsList.tsx` | Edit-state beheren, query param `action=new` afhandelen |
+| `AdsDashboard.tsx` | "Nieuwe Campagne" link fixen, lege stats beter tonen |
 
