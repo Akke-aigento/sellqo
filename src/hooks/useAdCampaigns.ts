@@ -5,6 +5,18 @@ import type { AdCampaign, AdCampaignStatus, AdPlatform, CampaignType, AudienceTy
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
 
+async function pushBolCampaign(campaignId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
+    body: { campaign_id: campaignId },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export function useAdCampaigns() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
