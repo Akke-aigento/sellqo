@@ -42,7 +42,7 @@ async function bolApi(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.retailer.v11+json",
-    "Content-Type": "application/vnd.retailer.v11+json",
+    "Content-Type": "application/json",
   };
 
   console.log(`[bolApi] ${method} ${url}`);
