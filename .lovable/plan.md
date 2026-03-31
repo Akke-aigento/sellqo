@@ -1,42 +1,41 @@
 
 
-## Fix: Push Bol Campaign — verkeerde kolomnaam
+## Fix: Bol.com Advertising API — Verkeerde URL, Methode en Headers
 
-### Root cause
-De edge function `push-bol-campaign` zoekt naar kolom `ean` in de `products` tabel, maar die kolom bestaat niet. De EAN-nummers staan in de kolom **`barcode`** (en optioneel `bol_ean`).
+### Root cause (bevestigd via officiële Bol API docs)
 
-Hierdoor vindt de functie geen EANs en geeft fout: *"Geen producten met EAN gevonden"*.
+De edge function faalt met **403 Unauthorized** omdat alles fout is aan de API calls:
 
-### Fix
+| Wat | Nu (FOUT) | Moet zijn (officiële docs) |
+|---|---|---|
+| Base URL | `https://api.bol.com/retailer/advertising/v11` | `https://api.bol.com/advertiser/sponsored-products/campaign-management` |
+| Campagne aanmaken | `PUT /sponsored-products/campaigns` | `POST /campaigns` |
+| Ad group aanmaken | `PUT /sponsored-products/ad-groups` | `POST /ad-groups` |
+| Ads aanmaken | `PUT /sponsored-products/ads` | `POST /ads` |
+| Accept header | `application/vnd.retailer.v11+json` | `application/json` |
+| Content-Type | `application/vnd.retailer.v11+json` | `application/json` |
 
-**Bestand**: `supabase/functions/push-bol-campaign/index.ts` (regel ~175-185)
+De `vnd.retailer` headers zijn voor de Retailer API, niet de Advertising API. Daarom geeft Bol 403 terug.
 
-Wijzig de product-query van:
-```ts
-.select("id, ean, name")
-```
-naar:
-```ts
-.select("id, barcode, bol_ean, name")
-```
+### Aanpak
 
-En de EAN-extractie van:
-```ts
-eans = products.map(p => p.ean).filter(...)
-```
-naar:
-```ts
-eans = products.map(p => p.bol_ean || p.barcode).filter(...)
-```
+**Bestand: `supabase/functions/push-bol-campaign/index.ts`**
 
-Dit gebruikt `bol_ean` als die gevuld is (specifiek Bol EAN), anders valt het terug op `barcode`.
+1. **Base URL** wijzigen naar `https://api.bol.com/advertiser/sponsored-products/campaign-management`
+2. **Headers** in `bolApi()` wijzigen naar `application/json`
+3. **HTTP methodes** wijzigen:
+   - Campagne: `POST /campaigns` (was `PUT /sponsored-products/campaigns`)
+   - Ad group: `POST /ad-groups` (was `PUT /sponsored-products/ad-groups`)
+   - Ads: `POST /ads` (was `PUT /sponsored-products/ads`)
+4. **Response parsing** aanpassen: Bol retourneert nu 207 Multi-Status met `success[]` en `error[]` arrays
+   - Campaign ID zit in `response.campaigns.success[0].campaignId`
+   - Ad group ID in `response.adGroups.success[0].adGroupId`
+5. **Ad group payload** aanpassen: `targetPages` toevoegen (`["SEARCH", "PRODUCT", "CATEGORY"]`)
 
-### Bijkomend issue
-Product "VanXcel 1000W Powerstation" heeft een **fout barcode** met een leidende quote: `'5430004790211`. Dit moet handmatig gecorrigeerd worden in het productbeheer (verwijder de `'`).
+**Bestand: `supabase/functions/sync-bol-campaign-status/index.ts`**
 
-### Bestanden
+Zelfde URL/header fixes + campagnes ophalen via `POST /campaigns/list` met filter body.
 
-| Bestand | Wijziging |
-|---|---|
-| `supabase/functions/push-bol-campaign/index.ts` | `ean` → `barcode`/`bol_ean` in product query en mapping |
+### Geen migraties nodig
+Alleen edge function code wijzigingen.
 
