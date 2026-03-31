@@ -195,9 +195,9 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({
             error:
-              "Geen producten met EAN gevonden. Bol.com vereist EAN-nummers voor advertenties.",
+              "Geen producten met EAN/barcode gevonden. Bol.com vereist EAN-nummers voor advertenties.",
             products_without_ean: (products || [])
-              .filter((p: any) => !p.ean)
+              .filter((p: any) => !p.bol_ean && !p.barcode)
               .map((p: any) => p.name),
           }),
           {
