@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
@@ -30,6 +31,7 @@ const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default
 
 export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
+  const queryClient = useQueryClient();
   const [pushing, setPushing] = useState(false);
   const platformInfo = AD_PLATFORMS[campaign.platform];
   const statusConfig = STATUS_CONFIG[campaign.status as AdCampaignStatus] || STATUS_CONFIG.draft;
@@ -71,6 +73,7 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
       if (error) throw error;
       if (data?.success) {
         toast({ title: 'Campagne live op Bol.com! 🎉' });
+        queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       } else {
         toast({ title: 'Push gestart', description: data?.message || 'Status wordt verwerkt' });
       }
