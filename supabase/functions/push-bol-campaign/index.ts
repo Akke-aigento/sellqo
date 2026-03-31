@@ -184,20 +184,20 @@ Deno.serve(async (req) => {
     if (campaign.product_ids && campaign.product_ids.length > 0) {
       const { data: products } = await supabase
         .from("products")
-        .select("id, ean, name")
+        .select("id, barcode, bol_ean, name")
         .in("id", campaign.product_ids);
 
       eans = (products || [])
-        .map((p: any) => p.ean)
-        .filter((e: string | null): e is string => !!e);
+        .map((p: any) => p.bol_ean || p.barcode)
+        .filter((e: string | null): e is string => !!e && !e.startsWith("'"));
 
       if (eans.length === 0) {
         return new Response(
           JSON.stringify({
             error:
-              "Geen producten met EAN gevonden. Bol.com vereist EAN-nummers voor advertenties.",
+              "Geen producten met EAN/barcode gevonden. Bol.com vereist EAN-nummers voor advertenties.",
             products_without_ean: (products || [])
-              .filter((p: any) => !p.ean)
+              .filter((p: any) => !p.bol_ean && !p.barcode)
               .map((p: any) => p.name),
           }),
           {
