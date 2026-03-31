@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { AD_PLATFORMS, type AdPlatform } from '@/types/ads';
-import { Link2, Unlink, ExternalLink, Info, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Link2, Unlink, Info, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export function PlatformConnections() {
@@ -28,7 +28,6 @@ export function PlatformConnections() {
   const handleConnect = async (platform: AdPlatform) => {
     const status = getPlatformStatus(platform);
     
-    // Validate before connecting
     if (status === 'requires_connection') {
       toast({
         title: 'Retailer koppeling vereist',
@@ -163,22 +162,19 @@ export function PlatformConnections() {
                 </div>
               )}
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Beheren
-                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => handleDisconnect(platform)}
+                  className="text-destructive"
                 >
-                  <Unlink className="h-4 w-4" />
+                  <Unlink className="h-4 w-4 mr-2" />
+                  Ontkoppelen
                 </Button>
               </div>
             </div>
           ) : (
           <div className="space-y-4">
-              {/* Show alert for Bol.com requiring retailer connection */}
               {requiresConnection && platform === 'bol_ads' && (
                 <Alert className="border-amber-200 bg-amber-50">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -188,7 +184,6 @@ export function PlatformConnections() {
                 </Alert>
               )}
 
-              {/* Show alert for Bol.com requiring advertising credentials */}
               {requiresAdvertisingCredentials && platform === 'bol_ads' && (
                 <Alert className="border-amber-200 bg-amber-50">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -198,7 +193,6 @@ export function PlatformConnections() {
                 </Alert>
               )}
               
-              {/* Description based on status */}
               {!requiresConnection && !requiresAdvertisingCredentials && (
                 <p className="text-sm text-muted-foreground">
                   {platform === 'bol_ads' 
@@ -211,7 +205,6 @@ export function PlatformConnections() {
                 </p>
               )}
               
-              {/* Buttons based on status */}
               {(requiresConnection || requiresAdvertisingCredentials) ? (
                 <Button asChild className="w-full">
                   <Link to="/admin/connect?tab=marketplace">
