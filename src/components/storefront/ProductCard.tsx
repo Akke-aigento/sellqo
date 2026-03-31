@@ -32,9 +32,23 @@ interface ProductCardProps {
 
 export function ProductCard({ product, basePath, showPrice = true, currency = 'EUR', cardStyle = 'standard', onQuickView, isWishlisted, onToggleWishlist }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
-  const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
+  
+  // Bundle-aware pricing
+  const isBundle = product.product_type === 'bundle';
+  const isDynamicBundle = isBundle && product.bundle_pricing_model === 'dynamic';
+  const displayPrice = isDynamicBundle && product.bundle_calculated_price 
+    ? product.bundle_calculated_price 
+    : product.price;
+  const bundleSavings = isDynamicBundle ? (product.bundle_savings || 0) : 0;
+  const bundleOriginalPrice = isDynamicBundle && bundleSavings > 0 
+    ? (product.bundle_individual_total || 0) 
+    : null;
+
+  const hasDiscount = bundleOriginalPrice 
+    ? bundleOriginalPrice > displayPrice
+    : (product.compare_at_price && product.compare_at_price > displayPrice);
   const discountPercentage = hasDiscount 
-    ? Math.round((1 - product.price / product.compare_at_price!) * 100)
+    ? Math.round((1 - displayPrice / (bundleOriginalPrice || product.compare_at_price!)) * 100)
     : 0;
   const hasSecondImage = product.images.length > 1;
 
