@@ -7,6 +7,16 @@ import { CampaignsList } from '@/components/admin/ads/CampaignsList';
 export default function AdsPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
+  const handleNewCampaignFromDashboard = () => {
+    setActiveTab('campaigns');
+    // CampaignsList will show the wizard when mounted fresh after tab switch
+    // We use a small delay + key trick to trigger wizard
+    setTimeout(() => {
+      const btn = document.querySelector('[data-new-campaign]') as HTMLButtonElement;
+      btn?.click();
+    }, 100);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -24,7 +34,7 @@ export default function AdsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <AdsDashboard />
+          <AdsDashboard onNewCampaign={() => setActiveTab('campaigns')} />
         </TabsContent>
 
         <TabsContent value="campaigns" className="mt-6">

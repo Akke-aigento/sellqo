@@ -9,10 +9,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AD_PLATFORMS, type AdCampaign, type AdCampaignStatus } from '@/types/ads';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
-import { MoreHorizontal, Pause, Play, Trash2, Edit, ExternalLink } from 'lucide-react';
+import { MoreHorizontal, Pause, Play, Trash2, Edit } from 'lucide-react';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
+  onEdit?: (campaign: AdCampaign) => void;
 }
 
 const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -24,7 +25,7 @@ const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default
   rejected: { label: 'Afgewezen', variant: 'destructive' },
 };
 
-export function CampaignCard({ campaign }: CampaignCardProps) {
+export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
   const platformInfo = AD_PLATFORMS[campaign.platform];
   const statusConfig = STATUS_CONFIG[campaign.status as AdCampaignStatus] || STATUS_CONFIG.draft;
@@ -111,16 +112,10 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
             <Edit className="h-4 w-4 mr-2" />
             Bewerken
           </DropdownMenuItem>
-          {campaign.platform_campaign_id && (
-            <DropdownMenuItem>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Bekijk in {platformInfo.name}
-            </DropdownMenuItem>
-          )}
           <DropdownMenuSeparator />
           {campaign.status === 'active' ? (
             <DropdownMenuItem onClick={handlePause}>

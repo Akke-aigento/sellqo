@@ -82,13 +82,15 @@ export function useAdCampaigns() {
   });
 
   const updateCampaign = useMutation({
-    mutationFn: async ({ id, name, status, budget_amount, budget_type, target_roas }: { 
+    mutationFn: async ({ id, name, status, budget_amount, budget_type, target_roas, product_ids, segment_id }: { 
       id: string; 
       name?: string;
       status?: AdCampaignStatus;
       budget_amount?: number;
       budget_type?: 'daily' | 'lifetime';
       target_roas?: number;
+      product_ids?: string[];
+      segment_id?: string | null;
     }) => {
       const updates: Record<string, unknown> = {};
       if (name !== undefined) updates.name = name;
@@ -96,6 +98,8 @@ export function useAdCampaigns() {
       if (budget_amount !== undefined) updates.budget_amount = budget_amount;
       if (budget_type !== undefined) updates.budget_type = budget_type;
       if (target_roas !== undefined) updates.target_roas = target_roas;
+      if (product_ids !== undefined) updates.product_ids = product_ids;
+      if (segment_id !== undefined) updates.segment_id = segment_id;
       
       const { data, error } = await supabase
         .from('ad_campaigns')

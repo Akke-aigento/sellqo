@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
-import { AD_PLATFORMS, type AdPlatform, type AdCampaignStatus } from '@/types/ads';
+import { AD_PLATFORMS, type AdPlatform, type AdCampaign } from '@/types/ads';
 import { CampaignCard } from './CampaignCard';
 import { CampaignWizard } from './CampaignWizard';
 import { Plus, Search, Filter, Target } from 'lucide-react';
@@ -17,6 +17,7 @@ export function CampaignsList() {
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showWizard, setShowWizard] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<AdCampaign | null>(null);
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(search.toLowerCase());
@@ -25,8 +26,18 @@ export function CampaignsList() {
     return matchesSearch && matchesPlatform && matchesStatus;
   });
 
+  const handleEdit = (campaign: AdCampaign) => {
+    setEditingCampaign(campaign);
+    setShowWizard(true);
+  };
+
+  const handleCloseWizard = () => {
+    setShowWizard(false);
+    setEditingCampaign(null);
+  };
+
   if (showWizard) {
-    return <CampaignWizard onClose={() => setShowWizard(false)} />;
+    return <CampaignWizard onClose={handleCloseWizard} campaign={editingCampaign} />;
   }
 
   return (
@@ -84,7 +95,7 @@ export function CampaignsList() {
       ) : filteredCampaigns.length > 0 ? (
         <div className="space-y-3">
           {filteredCampaigns.map(campaign => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
+            <CampaignCard key={campaign.id} campaign={campaign} onEdit={handleEdit} />
           ))}
         </div>
       ) : campaigns.length === 0 ? (
