@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
