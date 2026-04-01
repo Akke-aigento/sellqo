@@ -1,72 +1,67 @@
 
 
-## Prompt 11: Edge Function "ads-bolcom-reports" + Auto-sync op pagina laden
+## Prompt 12: Edge Function "ads-bolcom-manage" + Hook Integratie
 
 ### Overzicht
 
-Nieuwe edge function die performance data, keyword performance en zoektermen ophaalt van de Bol.com Advertising API en upsert naar `ads_bolcom_performance` en `ads_bolcom_search_terms`. Plus auto-fetch logica op de Bol.com Ads pagina met 1-uur cache.
+Nieuwe edge function voor campagne/keyword/budget management via Bol.com API, plus aanpassing van 3 hooks om de functie aan te roepen in plaats van alleen lokale DB updates.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/ads-bolcom-reports/index.ts` | Nieuw — edge function |
-| `src/hooks/useBolcomAds.ts` | Auto-sync logica toevoegen |
-| `src/pages/admin/AdsBolcom.tsx` | Sync-reports knop/status toevoegen |
+| `supabase/functions/ads-bolcom-manage/index.ts` | Nieuw — edge function |
+| `src/hooks/useBolcomCampaignDetail.ts` | Mutations aanpassen → edge function calls |
+| `src/hooks/useBolcomKeywords.ts` | `updateKeywordBid` → edge function call |
+| `src/hooks/useBolcomSearchTerms.ts` | `addAsNegativeKeyword` → edge function call |
 
-### Edge Function: `ads-bolcom-reports/index.ts`
+### Edge Function: `ads-bolcom-manage/index.ts`
 
-Hergebruikt exact het auth + credentials patroon uit `ads-bolcom-sync`:
-- CORS headers, `getBolToken()`, `bolGet()`/`bolPost()`, `withRetry()`, `jsonRes()`
-- JWT check via `getUser()`
+Hergebruikt auth + Bol API patroon uit `ads-bolcom-sync` (corsHeaders, `getBolToken()`, `bolGet()`/`bolPost()`, JWT check, Supabase client).
 
-**Input**: `{ tenant_id, start_date?, end_date? }` — defaults naar laatste 30 dagen
+**Input**: `{ tenant_id, action, payload }`
 
-**Flow**:
+**Acties**:
 
-1. Haal alle campaigns op uit `ads_bolcom_campaigns` (lokale DB) voor de tenant → campaign ID mapping (`bolcom_campaign_id` → internal `id`)
+1. **`pause_campaign`** / **`resume_campaign`**: `{ campaign_id }` 
+   - Lookup `bolcom_campaign_id` uit `ads_bolcom_campaigns`
+   - PUT `{BOL_ADV_BASE}/campaigns/{bolcom_campaign_id}` met `{ state: "PAUSED" }` of `{ state: "ENABLED" }`
+   - Update lokale DB status
 
-2. **Campaign performance**: POST `{BOL_ADV_BASE}/../insights/campaigns` met `{ campaignIds, startDate, endDate }`
-   - Base URL: `https://api.bol.com/advertiser/sponsored-products/insights`
-   - Per campagne per dag: upsert naar `ads_bolcom_performance` met:
-     - `campaign_id` (internal), `tenant_id`, `date`
-     - `impressions`, `clicks`, `spend`, `orders`, `revenue`
-     - Berekende velden: `acos`, `ctr`, `cpc`, `conversion_rate`
-   - On conflict: `tenant_id, campaign_id, date` (+ keyword_id is null)
+2. **`update_bid`**: `{ keyword_id, new_bid }`
+   - Lookup `bolcom_keyword_id` uit `ads_bolcom_keywords` (via join naar adgroup voor `bolcom_adgroup_id`)
+   - PUT `{BOL_ADV_BASE}/keywords/{bolcom_keyword_id}` met `{ bid: new_bid }`
+   - Update lokale DB bid
 
-3. **Keyword performance** (als API het ondersteunt): probeer `insights/keywords` endpoint
-   - Upsert naar `ads_bolcom_performance` met `keyword_id` gevuld
-   - On conflict: `tenant_id, campaign_id, keyword_id, date`
+3. **`add_negative_keyword`**: `{ adgroup_id, keyword, match_type }`
+   - Lookup `bolcom_adgroup_id` uit `ads_bolcom_adgroups`
+   - POST `{BOL_ADV_BASE}/ad-groups/{bolcom_adgroup_id}/negative-keywords` met keyword data
+   - Insert in `ads_bolcom_keywords` met `is_negative=true`
 
-4. **Search terms**: POST `insights/search-terms` of vergelijkbaar endpoint
-   - Upsert naar `ads_bolcom_search_terms` met `tenant_id, campaign_id, search_term, date`
-   - On conflict: `tenant_id, campaign_id, search_term, date`
+4. **`pause_keyword`**: `{ keyword_id }`
+   - PUT keyword met `{ state: "PAUSED" }`
+   - Update lokale DB status
 
-5. Return `{ days_synced, performance_records, search_term_records }`
+5. **`update_budget`**: `{ campaign_id, daily_budget }`
+   - PUT campaign met `{ dailyBudget: daily_budget }`
+   - Update lokale DB `daily_budget`
 
-**Error handling**: zelfde als ads-bolcom-sync (rate limit, token expired, per-campaign continue)
+**Error handling**: Token refresh op 401, rate limit op 429, duidelijke error messages.
 
-### Hook: `useBolcomAds.ts` wijzigingen
+**Response**: `{ success: true, action, detail }` of `{ error: string }`
 
-Voeg auto-sync logica toe:
+### Hook wijzigingen
 
-- Nieuwe query `useQuery` met key `['bolcom-reports-sync', tenantId, period]`:
-  - Check of er een `synced_at` timestamp is opgeslagen (`localStorage` key: `bolcom-reports-last-sync-{tenantId}`)
-  - Als laatste sync > 1 uur geleden OF nooit: invoke `ads-bolcom-reports` met `tenant_id`, `start_date`, `end_date` (op basis van periode)
-  - Na succes: sla timestamp op in localStorage, invalidate performance queries
-  - `staleTime: Infinity` en `refetchOnWindowFocus: false` zodat het niet per navigatie opnieuw haalt
-- Export een `reportsSyncing` boolean
+**`useBolcomCampaignDetail.ts`** — 3 mutations aanpassen:
+- `updateCampaignStatus`: `supabase.functions.invoke('ads-bolcom-manage', { body: { tenant_id, action: status === 'paused' ? 'pause_campaign' : 'resume_campaign', payload: { campaign_id } } })`
+- `updateKeywordBid`: action `'update_bid'`, payload `{ keyword_id, new_bid: bid }`
+- `addNegativeKeyword`: action `'add_negative_keyword'`, payload `{ adgroup_id, keyword, match_type }`
 
-### Pagina: `AdsBolcom.tsx` wijzigingen
+**`useBolcomKeywords.ts`** — 1 mutation:
+- `updateKeywordBid`: zelfde als boven, action `'update_bid'`
 
-- Toon een subtiele "Data ophalen..." indicator (kleine Loader2 + tekst) bovenaan wanneer `reportsSyncing` true is
-- Bestaande "Synchroniseer" knop blijft voor campagne-structuur sync
-- Eventueel een "Ververs data" link die de localStorage timestamp reset en reports opnieuw ophaalt
+**`useBolcomSearchTerms.ts`** — 1 mutation:
+- `addAsNegativeKeyword`: action `'add_negative_keyword'`, na succes ook `ai_action_taken` update (blijft lokale DB call)
 
-### Technische details
-
-- De Bol.com Insights API gebruikt dezelfde `application/vnd.advertiser.v11+json` headers
-- Insights base URL: `https://api.bol.com/advertiser/sponsored-products/insights`
-- Afgeleide metrics worden server-side berekend en opgeslagen (niet client-side)
-- De 1-uur cache is localStorage-gebaseerd per tenant — simpel en effectief
+Alle mutations behouden hun bestaande `onSuccess` (invalidate + toast) en `onError` (error toast) logica.
 
