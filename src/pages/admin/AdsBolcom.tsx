@@ -110,6 +110,14 @@ export default function AdsBolcomPage() {
 
   return (
     <div className="space-y-6">
+      {/* Reports sync indicator */}
+      {reportsSyncing && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span>Performance data ophalen van Bol.com...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
