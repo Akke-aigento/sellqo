@@ -149,7 +149,7 @@ export default function AdsBolcomCampaignDetail() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Type</p><p className="text-lg font-semibold">{campaign.targeting_type || campaign.campaign_type}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Dagbudget</p><p className="text-lg font-semibold">{formatCurrency(campaign.daily_budget)}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Totaalbudget</p><p className="text-lg font-semibold">{campaign.total_budget ? formatCurrency(campaign.total_budget) : 'Onbeperkt'}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Start / Eind</p><p className="text-sm font-semibold">{campaign.start_date ?? '—'} / {campaign.end_date ?? '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Start / Eind</p><p className="text-sm font-semibold">{campaign.start_date ? format(new Date(campaign.start_date), 'dd-MM-yyyy') : '—'} / {campaign.end_date ? format(new Date(campaign.end_date), 'dd-MM-yyyy') : '—'}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Laatste sync</p><p className="text-sm font-semibold">{campaign.synced_at ? format(new Date(campaign.synced_at), 'dd MMM HH:mm', { locale: nl }) : '—'}</p></CardContent></Card>
       </div>
 

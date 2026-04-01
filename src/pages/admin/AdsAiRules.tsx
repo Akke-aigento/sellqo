@@ -408,7 +408,9 @@ export default function AdsAiRulesPage() {
           ) : history.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">Nog geen uitgevoerde AI acties</p>
+                <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="font-medium">Nog geen AI acties uitgevoerd</p>
+                <p className="text-sm text-muted-foreground mt-1">Uitgevoerde aanbevelingen verschijnen hier.</p>
               </CardContent>
             </Card>
           ) : (

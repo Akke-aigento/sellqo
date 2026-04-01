@@ -178,7 +178,7 @@ export default function AdsBolcomSearchTerms() {
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold">Geen zoektermen gevonden</h3>
-            <p className="text-muted-foreground">Synchroniseer je Bol.com advertenties om zoektermen te zien.</p>
+            <p className="text-muted-foreground">Zoektermen worden beschikbaar nadat je campagnes actief zijn en data genereren.</p>
           </CardContent>
         </Card>
       ) : (

@@ -159,11 +159,15 @@ export default function AdsBolcomKeywords() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        <Card><CardContent className="p-4 space-y-3">
+          {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+        </CardContent></Card>
       ) : keywords.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Geen keywords gevonden.</p>
+            <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-1">Geen keywords gevonden</h3>
+            <p className="text-muted-foreground">Maak eerst een campagne aan of synchroniseer bestaande campagnes.</p>
           </CardContent>
         </Card>
       ) : (
