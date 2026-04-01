@@ -311,6 +311,12 @@ async function importProducts(
       if (categoryValue.trim()) {
         await linkProductToCategory(supabase, tenantId, productId, categoryValue.trim(), categoryCache);
       }
+
+      // Upsert product specifications from _spec_ prefixed fields
+      await upsertProductSpecs(supabase, tenantId, productId, record);
+
+      // Upsert custom specs from _custom_spec_ prefixed fields
+      await upsertCustomSpecs(supabase, tenantId, productId, record);
     } catch (err) {
       console.error(`Product row ${i + 1} error:`, err);
       result.errors.push({
