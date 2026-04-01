@@ -1,44 +1,36 @@
 
 
-## Fix: Bol.com Order Flow — Accept stap verwijderen
+## Fix: VVB Label Process Status Polling — Wrong URL
 
 ### Probleem
 
-De `accept-bol-order` functie roept `PUT /retailer/orders/{orderId}/accept` aan — een endpoint dat nooit bestaan heeft in de Bol.com API. Dit geeft 403 errors, waardoor orders op `synced`/`accept_failed` blijven hangen en VVB labels niet aangemaakt worden.
+De `create-bol-vvb-label` functie pollt `https://api.bol.com/retailer/process-status/{id}` maar Bol.com v10 heeft dit verplaatst naar `https://api.bol.com/shared/process-status/{id}`. Bewijs: de label creation response bevat zelf de correcte URL in het `links` array.
 
-### Wijzigingen
+Gevolg: alle 15 poll-pogingen falen met 403, waardoor `transporterLabelId` en `trackingNumber` null blijven. Het label wordt als "pending" opgeslagen zonder PDF of tracking.
 
-**1. `supabase/functions/accept-bol-order/index.ts`** — Herschrijven als wrapper
-- Verwijder alle Bol.com API calls (token request, PUT accept, poll process status)
-- Behoud functie-interface (request/response format)
-- Enige actie: `sync_status = 'accepted'` in DB zetten
-- Return `{ success: true }`
-- Comment bovenaan met uitleg
+### Oplossing
 
-**2. `supabase/functions/sync-bol-orders/index.ts`** — 3 blokken aanpassen
+**`supabase/functions/create-bol-vvb-label/index.ts`** — 1 wijziging (lijn 579-580):
 
-| Blok (lijnen) | Wijziging |
-|---|---|
-| Auto-accept bij import (466-536) | Vervang `accept-bol-order` call door directe DB update `sync_status = 'accepted'`, daarna VVB label aanmaken zoals nu |
-| Retry auto-accept (551-658) | Zelfde: directe DB update naar `accepted`, daarna VVB label |
-| Accept-pending retry (661-738) | Volledig verwijderen |
-| VVB retry (741-815) | Ongewijzigd laten — filter blijft `sync_status = 'accepted'` |
+Gebruik de URL uit het `links` array van de label creation response (meest robuust), met fallback naar `/shared/process-status/`:
 
-**3. `supabase/functions/create-bol-vvb-label/index.ts`** — Auto-accept sectie (423-467)
-- Vervang de `accept-bol-order` functie-aanroep door directe DB update: `sync_status = 'accepted'`
-- Ga door met VVB label aanmaken (geen return bij falen meer)
-
-**4. Database migratie** — Fix bestaande vastgelopen orders
-```sql
-UPDATE orders 
-SET sync_status = 'accepted', updated_at = now()
-WHERE marketplace_source = 'bol_com' 
-  AND sync_status IN ('synced', 'accept_failed', 'accept_pending')
-  AND status NOT IN ('cancelled', 'refunded', 'shipped', 'delivered');
+```typescript
+// Haal de poll URL uit de response links (Bol.com geeft dit zelf mee)
+const processLink = (labelData.links || []).find((l: any) => l.rel === "self");
+const processStatusUrl = processLink?.href 
+  || `https://api.bol.com/shared/process-status/${processStatusId}`;
 ```
 
-### Resultaat
-- Nieuwe orders → direct `accepted` → VVB labels worden aangemaakt
-- Bestaande vastgelopen orders → gefixed door migratie → opgepakt door VVB retry
-- Geen Bol.com API calls meer voor een niet-bestaand endpoint
+En vervang in de poll-loop (lijn 579):
+```
+// WAS:  `https://api.bol.com/retailer/process-status/${processStatusId}`
+// WORDT: processStatusUrl
+```
+
+### Verwacht resultaat
+- Process status poll retourneert SUCCESS met `entityId` (= transporterLabelId)
+- PDF wordt opgehaald en opgeslagen in storage
+- Tracking nummer wordt ingevuld op de order
+- Order wordt als "shipped" gemarkeerd
+- Shipment wordt bevestigd bij Bol.com
 
