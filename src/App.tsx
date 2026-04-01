@@ -52,6 +52,7 @@ import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
 import AdsPage from "./pages/admin/Ads";
 import AdsBolcomPage from "./pages/admin/AdsBolcom";
+import AdsBolcomCampaignDetailPage from "./pages/admin/AdsBolcomCampaignDetail";
 import AdsAiRulesPage from "./pages/admin/AdsAiRules";
 import ReportsPage from "./pages/admin/Reports";
 import MessagesPage from "./pages/admin/Messages";
@@ -211,6 +212,7 @@ const App = () => (
               <Route path="storefront" element={<StorefrontPage />} />
               <Route path="ads" element={<AdsPage />} />
               <Route path="ads/bolcom" element={<AdsBolcomPage />} />
+              <Route path="ads/bolcom/campaigns/:id" element={<AdsBolcomCampaignDetailPage />} />
               <Route path="ads/ai" element={<AdsAiRulesPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="platform" element={
