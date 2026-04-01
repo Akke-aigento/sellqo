@@ -191,11 +191,7 @@ export default function AdsBolcomPage() {
       {/* Chart */}
       {isLoading ? (
         <Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
-      ) : (
-      <></>
-      )}
-      {!isLoading && (
-      {chartData.length > 0 && (
+      ) : chartData.length > 0 ? (
         <Card>
           <CardHeader><CardTitle>Performance</CardTitle></CardHeader>
           <CardContent>
@@ -214,7 +210,7 @@ export default function AdsBolcomPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Campaigns table */}
       <Card>
