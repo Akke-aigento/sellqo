@@ -1,82 +1,64 @@
 
 
-## Prompt 9: AI Aanbevelingen Pagina — /admin/ads/ai
+## Prompt 10: Edge Function "ads-bolcom-sync" + Sync knop
 
 ### Overzicht
 
-Vervang de placeholder `AdsAiRules.tsx` met een volledige pagina met 3 tabs. Maak een custom hook `useAdsAI` voor alle data queries.
+Nieuwe edge function die campagnes, ad groups, keywords en targeted products ophaalt van de Bol.com Advertising API en upsert naar de `ads_bolcom_*` tabellen. Plus een "Synchroniseer" knop op de Bol.com Ads pagina.
+
+### Bestaand patroon
+
+De `sync-bol-campaign-status` edge function bevat al de volledige Bol.com auth-flow (token ophalen via `advertisingClientId`/`advertisingClientSecret` uit `marketplace_connections`). We hergebruiken exact dit patroon.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useAdsAI.ts` | Nieuw — data hook |
-| `src/pages/admin/AdsAiRules.tsx` | Herschrijven — volledige pagina |
+| `supabase/functions/ads-bolcom-sync/index.ts` | Nieuw — edge function |
+| `src/pages/admin/AdsBolcom.tsx` | Sync knop toevoegen + invoke logic |
 
-Geen route wijziging nodig — `/admin/ads/ai` bestaat al in App.tsx.
+### Edge Function: `ads-bolcom-sync/index.ts`
 
-### Hook: `useAdsAI.ts`
+**Auth**: JWT check via `getUser()` (bestaand patroon)
 
-**Queries** (tenant_id gefilterd):
+**Flow**:
+1. Ontvang `{ tenant_id }` via POST body
+2. Haal Bol.com advertising credentials uit `marketplace_connections` (zelfde query als `sync-bol-campaign-status`)
+3. Haal token op via `getBolAdvertisingToken()`
+4. **Campagnes**: POST `{BOL_ADV_BASE}/campaigns/list` → upsert naar `ads_bolcom_campaigns` (on conflict `tenant_id, bolcom_campaign_id`)
+5. **Per campagne → Ad Groups**: GET `{BOL_ADV_BASE}/campaigns/{id}/ad-groups` → upsert naar `ads_bolcom_adgroups`
+6. **Per ad group → Keywords**: GET `{BOL_ADV_BASE}/ad-groups/{id}/keywords` → upsert naar `ads_bolcom_keywords`
+7. **Per ad group → Target Products**: GET `{BOL_ADV_BASE}/ad-groups/{id}/target-products` → upsert naar `ads_bolcom_targeting_products`. Match `product_id` via EAN lookup in `products` tabel
+8. Return `{ campaigns_synced, adgroups_synced, keywords_synced, products_synced }`
 
-- **Recommendations**: `ads_ai_recommendations` — alle kolommen incl. `current_value`, `recommended_value`, `confidence`, `auto_apply`, `applied_at`
-- **Rules**: `ads_ai_rules` — alle kolommen incl. `conditions` (Json), `actions` (Json), `is_active`, `last_triggered_at`
-- **History**: `ads_ai_recommendations` where status in ('accepted', 'auto_applied'), order by applied_at desc
+**Error handling**:
+- 401 → re-auth met credentials en retry eenmaal
+- 429 → return error met retry-after
+- Per-campagne errors: log + continue met volgende campagne
+- Alle upserts gebruiken `onConflict` parameter
 
-**Filters** (useState):
-- `channel: string | null` (bolcom/amazon/google/meta/all)
-- `type: string | null` (recommendation_type filter)
-- `status: string | null` (pending/accepted/rejected)
+**CORS**: Standaard corsHeaders (zelfde als bestaande functions)
 
-**Mutations**:
-- `applyRecommendation(id)` → update `ads_ai_recommendations` set status='accepted', applied_at=now()
-- `rejectRecommendation(id)` → update status='rejected'
-- `toggleRule(id, isActive)` → update `ads_ai_rules` set is_active
-- `createRule(data)` → insert `ads_ai_rules` met name, channel, rule_type, conditions, actions
-- `updateRule(id, data)` → update `ads_ai_rules`
-- `deleteRule(id)` → delete from `ads_ai_rules`
+**API headers**: `Accept` en `Content-Type` both `application/vnd.advertiser.v11+json` (conform bestaand patroon)
 
-### Pagina: `AdsAiRules.tsx` (herschrijven)
+### Pagina: `AdsBolcom.tsx` wijzigingen
 
-**Header** — Breadcrumb (Ads > AI), titel "AI Aanbevelingen", Sparkles icoon
+- Import `supabase` client en `useQueryClient`
+- Voeg `useState` toe voor `syncing` state
+- "Synchroniseer" knop in header (naast "Nieuwe campagne") die:
+  - `supabase.functions.invoke('ads-bolcom-sync', { body: { tenant_id } })` aanroept
+  - Loading spinner toont tijdens sync
+  - Na succes: `queryClient.invalidateQueries()` voor alle bolcom query keys + toast met samenvatting
+  - Bij error: error toast
+- De bestaande lege-state "Synchroniseer" knop krijgt dezelfde handler
 
-**Tabs**: Aanbevelingen | Automation Regels | Geschiedenis
+### Upsert mapping
 
-#### Tab 1: Aanbevelingen (default)
+Campagnes: `bolcom_campaign_id` → Bol `campaignId`, `name`, `status` (ENABLED→active, PAUSED→paused), `campaign_type` (manual/automatic), `daily_budget`, `total_budget`, `start_date`, `end_date`
 
-- Filter balk: Kanaal select, Type select, Status select
-- Card-based lijst per aanbeveling:
-  - Kanaal badge (kleurcodering: bolcom=blauw, amazon=oranje, google=groen, meta=blauw)
-  - Type icoon + label
-  - Reden tekst
-  - Current value → Recommended value (visueel met pijl)
-  - Confidence score als progress bar
-  - "Toepassen" (groen) + "Negeren" (grijs) knoppen
-  - Timestamp
-- Empty state als geen pending recommendations
+Ad Groups: `bolcom_adgroup_id`, `campaign_id` (lookup via bolcom_campaign_id), `name`, `status`, `default_bid`
 
-#### Tab 2: Automation Regels
+Keywords: `keyword`, `match_type`, `bid`, `status`, `is_negative`, `adgroup_id` (lookup via bolcom_adgroup_id)
 
-- Regels lijst met per regel:
-  - Naam, type badge, kanaal badge, status Switch toggle, "Bewerken" knop, laatste trigger datum
-- "Nieuwe regel" knop → Dialog met:
-  - Naam input, Kanaal select, Type select
-  - Dynamische conditie-velden op basis van type:
-    - `auto_negative`: min clicks, max conversions, min spend, lookback days
-    - `bid_adjustment`: target ACoS, min data points, max bid change %
-    - `inventory_pause`: min stock level
-    - `budget_pacing`: budget threshold %, actie select (warn/reduce)
-  - Auto-apply toggle
-
-#### Tab 3: Geschiedenis
-
-- Tabel: Datum, Kanaal, Type, Beschrijving (reason), Status badge (auto/handmatig), Door (AI/merchant)
-- Gefilterd op status='accepted' of 'auto_applied'
-- Sorteer op datum desc
-
-### Patronen
-
-- Hergebruik `useTenant()`, `Card`, `Badge`, `Button`, `Dialog`, `Switch`, `Select`, `Input`, `Tabs`, `Progress` componenten
-- Kanaal kleuren: `{ bolcom: 'blue', amazon: 'orange', google: 'green', meta: 'blue' }`
-- `Json` velden (`current_value`, `recommended_value`, `conditions`, `actions`) casten naar `Record<string, unknown>` client-side
+Target Products: `bolcom_product_id` (EAN), `adgroup_id`, `bid`, `status`. Product ID match: query `products` where `bol_ean = ean OR barcode = ean`
 
