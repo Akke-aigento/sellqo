@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Megaphone, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, ChevronRight } from 'lucide-react';
+import { Megaphone, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, ChevronRight, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useBolcomAds, Period } from '@/hooks/useBolcomAds';
+import { useTenant } from '@/hooks/useTenant';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const formatCurrency = (val: number) => `€${val.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatPct = (val: number) => `${val.toFixed(2)}%`;
