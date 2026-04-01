@@ -405,6 +405,11 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
     meta_description: record.meta_description || null,
     is_active: record.is_active ?? true,
     vendor: record.vendor || null,
+    original_category_value: record.original_category_value || null,
+    google_product_category: record.google_product_category || null,
+    shopify_product_id: record.shopify_product_id || null,
+    shopify_handle: record.shopify_handle || null,
+    import_source: record.import_source || "csv",
     raw_import_data: record.raw_import_data || null,
   };
 }
