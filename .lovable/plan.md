@@ -1,31 +1,57 @@
 
 
-## Prompt 2: Extra Ads Module tabellen + global summary view
+## Prompt 5: Bol.com Ads Dashboard (/admin/ads/bolcom)
 
-### Wat wordt aangemaakt
+### Overzicht
 
-**3 nieuwe tabellen:**
+Vervang de placeholder `AdsBolcom.tsx` met een volledig kanaal-specifiek dashboard. Maak een custom hook `useBolcomAds` voor alle data queries.
 
-1. **`ads_ai_recommendations`** — AI aanbevelingen voor bid/keyword/budget optimalisatie
-2. **`ads_ai_rules`** — Merchant-geconfigureerde automation regels
-3. **`ads_product_channel_map`** — Product-kanaal koppeling met voorraaddrempel
+### Nieuwe bestanden
 
-**1 view:**
+**1. `src/hooks/useBolcomAds.ts`** — Data hook
 
-- **`ads_global_daily_summary`** — Geaggregeerde dagelijkse performance per kanaal (nu alleen Bol.com, later UNION ALL voor andere kanalen)
+Queries (allemaal gefilterd op tenant_id + periode):
+- **Performance KPIs**: Aggregeer `ads_bolcom_performance` voor huidige + vorige periode → spend, revenue, acos, ctr, conversion_rate
+- **Daily chart data**: `ads_bolcom_performance` per dag → spend, revenue, acos
+- **Campaigns**: `ads_bolcom_campaigns` + geaggregeerde performance (spend, impressions, clicks, orders, revenue, acos) via aparte query op `ads_bolcom_performance` grouped by campaign_id
+- **Top Keywords**: `ads_bolcom_keywords` joined met `ads_bolcom_performance` (via keyword_id), top 10 by clicks
+- **Top Search Terms**: `ads_bolcom_search_terms` top 10 by clicks, markeer hoge spend + 0 orders
 
-### Technische details
+Returns: `{ isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms }`
 
-- `tenant_id` wordt UUID (niet TEXT) om consistent te zijn met de zojuist aangemaakte `ads_bolcom_*` tabellen en de `tenants` tabel
-- RLS policies volgen exact hetzelfde patroon: `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))` voor SELECT/INSERT/UPDATE/DELETE
-- Indexes op `tenant_id`, `channel`, `status`, `product_id` waar relevant
-- View heeft geen RLS nodig — wordt via de onderliggende tabel-RLS afgeschermd (queries op de view passen automatisch de RLS van `ads_bolcom_performance` toe)
+**2. `src/pages/admin/AdsBolcom.tsx`** — Volledige pagina rewrite
+
+Secties van boven naar beneden:
+
+1. **Header**: Breadcrumb (Ads > Bol.com), titel, "Nieuwe campagne" knop (disabled) + periode-selector (7d/30d/90d)
+
+2. **5 KPI Cards**: Spend, Omzet, ACoS, CTR, Conversieratio — hergebruik `KPICard` patroon uit Ads.tsx (of inline component)
+
+3. **Dual-axis chart** (Recharts): `LineChart` met spend+revenue op linker Y-as, ACoS op rechter Y-as, datum op X-as
+
+4. **Campagnes tabel**: Sorteerbare tabel met kolommen: Naam, Status (badge), Budget, Targeting, Spend, ACoS, Impressies, Clicks, Orders. Rijen klikbaar → `/admin/ads/bolcom/campaigns/:id`
+
+5. **Twee kolommen**:
+   - Links: Top 10 Keywords (keyword, match_type badge, bid, clicks, acos)
+   - Rechts: Top 10 Zoektermen (zoekterm, clicks, spend, orders, acos) — rood highlight bij hoge spend + 0 orders
+
+6. **Empty state**: Als geen campaigns, toon melding + "Synchroniseer" knop
+
+### Routes
+
+Geen nieuwe routes nodig — `/admin/ads/bolcom` bestaat al in App.tsx.
+
+### Bestaande patronen
+
+- Hergebruik `formatCurrency`, `ChangeIndicator` uit Ads.tsx (of dupliceer inline)
+- Recharts, Card, Badge, Table, Button componenten al beschikbaar
+- `useTenant()` voor tenant_id filtering
+- Sorting state met `useState` voor tabel
 
 ### Bestanden
 
-| Wat | Actie |
+| Bestand | Actie |
 |---|---|
-| Database migratie | 3 tabellen + 1 view + RLS + indexes |
-
-Geen frontend wijzigingen nodig — dit is puur database schema.
+| `src/hooks/useBolcomAds.ts` | Nieuw — data hook |
+| `src/pages/admin/AdsBolcom.tsx` | Herschrijven — volledig dashboard |
 
