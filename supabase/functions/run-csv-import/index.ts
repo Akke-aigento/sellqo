@@ -317,6 +317,9 @@ async function importProducts(
 
       // Upsert custom specs from _custom_spec_ prefixed fields
       await upsertCustomSpecs(supabase, tenantId, productId, record);
+
+      // Import variants from _variants_json (Shopify consolidated rows)
+      await importProductVariants(supabase, tenantId, productId, record);
     } catch (err) {
       console.error(`Product row ${i + 1} error:`, err);
       result.errors.push({
