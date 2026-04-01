@@ -166,13 +166,15 @@ export default function AdsAiRulesPage() {
 
           {/* Recommendations list */}
           {loadingRecs ? (
-            <p className="text-muted-foreground">Laden...</p>
+            <div className="space-y-3">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-32 w-full rounded-lg" />)}
+            </div>
           ) : recommendations.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <Sparkles className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground">Geen aanbevelingen gevonden</p>
-                <p className="text-sm text-muted-foreground mt-1">AI analyseert je campagnes continu en doet hier suggesties.</p>
+                <Check className="h-10 w-10 mx-auto mb-3 text-green-500" />
+                <p className="font-medium">Geen aanbevelingen op dit moment</p>
+                <p className="text-sm text-muted-foreground mt-1">AI analyseert je campagne data continu en meldt zich als er verbeteringen mogelijk zijn.</p>
               </CardContent>
             </Card>
           ) : (
