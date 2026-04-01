@@ -219,7 +219,7 @@ export function FieldMappingStep({
                           </SelectItem>
                           {targetFields.map(field => (
                             <SelectItem key={field} value={field}>
-                              {field.replace(/_/g, ' ')}
+                              {formatTargetField(field)}
                             </SelectItem>
                           ))}
                         </SelectContent>
