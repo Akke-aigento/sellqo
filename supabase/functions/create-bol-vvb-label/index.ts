@@ -569,6 +569,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Poll for process status (VVB labels are async)
     if (processStatusId) {
+      // Extract poll URL from response links (Bol.com v10 moved to /shared/process-status/)
+      const processLink = (labelData.links || []).find((l: any) => l.rel === "self");
+      const processStatusUrl = processLink?.href 
+        || `https://api.bol.com/shared/process-status/${processStatusId}`;
+      console.log(`Using process status URL: ${processStatusUrl}`);
+
       let attempts = 0;
       const maxAttempts = 15;
 
@@ -577,7 +583,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Polling process-status attempt ${attempts + 1}/${maxAttempts}...`);
 
         const statusResponse = await fetchWithTimeout(
-          `https://api.bol.com/retailer/process-status/${processStatusId}`,
+          processStatusUrl,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
