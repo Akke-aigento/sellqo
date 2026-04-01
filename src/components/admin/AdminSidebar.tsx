@@ -131,11 +131,18 @@ export function AdminSidebar() {
               <SidebarMenuSub>
                 {visibleChildren.map((child) => (
                   <SidebarMenuSubItem key={child.id}>
-                    <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
-                      <NavLink to={child.url}>
-                        {child.title}
-                      </NavLink>
-                    </SidebarMenuSubButton>
+                    {child.disabled ? (
+                      <SidebarMenuSubButton className="opacity-40 pointer-events-none">
+                        <span>{child.title}</span>
+                        <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">soon</span>
+                      </SidebarMenuSubButton>
+                    ) : (
+                      <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
+                        <NavLink to={child.url}>
+                          {child.title}
+                        </NavLink>
+                      </SidebarMenuSubButton>
+                    )}
                   </SidebarMenuSubItem>
                 ))}
               </SidebarMenuSub>
