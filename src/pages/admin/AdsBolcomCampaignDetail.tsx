@@ -317,6 +317,7 @@ export default function AdsBolcomCampaignDetail() {
           {negativeKeywords.length === 0 ? (
             <p className="text-muted-foreground text-center py-6">Geen negatieve keywords</p>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -330,11 +331,12 @@ export default function AdsBolcomCampaignDetail() {
                   <TableRow key={kw.id}>
                     <TableCell className="font-medium">{kw.keyword}</TableCell>
                     <TableCell><Badge variant="outline">{kw.match_type}</Badge></TableCell>
-                    <TableCell>{kw.created_at ? format(new Date(kw.created_at), 'dd MMM yyyy', { locale: nl }) : '—'}</TableCell>
+                    <TableCell>{kw.created_at ? format(new Date(kw.created_at), 'dd-MM-yyyy', { locale: nl }) : '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
