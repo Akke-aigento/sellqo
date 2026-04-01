@@ -201,7 +201,7 @@ export default function AdsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* AI Recommendations */}
       <Card>

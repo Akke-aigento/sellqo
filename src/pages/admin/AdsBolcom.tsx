@@ -185,8 +185,15 @@ export default function AdsBolcomPage() {
           <AbsChangeIndicator value={kpis.convRateChange} />
         </CardContent></Card>
       </div>
+      )}
 
       {/* Chart */}
+      {isLoading ? (
+        <Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+      ) : (
+      <></>
+      )}
+      {!isLoading && (
       {chartData.length > 0 && (
         <Card>
           <CardHeader><CardTitle>Performance</CardTitle></CardHeader>
