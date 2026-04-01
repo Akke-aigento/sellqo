@@ -1,74 +1,63 @@
 
 
-## Prompt 7: Bol.com Keywords Overzichtspagina
-
-### Overzicht
-
-Nieuwe pagina + hook voor `/admin/ads/bolcom/keywords` — toont alle keywords across alle campagnes met filters, bulk acties, inline bid editing en performance KPIs.
+## Prompt 8: Bol.com Zoektermen Rapport — /admin/ads/bolcom/search-terms
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useBolcomKeywords.ts` | Nieuw — data hook |
-| `src/pages/admin/AdsBolcomKeywords.tsx` | Nieuw — pagina |
-| `src/App.tsx` | Route toevoegen + import |
+| `src/hooks/useBolcomSearchTerms.ts` | Nieuw — data hook |
+| `src/pages/admin/AdsBolcomSearchTerms.tsx` | Nieuw — pagina |
+| `src/App.tsx` | Route toevoegen |
 
-### Hook: `useBolcomKeywords.ts`
+### Hook: `useBolcomSearchTerms.ts`
 
-**Queries** (gefilterd op tenant_id + 30d default):
-- `ads_bolcom_keywords` met `ads_bolcom_adgroups` (voor adgroup naam + campaign_id) en `ads_bolcom_campaigns` (voor campagne naam)
-- `ads_bolcom_performance` waar keyword_id niet null is, geaggregeerd per keyword_id over periode → impressions, clicks, spend, orders, revenue
-- Combineert keywords + performance client-side
+**Queries** (tenant_id + periode):
+- `ads_bolcom_search_terms` alle kolommen incl. `ai_action`, `ai_action_taken`, `campaign_id`, `adgroup_id`
+- `ads_bolcom_campaigns` voor campagne namen (lookup map)
+- Aggregeer per `search_term` over de periode: impressions, clicks, spend, orders, revenue
+- Bereken ACoS, CTR per zoekterm
 
 **Filters** (useState):
-- `campaignId: string | null`
-- `matchType: string | null` (exact/phrase/broad/all)
-- `status: string | null` (active/paused/all)
 - `search: string`
+- `onlyNoConversions: boolean` (toggle)
+- `onlyWithAiSuggestion: boolean` (toggle)
+- Sortering: default `spend` desc
 
 **Mutations**:
-- `updateKeywordBid(keywordId, bid)` → update `ads_bolcom_keywords.bid`
-- `bulkUpdateStatus(keywordIds[], status)` → update `ads_bolcom_keywords.status`
-- `bulkDelete(keywordIds[])` → delete from `ads_bolcom_keywords`
+- `addAsNegativeKeyword(searchTerm, adgroupId, matchType)` → insert `ads_bolcom_keywords` met `is_negative=true`, keyword=searchTerm. Als `ai_action` bestond → update `ads_bolcom_search_terms.ai_action_taken=true`
+- `promoteToKeyword(searchTerm, adgroupId, matchType, bid)` → insert `ads_bolcom_keywords` met `is_negative=false`, bid. Update `ai_action_taken=true` als relevant
 
-**Returns**: filtered/sorted keywords list, campaigns list (voor dropdown), KPI summary, mutations, filter state
+**Summary** (useMemo):
+- Totaal unieke zoektermen
+- Zoektermen met conversies (count + %)
+- Zoektermen zonder conversies maar met spend (count + totale verspilde spend €)
+- AI suggesties pending (count where ai_action != null && ai_action_taken != true)
 
-### Pagina: `AdsBolcomKeywords.tsx`
+### Pagina: `AdsBolcomSearchTerms.tsx`
 
-1. **Header** — Breadcrumb (Ads > Bol.com > Keywords), titel "Bol.com Keywords"
+Zelfde opbouwpatroon als `AdsBolcomKeywords.tsx`:
 
-2. **KPI cards** (4 in een rij):
-   - Totaal actieve keywords (count)
-   - Gemiddeld bod (€)
-   - Totale keyword spend (€)
-   - Best presterende keyword (laagste ACoS met ≥10 clicks)
-
-3. **Filters** (horizontale balk):
-   - Campagne dropdown (Select component)
-   - Match Type filter (Select)
-   - Status filter (Select)
-   - Zoekbalk (Input)
-
-4. **Keywords tabel**:
-   - Kolommen: checkbox, Keyword, Campagne, Ad Group, Match Type (badge), Bod (inline edit), Status, Impressies, Clicks, Spend, Orders, Revenue, ACoS, CTR
-   - Sorteerbaar op numerieke kolommen via useState sort state
-   - Inline bid editing: klik → input → blur/enter save (zelfde patroon als CampaignDetail)
-   - Checkbox selectie → bulk action bar: Pauzeren / Hervatten / Verwijderen
-   - Rijkleuring: ACoS >30% licht rood, ACoS <10% licht groen
+1. **Header** — Breadcrumb (Ads > Bol.com > Zoektermen), titel, periode-selector
+2. **4 KPI cards** — unieke zoektermen, met conversies, zonder conversies (waste), AI suggesties pending
+3. **Filters** — Zoekbalk + "Alleen zonder conversies" toggle + "Alleen met AI suggestie" toggle
+4. **Tabel** — Zoekterm, Campagne, Impressies, Clicks, Spend, Orders, Revenue, ACoS, CTR, Acties
+   - Sorteerbaar op alle numerieke kolommen
+   - Rijkleuring: spend>€5 + 0 orders → rood, orders + ACoS<15% → groen, ai_action → geel icoon
+   - Actie knoppen per rij:
+     - **→ Negatief**: Dialog met match type keuze (exact/phrase) → `addAsNegativeKeyword`
+     - **→ Keyword**: Dialog met match type + bod input → `promoteToKeyword`
+     - AI badge als `ai_action` aanwezig
 
 ### Route
 
-In `App.tsx`:
 ```
-<Route path="ads/bolcom/keywords" element={<AdsBolcomKeywordsPage />} />
+<Route path="ads/bolcom/search-terms" element={<AdsBolcomSearchTerms />} />
 ```
-Toevoegen na de `ads/bolcom/campaigns/:id` route.
 
 ### Patronen
-
-- Hergebruik `Period` type, `formatCurrency`, `formatPct` helpers
+- Hergebruik `Period`, `fmt`, `fmtPct` helpers
+- `Dialog` voor mini-modals (zelfde als negatieve keyword modal in CampaignDetail)
 - `useTenant()` voor tenant filtering
-- `Checkbox` component voor bulk selectie
-- Bestaande `Select`, `Input`, `Table`, `Card`, `Badge`, `Button` componenten
+- Invalidate query keys na mutaties
 
