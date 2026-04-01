@@ -140,6 +140,9 @@ export default function AdsBolcomPage() {
             {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
           </Button>
+          <Button onClick={forceReportsSync} variant="ghost" size="sm" className="text-xs text-muted-foreground" disabled={reportsSyncing}>
+            Ververs data
+          </Button>
           <Button disabled variant="outline"><Plus className="h-4 w-4 mr-2" />Nieuwe campagne</Button>
         </div>
       </div>
