@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const BOL_TOKEN_URL = "https://login.bol.com/token";
 const BOL_ADV_BASE = "https://api.bol.com/advertiser/sponsored-products/campaign-management";
+const BOL_INSIGHTS_BASE = "https://api.bol.com/advertiser/sponsored-products/insights";
 
 async function getBolAdvertisingToken(
   clientId: string,
@@ -32,20 +33,22 @@ async function getBolAdvertisingToken(
   return data.access_token;
 }
 
-async function bolApi(token: string, method: string, path: string, body?: unknown) {
-  const res = await fetch(`${BOL_ADV_BASE}${path}`, {
+async function bolApi(token: string, method: string, url: string, body?: unknown) {
+  console.log(`bolApi ${method} ${url}`);
+  const res = await fetch(url, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "Content-Type": "application/json",
+      Accept: "application/vnd.advertiser.v11+json",
+      "Content-Type": "application/vnd.advertiser.v11+json",
     },
     body: body ? JSON.stringify(body) : undefined,
   });
 
   const text = await res.text();
+  console.log(`bolApi response ${res.status}: ${text.substring(0, 500)}`);
   if (!res.ok && res.status !== 207) {
-    throw new Error(`Bol API ${method} ${path} (${res.status}): ${text}`);
+    throw new Error(`Bol API ${method} (${res.status}): ${text}`);
   }
   return text ? JSON.parse(text) : null;
 }
@@ -132,17 +135,24 @@ Deno.serve(async (req) => {
       creds.advertisingClientSecret
     );
 
-    // Fetch campaign list from Bol via POST /campaigns/list
     const campaignIds = campaigns
       .map((c: any) => c.platform_campaign_id)
       .filter(Boolean);
 
+    const numericIds = campaignIds
+      .map((id: string) => parseInt(id, 10))
+      .filter((n: number) => !isNaN(n));
+
     let synced = 0;
 
+    // Step 1: Sync campaign statuses
     try {
-      const bolCampaigns = await bolApi(bolToken, "POST", "/campaigns/list", {
-        campaignIds: campaignIds.map((id: string) => parseInt(id, 10)).filter((n: number) => !isNaN(n)),
-      });
+      const bolCampaigns = await bolApi(
+        bolToken,
+        "POST",
+        `${BOL_ADV_BASE}/campaigns/list`,
+        { campaignIds: numericIds }
+      );
 
       const bolCampaignMap = new Map<string, any>();
       const campaignList = bolCampaigns?.campaigns || bolCampaigns?.success || [];
@@ -150,7 +160,6 @@ Deno.serve(async (req) => {
         bolCampaignMap.set(String(bc.campaignId), bc);
       }
 
-      // Update each local campaign
       for (const campaign of campaigns) {
         const bolCampaign = bolCampaignMap.get(campaign.platform_campaign_id);
         if (!bolCampaign) continue;
@@ -179,8 +188,86 @@ Deno.serve(async (req) => {
       console.error("Campaign list fetch failed:", e);
     }
 
+    // Step 2: Fetch performance insights (last 30 days)
+    let insightsSynced = 0;
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const formatDate = (d: Date) => d.toISOString().split("T")[0];
+
+      const insightsResponse = await bolApi(
+        bolToken,
+        "POST",
+        `${BOL_INSIGHTS_BASE}/campaigns`,
+        {
+          campaignIds: numericIds,
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate),
+        }
+      );
+
+      console.log("Insights response keys:", Object.keys(insightsResponse || {}));
+
+      // Parse insights — structure may be { campaignInsights: [...] } or similar
+      const insightsList =
+        insightsResponse?.campaignInsights ||
+        insightsResponse?.campaigns ||
+        insightsResponse?.insights ||
+        [];
+
+      const insightsMap = new Map<string, any>();
+      for (const insight of insightsList) {
+        const cId = String(insight.campaignId);
+        if (!insightsMap.has(cId)) {
+          insightsMap.set(cId, { impressions: 0, clicks: 0, spend: 0, conversions: 0, revenue: 0 });
+        }
+        const agg = insightsMap.get(cId)!;
+
+        // Handle daily breakdown or aggregate
+        const days = insight.days || insight.daily || [insight];
+        for (const day of days) {
+          agg.impressions += day.impressions || 0;
+          agg.clicks += day.clicks || 0;
+          agg.spend += day.cost || day.spend || 0;
+          agg.conversions += day.conversions || day.orders || 0;
+          agg.revenue += day.revenue || day.turnover || 0;
+        }
+      }
+
+      // Update campaigns with real performance data
+      for (const campaign of campaigns) {
+        const metrics = insightsMap.get(campaign.platform_campaign_id!);
+        if (!metrics) continue;
+
+        const roas = metrics.spend > 0 ? metrics.revenue / metrics.spend : null;
+
+        await supabase
+          .from("ad_campaigns")
+          .update({
+            impressions: metrics.impressions,
+            clicks: metrics.clicks,
+            spend: Math.round(metrics.spend * 100) / 100,
+            conversions: metrics.conversions,
+            revenue: Math.round(metrics.revenue * 100) / 100,
+            roas: roas ? Math.round(roas * 100) / 100 : null,
+          })
+          .eq("id", campaign.id);
+
+        insightsSynced++;
+      }
+    } catch (e) {
+      console.error("Insights fetch failed (non-fatal):", e);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, synced, total: campaigns.length }),
+      JSON.stringify({
+        success: true,
+        synced,
+        insightsSynced,
+        total: campaigns.length,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
