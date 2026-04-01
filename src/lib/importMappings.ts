@@ -97,7 +97,7 @@ export const SHOPIFY_PRODUCT_MAPPING: FieldMapping = {
   'Variant Requires Shipping': { target: 'requires_shipping', transform: 'yesNo' },
   'Variant Taxable': { target: 'taxable', transform: 'yesNo' },
   'Variant Barcode': { target: 'barcode' },
-  'Variant Image': { target: 'raw_import_data', transform: 'jsonString:variant_image' },
+  'Variant Image': { target: 'images', transform: 'imageArray' },
   'Variant Weight Unit': { target: 'variant_weight_unit' },
   'Variant Tax Code': { target: 'raw_import_data', transform: 'jsonString:variant_tax_code' },
   
