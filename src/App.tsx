@@ -54,6 +54,7 @@ import AdsPage from "./pages/admin/Ads";
 import AdsBolcomPage from "./pages/admin/AdsBolcom";
 import AdsBolcomCampaignDetailPage from "./pages/admin/AdsBolcomCampaignDetail";
 import AdsBolcomKeywordsPage from "./pages/admin/AdsBolcomKeywords";
+import AdsBolcomSearchTermsPage from "./pages/admin/AdsBolcomSearchTerms";
 import AdsAiRulesPage from "./pages/admin/AdsAiRules";
 import ReportsPage from "./pages/admin/Reports";
 import MessagesPage from "./pages/admin/Messages";
