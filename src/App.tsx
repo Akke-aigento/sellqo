@@ -51,6 +51,8 @@ import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
 import AdsPage from "./pages/admin/Ads";
+import AdsBolcomPage from "./pages/admin/AdsBolcom";
+import AdsAiRulesPage from "./pages/admin/AdsAiRules";
 import ReportsPage from "./pages/admin/Reports";
 import MessagesPage from "./pages/admin/Messages";
 import SuppliersPage from "./pages/admin/Suppliers";
