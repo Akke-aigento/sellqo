@@ -93,7 +93,10 @@ export default function AdsBolcomPage() {
           <Megaphone className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">Nog geen Bol.com campagnes</h2>
           <p className="text-muted-foreground mb-4">Synchroniseer je Bol.com advertenties om te beginnen.</p>
-          <Button><RefreshCw className="h-4 w-4 mr-2" />Synchroniseer</Button>
+          <Button onClick={handleSync} disabled={syncing}>
+            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+          </Button>
         </Card>
       </div>
     );
