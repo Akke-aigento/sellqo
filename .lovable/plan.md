@@ -1,49 +1,68 @@
 
 
-## Auto-link categorieën bij Shopify product import
+## Kleding-metafields naar juiste tabellen mappen (niet raw_import_data)
 
 ### Probleem
 
-De `run-csv-import` edge function slaat `original_category_value`, `google_product_category`, `category_id` en andere categorie-gerelateerde velden niet op. Er is ook geen logica om producten automatisch aan categorieën te koppelen via de `product_categories` junction tabel.
+Alle 27 kleding-metafields (Size, Color, Fabric, Fit, Target gender, etc.) worden nu naar `raw_import_data` JSONB gedumpt. Er is echter al een `product_specifications` tabel met kolommen als `color`, `size`, `material`, `brand`, plus een `product_custom_specs` tabel voor overige attributen. De data belandt op de verkeerde plek.
 
-### Wijzigingen
+### Aanpak
 
-**1. `supabase/functions/run-csv-import/index.ts`** — 2 aanpassingen
+**1. `src/lib/importMappings.ts`** — Mapping targets wijzigen
 
-**buildProductData** — Voeg ontbrekende velden toe:
-- `original_category_value`, `google_product_category`, `shopify_product_id`, `shopify_handle`, `vendor`, `import_source`
-- Alle velden die al in de mapping staan maar nu weggegooid worden
+Velden die direct naar `product_specifications` kolommen passen:
 
-**importProducts** — Na product insert/update, categorie-linking toevoegen:
-```
-Voor elk product:
-1. Lees original_category_value (= Shopify "Type") en/of google_product_category
-2. Als original_category_value aanwezig:
-   a. Zoek bestaande categorie op naam (case-insensitive) voor deze tenant
-   b. Niet gevonden → maak nieuwe categorie aan (naam + auto-slug)
-   c. Upsert in product_categories (product_id, category_id)
-3. Cache categorie lookups in een Map om dezelfde categorie niet 100x op te zoeken
-```
+| Shopify metafield | Nieuw target | Was |
+|---|---|---|
+| Color | `spec:color` | raw_import_data |
+| Size | `spec:size` | raw_import_data |
+| Fabric | `spec:material` | raw_import_data |
+| Material | `spec:material` | raw_import_data |
+| Care instructions | `spec:storage_instructions` | raw_import_data |
+| Variant Image | `images` (append) | raw_import_data |
 
-**2. `src/lib/importMappings.ts`** — Controleren dat `Type` → `original_category_value` en `Product Category` → `google_product_category` correct zijn (al het geval, geen wijziging nodig)
+Overige kleding-metafields → `custom_spec:Kleding:{key}` (nieuw transform type):
 
-### Categorie-matching logica (in edge function)
+| Metafield | custom_spec key |
+|---|---|
+| Fit | fit |
+| Target gender | target_gender |
+| Neckline | neckline |
+| Sleeve length type | sleeve_length |
+| Pants length type | pants_length |
+| Waist rise | waist_rise |
+| Closure type | closure_type |
+| Shoe fit | shoe_fit |
+| Shoe features | shoe_features |
+| Sneaker style | sneaker_style |
+| Toe style | toe_style |
+| Activewear features | activewear_features |
+| etc. | etc. |
+
+**2. `src/lib/importMappings.ts`** — Nieuwe transformer toevoegen
+
+- `spec` transformer: markeert veld als `_spec_{column}` in het transformed record
+- `customSpec` transformer: markeert als `_custom_spec_{group}_{key}`
+
+**3. `supabase/functions/run-csv-import/index.ts`** — Na product insert/update
+
+Na het product aanmaken, extract `_spec_*` en `_custom_spec_*` velden uit de record:
 
 ```text
-CSV "Type" waarde (bv. "T-Shirts")
-       ↓
-Zoek in categories WHERE tenant_id = X AND LOWER(name) = LOWER("T-Shirts")
-       ↓
-  Gevonden? → gebruik category_id
-  Niet gevonden? → INSERT category (name, slug, tenant_id) → gebruik nieuwe id
-       ↓
-UPSERT product_categories (product_id, category_id)
-  ON CONFLICT (product_id, category_id) DO NOTHING
+1. Verzamel alle _spec_ velden → upsert naar product_specifications
+2. Verzamel alle _custom_spec_ velden → upsert naar product_custom_specs
 ```
 
+**4. `src/types/import.ts`** — Target fields uitbreiden
+
+Voeg `spec:color`, `spec:size`, `spec:material`, `custom_spec:*` toe aan `PRODUCT_TARGET_FIELDS` zodat ze in de dropdown verschijnen met leesbare namen.
+
 ### Resultaat
-- Producten krijgen automatisch `original_category_value` opgeslagen
-- Categorieën worden automatisch aangemaakt als ze niet bestaan
-- Producten worden gelinkt aan categorieën via junction tabel
-- Bij update van bestaand product worden categorie-links bijgewerkt
+
+- Color → `product_specifications.color`
+- Size → `product_specifications.size`
+- Fabric → `product_specifications.material`
+- Fit, Neckline, Gender, etc. → `product_custom_specs` met groep "Kleding"
+- Variant Image → toegevoegd aan `products.images` array
+- Data is doorzoekbaar en toonbaar op productpagina's
 
