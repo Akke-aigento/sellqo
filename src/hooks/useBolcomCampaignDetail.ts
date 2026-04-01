@@ -150,12 +150,12 @@ export function useBolcomCampaignDetail(campaignId: string | undefined) {
   // Mutations
   const updateCampaignStatus = useMutation({
     mutationFn: async (status: string) => {
-      const { error } = await supabase
-        .from('ads_bolcom_campaigns')
-        .update({ status })
-        .eq('id', campaignId!)
-        .eq('tenant_id', tenantId!);
+      const action = status === 'paused' ? 'pause_campaign' : 'resume_campaign';
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action, payload: { campaign_id: campaignId } },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { invalidateAll(); toast.success('Campagnestatus bijgewerkt'); },
     onError: () => toast.error('Fout bij bijwerken status'),
@@ -163,12 +163,11 @@ export function useBolcomCampaignDetail(campaignId: string | undefined) {
 
   const updateKeywordBid = useMutation({
     mutationFn: async ({ keywordId, bid }: { keywordId: string; bid: number }) => {
-      const { error } = await supabase
-        .from('ads_bolcom_keywords')
-        .update({ bid })
-        .eq('id', keywordId)
-        .eq('tenant_id', tenantId!);
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action: 'update_bid', payload: { keyword_id: keywordId, new_bid: bid } },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['bolcom-campaign-keywords'] }); toast.success('Bod bijgewerkt'); },
     onError: () => toast.error('Fout bij bijwerken bod'),
@@ -176,12 +175,12 @@ export function useBolcomCampaignDetail(campaignId: string | undefined) {
 
   const toggleKeywordStatus = useMutation({
     mutationFn: async ({ keywordId, status }: { keywordId: string; status: string }) => {
-      const { error } = await supabase
-        .from('ads_bolcom_keywords')
-        .update({ status })
-        .eq('id', keywordId)
-        .eq('tenant_id', tenantId!);
+      const action = status === 'paused' ? 'pause_keyword' : 'resume_keyword';
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action, payload: { keyword_id: keywordId } },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['bolcom-campaign-keywords'] }); },
   });
@@ -207,17 +206,11 @@ export function useBolcomCampaignDetail(campaignId: string | undefined) {
 
   const addNegativeKeyword = useMutation({
     mutationFn: async (params: { adgroupId: string; keyword: string; matchType: string }) => {
-      const { error } = await supabase
-        .from('ads_bolcom_keywords')
-        .insert({
-          adgroup_id: params.adgroupId,
-          keyword: params.keyword,
-          match_type: params.matchType,
-          status: 'active',
-          is_negative: true,
-          tenant_id: tenantId!,
-        });
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action: 'add_negative_keyword', payload: { adgroup_id: params.adgroupId, keyword: params.keyword, match_type: params.matchType } },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['bolcom-campaign-keywords'] }); toast.success('Negatief keyword toegevoegd'); },
     onError: () => toast.error('Fout bij toevoegen negatief keyword'),

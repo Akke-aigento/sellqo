@@ -190,12 +190,11 @@ export function useBolcomKeywords() {
 
   const updateKeywordBid = useMutation({
     mutationFn: async ({ keywordId, bid }: { keywordId: string; bid: number }) => {
-      const { error } = await supabase
-        .from('ads_bolcom_keywords')
-        .update({ bid })
-        .eq('id', keywordId)
-        .eq('tenant_id', tenantId!);
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action: 'update_bid', payload: { keyword_id: keywordId, new_bid: bid } },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { invalidate(); toast.success('Bod bijgewerkt'); },
     onError: () => toast.error('Fout bij bijwerken bod'),
