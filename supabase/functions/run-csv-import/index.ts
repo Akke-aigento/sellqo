@@ -251,6 +251,9 @@ async function importProducts(
   options: ImportRequest["options"],
   result: ImportResult
 ) {
+  // Cache for category lookups: lowercase name → category id
+  const categoryCache = new Map<string, string>();
+
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     try {
@@ -277,6 +280,8 @@ async function importProducts(
 
       const productData = buildProductData(tenantId, record);
 
+      let productId: string;
+
       if (existing && options.updateExisting) {
         const { error } = await supabase
           .from("products")
@@ -284,13 +289,27 @@ async function importProducts(
           .eq("id", existing.id);
         
         if (error) throw error;
+        productId = existing.id;
         result.success_count++;
       } else if (existing) {
         result.skipped_count++;
+        // Still link category for existing products
+        productId = existing.id;
       } else {
-        const { error } = await supabase.from("products").insert(productData);
+        const { data: newProduct, error } = await supabase
+          .from("products")
+          .insert(productData)
+          .select("id")
+          .single();
         if (error) throw error;
+        productId = newProduct.id;
         result.success_count++;
+      }
+
+      // Auto-link category from original_category_value (Shopify "Type")
+      const categoryValue = (record.original_category_value as string) || "";
+      if (categoryValue.trim()) {
+        await linkProductToCategory(supabase, tenantId, productId, categoryValue.trim(), categoryCache);
       }
     } catch (err) {
       console.error(`Product row ${i + 1} error:`, err);
@@ -303,6 +322,61 @@ async function importProducts(
       if (!options.skipErrors) throw err;
     }
   }
+}
+
+async function linkProductToCategory(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  categoryName: string,
+  cache: Map<string, string>
+) {
+  const cacheKey = categoryName.toLowerCase();
+
+  let categoryId = cache.get(cacheKey);
+
+  if (!categoryId) {
+    // Look up existing category (case-insensitive)
+    const { data: existing } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("name", cacheKey)
+      .maybeSingle();
+
+    if (existing) {
+      categoryId = existing.id;
+    } else {
+      // Create new category
+      const slug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const { data: newCat, error } = await supabase
+        .from("categories")
+        .insert({ tenant_id: tenantId, name: categoryName, slug, is_active: true })
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error(`Failed to create category "${categoryName}":`, error);
+        return;
+      }
+      categoryId = newCat.id;
+    }
+    cache.set(cacheKey, categoryId);
+  }
+
+  // Upsert product-category link
+  await supabase
+    .from("product_categories")
+    .upsert(
+      { product_id: productId, category_id: categoryId },
+      { onConflict: "product_id,category_id" }
+    );
+
+  // Also set legacy category_id on the product for compatibility
+  await supabase
+    .from("products")
+    .update({ category_id: categoryId })
+    .eq("id", productId);
 }
 
 function buildProductData(tenantId: string, record: Record<string, unknown>) {
