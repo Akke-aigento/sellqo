@@ -1,57 +1,58 @@
 
 
-## Prompt 5: Bol.com Ads Dashboard (/admin/ads/bolcom)
+## Campagne Detail Pagina — /admin/ads/bolcom/campaigns/:id
 
 ### Overzicht
 
-Vervang de placeholder `AdsBolcom.tsx` met een volledig kanaal-specifiek dashboard. Maak een custom hook `useBolcomAds` voor alle data queries.
-
-### Nieuwe bestanden
-
-**1. `src/hooks/useBolcomAds.ts`** — Data hook
-
-Queries (allemaal gefilterd op tenant_id + periode):
-- **Performance KPIs**: Aggregeer `ads_bolcom_performance` voor huidige + vorige periode → spend, revenue, acos, ctr, conversion_rate
-- **Daily chart data**: `ads_bolcom_performance` per dag → spend, revenue, acos
-- **Campaigns**: `ads_bolcom_campaigns` + geaggregeerde performance (spend, impressions, clicks, orders, revenue, acos) via aparte query op `ads_bolcom_performance` grouped by campaign_id
-- **Top Keywords**: `ads_bolcom_keywords` joined met `ads_bolcom_performance` (via keyword_id), top 10 by clicks
-- **Top Search Terms**: `ads_bolcom_search_terms` top 10 by clicks, markeer hoge spend + 0 orders
-
-Returns: `{ isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms }`
-
-**2. `src/pages/admin/AdsBolcom.tsx`** — Volledige pagina rewrite
-
-Secties van boven naar beneden:
-
-1. **Header**: Breadcrumb (Ads > Bol.com), titel, "Nieuwe campagne" knop (disabled) + periode-selector (7d/30d/90d)
-
-2. **5 KPI Cards**: Spend, Omzet, ACoS, CTR, Conversieratio — hergebruik `KPICard` patroon uit Ads.tsx (of inline component)
-
-3. **Dual-axis chart** (Recharts): `LineChart` met spend+revenue op linker Y-as, ACoS op rechter Y-as, datum op X-as
-
-4. **Campagnes tabel**: Sorteerbare tabel met kolommen: Naam, Status (badge), Budget, Targeting, Spend, ACoS, Impressies, Clicks, Orders. Rijen klikbaar → `/admin/ads/bolcom/campaigns/:id`
-
-5. **Twee kolommen**:
-   - Links: Top 10 Keywords (keyword, match_type badge, bid, clicks, acos)
-   - Rechts: Top 10 Zoektermen (zoekterm, clicks, spend, orders, acos) — rood highlight bij hoge spend + 0 orders
-
-6. **Empty state**: Als geen campaigns, toon melding + "Synchroniseer" knop
-
-### Routes
-
-Geen nieuwe routes nodig — `/admin/ads/bolcom` bestaat al in App.tsx.
-
-### Bestaande patronen
-
-- Hergebruik `formatCurrency`, `ChangeIndicator` uit Ads.tsx (of dupliceer inline)
-- Recharts, Card, Badge, Table, Button componenten al beschikbaar
-- `useTenant()` voor tenant_id filtering
-- Sorting state met `useState` voor tabel
+Nieuwe pagina + hook + route toevoegen voor het campagne detail scherm met performance chart, ad groups (accordion), keywords (inline edit), en negatieve keywords.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useBolcomAds.ts` | Nieuw — data hook |
-| `src/pages/admin/AdsBolcom.tsx` | Herschrijven — volledig dashboard |
+| `src/hooks/useBolcomCampaignDetail.ts` | Nieuw — data hook |
+| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | Nieuw — pagina |
+| `src/App.tsx` | Route toevoegen |
+
+### Hook: `useBolcomCampaignDetail.ts`
+
+Queries gefilterd op campaign ID + tenant_id:
+- **Campaign**: `ads_bolcom_campaigns` single row by id
+- **Performance**: `ads_bolcom_performance` where campaign_id, voor chart + KPIs (periode selector 7d/30d/90d)
+- **Ad Groups**: `ads_bolcom_adgroups` where campaign_id
+- **Keywords per ad group**: `ads_bolcom_keywords` where adgroup_id in (campaign ad groups), inclusief `is_negative` flag
+- **Keyword performance**: `ads_bolcom_performance` where keyword_id is not null, aggregated
+
+Mutations:
+- `updateCampaignStatus(status)` → update `ads_bolcom_campaigns.status`
+- `updateKeywordBid(keywordId, bid)` → update `ads_bolcom_keywords.bid`
+- `toggleKeywordStatus(keywordId, status)` → update `ads_bolcom_keywords.status`
+- `addKeyword(adgroupId, keyword, matchType, bid)` → insert `ads_bolcom_keywords`
+- `addNegativeKeyword(adgroupId, keyword, matchType)` → insert `ads_bolcom_keywords` with `is_negative=true`
+
+### Pagina: `AdsBolcomCampaignDetail.tsx`
+
+6 secties van boven naar beneden:
+
+1. **Header** — Breadcrumb (Ads > Bol.com > naam), status badge, Pauzeren/Hervatten + Bewerken knoppen
+2. **Info cards** — 5 horizontale cards: type, dagbudget, totaalbudget, start/einddatum, laatste sync
+3. **Performance chart** — Recharts LineChart: spend + revenue (left Y) + ACoS (right Y), periode selector
+4. **Ad Groups tabel** — Accordion-stijl met Radix Accordion; kolommen: naam, status, default bid, keyword count, spend, acos
+5. **Keywords** (in uitgeklapte ad group) — Tabel met inline bid editing (click-to-edit input), status switch toggle, "Keyword toevoegen" knop met inline form
+6. **Negatieve Keywords** — Gefilterd op `is_negative=true`, met "Toevoegen" knop die een Dialog opent (keyword + match type select)
+
+### Route
+
+In `App.tsx` toevoegen:
+```
+/admin/ads/bolcom/campaigns/:id → AdsBolcomCampaignDetail
+```
+
+### Patronen
+
+- Hergebruik `Period` type en periode-selector UI uit `useBolcomAds`
+- Inline bid editing: `useState` per keyword, klik op bedrag → input, blur/enter → save mutation
+- Status toggle: `Switch` component, onChange → `toggleKeywordStatus` mutation
+- Negative keyword modal: `Dialog` met `Input` + `Select` (match type: exact/phrase/broad)
+- Alle mutations invalideren relevante query keys
 
