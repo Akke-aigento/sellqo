@@ -463,75 +463,56 @@ Deno.serve(async (req) => {
             totalImported++
             processedCount++
 
-            // Auto-accept order if enabled
+            // Auto-accept order — Bol.com has no accept endpoint, orders are auto-accepted
+            // We just set sync_status = 'accepted' directly in the database
             const autoAcceptOrder = settings.autoAcceptOrder as boolean
             if (autoAcceptOrder && newOrder) {
               try {
-                console.log(`Auto-accepting order ${bolOrder.orderId}...`)
-                const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-                const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                console.log(`Marking order ${bolOrder.orderId} as accepted (Bol.com auto-accepts orders)...`)
                 
-                const acceptRes = await fetch(`${supabaseUrl}/functions/v1/accept-bol-order`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${serviceKey}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    order_id: newOrder.id,
-                    connection_id: connection.id
+                await supabase
+                  .from('orders')
+                  .update({
+                    sync_status: 'accepted',
+                    updated_at: new Date().toISOString()
                   })
-                })
-                const acceptBody = await acceptRes.text()
-                
-                // Parse accept response body to validate real success
-                let acceptSuccess = false
-                if (acceptRes.ok) {
-                  try {
-                    const acceptData = JSON.parse(acceptBody)
-                    acceptSuccess = acceptData.success === true
-                  } catch {
-                    acceptSuccess = false
-                  }
-                }
+                  .eq('id', newOrder.id)
 
-                if (acceptSuccess) {
-                  console.log(`Order ${bolOrder.orderId} auto-accepted successfully: ${acceptBody}`)
-                  
-                  // Auto-create VVB label if enabled
-                  const vvbEnabled = settings.vvbEnabled as boolean
-                  if (vvbEnabled) {
-                    try {
-                      const vvbCarrier = (settings.vvbDefaultCarrier as string) || 'POSTNL'
-                      console.log(`Auto-creating VVB label for order ${bolOrder.orderId} with carrier ${vvbCarrier}...`)
-                      
-                      const vvbRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
-                        method: 'POST',
-                        headers: {
-                          'Authorization': `Bearer ${serviceKey}`,
-                          'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                          order_id: newOrder.id,
-                          carrier: vvbCarrier
-                        })
+                console.log(`Order ${bolOrder.orderId} marked as accepted`)
+                
+                // Auto-create VVB label if enabled
+                const vvbEnabled = settings.vvbEnabled as boolean
+                if (vvbEnabled) {
+                  try {
+                    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+                    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                    const vvbCarrier = (settings.vvbDefaultCarrier as string) || 'POSTNL'
+                    console.log(`Auto-creating VVB label for order ${bolOrder.orderId} with carrier ${vvbCarrier}...`)
+                    
+                    const vvbRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${serviceKey}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        order_id: newOrder.id,
+                        carrier: vvbCarrier
                       })
-                      const vvbBody = await vvbRes.text()
-                      
-                      if (vvbRes.ok) {
-                        console.log(`VVB label created for order ${bolOrder.orderId}: ${vvbBody}`)
-                      } else {
-                        console.error(`VVB label creation failed for order ${bolOrder.orderId}: ${vvbRes.status} ${vvbBody}`)
-                      }
-                    } catch (vvbError) {
-                      console.error(`Failed to create VVB label for order ${bolOrder.orderId}:`, vvbError)
+                    })
+                    const vvbBody = await vvbRes.text()
+                    
+                    if (vvbRes.ok) {
+                      console.log(`VVB label created for order ${bolOrder.orderId}: ${vvbBody}`)
+                    } else {
+                      console.error(`VVB label creation failed for order ${bolOrder.orderId}: ${vvbRes.status} ${vvbBody}`)
                     }
+                  } catch (vvbError) {
+                    console.error(`Failed to create VVB label for order ${bolOrder.orderId}:`, vvbError)
                   }
-                } else {
-                  console.error(`Auto-accept failed for order ${bolOrder.orderId}: ${acceptRes.status} ${acceptBody}`)
                 }
               } catch (acceptError) {
-                console.error(`Failed to auto-accept order ${bolOrder.orderId}:`, acceptError)
+                console.error(`Failed to mark order ${bolOrder.orderId} as accepted:`, acceptError)
                 // Non-blocking - continue with sync
               }
             }
