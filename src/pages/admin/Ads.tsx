@@ -84,9 +84,9 @@ export default function AdsPage() {
               Verbind je eerste advertentiekanaal om je campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
             </p>
             <Button asChild>
-              <Link to="/admin/ads/bolcom">
+              <Link to="/admin/marketplace">
                 <Cable className="h-4 w-4 mr-2" />
-                Verbind je eerste kanaal
+                Verbind je marketplace account
               </Link>
             </Button>
           </CardContent>
