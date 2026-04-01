@@ -747,17 +747,20 @@ export function consolidateShopifyProductRows(
       }
     }
     
-    // Collect variant data (rows with Option1 Value but no Title)
-    const hasVariantData = row['Option1 Value'] && !row['Title']?.trim();
-    if (hasVariantData) {
+    // Collect variant data (ALL rows with Option1 Value, including the first/title row)
+    if (row['Option1 Value']?.trim()) {
       variantsMap.get(handle)?.push({
         sku: row['Variant SKU'] || '',
         price: row['Variant Price'] || '',
+        compare_at_price: row['Variant Compare At Price'] || '',
         stock: row['Variant Inventory Qty'] || '',
         option1: row['Option1 Value'] || '',
         option2: row['Option2 Value'] || '',
         option3: row['Option3 Value'] || '',
         barcode: row['Variant Barcode'] || '',
+        image: row['Variant Image'] || '',
+        weight: row['Variant Grams'] || '',
+        requires_shipping: row['Variant Requires Shipping'] || '',
       });
     }
   }
