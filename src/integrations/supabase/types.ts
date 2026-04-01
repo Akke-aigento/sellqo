@@ -490,6 +490,112 @@ export type Database = {
           },
         ]
       }
+      ads_ai_recommendations: {
+        Row: {
+          applied_at: string | null
+          auto_apply: boolean | null
+          channel: string
+          confidence: number | null
+          created_at: string | null
+          current_value: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          reason: string
+          recommendation_type: string
+          recommended_value: Json | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          auto_apply?: boolean | null
+          channel: string
+          confidence?: number | null
+          created_at?: string | null
+          current_value?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          reason: string
+          recommendation_type: string
+          recommended_value?: Json | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          auto_apply?: boolean | null
+          channel?: string
+          confidence?: number | null
+          created_at?: string | null
+          current_value?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          reason?: string
+          recommendation_type?: string
+          recommended_value?: Json | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_ai_recommendations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_ai_rules: {
+        Row: {
+          actions: Json
+          channel: string | null
+          conditions: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          name: string
+          rule_type: string
+          tenant_id: string
+        }
+        Insert: {
+          actions: Json
+          channel?: string | null
+          conditions: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name: string
+          rule_type: string
+          tenant_id: string
+        }
+        Update: {
+          actions?: Json
+          channel?: string | null
+          conditions?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name?: string
+          rule_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_ai_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ads_bolcom_adgroups: {
         Row: {
           bolcom_adgroup_id: string
@@ -870,6 +976,54 @@ export type Database = {
           },
           {
             foreignKeyName: "ads_bolcom_targeting_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_product_channel_map: {
+        Row: {
+          channel: string
+          channel_product_ref: string | null
+          created_at: string | null
+          id: string
+          is_advertised: boolean | null
+          min_stock_for_ads: number | null
+          product_id: string
+          tenant_id: string
+        }
+        Insert: {
+          channel: string
+          channel_product_ref?: string | null
+          created_at?: string | null
+          id?: string
+          is_advertised?: boolean | null
+          min_stock_for_ads?: number | null
+          product_id: string
+          tenant_id: string
+        }
+        Update: {
+          channel?: string
+          channel_product_ref?: string | null
+          created_at?: string | null
+          id?: string
+          is_advertised?: boolean | null
+          min_stock_for_ads?: number | null
+          product_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_product_channel_map_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_product_channel_map_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -14425,6 +14579,28 @@ export type Database = {
       }
     }
     Views: {
+      ads_global_daily_summary: {
+        Row: {
+          acos: number | null
+          channel: string | null
+          clicks: number | null
+          conversions: number | null
+          date: string | null
+          impressions: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_performance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_content_engagement_stats: {
         Row: {
           comments: number | null
