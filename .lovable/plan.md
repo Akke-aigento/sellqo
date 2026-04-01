@@ -1,58 +1,74 @@
 
 
-## Campagne Detail Pagina — /admin/ads/bolcom/campaigns/:id
+## Prompt 7: Bol.com Keywords Overzichtspagina
 
 ### Overzicht
 
-Nieuwe pagina + hook + route toevoegen voor het campagne detail scherm met performance chart, ad groups (accordion), keywords (inline edit), en negatieve keywords.
+Nieuwe pagina + hook voor `/admin/ads/bolcom/keywords` — toont alle keywords across alle campagnes met filters, bulk acties, inline bid editing en performance KPIs.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useBolcomCampaignDetail.ts` | Nieuw — data hook |
-| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | Nieuw — pagina |
-| `src/App.tsx` | Route toevoegen |
+| `src/hooks/useBolcomKeywords.ts` | Nieuw — data hook |
+| `src/pages/admin/AdsBolcomKeywords.tsx` | Nieuw — pagina |
+| `src/App.tsx` | Route toevoegen + import |
 
-### Hook: `useBolcomCampaignDetail.ts`
+### Hook: `useBolcomKeywords.ts`
 
-Queries gefilterd op campaign ID + tenant_id:
-- **Campaign**: `ads_bolcom_campaigns` single row by id
-- **Performance**: `ads_bolcom_performance` where campaign_id, voor chart + KPIs (periode selector 7d/30d/90d)
-- **Ad Groups**: `ads_bolcom_adgroups` where campaign_id
-- **Keywords per ad group**: `ads_bolcom_keywords` where adgroup_id in (campaign ad groups), inclusief `is_negative` flag
-- **Keyword performance**: `ads_bolcom_performance` where keyword_id is not null, aggregated
+**Queries** (gefilterd op tenant_id + 30d default):
+- `ads_bolcom_keywords` met `ads_bolcom_adgroups` (voor adgroup naam + campaign_id) en `ads_bolcom_campaigns` (voor campagne naam)
+- `ads_bolcom_performance` waar keyword_id niet null is, geaggregeerd per keyword_id over periode → impressions, clicks, spend, orders, revenue
+- Combineert keywords + performance client-side
 
-Mutations:
-- `updateCampaignStatus(status)` → update `ads_bolcom_campaigns.status`
+**Filters** (useState):
+- `campaignId: string | null`
+- `matchType: string | null` (exact/phrase/broad/all)
+- `status: string | null` (active/paused/all)
+- `search: string`
+
+**Mutations**:
 - `updateKeywordBid(keywordId, bid)` → update `ads_bolcom_keywords.bid`
-- `toggleKeywordStatus(keywordId, status)` → update `ads_bolcom_keywords.status`
-- `addKeyword(adgroupId, keyword, matchType, bid)` → insert `ads_bolcom_keywords`
-- `addNegativeKeyword(adgroupId, keyword, matchType)` → insert `ads_bolcom_keywords` with `is_negative=true`
+- `bulkUpdateStatus(keywordIds[], status)` → update `ads_bolcom_keywords.status`
+- `bulkDelete(keywordIds[])` → delete from `ads_bolcom_keywords`
 
-### Pagina: `AdsBolcomCampaignDetail.tsx`
+**Returns**: filtered/sorted keywords list, campaigns list (voor dropdown), KPI summary, mutations, filter state
 
-6 secties van boven naar beneden:
+### Pagina: `AdsBolcomKeywords.tsx`
 
-1. **Header** — Breadcrumb (Ads > Bol.com > naam), status badge, Pauzeren/Hervatten + Bewerken knoppen
-2. **Info cards** — 5 horizontale cards: type, dagbudget, totaalbudget, start/einddatum, laatste sync
-3. **Performance chart** — Recharts LineChart: spend + revenue (left Y) + ACoS (right Y), periode selector
-4. **Ad Groups tabel** — Accordion-stijl met Radix Accordion; kolommen: naam, status, default bid, keyword count, spend, acos
-5. **Keywords** (in uitgeklapte ad group) — Tabel met inline bid editing (click-to-edit input), status switch toggle, "Keyword toevoegen" knop met inline form
-6. **Negatieve Keywords** — Gefilterd op `is_negative=true`, met "Toevoegen" knop die een Dialog opent (keyword + match type select)
+1. **Header** — Breadcrumb (Ads > Bol.com > Keywords), titel "Bol.com Keywords"
+
+2. **KPI cards** (4 in een rij):
+   - Totaal actieve keywords (count)
+   - Gemiddeld bod (€)
+   - Totale keyword spend (€)
+   - Best presterende keyword (laagste ACoS met ≥10 clicks)
+
+3. **Filters** (horizontale balk):
+   - Campagne dropdown (Select component)
+   - Match Type filter (Select)
+   - Status filter (Select)
+   - Zoekbalk (Input)
+
+4. **Keywords tabel**:
+   - Kolommen: checkbox, Keyword, Campagne, Ad Group, Match Type (badge), Bod (inline edit), Status, Impressies, Clicks, Spend, Orders, Revenue, ACoS, CTR
+   - Sorteerbaar op numerieke kolommen via useState sort state
+   - Inline bid editing: klik → input → blur/enter save (zelfde patroon als CampaignDetail)
+   - Checkbox selectie → bulk action bar: Pauzeren / Hervatten / Verwijderen
+   - Rijkleuring: ACoS >30% licht rood, ACoS <10% licht groen
 
 ### Route
 
-In `App.tsx` toevoegen:
+In `App.tsx`:
 ```
-/admin/ads/bolcom/campaigns/:id → AdsBolcomCampaignDetail
+<Route path="ads/bolcom/keywords" element={<AdsBolcomKeywordsPage />} />
 ```
+Toevoegen na de `ads/bolcom/campaigns/:id` route.
 
 ### Patronen
 
-- Hergebruik `Period` type en periode-selector UI uit `useBolcomAds`
-- Inline bid editing: `useState` per keyword, klik op bedrag → input, blur/enter → save mutation
-- Status toggle: `Switch` component, onChange → `toggleKeywordStatus` mutation
-- Negative keyword modal: `Dialog` met `Input` + `Select` (match type: exact/phrase/broad)
-- Alle mutations invalideren relevante query keys
+- Hergebruik `Period` type, `formatCurrency`, `formatPct` helpers
+- `useTenant()` voor tenant filtering
+- `Checkbox` component voor bulk selectie
+- Bestaande `Select`, `Input`, `Table`, `Card`, `Badge`, `Button` componenten
 
