@@ -1,67 +1,79 @@
 
 
-## Prompt 12: Edge Function "ads-bolcom-manage" + Hook Integratie
+## Prompt 13: Inventory-Aware Ad Pausing
 
 ### Overzicht
 
-Nieuwe edge function voor campagne/keyword/budget management via Bol.com API, plus aanpassing van 3 hooks om de functie aan te roepen in plaats van alleen lokale DB updates.
+4 onderdelen: (1) Advertenties tab op product pagina, (2) Edge function voor voorraad-monitoring, (3) Inventory Alerts verbetering op dashboard, (4) Cron job voor automatische checks.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/ads-bolcom-manage/index.ts` | Nieuw — edge function |
-| `src/hooks/useBolcomCampaignDetail.ts` | Mutations aanpassen → edge function calls |
-| `src/hooks/useBolcomKeywords.ts` | `updateKeywordBid` → edge function call |
-| `src/hooks/useBolcomSearchTerms.ts` | `addAsNegativeKeyword` → edge function call |
+| `src/components/admin/products/ProductAdsSection.tsx` | Nieuw — Advertenties sectie component |
+| `src/pages/admin/ProductForm.tsx` | Tab toevoegen: "Advertenties" (3-kolom tabs) |
+| `supabase/functions/ads-inventory-watch/index.ts` | Nieuw — Edge function |
+| `src/pages/admin/Ads.tsx` | Inventory Alerts sectie verbeteren |
 
-### Edge Function: `ads-bolcom-manage/index.ts`
+### 1. Product Advertenties Tab — `ProductAdsSection.tsx`
 
-Hergebruikt auth + Bol API patroon uit `ads-bolcom-sync` (corsHeaders, `getBolToken()`, `bolGet()`/`bolPost()`, JWT check, Supabase client).
+Nieuw component dat de `ads_product_channel_map` data beheert voor een product.
 
-**Input**: `{ tenant_id, action, payload }`
+**Props**: `productId: string`, `tenantId: string`, `productEan?: string`
 
-**Acties**:
+**UI**:
+- Card "Advertenties" met per kanaal (voorlopig alleen Bol.com) een rij:
+  - Switch "Geadverteerd op Bol.com" → `is_advertised`
+  - Input "Min. voorraad voor ads" → `min_stock_for_ads` (default 1)
+  - Input "Channel Ref (EAN)" → `channel_product_ref`, auto-filled met product EAN als beschikbaar
+- Bij toggle/change: upsert naar `ads_product_channel_map` (on conflict `tenant_id, product_id, channel`)
 
-1. **`pause_campaign`** / **`resume_campaign`**: `{ campaign_id }` 
-   - Lookup `bolcom_campaign_id` uit `ads_bolcom_campaigns`
-   - PUT `{BOL_ADV_BASE}/campaigns/{bolcom_campaign_id}` met `{ state: "PAUSED" }` of `{ state: "ENABLED" }`
-   - Update lokale DB status
+**Queries**:
+- Fetch bestaande `ads_product_channel_map` record voor dit product + tenant
+- Upsert mutation met `useQueryClient` invalidation
 
-2. **`update_bid`**: `{ keyword_id, new_bid }`
-   - Lookup `bolcom_keyword_id` uit `ads_bolcom_keywords` (via join naar adgroup voor `bolcom_adgroup_id`)
-   - PUT `{BOL_ADV_BASE}/keywords/{bolcom_keyword_id}` met `{ bid: new_bid }`
-   - Update lokale DB bid
+### 2. ProductForm.tsx wijziging
 
-3. **`add_negative_keyword`**: `{ adgroup_id, keyword, match_type }`
-   - Lookup `bolcom_adgroup_id` uit `ads_bolcom_adgroups`
-   - POST `{BOL_ADV_BASE}/ad-groups/{bolcom_adgroup_id}/negative-keywords` met keyword data
-   - Insert in `ads_bolcom_keywords` met `is_negative=true`
+- Tabs uitbreiden van 2 naar 3: Product | Marketplaces | **Advertenties**
+- `TabsList` grid-cols-2 → grid-cols-3
+- Nieuwe `TabsContent value="ads"` met `<ProductAdsSection productId={id} tenantId={currentTenant.id} productEan={product?.barcode || product?.bol_ean} />`
+- Alleen tonen als `isEditing` (nieuw product heeft nog geen ID)
 
-4. **`pause_keyword`**: `{ keyword_id }`
-   - PUT keyword met `{ state: "PAUSED" }`
-   - Update lokale DB status
+### 3. Edge Function: `ads-inventory-watch/index.ts`
 
-5. **`update_budget`**: `{ campaign_id, daily_budget }`
-   - PUT campaign met `{ dailyBudget: daily_budget }`
-   - Update lokale DB `daily_budget`
+**Trigger**: POST (geen body nodig, verwerkt alle tenants)
 
-**Error handling**: Token refresh op 401, rate limit op 429, duidelijke error messages.
+**Flow**:
+1. Query alle `ads_product_channel_map` waar `is_advertised = true`, JOIN met `products` voor `stock`
+2. Per record waar `stock < min_stock_for_ads`:
+   - Check of er actieve campagnes zijn die dit product targeten (via `ads_bolcom_targeting_products` → `ads_bolcom_adgroups` → `ads_bolcom_campaigns` waar status = 'active')
+   - Zo ja: invoke `ads-bolcom-manage` intern met `pause_campaign` voor elke actieve campagne
+   - Insert `ads_ai_recommendations` record: channel='bolcom', type='pause_campaign', reason met product + voorraad info, status='auto_applied', auto_apply=true, applied_at=now()
+3. Per record waar `stock >= min_stock_for_ads`:
+   - Check of er gepauzeerde campagnes zijn met een eerdere auto_applied pause recommendation
+   - Zo ja: invoke `ads-bolcom-manage` met `resume_campaign`
+   - Insert recommendation met type='resume_campaign', status='auto_applied'
 
-**Response**: `{ success: true, action, detail }` of `{ error: string }`
+**Auth**: Service role key (cron job, geen user context) — gebruik `SUPABASE_SERVICE_ROLE_KEY`
 
-### Hook wijzigingen
+### 4. Inventory Alerts verbetering — `Ads.tsx`
 
-**`useBolcomCampaignDetail.ts`** — 3 mutations aanpassen:
-- `updateCampaignStatus`: `supabase.functions.invoke('ads-bolcom-manage', { body: { tenant_id, action: status === 'paused' ? 'pause_campaign' : 'resume_campaign', payload: { campaign_id } } })`
-- `updateKeywordBid`: action `'update_bid'`, payload `{ keyword_id, new_bid: bid }`
-- `addNegativeKeyword`: action `'add_negative_keyword'`, payload `{ adgroup_id, keyword, match_type }`
+De bestaande alerts sectie werkt al met `ads_product_channel_map` JOIN `products`. Verbeteringen:
+- Voeg kolom toe: "Gepauzeerde ads" — count van auto-paused campaigns voor dit product
+- Voeg "Voorraad bijwerken" knop toe → `Link to={/admin/products/${item.product_id}}`
+- Toon ook als er geen alerts zijn: een groene badge "Alle producten boven drempel"
 
-**`useBolcomKeywords.ts`** — 1 mutation:
-- `updateKeywordBid`: zelfde als boven, action `'update_bid'`
+### 5. Cron Job (pg_cron)
 
-**`useBolcomSearchTerms.ts`** — 1 mutation:
-- `addAsNegativeKeyword`: action `'add_negative_keyword'`, na succes ook `ai_action_taken` update (blijft lokale DB call)
+SQL insert (via insert tool, niet migration) om pg_cron schedule te maken:
+- Elke 15 minuten: `*/15 * * * *`
+- POST naar `ads-inventory-watch` edge function
+- Met anon key auth header
 
-Alle mutations behouden hun bestaande `onSuccess` (invalidate + toast) en `onError` (error toast) logica.
+### Technische details
+
+- `ads_product_channel_map` heeft al een unique constraint op `(tenant_id, product_id, channel)` — we gebruiken upsert met onConflict
+- De edge function verwerkt alle tenants in één run (service role bypast RLS)
+- Campagne matching: `ads_bolcom_targeting_products.product_id` → naar boven joinen tot campagne level
+- De `ads-bolcom-manage` function wordt intern aangeroepen via `fetch` naar de eigen Supabase URL (niet via SDK invoke)
 
