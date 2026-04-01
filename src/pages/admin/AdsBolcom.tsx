@@ -45,7 +45,7 @@ export default function AdsBolcomPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
-  const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms } = useBolcomAds();
+  const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms, reportsSyncing, forceReportsSync } = useBolcomAds();
   const [sortKey, setSortKey] = useState<SortKey>('perf_spend');
   const [sortAsc, setSortAsc] = useState(false);
   const [syncing, setSyncing] = useState(false);
