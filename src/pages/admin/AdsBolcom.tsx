@@ -251,7 +251,7 @@ export default function AdsBolcomPage() {
       </Card>
 
       {/* Keywords + Search Terms */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Top Keywords</CardTitle>
