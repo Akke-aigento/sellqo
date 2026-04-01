@@ -55,6 +55,7 @@ export interface NavItem {
   allowedRoles?: AppRole[]; // Which roles CAN see this item
   excludeRoles?: AppRole[]; // Which roles CANNOT see this item
   badge?: boolean; // Show dynamic badge (e.g., unread count)
+  disabled?: boolean; // Show as grayed out with "soon" badge
 }
 
 export interface NavGroup {
