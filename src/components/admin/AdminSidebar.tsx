@@ -10,6 +10,7 @@ import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
 import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
 import { InboxBadge } from './sidebar/InboxBadge';
+import { AdsAiBadge } from './sidebar/AdsAiBadge';
 import {
   Sidebar,
   SidebarContent,
