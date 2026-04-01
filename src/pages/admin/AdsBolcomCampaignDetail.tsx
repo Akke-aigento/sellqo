@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -47,8 +48,20 @@ export default function AdsBolcomCampaignDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[1,2,3,4,5].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-6 w-24" />
+            </CardContent></Card>
+          ))}
+        </div>
+        <Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+        <Card><CardContent className="p-4 space-y-3">
+          {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+        </CardContent></Card>
       </div>
     );
   }
@@ -136,7 +149,7 @@ export default function AdsBolcomCampaignDetail() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Type</p><p className="text-lg font-semibold">{campaign.targeting_type || campaign.campaign_type}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Dagbudget</p><p className="text-lg font-semibold">{formatCurrency(campaign.daily_budget)}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Totaalbudget</p><p className="text-lg font-semibold">{campaign.total_budget ? formatCurrency(campaign.total_budget) : 'Onbeperkt'}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Start / Eind</p><p className="text-sm font-semibold">{campaign.start_date ?? '—'} / {campaign.end_date ?? '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Start / Eind</p><p className="text-sm font-semibold">{campaign.start_date ? format(new Date(campaign.start_date), 'dd-MM-yyyy') : '—'} / {campaign.end_date ? format(new Date(campaign.end_date), 'dd-MM-yyyy') : '—'}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Laatste sync</p><p className="text-sm font-semibold">{campaign.synced_at ? format(new Date(campaign.synced_at), 'dd MMM HH:mm', { locale: nl }) : '—'}</p></CardContent></Card>
       </div>
 
@@ -199,7 +212,8 @@ export default function AdsBolcomCampaignDetail() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <Table>
+                      <div className="overflow-x-auto">
+                      <Table className="min-w-[800px]">
                         <TableHeader>
                           <TableRow>
                             <TableHead>Keyword</TableHead>
@@ -262,6 +276,7 @@ export default function AdsBolcomCampaignDetail() {
                           })}
                         </TableBody>
                       </Table>
+                      </div>
 
                       {/* Add keyword inline */}
                       {addKwGroup === ag.id ? (
@@ -302,6 +317,7 @@ export default function AdsBolcomCampaignDetail() {
           {negativeKeywords.length === 0 ? (
             <p className="text-muted-foreground text-center py-6">Geen negatieve keywords</p>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -315,11 +331,12 @@ export default function AdsBolcomCampaignDetail() {
                   <TableRow key={kw.id}>
                     <TableCell className="font-medium">{kw.keyword}</TableCell>
                     <TableCell><Badge variant="outline">{kw.match_type}</Badge></TableCell>
-                    <TableCell>{kw.created_at ? format(new Date(kw.created_at), 'dd MMM yyyy', { locale: nl }) : '—'}</TableCell>
+                    <TableCell>{kw.created_at ? format(new Date(kw.created_at), 'dd-MM-yyyy', { locale: nl }) : '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -81,12 +81,12 @@ export default function AdsPage() {
             <Megaphone className="h-12 w-12 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">Geen advertentiekanalen verbonden</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Verbind je eerste advertentiekanaal om je campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
+              Start met adverteren — verbind je marketplace account om campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
             </p>
             <Button asChild>
-              <Link to="/admin/ads/bolcom">
+              <Link to="/admin/marketplace">
                 <Cable className="h-4 w-4 mr-2" />
-                Verbind je eerste kanaal
+                Verbind je marketplace account
               </Link>
             </Button>
           </CardContent>
@@ -167,7 +167,13 @@ export default function AdsPage() {
       </div>
 
       {/* Performance Chart */}
-      {chartData.length > 0 && (
+      {isLoading ? (
+        <Card>
+          <CardContent className="pt-6">
+            <Skeleton className="h-[300px] w-full rounded-lg" />
+          </CardContent>
+        </Card>
+      ) : chartData.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Performance over tijd</CardTitle>
@@ -195,7 +201,7 @@ export default function AdsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* AI Recommendations */}
       <Card>

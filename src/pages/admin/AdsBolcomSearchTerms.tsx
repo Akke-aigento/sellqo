@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ChevronLeft, ArrowUpDown, Loader2, Search, Hash, TrendingDown, AlertTriangle, Sparkles, Ban, Plus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -73,8 +74,18 @@ export default function AdsBolcomSearchTerms() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-7 w-20" />
+            </CardContent></Card>
+          ))}
+        </div>
+        <Card><CardContent className="p-4 space-y-3">
+          {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+        </CardContent></Card>
       </div>
     );
   }
@@ -167,7 +178,7 @@ export default function AdsBolcomSearchTerms() {
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold">Geen zoektermen gevonden</h3>
-            <p className="text-muted-foreground">Synchroniseer je Bol.com advertenties om zoektermen te zien.</p>
+            <p className="text-muted-foreground">Zoektermen worden beschikbaar nadat je campagnes actief zijn en data genereren.</p>
           </CardContent>
         </Card>
       ) : (

@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ArrowUpDown, Loader2, Search, Hash, Target, DollarSign, Trophy } from 'lucide-react';
+import { ChevronLeft, ArrowUpDown, Search, Hash, Target, DollarSign, Trophy } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -76,7 +77,17 @@ export default function AdsBolcomKeywords() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-7 w-20" />
+            </CardContent></Card>
+          ))}
+        </div>
+      ) : (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -113,6 +124,7 @@ export default function AdsBolcomKeywords() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
@@ -158,11 +170,15 @@ export default function AdsBolcomKeywords() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        <Card><CardContent className="p-4 space-y-3">
+          {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+        </CardContent></Card>
       ) : keywords.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Geen keywords gevonden.</p>
+            <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-1">Geen keywords gevonden</h3>
+            <p className="text-muted-foreground">Maak eerst een campagne aan of synchroniseer bestaande campagnes.</p>
           </CardContent>
         </Card>
       ) : (

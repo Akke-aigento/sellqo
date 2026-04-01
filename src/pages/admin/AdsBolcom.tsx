@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Megaphone, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, ChevronRight, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useBolcomAds, Period } from '@/hooks/useBolcomAds';
@@ -148,7 +149,17 @@ export default function AdsBolcomPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      {isLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1,2,3,4,5].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-7 w-20" />
+            </CardContent></Card>
+          ))}
+        </div>
+      ) : (
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card><CardContent className="pt-4">
           <p className="text-sm text-muted-foreground">Spend</p>
           <p className="text-2xl font-bold">{formatCurrency(kpis.spend)}</p>
@@ -175,9 +186,12 @@ export default function AdsBolcomPage() {
           <AbsChangeIndicator value={kpis.convRateChange} />
         </CardContent></Card>
       </div>
+      )}
 
       {/* Chart */}
-      {chartData.length > 0 && (
+      {isLoading ? (
+        <Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+      ) : chartData.length > 0 ? (
         <Card>
           <CardHeader><CardTitle>Performance</CardTitle></CardHeader>
           <CardContent>
@@ -196,13 +210,14 @@ export default function AdsBolcomPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Campaigns table */}
       <Card>
         <CardHeader><CardTitle>Campagnes</CardTitle></CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
                 {([['name','Naam'],['status','Status'],['daily_budget','Budget'],['targeting_type','Targeting'],['perf_spend','Spend'],['perf_acos','ACoS'],['perf_impressions','Impressies'],['perf_clicks','Clicks'],['perf_orders','Orders']] as [SortKey|string, string][]).map(([key, label]) => (
@@ -231,11 +246,12 @@ export default function AdsBolcomPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
       {/* Keywords + Search Terms */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Top Keywords</CardTitle>
