@@ -167,7 +167,13 @@ export default function AdsPage() {
       </div>
 
       {/* Performance Chart */}
-      {chartData.length > 0 && (
+      {isLoading ? (
+        <Card>
+          <CardContent className="pt-6">
+            <Skeleton className="h-[300px] w-full rounded-lg" />
+          </CardContent>
+        </Card>
+      ) : chartData.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Performance over tijd</CardTitle>
