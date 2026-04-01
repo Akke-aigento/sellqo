@@ -777,10 +777,14 @@ export function consolidateShopifyProductRows(
       mainRow['Image Src'] = images.join(',');
     }
     
-    // Add variant count for reference
+    // Add variant count and option names for the edge function
     if (variants.length > 0) {
       mainRow['_variant_count'] = String(variants.length);
       mainRow['_variants_json'] = JSON.stringify(variants);
+      // Pass option names so edge function knows what each option represents
+      if (mainRow['Option1 Name']) mainRow['_option1_name'] = mainRow['Option1 Name'];
+      if (mainRow['Option2 Name']) mainRow['_option2_name'] = mainRow['Option2 Name'];
+      if (mainRow['Option3 Name']) mainRow['_option3_name'] = mainRow['Option3 Name'];
     }
     
     consolidated.push(mainRow);
