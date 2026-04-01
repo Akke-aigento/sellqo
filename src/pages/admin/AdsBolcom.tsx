@@ -246,6 +246,7 @@ export default function AdsBolcomPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
