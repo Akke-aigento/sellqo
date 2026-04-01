@@ -1,42 +1,31 @@
 
 
-## Analyse: Ad Stats — Fantoomdata bevestigd
+## Prompt 2: Extra Ads Module tabellen + global summary view
 
-### Bevinding
+### Wat wordt aangemaakt
 
-De advertentiedata (Bereik, Clicks, Uitgaven, ROAS) is **100% fantoom**. Er wordt nergens performance data opgehaald van Bol.com.
+**3 nieuwe tabellen:**
 
-**`sync-bol-campaign-status`** haalt alleen op:
-- Campaign `state` (ENABLED/PAUSED)
-- `dailyBudget`
+1. **`ads_ai_recommendations`** — AI aanbevelingen voor bid/keyword/budget optimalisatie
+2. **`ads_ai_rules`** — Merchant-geconfigureerde automation regels
+3. **`ads_product_channel_map`** — Product-kanaal koppeling met voorraaddrempel
 
-Het update **geen** `impressions`, `clicks`, `spend`, `revenue` of `roas`. Die kolommen in `ad_campaigns` blijven altijd op 0.
+**1 view:**
 
-### Wat Bol.com aanbiedt
+- **`ads_global_daily_summary`** — Geaggregeerde dagelijkse performance per kanaal (nu alleen Bol.com, later UNION ALL voor andere kanalen)
 
-De Bol Advertising API heeft een **aparte Insights/Reporting API** (`/insights/campaigns`) die performance metrics levert per dag:
-- impressions, clicks, spend, conversions, revenue, ROAS
+### Technische details
 
-### Fix
-
-**Bestand 1: `supabase/functions/sync-bol-campaign-status/index.ts`**
-
-Na het ophalen van campaign statussen, ook de Insights API aanroepen:
-- `POST /insights/campaigns` met `campaignIds`, `startDate`, `endDate` (laatste 30 dagen)
-- Response bevat per campaign: `impressions`, `clicks`, `cost`, `conversions`, `revenue`
-- Deze waarden optellen en updaten in `ad_campaigns` tabel
-
-**Bestand 2: `src/components/admin/ads/AdsDashboard.tsx`**
-
-De stats cards tonen al data uit `ad_campaigns` — zodra de sync echte data schrijft, worden deze automatisch gevuld. Geen frontend wijziging nodig.
-
-### Belangrijk
-
-De Bol Insights API endpoint en exact payload formaat moet geverifieerd worden tegen de officiële docs. De `Accept` header moet `application/vnd.advertiser.v11+json` zijn (zelfde als de campaign management API).
+- `tenant_id` wordt UUID (niet TEXT) om consistent te zijn met de zojuist aangemaakte `ads_bolcom_*` tabellen en de `tenants` tabel
+- RLS policies volgen exact hetzelfde patroon: `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))` voor SELECT/INSERT/UPDATE/DELETE
+- Indexes op `tenant_id`, `channel`, `status`, `product_id` waar relevant
+- View heeft geen RLS nodig — wordt via de onderliggende tabel-RLS afgeschermd (queries op de view passen automatisch de RLS van `ads_bolcom_performance` toe)
 
 ### Bestanden
 
-| Bestand | Wijziging |
+| Wat | Actie |
 |---|---|
-| `supabase/functions/sync-bol-campaign-status/index.ts` | Insights API call toevoegen om impressions/clicks/spend/revenue op te halen en op te slaan |
+| Database migratie | 3 tabellen + 1 view + RLS + indexes |
+
+Geen frontend wijzigingen nodig — dit is puur database schema.
 
