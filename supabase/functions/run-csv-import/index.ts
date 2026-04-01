@@ -311,6 +311,12 @@ async function importProducts(
       if (categoryValue.trim()) {
         await linkProductToCategory(supabase, tenantId, productId, categoryValue.trim(), categoryCache);
       }
+
+      // Upsert product specifications from _spec_ prefixed fields
+      await upsertProductSpecs(supabase, tenantId, productId, record);
+
+      // Upsert custom specs from _custom_spec_ prefixed fields
+      await upsertCustomSpecs(supabase, tenantId, productId, record);
     } catch (err) {
       console.error(`Product row ${i + 1} error:`, err);
       result.errors.push({
@@ -377,6 +383,100 @@ async function linkProductToCategory(
     .from("products")
     .update({ category_id: categoryId })
     .eq("id", productId);
+}
+
+// ============= UPSERT PRODUCT SPECIFICATIONS =============
+async function upsertProductSpecs(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  record: Record<string, unknown>
+) {
+  const specFields: Record<string, string> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (key.startsWith("_spec_") && value) {
+      const column = key.replace("_spec_", "");
+      specFields[column] = String(value);
+    }
+  }
+
+  if (Object.keys(specFields).length === 0) return;
+
+  try {
+    // Check if spec row exists
+    const { data: existing } = await supabase
+      .from("product_specifications")
+      .select("id")
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("product_specifications")
+        .update(specFields)
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("product_specifications")
+        .insert({ product_id: productId, tenant_id: tenantId, ...specFields });
+    }
+  } catch (err) {
+    console.error(`Failed to upsert specs for product ${productId}:`, err);
+  }
+}
+
+// ============= UPSERT CUSTOM SPECIFICATIONS =============
+async function upsertCustomSpecs(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  record: Record<string, unknown>
+) {
+  const customSpecs: Array<{ group: string; key: string; value: string }> = [];
+
+  for (const [field, value] of Object.entries(record)) {
+    if (field.startsWith("_custom_spec_") && value) {
+      // Format: _custom_spec_GroupName_spec_key
+      const rest = field.replace("_custom_spec_", "");
+      const firstUnderscore = rest.indexOf("_");
+      if (firstUnderscore === -1) continue;
+      const group = rest.substring(0, firstUnderscore);
+      const key = rest.substring(firstUnderscore + 1).replace(/_/g, " ");
+      customSpecs.push({ group, key, value: String(value) });
+    }
+  }
+
+  if (customSpecs.length === 0) return;
+
+  try {
+    // Delete existing custom specs for this product in the same groups
+    const groups = [...new Set(customSpecs.map((s) => s.group))];
+    for (const group of groups) {
+      await supabase
+        .from("product_custom_specs")
+        .delete()
+        .eq("product_id", productId)
+        .eq("group_name", group);
+    }
+
+    // Insert new custom specs
+    const rows = customSpecs.map((spec, idx) => ({
+      product_id: productId,
+      tenant_id: tenantId,
+      group_name: spec.group,
+      spec_key: spec.key,
+      spec_value: spec.value,
+      value_type: "text" as const,
+      sort_order: idx,
+      group_sort_order: 0,
+    }));
+
+    if (rows.length > 0) {
+      await supabase.from("product_custom_specs").insert(rows);
+    }
+  } catch (err) {
+    console.error(`Failed to upsert custom specs for product ${productId}:`, err);
+  }
 }
 
 function buildProductData(tenantId: string, record: Record<string, unknown>) {
