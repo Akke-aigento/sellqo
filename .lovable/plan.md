@@ -1,36 +1,50 @@
 
 
-## Fix: VVB Label Process Status Polling — Wrong URL
+## Shopify Kledingwinkel Metafields Toevoegen aan Import Mapping
 
 ### Probleem
 
-De `create-bol-vvb-label` functie pollt `https://api.bol.com/retailer/process-status/{id}` maar Bol.com v10 heeft dit verplaatst naar `https://api.bol.com/shared/process-status/{id}`. Bewijs: de label creation response bevat zelf de correcte URL in het `links` array.
+De Shopify product export van deze kledingwinkel bevat 27 kleding-specifieke metafields (maat, kleur, stof, pasvorm, etc.) die niet in de huidige `SHOPIFY_PRODUCT_MAPPING` staan. Hierdoor worden deze velden overgeslagen bij import. De bestaande mapping bevat alleen elektronica-gerelateerde metafields.
 
-Gevolg: alle 15 poll-pogingen falen met 403, waardoor `transporterLabelId` en `trackingNumber` null blijven. Het label wordt als "pending" opgeslagen zonder PDF of tracking.
+### Ontbrekende velden uit de CSV
 
-### Oplossing
+| Veld | Mapping key |
+|---|---|
+| Accessory size | `accessory_size` |
+| Activewear clothing features | `activewear_features` |
+| Activity | `activity` |
+| Age group | `age_group` |
+| Bag/Case features | `bag_case_features` |
+| Bag/Case material | `bag_case_material` |
+| Bag/Case storage features | `bag_case_storage` |
+| Care instructions | `care_instructions` |
+| Carry options | `carry_options` |
+| Closure type | `closure_type` |
+| Clothing accessory material | `clothing_accessory_material` |
+| Clothing features | `clothing_features` |
+| Fabric | `fabric` |
+| Fit | `fit` |
+| Footwear material | `footwear_material` |
+| Headwear features | `headwear_features` |
+| Neckline | `neckline` |
+| Outerwear clothing features | `outerwear_features` |
+| Pants length type | `pants_length` |
+| Shoe features | `shoe_features` |
+| Shoe fit | `shoe_fit` |
+| Size | `size` |
+| Sleeve length type | `sleeve_length` |
+| Sneaker style | `sneaker_style` |
+| Target gender | `target_gender` |
+| Toe style | `toe_style` |
+| Top length type | `top_length` |
+| Waist rise | `waist_rise` |
 
-**`supabase/functions/create-bol-vvb-label/index.ts`** — 1 wijziging (lijn 579-580):
+**NB:** `Color (product.metafields.shopify.color-pattern)` staat al in de mapping.
 
-Gebruik de URL uit het `links` array van de label creation response (meest robuust), met fallback naar `/shared/process-status/`:
+### Wijziging
 
-```typescript
-// Haal de poll URL uit de response links (Bol.com geeft dit zelf mee)
-const processLink = (labelData.links || []).find((l: any) => l.rel === "self");
-const processStatusUrl = processLink?.href 
-  || `https://api.bol.com/shared/process-status/${processStatusId}`;
-```
+**`src/lib/importMappings.ts`** — Voeg alle 27 kleding-metafields toe aan `SHOPIFY_PRODUCT_MAPPING`, elk als `raw_import_data` met `jsonString:key` transform. Gegroepeerd als "Clothing & Fashion metafields" sectie na de bestaande electronics metafields.
 
-En vervang in de poll-loop (lijn 579):
-```
-// WAS:  `https://api.bol.com/retailer/process-status/${processStatusId}`
-// WORDT: processStatusUrl
-```
-
-### Verwacht resultaat
-- Process status poll retourneert SUCCESS met `entityId` (= transporterLabelId)
-- PDF wordt opgehaald en opgeslagen in storage
-- Tracking nummer wordt ingevuld op de order
-- Order wordt als "shipped" gemarkeerd
-- Shipment wordt bevestigd bij Bol.com
+### Geen database wijzigingen nodig
+Alle metafields gaan naar het bestaande `raw_import_data` JSONB veld — dat is precies waarvoor het ontworpen is.
 
