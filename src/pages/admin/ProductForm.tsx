@@ -1719,6 +1719,23 @@ export default function ProductForm() {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Advertenties Tab */}
+            <TabsContent value="ads">
+              {isEditing && id && currentTenant ? (
+                <ProductAdsSection
+                  productId={id}
+                  tenantId={currentTenant.id}
+                  productEan={product?.barcode || (product as any)?.bol_ean}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Sla het product eerst op om advertentie-instellingen te configureren</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
           </Tabs>
         </form>
       </Form>

@@ -243,17 +243,24 @@ export default function AdsPage() {
       </Card>
 
       {/* Inventory Alerts */}
-      {inventoryAlerts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              <CardTitle className="text-base">Voorraad Alerts</CardTitle>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            <CardTitle className="text-base">Voorraad Alerts</CardTitle>
+            {inventoryAlerts.length > 0 && (
               <Badge variant="secondary" className="text-xs">{inventoryAlerts.length}</Badge>
+            )}
+          </div>
+          <CardDescription>Producten met voorraad onder de minimumdrempel voor advertenties</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {inventoryAlerts.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">✓</Badge>
+              Alle geadverteerde producten zijn boven de voorraaddrempel
             </div>
-            <CardDescription>Producten met voorraad onder de minimumdrempel voor advertenties</CardDescription>
-          </CardHeader>
-          <CardContent>
+          ) : (
             <div className="space-y-2">
               {inventoryAlerts.map((item: any) => (
                 <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -266,15 +273,22 @@ export default function AdsPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="destructive" className="text-xs">
-                    {item.is_advertised ? 'Ads actief' : 'Gepauzeerd'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive" className="text-xs">
+                      {item.is_advertised ? 'Ads actief' : 'Gepauzeerd'}
+                    </Badge>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/admin/products/${item.product_id}`}>
+                        Voorraad bijwerken
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
