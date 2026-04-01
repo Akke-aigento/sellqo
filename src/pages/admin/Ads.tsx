@@ -81,7 +81,7 @@ export default function AdsPage() {
             <Megaphone className="h-12 w-12 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">Geen advertentiekanalen verbonden</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Verbind je eerste advertentiekanaal om je campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
+              Start met adverteren — verbind je marketplace account om campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
             </p>
             <Button asChild>
               <Link to="/admin/marketplace">
