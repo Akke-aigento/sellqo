@@ -223,6 +223,7 @@ export function useAdsAI() {
     recommendations,
     rules,
     history,
+    pendingCount,
     // Loading
     loadingRecs,
     loadingRules,
