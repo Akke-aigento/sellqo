@@ -184,17 +184,11 @@ export function useBolcomSearchTerms() {
 
   const addAsNegativeKeyword = useMutation({
     mutationFn: async ({ searchTerm, adgroupId, matchType }: { searchTerm: string; adgroupId: string; matchType: string }) => {
-      const { error } = await supabase
-        .from('ads_bolcom_keywords')
-        .insert({
-          tenant_id: tenantId!,
-          adgroup_id: adgroupId,
-          keyword: searchTerm,
-          match_type: matchType,
-          is_negative: true,
-          status: 'active',
-        });
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action: 'add_negative_keyword', payload: { adgroup_id: adgroupId, keyword: searchTerm, match_type: matchType } },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       // Mark ai_action_taken
       await supabase
         .from('ads_bolcom_search_terms')
