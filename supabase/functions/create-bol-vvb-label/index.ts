@@ -420,59 +420,21 @@ const handler = async (req: Request): Promise<Response> => {
       await supabase.from("shipping_labels").delete().eq("id", label_id);
     }
 
-    // ===== AUTO-ACCEPT: Accept order if not yet accepted =====
+    // ===== AUTO-ACCEPT: Mark order as accepted if not yet =====
+    // Bol.com has no accept endpoint — orders are auto-accepted when they appear in the order list
     const currentSyncStatus = order.sync_status;
     if (currentSyncStatus !== "accepted" && currentSyncStatus !== "shipped") {
       console.log(
-        `Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), auto-accepting first...`,
+        `Order ${order.order_number} not yet accepted (sync_status: ${currentSyncStatus}), marking as accepted...`,
       );
-      try {
-        const acceptRes = await fetchWithTimeout(
-          `${supabaseUrl}/functions/v1/accept-bol-order`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${supabaseServiceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              order_id: order.id,
-              connection_id: order.marketplace_connection_id,
-            }),
-          },
-          30000,
-        );
-        const acceptBody = await acceptRes.text();
-        // Validate accept response body - must have success: true
-        let acceptSuccess = false;
-        if (acceptRes.ok) {
-          try {
-            const acceptData = JSON.parse(acceptBody);
-            acceptSuccess = acceptData.success === true;
-          } catch {
-            acceptSuccess = false;
-          }
-        }
-        if (acceptSuccess) {
-          console.log(`Order ${order.order_number} auto-accepted successfully`);
-        } else {
-          console.error(`Failed to auto-accept order ${order.order_number}: ${acceptRes.status} ${acceptBody}`);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: `Order accept failed: ${acceptRes.status}`,
-              details: acceptBody,
-            }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (acceptError) {
-        console.error(
-          "Auto-accept error (non-blocking):",
-          acceptError instanceof Error ? acceptError.message : acceptError,
-        );
-      }
+      await supabase
+        .from("orders")
+        .update({
+          sync_status: "accepted",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", order.id);
+      console.log(`Order ${order.order_number} marked as accepted`);
     }
 
     // Get order items with Bol.com IDs
