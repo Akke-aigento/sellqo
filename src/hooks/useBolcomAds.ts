@@ -247,6 +247,60 @@ export function useBolcomAds() {
     });
   }, [campaigns, campPerf]);
 
+  // Auto-sync reports (1-hour cache)
+  const queryClient = useQueryClient();
+  const cacheKey = `bolcom-reports-last-sync-${tenantId}`;
+
+  const { isFetching: reportsSyncing } = useQuery({
+    queryKey: ['bolcom-reports-sync', tenantId, period],
+    enabled: !!tenantId,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    queryFn: async () => {
+      const lastSync = localStorage.getItem(cacheKey);
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+      if (lastSync && Number(lastSync) > oneHourAgo) {
+        return { skipped: true };
+      }
+
+      const endDate = todayStr;
+      const startDate = currentStart;
+
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-reports', {
+        body: { tenant_id: tenantId, start_date: startDate, end_date: endDate },
+      });
+
+      if (error) {
+        console.error('Reports sync error:', error);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('Reports sync API error:', data.error);
+        throw new Error(data.error);
+      }
+
+      localStorage.setItem(cacheKey, String(Date.now()));
+
+      // Invalidate performance queries to pick up new data
+      queryClient.invalidateQueries({ queryKey: ['bolcom-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['bolcom-campaign-perf'] });
+      queryClient.invalidateQueries({ queryKey: ['bolcom-top-keywords'] });
+      queryClient.invalidateQueries({ queryKey: ['bolcom-top-search-terms'] });
+
+      return data;
+    },
+  });
+
+  const forceReportsSync = () => {
+    if (tenantId) {
+      localStorage.removeItem(cacheKey);
+      queryClient.invalidateQueries({ queryKey: ['bolcom-reports-sync'] });
+    }
+  };
+
   const isLoading = perfLoading || campLoading;
   const hasData = (campaigns?.length || 0) > 0;
 
@@ -260,5 +314,7 @@ export function useBolcomAds() {
     campaigns: enrichedCampaigns,
     topKeywords: topKeywords || [],
     topSearchTerms: topSearchTerms || [],
+    reportsSyncing,
+    forceReportsSync,
   };
 }
