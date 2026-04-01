@@ -402,7 +402,9 @@ export default function AdsAiRulesPage() {
         {/* TAB 3: Geschiedenis */}
         <TabsContent value="history" className="space-y-4">
           {loadingHistory ? (
-            <p className="text-muted-foreground">Laden...</p>
+            <div className="space-y-3">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+            </div>
           ) : history.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
