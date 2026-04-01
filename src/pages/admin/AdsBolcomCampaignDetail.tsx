@@ -48,8 +48,20 @@ export default function AdsBolcomCampaignDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[1,2,3,4,5].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-6 w-24" />
+            </CardContent></Card>
+          ))}
+        </div>
+        <Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+        <Card><CardContent className="p-4 space-y-3">
+          {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+        </CardContent></Card>
       </div>
     );
   }
