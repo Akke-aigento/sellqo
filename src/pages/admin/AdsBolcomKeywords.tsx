@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ArrowUpDown, Loader2, Search, Hash, Target, DollarSign, Trophy } from 'lucide-react';
+import { ChevronLeft, ArrowUpDown, Search, Hash, Target, DollarSign, Trophy } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
