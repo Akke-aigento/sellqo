@@ -74,8 +74,18 @@ export default function AdsBolcomSearchTerms() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-7 w-20" />
+            </CardContent></Card>
+          ))}
+        </div>
+        <Card><CardContent className="p-4 space-y-3">
+          {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+        </CardContent></Card>
       </div>
     );
   }
