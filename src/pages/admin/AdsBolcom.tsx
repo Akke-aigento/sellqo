@@ -43,9 +43,30 @@ type SortKey = 'name' | 'status' | 'perf_spend' | 'perf_acos' | 'perf_impression
 
 export default function AdsBolcomPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { currentTenant } = useTenant();
   const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms } = useBolcomAds();
   const [sortKey, setSortKey] = useState<SortKey>('perf_spend');
   const [sortAsc, setSortAsc] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (!currentTenant?.id || syncing) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-sync', {
+        body: { tenant_id: currentTenant.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Sync voltooid: ${data.campaigns_synced} campagnes, ${data.adgroups_synced} ad groups, ${data.keywords_synced} keywords, ${data.products_synced} producten`);
+      queryClient.invalidateQueries({ queryKey: ['bolcom-ads'] });
+    } catch (e: any) {
+      toast.error('Sync mislukt: ' + (e.message || 'Onbekende fout'));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);
