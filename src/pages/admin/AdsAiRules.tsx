@@ -260,7 +260,9 @@ export default function AdsAiRulesPage() {
           </div>
 
           {loadingRules ? (
-            <p className="text-muted-foreground">Laden...</p>
+            <div className="space-y-3">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
+            </div>
           ) : rules.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
