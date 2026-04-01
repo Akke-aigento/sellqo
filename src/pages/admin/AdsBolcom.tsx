@@ -216,7 +216,8 @@ export default function AdsBolcomPage() {
       <Card>
         <CardHeader><CardTitle>Campagnes</CardTitle></CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
                 {([['name','Naam'],['status','Status'],['daily_budget','Budget'],['targeting_type','Targeting'],['perf_spend','Spend'],['perf_acos','ACoS'],['perf_impressions','Impressies'],['perf_clicks','Clicks'],['perf_orders','Orders']] as [SortKey|string, string][]).map(([key, label]) => (
