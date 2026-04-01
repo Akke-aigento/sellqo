@@ -148,7 +148,17 @@ export default function AdsBolcomPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      {isLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1,2,3,4,5].map(i => (
+            <Card key={i}><CardContent className="pt-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-7 w-20" />
+            </CardContent></Card>
+          ))}
+        </div>
+      ) : (
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card><CardContent className="pt-4">
           <p className="text-sm text-muted-foreground">Spend</p>
           <p className="text-2xl font-bold">{formatCurrency(kpis.spend)}</p>
