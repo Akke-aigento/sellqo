@@ -63,6 +63,41 @@ export function useAdsAI() {
     enabled: !!tenantId,
   });
 
+  // Pending count
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['ads-ai-pending-count', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return 0;
+      const { count, error } = await supabase
+        .from('ads_ai_recommendations')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'pending');
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!tenantId,
+  });
+
+  // Default rule creation — only once per tenant
+  const defaultRuleCreated = useRef(false);
+  useEffect(() => {
+    if (!tenantId || loadingRules || defaultRuleCreated.current) return;
+    if (rules.length > 0) {
+      defaultRuleCreated.current = true;
+      return;
+    }
+    defaultRuleCreated.current = true;
+    createRule.mutate({
+      name: 'Verspillende zoektermen blokkeren',
+      channel: 'bolcom',
+      rule_type: 'auto_negative',
+      conditions: { min_clicks: 10, max_conversions: 0, min_spend: 5.00, lookback_days: 14 },
+      actions: { add_as_negative: true, match_type: 'exact' },
+      is_active: true,
+    });
+  }, [tenantId, loadingRules, rules.length]);
+
   // Filtered recommendations
   const recommendations = useMemo(() => {
     return rawRecommendations.filter((r) => {
