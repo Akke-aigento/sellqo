@@ -1,68 +1,66 @@
 
 
-## Kleding-metafields naar juiste tabellen mappen (niet raw_import_data)
+## Fix: Spec/Custom Spec targets zichtbaar maken in import mapping UI
 
 ### Probleem
 
-Alle 27 kleding-metafields (Size, Color, Fabric, Fit, Target gender, etc.) worden nu naar `raw_import_data` JSONB gedumpt. Er is echter al een `product_specifications` tabel met kolommen als `color`, `size`, `material`, `brand`, plus een `product_custom_specs` tabel voor overige attributen. De data belandt op de verkeerde plek.
+De mapping-logica werkt correct — `_spec_color`, `_custom_spec_Kleding_fit` etc. worden als target ingesteld. Maar `PRODUCT_TARGET_FIELDS` in `src/types/import.ts` bevat deze targets niet. Hierdoor:
+- De Select dropdown toont ze niet als opties
+- Auto-gemapte velden verschijnen als **leeg** in de UI (waarde bestaat maar geen matching SelectItem)
+- De edge function ontvangt ze WEL correct en verwerkt ze naar de juiste tabellen
 
-### Aanpak
+### Wijzigingen
 
-**1. `src/lib/importMappings.ts`** — Mapping targets wijzigen
+**1. `src/types/import.ts`** — Spec targets toevoegen aan `PRODUCT_TARGET_FIELDS`
 
-Velden die direct naar `product_specifications` kolommen passen:
-
-| Shopify metafield | Nieuw target | Was |
-|---|---|---|
-| Color | `spec:color` | raw_import_data |
-| Size | `spec:size` | raw_import_data |
-| Fabric | `spec:material` | raw_import_data |
-| Material | `spec:material` | raw_import_data |
-| Care instructions | `spec:storage_instructions` | raw_import_data |
-| Variant Image | `images` (append) | raw_import_data |
-
-Overige kleding-metafields → `custom_spec:Kleding:{key}` (nieuw transform type):
-
-| Metafield | custom_spec key |
-|---|---|
-| Fit | fit |
-| Target gender | target_gender |
-| Neckline | neckline |
-| Sleeve length type | sleeve_length |
-| Pants length type | pants_length |
-| Waist rise | waist_rise |
-| Closure type | closure_type |
-| Shoe fit | shoe_fit |
-| Shoe features | shoe_features |
-| Sneaker style | sneaker_style |
-| Toe style | toe_style |
-| Activewear features | activewear_features |
-| etc. | etc. |
-
-**2. `src/lib/importMappings.ts`** — Nieuwe transformer toevoegen
-
-- `spec` transformer: markeert veld als `_spec_{column}` in het transformed record
-- `customSpec` transformer: markeert als `_custom_spec_{group}_{key}`
-
-**3. `supabase/functions/run-csv-import/index.ts`** — Na product insert/update
-
-Na het product aanmaken, extract `_spec_*` en `_custom_spec_*` velden uit de record:
-
-```text
-1. Verzamel alle _spec_ velden → upsert naar product_specifications
-2. Verzamel alle _custom_spec_ velden → upsert naar product_custom_specs
+Voeg toe na `raw_import_data`:
+```
+// Specification fields (product_specifications table)
+'_spec_color',
+'_spec_size', 
+'_spec_material',
+'_spec_storage_instructions',
+// Custom specification fields (product_custom_specs table, groep "Kleding")
+'_custom_spec_Kleding_accessory_size',
+'_custom_spec_Kleding_activewear_features',
+'_custom_spec_Kleding_activity',
+'_custom_spec_Kleding_age_group',
+... (alle 22 custom specs)
 ```
 
-**4. `src/types/import.ts`** — Target fields uitbreiden
+**2. `src/components/admin/import/FieldMappingStep.tsx`** — Leesbare labels tonen
 
-Voeg `spec:color`, `spec:size`, `spec:material`, `custom_spec:*` toe aan `PRODUCT_TARGET_FIELDS` zodat ze in de dropdown verschijnen met leesbare namen.
+In de SelectItem rendering, vervang `field.replace(/_/g, ' ')` met een formatter die:
+- `_spec_color` → "Specificatie: Kleur"
+- `_custom_spec_Kleding_fit` → "Kleding: Fit"
+- Alle andere velden → huidige logica (underscore → spatie)
+
+Helper functie:
+```ts
+function formatTargetField(field: string): string {
+  if (field.startsWith('_spec_')) {
+    const col = field.replace('_spec_', '');
+    const labels: Record<string, string> = {
+      color: 'Kleur', size: 'Maat', material: 'Materiaal',
+      storage_instructions: 'Bewaarinstructies'
+    };
+    return `Specificatie: ${labels[col] || col}`;
+  }
+  if (field.startsWith('_custom_spec_')) {
+    const rest = field.replace('_custom_spec_', '');
+    const idx = rest.indexOf('_');
+    const group = rest.substring(0, idx);
+    const key = rest.substring(idx + 1).replace(/_/g, ' ');
+    return `${group}: ${key}`;
+  }
+  return field.replace(/_/g, ' ');
+}
+```
 
 ### Resultaat
+- Dropdown toont alle spec targets met leesbare namen
+- Auto-mapping werkt EN is zichtbaar
+- Edge function verwerkt data naar `product_specifications` en `product_custom_specs` (ongewijzigd)
 
-- Color → `product_specifications.color`
-- Size → `product_specifications.size`
-- Fabric → `product_specifications.material`
-- Fit, Neckline, Gender, etc. → `product_custom_specs` met groep "Kleding"
-- Variant Image → toegevoegd aan `products.images` array
-- Data is doorzoekbaar en toonbaar op productpagina's
+### Geen database wijzigingen nodig
 
