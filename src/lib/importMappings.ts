@@ -747,17 +747,20 @@ export function consolidateShopifyProductRows(
       }
     }
     
-    // Collect variant data (rows with Option1 Value but no Title)
-    const hasVariantData = row['Option1 Value'] && !row['Title']?.trim();
-    if (hasVariantData) {
+    // Collect variant data (ALL rows with Option1 Value, including the first/title row)
+    if (row['Option1 Value']?.trim()) {
       variantsMap.get(handle)?.push({
         sku: row['Variant SKU'] || '',
         price: row['Variant Price'] || '',
+        compare_at_price: row['Variant Compare At Price'] || '',
         stock: row['Variant Inventory Qty'] || '',
         option1: row['Option1 Value'] || '',
         option2: row['Option2 Value'] || '',
         option3: row['Option3 Value'] || '',
         barcode: row['Variant Barcode'] || '',
+        image: row['Variant Image'] || '',
+        weight: row['Variant Grams'] || '',
+        requires_shipping: row['Variant Requires Shipping'] || '',
       });
     }
   }
@@ -774,10 +777,14 @@ export function consolidateShopifyProductRows(
       mainRow['Image Src'] = images.join(',');
     }
     
-    // Add variant count for reference
+    // Add variant count and option names for the edge function
     if (variants.length > 0) {
       mainRow['_variant_count'] = String(variants.length);
       mainRow['_variants_json'] = JSON.stringify(variants);
+      // Pass option names so edge function knows what each option represents
+      if (mainRow['Option1 Name']) mainRow['_option1_name'] = mainRow['Option1 Name'];
+      if (mainRow['Option2 Name']) mainRow['_option2_name'] = mainRow['Option2 Name'];
+      if (mainRow['Option3 Name']) mainRow['_option3_name'] = mainRow['Option3 Name'];
     }
     
     consolidated.push(mainRow);
