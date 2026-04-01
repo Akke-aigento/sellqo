@@ -45,7 +45,7 @@ export default function AdsBolcomPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
-  const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms } = useBolcomAds();
+  const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms, reportsSyncing, forceReportsSync } = useBolcomAds();
   const [sortKey, setSortKey] = useState<SortKey>('perf_spend');
   const [sortAsc, setSortAsc] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -110,6 +110,14 @@ export default function AdsBolcomPage() {
 
   return (
     <div className="space-y-6">
+      {/* Reports sync indicator */}
+      {reportsSyncing && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span>Performance data ophalen van Bol.com...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -131,6 +139,9 @@ export default function AdsBolcomPage() {
           <Button onClick={handleSync} disabled={syncing} variant="outline">
             {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+          </Button>
+          <Button onClick={forceReportsSync} variant="ghost" size="sm" className="text-xs text-muted-foreground" disabled={reportsSyncing}>
+            Ververs data
           </Button>
           <Button disabled variant="outline"><Plus className="h-4 w-4 mr-2" />Nieuwe campagne</Button>
         </div>
