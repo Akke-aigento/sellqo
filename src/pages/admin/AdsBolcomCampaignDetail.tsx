@@ -276,6 +276,7 @@ export default function AdsBolcomCampaignDetail() {
                           })}
                         </TableBody>
                       </Table>
+                      </div>
 
                       {/* Add keyword inline */}
                       {addKwGroup === ag.id ? (
