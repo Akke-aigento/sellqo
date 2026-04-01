@@ -212,7 +212,8 @@ export default function AdsBolcomCampaignDetail() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <Table>
+                      <div className="overflow-x-auto">
+                      <Table className="min-w-[800px]">
                         <TableHeader>
                           <TableRow>
                             <TableHead>Keyword</TableHead>
