@@ -490,6 +490,393 @@ export type Database = {
           },
         ]
       }
+      ads_bolcom_adgroups: {
+        Row: {
+          bolcom_adgroup_id: string
+          campaign_id: string
+          created_at: string | null
+          default_bid: number | null
+          id: string
+          name: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          bolcom_adgroup_id: string
+          campaign_id: string
+          created_at?: string | null
+          default_bid?: number | null
+          id?: string
+          name: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          bolcom_adgroup_id?: string
+          campaign_id?: string
+          created_at?: string | null
+          default_bid?: number | null
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_adgroups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_adgroups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_campaigns: {
+        Row: {
+          bolcom_campaign_id: string
+          campaign_type: string
+          created_at: string | null
+          daily_budget: number | null
+          end_date: string | null
+          id: string
+          name: string
+          raw_data: Json | null
+          start_date: string | null
+          status: string
+          synced_at: string | null
+          targeting_type: string
+          tenant_id: string
+          total_budget: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bolcom_campaign_id: string
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          end_date?: string | null
+          id?: string
+          name: string
+          raw_data?: Json | null
+          start_date?: string | null
+          status?: string
+          synced_at?: string | null
+          targeting_type?: string
+          tenant_id: string
+          total_budget?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bolcom_campaign_id?: string
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          start_date?: string | null
+          status?: string
+          synced_at?: string | null
+          targeting_type?: string
+          tenant_id?: string
+          total_budget?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_keywords: {
+        Row: {
+          adgroup_id: string
+          bid: number | null
+          bolcom_keyword_id: string | null
+          created_at: string | null
+          id: string
+          is_negative: boolean | null
+          keyword: string
+          match_type: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id: string
+          bid?: number | null
+          bolcom_keyword_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_negative?: boolean | null
+          keyword: string
+          match_type?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string
+          bid?: number | null
+          bolcom_keyword_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_negative?: boolean | null
+          keyword?: string
+          match_type?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_keywords_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_keywords_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_performance: {
+        Row: {
+          acos: number | null
+          adgroup_id: string | null
+          campaign_id: string | null
+          clicks: number | null
+          conversion_rate: number | null
+          cpc: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number | null
+          keyword_id: string | null
+          orders: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          acos?: number | null
+          adgroup_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number | null
+          keyword_id?: string | null
+          orders?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          acos?: number | null
+          adgroup_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          keyword_id?: string | null
+          orders?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_performance_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_performance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_performance_keyword_id_fkey"
+            columns: ["keyword_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_keywords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_performance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_search_terms: {
+        Row: {
+          adgroup_id: string | null
+          ai_action: string | null
+          ai_action_taken: boolean | null
+          campaign_id: string | null
+          clicks: number | null
+          created_at: string | null
+          date: string
+          id: string
+          impressions: number | null
+          orders: number | null
+          revenue: number | null
+          search_term: string
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id?: string | null
+          ai_action?: string | null
+          ai_action_taken?: boolean | null
+          campaign_id?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          impressions?: number | null
+          orders?: number | null
+          revenue?: number | null
+          search_term: string
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string | null
+          ai_action?: string | null
+          ai_action_taken?: boolean | null
+          campaign_id?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          orders?: number | null
+          revenue?: number | null
+          search_term?: string
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_search_terms_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_search_terms_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_search_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_targeting_products: {
+        Row: {
+          adgroup_id: string
+          created_at: string | null
+          ean: string
+          id: string
+          product_id: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id: string
+          created_at?: string | null
+          ean: string
+          id?: string
+          product_id?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string
+          created_at?: string | null
+          ean?: string
+          id?: string
+          product_id?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_targeting_products_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_targeting_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_targeting_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_action_suggestions: {
         Row: {
           action_data: Json
