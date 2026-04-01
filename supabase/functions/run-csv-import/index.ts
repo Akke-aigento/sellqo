@@ -482,6 +482,154 @@ async function upsertCustomSpecs(
   }
 }
 
+// ============= IMPORT PRODUCT VARIANTS =============
+async function importProductVariants(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  record: Record<string, unknown>
+) {
+  const variantsJson = record._variants_json as string;
+  if (!variantsJson) return;
+
+  try {
+    const variants: Array<{
+      sku: string;
+      price: string;
+      compare_at_price: string;
+      stock: string;
+      option1: string;
+      option2: string;
+      option3: string;
+      barcode: string;
+      image: string;
+      weight: string;
+      requires_shipping: string;
+    }> = JSON.parse(variantsJson);
+
+    if (!variants.length) return;
+
+    // Read option names from consolidated record
+    const optionNames: string[] = [];
+    if (record._option1_name) optionNames.push(String(record._option1_name));
+    if (record._option2_name) optionNames.push(String(record._option2_name));
+    if (record._option3_name) optionNames.push(String(record._option3_name));
+
+    // Fallback option names
+    if (optionNames.length === 0) optionNames.push("Option 1");
+
+    // Step 1: Build and upsert product_variant_options
+    const optionValuesMap = new Map<string, Set<string>>();
+    for (const v of variants) {
+      const vals = [v.option1, v.option2, v.option3];
+      for (let i = 0; i < optionNames.length; i++) {
+        const val = vals[i]?.trim();
+        if (val) {
+          if (!optionValuesMap.has(optionNames[i])) {
+            optionValuesMap.set(optionNames[i], new Set());
+          }
+          optionValuesMap.get(optionNames[i])!.add(val);
+        }
+      }
+    }
+
+    // Delete existing variant options for this product, then insert fresh
+    await supabase
+      .from("product_variant_options")
+      .delete()
+      .eq("product_id", productId);
+
+    const optionRows = Array.from(optionValuesMap.entries()).map(([name, valuesSet], idx) => ({
+      product_id: productId,
+      tenant_id: tenantId,
+      name,
+      values: Array.from(valuesSet),
+      sort_order: idx,
+    }));
+
+    if (optionRows.length > 0) {
+      const { error: optError } = await supabase
+        .from("product_variant_options")
+        .insert(optionRows);
+      if (optError) console.error("Failed to insert variant options:", optError);
+    }
+
+    // Step 2: Upsert product_variants
+    for (const v of variants) {
+      const attributeValues: Record<string, string> = {};
+      const titleParts: string[] = [];
+      const vals = [v.option1, v.option2, v.option3];
+
+      for (let i = 0; i < optionNames.length; i++) {
+        const val = vals[i]?.trim();
+        if (val) {
+          attributeValues[optionNames[i]] = val;
+          titleParts.push(val);
+        }
+      }
+
+      const variantTitle = titleParts.join(" / ") || "Default";
+      const variantSku = v.sku?.trim() || null;
+      const variantBarcode = v.barcode?.trim() || null;
+
+      const variantData: Record<string, unknown> = {
+        product_id: productId,
+        tenant_id: tenantId,
+        title: variantTitle,
+        price: parseFloat(v.price) || 0,
+        compare_at_price: v.compare_at_price ? parseFloat(v.compare_at_price) : null,
+        stock: parseInt(v.stock) || 0,
+        sku: variantSku || null,
+        barcode: variantBarcode || null,
+        attribute_values: attributeValues,
+        image_url: v.image?.trim() || null,
+        weight: v.weight ? parseFloat(v.weight) / 1000 : null, // grams → kg
+        is_active: true,
+      };
+
+      // Try upsert by SKU if available, otherwise insert
+      if (variantSku) {
+        const { data: existingVariant } = await supabase
+          .from("product_variants")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("sku", variantSku)
+          .maybeSingle();
+
+        if (existingVariant) {
+          await supabase
+            .from("product_variants")
+            .update(variantData)
+            .eq("id", existingVariant.id);
+        } else {
+          await supabase.from("product_variants").insert(variantData);
+        }
+      } else {
+        // No SKU — check by attribute_values match
+        const { data: existingVariant } = await supabase
+          .from("product_variants")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("attribute_values", attributeValues)
+          .maybeSingle();
+
+        if (existingVariant) {
+          await supabase
+            .from("product_variants")
+            .update(variantData)
+            .eq("id", existingVariant.id);
+        } else {
+          await supabase.from("product_variants").insert(variantData);
+        }
+      }
+    }
+
+    console.log(`Imported ${variants.length} variants for product ${productId}`);
+  } catch (err) {
+    console.error(`Failed to import variants for product ${productId}:`, err);
+  }
+}
+
 function buildProductData(tenantId: string, record: Record<string, unknown>) {
   // Generate slug from name if not provided
   const name = record.name as string;
