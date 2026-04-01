@@ -576,9 +576,10 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="product">Product</TabsTrigger>
               <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
+              <TabsTrigger value="ads" disabled={!isEditing}>Advertenties</TabsTrigger>
             </TabsList>
 
             {/* Product Tab - One-page 2-column layout */}
