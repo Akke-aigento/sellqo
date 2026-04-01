@@ -78,6 +78,7 @@ import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 import { ProductTranslationTabs } from '@/components/admin/products/ProductTranslationTabs';
+import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
@@ -575,9 +576,10 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="product">Product</TabsTrigger>
               <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
+              <TabsTrigger value="ads" disabled={!isEditing}>Advertenties</TabsTrigger>
             </TabsList>
 
             {/* Product Tab - One-page 2-column layout */}
@@ -1713,6 +1715,23 @@ export default function ProductForm() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">Sla het product eerst op om marketplace instellingen te configureren</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Advertenties Tab */}
+            <TabsContent value="ads">
+              {isEditing && id && currentTenant ? (
+                <ProductAdsSection
+                  productId={id}
+                  tenantId={currentTenant.id}
+                  productEan={product?.barcode || (product as any)?.bol_ean}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Sla het product eerst op om advertentie-instellingen te configureren</p>
                   </CardContent>
                 </Card>
               )}
