@@ -1,72 +1,75 @@
 
 
-## Prompt 14: AI Engine — Automatische detectie verspillende zoektermen
+## Prompt 15: Database voorbereiden voor Amazon, Google & Meta Ads
 
 ### Overzicht
 
-3 onderdelen: (1) Edge function `ads-ai-engine` voor zoekterm-analyse, (2) Default regel aanmaken bij eerste Ads gebruik, (3) Notification badge op AI menu-item in sidebar.
+Eén database migratie die 12 nieuwe tabellen aanmaakt (Amazon 5, Google 2, Meta 3, minus overlapping) en de `ads_global_daily_summary` view vervangt met een 4-kanalen UNION ALL.
+
+### Nieuwe tabellen
+
+**Amazon (5 tabellen)** — spiegelen Bol.com structuur:
+
+| Tabel | Structuur |
+|---|---|
+| `ads_amazon_campaigns` | id, tenant_id, `amazon_campaign_id`, name, `campaign_type` (sp/sb/sd), status, daily_budget, targeting_type, `bidding_strategy`, raw_data, synced_at, timestamps. UNIQUE(tenant_id, amazon_campaign_id) |
+| `ads_amazon_adgroups` | id, campaign_id FK, tenant_id, `amazon_adgroup_id`, name, status, default_bid, raw_data, synced_at. UNIQUE(tenant_id, amazon_adgroup_id) |
+| `ads_amazon_keywords` | id, adgroup_id FK, tenant_id, `amazon_keyword_id`, keyword, match_type, bid, status, is_negative, raw_data, synced_at |
+| `ads_amazon_performance` | id, tenant_id, campaign_id FK, adgroup_id FK, keyword_id FK, date, impressions, clicks, spend, orders, revenue, acos, ctr, cpc, conversion_rate. UNIQUE(tenant_id, campaign_id, adgroup_id, keyword_id, date) |
+| `ads_amazon_search_terms` | id, tenant_id, campaign_id FK, adgroup_id FK, search_term, impressions, clicks, spend, orders, revenue, date, ai_action, ai_action_taken |
+
+**Google (2 tabellen)** — campaign level only:
+
+| Tabel | Structuur |
+|---|---|
+| `ads_google_campaigns` | id, tenant_id, `google_campaign_id`, name, `campaign_type` (search/shopping/display/pmax), status, daily_budget, bidding_strategy, raw_data, synced_at, timestamps. UNIQUE(tenant_id, google_campaign_id) |
+| `ads_google_performance` | id, tenant_id, campaign_id FK, date, impressions, clicks, spend, conversions (not orders), revenue, cost_per_conversion, ctr, cpc. UNIQUE(tenant_id, campaign_id, date) |
+
+**Meta (3 tabellen)** — campaign + adset level:
+
+| Tabel | Structuur |
+|---|---|
+| `ads_meta_campaigns` | id, tenant_id, `meta_campaign_id`, name, `objective` (conversions/traffic/awareness/reach), status, daily_budget, lifetime_budget, raw_data, synced_at, timestamps. UNIQUE(tenant_id, meta_campaign_id) |
+| `ads_meta_adsets` | id, campaign_id FK, tenant_id, `meta_adset_id`, name, status, daily_budget, targeting, raw_data, synced_at. UNIQUE(tenant_id, meta_adset_id) |
+| `ads_meta_performance` | id, tenant_id, campaign_id FK, adset_id FK, date, impressions, clicks, spend, conversions, revenue, ctr, cpc, cpm, frequency. UNIQUE(tenant_id, campaign_id, adset_id, date) |
+
+### RLS & Indexes
+
+Alle 10 tabellen krijgen:
+- RLS enabled
+- 4 policies (SELECT/INSERT/UPDATE/DELETE) met `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))`
+- Index op `tenant_id`
+- Performance tabellen: extra index op `date`, `campaign_id`
+- Campaign tabellen: extra index op `status`
+- `updated_at` trigger op campaign tabellen
+
+### View update
+
+`CREATE OR REPLACE VIEW public.ads_global_daily_summary` met 4x UNION ALL:
+
+```sql
+-- Bol.com (bestaand)
+SELECT tenant_id, date, 'bolcom' AS channel, SUM(impressions), SUM(clicks), SUM(spend), SUM(orders), SUM(revenue), ...
+FROM ads_bolcom_performance GROUP BY tenant_id, date
+UNION ALL
+-- Amazon
+SELECT tenant_id, date, 'amazon', SUM(impressions), SUM(clicks), SUM(spend), SUM(orders), SUM(revenue), ...
+FROM ads_amazon_performance GROUP BY tenant_id, date
+UNION ALL
+-- Google (orders → conversions)
+SELECT tenant_id, date, 'google', SUM(impressions), SUM(clicks), SUM(spend), SUM(conversions), SUM(revenue), ...
+FROM ads_google_performance GROUP BY tenant_id, date
+UNION ALL
+-- Meta (orders → conversions)
+SELECT tenant_id, date, 'meta', SUM(impressions), SUM(clicks), SUM(spend), SUM(conversions), SUM(revenue), ...
+FROM ads_meta_performance GROUP BY tenant_id, date
+```
 
 ### Bestanden
 
-| Bestand | Actie |
+| Wat | Actie |
 |---|---|
-| `supabase/functions/ads-ai-engine/index.ts` | Nieuw — AI analyse engine |
-| `src/hooks/useAdsAI.ts` | Default regel aanmaken + pending count query toevoegen |
-| `src/components/admin/sidebar/AdsAiBadge.tsx` | Nieuw — badge component |
-| `src/components/admin/AdminSidebar.tsx` | Badge renderen bij ads-ai sub-item |
-| `src/components/admin/sidebar/sidebarConfig.ts` | `badge: true` toevoegen op ads-ai item |
+| Database migratie | 10 tabellen + RLS + indexes + view replace |
 
-### 1. Edge Function: `ads-ai-engine/index.ts`
-
-Hergebruikt service role patroon (geen user auth nodig, wordt door cron of handmatig aangeroepen).
-
-**Input**: `{ tenant_id }`
-
-**Flow**:
-1. Query `ads_ai_rules` waar `tenant_id`, `rule_type = 'auto_negative'`, `is_active = true`
-2. Per regel: query `ads_bolcom_search_terms` van afgelopen `conditions.lookback_days` (default 14)
-3. Filter: `clicks >= min_clicks (10)`, `orders <= max_conversions (0)`, `spend >= min_spend (5.00)`
-4. Deduplicatie: check of er al een `pending`/`accepted` recommendation bestaat voor dezelfde `search_term` + `tenant_id`
-5. Insert `ads_ai_recommendations` met:
-   - `channel: 'bolcom'`, `recommendation_type: 'add_negative_keyword'`, `entity_type: 'search_term'`
-   - `current_value`: zoekterm stats, `recommended_value`: keyword + match_type
-   - `reason`: Nederlandse zin met zoekterm, clicks, spend, dagen
-   - `confidence`: `Math.min(0.95, 0.5 + (clicks / 100))` — meer clicks = hogere confidence
-   - `status`: regel `auto_apply = true` → `'auto_applied'`, anders `'pending'`
-6. Als `auto_apply`: intern `fetch` naar `ads-bolcom-manage` met `add_negative_keyword` actie (lookup adgroup_id via campaign)
-7. Return `{ recommendations_created, auto_applied }`
-
-### 2. Default regel — `useAdsAI.ts`
-
-Voeg een `useEffect` toe die checkt of er al regels bestaan. Zo niet, en tenant heeft Bol.com verbinding:
-- `createRule.mutate()` met:
-  - `name: "Verspillende zoektermen blokkeren"`
-  - `rule_type: "auto_negative"`, `channel: "bolcom"`
-  - `conditions: { min_clicks: 10, max_conversions: 0, min_spend: 5.00, lookback_days: 14 }`
-  - `actions: { add_as_negative: true, match_type: "exact" }`
-  - `is_active: true` (maar auto_apply default false in DB)
-
-Voeg ook een `pendingCount` query toe: `SELECT count(*) FROM ads_ai_recommendations WHERE tenant_id = X AND status = 'pending'`
-
-### 3. Sidebar Badge — `AdsAiBadge.tsx`
-
-Nieuw component dat `ads_ai_recommendations` queried met `status = 'pending'` en tenant_id.
-- Toont een klein rood/oranje badge getal als count > 0
-- Hergebruikt `useTenant()` hook
-- Compacte `useQuery` met `refetchInterval: 60000` (1 min)
-
-### 4. AdminSidebar.tsx wijziging
-
-In de `renderNavItem` functie, bij de rendering van sub-items (lijn 140-144), voeg badge rendering toe voor het `ads-ai` item:
-- Check `child.badge && child.id === 'ads-ai'` → render `<AdsAiBadge />`
-
-### 5. sidebarConfig.ts wijziging
-
-Op de `ads-ai` sub-item (lijn 115): toevoegen `badge: true`
-
-### Technische details
-
-- Edge function gebruikt `SUPABASE_SERVICE_ROLE_KEY` om alle tenants te kunnen verwerken
-- Confidence formule: `Math.min(0.95, 0.5 + (clicks / 100))` — lineair stijgend met data volume
-- De default regel heeft `auto_apply: false` zodat merchants eerst handmatig moeten goedkeuren
+Geen frontend wijzigingen — het globale dashboard pikt automatisch nieuwe kanalen op via de view.
 
