@@ -112,7 +112,7 @@ const salesItems: NavItem[] = [
       { id: 'ads-amazon', title: 'Amazon', url: '/admin/ads/amazon', disabled: true },
       { id: 'ads-google', title: 'Google', url: '/admin/ads/google', disabled: true },
       { id: 'ads-meta', title: 'Meta', url: '/admin/ads/meta', disabled: true },
-      { id: 'ads-ai', title: 'AI Regels', url: '/admin/ads/ai' },
+      { id: 'ads-ai', title: 'AI Regels', url: '/admin/ads/ai', badge: true },
     ],
   },
   {
