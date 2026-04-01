@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Megaphone, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, ChevronRight } from 'lucide-react';
+import { Megaphone, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, ChevronRight, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useBolcomAds, Period } from '@/hooks/useBolcomAds';
+import { useTenant } from '@/hooks/useTenant';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const formatCurrency = (val: number) => `€${val.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatPct = (val: number) => `${val.toFixed(2)}%`;
@@ -39,9 +43,30 @@ type SortKey = 'name' | 'status' | 'perf_spend' | 'perf_acos' | 'perf_impression
 
 export default function AdsBolcomPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { currentTenant } = useTenant();
   const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms } = useBolcomAds();
   const [sortKey, setSortKey] = useState<SortKey>('perf_spend');
   const [sortAsc, setSortAsc] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (!currentTenant?.id || syncing) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-sync', {
+        body: { tenant_id: currentTenant.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Sync voltooid: ${data.campaigns_synced} campagnes, ${data.adgroups_synced} ad groups, ${data.keywords_synced} keywords, ${data.products_synced} producten`);
+      queryClient.invalidateQueries({ queryKey: ['bolcom-ads'] });
+    } catch (e: any) {
+      toast.error('Sync mislukt: ' + (e.message || 'Onbekende fout'));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -68,7 +93,10 @@ export default function AdsBolcomPage() {
           <Megaphone className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">Nog geen Bol.com campagnes</h2>
           <p className="text-muted-foreground mb-4">Synchroniseer je Bol.com advertenties om te beginnen.</p>
-          <Button><RefreshCw className="h-4 w-4 mr-2" />Synchroniseer</Button>
+          <Button onClick={handleSync} disabled={syncing}>
+            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+          </Button>
         </Card>
       </div>
     );
@@ -100,6 +128,10 @@ export default function AdsBolcomPage() {
               </button>
             ))}
           </div>
+          <Button onClick={handleSync} disabled={syncing} variant="outline">
+            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+          </Button>
           <Button disabled variant="outline"><Plus className="h-4 w-4 mr-2" />Nieuwe campagne</Button>
         </div>
       </div>
