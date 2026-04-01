@@ -78,6 +78,7 @@ import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 import { ProductTranslationTabs } from '@/components/admin/products/ProductTranslationTabs';
+import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
