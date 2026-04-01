@@ -138,8 +138,9 @@ export function AdminSidebar() {
                       </SidebarMenuSubButton>
                     ) : (
                       <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
-                        <NavLink to={child.url}>
-                          {child.title}
+                        <NavLink to={child.url} className="flex items-center justify-between w-full">
+                          <span>{child.title}</span>
+                          {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
                         </NavLink>
                       </SidebarMenuSubButton>
                     )}
