@@ -1,75 +1,89 @@
 
 
-## Prompt 15: Database voorbereiden voor Amazon, Google & Meta Ads
+## Prompt 16: UX Verbeteringen Ads Pagina's
 
 ### Overzicht
 
-Eén database migratie die 12 nieuwe tabellen aanmaakt (Amazon 5, Google 2, Meta 3, minus overlapping) en de `ads_global_daily_summary` view vervangt met een 4-kanalen UNION ALL.
-
-### Nieuwe tabellen
-
-**Amazon (5 tabellen)** — spiegelen Bol.com structuur:
-
-| Tabel | Structuur |
-|---|---|
-| `ads_amazon_campaigns` | id, tenant_id, `amazon_campaign_id`, name, `campaign_type` (sp/sb/sd), status, daily_budget, targeting_type, `bidding_strategy`, raw_data, synced_at, timestamps. UNIQUE(tenant_id, amazon_campaign_id) |
-| `ads_amazon_adgroups` | id, campaign_id FK, tenant_id, `amazon_adgroup_id`, name, status, default_bid, raw_data, synced_at. UNIQUE(tenant_id, amazon_adgroup_id) |
-| `ads_amazon_keywords` | id, adgroup_id FK, tenant_id, `amazon_keyword_id`, keyword, match_type, bid, status, is_negative, raw_data, synced_at |
-| `ads_amazon_performance` | id, tenant_id, campaign_id FK, adgroup_id FK, keyword_id FK, date, impressions, clicks, spend, orders, revenue, acos, ctr, cpc, conversion_rate. UNIQUE(tenant_id, campaign_id, adgroup_id, keyword_id, date) |
-| `ads_amazon_search_terms` | id, tenant_id, campaign_id FK, adgroup_id FK, search_term, impressions, clicks, spend, orders, revenue, date, ai_action, ai_action_taken |
-
-**Google (2 tabellen)** — campaign level only:
-
-| Tabel | Structuur |
-|---|---|
-| `ads_google_campaigns` | id, tenant_id, `google_campaign_id`, name, `campaign_type` (search/shopping/display/pmax), status, daily_budget, bidding_strategy, raw_data, synced_at, timestamps. UNIQUE(tenant_id, google_campaign_id) |
-| `ads_google_performance` | id, tenant_id, campaign_id FK, date, impressions, clicks, spend, conversions (not orders), revenue, cost_per_conversion, ctr, cpc. UNIQUE(tenant_id, campaign_id, date) |
-
-**Meta (3 tabellen)** — campaign + adset level:
-
-| Tabel | Structuur |
-|---|---|
-| `ads_meta_campaigns` | id, tenant_id, `meta_campaign_id`, name, `objective` (conversions/traffic/awareness/reach), status, daily_budget, lifetime_budget, raw_data, synced_at, timestamps. UNIQUE(tenant_id, meta_campaign_id) |
-| `ads_meta_adsets` | id, campaign_id FK, tenant_id, `meta_adset_id`, name, status, daily_budget, targeting, raw_data, synced_at. UNIQUE(tenant_id, meta_adset_id) |
-| `ads_meta_performance` | id, tenant_id, campaign_id FK, adset_id FK, date, impressions, clicks, spend, conversions, revenue, ctr, cpc, cpm, frequency. UNIQUE(tenant_id, campaign_id, adset_id, date) |
-
-### RLS & Indexes
-
-Alle 10 tabellen krijgen:
-- RLS enabled
-- 4 policies (SELECT/INSERT/UPDATE/DELETE) met `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))`
-- Index op `tenant_id`
-- Performance tabellen: extra index op `date`, `campaign_id`
-- Campaign tabellen: extra index op `status`
-- `updated_at` trigger op campaign tabellen
-
-### View update
-
-`CREATE OR REPLACE VIEW public.ads_global_daily_summary` met 4x UNION ALL:
-
-```sql
--- Bol.com (bestaand)
-SELECT tenant_id, date, 'bolcom' AS channel, SUM(impressions), SUM(clicks), SUM(spend), SUM(orders), SUM(revenue), ...
-FROM ads_bolcom_performance GROUP BY tenant_id, date
-UNION ALL
--- Amazon
-SELECT tenant_id, date, 'amazon', SUM(impressions), SUM(clicks), SUM(spend), SUM(orders), SUM(revenue), ...
-FROM ads_amazon_performance GROUP BY tenant_id, date
-UNION ALL
--- Google (orders → conversions)
-SELECT tenant_id, date, 'google', SUM(impressions), SUM(clicks), SUM(spend), SUM(conversions), SUM(revenue), ...
-FROM ads_google_performance GROUP BY tenant_id, date
-UNION ALL
--- Meta (orders → conversions)
-SELECT tenant_id, date, 'meta', SUM(impressions), SUM(clicks), SUM(spend), SUM(conversions), SUM(revenue), ...
-FROM ads_meta_performance GROUP BY tenant_id, date
-```
+Verbeter empty states, loading skeletons, error handling, responsive design, consistent styling en datum formatting op 6 pagina's.
 
 ### Bestanden
 
-| Wat | Actie |
+| Bestand | Actie |
 |---|---|
-| Database migratie | 10 tabellen + RLS + indexes + view replace |
+| `src/pages/admin/Ads.tsx` | Empty state link → marketplace settings, channel hex kleuren op chart, skeleton chart |
+| `src/pages/admin/AdsBolcom.tsx` | Empty state tekst verbeteren, KPI grid responsive (`grid-cols-2 lg:grid-cols-5`), table `overflow-x-auto`, skeleton loaders, error state |
+| `src/pages/admin/AdsBolcomKeywords.tsx` | Replace Loader2 spinner met skeletons, empty state tekst verbeteren, table al has `overflow-x-auto` |
+| `src/pages/admin/AdsBolcomSearchTerms.tsx` | Replace Loader2 spinner met skeletons, empty state tekst verbeteren |
+| `src/pages/admin/AdsAiRules.tsx` | Replace "Laden..." tekst met skeletons, empty states per tab met iconen |
+| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | Replace Loader2 spinner met skeleton layout, table `overflow-x-auto`, responsive info cards |
 
-Geen frontend wijzigingen — het globale dashboard pikt automatisch nieuwe kanalen op via de view.
+### Wijzigingen per pagina
+
+**1. Ads.tsx** — globaal dashboard
+- Empty state: link wijzigen van `/admin/ads/bolcom` naar `/admin/marketplace` (marketplace connectie settings)
+- Empty state tekst: "Start met adverteren — verbind je marketplace account om campagnes te beheren"
+- Chart skeleton: als `isLoading` toon `Skeleton h-[300px]` i.p.v. niets
+- Kanaal kleuren: chart lines kleuren naar hex (`#0000FF` Bol, etc.) — voor nu alleen Bol.com actief maar klaar voor multi-channel
+- KPI grid al responsive (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`) ✓
+
+**2. AdsBolcom.tsx**
+- KPI grid: `grid-cols-5` → `grid-cols-2 lg:grid-cols-5`
+- Loading state: skeleton loaders voor KPI cards (5x `Skeleton h-20`), chart (`Skeleton h-[300px]`), table rows (3x `Skeleton h-12`)
+- Empty state: tekst al goed, voeg "Klik Synchroniseren om je bestaande campagnes op te halen" toe
+- Table: wrap in `overflow-x-auto` met `min-w-[900px]`
+- Keywords+Search terms grid: `grid-cols-2` → `grid-cols-1 lg:grid-cols-2`
+- Error handling: try/catch op sync al aanwezig ✓
+
+**3. AdsBolcomKeywords.tsx**
+- Loading: vervang `Loader2` spinner door skeleton KPI cards (4x) + skeleton table rows (5x)
+- Empty state: betere tekst "Geen keywords gevonden. Maak eerst een campagne aan of synchroniseer bestaande campagnes."
+- Table `overflow-x-auto` al aanwezig ✓
+
+**4. AdsBolcomSearchTerms.tsx**
+- Loading: vervang full-page `Loader2` spinner door skeleton KPI cards (4x) + skeleton table rows (5x)
+- Empty state: als geen search terms na laden → "Zoektermen worden beschikbaar nadat je campagnes actief zijn en data genereren."
+- Table `overflow-x-auto` al aanwezig ✓
+
+**5. AdsAiRules.tsx**
+- Loading: vervang "Laden..." tekst met skeleton cards (3x per tab)
+- Empty states: voeg `Check` icoon toe bij "Geen aanbevelingen" empty state
+- Geschiedenis tab empty state: "Nog geen AI acties uitgevoerd."
+
+**6. AdsBolcomCampaignDetail.tsx**
+- Loading: vervang `Loader2` met skeleton layout (header + info cards + chart placeholder)
+- Info cards: al `grid-cols-2 md:grid-cols-5` ✓
+- Tables: wrap Ad Groups en Negative Keywords tables in `overflow-x-auto`
+- Datum formatting: `start_date`/`end_date` via `format(date, 'dd-MM-yyyy')` i.p.v. raw string
+
+### Cross-cutting patronen
+
+**Skeleton loader** patroon:
+```tsx
+// KPI cards
+<div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+  {[1,2,3,4,5].map(i => (
+    <Card key={i}><CardContent className="pt-4">
+      <Skeleton className="h-4 w-24 mb-2" />
+      <Skeleton className="h-7 w-20" />
+    </CardContent></Card>
+  ))}
+</div>
+
+// Chart
+<Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+
+// Table rows
+<Card><CardContent className="p-4 space-y-3">
+  {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
+</CardContent></Card>
+```
+
+**Kanaal kleuren** — hex constanten:
+```ts
+const CHANNEL_HEX = { bolcom: '#0000FF', amazon: '#FF9900', google: '#4285F4', meta: '#1877F2' };
+```
+
+**Datum formatting** — alle datums via `format(date, 'dd-MM-yyyy')`, al grotendeels correct. Kleine fixes op CampaignDetail `start_date`/`end_date`.
+
+### Geen database wijzigingen nodig.
 
