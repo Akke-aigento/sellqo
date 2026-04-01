@@ -1,63 +1,82 @@
 
 
-## Prompt 8: Bol.com Zoektermen Rapport — /admin/ads/bolcom/search-terms
+## Prompt 9: AI Aanbevelingen Pagina — /admin/ads/ai
+
+### Overzicht
+
+Vervang de placeholder `AdsAiRules.tsx` met een volledige pagina met 3 tabs. Maak een custom hook `useAdsAI` voor alle data queries.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useBolcomSearchTerms.ts` | Nieuw — data hook |
-| `src/pages/admin/AdsBolcomSearchTerms.tsx` | Nieuw — pagina |
-| `src/App.tsx` | Route toevoegen |
+| `src/hooks/useAdsAI.ts` | Nieuw — data hook |
+| `src/pages/admin/AdsAiRules.tsx` | Herschrijven — volledige pagina |
 
-### Hook: `useBolcomSearchTerms.ts`
+Geen route wijziging nodig — `/admin/ads/ai` bestaat al in App.tsx.
 
-**Queries** (tenant_id + periode):
-- `ads_bolcom_search_terms` alle kolommen incl. `ai_action`, `ai_action_taken`, `campaign_id`, `adgroup_id`
-- `ads_bolcom_campaigns` voor campagne namen (lookup map)
-- Aggregeer per `search_term` over de periode: impressions, clicks, spend, orders, revenue
-- Bereken ACoS, CTR per zoekterm
+### Hook: `useAdsAI.ts`
+
+**Queries** (tenant_id gefilterd):
+
+- **Recommendations**: `ads_ai_recommendations` — alle kolommen incl. `current_value`, `recommended_value`, `confidence`, `auto_apply`, `applied_at`
+- **Rules**: `ads_ai_rules` — alle kolommen incl. `conditions` (Json), `actions` (Json), `is_active`, `last_triggered_at`
+- **History**: `ads_ai_recommendations` where status in ('accepted', 'auto_applied'), order by applied_at desc
 
 **Filters** (useState):
-- `search: string`
-- `onlyNoConversions: boolean` (toggle)
-- `onlyWithAiSuggestion: boolean` (toggle)
-- Sortering: default `spend` desc
+- `channel: string | null` (bolcom/amazon/google/meta/all)
+- `type: string | null` (recommendation_type filter)
+- `status: string | null` (pending/accepted/rejected)
 
 **Mutations**:
-- `addAsNegativeKeyword(searchTerm, adgroupId, matchType)` → insert `ads_bolcom_keywords` met `is_negative=true`, keyword=searchTerm. Als `ai_action` bestond → update `ads_bolcom_search_terms.ai_action_taken=true`
-- `promoteToKeyword(searchTerm, adgroupId, matchType, bid)` → insert `ads_bolcom_keywords` met `is_negative=false`, bid. Update `ai_action_taken=true` als relevant
+- `applyRecommendation(id)` → update `ads_ai_recommendations` set status='accepted', applied_at=now()
+- `rejectRecommendation(id)` → update status='rejected'
+- `toggleRule(id, isActive)` → update `ads_ai_rules` set is_active
+- `createRule(data)` → insert `ads_ai_rules` met name, channel, rule_type, conditions, actions
+- `updateRule(id, data)` → update `ads_ai_rules`
+- `deleteRule(id)` → delete from `ads_ai_rules`
 
-**Summary** (useMemo):
-- Totaal unieke zoektermen
-- Zoektermen met conversies (count + %)
-- Zoektermen zonder conversies maar met spend (count + totale verspilde spend €)
-- AI suggesties pending (count where ai_action != null && ai_action_taken != true)
+### Pagina: `AdsAiRules.tsx` (herschrijven)
 
-### Pagina: `AdsBolcomSearchTerms.tsx`
+**Header** — Breadcrumb (Ads > AI), titel "AI Aanbevelingen", Sparkles icoon
 
-Zelfde opbouwpatroon als `AdsBolcomKeywords.tsx`:
+**Tabs**: Aanbevelingen | Automation Regels | Geschiedenis
 
-1. **Header** — Breadcrumb (Ads > Bol.com > Zoektermen), titel, periode-selector
-2. **4 KPI cards** — unieke zoektermen, met conversies, zonder conversies (waste), AI suggesties pending
-3. **Filters** — Zoekbalk + "Alleen zonder conversies" toggle + "Alleen met AI suggestie" toggle
-4. **Tabel** — Zoekterm, Campagne, Impressies, Clicks, Spend, Orders, Revenue, ACoS, CTR, Acties
-   - Sorteerbaar op alle numerieke kolommen
-   - Rijkleuring: spend>€5 + 0 orders → rood, orders + ACoS<15% → groen, ai_action → geel icoon
-   - Actie knoppen per rij:
-     - **→ Negatief**: Dialog met match type keuze (exact/phrase) → `addAsNegativeKeyword`
-     - **→ Keyword**: Dialog met match type + bod input → `promoteToKeyword`
-     - AI badge als `ai_action` aanwezig
+#### Tab 1: Aanbevelingen (default)
 
-### Route
+- Filter balk: Kanaal select, Type select, Status select
+- Card-based lijst per aanbeveling:
+  - Kanaal badge (kleurcodering: bolcom=blauw, amazon=oranje, google=groen, meta=blauw)
+  - Type icoon + label
+  - Reden tekst
+  - Current value → Recommended value (visueel met pijl)
+  - Confidence score als progress bar
+  - "Toepassen" (groen) + "Negeren" (grijs) knoppen
+  - Timestamp
+- Empty state als geen pending recommendations
 
-```
-<Route path="ads/bolcom/search-terms" element={<AdsBolcomSearchTerms />} />
-```
+#### Tab 2: Automation Regels
+
+- Regels lijst met per regel:
+  - Naam, type badge, kanaal badge, status Switch toggle, "Bewerken" knop, laatste trigger datum
+- "Nieuwe regel" knop → Dialog met:
+  - Naam input, Kanaal select, Type select
+  - Dynamische conditie-velden op basis van type:
+    - `auto_negative`: min clicks, max conversions, min spend, lookback days
+    - `bid_adjustment`: target ACoS, min data points, max bid change %
+    - `inventory_pause`: min stock level
+    - `budget_pacing`: budget threshold %, actie select (warn/reduce)
+  - Auto-apply toggle
+
+#### Tab 3: Geschiedenis
+
+- Tabel: Datum, Kanaal, Type, Beschrijving (reason), Status badge (auto/handmatig), Door (AI/merchant)
+- Gefilterd op status='accepted' of 'auto_applied'
+- Sorteer op datum desc
 
 ### Patronen
-- Hergebruik `Period`, `fmt`, `fmtPct` helpers
-- `Dialog` voor mini-modals (zelfde als negatieve keyword modal in CampaignDetail)
-- `useTenant()` voor tenant filtering
-- Invalidate query keys na mutaties
+
+- Hergebruik `useTenant()`, `Card`, `Badge`, `Button`, `Dialog`, `Switch`, `Select`, `Input`, `Tabs`, `Progress` componenten
+- Kanaal kleuren: `{ bolcom: 'blue', amazon: 'orange', google: 'green', meta: 'blue' }`
+- `Json` velden (`current_value`, `recommended_value`, `conditions`, `actions`) casten naar `Record<string, unknown>` client-side
 
