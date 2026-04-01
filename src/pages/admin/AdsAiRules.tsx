@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sparkles, ArrowRight, Check, X, Plus, Pencil, Trash2, Bot, User, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAdsAI } from '@/hooks/useAdsAI';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
