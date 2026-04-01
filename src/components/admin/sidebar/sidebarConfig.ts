@@ -100,7 +100,21 @@ const salesItems: NavItem[] = [
   { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
   { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder' },
   { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote },
-  { id: 'ads', title: 'Advertenties', url: '/admin/ads', icon: MegaphoneIcon, featureKey: 'social_commerce' },
+  {
+    id: 'ads',
+    title: 'Ads',
+    url: '/admin/ads',
+    icon: MegaphoneIcon,
+    featureKey: 'social_commerce',
+    children: [
+      { id: 'ads-overview', title: 'Overzicht', url: '/admin/ads' },
+      { id: 'ads-bolcom', title: 'Bol.com', url: '/admin/ads/bolcom' },
+      { id: 'ads-amazon', title: 'Amazon', url: '/admin/ads/amazon', disabled: true },
+      { id: 'ads-google', title: 'Google', url: '/admin/ads/google', disabled: true },
+      { id: 'ads-meta', title: 'Meta', url: '/admin/ads/meta', disabled: true },
+      { id: 'ads-ai', title: 'AI Regels', url: '/admin/ads/ai' },
+    ],
+  },
   {
     id: 'promotions',
     title: 'Promoties',
