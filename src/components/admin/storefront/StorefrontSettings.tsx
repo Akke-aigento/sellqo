@@ -229,6 +229,8 @@ export function StorefrontSettings() {
                   </div>
                 </AlertDescription>
               </Alert>
+
+              <StorefrontApiKeysManager />
             </div>
           )}
         </CardContent>
