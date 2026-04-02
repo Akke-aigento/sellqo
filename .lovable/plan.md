@@ -1,48 +1,36 @@
 
 
-## Fix: Afbeeldingen worden overschreven door lege Variant Image
+## Fix: Shopify Varianten & Afbeeldingen Import
 
-### Probleem
+### Gevonden problemen
 
-Na consolidatie bevat `Image Src` alle product-afbeeldingen als comma-separated string (bijv. `"url1.jpg,url2.jpg,url3.jpg"`). De `imageArray` transform zet dit correct om naar een array.
+1. **Kolom naam mismatch**: De edge function schrijft `sort_order` naar `product_variant_options`, maar de tabel heeft `position` als kolomnaam → insert faalt silently → geen variant options, geen varianten
+2. **"Default Title" niet gefilterd**: Producten zonder echte varianten hebben `Option1 Value = "Default Title"` — deze worden nu ook als variant aangemaakt
+3. **`featured_image` niet gezet**: De eerste afbeelding wordt niet als `featured_image` ingesteld op het product
 
-**Maar**: de CSV header `Variant Image` komt NA `Image Src` in de kolomvolgorde. Na consolidatie is `Variant Image` in de hoofdrij leeg (variant images zitten in `_variants_json`). De `imageArray` transform van een lege string retourneert `[]`, wat de eerder correct ingevulde `images` array **overschrijft**.
+### Wijzigingen
 
-Bewezen: de edge function werkt correct — wanneer `images: ["url1", "url2"]` wordt meegegeven, slaat hij ze netjes op. Het probleem zit puur in de client-side transform.
+**1. `supabase/functions/run-csv-import/index.ts`** — `importProductVariants` functie
 
-### Fix
+- **Fix kolom naam**: `sort_order` → `position` in de `product_variant_options` insert (lijn 547)
+- **Filter "Default Title"**: Skip variant-aanmaak wanneer er slechts 1 variant is met option1 = "Default Title"
+- **Betere error logging**: `console.error` bij variant insert failures zodat we kunnen debuggen
 
-**`src/lib/importMappings.ts`** — Twee wijzigingen:
+**2. `src/lib/importMappings.ts`** — `consolidateShopifyProductRows`
 
-1. **`Variant Image` mapping wijzigen**: target veranderen van `images` naar `raw_import_data` (of verwijderen), zodat het niet meer de `Image Src` images overschrijft. Variant images zitten al in `_variants_json`.
+- **Filter "Default Title" varianten**: Als alle varianten `option1 = "Default Title"` hebben, zet `_variants_json` niet (geen echte varianten)
+- **`featured_image` uit eerste `Image Src`**: Zet `mainRow['Variant Image']` naar de eerste image als fallback voor featured_image
 
-```ts
-// WAS:
-'Variant Image': { target: 'images', transform: 'imageArray' },
-// WORDT:
-'Variant Image': { target: 'raw_import_data', transform: 'jsonString:variant_image' },
-```
+**3. `supabase/functions/run-csv-import/index.ts`** — `buildProductData`
 
-2. **`imageArray` transform robuuster maken**: als het resultaat een lege array is en er al een waarde bestaat voor het target veld, niet overschrijven. Dit als extra veiligheid.
-
-In `transformRecord`, voeg array-merge logica toe:
-```ts
-// Na transformatie, als het een array is:
-if (Array.isArray(transformedValue)) {
-  const existing = result[config.target];
-  if (Array.isArray(existing)) {
-    // Merge arrays, deduplicate
-    result[config.target] = [...new Set([...existing, ...transformedValue])];
-    continue;
-  }
-}
-```
+- Zet `featured_image` naar eerste image uit `images` array als `featured_image` niet expliciet gezet is
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/lib/importMappings.ts` | Variant Image target wijzigen + array merge in transformRecord |
+| `supabase/functions/run-csv-import/index.ts` | Fix `sort_order` → `position`, filter Default Title, betere logging |
+| `src/lib/importMappings.ts` | Filter Default Title varianten, featured_image fallback |
 
-### Geen database of edge function wijzigingen nodig
+### Geen database wijzigingen nodig
 
