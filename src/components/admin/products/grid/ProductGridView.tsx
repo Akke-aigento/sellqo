@@ -14,6 +14,7 @@ import { ColumnConfig } from './ColumnConfig';
 import { GridTextCell } from './GridTextCell';
 import { GridNumberCell } from './GridNumberCell';
 import { GridSelectCell } from './GridSelectCell';
+import { GridMultiSelectCell } from './GridMultiSelectCell';
 import { GridToggleCell } from './GridToggleCell';
 import { GridTagsCell } from './GridTagsCell';
 import { GridChannelsCell } from './GridChannelsCell';

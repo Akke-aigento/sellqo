@@ -64,7 +64,7 @@ export const GRID_COLUMNS: ColumnDefinition[] = [
   { field: 'cost_price', header: 'Kostprijs', type: 'currency', width: 110, minWidth: 80, editable: true, bulkEditable: true },
   { field: 'compare_at_price', header: 'Van-prijs', type: 'currency', width: 110, minWidth: 80, editable: true, bulkEditable: true },
   { field: 'stock', header: 'Voorraad', type: 'number', width: 90, minWidth: 70, editable: true, bulkEditable: true },
-  { field: 'category_id', header: 'Categorie', type: 'select', width: 150, minWidth: 100, editable: true, bulkEditable: true },
+  { field: 'category_id', header: 'Categorie', type: 'multiselect', width: 180, minWidth: 120, editable: true, bulkEditable: true },
   { field: 'vat_rate_id', header: 'BTW', type: 'select', width: 120, minWidth: 80, editable: true, bulkEditable: true },
   { field: 'social_channels', header: 'Kanalen', type: 'channels', width: 180, minWidth: 120, editable: true, bulkEditable: true },
   { field: 'is_active', header: 'Actief', type: 'toggle', width: 80, minWidth: 60, editable: true, bulkEditable: true },

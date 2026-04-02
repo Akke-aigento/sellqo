@@ -172,6 +172,16 @@ export function useProductGrid(products: Product[]) {
     if (pending !== undefined) {
       return pending;
     }
+    // For category_id, return array of category IDs from junction table
+    if (field === 'category_id') {
+      const cats = (product as any).product_categories;
+      if (Array.isArray(cats) && cats.length > 0) {
+        return cats.map((pc: any) => pc.category_id).filter(Boolean);
+      }
+      // Fallback to single category_id
+      const single = (product as unknown as Record<string, unknown>)[field];
+      return single ? [single] : [];
+    }
     return (product as unknown as Record<string, unknown>)[field];
   }, [pendingChanges]);
 
