@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
+import { useStorefrontTracking } from '@/hooks/useStorefrontTracking';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, Search, X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,11 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   
   const cartCount = getCartCount();
   const wishlistCount = getWishlistCount();
+
+  // Storefront activity tracking
+  const { trackEvent } = useStorefrontTracking({
+    tenantId: tenant?.id || '',
+  });
 
   // Fetch product names for RecentPurchaseToast
   const { data: allProducts } = usePublicProducts(tenant?.id, { limit: 20 });
