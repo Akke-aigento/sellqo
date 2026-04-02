@@ -58,6 +58,27 @@ export function AdminHeader() {
         )}
       </div>
 
+      {/* Platform Admin View Mode Toggle */}
+      {isPlatformAdmin && currentTenant && (
+        <div className="flex items-center gap-2 border-l pl-3 ml-1">
+          <div className="flex items-center gap-1.5">
+            {isAdminView ? (
+              <Eye className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+            <span className="text-xs font-medium hidden sm:inline">
+              {isAdminView ? 'Admin' : 'Tenant'}
+            </span>
+          </div>
+          <Switch
+            checked={isAdminView}
+            onCheckedChange={(checked) => setViewMode(checked ? 'admin' : 'tenant')}
+            className="scale-75"
+          />
+        </div>
+      )}
+
       <NotificationCenter />
       <ThemeToggle />
     </header>

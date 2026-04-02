@@ -135,7 +135,7 @@ export function useUsageLimits() {
   };
 
   const checkFeature = (featureKey: string): boolean => {
-    // Unlimited tenants have all features enabled
+    // Platform admins in admin view and unlimited tenants have all features
     if (isUnlimited) return true;
     
     // 1. Check plan features first

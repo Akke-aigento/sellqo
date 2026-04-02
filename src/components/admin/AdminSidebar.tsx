@@ -49,6 +49,7 @@ export function AdminSidebar() {
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
   const { subscription } = useTenantSubscription();
+  const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
   // Check if item should be hidden based on subscription features

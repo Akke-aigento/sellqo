@@ -41,11 +41,13 @@ function AdminLayoutContent() {
 export function AdminLayout() {
   return (
     <TenantProvider>
-      <GamificationProvider>
-        <SidebarProvider>
-          <AdminLayoutContent />
-        </SidebarProvider>
-      </GamificationProvider>
+      <PlatformViewModeProvider>
+        <GamificationProvider>
+          <SidebarProvider>
+            <AdminLayoutContent />
+          </SidebarProvider>
+        </GamificationProvider>
+      </PlatformViewModeProvider>
     </TenantProvider>
   );
 }
