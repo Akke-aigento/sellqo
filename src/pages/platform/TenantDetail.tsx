@@ -12,6 +12,7 @@ import { TenantInvoicesTab } from '@/components/platform/TenantInvoicesTab';
 import { TenantModulesTab } from '@/components/platform/TenantModulesTab';
 import { TenantActivityTab } from '@/components/platform/TenantActivityTab';
 import { TenantActionsTab } from '@/components/platform/TenantActionsTab';
+import { TenantTeamTab } from '@/components/platform/TenantTeamTab';
 
 export default function TenantDetail() {
   const { tenantId } = useParams<{ tenantId: string }>();
