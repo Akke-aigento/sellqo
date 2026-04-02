@@ -562,7 +562,7 @@ async function importProductVariants(
     }
 
     // Step 2: Upsert product_variants
-    for (const v of variants) {
+    for (const v of realVariants) {
       const attributeValues: Record<string, string> = {};
       const titleParts: string[] = [];
       const vals = [v.option1, v.option2, v.option3];
