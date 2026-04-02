@@ -5,6 +5,7 @@ export type CellType =
   | 'number'
   | 'currency'
   | 'select'
+  | 'multiselect'
   | 'toggle'
   | 'tags'
   | 'channels'
