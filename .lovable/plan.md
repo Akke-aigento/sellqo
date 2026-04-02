@@ -1,49 +1,48 @@
 
 
-## Fix: Producten met meerdere categorieën tonen in alle gekoppelde categorieën
+## Storefront API Keys beheer in Instellingen
 
-### Probleem
+### Wat ontbreekt
 
-`usePublicProducts` filtert op `category_id` (de legacy single-kolom):
-```typescript
-query = query.eq('category_id', options.categoryId);
-```
+De `storefront_api_keys` tabel bestaat al in de database met kolommen: `id`, `tenant_id`, `key_hash`, `key_prefix`, `name`, `is_active`, `last_used_at`, `created_at`. Maar:
 
-Producten die via de `product_categories` junction-tabel aan meerdere categorieën gekoppeld zijn, verschijnen alleen bij hun primaire categorie.
+1. **Geen UI** — er is geen component om keys aan te maken, bekijken of verwijderen
+2. **Geen generatie-logica** — er is geen edge function die een key genereert, hasht en opslaat
 
-### Oplossing
+Het beleid (uit memory) is: alleen de SHA-256 hash + prefix (`sk_live_xxxx`) worden opgeslagen; de volledige key wordt éénmaal getoond.
 
-**`src/hooks/usePublicStorefront.ts`** — categorie-filter via junction-tabel
+### Aanpak
 
-Vervang de `.eq('category_id', ...)` filter door een twee-stap aanpak:
+**1. Edge function: `generate-storefront-api-key`**
 
-1. Eerst product IDs ophalen uit `product_categories` voor de gewenste categorie
-2. Dan producten filteren op die IDs
+- Genereert een random key: `sk_live_` + 48 random hex chars
+- Slaat SHA-256 hash + prefix (eerste 12 chars) op in `storefront_api_keys`
+- Retourneert de volledige key éénmalig
+- Auth check: alleen tenant owner/admin of platform admin
 
-```typescript
-if (options?.categoryId) {
-  // Haal alle product IDs op die aan deze categorie gekoppeld zijn
-  const { data: linkedProducts } = await supabase
-    .from('product_categories')
-    .select('product_id')
-    .eq('category_id', options.categoryId);
-  
-  const linkedIds = (linkedProducts || []).map(lp => lp.product_id);
-  
-  if (linkedIds.length > 0) {
-    query = query.in('id', linkedIds);
-  } else {
-    // Fallback: legacy category_id kolom
-    query = query.eq('category_id', options.categoryId);
-  }
-}
-```
+**2. Nieuw component: `StorefrontApiKeysManager.tsx`**
+
+Gebaseerd op het bestaande `FulfillmentAPISettings` patroon:
+- Lijst van bestaande keys (prefix, naam, status, laatst gebruikt)
+- "Nieuwe key aanmaken" dialog met naam-invoer
+- Na aanmaak: key tonen in een copieerbaar veld met waarschuwing "wordt slechts éénmaal getoond"
+- Toggle active/inactive
+- Verwijder key met bevestiging
+
+**3. Integratie in `StorefrontSettings.tsx`**
+
+- Toevoegen als nieuwe Card sectie binnen de Custom Frontend sectie (alleen zichtbaar als `use_custom_frontend` aan staat)
+- Tussen de API Toegang alert en Tracking & Scripts
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/usePublicStorefront.ts` | Categorie-filter via `product_categories` junction-tabel |
+| `supabase/functions/generate-storefront-api-key/index.ts` | Nieuw — key generatie + hash opslag |
+| `src/components/admin/storefront/StorefrontApiKeysManager.tsx` | Nieuw — UI voor key beheer |
+| `src/components/admin/storefront/StorefrontSettings.tsx` | Import + render StorefrontApiKeysManager |
 
 ### Geen database wijzigingen nodig
+
+De `storefront_api_keys` tabel is al volledig ingericht.
 
