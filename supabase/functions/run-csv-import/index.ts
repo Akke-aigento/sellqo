@@ -509,6 +509,13 @@ async function importProductVariants(
 
     if (!variants.length) return;
 
+    // Filter out "Default Title" — not real variants
+    const realVariants = variants.filter(v => v.option1?.trim().toLowerCase() !== 'default title');
+    if (realVariants.length === 0) {
+      console.log(`[variants] Skipping Default Title variants for product ${productId}`);
+      return;
+    }
+
     // Read option names from consolidated record
     const optionNames: string[] = [];
     if (record._option1_name) optionNames.push(String(record._option1_name));
