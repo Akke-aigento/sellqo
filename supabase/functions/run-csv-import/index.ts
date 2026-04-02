@@ -87,6 +87,18 @@ Deno.serve(async (req) => {
       if (data_type === "customers") {
         await importCustomers(supabase, tenant_id, records, options, result);
       } else if (data_type === "products") {
+        // Debug: log first record to check variant data
+        if (records.length > 0) {
+          const first = records[0];
+          console.log('[EDGE FUNC] First product record keys:', Object.keys(first));
+          console.log('[EDGE FUNC] _variants_json present:', '_variants_json' in first, 'type:', typeof first._variants_json);
+          if (first._variants_json) {
+            console.log('[EDGE FUNC] _variants_json value (first 300 chars):', String(first._variants_json).substring(0, 300));
+          } else {
+            console.log('[EDGE FUNC] _variants_json is MISSING from record!');
+          }
+          console.log('[EDGE FUNC] _option1_name:', first._option1_name, '_option2_name:', first._option2_name);
+        }
         await importProducts(supabase, tenant_id, records, options, result);
       } else if (data_type === "orders") {
         await importOrders(supabase, tenant_id, records, options, result);
