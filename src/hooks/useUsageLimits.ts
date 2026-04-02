@@ -4,6 +4,8 @@ import { useTenantSubscription } from './useTenantSubscription';
 import { useTenantAddons } from './useTenantAddons';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
+import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 
 type LimitType = 'products' | 'orders' | 'customers' | 'users';
 
@@ -13,9 +15,14 @@ export function useUsageLimits() {
   const { addons } = useTenantAddons();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { isPlatformAdmin } = useAuth();
+  const { isAdminView } = usePlatformViewMode();
+
+  // Platform admins in admin view bypass all limits
+  const isPlatformBypass = isPlatformAdmin && isAdminView;
 
   // Internal tenants (SellQo) and demo tenants have unlimited everything
-  const isUnlimited = currentTenant?.is_internal_tenant === true || currentTenant?.is_demo === true;
+  const isUnlimited = isPlatformBypass || currentTenant?.is_internal_tenant === true || currentTenant?.is_demo === true;
 
   const checkLimit = async (limitType: LimitType): Promise<boolean> => {
     // Unlimited tenants bypass all limits
