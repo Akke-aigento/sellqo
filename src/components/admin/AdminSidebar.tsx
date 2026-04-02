@@ -54,6 +54,9 @@ export function AdminSidebar() {
   const isItemFeatureHidden = (item: NavItem): boolean => {
     if (!item.featureKey) return false;
     
+    // Platform admins in admin view see everything
+    if (isPlatformAdmin && isAdminView) return false;
+    
     const features = subscription?.pricing_plan?.features;
     if (!features) return true; // No subscription = hide premium features
     
