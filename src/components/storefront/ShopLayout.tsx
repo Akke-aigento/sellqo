@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
+import { useStorefrontTracking } from '@/hooks/useStorefrontTracking';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, Search, X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
