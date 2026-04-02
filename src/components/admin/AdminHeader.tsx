@@ -1,4 +1,4 @@
-import { Menu, ArrowLeft } from 'lucide-react';
+import { Menu, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTenant } from '@/hooks/useTenant';
@@ -7,11 +7,16 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/admin/NotificationCenter';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
+import { Switch } from '@/components/ui/switch';
 
 export function AdminHeader() {
   const { currentTenant } = useTenant();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isPlatformAdmin } = useAuth();
+  const { viewMode, setViewMode, isAdminView } = usePlatformViewMode();
   
   const isOnDashboard = location.pathname === '/admin';
 
