@@ -798,10 +798,13 @@ export function consolidateShopifyProductRows(
       mainRow['Image Src'] = images.join(',');
     }
     
+    // Filter out "Default Title" variants — not real variants
+    const realVariants = variants.filter(v => v.option1?.trim().toLowerCase() !== 'default title');
+    
     // Add variant count and option names for the edge function
-    if (variants.length > 0) {
-      mainRow['_variant_count'] = String(variants.length);
-      mainRow['_variants_json'] = JSON.stringify(variants);
+    if (realVariants.length > 0) {
+      mainRow['_variant_count'] = String(realVariants.length);
+      mainRow['_variants_json'] = JSON.stringify(realVariants);
       // Pass option names so edge function knows what each option represents
       if (mainRow['Option1 Name']) mainRow['_option1_name'] = mainRow['Option1 Name'];
       if (mainRow['Option2 Name']) mainRow['_option2_name'] = mainRow['Option2 Name'];

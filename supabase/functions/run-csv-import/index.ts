@@ -658,7 +658,7 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
     weight: record.weight ? parseFloat(String(record.weight)) : null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     images: Array.isArray(record.images) ? record.images : [],
-    featured_image: record.featured_image || null,
+    featured_image: record.featured_image || (Array.isArray(record.images) && record.images.length > 0 ? record.images[0] : null),
     meta_title: record.meta_title || null,
     meta_description: record.meta_description || null,
     is_active: record.is_active ?? true,
