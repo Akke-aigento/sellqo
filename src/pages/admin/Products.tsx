@@ -519,7 +519,23 @@ export default function ProductsPage() {
                       {product.sku || '-'}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {product.category ? (
+                      {(product as any).product_categories?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(product as any).product_categories
+                            .slice(0, 3)
+                            .map((pc: any) => {
+                              const cat = categories.find(c => c.id === pc.category_id);
+                              return cat ? (
+                                <Badge key={cat.id} variant="outline" className="text-xs">{cat.name}</Badge>
+                              ) : null;
+                            })}
+                          {(product as any).product_categories.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{(product as any).product_categories.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : product.category ? (
                         <Badge variant="outline">{product.category.name}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
