@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { StorefrontApiKeysManager } from './StorefrontApiKeysManager';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
