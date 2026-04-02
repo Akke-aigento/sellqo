@@ -72,6 +72,11 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const cartCount = getCartCount();
   const wishlistCount = getWishlistCount();
 
+  // Storefront activity tracking
+  const { trackEvent } = useStorefrontTracking({
+    tenantId: tenant?.id || '',
+  });
+
   // Fetch product names for RecentPurchaseToast
   const { data: allProducts } = usePublicProducts(tenant?.id, { limit: 20 });
   const productNames = (allProducts || []).map((p: any) => p.name);
