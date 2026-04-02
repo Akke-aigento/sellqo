@@ -187,13 +187,23 @@ export function ProductGridView({ products }: ProductGridViewProps) {
         );
 
       case 'select':
-        const options = field === 'category_id' ? categoryOptions : 
-                       field === 'vat_rate_id' ? vatRateOptions : [];
+        const options = field === 'vat_rate_id' ? vatRateOptions : [];
         return (
           <GridSelectCell
             {...commonProps}
             value={value as string | null}
             options={options}
+            onChange={(v) => grid.setCellValue(product.id, field, v)}
+          />
+        );
+
+      case 'multiselect':
+        const multiOptions = field === 'category_id' ? categoryOptions : [];
+        return (
+          <GridMultiSelectCell
+            {...commonProps}
+            value={Array.isArray(value) ? value as string[] : value ? [value as string] : []}
+            options={multiOptions}
             onChange={(v) => grid.setCellValue(product.id, field, v)}
           />
         );
