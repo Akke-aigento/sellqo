@@ -234,7 +234,20 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
         .eq('hide_from_storefront', false);
 
       if (options?.categoryId) {
-        query = query.eq('category_id', options.categoryId);
+        // Fetch product IDs linked via junction table for multi-category support
+        const { data: linkedProducts } = await supabase
+          .from('product_categories')
+          .select('product_id')
+          .eq('category_id', options.categoryId);
+        
+        const linkedIds = (linkedProducts || []).map(lp => lp.product_id);
+        
+        if (linkedIds.length > 0) {
+          query = query.in('id', linkedIds);
+        } else {
+          // Fallback: legacy category_id column
+          query = query.eq('category_id', options.categoryId);
+        }
       }
       if (options?.search) {
         query = query.ilike('name', `%${options.search}%`);
