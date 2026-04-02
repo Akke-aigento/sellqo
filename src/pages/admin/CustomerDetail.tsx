@@ -359,6 +359,11 @@ export default function CustomerDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* Activity Tab */}
+        <TabsContent value="activity">
+          <CustomerActivityTab customerId={customerId} />
+        </TabsContent>
+
         {/* Details Tab */}
         <TabsContent value="details">
           <div className="grid gap-4 md:grid-cols-2">

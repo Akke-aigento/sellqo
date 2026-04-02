@@ -81,9 +81,29 @@ Deno.serve(async (req: Request) => {
             .update({ status: "opened", opened_at: now, first_opened_at: now })
             .eq("id", send.id);
 
-          await supabase.rpc("increment_campaign_opened", { p_campaign_id: send.campaign_id });
+           await supabase.rpc("increment_campaign_opened", { p_campaign_id: send.campaign_id });
 
+          // Write to customer_events for unified timeline
           if (send.customer_id) {
+            const { data: campaign } = await supabase
+              .from("email_campaigns")
+              .select("tenant_id, name")
+              .eq("id", send.campaign_id)
+              .single();
+
+            if (campaign) {
+              await supabase.from("customer_events").insert({
+                tenant_id: campaign.tenant_id,
+                customer_id: send.customer_id,
+                event_type: "email_open",
+                event_data: {
+                  campaign_id: send.campaign_id,
+                  campaign_name: campaign.name,
+                  subject: payload.data.subject,
+                },
+              });
+            }
+
             const { data: customer } = await supabase
               .from("customers")
               .select("email_engagement_score")
