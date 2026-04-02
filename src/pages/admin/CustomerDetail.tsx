@@ -247,6 +247,10 @@ export default function CustomerDetailPage() {
             <MessageSquare className="h-4 w-4" />
             Gesprekken
           </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Activiteit
+          </TabsTrigger>
           <TabsTrigger value="details" className="gap-2">
             <User className="h-4 w-4" />
             Gegevens
