@@ -1,42 +1,49 @@
 
 
-## Categorie multi-select in rasterweergave
+## Fix: Producten met meerdere categorieën tonen in alle gekoppelde categorieën
 
 ### Probleem
 
-De categorie-kolom in de grid is een single-select (`GridSelectCell`), maar producten ondersteunen meerdere categorieën via de `product_categories` junction-tabel. De data is er al (product heeft `product_categories` array), maar de grid toont/bewerkt alleen `category_id` (enkele waarde).
+`usePublicProducts` filtert op `category_id` (de legacy single-kolom):
+```typescript
+query = query.eq('category_id', options.categoryId);
+```
 
-### Aanpak
+Producten die via de `product_categories` junction-tabel aan meerdere categorieën gekoppeld zijn, verschijnen alleen bij hun primaire categorie.
 
-**1. Nieuw cell-type: `multiselect`** — `gridTypes.ts`
-- Nieuw CellType `'multiselect'` toevoegen
-- `category_id` kolom wijzigen van type `'select'` naar `'multiselect'`
+### Oplossing
 
-**2. Nieuw component: `GridMultiSelectCell.tsx`**
-- Toont geselecteerde categorieën als comma-separated labels (of badges)
-- Bij klikken opent een popover/dropdown met checkboxes voor alle categorieën
-- Waarde is `string[]` (array van category IDs)
-- Sluit na klikken buiten de popover
+**`src/hooks/usePublicStorefront.ts`** — categorie-filter via junction-tabel
 
-**3. `useProductGrid.ts` — `getCellValue` uitbreiden**
-- Voor veld `category_id`: lees `product.product_categories` array en return `string[]` van category_ids (incl. `product.category_id` als fallback/primary)
-- Pending changes slaat ook `string[]` op
+Vervang de `.eq('category_id', ...)` filter door een twee-stap aanpak:
 
-**4. `ProductGridView.tsx` — Render multiselect**
-- Nieuw case `'multiselect'` in `renderCell` die `GridMultiSelectCell` rendert met `categoryOptions`
+1. Eerst product IDs ophalen uit `product_categories` voor de gewenste categorie
+2. Dan producten filteren op die IDs
 
-**5. Save-logica aanpassen**
-- In `handleSaveAll`: als een change voor `category_id` een `string[]` is, upsert naar `product_categories` junction-tabel (delete bestaande + insert nieuwe)
-- Zet `category_id` op de eerste (primary) categorie, of `null` als leeg
+```typescript
+if (options?.categoryId) {
+  // Haal alle product IDs op die aan deze categorie gekoppeld zijn
+  const { data: linkedProducts } = await supabase
+    .from('product_categories')
+    .select('product_id')
+    .eq('category_id', options.categoryId);
+  
+  const linkedIds = (linkedProducts || []).map(lp => lp.product_id);
+  
+  if (linkedIds.length > 0) {
+    query = query.in('id', linkedIds);
+  } else {
+    // Fallback: legacy category_id kolom
+    query = query.eq('category_id', options.categoryId);
+  }
+}
+```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/products/grid/gridTypes.ts` | `multiselect` type + kolom aanpassen |
-| `src/components/admin/products/grid/GridMultiSelectCell.tsx` | Nieuw — multi-select cell met checkboxes |
-| `src/components/admin/products/grid/ProductGridView.tsx` | Render multiselect + save via junction-tabel |
-| `src/hooks/useProductGrid.ts` | `getCellValue` voor category_id → array |
+| `src/hooks/usePublicStorefront.ts` | Categorie-filter via `product_categories` junction-tabel |
 
 ### Geen database wijzigingen nodig
 
