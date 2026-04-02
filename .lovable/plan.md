@@ -1,41 +1,64 @@
 
 
-## Platform Admin: Team tab op TenantDetail pagina
-
-### Wat wordt er gebouwd
-
-Een "Team" tab toevoegen aan de TenantDetail pagina zodat je als platform admin direct teamleden kunt uitnodigen voor een tenant, zonder eerst naar die tenant te moeten switchen.
+## Platform Admin: Volledige toegang + Admin/Tenant View Toggle
 
 ### Probleem
 
-De bestaande `InviteTeamMemberDialog` en `useTeamInvitations` gebruiken `currentTenant` uit de tenant-context. Als platform admin bekijk je een tenant via `/admin/platform/tenants/:tenantId`, maar `currentTenant` is dan je eigen tenant — niet de tenant die je bekijkt.
+Als platform admin en je switcht naar een tenant met een beperkt abonnement:
+1. **FeatureGate** blokkeert features op basis van het tenant-abonnement
+2. **AdminSidebar** verbergt menu-items op basis van subscription features
+3. **useUsageLimits** enforced limieten (producten, orders, etc.)
+4. **TrialExpiredBlocker** kan toegang blokkeren (dit werkt al correct voor platform admins)
+
+Je mist een manier om te zien wat de tenant zelf zou zien vs. jouw volledige toegang.
 
 ### Wijzigingen
 
-**1. `src/components/platform/TenantTeamTab.tsx`** — Nieuw component
+**1. `src/hooks/useUsageLimits.ts`** — Platform admin bypass
 
-- Toont huidige teamleden (query `user_roles` + `profiles` voor de specifieke `tenantId`)
-- Toont openstaande uitnodigingen (query `team_invitations` voor die `tenantId`)
-- Invite dialog met e-mail + rol-selectie (hergebruikt dezelfde rol-opties)
-- Roept `send-team-invitation` edge function aan met de `tenantId` uit props (niet `currentTenant`)
-- Annuleer/opnieuw versturen van uitnodigingen
-- De edge function ondersteunt `platform_admin` autorisatie al — geen backend wijziging nodig
+- Voeg `isPlatformAdmin` check toe uit `useAuth()`
+- `checkFeature()`: return `true` als `isPlatformAdmin` (naast bestaande `isUnlimited` check)
+- `checkLimit()` en `enforceLimit()`: bypass als `isPlatformAdmin`
+- Dit fixt automatisch alle `FeatureGate` componenten in de hele app
 
-**2. `src/pages/platform/TenantDetail.tsx`** — Tab toevoegen
+**2. `src/components/admin/AdminSidebar.tsx`** — Bypass feature-hiding
 
-- Import `TenantTeamTab`
-- Grid van 7 → 8 kolommen
-- Nieuwe tab "Team" toevoegen
-- Render `<TenantTeamTab tenantId={tenantId!} />` in TabsContent
+- In `isItemFeatureHidden()`: return `false` als `isPlatformAdmin` (toon alle items)
 
-### Geen database of edge function wijzigingen nodig
+**3. Nieuw: `src/hooks/usePlatformViewMode.ts`** — View mode context
 
-De `send-team-invitation` edge function checkt al of de gebruiker `platform_admin` is. RLS policies op `team_invitations` en `user_roles` zijn al toegankelijk voor platform admins via `get_user_tenant_ids()`.
+- React context met state: `'admin'` (default voor platform admins) of `'tenant'`
+- `admin` mode = volledige toegang, alle features zichtbaar
+- `tenant` mode = zie exact wat de tenant ziet (respecteer subscription/limieten)
+- Persist in sessionStorage (niet localStorage — per tab)
+- Exporteert `viewMode`, `setViewMode`, `isAdminView`
+
+**4. `src/components/admin/AdminHeader.tsx`** — View mode toggle
+
+- Alleen zichtbaar als `isPlatformAdmin` en een tenant geselecteerd is
+- Toggle knop/switch: "Admin View" ↔ "Tenant View"
+- Visuele indicator (badge/kleur) zodat je altijd weet in welke modus je zit
+- Bijv. oranje banner "Je bekijkt als tenant" in tenant-modus
+
+**5. Integratie in bypass-logica**
+
+- `useUsageLimits`: bypass alleen als `isPlatformAdmin && isAdminView`
+- `AdminSidebar.isItemFeatureHidden`: bypass alleen als `isPlatformAdmin && isAdminView`
+- Zo kun je snel schakelen om te zien wat de klant ziet
+
+**6. `src/components/admin/AdminLayout.tsx`** — Provider toevoegen
+
+- Wrap `AdminLayoutContent` met `PlatformViewModeProvider`
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/platform/TenantTeamTab.tsx` | Nieuw — teamleden, uitnodigingen, invite functionaliteit |
-| `src/pages/platform/TenantDetail.tsx` | Team tab toevoegen |
+| `src/hooks/usePlatformViewMode.ts` | Nieuw — context + provider voor view mode |
+| `src/hooks/useUsageLimits.ts` | Platform admin + view mode bypass |
+| `src/components/admin/AdminSidebar.tsx` | Feature-hiding bypass |
+| `src/components/admin/AdminHeader.tsx` | Toggle knop toevoegen |
+| `src/components/admin/AdminLayout.tsx` | Provider wrappen |
+
+### Geen database wijzigingen nodig
 
