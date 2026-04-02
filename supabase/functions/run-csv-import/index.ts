@@ -623,12 +623,16 @@ async function importProductVariants(
           .maybeSingle();
 
         if (existingVariant) {
-          await supabase
+          const { error: uErr } = await supabase
             .from("product_variants")
             .update(variantData)
             .eq("id", existingVariant.id);
+          if (uErr) console.error(`[VARIANTS] Update variant SKU=${variantSku} error:`, uErr);
+          else console.log(`[VARIANTS] Updated variant SKU=${variantSku}`);
         } else {
-          await supabase.from("product_variants").insert(variantData);
+          const { error: iErr } = await supabase.from("product_variants").insert(variantData);
+          if (iErr) console.error(`[VARIANTS] Insert variant SKU=${variantSku} error:`, iErr);
+          else console.log(`[VARIANTS] Inserted variant SKU=${variantSku} title=${variantTitle}`);
         }
       } else {
         // No SKU — check by attribute_values match
@@ -640,12 +644,16 @@ async function importProductVariants(
           .maybeSingle();
 
         if (existingVariant) {
-          await supabase
+          const { error: uErr } = await supabase
             .from("product_variants")
             .update(variantData)
             .eq("id", existingVariant.id);
+          if (uErr) console.error(`[VARIANTS] Update variant (no SKU) error:`, uErr);
+          else console.log(`[VARIANTS] Updated variant title=${variantTitle}`);
         } else {
-          await supabase.from("product_variants").insert(variantData);
+          const { error: iErr } = await supabase.from("product_variants").insert(variantData);
+          if (iErr) console.error(`[VARIANTS] Insert variant (no SKU) error:`, iErr);
+          else console.log(`[VARIANTS] Inserted variant title=${variantTitle}`);
         }
       }
     }
