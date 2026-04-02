@@ -661,8 +661,22 @@ export function transformRecord(
       transformedValue = value?.trim() || null;
     }
     
+    // Handle array merging (for images from multiple sources)
+    if (Array.isArray(transformedValue)) {
+      const existing = result[config.target];
+      if (Array.isArray(existing)) {
+        // Merge arrays, deduplicate, skip empty
+        const merged = [...existing, ...transformedValue].filter(Boolean);
+        result[config.target] = [...new Set(merged)];
+      } else if (transformedValue.length > 0) {
+        result[config.target] = transformedValue;
+      }
+      // Skip if empty array and nothing exists yet
+      continue;
+    }
+    
     // Handle JSON object merging (for addresses and raw_import_data)
-    if (typeof transformedValue === 'object' && transformedValue !== null && !Array.isArray(transformedValue)) {
+    if (typeof transformedValue === 'object' && transformedValue !== null) {
       const existing = result[config.target];
       if (typeof existing === 'object' && existing !== null && !Array.isArray(existing)) {
         // Merge with existing object
