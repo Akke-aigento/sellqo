@@ -90,6 +90,10 @@ export default function TenantDetail() {
           <TenantActionsTab tenantId={tenantId!} />
         </TabsContent>
 
+        <TabsContent value="team">
+          <TenantTeamTab tenantId={tenantId!} />
+        </TabsContent>
+
         <TabsContent value="invoices">
           <TenantInvoicesTab tenantId={tenantId!} />
         </TabsContent>
