@@ -229,6 +229,11 @@ export const PRODUCT_TARGET_FIELDS = [
   '_custom_spec_Kleding_target_gender',
   '_custom_spec_Kleding_toe_style',
   '_custom_spec_Kleding_waist_rise',
+  // Internal variant pass-through fields (hidden from UI)
+  '_variants_json',
+  '_option1_name',
+  '_option2_name',
+  '_option3_name',
 ] as const;
 
 export const CATEGORY_TARGET_FIELDS = [

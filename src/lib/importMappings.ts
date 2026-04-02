@@ -174,6 +174,13 @@ export const SHOPIFY_PRODUCT_MAPPING: FieldMapping = {
   'Toe style (product.metafields.shopify.toe-style)': { target: '_custom_spec_Kleding_toe_style' },
   'Top length type (product.metafields.shopify.top-length-type)': { target: '_custom_spec_Kleding_top_length' },
   'Waist rise (product.metafields.shopify.waist-rise)': { target: '_custom_spec_Kleding_waist_rise' },
+
+  // Internal variant pass-through fields (not visible in UI, used by edge function)
+  '_variants_json': { target: '_variants_json' },
+  '_option1_name': { target: '_option1_name' },
+  '_option2_name': { target: '_option2_name' },
+  '_option3_name': { target: '_option3_name' },
+  '_variant_count': { target: '_variant_count' },
 };
 
 // ============================================================================

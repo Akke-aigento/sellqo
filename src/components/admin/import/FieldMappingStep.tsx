@@ -217,7 +217,9 @@ export function FieldMappingStep({
                               {t('import.skip')}
                             </span>
                           </SelectItem>
-                          {targetFields.map(field => (
+                          {targetFields
+                            .filter(field => !field.startsWith('_variant') && !field.startsWith('_option'))
+                            .map(field => (
                             <SelectItem key={field} value={field}>
                               {formatTargetField(field)}
                             </SelectItem>
