@@ -87,6 +87,18 @@ Deno.serve(async (req) => {
       if (data_type === "customers") {
         await importCustomers(supabase, tenant_id, records, options, result);
       } else if (data_type === "products") {
+        // Debug: log first record to check variant data
+        if (records.length > 0) {
+          const first = records[0];
+          console.log('[EDGE FUNC] First product record keys:', Object.keys(first));
+          console.log('[EDGE FUNC] _variants_json present:', '_variants_json' in first, 'type:', typeof first._variants_json);
+          if (first._variants_json) {
+            console.log('[EDGE FUNC] _variants_json value (first 300 chars):', String(first._variants_json).substring(0, 300));
+          } else {
+            console.log('[EDGE FUNC] _variants_json is MISSING from record!');
+          }
+          console.log('[EDGE FUNC] _option1_name:', first._option1_name, '_option2_name:', first._option2_name);
+        }
         await importProducts(supabase, tenant_id, records, options, result);
       } else if (data_type === "orders") {
         await importOrders(supabase, tenant_id, records, options, result);
@@ -490,7 +502,11 @@ async function importProductVariants(
   record: Record<string, unknown>
 ) {
   const variantsJson = record._variants_json as string;
-  if (!variantsJson) return;
+  console.log(`[VARIANTS] productId=${productId} _variants_json present=${!!variantsJson} type=${typeof variantsJson} length=${variantsJson ? String(variantsJson).length : 0}`);
+  if (!variantsJson) {
+    console.log(`[VARIANTS] Record keys for this product:`, Object.keys(record));
+    return;
+  }
 
   try {
     const variants: Array<{
@@ -555,10 +571,13 @@ async function importProductVariants(
     }));
 
     if (optionRows.length > 0) {
-      const { error: optError } = await supabase
+      console.log(`[VARIANTS] Inserting ${optionRows.length} variant options:`, JSON.stringify(optionRows));
+      const { data: optData, error: optError } = await supabase
         .from("product_variant_options")
-        .insert(optionRows);
-      if (optError) console.error("Failed to insert variant options:", optError);
+        .insert(optionRows)
+        .select();
+      if (optError) console.error("[VARIANTS] Failed to insert variant options:", optError);
+      else console.log(`[VARIANTS] Successfully inserted ${optData?.length} variant options`);
     }
 
     // Step 2: Upsert product_variants
@@ -604,12 +623,16 @@ async function importProductVariants(
           .maybeSingle();
 
         if (existingVariant) {
-          await supabase
+          const { error: uErr } = await supabase
             .from("product_variants")
             .update(variantData)
             .eq("id", existingVariant.id);
+          if (uErr) console.error(`[VARIANTS] Update variant SKU=${variantSku} error:`, uErr);
+          else console.log(`[VARIANTS] Updated variant SKU=${variantSku}`);
         } else {
-          await supabase.from("product_variants").insert(variantData);
+          const { error: iErr } = await supabase.from("product_variants").insert(variantData);
+          if (iErr) console.error(`[VARIANTS] Insert variant SKU=${variantSku} error:`, iErr);
+          else console.log(`[VARIANTS] Inserted variant SKU=${variantSku} title=${variantTitle}`);
         }
       } else {
         // No SKU — check by attribute_values match
@@ -621,12 +644,16 @@ async function importProductVariants(
           .maybeSingle();
 
         if (existingVariant) {
-          await supabase
+          const { error: uErr } = await supabase
             .from("product_variants")
             .update(variantData)
             .eq("id", existingVariant.id);
+          if (uErr) console.error(`[VARIANTS] Update variant (no SKU) error:`, uErr);
+          else console.log(`[VARIANTS] Updated variant title=${variantTitle}`);
         } else {
-          await supabase.from("product_variants").insert(variantData);
+          const { error: iErr } = await supabase.from("product_variants").insert(variantData);
+          if (iErr) console.error(`[VARIANTS] Insert variant (no SKU) error:`, iErr);
+          else console.log(`[VARIANTS] Inserted variant title=${variantTitle}`);
         }
       }
     }

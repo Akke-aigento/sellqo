@@ -811,6 +811,8 @@ export function consolidateShopifyProductRows(
       if (mainRow['Option3 Name']) mainRow['_option3_name'] = mainRow['Option3 Name'];
     }
     
+    console.log(`[CONSOLIDATE] Handle="${handle}" images=${images.length} totalVariants=${variants.length} realVariants=${realVariants.length} hasVariantsJson=${!!mainRow['_variants_json']} option1Name="${mainRow['Option1 Name'] || ''}" option2Name="${mainRow['Option2 Name'] || ''}"`);
+    
     consolidated.push(mainRow);
   }
   
