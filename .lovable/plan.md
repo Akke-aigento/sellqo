@@ -1,36 +1,41 @@
 
 
-## Fix: Shopify Varianten & Afbeeldingen Import
+## Platform Admin: Team tab op TenantDetail pagina
 
-### Gevonden problemen
+### Wat wordt er gebouwd
 
-1. **Kolom naam mismatch**: De edge function schrijft `sort_order` naar `product_variant_options`, maar de tabel heeft `position` als kolomnaam → insert faalt silently → geen variant options, geen varianten
-2. **"Default Title" niet gefilterd**: Producten zonder echte varianten hebben `Option1 Value = "Default Title"` — deze worden nu ook als variant aangemaakt
-3. **`featured_image` niet gezet**: De eerste afbeelding wordt niet als `featured_image` ingesteld op het product
+Een "Team" tab toevoegen aan de TenantDetail pagina zodat je als platform admin direct teamleden kunt uitnodigen voor een tenant, zonder eerst naar die tenant te moeten switchen.
+
+### Probleem
+
+De bestaande `InviteTeamMemberDialog` en `useTeamInvitations` gebruiken `currentTenant` uit de tenant-context. Als platform admin bekijk je een tenant via `/admin/platform/tenants/:tenantId`, maar `currentTenant` is dan je eigen tenant — niet de tenant die je bekijkt.
 
 ### Wijzigingen
 
-**1. `supabase/functions/run-csv-import/index.ts`** — `importProductVariants` functie
+**1. `src/components/platform/TenantTeamTab.tsx`** — Nieuw component
 
-- **Fix kolom naam**: `sort_order` → `position` in de `product_variant_options` insert (lijn 547)
-- **Filter "Default Title"**: Skip variant-aanmaak wanneer er slechts 1 variant is met option1 = "Default Title"
-- **Betere error logging**: `console.error` bij variant insert failures zodat we kunnen debuggen
+- Toont huidige teamleden (query `user_roles` + `profiles` voor de specifieke `tenantId`)
+- Toont openstaande uitnodigingen (query `team_invitations` voor die `tenantId`)
+- Invite dialog met e-mail + rol-selectie (hergebruikt dezelfde rol-opties)
+- Roept `send-team-invitation` edge function aan met de `tenantId` uit props (niet `currentTenant`)
+- Annuleer/opnieuw versturen van uitnodigingen
+- De edge function ondersteunt `platform_admin` autorisatie al — geen backend wijziging nodig
 
-**2. `src/lib/importMappings.ts`** — `consolidateShopifyProductRows`
+**2. `src/pages/platform/TenantDetail.tsx`** — Tab toevoegen
 
-- **Filter "Default Title" varianten**: Als alle varianten `option1 = "Default Title"` hebben, zet `_variants_json` niet (geen echte varianten)
-- **`featured_image` uit eerste `Image Src`**: Zet `mainRow['Variant Image']` naar de eerste image als fallback voor featured_image
+- Import `TenantTeamTab`
+- Grid van 7 → 8 kolommen
+- Nieuwe tab "Team" toevoegen
+- Render `<TenantTeamTab tenantId={tenantId!} />` in TabsContent
 
-**3. `supabase/functions/run-csv-import/index.ts`** — `buildProductData`
+### Geen database of edge function wijzigingen nodig
 
-- Zet `featured_image` naar eerste image uit `images` array als `featured_image` niet expliciet gezet is
+De `send-team-invitation` edge function checkt al of de gebruiker `platform_admin` is. RLS policies op `team_invitations` en `user_roles` zijn al toegankelijk voor platform admins via `get_user_tenant_ids()`.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/run-csv-import/index.ts` | Fix `sort_order` → `position`, filter Default Title, betere logging |
-| `src/lib/importMappings.ts` | Filter Default Title varianten, featured_image fallback |
-
-### Geen database wijzigingen nodig
+| `src/components/platform/TenantTeamTab.tsx` | Nieuw — teamleden, uitnodigingen, invite functionaliteit |
+| `src/pages/platform/TenantDetail.tsx` | Team tab toevoegen |
 
