@@ -1,52 +1,48 @@
 
 
-## Fix: Varianten en afbeeldingen worden niet doorgegeven aan edge function
+## Fix: Afbeeldingen worden overschreven door lege Variant Image
 
 ### Probleem
 
-De consolidatie-functie voegt `_variants_json`, `_option1_name`, `_option2_name`, `_option3_name` correct toe aan de CSV-rij. Maar `transformRecord()` verwerkt alleen velden die in de `mapping` staan. Deze interne keys zitten niet in `SHOPIFY_PRODUCT_MAPPING`, dus ze worden weggegooid voordat de data naar de edge function gestuurd wordt. De edge function code voor varianten is correct — hij krijgt alleen nooit input.
+Na consolidatie bevat `Image Src` alle product-afbeeldingen als comma-separated string (bijv. `"url1.jpg,url2.jpg,url3.jpg"`). De `imageArray` transform zet dit correct om naar een array.
 
-### Wijzigingen
+**Maar**: de CSV header `Variant Image` komt NA `Image Src` in de kolomvolgorde. Na consolidatie is `Variant Image` in de hoofdrij leeg (variant images zitten in `_variants_json`). De `imageArray` transform van een lege string retourneert `[]`, wat de eerder correct ingevulde `images` array **overschrijft**.
 
-**1. `src/types/import.ts`** — Interne variant-keys toevoegen aan `PRODUCT_TARGET_FIELDS`
+Bewezen: de edge function werkt correct — wanneer `images: ["url1", "url2"]` wordt meegegeven, slaat hij ze netjes op. Het probleem zit puur in de client-side transform.
 
-Voeg toe na de custom spec velden:
-```
-'_variants_json',
-'_option1_name',
-'_option2_name',
-'_option3_name',
-```
+### Fix
 
-**2. `src/lib/importMappings.ts`** — Mapping entries toevoegen aan `SHOPIFY_PRODUCT_MAPPING`
+**`src/lib/importMappings.ts`** — Twee wijzigingen:
 
-Voeg toe als pass-through mappings (zodat `transformRecord` ze meeneemt):
+1. **`Variant Image` mapping wijzigen**: target veranderen van `images` naar `raw_import_data` (of verwijderen), zodat het niet meer de `Image Src` images overschrijft. Variant images zitten al in `_variants_json`.
+
 ```ts
-'_variants_json': { target: '_variants_json' },
-'_option1_name': { target: '_option1_name' },
-'_option2_name': { target: '_option2_name' },
-'_option3_name': { target: '_option3_name' },
-'_variant_count': { target: '_variant_count' },
+// WAS:
+'Variant Image': { target: 'images', transform: 'imageArray' },
+// WORDT:
+'Variant Image': { target: 'raw_import_data', transform: 'jsonString:variant_image' },
 ```
 
-**3. `src/components/admin/import/FieldMappingStep.tsx`** — Interne velden verbergen in dropdown
+2. **`imageArray` transform robuuster maken**: als het resultaat een lege array is en er al een waarde bestaat voor het target veld, niet overschrijven. Dit als extra veiligheid.
 
-Filter velden die met `_variant` of `_option` beginnen uit de Select opties, zodat ze niet zichtbaar zijn voor de gebruiker maar wel doorgegeven worden.
-
-### Resultaat
-- `_variants_json` bereikt de edge function → varianten worden aangemaakt
-- `_option1_name` etc. bereiken de edge function → opties krijgen juiste namen (Maat, Kleur etc.)
-- Variant afbeeldingen (in `_variants_json.image`) worden opgeslagen als `image_url` op de variant
-- Product afbeeldingen via `Image Src` consolidatie werken al correct
+In `transformRecord`, voeg array-merge logica toe:
+```ts
+// Na transformatie, als het een array is:
+if (Array.isArray(transformedValue)) {
+  const existing = result[config.target];
+  if (Array.isArray(existing)) {
+    // Merge arrays, deduplicate
+    result[config.target] = [...new Set([...existing, ...transformedValue])];
+    continue;
+  }
+}
+```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/types/import.ts` | 4 interne keys toevoegen aan `PRODUCT_TARGET_FIELDS` |
-| `src/lib/importMappings.ts` | 5 pass-through mappings toevoegen aan `SHOPIFY_PRODUCT_MAPPING` |
-| `src/components/admin/import/FieldMappingStep.tsx` | Interne velden verbergen in dropdown |
+| `src/lib/importMappings.ts` | Variant Image target wijzigen + array merge in transformRecord |
 
 ### Geen database of edge function wijzigingen nodig
-De edge function variant-code is correct — alleen de data-pipeline ernaar toe was kapot.
 
