@@ -25,7 +25,9 @@ export default function CustomersPage() {
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('crm');
   const { customers, isLoading, createCustomer, deleteCustomer } = useCustomers(search);
+  const { storefrontCustomers, isLoading: sfLoading } = useStorefrontCustomers(search);
 
   // Filter customers by type
   const filteredCustomers = typeFilter === 'all' 
