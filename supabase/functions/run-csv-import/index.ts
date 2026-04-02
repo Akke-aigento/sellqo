@@ -527,7 +527,7 @@ async function importProductVariants(
 
     // Step 1: Build and upsert product_variant_options
     const optionValuesMap = new Map<string, Set<string>>();
-    for (const v of variants) {
+    for (const v of realVariants) {
       const vals = [v.option1, v.option2, v.option3];
       for (let i = 0; i < optionNames.length; i++) {
         const val = vals[i]?.trim();
