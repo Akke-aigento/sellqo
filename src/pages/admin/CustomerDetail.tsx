@@ -33,6 +33,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatCurrency } from '@/lib/utils';
 import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
+import { CustomerActivityTab } from '@/components/admin/customers/CustomerActivityTab';
 import type { Customer } from '@/types/order';
 
 export default function CustomerDetailPage() {
