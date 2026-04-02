@@ -3722,6 +3722,73 @@ export type Database = {
           },
         ]
       }
+      customer_events: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_hash: string | null
+          page_url: string | null
+          referrer_url: string | null
+          session_id: string | null
+          storefront_customer_id: string | null
+          tenant_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          page_url?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          storefront_customer_id?: string | null
+          tenant_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          page_url?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          storefront_customer_id?: string | null
+          tenant_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_storefront_customer_id_fkey"
+            columns: ["storefront_customer_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_group_members: {
         Row: {
           customer_group_id: string
