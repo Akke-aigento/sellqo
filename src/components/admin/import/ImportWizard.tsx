@@ -147,6 +147,12 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
         }
 
         console.log(`Processing ${dataType}: ${records.length} records in ${batches.length} batches`);
+        if (dataType === 'products' && records.length > 0) {
+          const first = records[0];
+          console.log('[CSV IMPORT POST] First record keys:', Object.keys(first));
+          console.log('[CSV IMPORT POST] _variants_json present:', '_variants_json' in first, 'value:', typeof first._variants_json, first._variants_json ? String(first._variants_json).substring(0, 200) : 'MISSING');
+          console.log('[CSV IMPORT POST] _option1_name:', first._option1_name, '_option2_name:', first._option2_name);
+        }
 
         // Process each batch
         for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {

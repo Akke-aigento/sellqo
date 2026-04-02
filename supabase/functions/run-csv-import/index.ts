@@ -502,7 +502,11 @@ async function importProductVariants(
   record: Record<string, unknown>
 ) {
   const variantsJson = record._variants_json as string;
-  if (!variantsJson) return;
+  console.log(`[VARIANTS] productId=${productId} _variants_json present=${!!variantsJson} type=${typeof variantsJson} length=${variantsJson ? String(variantsJson).length : 0}`);
+  if (!variantsJson) {
+    console.log(`[VARIANTS] Record keys for this product:`, Object.keys(record));
+    return;
+  }
 
   try {
     const variants: Array<{
