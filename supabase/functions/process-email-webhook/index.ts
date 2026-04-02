@@ -127,7 +127,7 @@ Deno.serve(async (req: Request) => {
         if (clickData?.link) {
           const { data: campaign } = await supabase
             .from("email_campaigns")
-            .select("tenant_id")
+            .select("tenant_id, name")
             .eq("id", send.campaign_id)
             .single();
 
@@ -141,6 +141,20 @@ Deno.serve(async (req: Request) => {
               clicked_at: clickData.timestamp || now,
               user_agent: clickData.user_agent,
             });
+
+            // Write to customer_events for unified timeline
+            if (send.customer_id) {
+              await supabase.from("customer_events").insert({
+                tenant_id: campaign.tenant_id,
+                customer_id: send.customer_id,
+                event_type: "email_click",
+                event_data: {
+                  campaign_id: send.campaign_id,
+                  campaign_name: campaign.name,
+                  link_url: clickData.link,
+                },
+              });
+            }
           }
         }
 
