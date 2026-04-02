@@ -551,7 +551,7 @@ async function importProductVariants(
       tenant_id: tenantId,
       name,
       values: Array.from(valuesSet),
-      sort_order: idx,
+      position: idx,
     }));
 
     if (optionRows.length > 0) {
