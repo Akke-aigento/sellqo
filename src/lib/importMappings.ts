@@ -692,6 +692,14 @@ export function transformRecord(
     }
   }
   
+  // Pass through internal variant fields directly from source row
+  const internalFields = ['_variants_json', '_option1_name', '_option2_name', '_option3_name', '_variant_count'];
+  for (const field of internalFields) {
+    if (row[field] !== undefined && row[field] !== '') {
+      result[field] = row[field];
+    }
+  }
+
   return result;
 }
 
