@@ -571,10 +571,13 @@ async function importProductVariants(
     }));
 
     if (optionRows.length > 0) {
-      const { error: optError } = await supabase
+      console.log(`[VARIANTS] Inserting ${optionRows.length} variant options:`, JSON.stringify(optionRows));
+      const { data: optData, error: optError } = await supabase
         .from("product_variant_options")
-        .insert(optionRows);
-      if (optError) console.error("Failed to insert variant options:", optError);
+        .insert(optionRows)
+        .select();
+      if (optError) console.error("[VARIANTS] Failed to insert variant options:", optError);
+      else console.log(`[VARIANTS] Successfully inserted ${optData?.length} variant options`);
     }
 
     // Step 2: Upsert product_variants
