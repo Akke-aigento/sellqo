@@ -509,6 +509,13 @@ async function importProductVariants(
 
     if (!variants.length) return;
 
+    // Filter out "Default Title" — not real variants
+    const realVariants = variants.filter(v => v.option1?.trim().toLowerCase() !== 'default title');
+    if (realVariants.length === 0) {
+      console.log(`[variants] Skipping Default Title variants for product ${productId}`);
+      return;
+    }
+
     // Read option names from consolidated record
     const optionNames: string[] = [];
     if (record._option1_name) optionNames.push(String(record._option1_name));
@@ -520,7 +527,7 @@ async function importProductVariants(
 
     // Step 1: Build and upsert product_variant_options
     const optionValuesMap = new Map<string, Set<string>>();
-    for (const v of variants) {
+    for (const v of realVariants) {
       const vals = [v.option1, v.option2, v.option3];
       for (let i = 0; i < optionNames.length; i++) {
         const val = vals[i]?.trim();
@@ -544,7 +551,7 @@ async function importProductVariants(
       tenant_id: tenantId,
       name,
       values: Array.from(valuesSet),
-      sort_order: idx,
+      position: idx,
     }));
 
     if (optionRows.length > 0) {
@@ -555,7 +562,7 @@ async function importProductVariants(
     }
 
     // Step 2: Upsert product_variants
-    for (const v of variants) {
+    for (const v of realVariants) {
       const attributeValues: Record<string, string> = {};
       const titleParts: string[] = [];
       const vals = [v.option1, v.option2, v.option3];
@@ -651,7 +658,7 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
     weight: record.weight ? parseFloat(String(record.weight)) : null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     images: Array.isArray(record.images) ? record.images : [],
-    featured_image: record.featured_image || null,
+    featured_image: record.featured_image || (Array.isArray(record.images) && record.images.length > 0 ? record.images[0] : null),
     meta_title: record.meta_title || null,
     meta_description: record.meta_description || null,
     is_active: record.is_active ?? true,
