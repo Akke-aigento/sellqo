@@ -96,12 +96,41 @@ export function ProductGridView({ products }: ProductGridViewProps) {
 
     setIsSaving(true);
     try {
-      // Save each product's changes
       for (const change of changes) {
-        await updateProduct.mutateAsync({
-          id: change.id,
-          data: change.data as any,
-        });
+        // Handle category_id multi-select separately via junction table
+        if ('category_id' in change.data) {
+          const categoryIds = change.data.category_id as string[];
+          delete change.data.category_id;
+
+          // Set primary category_id on product
+          const primaryCategoryId = categoryIds.length > 0 ? categoryIds[0] : null;
+          change.data.category_id = primaryCategoryId;
+
+          // Sync junction table
+          await supabase
+            .from('product_categories')
+            .delete()
+            .eq('product_id', change.id);
+
+          if (categoryIds.length > 0) {
+            await supabase
+              .from('product_categories')
+              .insert(categoryIds.map((catId, idx) => ({
+                product_id: change.id,
+                category_id: catId,
+                is_primary: idx === 0,
+              })));
+          }
+        }
+
+        // Save remaining product fields
+        const remainingData = { ...change.data };
+        if (Object.keys(remainingData).length > 0) {
+          await updateProduct.mutateAsync({
+            id: change.id,
+            data: remainingData as any,
+          });
+        }
       }
       
       grid.clearAllPendingChanges();
