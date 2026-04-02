@@ -6,6 +6,7 @@ import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
 import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
@@ -48,11 +49,15 @@ export function AdminSidebar() {
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
   const { subscription } = useTenantSubscription();
+  const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
   // Check if item should be hidden based on subscription features
   const isItemFeatureHidden = (item: NavItem): boolean => {
     if (!item.featureKey) return false;
+    
+    // Platform admins in admin view see everything
+    if (isPlatformAdmin && isAdminView) return false;
     
     const features = subscription?.pricing_plan?.features;
     if (!features) return true; // No subscription = hide premium features
