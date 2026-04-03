@@ -233,93 +233,95 @@ export function OrderBulkActions({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border">
-        <span className="text-sm font-medium whitespace-nowrap">
-          {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
-        </span>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 max-w-screen-xl mx-auto">
+          <span className="text-sm font-medium whitespace-nowrap">
+            {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
+          </span>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" disabled={!!loadingAction}>
-              {loadingAction ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-              Acties
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            {/* Status sub-menu */}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Clock className="h-4 w-4 mr-2" />
-                Status wijzigen
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => handleBulkStatusUpdate('pending')}>
-                  <Clock className="h-4 w-4 mr-2" /> In afwachting
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkStatusUpdate('processing')}>
-                  <Clock className="h-4 w-4 mr-2" /> In behandeling
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkStatusUpdate('shipped')}>
-                  <Truck className="h-4 w-4 mr-2" /> Verzonden
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkStatusUpdate('delivered')}>
-                  <CheckCircle className="h-4 w-4 mr-2" /> Afgeleverd
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleBulkStatusUpdate('cancelled')} className="text-destructive">
-                  <Ban className="h-4 w-4 mr-2" /> Geannuleerd
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" disabled={!!loadingAction}>
+                {loadingAction ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
+                Acties
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {/* Status sub-menu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Status wijzigen
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('pending')}>
+                    <Clock className="h-4 w-4 mr-2" /> In afwachting
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('processing')}>
+                    <Clock className="h-4 w-4 mr-2" /> In behandeling
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('shipped')}>
+                    <Truck className="h-4 w-4 mr-2" /> Verzonden
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('delivered')}>
+                    <CheckCircle className="h-4 w-4 mr-2" /> Afgeleverd
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleBulkStatusUpdate('cancelled')} className="text-destructive">
+                    <Ban className="h-4 w-4 mr-2" /> Geannuleerd
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-            {/* Payment sub-menu */}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Betaalstatus wijzigen
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('paid')}>
-                  <CheckCircle className="h-4 w-4 mr-2" /> Betaald
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('pending')}>
-                  <Clock className="h-4 w-4 mr-2" /> In afwachting
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('refunded')}>
-                  <CreditCard className="h-4 w-4 mr-2" /> Terugbetaald
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+              {/* Payment sub-menu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Betaalstatus wijzigen
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('paid')}>
+                    <CheckCircle className="h-4 w-4 mr-2" /> Betaald
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('pending')}>
+                    <Clock className="h-4 w-4 mr-2" /> In afwachting
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('refunded')}>
+                    <CreditCard className="h-4 w-4 mr-2" /> Terugbetaald
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={handleDownloadPackingSlips}>
-              <FileText className="h-4 w-4 mr-2" /> Pakbonnen downloaden
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadPackingSlips}>
+                <FileText className="h-4 w-4 mr-2" /> Pakbonnen downloaden
+              </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={() => setBatchPrintOpen(true)}>
-              <Printer className="h-4 w-4 mr-2" /> Labels printen
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setBatchPrintOpen(true)}>
+                <Printer className="h-4 w-4 mr-2" /> Labels printen
+              </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={handleExportCsv}>
-              <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCsv}>
+                <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem
-              onClick={() => setDeleteDialogOpen(true)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Verwijderen
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem
+                onClick={() => setDeleteDialogOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Verwijderen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <Button size="sm" variant="ghost" onClick={onClearSelection}>
-          <XCircle className="h-4 w-4 mr-2" />
-          Deselecteer
-        </Button>
+          <Button size="sm" variant="ghost" onClick={onClearSelection} className="ml-auto">
+            <XCircle className="h-4 w-4 mr-2" />
+            Deselecteer
+          </Button>
+        </div>
       </div>
 
       {/* Batch Print Dialog */}
