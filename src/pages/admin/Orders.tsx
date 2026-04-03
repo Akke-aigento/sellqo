@@ -22,6 +22,7 @@ import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/typ
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
