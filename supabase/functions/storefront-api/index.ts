@@ -1683,6 +1683,7 @@ serve(async (req) => {
       case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
       case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
       case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
+      case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
       default:
         return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
