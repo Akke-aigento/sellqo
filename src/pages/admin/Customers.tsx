@@ -263,7 +263,7 @@ export default function CustomersPage() {
               </TableBody>
             </Table>
             </div></div>
-          )
+          )}
         </CardContent>
       </Card>
     </div>
