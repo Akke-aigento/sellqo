@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransactionUsage } from '@/hooks/useTransactionUsage';
 import type { PaymentMethodType } from '@/types/billing';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 interface TenantPaymentConfig {
   payment_methods_enabled: PaymentMethodType[];
