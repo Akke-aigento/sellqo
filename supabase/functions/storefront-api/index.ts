@@ -1313,53 +1313,455 @@ async function cartRemoveDiscount(supabase: any, tenantId: string, params: Recor
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
-// ============== CHECKOUT ACTIONS ==============
+// ============== CHECKOUT ACTIONS (Stateful Multi-Step) ==============
+
+function deriveCheckoutStatus(order: any): string {
+  if (order.payment_status === 'paid') return 'payment_completed';
+  if (order.payment_method) return 'payment_pending';
+  if (order.shipping_method_id) return 'shipping_selected';
+  if (order.shipping_address) return 'address_saved';
+  if (order.customer_email && order.customer_email !== 'checkout@pending.temp') return 'customer_saved';
+  return 'checkout_started';
+}
 
 async function checkoutStart(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  if (!cartId) throw new Error('cart_id is required');
+  if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
 
   const cart = await cartGet(supabase, tenantId, { cart_id: cartId });
-  if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+  if (!cart || cart.items.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is empty' } };
 
-  const result: any = {
-    cart_id: cartId,
-    items: cart.items,
-    subtotal: cart.subtotal,
-    currency: cart.currency,
-    discount_code: cart.discount_code,
-    status: 'started',
-  };
-
-  // If success_url and cancel_url are provided, enrich response with payment & shipping methods
-  // This allows single-call frontends to get all checkout info in one request
-  if (params.success_url && params.cancel_url) {
-    const [paymentMethods, shippingMethods] = await Promise.all([
-      checkoutGetPaymentMethods(supabase, tenantId),
-      checkoutGetShippingOptions(supabase, tenantId, { subtotal: cart.subtotal }),
-    ]);
-    result.payment_methods = paymentMethods;
-    result.shipping_methods = shippingMethods;
-    result.success_url = params.success_url;
-    result.cancel_url = params.cancel_url;
+  // Validate stock
+  for (const item of cart.items) {
+    if (item.product && !item.product.in_stock) {
+      return { success: false, error: { code: 'VALIDATION_ERROR', message: `${item.product.name} is niet meer op voorraad` } };
+    }
   }
 
-  return result;
+  // Get tenant for VAT/currency
+  const { data: tenant } = await supabase
+    .from('tenants').select('default_vat_rate, currency')
+    .eq('id', tenantId).single();
+
+  const currency = tenant?.currency || 'EUR';
+  const subtotal = cart.subtotal;
+
+  // Generate order number
+  const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
+
+  // Create order with temp customer_email (NOT NULL constraint)
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      tenant_id: tenantId,
+      order_number: orderNumber,
+      status: 'pending',
+      payment_status: 'pending',
+      subtotal,
+      tax_amount: 0,
+      shipping_cost: 0,
+      discount_amount: 0,
+      total: subtotal,
+      customer_email: 'checkout@pending.temp',
+      currency,
+    })
+    .select('id, order_number').single();
+  if (orderError) throw orderError;
+
+  // Create order items
+  const orderItems = cart.items.map((item: any) => ({
+    order_id: order.id,
+    product_id: item.product_id,
+    product_name: item.product?.name || item.product_name || '',
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total_price: item.line_total,
+    product_sku: item.product?.sku || null,
+    product_image: item.product?.image || null,
+    variant_id: item.variant_id || null,
+    variant_title: item.variant?.title || null,
+  }));
+  const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+  if (itemsError) throw itemsError;
+
+  // Get available methods
+  const [paymentMethods, shippingMethods] = await Promise.all([
+    checkoutGetPaymentMethods(supabase, tenantId),
+    checkoutGetShippingOptions(supabase, tenantId, { subtotal }),
+  ]);
+
+  const items = cart.items.map((item: any) => ({
+    id: item.id,
+    product_id: item.product_id,
+    product_name: item.product?.name || item.product_name || '',
+    variant_id: item.variant_id || null,
+    variant_name: item.variant?.title || null,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    line_total: item.line_total,
+    image: item.product?.image || null,
+  }));
+
+  return {
+    order_id: order.id,
+    status: 'checkout_started',
+    items,
+    subtotal,
+    currency,
+    requires_shipping: shippingMethods.length > 0,
+    available_payment_methods: paymentMethods,
+    available_shipping_methods: shippingMethods,
+  };
 }
 
-async function checkoutSetAddresses(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  // Store addresses temporarily — they'll be used when placing the order
-  const { shipping_address, billing_address, email, phone } = params as {
-    shipping_address: any; billing_address?: any; email: string; phone?: string;
+async function checkoutCustomer(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  const customer = params.customer as any;
+  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id is required' } };
+  if (!customer?.email) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'E-mailadres is verplicht', fields: { email: 'E-mailadres is verplicht' } } };
+  if (!customer?.first_name) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Voornaam is verplicht', fields: { first_name: 'Voornaam is verplicht' } } };
+  if (!customer?.last_name) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Achternaam is verplicht', fields: { last_name: 'Achternaam is verplicht' } } };
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(customer.email)) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Ongeldig e-mailadres', fields: { email: 'Ongeldig e-mailadres' } } };
+
+  // Find or create customer record
+  let customerId: string | null = null;
+  const { data: existing } = await supabase
+    .from('customers').select('id')
+    .eq('tenant_id', tenantId).eq('email', customer.email).maybeSingle();
+
+  if (existing) {
+    customerId = existing.id;
+  } else {
+    const { data: newCust } = await supabase
+      .from('customers')
+      .insert({
+        tenant_id: tenantId, email: customer.email,
+        first_name: customer.first_name, last_name: customer.last_name,
+        phone: customer.phone || null, customer_type: 'consumer',
+      })
+      .select('id').single();
+    customerId = newCust?.id || null;
+  }
+
+  // Update order
+  const { error } = await supabase.from('orders').update({
+    customer_email: customer.email,
+    customer_name: `${customer.first_name} ${customer.last_name}`,
+    customer_phone: customer.phone || null,
+    customer_id: customerId,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId).eq('tenant_id', tenantId);
+  if (error) throw error;
+
+  return { order_id: orderId, status: 'customer_saved' };
+}
+
+async function checkoutAddress(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  const shippingAddress = params.shipping_address as any;
+  const billingSameAsShipping = params.billing_same_as_shipping !== false;
+  const billingAddress = billingSameAsShipping ? shippingAddress : (params.billing_address as any);
+
+  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id is required' } };
+  if (!shippingAddress?.street || !shippingAddress?.city || !shippingAddress?.postal_code || !shippingAddress?.country) {
+    return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Onvolledig adres', fields: { shipping_address: 'Straat, stad, postcode en land zijn verplicht' } } };
+  }
+
+  const { error } = await supabase.from('orders').update({
+    shipping_address: shippingAddress,
+    billing_address: billingAddress || shippingAddress,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId).eq('tenant_id', tenantId);
+  if (error) throw error;
+
+  return { order_id: orderId, status: 'address_saved' };
+}
+
+async function checkoutShipping(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  const shippingMethodId = params.shipping_method_id as string;
+  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id is required' } };
+  if (!shippingMethodId) return { success: false, error: { code: 'SHIPPING_NOT_AVAILABLE', message: 'shipping_method_id is required' } };
+
+  const { data: method } = await supabase
+    .from('shipping_methods').select('id, name, price, free_above')
+    .eq('id', shippingMethodId).eq('tenant_id', tenantId).single();
+  if (!method) return { success: false, error: { code: 'SHIPPING_NOT_AVAILABLE', message: 'Verzendmethode niet gevonden' } };
+
+  const { data: order } = await supabase.from('orders').select('subtotal, discount_amount').eq('id', orderId).single();
+  if (!order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
+
+  const shippingCost = method.free_above && order.subtotal >= method.free_above ? 0 : method.price;
+  const total = order.subtotal - (order.discount_amount || 0) + shippingCost;
+
+  const { error } = await supabase.from('orders').update({
+    shipping_method_id: shippingMethodId,
+    shipping_cost: shippingCost,
+    total,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId).eq('tenant_id', tenantId);
+  if (error) throw error;
+
+  return { order_id: orderId, status: 'shipping_selected', shipping_cost: shippingCost, subtotal: order.subtotal, total };
+}
+
+async function checkoutComplete(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  const paymentMethodId = params.payment_method_id as string || params.payment_method as string;
+  const successUrl = params.success_url as string;
+  const cancelUrl = params.cancel_url as string;
+
+  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id is required' } };
+  if (!paymentMethodId) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'payment_method_id is required' } };
+
+  // Get full order
+  const { data: order, error: orderErr } = await supabase
+    .from('orders')
+    .select('id, order_number, tenant_id, subtotal, shipping_cost, discount_amount, total, customer_email, shipping_address, billing_address, shipping_method_id, payment_status, currency')
+    .eq('id', orderId).eq('tenant_id', tenantId).single();
+  if (orderErr || !order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
+  if (order.payment_status === 'paid') return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Order is al betaald' } };
+
+  // Validate required fields
+  if (!order.customer_email || order.customer_email === 'checkout@pending.temp') {
+    return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Klantgegevens zijn nog niet ingevuld' } };
+  }
+
+  // Get order items for Stripe
+  const { data: orderItems } = await supabase
+    .from('order_items')
+    .select('product_name, quantity, unit_price, product_id, variant_id')
+    .eq('order_id', orderId);
+
+  // Update payment method on order
+  await supabase.from('orders').update({
+    payment_method: paymentMethodId,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId);
+
+  // Decrement stock
+  if (orderItems) {
+    for (const item of orderItems) {
+      if (item.variant_id) {
+        await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+      } else if (item.product_id) {
+        await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+      }
+    }
+  }
+
+  // Calculate VAT
+  const { data: tenantData } = await supabase
+    .from('tenants').select('default_vat_rate, stripe_account_id, iban, name')
+    .eq('id', tenantId).single();
+  const vatRate = tenantData?.default_vat_rate || 21;
+  const vatAmount = Math.round(order.subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
+  await supabase.from('orders').update({ tax_amount: vatAmount }).eq('id', orderId);
+
+  if (paymentMethodId === 'stripe' && tenantData?.stripe_account_id) {
+    if (!successUrl || !cancelUrl) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'success_url en cancel_url zijn verplicht voor Stripe' } };
+
+    const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
+
+    const lineItems = (orderItems || []).map((item: any) => ({
+      price_data: {
+        currency: (order.currency || 'EUR').toLowerCase(),
+        product_data: { name: item.product_name || 'Product' },
+        unit_amount: Math.round(item.unit_price * 100),
+      },
+      quantity: item.quantity,
+    }));
+
+    if (order.shipping_cost > 0) {
+      lineItems.push({
+        price_data: {
+          currency: (order.currency || 'EUR').toLowerCase(),
+          product_data: { name: 'Verzending' },
+          unit_amount: Math.round(order.shipping_cost * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: order.customer_email,
+      metadata: { order_id: order.id, tenant_id: tenantId },
+      payment_intent_data: {
+        application_fee_amount: Math.round(order.total * 0.05 * 100),
+        transfer_data: { destination: tenantData.stripe_account_id },
+      },
+    });
+
+    await supabase.from('orders').update({ stripe_checkout_session_id: session.id }).eq('id', orderId);
+
+    return {
+      order_id: order.id,
+      status: 'payment_pending',
+      payment_type: 'redirect',
+      checkout_url: session.url,
+    };
+  }
+
+  if (paymentMethodId === 'bank_transfer') {
+    return {
+      order_id: order.id,
+      status: 'payment_pending',
+      payment_type: 'manual',
+      order_number: order.order_number,
+      total: order.total,
+      currency: order.currency || 'EUR',
+      bank_details: {
+        account_holder: tenantData?.name || '',
+        iban: tenantData?.iban || '',
+        reference: order.order_number,
+      },
+    };
+  }
+
+  // QR transfer
+  if (paymentMethodId === 'qr_transfer') {
+    const iban = tenantData?.iban || '';
+    const name = tenantData?.name || '';
+    const amount = order.total.toFixed(2);
+    const ref = order.order_number;
+    const qrPayload = `BCD\n002\n1\nSCT\n\n${name}\n${iban}\nEUR${amount}\n\n\n${ref}\n`;
+
+    return {
+      order_id: order.id,
+      status: 'payment_pending',
+      payment_type: 'qr',
+      order_number: order.order_number,
+      total: order.total,
+      qr_data: { payload: qrPayload },
+    };
+  }
+
+  return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Onbekende betaalmethode' } };
+}
+
+async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id is required' } };
+
+  const { data: order, error } = await supabase
+    .from('orders')
+    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, total, currency, shipping_address, billing_address, customer_email, customer_name, customer_phone, shipping_method_id, created_at')
+    .eq('id', orderId).eq('tenant_id', tenantId).single();
+  if (error || !order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
+
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('id, product_id, product_name, product_sku, product_image, quantity, unit_price, total_price, variant_id, variant_title')
+    .eq('order_id', orderId);
+
+  // Get shipping method details if set
+  let shippingMethod = null;
+  if (order.shipping_method_id) {
+    const { data: sm } = await supabase.from('shipping_methods').select('id, name, price').eq('id', order.shipping_method_id).single();
+    shippingMethod = sm;
+  }
+
+  return {
+    order_id: order.id,
+    order_number: order.order_number,
+    status: deriveCheckoutStatus(order),
+    items: items || [],
+    customer: order.customer_email !== 'checkout@pending.temp' ? {
+      email: order.customer_email,
+      name: order.customer_name,
+      phone: order.customer_phone,
+    } : null,
+    shipping_address: order.shipping_address,
+    billing_address: order.billing_address,
+    shipping_method: shippingMethod,
+    payment_method: order.payment_method,
+    subtotal: order.subtotal,
+    shipping_cost: order.shipping_cost,
+    discount: order.discount_amount,
+    total: order.total,
+    currency: order.currency,
   };
+}
+
+async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  const discountCode = params.discount_code as string;
+  if (!orderId || !discountCode) return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'order_id en discount_code zijn verplicht' } };
+
+  const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode });
+  if (!validation.valid) return { success: false, error: { code: 'DISCOUNT_INVALID', message: validation.error || 'Ongeldige kortingscode' } };
+
+  const { data: order } = await supabase.from('orders').select('subtotal, shipping_cost').eq('id', orderId).eq('tenant_id', tenantId).single();
+  if (!order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
+
+  const discountAmount = calculateDiscountValue(order.subtotal, validation.discount_type, validation.discount_value, validation.max_discount_amount);
+  const total = order.subtotal - discountAmount + (order.shipping_cost || 0);
+
+  await supabase.from('orders').update({
+    discount_code: discountCode,
+    discount_amount: discountAmount,
+    total,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId);
+
+  return {
+    order_id: orderId,
+    discount_code: discountCode,
+    discount_type: validation.discount_type,
+    discount_value: validation.discount_value,
+    discount_amount: discountAmount,
+    subtotal: order.subtotal,
+    total,
+  };
+}
+
+async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id is required' } };
+
+  const { data: order } = await supabase.from('orders').select('subtotal, shipping_cost').eq('id', orderId).eq('tenant_id', tenantId).single();
+  if (!order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
+
+  const total = order.subtotal + (order.shipping_cost || 0);
+  await supabase.from('orders').update({
+    discount_code: null, discount_amount: 0, total,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId);
+
+  return { order_id: orderId, subtotal: order.subtotal, total };
+}
+
+// Legacy compatibility wrappers
+
+async function checkoutSetAddresses(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  // If order_id present, route to new flow
+  if (params.order_id) {
+    await checkoutCustomer(supabase, tenantId, {
+      order_id: params.order_id,
+      customer: { email: params.email, first_name: (params.shipping_address as any)?.first_name, last_name: (params.shipping_address as any)?.last_name, phone: params.phone },
+    });
+    return checkoutAddress(supabase, tenantId, {
+      order_id: params.order_id,
+      shipping_address: params.shipping_address,
+      billing_address: params.billing_address,
+      billing_same_as_shipping: !params.billing_address,
+    });
+  }
+  // Legacy stateless return
+  const { shipping_address, billing_address, email, phone } = params as any;
   if (!shipping_address || !email) throw new Error('shipping_address and email are required');
   return { status: 'addresses_set', shipping_address, billing_address: billing_address || shipping_address, email, phone };
 }
 
 async function checkoutGetShippingOptions(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const country = (params.country as string) || 'NL';
   const subtotal = Number(params.subtotal) || 0;
-
   const methods = await getShippingMethods(supabase, tenantId);
   return methods.map((m: any) => ({
     ...m,
@@ -1375,7 +1777,7 @@ async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
 
   const methods: any[] = [];
   if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled) {
-    methods.push({ id: 'stripe', name: 'Online betalen', description: 'Betaal met iDEAL, creditcard of andere methoden', type: 'online' });
+    methods.push({ id: 'stripe', name: 'Online betalen', description: 'iDEAL, creditcard, Bancontact', type: 'online' });
   }
   if (tenant?.iban) {
     methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: `Betaal via overschrijving naar ${tenant.name || 'de verkoper'}`, type: 'manual' });
@@ -1384,176 +1786,66 @@ async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
 }
 
 async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const { cart_id, shipping_address, billing_address, email, phone, shipping_method_id, payment_method, customer_note } = params as {
-    cart_id: string; shipping_address: any; billing_address?: any; email: string; phone?: string;
-    shipping_method_id: string; payment_method: string; customer_note?: string;
-  };
+  // Legacy wrapper: runs full checkout in one call
+  const { cart_id, shipping_address, billing_address, email, phone, shipping_method_id, payment_method, customer_note, success_url, cancel_url } = params as any;
 
   if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
     throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
   }
 
-  // 1. Get cart with items
-  const cart = await cartGet(supabase, tenantId, { cart_id });
-  if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+  // Step 1: Start checkout
+  const startResult = await checkoutStart(supabase, tenantId, { cart_id });
+  if (startResult.error) throw new Error(startResult.error.message);
+  const orderId = startResult.order_id;
 
-  // 2. Validate stock for all items
-  for (const item of cart.items) {
-    if (item.product && !item.product.in_stock) throw new Error(`${item.product.name} is niet meer op voorraad`);
+  // Step 2: Customer
+  await checkoutCustomer(supabase, tenantId, {
+    order_id: orderId,
+    customer: { email, first_name: shipping_address.first_name || '', last_name: shipping_address.last_name || '', phone },
+  });
+
+  // Step 3: Address
+  await checkoutAddress(supabase, tenantId, {
+    order_id: orderId,
+    shipping_address,
+    billing_address,
+    billing_same_as_shipping: !billing_address,
+  });
+
+  // Step 4: Shipping
+  await checkoutShipping(supabase, tenantId, {
+    order_id: orderId,
+    shipping_method_id,
+  });
+
+  // Step 5: Notes
+  if (customer_note) {
+    await supabase.from('orders').update({ notes: customer_note }).eq('id', orderId);
   }
 
-  // 3. Get shipping method
-  const { data: shippingMethod } = await supabase
-    .from('shipping_methods').select('id, name, price, free_above')
-    .eq('id', shipping_method_id).eq('tenant_id', tenantId).single();
-  if (!shippingMethod) throw new Error('Shipping method not found');
-  const shippingCost = shippingMethod.free_above && cart.subtotal >= shippingMethod.free_above ? 0 : shippingMethod.price;
+  // Step 6: Complete
+  const completeResult = await checkoutComplete(supabase, tenantId, {
+    order_id: orderId,
+    payment_method_id: payment_method,
+    success_url: success_url || params.origin ? `${params.origin}/order-confirmation?order_id=${orderId}` : undefined,
+    cancel_url: cancel_url || params.origin ? `${params.origin}/checkout?cancelled=true` : undefined,
+  });
 
-  // 4. Get tenant for VAT
-  const { data: tenant } = await supabase
-    .from('tenants').select('default_vat_rate, currency, stripe_account_id')
-    .eq('id', tenantId).single();
-  const vatRate = tenant?.default_vat_rate || 21;
-  const subtotal = cart.subtotal;
-  const vatAmount = Math.round(subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
-  const total = subtotal + shippingCost;
-
-  // 5. Find or create customer
-  let customerId: string | null = null;
-  const { data: existingCustomer } = await supabase
-    .from('customers').select('id')
-    .eq('tenant_id', tenantId).eq('email', email).maybeSingle();
-
-  if (existingCustomer) {
-    customerId = existingCustomer.id;
-  } else {
-    const { data: newCustomer } = await supabase
-      .from('customers')
-      .insert({
-        tenant_id: tenantId, email, first_name: shipping_address.first_name || '',
-        last_name: shipping_address.last_name || '', phone: phone || null,
-        customer_type: 'consumer', source: 'storefront',
-      })
-      .select('id').single();
-    customerId = newCustomer?.id || null;
-  }
-
-  // 6. Generate order number
-  const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
-
-  // 7. Create order
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
-    .insert({
-      tenant_id: tenantId, customer_id: customerId, order_number: orderNumber,
-      status: 'pending', payment_status: 'pending', payment_method,
-      subtotal, shipping_cost: shippingCost, tax: vatAmount, total,
-      currency: tenant?.currency || 'EUR',
-      shipping_address, billing_address: billing_address || shipping_address,
-      customer_email: email, customer_phone: phone || null,
-      notes: customer_note || null,
-      source: 'storefront',
-    })
-    .select('id, order_number').single();
-  if (orderError) throw orderError;
-
-  // 8. Create order items (with variant support)
-  const orderItems = cart.items.map((item: any) => ({
-    order_id: order.id, tenant_id: tenantId, product_id: item.product_id,
-    product_name: item.product?.name || '', quantity: item.quantity,
-    unit_price: item.unit_price, total: item.line_total,
-    sku: null, product_image: item.product?.image || null,
-    variant_id: item.variant_id || null,
-    variant_title: item.variant?.title || null,
-  }));
-
-  const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-  if (itemsError) throw itemsError;
-
-  // 9. Decrement stock (variant-level if applicable)
-  for (const item of cart.items) {
-    if (item.variant_id) {
-      await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
-    } else {
-      await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
-    }
-  }
-
-  // 10. Clear cart
-  await supabase.from('storefront_cart_items').delete().eq('cart_id', cart_id);
-  await supabase.from('storefront_carts').delete().eq('id', cart_id);
-
-  // 11. Handle payment
-  if (payment_method === 'stripe' && tenant?.stripe_account_id) {
-    // Create Stripe checkout session via the existing create-checkout-session function pattern
-    const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
-
-    const lineItems = cart.items.map((item: any) => ({
-      price_data: {
-        currency: (tenant?.currency || 'EUR').toLowerCase(),
-        product_data: { name: item.product?.name || 'Product' },
-        unit_amount: Math.round(item.unit_price * 100),
-      },
-      quantity: item.quantity,
-    }));
-
-    if (shippingCost > 0) {
-      lineItems.push({
-        price_data: {
-          currency: (tenant?.currency || 'EUR').toLowerCase(),
-          product_data: { name: shippingMethod.name || 'Verzending' },
-          unit_amount: Math.round(shippingCost * 100),
-        },
-        quantity: 1,
-      });
-    }
-
-    const origin = params.origin as string || 'https://sellqo.lovable.app';
-    const successUrl = params.success_url as string || `${origin}/order-confirmation?order_id=${order.id}`;
-    const cancelUrl = params.cancel_url as string || `${origin}/checkout?cancelled=true`;
-    const session = await stripe.checkout.sessions.create({
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      customer_email: email,
-      metadata: { order_id: order.id, tenant_id: tenantId },
-      payment_intent_data: {
-        application_fee_amount: Math.round(total * 0.05 * 100), // 5% platform fee
-        transfer_data: { destination: tenant.stripe_account_id },
-      },
-    });
-
-    return { order_id: order.id, order_number: order.order_number, payment_url: session.url, payment_method: 'stripe' };
-  }
-
-  // Bank transfer
-  return { order_id: order.id, order_number: order.order_number, payment_method: 'bank_transfer', total };
+  // Map to legacy response format
+  return {
+    order_id: orderId,
+    order_number: completeResult.order_number || startResult.order_number,
+    payment_url: completeResult.checkout_url || null,
+    payment_method: payment_method,
+    total: completeResult.total,
+  };
 }
 
 async function checkoutCreateSession(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const { cart_id, shipping_address, email, shipping_method_id, payment_method, success_url, cancel_url } = params as {
-    cart_id: string; shipping_address: any; email: string;
-    shipping_method_id: string; payment_method: string;
-    success_url: string; cancel_url: string;
-  };
+  const { success_url, cancel_url } = params as any;
+  if (!success_url || !cancel_url) throw new Error('success_url and cancel_url are required');
 
-  if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
-    throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
-  }
-  if (!success_url || !cancel_url) {
-    throw new Error('success_url and cancel_url are required');
-  }
-
-  // Delegate to checkoutPlaceOrder with success/cancel URLs injected
-  const result = await checkoutPlaceOrder(supabase, tenantId, {
-    ...params,
-    success_url,
-    cancel_url,
-  });
-
-  // Normalize response: rename payment_url → checkout_url for headless frontends
+  const result = await checkoutPlaceOrder(supabase, tenantId, params);
   return {
     order_id: result.order_id,
     order_number: result.order_number,
@@ -1564,22 +1856,7 @@ async function checkoutCreateSession(supabase: any, tenantId: string, params: Re
 }
 
 async function checkoutGetConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const orderId = params.order_id as string;
-  if (!orderId) throw new Error('order_id is required');
-
-  const { data: order, error } = await supabase
-    .from('orders')
-    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax, total, currency, shipping_address, customer_email, created_at')
-    .eq('id', orderId).eq('tenant_id', tenantId).single();
-  if (error) throw error;
-  if (!order) throw new Error('Order not found');
-
-  const { data: items } = await supabase
-    .from('order_items')
-    .select('product_name, quantity, unit_price, total, product_image')
-    .eq('order_id', orderId);
-
-  return { ...order, items: items || [] };
+  return checkoutGetOrder(supabase, tenantId, params);
 }
 
 // ============== NEWSLETTER SUBSCRIBE ==============
@@ -1722,8 +1999,16 @@ serve(async (req) => {
       case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
       case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
       case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
-      // Checkout actions
+      // Checkout actions (new stateful flow)
       case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
+      case 'checkout_customer': result = await checkoutCustomer(supabase, tenant_id, params); break;
+      case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
+      case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
+      case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
+      case 'checkout_apply_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
+      case 'checkout_remove_discount': result = await checkoutRemoveDiscount(supabase, tenant_id, params); break;
+      // Legacy checkout compat
       case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
       case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
       case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
