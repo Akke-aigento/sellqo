@@ -12388,6 +12388,7 @@ export type Database = {
           last_login_at: string | null
           last_name: string
           marketing_consent: boolean | null
+          newsletter_opt_in: boolean
           newsletter_opted_in: boolean | null
           newsletter_opted_in_at: string | null
           password_hash: string | null
@@ -12414,6 +12415,7 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           marketing_consent?: boolean | null
+          newsletter_opt_in?: boolean
           newsletter_opted_in?: boolean | null
           newsletter_opted_in_at?: string | null
           password_hash?: string | null
@@ -12440,6 +12442,7 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           marketing_consent?: boolean | null
+          newsletter_opt_in?: boolean
           newsletter_opted_in?: boolean | null
           newsletter_opted_in_at?: string | null
           password_hash?: string | null

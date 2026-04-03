@@ -115,18 +115,19 @@ serve(async (req) => {
 
       case 'get_profile': {
         const customer = await getCustomer();
-        result = { id: customer.id, email: customer.email, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone, addresses: customer.addresses || [] };
+        result = { id: customer.id, email: customer.email, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone, newsletter_opt_in: customer.newsletter_opt_in ?? false, addresses: customer.addresses || [] };
         break;
       }
 
       case 'update_profile': {
         const customer = await getCustomer();
-        const { first_name, last_name, phone } = params as any;
+        const { first_name, last_name, phone, newsletter_opt_in } = params as any;
         const updates: any = {};
         if (first_name !== undefined) updates.first_name = first_name;
         if (last_name !== undefined) updates.last_name = last_name;
         if (phone !== undefined) updates.phone = phone;
-        const { data, error } = await supabase.from('storefront_customers').update(updates).eq('id', customer.id).select('id, email, first_name, last_name, phone').single();
+        if (newsletter_opt_in !== undefined) updates.newsletter_opt_in = newsletter_opt_in;
+        const { data, error } = await supabase.from('storefront_customers').update(updates).eq('id', customer.id).select('id, email, first_name, last_name, phone, newsletter_opt_in').single();
         if (error) throw error;
         result = data;
         break;
