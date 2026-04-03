@@ -327,3 +327,94 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
     </TableRow>
   );
 }
+
+function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  return (
+    <div 
+      className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
+      onClick={onView}
+    >
+      <div className="flex items-start gap-3">
+        <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onSelect}
+            aria-label={`Selecteer order ${order.order_number}`}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-sm">{order.order_number}</span>
+            <span className="font-medium text-sm">{formatCurrency(Number(order.total))}</span>
+          </div>
+          <div className="text-sm text-muted-foreground truncate mt-0.5">
+            {order.customer_name || order.customer_email}
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <OrderStatusBadge status={order.status} />
+            <PaymentStatusBadge status={order.payment_status} />
+          </div>
+          <div className="text-xs text-muted-foreground mt-1.5">
+            {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
+            {' · '}
+            {order.order_items?.length || 0} artikel{(order.order_items?.length || 0) !== 1 ? 'en' : ''}
+          </div>
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onView}>
+                <Eye className="h-4 w-4 mr-2" />
+                Bekijken
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {order.status !== 'processing' && order.status !== 'cancelled' && (
+                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'processing')}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  In behandeling
+                </DropdownMenuItem>
+              )}
+              {order.status !== 'shipped' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'shipped')}>
+                  <Truck className="h-4 w-4 mr-2" />
+                  Verzonden
+                </DropdownMenuItem>
+              )}
+              {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Afgeleverd
+                </DropdownMenuItem>
+              )}
+              {order.status !== 'cancelled' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onStatusChange(order.id, 'cancelled')}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Annuleren
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDelete(order)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Verwijderen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </div>
+  );
+}
