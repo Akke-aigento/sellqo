@@ -1645,19 +1645,8 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       });
     }
 
-    // Apply discount as a negative line item if present
-    if (discountAmount > 0) {
-      lineItems.push({
-        price_data: {
-          currency: currency.toLowerCase(),
-          product_data: { name: `Korting${cart.discount_code ? ` (${cart.discount_code})` : ''}` },
-          unit_amount: -Math.round(discountAmount * 100),
-        },
-        quantity: 1,
-      });
-    }
-
-    const session = await stripe.checkout.sessions.create({
+    // Build session params
+    const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
       success_url: successUrl,
@@ -1668,7 +1657,20 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         application_fee_amount: Math.round(total * 0.05 * 100),
         transfer_data: { destination: tenantData.stripe_account_id },
       },
-    });
+    };
+
+    // Apply discount as Stripe coupon (negative line items are not allowed)
+    if (discountAmount > 0) {
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(discountAmount * 100),
+        currency: currency.toLowerCase(),
+        duration: 'once',
+        name: cart.discount_code || 'Korting',
+      }, { stripeAccount: tenantData.stripe_account_id });
+      sessionParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Save stripe session id on cart
     await supabase.from('storefront_carts').update({
