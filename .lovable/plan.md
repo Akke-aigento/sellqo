@@ -1,96 +1,99 @@
 
 
-## Fix: Cart-gebaseerde checkout + werkende kortingscodes
+## Fix: Storefront API Checkout Bugs
 
-### Probleem
+### Geïdentificeerde bugs
 
-1. **Spookorders**: `checkout_start` maakt direct een order + order_items aan met placeholder data (`checkout@pending.temp`). Als de klant de checkout verlaat → spookorder in het systeem. Er zijn er nu 2.
-2. **Kortingscodes**: `checkoutApplyDiscount` roept `validateDiscountCode` aan die `max_discount_amount` NIET retourneert, maar `calculateDiscountValue` die waarde wél nodig heeft. Gevolg: maximum korting wordt nooit afgekapt.
+**Bug 1: Stripe crasht op negatieve line items (KRITIEK)**
+Regel 1649-1658: korting wordt als negatief `unit_amount` toegevoegd aan Stripe line items. Stripe staat dit NIET toe — `unit_amount` moet positief zijn. Dit verklaart de 500 error bij Stripe checkout.
+Fix: Vervang negatieve line item door een Stripe `coupon` + `discounts` parameter.
 
-### Aanpak
+**Bug 2: `increment_discount_usage` RPC bestaat niet**
+Regel 1452: `supabase.rpc('increment_discount_usage', ...)` — deze database functie bestaat niet. Het `.catch()` swallowd de error, maar usage count wordt nooit geïncrementeerd.
+Fix: Vervang door directe `UPDATE discount_codes SET usage_count = usage_count + 1 WHERE ...`.
 
-De checkout schakelt over van order-gebaseerd naar **cart-gebaseerd**. Alle checkout-data wordt op `storefront_carts` opgeslagen. Een order wordt ALLEEN aangemaakt bij:
-- **Bank transfer / QR**: in `checkout_complete`
-- **Stripe**: in de `stripe-connect-webhook` bij `checkout.session.completed`
+**Bug 3: `.rpc().catch()` patroon**
+Hoewel Supabase v2 `.catch()` ondersteunt op thenables, is het veiliger om `const { error } = await supabase.rpc(...)` te gebruiken. De huidige calls met `.catch(() => {})` werken, maar de `increment_discount_usage` call faalt stil.
 
-### Stap 1: Database migratie
+**Bug 4: QR code mist `image_url`**
+Regel 1738: alleen `payload` wordt geretourneerd, geen `image_url` voor de QR code.
+Fix: Voeg een publieke QR-generatie URL toe.
 
-Checkout-velden toevoegen aan `storefront_carts`:
+**Bug 5: `checkout_discount` action alias mist**
+Frontends zouden `checkout_discount` kunnen aanroepen, maar alleen `checkout_apply_discount` en `checkout_remove_discount` zijn geregistreerd. Voeg `checkout_discount` als alias toe.
 
-```sql
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS checkout_status text DEFAULT 'shopping';
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_email text;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_first_name text;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_last_name text;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_phone text;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_address jsonb;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS billing_address jsonb;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS billing_same_as_shipping boolean DEFAULT true;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_method_id uuid;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_cost decimal(10,2) DEFAULT 0;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS discount_amount decimal(10,2) DEFAULT 0;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS stripe_session_id text;
-ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS payment_method text;
+### Technische aanpak
+
+**`supabase/functions/storefront-api/index.ts`**
+
+1. **Stripe discount fix** (regels 1648-1658): Verwijder negatieve line item. Voeg korting toe als aparte Stripe coupon:
+```typescript
+// In checkoutComplete, bij Stripe session create:
+const sessionParams: any = {
+  line_items: lineItems, // alleen positieve items
+  mode: 'payment',
+  success_url: successUrl,
+  cancel_url: cancelUrl,
+  customer_email: cart.customer_email,
+  metadata: { cart_id: cartId, tenant_id: tenantId },
+  payment_intent_data: { ... },
+};
+
+if (discountAmount > 0) {
+  const coupon = await stripe.coupons.create({
+    amount_off: Math.round(discountAmount * 100),
+    currency: currency.toLowerCase(),
+    duration: 'once',
+    name: cart.discount_code || 'Korting',
+  });
+  sessionParams.discounts = [{ coupon: coupon.id }];
+}
 ```
 
-(De tabel heeft al `discount_code` kolom.)
+2. **`increment_discount_usage` fix** (regel 1450-1456): Vervang RPC door directe update:
+```typescript
+await supabase.from('discount_codes')
+  .update({ usage_count: supabase.rpc(...) }) // Nee — gewoon:
+// Use raw SQL-achtige increment via .rpc of direct:
+const { error } = await supabase.rpc('increment_field', ...);
+// Simpeler: direct update met bekende code
+await supabase.from('discount_codes')
+  .update({}) // Supabase heeft geen increment...
+```
+Omdat Supabase JS geen atomic increment ondersteunt: maak een simpele DB functie `increment_discount_usage` aan via migratie.
 
-### Stap 2: Storefront API refactor
-
-**`storefront-api/index.ts`** — alle checkout functies herschrijven:
-
-| Functie | Nu | Wordt |
-|---|---|---|
-| `checkoutStart` | Maakt order + order_items aan | Berekent cart totalen, retourneert `cart_id` + betaal/verzendmethoden. Geen order. |
-| `checkoutCustomer` | Update order | Update `storefront_carts` (email, naam, telefoon) |
-| `checkoutAddress` | Update order | Update `storefront_carts` (shipping_address, billing_address) |
-| `checkoutShipping` | Update order | Update `storefront_carts` (shipping_method_id, shipping_cost) |
-| `checkoutComplete` | Maakt Stripe session met bestaande order | **Bank/QR**: maakt order + items nu pas aan, retourneert bankgegevens. **Stripe**: maakt ALLEEN Stripe session, slaat `stripe_session_id` op cart op, retourneert checkout_url. Geen order. |
-| `checkoutApplyDiscount` | Update order | Update cart, fix: retourneer `max_discount_amount` uit `validateDiscountCode` |
-| `checkoutRemoveDiscount` | Update order | Update cart |
-| `checkoutGetOrder` | Leest order | Blijft — voor na-bestelling status check |
-
-Alle endpoints accepteren `cart_id` i.p.v. `order_id` (behalve `checkoutGetOrder`).
-
-**Helper: `createOrderFromCart`** — nieuwe functie die:
-1. Cart + items ophaalt
-2. Klant zoekt/aanmaakt
-3. Order + order_items inserts
-4. Cart markeert als `converted`
-5. `usage_count` incrementeert bij discount
-6. Retourneert het volledige order object
-
-### Stap 3: Stripe webhook fix
-
-**`stripe-connect-webhook/index.ts`** — `checkout.session.completed` handler:
-
-Nu: zoekt order via `metadata.order_id` en zet `payment_status: 'paid'`.
-
-Wordt: zoekt cart via `metadata.cart_id` (of `stripe_session_id`), roept `createOrderFromCart` aan met `payment_status: 'paid'`, decrementeert stock daarna.
-
-Backward compat: als `metadata.order_id` aanwezig is (oude sessies), gebruik bestaande flow.
-
-### Stap 4: Discount fix
-
-`validateDiscountCode` retourneert nu ook `max_discount_amount` zodat `calculateDiscountValue` correct werkt.
-
-### Stap 5: Spookorders opruimen
-
-Data-operatie via insert tool:
-```sql
-DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE customer_email = 'checkout@pending.temp');
-DELETE FROM orders WHERE customer_email = 'checkout@pending.temp';
+3. **QR image_url** (regel 1738): Voeg toe:
+```typescript
+image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`
 ```
 
-### Stap 6: Legacy compat
+4. **Alias toevoegen** in switch: `checkout_discount` → `checkout_apply_discount`
 
-`checkoutPlaceOrder` (single-call flow) werkt nog — intern doet hij alle stappen op de cart en roept `createOrderFromCart` aan het einde.
+5. **RPC .catch() cleanup** in `createOrderFromCart` en `checkoutComplete`: vervang door `const { error } = await` patroon.
+
+### Database migratie
+
+Maak de ontbrekende `increment_discount_usage` functie aan:
+
+```sql
+CREATE OR REPLACE FUNCTION public.increment_discount_usage(_code text, _tenant_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  UPDATE discount_codes
+  SET usage_count = usage_count + 1, updated_at = now()
+  WHERE tenant_id = _tenant_id AND code = _code;
+END;
+$$;
+```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Migratie | Checkout-velden op `storefront_carts` |
-| `supabase/functions/storefront-api/index.ts` | Alle checkout functies herschrijven naar cart-gebaseerd |
-| `supabase/functions/stripe-connect-webhook/index.ts` | `checkout.session.completed` → cart-based order creation |
+| Migratie | `increment_discount_usage` functie aanmaken |
+| `supabase/functions/storefront-api/index.ts` | Stripe coupon i.p.v. negatieve line item + QR image_url + discount usage fix + RPC cleanup + checkout_discount alias |
 
