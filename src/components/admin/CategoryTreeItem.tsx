@@ -190,18 +190,41 @@ export function CategoryTreeItem({
           )}
         </div>
 
-        {/* Visibility/Status badge */}
+        {/* Visibility/Status badge — clickable to cycle status */}
         {!category.is_active ? (
-          <Badge variant="secondary" className="text-xs shrink-0">
+          <Badge
+            variant="secondary"
+            className="text-xs shrink-0 cursor-pointer select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus?.(category.id, { is_active: true, hide_from_storefront: false });
+            }}
+            title="Klik om te activeren (Online)"
+          >
             Inactief
           </Badge>
         ) : (category as any).hide_from_storefront ? (
-          <Badge className="bg-amber-500 hover:bg-amber-600 text-xs shrink-0 gap-1">
+          <Badge
+            className="bg-amber-500 hover:bg-amber-600 text-xs shrink-0 gap-1 cursor-pointer select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus?.(category.id, { is_active: false, hide_from_storefront: false });
+            }}
+            title="Klik om inactief te maken"
+          >
             <Store className="h-3 w-3" />
             Alleen winkel
           </Badge>
         ) : (
-          <Badge variant="default" className="text-xs shrink-0">
+          <Badge
+            variant="default"
+            className="text-xs shrink-0 cursor-pointer select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus?.(category.id, { is_active: true, hide_from_storefront: true });
+            }}
+            title="Klik om alleen in winkel te tonen"
+          >
             Online
           </Badge>
         )}
