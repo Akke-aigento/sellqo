@@ -1726,6 +1726,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
   } catch (error) {
     console.error('Storefront API error:', error);
-    return new Response(JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const errMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
+    return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
