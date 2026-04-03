@@ -95,9 +95,15 @@ export function AdminSidebar() {
     return false;
   };
 
-  // Combined check for preference, role, AND feature hiding
+  // Check if page is hidden via tenant page overrides
+  const isItemPageOverridden = (item: NavItem): boolean => {
+    if (isPlatformAdmin && isAdminView) return false;
+    return isPageHidden(item.id);
+  };
+
+  // Combined check for preference, role, feature, AND page override hiding
   const shouldHideItem = (item: NavItem): boolean => {
-    return isItemHidden(item.id) || isItemRoleHidden(item) || isItemFeatureHidden(item);
+    return isItemHidden(item.id) || isItemRoleHidden(item) || isItemFeatureHidden(item) || isItemPageOverridden(item);
   };
 
   const isActive = (path: string) => {
