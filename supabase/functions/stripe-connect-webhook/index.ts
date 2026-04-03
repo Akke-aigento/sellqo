@@ -407,9 +407,11 @@ serve(async (req) => {
           // Decrement stock
           for (const item of processedItems) {
             if (item.variant_id) {
-              await supabaseClient.rpc("decrement_variant_stock", { p_variant_id: item.variant_id, p_quantity: item.quantity }).catch(() => {});
+              const { error: varStockErr } = await supabaseClient.rpc("decrement_variant_stock", { p_variant_id: item.variant_id, p_quantity: item.quantity });
+              if (varStockErr) console.warn("Failed to decrement variant stock:", varStockErr.message);
             } else if (item.product_id) {
-              await supabaseClient.rpc("decrement_stock", { p_product_id: item.product_id, p_quantity: item.quantity }).catch(() => {});
+              const { error: prodStockErr } = await supabaseClient.rpc("decrement_stock", { p_product_id: item.product_id, p_quantity: item.quantity });
+              if (prodStockErr) console.warn("Failed to decrement product stock:", prodStockErr.message);
             }
           }
           logStep("Stock updated for order items");

@@ -1919,6 +1919,7 @@ async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
   }
   if (tenant?.iban) {
     methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: `Betaal via overschrijving naar ${tenant.name || 'de verkoper'}`, type: 'manual' });
+    methods.push({ id: 'qr_transfer', name: 'Directe overschrijving via QR', description: 'Scan de QR code met je bankapp', type: 'qr', desktop_only: true });
   }
   return methods;
 }
