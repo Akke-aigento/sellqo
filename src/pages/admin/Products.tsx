@@ -17,6 +17,7 @@ import {
   List,
   Grid3X3,
   Sparkles,
+  XCircle,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
