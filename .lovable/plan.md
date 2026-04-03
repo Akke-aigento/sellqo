@@ -1,37 +1,70 @@
 
-## Fix: Checkout kapot op alle 3 custom frontends
+## Refactor: Checkout flow naar multi-step stateful contract
 
-### Root cause
+### Huidige situatie
 
-**`checkoutGetPaymentMethods`** (regel 1356-1370) selecteert `bank_account_iban` en `bank_account_name` uit de `tenants` tabel, maar deze kolommen bestaan niet. De echte kolomnamen zijn `iban` en `name`. Resultaat: de query faalt stil en retourneert altijd een lege array `[]` — geen betaalmethoden beschikbaar.
+De checkout is nu een **stateless multi-call** flow: de order wordt pas aangemaakt bij `checkout_place_order`. Tussenstappen (`checkout_set_addresses`) doen niets server-side. Er zijn ook meerdere kolombug's:
+- `tax` → moet `tax_amount` zijn
+- `source` kolom bestaat niet
+- `total` → moet `total_price` zijn in order_items
+- `sku` → moet `product_sku` zijn in order_items
 
-Dit breekt:
-- **Mancini**: multi-step checkout kan geen payment methods tonen
-- **Vanxcel & Loveke**: gebruiken single-call flow die `checkout_start` aanroept → krijgen geen `checkout_url` terug
+### Nieuw contract
 
-### Twee fixes
+De checkout wordt **stateful**: order wordt aangemaakt bij `checkout_start` en elke stap update die order in de database.
 
-**Fix 1: Column names in `checkoutGetPaymentMethods`**
+```
+Cart → checkout_start → Order (checkout_status: checkout_started)
+  → checkout_customer → Order (checkout_status: customer_saved)
+  → checkout_address → Order (checkout_status: address_saved)
+  → checkout_shipping → Order (checkout_status: shipping_selected)
+  → checkout_complete → Stripe redirect of bankgegevens
+```
 
-Wijzig de select van `bank_account_iban, bank_account_name` naar `iban, stripe_account_id, stripe_charges_enabled`. Check `tenant.iban` i.p.v. `tenant.bank_account_iban`.
+### Database migratie
 
-**Fix 2: `checkout_start` verrijken voor single-call frontends**
+```sql
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS checkout_status text DEFAULT null;
+```
 
-Als `success_url` en `cancel_url` meegegeven worden in params, retourneert `checkout_start` ook `payment_methods` en `shipping_methods` — zodat de frontend in één call alle checkout-info krijgt en daarna een betaalmethode-keuze kan tonen.
+`checkout_status` trackt de checkout-voortgang (`checkout_started`, `customer_saved`, `address_saved`, `shipping_selected`, `payment_pending`). `status` blijft `pending` tot betaling compleet is.
 
-De frontend stuurt dan een tweede call (`checkout_place_order` of `checkout_create_session`) met de gekozen `payment_method`. Dit behoudt de betaalmethode-stap (Stripe vs bankoverschrijving met QR-code).
+### Nieuwe/herschreven functies in `storefront-api/index.ts`
 
-### Technische aanpak
+| Actie | Wat het doet |
+|---|---|
+| `checkout_start` | Cart → order aanmaken, `checkout_status: checkout_started`, retourneert order_id + items + available payment/shipping methods |
+| `checkout_customer` | Email/naam/telefoon opslaan op order, `checkout_status: customer_saved` |
+| `checkout_address` | Shipping/billing adres opslaan op order, `checkout_status: address_saved` |
+| `checkout_shipping` | Shipping method selecteren, kosten berekenen, `checkout_status: shipping_selected` |
+| `checkout_complete` | Betaalmethode selecteren + afronden: Stripe session of bankgegevens retourneren, `checkout_status: payment_pending` |
+| `checkout_get_order` | Huidige order status ophalen (voor refresh/polling) |
+| `checkout_apply_discount` | Kortingscode toepassen op order |
+| `checkout_remove_discount` | Kortingscode verwijderen van order |
 
-**`supabase/functions/storefront-api/index.ts`**
+### Fix kolom bugs
 
-1. `checkoutGetPaymentMethods`: fix column names `iban` i.p.v. `bank_account_iban`
-2. `checkoutStart`: als `success_url`/`cancel_url` aanwezig → ook `payment_methods` en `shipping_methods` mee retourneren
+- Order insert: `tax_amount` i.p.v. `tax`, verwijder `source`
+- Order items insert: `total_price` i.p.v. `total`, `product_sku` i.p.v. `sku`
+
+### Backward compatibility
+
+Oude acties (`checkout_place_order`, `checkout_create_session`, `checkout_set_addresses`) worden behouden als aliassen die delegeren naar de nieuwe functies. Zo breken bestaande integraties niet.
+
+### Error response format
+
+Alle checkout errors volgen het contract:
+```json
+{ "success": false, "error": { "code": "CART_EMPTY", "message": "..." } }
+```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/storefront-api/index.ts` | Fix column names + enrich checkout_start response |
+| Migratie | `checkout_status` kolom toevoegen |
+| `supabase/functions/storefront-api/index.ts` | Alle checkout functies herschrijven + nieuwe acties registreren |
 
-### Geen database wijzigingen nodig
+### Stock decrement & cart cleanup
+
+Stock wordt pas gedecrement en cart wordt pas geleegd bij `checkout_complete` (niet bij `checkout_start`), zodat de klant kan terug navigeren.
