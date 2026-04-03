@@ -1,51 +1,63 @@
 
 
-## Fix: Mobiele kaartweergave voor Bestellingen, Producten en Klanten
+## Herstel: Floating actiebalk onderaan op mobiel + desktop
 
 ### Probleem
 
-De drie overzichtspagina's (Bestellingen, Producten, Klanten) gebruiken tabellen die op mobiel buiten het viewport vallen. Eerder was er een kaart-gebaseerde weergave op mobiel die goed werkte, maar deze is verloren gegaan.
+De floating bulk-actiebalk onderaan het scherm (`fixed bottom-0`) was eerder geïmplementeerd voor Products en Orders (rond 24 maart), maar is verloren gegaan bij latere edits. Nu zijn alle bulk-actiebalken weer inline `bg-muted rounded-lg` divs die op mobiel buiten beeld vallen bij scrollen.
+
+### Pagina's die aangepast moeten worden
+
+| Pagina | Bulk-component | Huidige stijl |
+|---|---|---|
+| Products.tsx | Inline div (regel 390-418) | `rounded-lg border bg-muted/50 p-3` |
+| Orders.tsx | `OrderBulkActions` (regel 236) | `p-3 bg-muted rounded-lg border` |
+| Fulfillment.tsx | `FulfillmentBulkActions` | Inline |
+| Categories.tsx | `CategoryBulkActions` | Inline |
 
 ### Aanpak
 
-Op alle drie pagina's: detecteer mobiel via `useIsMobile()`, en toon op mobiel een kaartlijst in plaats van de tabel. De tabel blijft op desktop/tablet.
+**1. Products.tsx** — Bulk-actiebalk naar `fixed bottom-0`
+- Wrapper: `fixed bottom-0 left-0 right-0 z-40 bg-background border-t shadow-lg animate-in slide-in-from-bottom-2`
+- Desktop offset: `lg:left-[var(--sidebar-width,280px)]`
+- Content padding: `pb-20` op de grid/tabel container wanneer `selectedIds.size > 0`
+- "Deselecteer" knop toevoegen
 
-**1. Orders.tsx — Mobiele order-kaarten**
+**2. OrderBulkActions.tsx** — Zelfde floating patroon
+- Wrapper van `p-3 bg-muted rounded-lg border` → `fixed bottom-0 left-0 right-0 z-40 bg-background border-t shadow-lg`
+- Desktop offset voor sidebar
+- Content padding in Orders.tsx
 
-- Import `useIsMobile`
-- Binnen de orders-lijst: `isMobile ? <MobileOrderCards /> : <Table>...</Table>`
-- Elke kaart toont: ordernummer, klantnaam, status-badge, totaalbedrag, datum
-- Checkbox links, ⋮ menu rechts
-- Klikbaar → navigate naar order detail
+**3. FulfillmentBulkActions + CategoryBulkActions** — Zelfde patroon toepassen als ze inline zijn
 
-**2. Products.tsx — Mobiele product-kaarten**
+**4. Customers.tsx** — Heeft momenteel geen bulk-selectie, hoeft niet
 
-- Zelfde patroon: `isMobile ? <MobileProductCards /> : <Table>...</Table>`
-- Kaart toont: product-afbeelding (klein), naam, prijs, voorraad-badge
-- Checkbox + ⋮ menu
-- Klikbaar → navigate naar product edit
+### Visueel
 
-**3. Customers.tsx — Mobiele klant-kaarten**
-
-- Zelfde patroon
-- Kaart toont: initiaal-avatar, naam, email, bron-badge, bestellingen-count, totaal uitgegeven
-- Klikbaar → navigate naar klant detail
-
-### Kaart-stijl
-
-Consistent patroon over alle drie pagina's:
-- `Card` component met `p-3` padding
-- Flex-layout met info links, status/bedrag rechts
-- Subtiele border, hover-effect
-- Compact maar leesbaar
+```text
+┌─────────────────────────────┐
+│  Sidebar  │   Content       │
+│           │                 │
+│           │   (scroll)      │
+│           │                 │
+│           ├─────────────────┤
+│           │ ■ 5 geselecteerd│
+│           │ [Acties] [X]    │
+└───────────┴─────────────────┘
+  ↑ fixed bottom-0, offset sidebar
+```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/admin/Orders.tsx` | Mobiele kaartweergave toevoegen naast tabel |
-| `src/pages/admin/Products.tsx` | Mobiele kaartweergave toevoegen naast tabel |
-| `src/pages/admin/Customers.tsx` | Mobiele kaartweergave toevoegen naast tabel |
+| `src/pages/admin/Products.tsx` | Bulk bar → fixed bottom + pb-20 |
+| `src/components/admin/OrderBulkActions.tsx` | Wrapper → fixed bottom |
+| `src/pages/admin/Orders.tsx` | Content pb-20 wanneer selectie actief |
+| `src/components/admin/FulfillmentBulkActions.tsx` | Wrapper → fixed bottom |
+| `src/pages/admin/Fulfillment.tsx` | Content pb-20 |
+| `src/components/admin/CategoryBulkActions.tsx` | Wrapper → fixed bottom |
+| `src/pages/admin/Categories.tsx` | Content pb-20 |
 
 ### Geen database wijzigingen nodig
 
