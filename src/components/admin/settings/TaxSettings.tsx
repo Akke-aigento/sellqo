@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EU_VAT_RATES } from '@/lib/euVatRates';
 import { DEFAULT_VAT_TEXTS, type VatTextType, type SupportedLanguage } from '@/lib/vatInvoiceTexts';
 import { useTranslation } from 'react-i18next';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function TaxSettings() {
   const { currentTenant, refreshTenants } = useTenant();
