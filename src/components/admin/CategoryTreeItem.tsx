@@ -24,6 +24,7 @@ interface CategoryTreeItemProps {
   searchQuery?: string;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
+  onToggleStatus?: (id: string, updates: { is_active: boolean; hide_from_storefront: boolean }) => void;
 }
 
 export function CategoryTreeItem({
