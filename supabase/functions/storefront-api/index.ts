@@ -1496,11 +1496,13 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     }
 
     const origin = params.origin as string || 'https://sellqo.lovable.app';
+    const successUrl = params.success_url as string || `${origin}/order-confirmation?order_id=${order.id}`;
+    const cancelUrl = params.cancel_url as string || `${origin}/checkout?cancelled=true`;
     const session = await stripe.checkout.sessions.create({
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${origin}/order-confirmation?order_id=${order.id}`,
-      cancel_url: `${origin}/checkout?cancelled=true`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       customer_email: email,
       metadata: { order_id: order.id, tenant_id: tenantId },
       payment_intent_data: {
@@ -1514,6 +1516,37 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
 
   // Bank transfer
   return { order_id: order.id, order_number: order.order_number, payment_method: 'bank_transfer', total };
+}
+
+async function checkoutCreateSession(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const { cart_id, shipping_address, email, shipping_method_id, payment_method, success_url, cancel_url } = params as {
+    cart_id: string; shipping_address: any; email: string;
+    shipping_method_id: string; payment_method: string;
+    success_url: string; cancel_url: string;
+  };
+
+  if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
+    throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
+  }
+  if (!success_url || !cancel_url) {
+    throw new Error('success_url and cancel_url are required');
+  }
+
+  // Delegate to checkoutPlaceOrder with success/cancel URLs injected
+  const result = await checkoutPlaceOrder(supabase, tenantId, {
+    ...params,
+    success_url,
+    cancel_url,
+  });
+
+  // Normalize response: rename payment_url → checkout_url for headless frontends
+  return {
+    order_id: result.order_id,
+    order_number: result.order_number,
+    checkout_url: result.payment_url || null,
+    payment_method: result.payment_method,
+    total: result.total,
+  };
 }
 
 async function checkoutGetConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -1681,6 +1714,7 @@ serve(async (req) => {
       case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
       case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
       case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
+      case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
       default:
         return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -1692,6 +1726,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
   } catch (error) {
     console.error('Storefront API error:', error);
-    return new Response(JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const errMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
+    return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
