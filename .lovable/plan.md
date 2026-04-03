@@ -1,34 +1,27 @@
 
 
-## Categorie status toggle via badge-klik
+## Fix: Variant knoppen triggeren productformulier submit
 
-### Wat wordt er gebouwd
+### Probleem
 
-De "Online" / "Inactief" / "Alleen winkel" badge op elke categorie-rij wordt klikbaar. Klikken cyclet door de statussen: **Online → Alleen winkel → Inactief → Online**.
+De `ProductVariantsTab` zit binnen een `<form onSubmit={form.handleSubmit(onSubmit)}>` (regel 577 van ProductForm.tsx). Alle `<Button>` componenten in de variant tab zonder expliciet `type="button"` gedragen zich als submit-buttons, waardoor het hele productformulier wordt opgeslagen wanneer je op het potlood (edit), vinkje (save), kruisje (cancel), of andere knoppen klikt.
 
-### Aanpak
+### Oplossing
 
-**`src/components/admin/CategoryTreeItem.tsx`**
+Voeg `type="button"` toe aan alle `<Button>` elementen in `ProductVariantsTab.tsx` die geen form-submit moeten triggeren. Dit betreft circa 15 buttons:
 
-1. Voeg `onToggleStatus` callback toe aan de props interface
-2. Maak de drie Badge-elementen (regels 192-205) klikbaar met `onClick` + `cursor-pointer`
-3. Bij klik: cycle naar volgende status en roep `onToggleStatus(category.id, nextStatus)` aan
-   - Online (`is_active=true, hide_from_storefront=false`) → klik → Alleen winkel (`is_active=true, hide_from_storefront=true`)
-   - Alleen winkel → klik → Inactief (`is_active=false, hide_from_storefront=false`)
-   - Inactief → klik → Online
-4. `e.stopPropagation()` om drag/expand niet te triggeren
-
-**`src/pages/admin/Categories.tsx`**
-
-1. Geef `onToggleStatus` door aan `CategoryTreeItem`
-2. De handler roept `updateCategory.mutate({ id, data: { is_active, hide_from_storefront } })` aan
+- Optie edit/save/cancel knoppen
+- Optie toevoegen knop
+- Varianten genereren knop
+- Variant edit (pencil), save (check), cancel (x) knoppen
+- Link/unlink knoppen
+- Dialog knoppen
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/CategoryTreeItem.tsx` | Badge klikbaar maken met status-cycle |
-| `src/pages/admin/Categories.tsx` | `onToggleStatus` handler doorgeven |
+| `src/components/admin/products/ProductVariantsTab.tsx` | `type="button"` toevoegen aan alle Button elementen |
 
 ### Geen database wijzigingen nodig
 
