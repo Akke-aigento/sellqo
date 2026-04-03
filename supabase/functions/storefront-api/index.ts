@@ -1496,11 +1496,13 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     }
 
     const origin = params.origin as string || 'https://sellqo.lovable.app';
+    const successUrl = params.success_url as string || `${origin}/order-confirmation?order_id=${order.id}`;
+    const cancelUrl = params.cancel_url as string || `${origin}/checkout?cancelled=true`;
     const session = await stripe.checkout.sessions.create({
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${origin}/order-confirmation?order_id=${order.id}`,
-      cancel_url: `${origin}/checkout?cancelled=true`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       customer_email: email,
       metadata: { order_id: order.id, tenant_id: tenantId },
       payment_intent_data: {
