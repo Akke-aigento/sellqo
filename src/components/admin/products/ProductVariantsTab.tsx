@@ -159,6 +159,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                       <Badge key={v} variant="secondary">{v}</Badge>
                     ))}
                     <Button
+                      type="button"
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6"
