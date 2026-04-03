@@ -146,10 +146,10 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                       placeholder="Waarden, komma gescheiden"
                       className="flex-1"
                     />
-                    <Button size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -159,6 +159,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                       <Badge key={v} variant="secondary">{v}</Badge>
                     ))}
                     <Button
+                      type="button"
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6"
@@ -174,7 +175,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="text-destructive">
+                  <Button type="button" size="icon" variant="ghost" className="text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
@@ -215,7 +216,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
               />
             </div>
-            <Button onClick={handleAddOption} disabled={createOption.isPending}>
+            <Button type="button" onClick={handleAddOption} disabled={createOption.isPending}>
               <Plus className="h-4 w-4 mr-1" />
               Toevoegen
             </Button>
@@ -224,6 +225,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
           {/* Generate variants button */}
           {options.length > 0 && (
             <Button
+              type="button"
               onClick={handleGenerateVariants}
               disabled={generateVariants.isPending}
               variant="outline"
@@ -334,6 +336,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                               {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
                             </Badge>
                             <Button
+                              type="button"
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
@@ -344,6 +347,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                           </div>
                         ) : (
                           <Button
+                            type="button"
                             size="sm"
                             variant="ghost"
                             onClick={() => openLinkDialog(variant.id)}
@@ -357,21 +361,21 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                         <div className="flex items-center gap-1">
                           {editingVariantId === variant.id ? (
                             <>
-                              <Button size="icon" variant="ghost" onClick={saveEditVariant}>
+                              <Button type="button" size="icon" variant="ghost" onClick={saveEditVariant}>
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
                             <>
-                              <Button size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="text-destructive">
+                                  <Button type="button" size="icon" variant="ghost" className="text-destructive">
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -430,8 +434,8 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Annuleren</Button>
-            <Button onClick={handleLinkProduct} disabled={!selectedProductId}>
+            <Button type="button" variant="outline" onClick={() => setLinkDialogOpen(false)}>Annuleren</Button>
+            <Button type="button" onClick={handleLinkProduct} disabled={!selectedProductId}>
               <Link2 className="h-4 w-4 mr-2" />
               Koppelen
             </Button>
