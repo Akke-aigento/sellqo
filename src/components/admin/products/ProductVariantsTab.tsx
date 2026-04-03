@@ -434,8 +434,8 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Annuleren</Button>
-            <Button onClick={handleLinkProduct} disabled={!selectedProductId}>
+            <Button type="button" variant="outline" onClick={() => setLinkDialogOpen(false)}>Annuleren</Button>
+            <Button type="button" onClick={handleLinkProduct} disabled={!selectedProductId}>
               <Link2 className="h-4 w-4 mr-2" />
               Koppelen
             </Button>
