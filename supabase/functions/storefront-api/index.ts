@@ -1690,9 +1690,11 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     // Decrement stock
     for (const item of cart.cartItems) {
       if (item.variant_id) {
-        await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity }).catch(() => {});
+        const { error: vsErr } = await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+        if (vsErr) console.warn('decrement_variant_stock failed:', vsErr.message);
       } else if (item.product_id) {
-        await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity }).catch(() => {});
+        const { error: sErr } = await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        if (sErr) console.warn('decrement_stock failed:', sErr.message);
       }
     }
 
