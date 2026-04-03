@@ -297,7 +297,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedIds.size > 0 ? 'pb-20' : ''}`}>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
