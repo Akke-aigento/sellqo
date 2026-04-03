@@ -48,6 +48,7 @@ export function TransactionFeeSettings() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialConfig, setInitialConfig] = useState<TenantPaymentConfig | null>(null);
 
   useEffect(() => {
     if (activeTenantId) {
