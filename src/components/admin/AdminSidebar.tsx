@@ -49,6 +49,7 @@ export function AdminSidebar() {
   const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
+  const { isPageHidden, togglePage, isToggling } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
