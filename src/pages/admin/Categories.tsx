@@ -443,6 +443,9 @@ export default function CategoriesPage() {
                       searchQuery={searchQuery}
                       selectedIds={selectedIds}
                       onToggleSelect={handleToggleSelect}
+                      onToggleStatus={(id, updates) => {
+                        updateCategory.mutate({ id, data: updates });
+                      }}
                     />
                   ))}
                 </div>

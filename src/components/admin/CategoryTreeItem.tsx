@@ -290,6 +290,7 @@ export function CategoryTreeItem({
               searchQuery={searchQuery}
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
+              onToggleStatus={onToggleStatus}
             />
           ))}
         </div>
