@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { PeppolUpgradeCard } from '@/components/admin/billing/PeppolUpgradeCard';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function PeppolSettings() {
   const { t } = useTranslation();
