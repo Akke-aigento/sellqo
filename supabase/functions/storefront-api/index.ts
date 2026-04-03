@@ -1449,10 +1449,10 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
 
   // Increment discount code usage
   if (cart.discount_code) {
-    await supabase.rpc('increment_discount_usage', { _code: cart.discount_code, _tenant_id: tenantId }).catch(() => {
-      // Non-critical, just log
-      console.warn('Failed to increment discount usage for', cart.discount_code);
-    });
+    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: cart.discount_code, _tenant_id: tenantId });
+    if (discountUsageError) {
+      console.warn('Failed to increment discount usage for', cart.discount_code, discountUsageError.message);
+    }
   }
 
   return order;
