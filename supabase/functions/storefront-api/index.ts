@@ -1518,6 +1518,37 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   return { order_id: order.id, order_number: order.order_number, payment_method: 'bank_transfer', total };
 }
 
+async function checkoutCreateSession(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const { cart_id, shipping_address, email, shipping_method_id, payment_method, success_url, cancel_url } = params as {
+    cart_id: string; shipping_address: any; email: string;
+    shipping_method_id: string; payment_method: string;
+    success_url: string; cancel_url: string;
+  };
+
+  if (!cart_id || !shipping_address || !email || !shipping_method_id || !payment_method) {
+    throw new Error('cart_id, shipping_address, email, shipping_method_id, and payment_method are required');
+  }
+  if (!success_url || !cancel_url) {
+    throw new Error('success_url and cancel_url are required');
+  }
+
+  // Delegate to checkoutPlaceOrder with success/cancel URLs injected
+  const result = await checkoutPlaceOrder(supabase, tenantId, {
+    ...params,
+    success_url,
+    cancel_url,
+  });
+
+  // Normalize response: rename payment_url → checkout_url for headless frontends
+  return {
+    order_id: result.order_id,
+    order_number: result.order_number,
+    checkout_url: result.payment_url || null,
+    payment_method: result.payment_method,
+    total: result.total,
+  };
+}
+
 async function checkoutGetConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const orderId = params.order_id as string;
   if (!orderId) throw new Error('order_id is required');
