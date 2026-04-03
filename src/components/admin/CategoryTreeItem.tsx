@@ -42,6 +42,7 @@ export function CategoryTreeItem({
   searchQuery = '',
   selectedIds,
   onToggleSelect,
+  onToggleStatus,
 }: CategoryTreeItemProps) {
   const isExpanded = expandedIds.has(category.id);
   const hasChildren = category.children && category.children.length > 0;
