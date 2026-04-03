@@ -44,6 +44,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1739,6 +1740,13 @@ export default function ProductForm() {
           </Tabs>
         </form>
       </Form>
+
+      <FloatingSaveBar
+        isDirty={form.formState.isDirty}
+        isSaving={isSubmitting}
+        onSave={form.handleSubmit(onSubmit)}
+        onCancel={() => form.reset()}
+      />
     </div>
   );
 }

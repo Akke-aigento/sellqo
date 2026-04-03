@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function ReminderSettings() {
   const { t } = useTranslation();
@@ -30,6 +31,7 @@ export function ReminderSettings() {
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -149,13 +151,15 @@ export function ReminderSettings() {
           )}
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? t('common.loading') : t('common.save')}
-          </Button>
-        </div>
       </CardContent>
     </Card>
+
+      <FloatingSaveBar
+        isDirty={JSON.stringify(formData) !== JSON.stringify(settings)}
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={() => setFormData(settings)}
+      />
+    </>
   );
 }
