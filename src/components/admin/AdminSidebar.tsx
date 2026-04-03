@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
@@ -48,6 +49,7 @@ export function AdminSidebar() {
   const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
+  const { isPageHidden, togglePage, isToggling } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -93,9 +95,15 @@ export function AdminSidebar() {
     return false;
   };
 
-  // Combined check for preference, role, AND feature hiding
+  // Check if page is hidden via tenant page overrides
+  const isItemPageOverridden = (item: NavItem): boolean => {
+    if (isPlatformAdmin && isAdminView) return false;
+    return isPageHidden(item.id);
+  };
+
+  // Combined check for preference, role, feature, AND page override hiding
   const shouldHideItem = (item: NavItem): boolean => {
-    return isItemHidden(item.id) || isItemRoleHidden(item) || isItemFeatureHidden(item);
+    return isItemHidden(item.id) || isItemRoleHidden(item) || isItemFeatureHidden(item) || isItemPageOverridden(item);
   };
 
   const isActive = (path: string) => {
@@ -114,9 +122,35 @@ export function AdminSidebar() {
     return email.substring(0, 2).toUpperCase();
   };
 
+  const showAdminToggles = isPlatformAdmin && isAdminView;
+
+  const renderPageToggle = (itemId: string) => {
+    if (!showAdminToggles) return null;
+    const hidden = isPageHidden(itemId);
+    return (
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          togglePage(itemId);
+        }}
+        disabled={isToggling}
+        className={cn(
+          'ml-auto p-0.5 rounded hover:bg-accent/50 transition-colors shrink-0',
+          hidden ? 'text-destructive/60' : 'text-muted-foreground/40 hover:text-muted-foreground'
+        )}
+        title={hidden ? 'Verborgen voor tenant — klik om te tonen' : 'Zichtbaar voor tenant — klik om te verbergen'}
+      >
+        {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </button>
+    );
+  };
+
   const renderNavItem = (item: NavItem) => {
     // Check if item is hidden (by preference or by role)
     if (shouldHideItem(item)) return null;
+
+    const itemIsPageHidden = isPageHidden(item.id);
 
     // Item with children (collapsible)
     if (item.children && item.children.length > 0) {
@@ -127,10 +161,11 @@ export function AdminSidebar() {
         <Collapsible key={item.id} defaultOpen={isGroupExpanded(item)} className="group/collapsible">
           <SidebarMenuItem>
             <CollapsibleTrigger asChild>
-              <SidebarMenuButton isActive={isActive(item.url)}>
+              <SidebarMenuButton isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
                 {item.icon && <item.icon className="h-4 w-4" />}
                 <span>{item.title}</span>
-                <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                {renderPageToggle(item.id)}
+                <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -143,10 +178,11 @@ export function AdminSidebar() {
                         <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">soon</span>
                       </SidebarMenuSubButton>
                     ) : (
-                      <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
+                      <SidebarMenuSubButton asChild isActive={isActive(child.url)} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
                           <span>{child.title}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
+                          {renderPageToggle(child.id)}
                         </NavLink>
                       </SidebarMenuSubButton>
                     )}
@@ -162,13 +198,14 @@ export function AdminSidebar() {
     // Regular item without children
     return (
       <SidebarMenuItem key={item.id}>
-        <SidebarMenuButton asChild isActive={isActive(item.url)}>
+        <SidebarMenuButton asChild isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
           <NavLink to={item.url} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               {item.icon && <item.icon className="h-4 w-4" />}
               <span>{item.title}</span>
             </span>
             {item.badge && item.id === 'inbox' && <InboxBadge />}
+            {renderPageToggle(item.id)}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
