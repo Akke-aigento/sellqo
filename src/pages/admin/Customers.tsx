@@ -37,6 +37,7 @@ interface UnifiedCustomer {
 
 export default function CustomersPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');

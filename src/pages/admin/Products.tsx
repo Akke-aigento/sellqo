@@ -68,6 +68,7 @@ import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/ty
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
+  const isMobile = useIsMobile();
   const { 
     products, 
     isLoading, 
