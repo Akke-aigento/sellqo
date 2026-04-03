@@ -375,7 +375,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="text-destructive">
+                                  <Button type="button" size="icon" variant="ghost" className="text-destructive">
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
