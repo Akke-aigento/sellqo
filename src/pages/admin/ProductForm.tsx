@@ -44,6 +44,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
