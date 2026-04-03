@@ -22,6 +22,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { toast } from 'sonner';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function StorefrontSettings() {
   const { currentTenant } = useTenant();
