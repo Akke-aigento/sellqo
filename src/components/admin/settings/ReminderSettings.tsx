@@ -160,5 +160,6 @@ export function ReminderSettings() {
         onSave={handleSave}
         onCancel={() => setFormData(settings)}
       />
+    </>
   );
 }
