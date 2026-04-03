@@ -1,3 +1,4 @@
+
 ## Fix: Checkout kapot op alle 3 custom frontends
 
 ### Root cause
@@ -14,24 +15,18 @@ Dit breekt:
 
 Wijzig de select van `bank_account_iban, bank_account_name` naar `iban, stripe_account_id, stripe_charges_enabled`. Check `tenant.iban` i.p.v. `tenant.bank_account_iban`.
 
-**Fix 2: `checkout_start` slimmer maken voor single-call frontends**
+**Fix 2: `checkout_start` verrijken voor single-call frontends**
 
-Als `success_url` en `cancel_url` meegegeven worden in params, moet `checkout_start`:
-1. Cart ophalen en valideren
-2. Payment methods ophalen (hergebruik gefixte `checkoutGetPaymentMethods`)
-3. Shipping methods ophalen
-4. Alles retourneren zodat de frontend een betaalmethode-keuze kan tonen
+Als `success_url` en `cancel_url` meegegeven worden in params, retourneert `checkout_start` ook `payment_methods` en `shipping_methods` — zodat de frontend in één call alle checkout-info krijgt en daarna een betaalmethode-keuze kan tonen.
 
-De frontend stuurt dan een tweede call: `checkout_place_order` of `checkout_create_session` met de gekozen `payment_method`.
-
-Dit behoudt de betaalmethode-keuze stap (Stripe vs bankoverschrijving) terwijl het simpeler wordt voor de frontends.
+De frontend stuurt dan een tweede call (`checkout_place_order` of `checkout_create_session`) met de gekozen `payment_method`. Dit behoudt de betaalmethode-stap (Stripe vs bankoverschrijving met QR-code).
 
 ### Technische aanpak
 
 **`supabase/functions/storefront-api/index.ts`**
 
 1. `checkoutGetPaymentMethods`: fix column names `iban` i.p.v. `bank_account_iban`
-2. `checkoutStart`: als `success_url`/`cancel_url` aanwezig, ook `payment_methods` en `shipping_methods` mee retourneren in de response — zodat frontends in één call alle checkout-info krijgen
+2. `checkoutStart`: als `success_url`/`cancel_url` aanwezig → ook `payment_methods` en `shipping_methods` mee retourneren
 
 ### Bestanden
 
