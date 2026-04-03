@@ -14,6 +14,7 @@ import { useAICredits } from '@/hooks/useAICredits';
 import { TONE_OPTIONS, POSITION_OPTIONS } from '@/types/ai-assistant';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function AIAssistantSettings() {
   const { config, isLoading, knowledgeStats, updateConfig, isUpdating, rebuildIndex, isRebuilding } = useAIAssistant();
