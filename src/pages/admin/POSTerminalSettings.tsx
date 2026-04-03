@@ -187,10 +187,6 @@ export default function POSTerminalSettingsPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button onClick={handleSave} disabled={isSaving || !name.trim()}>
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? 'Opslaan...' : 'Opslaan'}
-          </Button>
         </div>
       </div>
       
