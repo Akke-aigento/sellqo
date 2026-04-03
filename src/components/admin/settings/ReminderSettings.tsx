@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function ReminderSettings() {
   const { t } = useTranslation();
