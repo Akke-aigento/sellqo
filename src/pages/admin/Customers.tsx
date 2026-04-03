@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate, Link } from 'react-router-dom';
 import { Users, Search, Mail, Phone, ShoppingBag, MoreHorizontal, Eye, Trash2, Building2, Globe } from 'lucide-react';
 import { format } from 'date-fns';
@@ -36,6 +37,7 @@ interface UnifiedCustomer {
 
 export default function CustomersPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -177,6 +179,62 @@ export default function CustomersPage() {
                   ? 'Probeer een andere zoekopdracht' 
                   : 'Klanten verschijnen hier wanneer ze een bestelling plaatsen of een account aanmaken'}
               </p>
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-3 px-2">
+              {filteredCustomers.map((customer) => {
+                const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';
+                const canNavigate = !!customer.crm_id;
+                return (
+                  <div 
+                    key={customer.id}
+                    className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={canNavigate ? () => navigate(`/admin/customers/${customer.crm_id}`) : undefined}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-medium text-primary">
+                          {(customer.first_name?.[0] || customer.email[0]).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-sm truncate">{fullName}</span>
+                          <span className="font-medium text-sm shrink-0">{formatCurrency(customer.total_spent)}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate mt-0.5">{customer.email}</div>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {getSourceBadge(customer.source)}
+                          {getTypeBadge(customer.customer_type)}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <ShoppingBag className="h-3 w-3" />
+                            {customer.total_orders}
+                          </span>
+                        </div>
+                      </div>
+                      {customer.crm_id && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/admin/customers/${customer.crm_id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Bekijken
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="overflow-x-auto -mx-4 sm:mx-0"><div className="min-w-[600px]">
