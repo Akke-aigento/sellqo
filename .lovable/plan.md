@@ -1,76 +1,96 @@
 
 
-## Implementatie: Stateful multi-step checkout contract
+## Fix: Cart-gebaseerde checkout + werkende kortingscodes
 
-### Overzicht
+### Probleem
 
-De volledige checkout sectie van `storefront-api/index.ts` (regels 1316-1583) wordt vervangen door een stateful multi-step flow die het contract exact volgt. Geen database migratie nodig — checkout status wordt afgeleid uit order data.
+1. **Spookorders**: `checkout_start` maakt direct een order + order_items aan met placeholder data (`checkout@pending.temp`). Als de klant de checkout verlaat → spookorder in het systeem. Er zijn er nu 2.
+2. **Kortingscodes**: `checkoutApplyDiscount` roept `validateDiscountCode` aan die `max_discount_amount` NIET retourneert, maar `calculateDiscountValue` die waarde wél nodig heeft. Gevolg: maximum korting wordt nooit afgekapt.
 
-### Kernwijzigingen
+### Aanpak
 
-**1. `checkout_start` — Cart → Order conversie**
-- Maakt een order aan vanuit de cart (met `status: 'pending'`, `customer_email: 'checkout@pending.temp'`)
-- Maakt order_items aan uit cart items
-- Retourneert `order_id` + `available_payment_methods` + `available_shipping_methods`
-- Fix kolom bugs: `tax_amount` i.p.v. `tax`, `total_price` i.p.v. `total`, `product_sku` i.p.v. `sku`
+De checkout schakelt over van order-gebaseerd naar **cart-gebaseerd**. Alle checkout-data wordt op `storefront_carts` opgeslagen. Een order wordt ALLEEN aangemaakt bij:
+- **Bank transfer / QR**: in `checkout_complete`
+- **Stripe**: in de `stripe-connect-webhook` bij `checkout.session.completed`
 
-**2. Nieuwe acties**
+### Stap 1: Database migratie
 
-| Actie | Wat |
-|---|---|
-| `checkout_customer` | Email/naam/telefoon opslaan, klant aanmaken/zoeken |
-| `checkout_address` | Shipping/billing adres opslaan met validatie |
-| `checkout_shipping` | Verzendmethode selecteren, kosten berekenen |
-| `checkout_complete` | Stripe session of bankgegevens retourneren |
-| `checkout_get_order` | Volledige order status ophalen |
-| `checkout_apply_discount` | Kortingscode toepassen |
-| `checkout_remove_discount` | Kortingscode verwijderen |
+Checkout-velden toevoegen aan `storefront_carts`:
 
-**3. Backward compat**
-- `checkout_place_order` en `checkout_create_session` blijven werken — delegeren intern naar de nieuwe stappen
-- `checkout_set_addresses` detecteert of `order_id` aanwezig is en routeert naar nieuwe of oude flow
-
-**4. Error handling**
-Alle errors volgen het contract format:
-```json
-{ "success": false, "error": { "code": "CART_EMPTY", "message": "..." } }
+```sql
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS checkout_status text DEFAULT 'shopping';
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_email text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_first_name text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_last_name text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_phone text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_address jsonb;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS billing_address jsonb;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS billing_same_as_shipping boolean DEFAULT true;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_method_id uuid;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_cost decimal(10,2) DEFAULT 0;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS discount_amount decimal(10,2) DEFAULT 0;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS stripe_session_id text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS payment_method text;
 ```
-Validation errors bevatten ook een `fields` object.
 
-**5. Stock decrement**
-Gebeurt alleen in `checkout_complete`, niet bij `checkout_start`, zodat klanten kunnen terug-navigeren.
+(De tabel heeft al `discount_code` kolom.)
+
+### Stap 2: Storefront API refactor
+
+**`storefront-api/index.ts`** — alle checkout functies herschrijven:
+
+| Functie | Nu | Wordt |
+|---|---|---|
+| `checkoutStart` | Maakt order + order_items aan | Berekent cart totalen, retourneert `cart_id` + betaal/verzendmethoden. Geen order. |
+| `checkoutCustomer` | Update order | Update `storefront_carts` (email, naam, telefoon) |
+| `checkoutAddress` | Update order | Update `storefront_carts` (shipping_address, billing_address) |
+| `checkoutShipping` | Update order | Update `storefront_carts` (shipping_method_id, shipping_cost) |
+| `checkoutComplete` | Maakt Stripe session met bestaande order | **Bank/QR**: maakt order + items nu pas aan, retourneert bankgegevens. **Stripe**: maakt ALLEEN Stripe session, slaat `stripe_session_id` op cart op, retourneert checkout_url. Geen order. |
+| `checkoutApplyDiscount` | Update order | Update cart, fix: retourneer `max_discount_amount` uit `validateDiscountCode` |
+| `checkoutRemoveDiscount` | Update order | Update cart |
+| `checkoutGetOrder` | Leest order | Blijft — voor na-bestelling status check |
+
+Alle endpoints accepteren `cart_id` i.p.v. `order_id` (behalve `checkoutGetOrder`).
+
+**Helper: `createOrderFromCart`** — nieuwe functie die:
+1. Cart + items ophaalt
+2. Klant zoekt/aanmaakt
+3. Order + order_items inserts
+4. Cart markeert als `converted`
+5. `usage_count` incrementeert bij discount
+6. Retourneert het volledige order object
+
+### Stap 3: Stripe webhook fix
+
+**`stripe-connect-webhook/index.ts`** — `checkout.session.completed` handler:
+
+Nu: zoekt order via `metadata.order_id` en zet `payment_status: 'paid'`.
+
+Wordt: zoekt cart via `metadata.cart_id` (of `stripe_session_id`), roept `createOrderFromCart` aan met `payment_status: 'paid'`, decrementeert stock daarna.
+
+Backward compat: als `metadata.order_id` aanwezig is (oude sessies), gebruik bestaande flow.
+
+### Stap 4: Discount fix
+
+`validateDiscountCode` retourneert nu ook `max_discount_amount` zodat `calculateDiscountValue` correct werkt.
+
+### Stap 5: Spookorders opruimen
+
+Data-operatie via insert tool:
+```sql
+DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE customer_email = 'checkout@pending.temp');
+DELETE FROM orders WHERE customer_email = 'checkout@pending.temp';
+```
+
+### Stap 6: Legacy compat
+
+`checkoutPlaceOrder` (single-call flow) werkt nog — intern doet hij alle stappen op de cart en roept `createOrderFromCart` aan het einde.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/storefront-api/index.ts` | Regels 1316-1583 vervangen + nieuwe acties registreren in switch (regels 1725-1732) |
-
-### Geen database wijzigingen nodig
-Checkout status wordt afgeleid uit order data:
-- `checkout_started` = order bestaat, geen customer_email
-- `customer_saved` = customer_email ingevuld
-- `address_saved` = shipping_address ingevuld
-- `shipping_selected` = shipping_method_id ingevuld
-- `payment_pending` = payment_method ingevuld
-- `payment_completed` = payment_status = 'paid'
-
-### Nieuwe switch registraties (toevoegen aan regels 1725-1732)
-```
-case 'checkout_start': ...
-case 'checkout_customer': ...
-case 'checkout_address': ...
-case 'checkout_shipping': ...
-case 'checkout_complete': ...
-case 'checkout_get_order': ...
-case 'checkout_apply_discount': ...
-case 'checkout_remove_discount': ...
-// Legacy compat
-case 'checkout_set_addresses': ...
-case 'checkout_get_shipping_options': ...
-case 'checkout_get_payment_methods': ...
-case 'checkout_place_order': ...
-case 'checkout_create_session': ...
-case 'checkout_get_confirmation': ...
-```
+| Migratie | Checkout-velden op `storefront_carts` |
+| `supabase/functions/storefront-api/index.ts` | Alle checkout functies herschrijven naar cart-gebaseerd |
+| `supabase/functions/stripe-connect-webhook/index.ts` | `checkout.session.completed` → cart-based order creation |
 
