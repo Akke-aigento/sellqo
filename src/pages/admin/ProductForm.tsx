@@ -1740,6 +1740,13 @@ export default function ProductForm() {
           </Tabs>
         </form>
       </Form>
+
+      <FloatingSaveBar
+        isDirty={form.formState.isDirty}
+        isSaving={isSubmitting}
+        onSave={form.handleSubmit(onSubmit)}
+        onCancel={() => form.reset()}
+      />
     </div>
   );
 }

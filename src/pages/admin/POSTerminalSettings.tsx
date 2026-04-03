@@ -380,7 +380,38 @@ export default function POSTerminalSettingsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      <FloatingSaveBar
+        isDirty={
+          terminal ? (
+            name !== terminal.name ||
+            locationName !== (terminal.location_name || '') ||
+            status !== terminal.status ||
+            hasPrinter !== (terminal.capabilities?.printer || false) ||
+            hasScanner !== (terminal.capabilities?.scanner || false) ||
+            hasCashDrawer !== (terminal.capabilities?.cash_drawer || false) ||
+            autoPrint !== (terminal.settings?.auto_print || false) ||
+            requireCustomer !== (terminal.settings?.require_customer || false) ||
+            defaultTaxRate !== String(terminal.settings?.default_tax_rate || 21) ||
+            receiptFooter !== (terminal.settings?.receipt_footer || '')
+          ) : false
+        }
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={() => {
+          if (terminal) {
+            setName(terminal.name);
+            setLocationName(terminal.location_name || '');
+            setStatus(terminal.status);
+            setHasPrinter(terminal.capabilities?.printer || false);
+            setHasScanner(terminal.capabilities?.scanner || false);
+            setHasCashDrawer(terminal.capabilities?.cash_drawer || false);
+            setAutoPrint(terminal.settings?.auto_print || false);
+            setRequireCustomer(terminal.settings?.require_customer || false);
+            setDefaultTaxRate(String(terminal.settings?.default_tax_rate || 21));
+            setReceiptFooter(terminal.settings?.receipt_footer || '');
+          }
+        }}
+      />
     </div>
   );
 }
