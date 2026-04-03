@@ -207,48 +207,50 @@ export function FulfillmentBulkActions({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-muted rounded-lg border">
-        <span className="text-sm font-medium whitespace-nowrap">
-          {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
-        </span>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 max-w-screen-xl mx-auto">
+          <span className="text-sm font-medium whitespace-nowrap">
+            {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
+          </span>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" disabled={!!loadingAction}>
-              {loadingAction ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-              Acties
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem onClick={handleMarkAsShipped}>
-              <Truck className="h-4 w-4 mr-2" /> Markeer als verzonden
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleMarkAsDelivered}>
-              <CheckCircle className="h-4 w-4 mr-2" /> Markeer als afgeleverd
-            </DropdownMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" disabled={!!loadingAction}>
+                {loadingAction ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
+                Acties
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem onClick={handleMarkAsShipped}>
+                <Truck className="h-4 w-4 mr-2" /> Markeer als verzonden
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMarkAsDelivered}>
+                <CheckCircle className="h-4 w-4 mr-2" /> Markeer als afgeleverd
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={handleDownloadPackingSlips}>
-              <FileText className="h-4 w-4 mr-2" /> Pakbonnen downloaden
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadPackingSlips}>
+                <FileText className="h-4 w-4 mr-2" /> Pakbonnen downloaden
+              </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={() => setBatchPrintOpen(true)}>
-              <Printer className="h-4 w-4 mr-2" /> Labels printen
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setBatchPrintOpen(true)}>
+                <Printer className="h-4 w-4 mr-2" /> Labels printen
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={handleExportCsv}>
-              <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={handleExportCsv}>
+                <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <Button size="sm" variant="ghost" onClick={onClearSelection}>
-          <XCircle className="h-4 w-4 mr-2" />
-          Deselecteer
-        </Button>
+          <Button size="sm" variant="ghost" onClick={onClearSelection} className="ml-auto">
+            <XCircle className="h-4 w-4 mr-2" />
+            Deselecteer
+          </Button>
+        </div>
       </div>
 
       <BatchPrintDialog
