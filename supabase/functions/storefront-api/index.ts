@@ -1739,7 +1739,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       status: 'payment_pending',
       payment_type: 'qr',
       total: order.total,
-      qr_data: { payload: qrPayload },
+      qr_data: { payload: qrPayload, image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}` },
     };
   }
 
