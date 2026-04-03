@@ -66,6 +66,7 @@ export function PeppolSettings() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
@@ -122,5 +123,6 @@ export function PeppolSettings() {
         onSave={handleSave}
         onCancel={() => setPeppolId((currentTenant as any)?.peppol_id || '')}
       />
+    </>
   );
 }
