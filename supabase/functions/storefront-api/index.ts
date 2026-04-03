@@ -1322,8 +1322,7 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   const cart = await cartGet(supabase, tenantId, { cart_id: cartId });
   if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
 
-  // Return checkout summary
-  return {
+  const result: any = {
     cart_id: cartId,
     items: cart.items,
     subtotal: cart.subtotal,
@@ -1331,6 +1330,21 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     discount_code: cart.discount_code,
     status: 'started',
   };
+
+  // If success_url and cancel_url are provided, enrich response with payment & shipping methods
+  // This allows single-call frontends to get all checkout info in one request
+  if (params.success_url && params.cancel_url) {
+    const [paymentMethods, shippingMethods] = await Promise.all([
+      checkoutGetPaymentMethods(supabase, tenantId),
+      checkoutGetShippingOptions(supabase, tenantId, { subtotal: cart.subtotal }),
+    ]);
+    result.payment_methods = paymentMethods;
+    result.shipping_methods = shippingMethods;
+    result.success_url = params.success_url;
+    result.cancel_url = params.cancel_url;
+  }
+
+  return result;
 }
 
 async function checkoutSetAddresses(supabase: any, tenantId: string, params: Record<string, unknown>) {
