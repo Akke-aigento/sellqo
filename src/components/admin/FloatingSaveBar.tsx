@@ -29,7 +29,7 @@ export function FloatingSaveBar({
     )}>
       <div className="flex items-center justify-between px-4 py-3 max-w-screen-xl mx-auto">
         <div className="flex items-center gap-2 text-sm">
-          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
           <span className="text-muted-foreground">Onopgeslagen wijzigingen</span>
         </div>
         <div className="flex items-center gap-2">
