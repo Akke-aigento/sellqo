@@ -361,10 +361,10 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                         <div className="flex items-center gap-1">
                           {editingVariantId === variant.id ? (
                             <>
-                              <Button size="icon" variant="ghost" onClick={saveEditVariant}>
+                              <Button type="button" size="icon" variant="ghost" onClick={saveEditVariant}>
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
