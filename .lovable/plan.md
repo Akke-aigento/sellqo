@@ -1,72 +1,42 @@
+## Fix: Checkout kapot op alle 3 custom frontends
 
+### Root cause
 
-## Fix: `checkout_start` retourneert geen checkout_url
+**`checkoutGetPaymentMethods`** (regel 1356-1370) selecteert `bank_account_iban` en `bank_account_name` uit de `tenants` tabel, maar deze kolommen bestaan niet. De echte kolomnamen zijn `iban` en `name`. Resultaat: de query faalt stil en retourneert altijd een lege array `[]` — geen betaalmethoden beschikbaar.
 
-### Analyse
+Dit breekt:
+- **Mancini**: multi-step checkout kan geen payment methods tonen
+- **Vanxcel & Loveke**: gebruiken single-call flow die `checkout_start` aanroept → krijgen geen `checkout_url` terug
 
-De checkout flow in `storefront-api` is opgebouwd als een multi-step proces:
+### Twee fixes
 
-1. **`checkout_start`** (regel 1318-1334) — Retourneert alleen een cart-samenvatting. Geen Stripe sessie, geen URL.
-2. **`checkout_set_addresses`** — Adresgegevens instellen
-3. **`checkout_get_shipping_options`** — Verzendopties ophalen
-4. **`checkout_get_payment_methods`** — Betaalmethoden ophalen
-5. **`checkout_place_order`** (regel 1372-1517) — Hier wordt pas de Stripe checkout sessie aangemaakt en een `payment_url` geretourneerd.
+**Fix 1: Column names in `checkoutGetPaymentMethods`**
 
-Het probleem: de frontend (Vanxcel) verwacht een **single-call checkout** (`checkout_start` → krijg URL), maar de API is ontworpen als een **multi-step flow** waar de URL pas bij `checkout_place_order` komt.
+Wijzig de select van `bank_account_iban, bank_account_name` naar `iban, stripe_account_id, stripe_charges_enabled`. Check `tenant.iban` i.p.v. `tenant.bank_account_iban`.
 
-### Oplossing
+**Fix 2: `checkout_start` slimmer maken voor single-call frontends**
 
-Voeg een **`checkout_create_session`** action toe die een single-call shortcut biedt: cart valideren, order aanmaken, Stripe sessie creëren, en de `checkout_url` retourneren — alles in één call. Dit is wat headless frontends nodig hebben.
+Als `success_url` en `cancel_url` meegegeven worden in params, moet `checkout_start`:
+1. Cart ophalen en valideren
+2. Payment methods ophalen (hergebruik gefixte `checkoutGetPaymentMethods`)
+3. Shipping methods ophalen
+4. Alles retourneren zodat de frontend een betaalmethode-keuze kan tonen
 
-**Parameters:**
-- `cart_id` (required)
-- `email` (required)  
-- `shipping_address` (required)
-- `billing_address` (optional, fallback naar shipping)
-- `phone` (optional)
-- `shipping_method_id` (required)
-- `payment_method` (required: `stripe` | `bank_transfer`)
-- `success_url` (required — de frontend bepaalt de redirect)
-- `cancel_url` (required)
-- `customer_note` (optional)
+De frontend stuurt dan een tweede call: `checkout_place_order` of `checkout_create_session` met de gekozen `payment_method`.
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "order_id": "...",
-    "order_number": "ORD-2026-0042",
-    "checkout_url": "https://checkout.stripe.com/c/pay/...",
-    "payment_method": "stripe"
-  }
-}
-```
+Dit behoudt de betaalmethode-keuze stap (Stripe vs bankoverschrijving) terwijl het simpeler wordt voor de frontends.
 
 ### Technische aanpak
 
 **`supabase/functions/storefront-api/index.ts`**
 
-1. Nieuwe `checkoutCreateSession` functie toevoegen die:
-   - Cart ophaalt en valideert
-   - Tenant Stripe config checkt (`stripe_account_id`, `stripe_charges_enabled`)
-   - Klant aanmaakt/vindt
-   - Order aanmaakt (hergebruik logica van `checkoutPlaceOrder`)
-   - Stripe checkout session aanmaakt met `success_url`/`cancel_url` uit params
-   - Stock decrementeert en cart leegt
-   - `checkout_url` retourneert
-
-2. De bestaande `checkoutPlaceOrder` logica wordt hergebruikt — de nieuwe functie is in feite dezelfde flow maar accepteert `success_url`/`cancel_url` uit de params in plaats van hardcoded URLs.
-
-3. Registreer `checkout_create_session` in de action switch.
-
-4. Fix ook in de bestaande `checkoutPlaceOrder`: gebruik `params.success_url` / `params.cancel_url` als ze meegegeven worden, in plaats van hardcoded `origin` URLs.
+1. `checkoutGetPaymentMethods`: fix column names `iban` i.p.v. `bank_account_iban`
+2. `checkoutStart`: als `success_url`/`cancel_url` aanwezig, ook `payment_methods` en `shipping_methods` mee retourneren in de response — zodat frontends in één call alle checkout-info krijgen
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/storefront-api/index.ts` | `checkout_create_session` action toevoegen + `checkoutPlaceOrder` success/cancel URL fix |
+| `supabase/functions/storefront-api/index.ts` | Fix column names + enrich checkout_start response |
 
 ### Geen database wijzigingen nodig
-
