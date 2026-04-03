@@ -141,6 +141,21 @@ export default function OrdersPage() {
                   : 'Bestellingen verschijnen hier zodra klanten iets bestellen'}
               </p>
             </div>
+          ) : isMobile ? (
+            <div className="space-y-3 px-2">
+              {orders.map((order) => (
+                <MobileOrderCard
+                  key={order.id}
+                  order={order}
+                  isSelected={selectedOrderIds.includes(order.id)}
+                  onSelect={(checked) => handleSelectOrder(order.id, checked)}
+                  onView={() => navigate(`/admin/orders/${order.id}`)}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDeleteOrder}
+                  formatCurrency={formatCurrency}
+                />
+              ))}
+            </div>
           ) : (
             <div className="overflow-x-auto -mx-4 sm:mx-0">
             <Table>
