@@ -1,27 +1,56 @@
 
 
-## Fix: Variant knoppen triggeren productformulier submit
+## Floating Opslaan/Annuleren balk — overal bij bewerkingen
 
-### Probleem
+### Wat wordt er gebouwd
 
-De `ProductVariantsTab` zit binnen een `<form onSubmit={form.handleSubmit(onSubmit)}>` (regel 577 van ProductForm.tsx). Alle `<Button>` componenten in de variant tab zonder expliciet `type="button"` gedragen zich als submit-buttons, waardoor het hele productformulier wordt opgeslagen wanneer je op het potlood (edit), vinkje (save), kruisje (cancel), of andere knoppen klikt.
+Een herbruikbare `FloatingSaveBar` component die onderaan het scherm verschijnt zodra er onopgeslagen wijzigingen zijn. Dezelfde stijl als de bulk-actiebalken: `fixed bottom-0`, sidebar-offset, slide-in animatie.
 
-### Oplossing
+### Component
 
-Voeg `type="button"` toe aan alle `<Button>` elementen in `ProductVariantsTab.tsx` die geen form-submit moeten triggeren. Dit betreft circa 15 buttons:
+**`src/components/admin/FloatingSaveBar.tsx`** — Nieuw
 
-- Optie edit/save/cancel knoppen
-- Optie toevoegen knop
-- Varianten genereren knop
-- Variant edit (pencil), save (check), cancel (x) knoppen
-- Link/unlink knoppen
-- Dialog knoppen
+```text
+┌─────────────────────────────────────────┐
+│  ● Onopgeslagen wijzigingen  [Annuleren] [Opslaan] │
+└─────────────────────────────────────────┘
+  fixed bottom-0, lg:left-[sidebar], z-40
+```
+
+Props: `isDirty`, `isSaving`, `onSave`, `onCancel`, optioneel `saveLabel`
+
+### Pagina's die aangepast worden
+
+| Pagina / Component | Dirty-detectie |
+|---|---|
+| `ProductForm.tsx` | `form.formState.isDirty` |
+| `QuoteForm.tsx` | Altijd dirty na eerste wijziging (state-based) |
+| `POSTerminalSettings.tsx` | Vergelijk state met initieel |
+| `StorefrontSettings.tsx` | `hasChanges` state toevoegen |
+| `TaxSettings.tsx` | Vergelijk state met initieel |
+| `PeppolSettings.tsx` | Vergelijk met `currentTenant.peppol_id` |
+| `ReminderSettings.tsx` | `formData !== settings` |
+| `AIAssistantSettings.tsx` | `formState !== config` |
+| `TransactionFeeSettings.tsx` | State vergelijking |
+| `DomainSettings.tsx` | Heeft eigen flow, skip |
+| `NotificationSettings.tsx` | Instant-save toggles, skip |
+
+Per pagina: bestaande inline opslaan-knop verwijderen, `FloatingSaveBar` toevoegen met `isDirty` logica. Content krijgt `pb-20` wanneer dirty.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/products/ProductVariantsTab.tsx` | `type="button"` toevoegen aan alle Button elementen |
+| `src/components/admin/FloatingSaveBar.tsx` | Nieuw — herbruikbare floating bar |
+| `src/pages/admin/ProductForm.tsx` | FloatingSaveBar toevoegen, inline knoppen behouden als header maar floating bar als primaire actie |
+| `src/pages/admin/QuoteForm.tsx` | FloatingSaveBar toevoegen |
+| `src/pages/admin/POSTerminalSettings.tsx` | FloatingSaveBar toevoegen |
+| `src/components/admin/storefront/StorefrontSettings.tsx` | FloatingSaveBar toevoegen |
+| `src/components/admin/settings/TaxSettings.tsx` | FloatingSaveBar toevoegen |
+| `src/components/admin/settings/PeppolSettings.tsx` | FloatingSaveBar toevoegen |
+| `src/components/admin/settings/ReminderSettings.tsx` | FloatingSaveBar toevoegen |
+| `src/components/admin/settings/AIAssistantSettings.tsx` | FloatingSaveBar toevoegen |
+| `src/components/admin/settings/TransactionFeeSettings.tsx` | FloatingSaveBar toevoegen |
 
 ### Geen database wijzigingen nodig
 
