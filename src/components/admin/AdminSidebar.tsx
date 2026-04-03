@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
