@@ -5,9 +5,10 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings2, Save, RotateCcw } from 'lucide-react';
+import { Settings2, Save, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { usePlatformAdmin, TenantFeatureOverride } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
+import { sidebarGroups, getAllMenuItems } from '@/components/admin/sidebar/sidebarConfig';
 
 interface TenantModulesTabProps {
   tenantId: string;
