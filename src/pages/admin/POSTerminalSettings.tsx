@@ -40,6 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { usePOSTerminals } from '@/hooks/usePOS';
 import { toast } from 'sonner';
 import type { POSTerminalStatus } from '@/types/pos';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export default function POSTerminalSettingsPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
