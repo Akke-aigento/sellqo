@@ -1001,10 +1001,39 @@ const [formData, setFormData] = useState({
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={isSaving}>
-        <Save className="h-4 w-4 mr-2" />
-        {isSaving ? 'Opslaan...' : 'BTW-instellingen opslaan'}
-      </Button>
+      <FloatingSaveBar
+        isDirty={
+          currentTenant ? (
+            formData.default_vat_handling !== ((currentTenant as any)?.default_vat_handling || 'inclusive') ||
+            formData.apply_oss_rules !== ((currentTenant as any)?.apply_oss_rules ?? false) ||
+            formData.oss_registration_date !== ((currentTenant as any)?.oss_registration_date || '') ||
+            formData.oss_identification_number !== ((currentTenant as any)?.oss_identification_number || '') ||
+            formData.require_vies_validation !== ((currentTenant as any)?.require_vies_validation ?? true) ||
+            formData.block_invalid_vat_orders !== ((currentTenant as any)?.block_invalid_vat_orders ?? false) ||
+            formData.peppol_id !== ((currentTenant as any)?.peppol_id || '') ||
+            formData.enable_b2b_checkout !== ((currentTenant as any)?.enable_b2b_checkout ?? true) ||
+            formData.simplified_vat_mode !== ((currentTenant as any)?.simplified_vat_mode ?? false)
+          ) : false
+        }
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={() => {
+          if (currentTenant) {
+            const tenantData = currentTenant as any;
+            setFormData({
+              default_vat_handling: tenantData.default_vat_handling || 'inclusive',
+              apply_oss_rules: tenantData.apply_oss_rules ?? false,
+              oss_registration_date: tenantData.oss_registration_date || '',
+              oss_identification_number: tenantData.oss_identification_number || '',
+              require_vies_validation: tenantData.require_vies_validation ?? true,
+              block_invalid_vat_orders: tenantData.block_invalid_vat_orders ?? false,
+              peppol_id: tenantData.peppol_id || '',
+              enable_b2b_checkout: tenantData.enable_b2b_checkout ?? true,
+              simplified_vat_mode: tenantData.simplified_vat_mode ?? false,
+            });
+          }
+        }}
+      />
     </div>
   );
 }

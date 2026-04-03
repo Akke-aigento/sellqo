@@ -387,19 +387,62 @@ export function AIAssistantSettings() {
         </CardContent>
       </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isUpdating}>
-          <Save className="h-4 w-4 mr-2" />
-          {isUpdating ? 'Opslaan...' : 'Instellingen opslaan'}
-        </Button>
-      </div>
-
       {/* Info footer */}
       <p className="text-sm text-muted-foreground text-center">
         ℹ️ De AI respecteert altijd je instructies en weigert verboden onderwerpen.
         Bij complexe vragen verwijst de chatbot naar menselijk contact.
       </p>
+
+      <FloatingSaveBar
+        isDirty={
+          config ? (
+            JSON.stringify(formState) !== JSON.stringify({
+              chatbot_enabled: config.chatbot_enabled,
+              chatbot_name: config.chatbot_name,
+              chatbot_welcome_message: config.chatbot_welcome_message,
+              chatbot_position: config.chatbot_position,
+              reply_suggestions_enabled: config.reply_suggestions_enabled,
+              reply_suggestions_auto_generate: config.reply_suggestions_auto_generate ?? false,
+              reply_suggestions_auto_draft: config.reply_suggestions_auto_draft,
+              reply_suggestions_tone: config.reply_suggestions_tone,
+              reply_suggestions_for_email: config.reply_suggestions_for_email,
+              reply_suggestions_for_whatsapp: config.reply_suggestions_for_whatsapp,
+              knowledge_include_products: config.knowledge_include_products,
+              knowledge_include_categories: config.knowledge_include_categories,
+              knowledge_include_pages: config.knowledge_include_pages,
+              knowledge_include_legal: config.knowledge_include_legal,
+              knowledge_include_shipping: config.knowledge_include_shipping,
+              knowledge_custom_instructions: config.knowledge_custom_instructions || '',
+              knowledge_forbidden_topics: config.knowledge_forbidden_topics || '',
+            })
+          ) : false
+        }
+        isSaving={isUpdating}
+        onSave={handleSave}
+        onCancel={() => {
+          if (config) {
+            setFormState({
+              chatbot_enabled: config.chatbot_enabled,
+              chatbot_name: config.chatbot_name,
+              chatbot_welcome_message: config.chatbot_welcome_message,
+              chatbot_position: config.chatbot_position,
+              reply_suggestions_enabled: config.reply_suggestions_enabled,
+              reply_suggestions_auto_generate: config.reply_suggestions_auto_generate ?? false,
+              reply_suggestions_auto_draft: config.reply_suggestions_auto_draft,
+              reply_suggestions_tone: config.reply_suggestions_tone,
+              reply_suggestions_for_email: config.reply_suggestions_for_email,
+              reply_suggestions_for_whatsapp: config.reply_suggestions_for_whatsapp,
+              knowledge_include_products: config.knowledge_include_products,
+              knowledge_include_categories: config.knowledge_include_categories,
+              knowledge_include_pages: config.knowledge_include_pages,
+              knowledge_include_legal: config.knowledge_include_legal,
+              knowledge_include_shipping: config.knowledge_include_shipping,
+              knowledge_custom_instructions: config.knowledge_custom_instructions || '',
+              knowledge_forbidden_topics: config.knowledge_forbidden_topics || '',
+            });
+          }
+        }}
+      />
     </div>
   );
 }

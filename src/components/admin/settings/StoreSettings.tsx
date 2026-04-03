@@ -170,10 +170,26 @@ export function StoreSettings() {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={isSaving}>
-        <Save className="h-4 w-4 mr-2" />
-        {isSaving ? 'Opslaan...' : 'Alle wijzigingen opslaan'}
-      </Button>
+      <FloatingSaveBar
+        isDirty={
+          currentTenant ? (
+            formData.tax_percentage !== (currentTenant.tax_percentage || 21) ||
+            formData.currency !== (currentTenant.currency || 'EUR') ||
+            formData.shipping_enabled !== (currentTenant.shipping_enabled ?? true)
+          ) : false
+        }
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={() => {
+          if (currentTenant) {
+            setFormData({
+              tax_percentage: currentTenant.tax_percentage || 21,
+              currency: currentTenant.currency || 'EUR',
+              shipping_enabled: currentTenant.shipping_enabled ?? true,
+            });
+          }
+        }}
+      />
     </div>
   );
 }

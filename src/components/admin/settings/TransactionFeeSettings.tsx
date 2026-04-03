@@ -328,21 +328,12 @@ export function TransactionFeeSettings() {
       </Card>
 
       {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={saveConfig} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Opslaan...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Instellingen opslaan
-            </>
-          )}
-        </Button>
-      </div>
+      <FloatingSaveBar
+        isDirty={!isLoading}
+        isSaving={isSaving}
+        onSave={saveConfig}
+        onCancel={loadConfig}
+      />
     </div>
   );
 }

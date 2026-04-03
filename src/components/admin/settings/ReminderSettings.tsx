@@ -150,13 +150,14 @@ export function ReminderSettings() {
           )}
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? t('common.loading') : t('common.save')}
-          </Button>
-        </div>
       </CardContent>
     </Card>
+
+      <FloatingSaveBar
+        isDirty={JSON.stringify(formData) !== JSON.stringify(settings)}
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={() => setFormData(settings)}
+      />
   );
 }
