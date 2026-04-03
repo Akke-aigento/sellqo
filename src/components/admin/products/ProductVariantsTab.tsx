@@ -216,7 +216,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
               />
             </div>
-            <Button onClick={handleAddOption} disabled={createOption.isPending}>
+            <Button type="button" onClick={handleAddOption} disabled={createOption.isPending}>
               <Plus className="h-4 w-4 mr-1" />
               Toevoegen
             </Button>
