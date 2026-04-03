@@ -1999,8 +1999,16 @@ serve(async (req) => {
       case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
       case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
       case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
-      // Checkout actions
+      // Checkout actions (new stateful flow)
       case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
+      case 'checkout_customer': result = await checkoutCustomer(supabase, tenant_id, params); break;
+      case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
+      case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
+      case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
+      case 'checkout_apply_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
+      case 'checkout_remove_discount': result = await checkoutRemoveDiscount(supabase, tenant_id, params); break;
+      // Legacy checkout compat
       case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
       case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
       case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
