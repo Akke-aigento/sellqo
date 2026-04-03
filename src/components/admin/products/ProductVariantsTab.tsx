@@ -336,6 +336,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                               {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
                             </Badge>
                             <Button
+                              type="button"
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
