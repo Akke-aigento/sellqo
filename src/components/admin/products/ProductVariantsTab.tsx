@@ -347,6 +347,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                           </div>
                         ) : (
                           <Button
+                            type="button"
                             size="sm"
                             variant="ghost"
                             onClick={() => openLinkDialog(variant.id)}
