@@ -170,6 +170,62 @@ export function TenantModulesTab({ tenantId }: TenantModulesTabProps) {
         </CardContent>
       </Card>
 
+      {/* Page Access Overrides */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Pagina Toegang
+          </CardTitle>
+          <CardDescription>
+            Bepaal welke pagina's zichtbaar zijn voor deze tenant.
+            Verborgen pagina's worden niet getoond in de sidebar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {sidebarGroups.map((group) => (
+              <div key={group.id} className="space-y-2">
+                <h4 className="text-sm font-semibold text-muted-foreground">{group.title}</h4>
+                <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                  {group.items.map((item) => {
+                    const currentHidden = (formData.hidden_pages as string[] | undefined) || [];
+                    const isHidden = currentHidden.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          {isHidden ? (
+                            <EyeOff className="h-4 w-4 text-destructive/60" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <span className={isHidden ? 'text-muted-foreground line-through' : 'font-medium'}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <Switch
+                          checked={!isHidden}
+                          onCheckedChange={(checked) => {
+                            const newHidden = checked
+                              ? currentHidden.filter(id => id !== item.id)
+                              : [...currentHidden, item.id];
+                            setFormData((prev) => ({ ...prev, hidden_pages: newHidden }));
+                            setHasChanges(true);
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Admin Notes */}
       <Card>
         <CardHeader>
