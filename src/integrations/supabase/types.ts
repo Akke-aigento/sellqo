@@ -12324,35 +12324,74 @@ export type Database = {
       }
       storefront_carts: {
         Row: {
+          billing_address: Json | null
+          billing_same_as_shipping: boolean | null
+          checkout_status: string | null
           created_at: string
           currency: string
+          customer_email: string | null
+          customer_first_name: string | null
           customer_id: string | null
+          customer_last_name: string | null
+          customer_phone: string | null
+          discount_amount: number | null
           discount_code: string | null
           expires_at: string
           id: string
+          payment_method: string | null
           session_id: string
+          shipping_address: Json | null
+          shipping_cost: number | null
+          shipping_method_id: string | null
+          stripe_session_id: string | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          billing_address?: Json | null
+          billing_same_as_shipping?: boolean | null
+          checkout_status?: string | null
           created_at?: string
           currency?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
           customer_id?: string | null
+          customer_last_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number | null
           discount_code?: string | null
           expires_at?: string
           id?: string
+          payment_method?: string | null
           session_id: string
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method_id?: string | null
+          stripe_session_id?: string | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          billing_address?: Json | null
+          billing_same_as_shipping?: boolean | null
+          checkout_status?: string | null
           created_at?: string
           currency?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
           customer_id?: string | null
+          customer_last_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number | null
           discount_code?: string | null
           expires_at?: string
           id?: string
+          payment_method?: string | null
           session_id?: string
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method_id?: string | null
+          stripe_session_id?: string | null
           tenant_id?: string
           updated_at?: string
         }

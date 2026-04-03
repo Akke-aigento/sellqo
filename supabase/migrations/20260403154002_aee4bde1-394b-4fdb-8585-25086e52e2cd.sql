@@ -1,0 +1,13 @@
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS checkout_status text DEFAULT 'shopping';
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_email text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_first_name text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_last_name text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS customer_phone text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_address jsonb;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS billing_address jsonb;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS billing_same_as_shipping boolean DEFAULT true;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_method_id uuid;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS shipping_cost decimal(10,2) DEFAULT 0;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS discount_amount decimal(10,2) DEFAULT 0;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS stripe_session_id text;
+ALTER TABLE storefront_carts ADD COLUMN IF NOT EXISTS payment_method text;
