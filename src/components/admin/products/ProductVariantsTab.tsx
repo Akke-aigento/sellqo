@@ -370,7 +370,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                             </>
                           ) : (
                             <>
-                              <Button size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
