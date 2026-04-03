@@ -44,6 +44,7 @@ export interface TenantFeatureOverride {
   limit_storage_gb_override: number | null;
   extended_trial_until: string | null;
   admin_notes: string | null;
+  hidden_pages: string[];
   created_at: string;
   updated_at: string;
 }
