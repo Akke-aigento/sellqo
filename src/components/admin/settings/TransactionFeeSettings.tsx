@@ -67,13 +67,15 @@ export function TransactionFeeSettings() {
 
       if (error) throw error;
 
-      setConfig({
+      const loaded = {
         payment_methods_enabled: (data.payment_methods_enabled as PaymentMethodType[]) || ['stripe'],
         pass_transaction_fee_to_customer: data.pass_transaction_fee_to_customer || false,
         transaction_fee_label: data.transaction_fee_label || 'Transactiekosten',
         iban: data.iban,
         bic: data.bic,
-      });
+      };
+      setConfig(loaded);
+      setInitialConfig(loaded);
     } catch (error) {
       console.error('Error loading payment config:', error);
       toast.error('Fout bij laden instellingen');
