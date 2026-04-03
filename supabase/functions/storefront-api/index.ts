@@ -1449,10 +1449,10 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
 
   // Increment discount code usage
   if (cart.discount_code) {
-    await supabase.rpc('increment_discount_usage', { _code: cart.discount_code, _tenant_id: tenantId }).catch(() => {
-      // Non-critical, just log
-      console.warn('Failed to increment discount usage for', cart.discount_code);
-    });
+    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: cart.discount_code, _tenant_id: tenantId });
+    if (discountUsageError) {
+      console.warn('Failed to increment discount usage for', cart.discount_code, discountUsageError.message);
+    }
   }
 
   return order;
@@ -1645,19 +1645,8 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       });
     }
 
-    // Apply discount as a negative line item if present
-    if (discountAmount > 0) {
-      lineItems.push({
-        price_data: {
-          currency: currency.toLowerCase(),
-          product_data: { name: `Korting${cart.discount_code ? ` (${cart.discount_code})` : ''}` },
-          unit_amount: -Math.round(discountAmount * 100),
-        },
-        quantity: 1,
-      });
-    }
-
-    const session = await stripe.checkout.sessions.create({
+    // Build session params
+    const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
       success_url: successUrl,
@@ -1668,7 +1657,20 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         application_fee_amount: Math.round(total * 0.05 * 100),
         transfer_data: { destination: tenantData.stripe_account_id },
       },
-    });
+    };
+
+    // Apply discount as Stripe coupon (negative line items are not allowed)
+    if (discountAmount > 0) {
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(discountAmount * 100),
+        currency: currency.toLowerCase(),
+        duration: 'once',
+        name: cart.discount_code || 'Korting',
+      }, { stripeAccount: tenantData.stripe_account_id });
+      sessionParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Save stripe session id on cart
     await supabase.from('storefront_carts').update({
@@ -1688,9 +1690,11 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     // Decrement stock
     for (const item of cart.cartItems) {
       if (item.variant_id) {
-        await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity }).catch(() => {});
+        const { error: vsErr } = await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+        if (vsErr) console.warn('decrement_variant_stock failed:', vsErr.message);
       } else if (item.product_id) {
-        await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity }).catch(() => {});
+        const { error: sErr } = await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        if (sErr) console.warn('decrement_stock failed:', sErr.message);
       }
     }
 
@@ -1735,7 +1739,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       status: 'payment_pending',
       payment_type: 'qr',
       total: order.total,
-      qr_data: { payload: qrPayload },
+      qr_data: { payload: qrPayload, image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}` },
     };
   }
 
@@ -2149,6 +2153,7 @@ serve(async (req) => {
       case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
       case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
+      case 'checkout_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
       default:
         return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

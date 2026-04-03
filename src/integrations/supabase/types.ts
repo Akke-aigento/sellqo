@@ -15649,6 +15649,10 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      increment_discount_usage: {
+        Args: { _code: string; _tenant_id: string }
+        Returns: undefined
+      }
       initialize_ai_assistant_config: {
         Args: { p_tenant_id: string }
         Returns: string
