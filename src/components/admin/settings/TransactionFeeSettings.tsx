@@ -332,10 +332,10 @@ export function TransactionFeeSettings() {
 
       {/* Save Button */}
       <FloatingSaveBar
-        isDirty={!isLoading}
+        isDirty={initialConfig !== null && JSON.stringify(config) !== JSON.stringify(initialConfig)}
         isSaving={isSaving}
         onSave={saveConfig}
-        onCancel={loadConfig}
+        onCancel={() => { if (initialConfig) setConfig(initialConfig); }}
       />
     </div>
   );
