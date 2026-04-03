@@ -225,6 +225,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
           {/* Generate variants button */}
           {options.length > 0 && (
             <Button
+              type="button"
               onClick={handleGenerateVariants}
               disabled={generateVariants.isPending}
               variant="outline"
