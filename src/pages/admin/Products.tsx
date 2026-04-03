@@ -422,6 +422,72 @@ export default function ProductsPage() {
         <div className="min-h-[400px]">
           <ProductGridView products={filteredProducts} />
         </div>
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {isLoading ? (
+            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-12">
+              <Package className="h-8 w-8 text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">
+                {products.length === 0 ? 'Nog geen producten.' : 'Geen producten gevonden met deze filters'}
+              </p>
+            </div>
+          ) : (
+            filteredProducts.map((product) => (
+              <div key={product.id} className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="pt-0.5">
+                    <Checkbox
+                      checked={selectedIds.has(product.id)}
+                      onCheckedChange={() => toggleSelect(product.id)}
+                    />
+                  </div>
+                  {product.featured_image ? (
+                    <img src={product.featured_image} alt={product.name} className="h-12 w-12 rounded object-cover shrink-0" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-muted shrink-0">
+                      <Package className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link to={`/admin/products/${product.id}/edit`} className="font-medium text-sm truncate hover:underline">
+                        {product.name}
+                      </Link>
+                      <span className="font-medium text-sm shrink-0">{formatPrice(product.price)}</span>
+                    </div>
+                    {product.sku && <div className="text-xs text-muted-foreground mt-0.5">{product.sku}</div>}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {getStockBadge(product)}
+                      {getVisibilityBadge(product)}
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link to={`/admin/products/${product.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Bewerken
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Verwijderen
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       ) : (
         <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
           <div className="min-w-[600px]">
