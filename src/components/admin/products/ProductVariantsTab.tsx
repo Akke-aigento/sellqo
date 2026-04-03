@@ -146,10 +146,10 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                       placeholder="Waarden, komma gescheiden"
                       className="flex-1"
                     />
-                    <Button size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
