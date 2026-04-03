@@ -380,6 +380,7 @@ export default function POSTerminalSettingsPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
       <FloatingSaveBar
         isDirty={
           terminal ? (
