@@ -1370,15 +1370,15 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
 async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, bank_account_iban, bank_account_name')
+    .select('stripe_account_id, stripe_charges_enabled, iban, name')
     .eq('id', tenantId).single();
 
   const methods: any[] = [];
   if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled) {
     methods.push({ id: 'stripe', name: 'Online betalen', description: 'Betaal met iDEAL, creditcard of andere methoden', type: 'online' });
   }
-  if (tenant?.bank_account_iban) {
-    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via bankoverschrijving', type: 'manual' });
+  if (tenant?.iban) {
+    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: `Betaal via overschrijving naar ${tenant.name || 'de verkoper'}`, type: 'manual' });
   }
   return methods;
 }
