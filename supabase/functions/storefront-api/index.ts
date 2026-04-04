@@ -1723,7 +1723,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       order_id: order.id,
       order_number: order.order_number,
       status: 'awaiting_payment',
-      payment_type: 'bank_transfer',
+      payment_type: 'manual',
       total: order.total,
       currency,
       bank_details: {
