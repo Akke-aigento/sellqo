@@ -285,7 +285,15 @@ export default function ShopCheckout() {
         }
         
         clearCart();
-        navigate(`/shop/${tenantSlug}/order/${orderData.order.id}`);
+        navigate(`/shop/${tenantSlug}/checkout/qr-betaling`, {
+          state: {
+            orderId: orderData.order.id,
+            orderNumber: orderData.order.order_number,
+            total: orderData.order.total,
+            currency: orderData.order.currency || 'EUR',
+            bankDetails: orderData.bank_details,
+          },
+        });
       }
     } catch (error) {
       console.error('Payment error:', error);
