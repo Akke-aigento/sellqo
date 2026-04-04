@@ -1611,7 +1611,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   // Get tenant info
   const { data: tenantData } = await supabase
-    .from('tenants').select('default_vat_rate, stripe_account_id, iban, name, currency')
+    .from('tenants').select('default_vat_rate, stripe_account_id, iban, bic, name, currency')
     .eq('id', tenantId).single();
 
   const shippingCost = Number(cart.shipping_cost) || 0;
@@ -1685,9 +1685,9 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     };
   }
 
-  // For bank_transfer and qr_transfer: create order NOW
-  if (paymentMethodId === 'bank_transfer' || paymentMethodId === 'qr_transfer') {
-    // Decrement stock
+  // For bank_transfer: create order with awaiting_payment status
+  if (paymentMethodId === 'bank_transfer') {
+    // Decrement stock (reservation)
     for (const item of cart.cartItems) {
       if (item.variant_id) {
         const { error: vsErr } = await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
@@ -1700,7 +1700,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
     const order = await createOrderFromCart(supabase, tenantId, cart, 'pending');
 
-    // Generate invoice
+    // Generate invoice (best-effort)
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
@@ -1710,36 +1710,32 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       }).catch(() => {});
     } catch {}
 
-    if (paymentMethodId === 'bank_transfer') {
-      return {
-        order_id: order.id,
-        order_number: order.order_number,
-        status: 'payment_pending',
-        payment_type: 'manual',
-        total: order.total,
-        currency,
-        bank_details: {
-          account_holder: tenantData?.name || '',
-          iban: tenantData?.iban || '',
-          reference: order.order_number,
-        },
-      };
-    }
-
-    // QR transfer
+    // Build EPC QR code payload with BIC and structured reference
     const iban = tenantData?.iban || '';
+    const bic = tenantData?.bic || '';
     const name = tenantData?.name || '';
     const amount = order.total.toFixed(2);
     const ref = order.order_number;
-    const qrPayload = `BCD\n002\n1\nSCT\n\n${name}\n${iban}\nEUR${amount}\n\n\n${ref}\n`;
+    // EPC format: BCD\n002\n1\nSCT\n[BIC]\n[Name]\n[IBAN]\nEUR[Amount]\n[Purpose]\n[StructuredRef]\n[Text]\n[Info]
+    const qrPayload = `BCD\n002\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\n\n${ref}\n\n`;
 
     return {
       order_id: order.id,
       order_number: order.order_number,
-      status: 'payment_pending',
-      payment_type: 'qr',
+      status: 'awaiting_payment',
+      payment_type: 'bank_transfer',
       total: order.total,
-      qr_data: { payload: qrPayload, image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}` },
+      currency,
+      bank_details: {
+        account_holder: name,
+        iban,
+        bic,
+        reference: ref,
+      },
+      qr_data: {
+        payload: qrPayload,
+        image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`,
+      },
     };
   }
 
@@ -1918,8 +1914,7 @@ async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
     methods.push({ id: 'stripe', name: 'Online betalen', description: 'iDEAL, creditcard, Bancontact', type: 'online' });
   }
   if (tenant?.iban) {
-    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: `Betaal via overschrijving naar ${tenant.name || 'de verkoper'}`, type: 'manual' });
-    methods.push({ id: 'qr_transfer', name: 'Directe overschrijving via QR', description: 'Scan de QR code met je bankapp', type: 'qr', desktop_only: true });
+    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via overschrijving of scan de QR-code met je bankapp', type: 'manual' });
   }
   return methods;
 }
