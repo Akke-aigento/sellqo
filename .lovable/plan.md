@@ -1,33 +1,62 @@
 
 
-## Fix: Checkout faalt op alle 3 frontends — "Onbekende betaalmethode"
+## QR Betaling Flow — Tusschenscherm implementatie
 
-### Root cause
+### Huidige situatie
 
-De API retourneert `payment_type: 'bank_transfer'` (regel 1726 in storefront-api). Alle 3 frontends hebben een `switch(data.payment_type)` met cases voor `'redirect'`, `'manual'`, en `'qr'`. **Geen enkele frontend handelt `'bank_transfer'` af** → valt in de `default` case → "Onbekende betaalmethode".
+Bij bankoverschrijving gaat de klant direct van de checkout naar de order-bevestigingspagina (`/shop/:tenantSlug/order/:orderId`). De QR-code wordt daar al getoond via het bestaande `BankTransferPayment` component, maar het voelt als een "succes" pagina terwijl er nog niet betaald is.
 
-### Fix (API-side, 1 regel)
+### Wat er verandert
 
-**`supabase/functions/storefront-api/index.ts`** regel 1726:
+Een nieuw **tusschenscherm** (`/shop/:tenantSlug/checkout/qr-betaling`) wordt toegevoegd tussen de checkout en de bedanktpagina. Dit scherm toont:
+- Grote EPC QR-code (scanbaar met elke Belgische/Nederlandse bankapp)
+- Bedrag en bestelnummer
+- Stap-voor-stap instructies (open bankapp → scan → bevestig)
+- Bankgegevens als fallback (uitklapbaar)
+- "Ik heb betaald" knop → navigeert naar de order-bevestigingspagina
 
-Verander `payment_type: 'bank_transfer'` naar `payment_type: 'manual'`.
+### Technische aanpak
 
-De response bevat al zowel `bank_details` als `qr_data` — de frontends tonen die al correct op hun bedankt-pagina's wanneer ze `'manual'` ontvangen.
+**1. Nieuwe pagina: `src/pages/storefront/ShopQRPayment.tsx`**
 
-### "Op checkout blijven" (frontend-wijziging op 3 projecten)
+Een standalone pagina die order-data ontvangt via `navigate()` state:
+- `orderNumber`, `orderId`, `total`, `currency`, `qrPayload`, `bankDetails` (iban, bic, beneficiary)
+- Genereert de QR-code client-side met het bestaande `react-qr-code` package en `generateEPCString()` uit `src/lib/epcQrCode.ts`
+- Als geen state aanwezig → redirect naar shop homepage
+- "Ik heb betaald" → navigeert naar `/shop/:tenantSlug/order/:orderId`
 
-Dit vereist wijzigingen in de 3 custom frontends:
-- **Vanxcel** (`CheckoutContext.tsx` regel 241-251): in plaats van `navigate('/bedankt')`, toon de bank/QR gegevens inline op de checkout pagina
-- **Loveke** (`CheckoutContext.tsx` regel 250-261): idem
-- **Mancini** (`Checkout.tsx` regel 357-367): idem
+**2. Route toevoegen in `src/App.tsx`**
 
-Dit is een aparte stap na de API-fix. Eerst moet de checkout niet meer crashen.
+```
+/shop/:tenantSlug/checkout/qr-betaling → ShopQRPayment
+```
+
+**3. Checkout navigatie aanpassen in `src/pages/storefront/ShopCheckout.tsx`**
+
+Regel 287-288: in plaats van direct naar de order-pagina, navigeer naar het QR tusschenscherm:
+```typescript
+navigate(`/shop/${tenantSlug}/checkout/qr-betaling`, {
+  state: {
+    orderId: orderData.order.id,
+    orderNumber: orderData.order.order_number,
+    total: orderData.order.total,
+    currency: orderData.order.currency,
+    bankDetails: orderData.bank_details,
+  }
+});
+```
+
+**4. Geen API-wijzigingen nodig**
+
+De `create-bank-transfer-order` edge function retourneert al alle benodigde data (IBAN, BIC, OGM, bedrag). De EPC QR-code wordt client-side gegenereerd.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/storefront-api/index.ts` | `payment_type: 'bank_transfer'` → `'manual'` (regel 1726) |
+| `src/pages/storefront/ShopQRPayment.tsx` | Nieuw — QR betaal tusschenscherm |
+| `src/App.tsx` | Route toevoegen |
+| `src/pages/storefront/ShopCheckout.tsx` | Navigatie na bank_transfer aanpassen |
 
 ### Geen database wijzigingen nodig
 
