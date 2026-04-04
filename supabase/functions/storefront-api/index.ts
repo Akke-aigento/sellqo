@@ -1611,7 +1611,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   // Get tenant info
   const { data: tenantData } = await supabase
-    .from('tenants').select('default_vat_rate, stripe_account_id, iban, name, currency')
+    .from('tenants').select('default_vat_rate, stripe_account_id, iban, bic, name, currency')
     .eq('id', tenantId).single();
 
   const shippingCost = Number(cart.shipping_cost) || 0;
