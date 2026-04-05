@@ -1,60 +1,50 @@
 
 
-## Fix: QR tusschenscherm op VanXcel
+## Fix: EPC QR Code payload — verkeerde veld voor bestelnummer
 
-### Probleem
+### Root cause
 
-1. **API** retourneert `payment_type: 'manual'` terwijl het `'qr'` moet zijn (zodat de frontend weet dat er QR-data is)
-2. **VanXcel's CheckoutContext** stuurt bij `'qr'` direct naar `/bedankt` in plaats van naar een tusschenscherm
+`ShopQRPayment.tsx` regel 39 stuurt `orderNumber` als `reference` (gestructureerde referentie, EPC regel 10). De functie `generateEPCString` haalt daar vervolgens alle niet-cijfers uit (`/[^\d]/g`), waardoor `VX-2026-01144` wordt tot `202601144`. Dit belandt in het gestructureerde referentie-veld, dat bankapps interpreteren als een OGM-nummer. Het bestelnummer hoort in het **ongestructureerde mededeling-veld** (EPC regel 11 = `text`).
 
-### Wat er moet veranderen
+### Fix
 
-**Project 1: SellQo (dit project) — API fix**
+**`src/pages/storefront/ShopQRPayment.tsx`** — regel 34-40:
+Verander `reference: orderNumber` naar `text: orderNumber`. Geen `reference` meegeven (laat leeg).
 
-`supabase/functions/storefront-api/index.ts` regel 1726:
-- Verander `payment_type: 'manual'` terug naar `payment_type: 'qr'`
-- De response bevat al zowel `bank_details` als `qr_data`
-
-**Project 2: [VanXcel](/projects/80408260-c0d8-4f90-a4c4-58c9202792e0) — Frontend fix**
-
-Dit is een **apart project**. De wijzigingen moeten daar gedaan worden:
-
-1. **`src/integrations/sellqo/CheckoutContext.tsx`** regel 253-262: bij `case 'qr'` navigeren naar `/checkout/qr-betaling` i.p.v. `/bedankt`:
 ```typescript
-case 'qr':
-  clearStoredCartId();
-  navigate('/checkout/qr-betaling', {
-    state: {
-      orderNumber: data.order_number,
-      total: data.total,
-      currency: data.currency,
-      qrData: data.qr_data,
-      bankDetails: data.bank_details,
-    },
-  });
-  break;
+const epcPayload = generateEPCString({
+  bic: bankDetails.bic || "",
+  beneficiaryName: bankDetails.account_holder || "",
+  iban: bankDetails.iban,
+  amount: total,
+  text: orderNumber,  // ← was: reference: orderNumber
+});
 ```
 
-2. **Nieuwe pagina**: `src/pages/QRPayment.tsx` — tusschenscherm met:
-   - Grote EPC QR-code (gegenereerd uit `qr_data.payload`)
-   - Bedrag + bestelnummer
-   - Stap-voor-stap instructies
-   - Bankgegevens als fallback
-   - "Ik heb betaald" knop → navigeert naar `/bedankt`
+**`src/lib/epcQrCode.ts`** — geen wijzigingen nodig. De functie werkt al correct: als `reference` leeg is, wordt regel 10 leeg gelaten en komt `text` op regel 11 terecht. Exact zoals de EPC standaard het vereist.
 
-3. **Route** in `src/App.tsx`: `/checkout/qr-betaling` → `QRPayment`
+### Resultaat na fix
 
-### Aanpak
-
-Stap 1: API fix in dit project (1 regel)
-Stap 2: Vraag aan gebruiker om naar het VanXcel project te schakelen voor de frontend-wijzigingen
+```
+BCD
+002
+1
+SCT
+                          ← BIC (leeg)
+VanXcel BV                ← Naam
+BE68539007547034          ← IBAN
+EUR10.00                  ← Bedrag
+                          ← Purpose (leeg)
+                          ← Gestructureerde ref (leeg)
+VX-2026-01144             ← Mededeling (bestelnummer)
+                          ← Display text (leeg)
+```
 
 ### Bestanden
 
-| Project | Bestand | Actie |
-|---|---|---|
-| SellQo | `supabase/functions/storefront-api/index.ts` | `payment_type: 'manual'` → `'qr'` |
-| VanXcel | `src/integrations/sellqo/CheckoutContext.tsx` | `'qr'` case → navigate naar tusschenscherm |
-| VanXcel | `src/pages/QRPayment.tsx` | Nieuw — QR betaal tusschenscherm |
-| VanXcel | `src/App.tsx` | Route toevoegen |
+| Bestand | Actie |
+|---|---|
+| `src/pages/storefront/ShopQRPayment.tsx` | `reference` → `text` voor orderNumber |
+
+### Geen database wijzigingen nodig
 
