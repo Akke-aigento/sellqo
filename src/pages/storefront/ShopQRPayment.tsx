@@ -12,9 +12,11 @@ interface QRPaymentState {
   currency?: string;
   bankDetails?: {
     account_holder?: string;
+    beneficiary_name?: string;
     iban?: string;
     bic?: string;
     reference?: string;
+    ogm_reference?: string;
   };
 }
 
@@ -33,8 +35,8 @@ export default function ShopQRPayment() {
 
   const epcPayload = generateEPCString({
     bic: bankDetails.bic || "",
-    beneficiaryName: bankDetails.account_holder || "",
-    iban: bankDetails.iban,
+    beneficiaryName: bankDetails.beneficiary_name || bankDetails.account_holder || "",
+    iban: bankDetails.iban || "",
     amount: total,
     text: orderNumber,
   });
@@ -101,7 +103,7 @@ export default function ShopQRPayment() {
             <ChevronDown className="h-3 w-3" />
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 text-left text-sm bg-muted rounded-lg p-4 space-y-1">
-            <p><strong>Rekeninghouder:</strong> {bankDetails.account_holder}</p>
+            <p><strong>Rekeninghouder:</strong> {bankDetails.beneficiary_name || bankDetails.account_holder}</p>
             <p><strong>IBAN:</strong> {bankDetails.iban}</p>
             <p><strong>Bedrag:</strong> €{Number(total).toFixed(2)}</p>
             <p><strong>Mededeling:</strong> {orderNumber}</p>
