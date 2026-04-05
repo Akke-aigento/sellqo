@@ -1,62 +1,60 @@
 
 
-## QR Betaling Flow — Tusschenscherm implementatie
+## Fix: QR tusschenscherm op VanXcel
 
-### Huidige situatie
+### Probleem
 
-Bij bankoverschrijving gaat de klant direct van de checkout naar de order-bevestigingspagina (`/shop/:tenantSlug/order/:orderId`). De QR-code wordt daar al getoond via het bestaande `BankTransferPayment` component, maar het voelt als een "succes" pagina terwijl er nog niet betaald is.
+1. **API** retourneert `payment_type: 'manual'` terwijl het `'qr'` moet zijn (zodat de frontend weet dat er QR-data is)
+2. **VanXcel's CheckoutContext** stuurt bij `'qr'` direct naar `/bedankt` in plaats van naar een tusschenscherm
 
-### Wat er verandert
+### Wat er moet veranderen
 
-Een nieuw **tusschenscherm** (`/shop/:tenantSlug/checkout/qr-betaling`) wordt toegevoegd tussen de checkout en de bedanktpagina. Dit scherm toont:
-- Grote EPC QR-code (scanbaar met elke Belgische/Nederlandse bankapp)
-- Bedrag en bestelnummer
-- Stap-voor-stap instructies (open bankapp → scan → bevestig)
-- Bankgegevens als fallback (uitklapbaar)
-- "Ik heb betaald" knop → navigeert naar de order-bevestigingspagina
+**Project 1: SellQo (dit project) — API fix**
 
-### Technische aanpak
+`supabase/functions/storefront-api/index.ts` regel 1726:
+- Verander `payment_type: 'manual'` terug naar `payment_type: 'qr'`
+- De response bevat al zowel `bank_details` als `qr_data`
 
-**1. Nieuwe pagina: `src/pages/storefront/ShopQRPayment.tsx`**
+**Project 2: [VanXcel](/projects/80408260-c0d8-4f90-a4c4-58c9202792e0) — Frontend fix**
 
-Een standalone pagina die order-data ontvangt via `navigate()` state:
-- `orderNumber`, `orderId`, `total`, `currency`, `qrPayload`, `bankDetails` (iban, bic, beneficiary)
-- Genereert de QR-code client-side met het bestaande `react-qr-code` package en `generateEPCString()` uit `src/lib/epcQrCode.ts`
-- Als geen state aanwezig → redirect naar shop homepage
-- "Ik heb betaald" → navigeert naar `/shop/:tenantSlug/order/:orderId`
+Dit is een **apart project**. De wijzigingen moeten daar gedaan worden:
 
-**2. Route toevoegen in `src/App.tsx`**
-
-```
-/shop/:tenantSlug/checkout/qr-betaling → ShopQRPayment
-```
-
-**3. Checkout navigatie aanpassen in `src/pages/storefront/ShopCheckout.tsx`**
-
-Regel 287-288: in plaats van direct naar de order-pagina, navigeer naar het QR tusschenscherm:
+1. **`src/integrations/sellqo/CheckoutContext.tsx`** regel 253-262: bij `case 'qr'` navigeren naar `/checkout/qr-betaling` i.p.v. `/bedankt`:
 ```typescript
-navigate(`/shop/${tenantSlug}/checkout/qr-betaling`, {
-  state: {
-    orderId: orderData.order.id,
-    orderNumber: orderData.order.order_number,
-    total: orderData.order.total,
-    currency: orderData.order.currency,
-    bankDetails: orderData.bank_details,
-  }
-});
+case 'qr':
+  clearStoredCartId();
+  navigate('/checkout/qr-betaling', {
+    state: {
+      orderNumber: data.order_number,
+      total: data.total,
+      currency: data.currency,
+      qrData: data.qr_data,
+      bankDetails: data.bank_details,
+    },
+  });
+  break;
 ```
 
-**4. Geen API-wijzigingen nodig**
+2. **Nieuwe pagina**: `src/pages/QRPayment.tsx` — tusschenscherm met:
+   - Grote EPC QR-code (gegenereerd uit `qr_data.payload`)
+   - Bedrag + bestelnummer
+   - Stap-voor-stap instructies
+   - Bankgegevens als fallback
+   - "Ik heb betaald" knop → navigeert naar `/bedankt`
 
-De `create-bank-transfer-order` edge function retourneert al alle benodigde data (IBAN, BIC, OGM, bedrag). De EPC QR-code wordt client-side gegenereerd.
+3. **Route** in `src/App.tsx`: `/checkout/qr-betaling` → `QRPayment`
+
+### Aanpak
+
+Stap 1: API fix in dit project (1 regel)
+Stap 2: Vraag aan gebruiker om naar het VanXcel project te schakelen voor de frontend-wijzigingen
 
 ### Bestanden
 
-| Bestand | Actie |
-|---|---|
-| `src/pages/storefront/ShopQRPayment.tsx` | Nieuw — QR betaal tusschenscherm |
-| `src/App.tsx` | Route toevoegen |
-| `src/pages/storefront/ShopCheckout.tsx` | Navigatie na bank_transfer aanpassen |
-
-### Geen database wijzigingen nodig
+| Project | Bestand | Actie |
+|---|---|---|
+| SellQo | `supabase/functions/storefront-api/index.ts` | `payment_type: 'manual'` → `'qr'` |
+| VanXcel | `src/integrations/sellqo/CheckoutContext.tsx` | `'qr'` case → navigate naar tusschenscherm |
+| VanXcel | `src/pages/QRPayment.tsx` | Nieuw — QR betaal tusschenscherm |
+| VanXcel | `src/App.tsx` | Route toevoegen |
 
