@@ -1,50 +1,62 @@
 
 
-## Fix: EPC QR Code payload — verkeerde veld voor bestelnummer
+## Fix: QR Code bankgegevens — veld-naamfout
 
 ### Root cause
 
-`ShopQRPayment.tsx` regel 39 stuurt `orderNumber` als `reference` (gestructureerde referentie, EPC regel 10). De functie `generateEPCString` haalt daar vervolgens alle niet-cijfers uit (`/[^\d]/g`), waardoor `VX-2026-01144` wordt tot `202601144`. Dit belandt in het gestructureerde referentie-veld, dat bankapps interpreteren als een OGM-nummer. Het bestelnummer hoort in het **ongestructureerde mededeling-veld** (EPC regel 11 = `text`).
+De `create-bank-transfer-order` edge function retourneert:
+```json
+{
+  "bank_details": {
+    "iban": "BE68539007547034",
+    "bic": "BPOTBEB1",
+    "beneficiary_name": "VanXcel BV",   // ← dit veld
+    "ogm_reference": "+++123/4567/89012+++",
+    "amount": 10.00,
+    "currency": "EUR"
+  }
+}
+```
+
+Maar `ShopQRPayment.tsx` leest `bankDetails.account_holder` — een veld dat **niet bestaat** in de response. Resultaat: de begunstigde naam is een lege string in de EPC payload. De QR code heeft dan een lege regel 6, waardoor sommige bankapps de velden verkeerd interpreteren.
 
 ### Fix
 
-**`src/pages/storefront/ShopQRPayment.tsx`** — regel 34-40:
-Verander `reference: orderNumber` naar `text: orderNumber`. Geen `reference` meegeven (laat leeg).
+**`src/pages/storefront/ShopQRPayment.tsx`** — 2 wijzigingen:
+
+1. Interface aanpassen: `account_holder` → `beneficiary_name` toevoegen
+2. `generateEPCString` call: `bankDetails.beneficiary_name` gebruiken i.p.v. `bankDetails.account_holder`
+3. Fallback-sectie onderaan: idem
 
 ```typescript
+// Interface
+bankDetails?: {
+  account_holder?: string;
+  beneficiary_name?: string;  // ← toevoegen
+  iban?: string;
+  bic?: string;
+  reference?: string;
+  ogm_reference?: string;     // ← toevoegen
+};
+
+// EPC generatie
 const epcPayload = generateEPCString({
   bic: bankDetails.bic || "",
-  beneficiaryName: bankDetails.account_holder || "",
-  iban: bankDetails.iban,
+  beneficiaryName: bankDetails.beneficiary_name || bankDetails.account_holder || "",
+  iban: bankDetails.iban || "",
   amount: total,
-  text: orderNumber,  // ← was: reference: orderNumber
+  text: orderNumber,
 });
-```
 
-**`src/lib/epcQrCode.ts`** — geen wijzigingen nodig. De functie werkt al correct: als `reference` leeg is, wordt regel 10 leeg gelaten en komt `text` op regel 11 terecht. Exact zoals de EPC standaard het vereist.
-
-### Resultaat na fix
-
-```
-BCD
-002
-1
-SCT
-                          ← BIC (leeg)
-VanXcel BV                ← Naam
-BE68539007547034          ← IBAN
-EUR10.00                  ← Bedrag
-                          ← Purpose (leeg)
-                          ← Gestructureerde ref (leeg)
-VX-2026-01144             ← Mededeling (bestelnummer)
-                          ← Display text (leeg)
+// Fallback sectie
+<p><strong>Rekeninghouder:</strong> {bankDetails.beneficiary_name || bankDetails.account_holder}</p>
 ```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/storefront/ShopQRPayment.tsx` | `reference` → `text` voor orderNumber |
+| `src/pages/storefront/ShopQRPayment.tsx` | Fix veldnamen om overeen te komen met API response |
 
 ### Geen database wijzigingen nodig
 
