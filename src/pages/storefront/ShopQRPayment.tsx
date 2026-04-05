@@ -36,7 +36,7 @@ export default function ShopQRPayment() {
     beneficiaryName: bankDetails.account_holder || "",
     iban: bankDetails.iban,
     amount: total,
-    reference: orderNumber,
+    text: orderNumber,
   });
 
   return (
