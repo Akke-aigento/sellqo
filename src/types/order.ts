@@ -121,6 +121,7 @@ export interface Order {
   // Import tracking
   import_source?: string | null;
   original_created_at?: string | null;
+  expires_at?: string | null;
   // Joined data
   order_items?: OrderItem[];
   customer?: Customer;

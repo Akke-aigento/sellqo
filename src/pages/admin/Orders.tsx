@@ -262,7 +262,18 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <OrderStatusBadge status={order.status} />
       </TableCell>
       <TableCell className="hidden md:table-cell" onClick={onView}>
-        <PaymentStatusBadge status={order.payment_status} />
+        <div className="flex flex-col gap-1">
+          <PaymentStatusBadge status={order.payment_status} />
+          {order.payment_status === 'pending' && order.expires_at && (
+            <span className={`text-[10px] leading-tight ${
+              new Date(order.expires_at).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000
+                ? 'text-destructive font-medium'
+                : 'text-muted-foreground'
+            }`}>
+              Verloopt {format(new Date(order.expires_at), 'd MMM', { locale: nl })}
+            </span>
+          )}
+        </div>
       </TableCell>
       <TableCell className="text-right font-medium" onClick={onView}>
         {formatCurrency(Number(order.total))}

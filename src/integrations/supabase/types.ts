@@ -7670,6 +7670,7 @@ export type Database = {
           discount_amount: number | null
           discount_code: string | null
           discount_code_id: string | null
+          expires_at: string | null
           external_reference: string | null
           fulfillment_status: string | null
           gift_card_amount: number | null
@@ -7737,6 +7738,7 @@ export type Database = {
           discount_amount?: number | null
           discount_code?: string | null
           discount_code_id?: string | null
+          expires_at?: string | null
           external_reference?: string | null
           fulfillment_status?: string | null
           gift_card_amount?: number | null
@@ -7804,6 +7806,7 @@ export type Database = {
           discount_amount?: number | null
           discount_code?: string | null
           discount_code_id?: string | null
+          expires_at?: string | null
           external_reference?: string | null
           fulfillment_status?: string | null
           gift_card_amount?: number | null
@@ -15588,6 +15591,7 @@ export type Database = {
         Returns: undefined
       }
       downgrade_expired_trials: { Args: never; Returns: number }
+      expire_unpaid_orders: { Args: never; Returns: number }
       find_order_by_reference: {
         Args: { p_reference: string; p_tenant_id: string }
         Returns: string

@@ -1364,7 +1364,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
   return { ...cart, cartItems, subtotal };
 }
 
-async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string) {
+async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
   // Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
 
@@ -1427,6 +1427,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       shipping_method_id: cart.shipping_method_id || null,
       currency: cart.currency || tenant?.currency || 'EUR',
       stripe_payment_intent_id: stripePaymentIntentId || null,
+      expires_at: expiresAt || null,
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -1709,7 +1710,9 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       }
     }
 
-    const order = await createOrderFromCart(supabase, tenantId, cart, 'pending');
+    // Set expiry 7 days from now for unpaid bank transfer orders
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const order = await createOrderFromCart(supabase, tenantId, cart, 'pending', undefined, expiresAt);
 
     // Generate invoice (best-effort)
     try {
