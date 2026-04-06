@@ -24,6 +24,8 @@ export function NewsletterSettings() {
     klaviyo_list_id: '',
     double_optin: false,
     welcome_email_enabled: true,
+    welcome_email_subject: 'Welkom bij onze nieuwsbrief!',
+    welcome_email_body: '',
   });
 
   const [testResult, setTestResult] = useState<{
@@ -43,6 +45,8 @@ export function NewsletterSettings() {
         klaviyo_list_id: config.klaviyo_list_id || '',
         double_optin: config.double_optin || false,
         welcome_email_enabled: config.welcome_email_enabled ?? true,
+        welcome_email_subject: config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!',
+        welcome_email_body: config.welcome_email_body || '',
       });
     }
   }, [config]);
