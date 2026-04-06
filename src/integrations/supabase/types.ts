@@ -13787,7 +13787,9 @@ export type Database = {
           provider: string
           tenant_id: string
           updated_at: string | null
+          welcome_email_body: string | null
           welcome_email_enabled: boolean | null
+          welcome_email_subject: string | null
         }
         Insert: {
           created_at?: string | null
@@ -13801,7 +13803,9 @@ export type Database = {
           provider?: string
           tenant_id: string
           updated_at?: string | null
+          welcome_email_body?: string | null
           welcome_email_enabled?: boolean | null
+          welcome_email_subject?: string | null
         }
         Update: {
           created_at?: string | null
@@ -13815,7 +13819,9 @@ export type Database = {
           provider?: string
           tenant_id?: string
           updated_at?: string | null
+          welcome_email_body?: string | null
           welcome_email_enabled?: boolean | null
+          welcome_email_subject?: string | null
         }
         Relationships: [
           {
