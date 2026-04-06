@@ -1,0 +1,1 @@
+ALTER TABLE public.email_campaigns ADD COLUMN IF NOT EXISTS automation_id uuid REFERENCES public.email_automations(id) ON DELETE SET NULL;

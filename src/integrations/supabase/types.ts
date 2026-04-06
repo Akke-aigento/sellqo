@@ -4974,6 +4974,7 @@ export type Database = {
         Row: {
           ab_test_winner_selected_at: string | null
           ab_variant_of: string | null
+          automation_id: string | null
           completed_at: string | null
           created_at: string | null
           created_by: string | null
@@ -5002,6 +5003,7 @@ export type Database = {
         Insert: {
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
+          automation_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5030,6 +5032,7 @@ export type Database = {
         Update: {
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
+          automation_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5061,6 +5064,13 @@ export type Database = {
             columns: ["ab_variant_of"]
             isOneToOne: false
             referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "email_automations"
             referencedColumns: ["id"]
           },
           {
