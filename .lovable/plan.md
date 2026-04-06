@@ -1,62 +1,56 @@
 
 
-## Automatische opruiming van onbetaalde orders
+## Download-knop toevoegen voor productafbeeldingen
 
-### Conclusie: huidige flow is correct
+### Probleem
+Tenants kunnen hun productafbeeldingen niet downloaden vanuit het admin dashboard. Er is geen download-knop aanwezig bij de afbeeldingen in het ProductForm.
 
-Bij bankoverschrijvingen **moet** de order direct aangemaakt worden. Er is geen webhook zoals bij Stripe — je kunt niet automatisch detecteren of er betaald is. De order vooraf aanmaken is noodzakelijk zodat:
-- De admin weet welke betalingen binnenkomen
-- De klant een bestelnummer heeft
-- Niets verloren gaat als de browser dichtgaat
+### Oplossing
+Voeg een download-knop toe naast de bestaande knoppen (hoofdafbeelding instellen, verwijderen) in de hover-overlay van elke productafbeelding.
 
-### Wat we wél kunnen doen: automatisch verlopen
+### Wat er verandert
 
-Orders met status `pending` die na X dagen niet betaald zijn, automatisch markeren als `expired`. Dit voorkomt dat het dashboard vol staat met spookorders.
+**`src/pages/admin/ProductForm.tsx`** — regel 1491-1497
 
-### Implementatie
+Voeg een download-knop toe aan de hover-overlay van elke afbeelding:
 
-**1. Nieuw veld op orders (migration)**
-```sql
--- Voeg een vervaldatum toe aan orders
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+```tsx
+<div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+  <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title="Maak hoofdafbeelding">
+    <Star className={...} />
+  </Button>
+  {/* NIEUW: Download knop */}
+  <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title="Downloaden">
+    <Download className="h-4 w-4" />
+  </Button>
+  <Button type="button" size="icon" variant="destructive" onClick={() => removeImage(url)} title="Verwijderen">
+    <X className="h-4 w-4" />
+  </Button>
+</div>
 ```
 
-Bij het aanmaken van een bank_transfer order in `checkoutComplete`: `expires_at = now() + interval '7 days'`.
+Plus een `downloadImage` helper die via `fetch` + `blob` + tijdelijk `<a>` element de afbeelding downloadt (nodig omdat het cross-origin URLs zijn — een gewone `<a download>` werkt niet cross-origin):
 
-**2. Database functie voor cleanup**
-```sql
-CREATE OR REPLACE FUNCTION expire_unpaid_orders()
-RETURNS integer AS $$
-DECLARE affected integer;
-BEGIN
-  UPDATE orders 
-  SET status = 'cancelled', payment_status = 'expired'
-  WHERE payment_status = 'pending' 
-    AND expires_at < now()
-    AND status != 'cancelled';
-  GET DIAGNOSTICS affected = ROW_COUNT;
-  RETURN affected;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+```typescript
+const downloadImage = async (url: string, filename: string) => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${filename}.${ext}`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
 ```
 
-**3. Cron job via pg_cron (of een scheduled edge function)**
-
-Draait dagelijks en ruimt verlopen orders op. Stock wordt weer vrijgegeven.
-
-**4. Visuele indicator in admin dashboard**
-
-Orders die bijna verlopen tonen een waarschuwingsbadge ("Verloopt over 2 dagen").
+Import `Download` icon van lucide-react toevoegen.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Database migration | `expires_at` kolom + `expire_unpaid_orders` functie |
-| `supabase/functions/storefront-api/index.ts` | `expires_at` instellen bij bank_transfer checkout |
-| Admin orders overzicht (optioneel) | Verloop-indicator tonen |
+| `src/pages/admin/ProductForm.tsx` | Download-knop + helper functie toevoegen |
 
-### Alternatief: handmatig opruimen
-
-Als je liever geen automatische expiry wilt, kunnen we ook een "Verwijder onbetaalde orders" knop toevoegen in het admin dashboard waarmee je zelf opruimt.
+### Geen database wijzigingen nodig
 
