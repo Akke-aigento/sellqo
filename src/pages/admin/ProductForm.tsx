@@ -406,6 +406,21 @@ export default function ProductForm() {
     e.target.value = '';
   };
 
+  const downloadImage = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${filename}.${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      toast.error('Kon afbeelding niet downloaden');
+    }
+  };
+
   const removeImage = (url: string) => {
     const images = form.getValues('images').filter(img => img !== url);
     form.setValue('images', images);
@@ -1491,6 +1506,9 @@ export default function ProductForm() {
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                   <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title="Maak hoofdafbeelding">
                                     <Star className={cn("h-4 w-4", form.watch('featured_image') === url && "fill-amber-500 text-amber-500")} />
+                                  </Button>
+                                  <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title="Downloaden">
+                                    <Download className="h-4 w-4" />
                                   </Button>
                                   <Button type="button" size="icon" variant="destructive" onClick={() => removeImage(url)} title="Verwijderen">
                                     <X className="h-4 w-4" />
