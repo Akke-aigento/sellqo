@@ -115,7 +115,7 @@ async function getTenant(supabase: any, tenantId: string, params: Record<string,
   const locale = params.locale as string | undefined;
   const { data, error } = await supabase
     .from('tenants')
-    .select('id, name, slug, logo_url, primary_color, currency, country, default_vat_rate, store_name, store_description, contact_email, contact_phone')
+    .select('id, name, slug, logo_url, primary_color, currency, country, tax_percentage, store_name, store_description, contact_email, contact_phone')
     .eq('id', tenantId).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('Tenant not found');
@@ -182,7 +182,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
       primary_color: tenant.primary_color,
       currency: tenant.currency || 'EUR',
       country: tenant.country || 'NL',
-      vat_rate: tenant.default_vat_rate || 21,
+      vat_rate: tenant.tax_percentage || 21,
     },
     contact: {
       email: tenant.contact_email,
@@ -1369,11 +1369,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
 
   // Get tenant for VAT
-  const { data: tenant } = await supabase
-    .from('tenants').select('default_vat_rate, currency, name, iban')
+  const { data: tenant, error: tenantErr } = await supabase
+    .from('tenants').select('tax_percentage, currency, name, iban, bic')
     .eq('id', tenantId).single();
+  if (tenantErr) console.error('Tenant query error in order creation:', tenantErr);
 
-  const vatRate = tenant?.default_vat_rate || 21;
+  const vatRate = tenant?.tax_percentage || 21;
   const subtotal = cart.subtotal;
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
@@ -1615,9 +1616,14 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   cart.payment_method = paymentMethodId;
 
   // Get tenant info
-  const { data: tenantData } = await supabase
-    .from('tenants').select('default_vat_rate, stripe_account_id, iban, bic, name, currency')
+  const { data: tenantData, error: tenantError } = await supabase
+    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency')
     .eq('id', tenantId).single();
+
+  if (tenantError || !tenantData) {
+    console.error('checkoutComplete tenant query failed:', tenantError);
+    return { success: false, error: { code: 'TENANT_CONFIG_ERROR', message: 'Winkelconfiguratie voor betaling kon niet geladen worden' } };
+  }
 
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
