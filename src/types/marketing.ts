@@ -90,6 +90,8 @@ export interface EmailCampaign {
   variant_label?: string;
   is_ab_test?: boolean;
   ab_test_winner_selected_at?: string;
+  // Automation link
+  automation_id?: string;
   // Joined relations (partial info)
   segment?: SegmentInfo;
   template?: TemplateInfo;
