@@ -1,66 +1,59 @@
 
 
-## Welkomstmail per tenant implementeren
+## Segment Builder uitbreiden + Template editor upgraden
 
-### Huidige situatie
-- De toggle `welcome_email_enabled` bestaat en wordt opgeslagen in `tenant_newsletter_config`
-- Er is **geen code** die daadwerkelijk een welkomstmail verstuurt wanneer iemand zich aanmeldt
-- Er is geen template of inhoud per tenant configureerbaar
+### Probleem 1: Segmenten zijn te beperkt
 
-### Wat er moet gebeuren
+De `customers` tabel heeft een `tags` kolom (text array) die nergens in de segment builder gebruikt wordt. Tags zoals "VIP", "Sleeping", "B2B Verified" etc. zijn niet selecteerbaar als filtercriterium. Ook ontbreken filters op nieuwsbrief-status en er is geen "heeft specifiek product gekocht" filter.
 
-**1. Database: welkomstmail-inhoud per tenant opslaan**
+### Probleem 2: Template editor
 
-Voeg kolommen toe aan `tenant_newsletter_config`:
-```sql
-ALTER TABLE tenant_newsletter_config 
-  ADD COLUMN IF NOT EXISTS welcome_email_subject text DEFAULT 'Welkom bij onze nieuwsbrief!',
-  ADD COLUMN IF NOT EXISTS welcome_email_body text DEFAULT '';
+Templates zijn beschikbaar via Marketing → tabblad "Templates". Maar de `TemplateDialog` heeft dezelfde beperking als de oude campagne-editor: puur een HTML textarea. Dit moet dezelfde visuele/HTML toggle krijgen als de campagne-editor.
+
+### Oplossing
+
+**1. SegmentBuilder uitbreiden met tags-filter**
+
+In `SegmentBuilder.tsx`:
+- Voeg een **Tags** filter toe — multi-select met de beschikbare tags van de tenant's klanten
+- Haal bestaande tags op via een query (`SELECT DISTINCT unnest(tags) FROM customers WHERE tenant_id = ?`)
+- Voeg een **Nieuwsbrief geabonneerd** toggle filter toe (ja/nee/alle)
+- Voeg een **Aangemaakt sinds** datumfilter toe (nieuwe klanten targeten)
+
+In `SegmentFilterRules` type (`src/types/marketing.ts`):
+```typescript
+tags?: string[];           // klant moet minstens één van deze tags hebben
+tags_match?: 'any' | 'all'; // OF vs EN logica
+email_subscribed?: boolean;
+created_after?: string;    // ISO date
+created_before?: string;
 ```
 
-**2. Admin UI: welkomstmail configureren per tenant**
+In `useCustomerSegments.ts` — de `useSegmentMemberCount` query uitbreiden:
+- Tags filter: `query.overlaps('tags', selectedTags)` voor "any" match
+- `email_subscribed` filter
+- `created_at` range filters
 
-In `NewsletterSettings.tsx` — onder de "Welkomst Email" toggle een sectie toevoegen (alleen zichtbaar als toggle aan staat):
-- **Onderwerp** — text input
-- **Inhoud** — rich text editor (hergebruik `CampaignRichEditor`)
-- Placeholder/default tekst als er nog niets is ingesteld
+Nieuwe hook `useCustomerTags` — haalt unieke tags op per tenant voor de dropdown.
 
-**3. Verzendlogica: welkomstmail sturen bij nieuwe subscriber**
+**2. TemplateDialog upgraden met visuele editor**
 
-In `storefront-api/index.ts` in de `newsletterSubscribe` functie:
-- Na succesvolle inschrijving, check `welcome_email_enabled` uit de config
-- Als true: haal `welcome_email_subject` en `welcome_email_body` op
-- Verstuur via `supabase.functions.invoke('send-transactional-email', ...)` met een generiek template dat de tenant-specifieke body/subject gebruikt
-
-**4. Email template: generiek "tenant-welcome" template**
-
-Maak een `tenant-welcome.tsx` React Email template in `_shared/transactional-email-templates/` dat:
-- `subject` accepteert als dynamic prop
-- `body` (HTML string) accepteert als prop — gerenderd als tenant-specifieke content
-- Tenant naam/logo bevat indien beschikbaar
+In `TemplateDialog.tsx`:
+- Voeg dezelfde visuele/HTML toggle toe als in `CampaignDialog`
+- Hergebruik `CampaignRichEditor` voor de visuele modus
+- Voeg email preview toe (iframe)
+- Behoud beschikbare variabelen info
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Database migration | `welcome_email_subject` + `welcome_email_body` kolommen |
-| `src/components/admin/storefront/NewsletterSettings.tsx` | Editor voor welkomstmail content |
-| `src/hooks/useNewsletterConfig.ts` | Nieuwe velden in interface |
-| `supabase/functions/storefront-api/index.ts` | Welkomstmail versturen na subscribe |
-| `supabase/functions/_shared/transactional-email-templates/tenant-welcome.tsx` | Nieuw template |
-| `supabase/functions/_shared/transactional-email-templates/registry.ts` | Template registreren |
+| `src/types/marketing.ts` | Tags, email_subscribed, created_after/before aan SegmentFilterRules |
+| `src/components/admin/marketing/SegmentBuilder.tsx` | Tags multi-select, nieuwsbrief toggle, datumfilter |
+| `src/hooks/useCustomerSegments.ts` | Query uitbreiden voor nieuwe filters |
+| `src/hooks/useCustomerTags.ts` | Nieuw: unieke tags ophalen per tenant |
+| `src/components/admin/marketing/TemplateDialog.tsx` | Visuele editor + HTML toggle + preview |
 
-### Flow
-
-```text
-Klant meldt zich aan voor nieuwsbrief
-  → storefront-api: newsletterSubscribe()
-  → Check: welcome_email_enabled = true?
-  → Ja: haal welcome_email_subject + welcome_email_body op
-  → Roep send-transactional-email aan met tenant-welcome template
-  → Klant ontvangt gepersonaliseerde welkomstmail van die specifieke tenant
-```
-
-### Geen conflict met bestaande email infra
-Dit gebruikt het bestaande transactional email systeem — geen nieuwe edge functions nodig, alleen een nieuw template + aanroep.
+### Geen database wijzigingen nodig
+De `tags` kolom en alle andere kolommen bestaan al.
 
