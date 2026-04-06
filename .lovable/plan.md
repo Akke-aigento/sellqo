@@ -1,62 +1,63 @@
 
 
-## Fix: QR Code bankgegevens — veld-naamfout
+## Fix: Build error + QR EPC payload
 
-### Root cause
+### Twee problemen
 
-De `create-bank-transfer-order` edge function retourneert:
-```json
-{
-  "bank_details": {
-    "iban": "BE68539007547034",
-    "bic": "BPOTBEB1",
-    "beneficiary_name": "VanXcel BV",   // ← dit veld
-    "ogm_reference": "+++123/4567/89012+++",
-    "amount": 10.00,
-    "currency": "EUR"
-  }
-}
+**1. Build error: `process-refund` deploy faalt**
+`supabase/functions/process-refund/index.ts` regel 3 gebruikt `npm:@supabase/supabase-js@2.57.2` — een npm-specifier die niet werkt in de edge runtime zonder een `deno.json` of `package.json` met die dependency. Moet een esm.sh import worden, consistent met de andere functions.
+
+**2. QR EPC payload: structuur fout**
+De tenant data (iban, bic, name) wordt wél correct opgehaald uit de database — de `SELECT` bevat alle velden en de DB heeft waarden voor VanXcel. Het probleem zit in de **payload structuur** op regel 1720:
+
+```
+BCD\n002\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\n\n${ref}\n\n
 ```
 
-Maar `ShopQRPayment.tsx` leest `bankDetails.account_holder` — een veld dat **niet bestaat** in de response. Resultaat: de begunstigde naam is een lege string in de EPC payload. De QR code heeft dan een lege regel 6, waardoor sommige bankapps de velden verkeerd interpreteren.
+Dit produceert slechts 11 regels. Het bestelnummer (`ref`) staat op **regel 10** (Structured Reference) in plaats van **regel 11** (Unstructured Remittance). Regel 12 ontbreekt. Bankapps interpreteren de structured reference anders dan vrije tekst — sommige verwachten ISO 11649 formaat en negeren het veld als het niet klopt.
 
 ### Fix
 
-**`src/pages/storefront/ShopQRPayment.tsx`** — 2 wijzigingen:
+**`supabase/functions/process-refund/index.ts`** — regel 3:
+```typescript
+// VAN:
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+// NAAR:
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+```
 
-1. Interface aanpassen: `account_holder` → `beneficiary_name` toevoegen
-2. `generateEPCString` call: `bankDetails.beneficiary_name` gebruiken i.p.v. `bankDetails.account_holder`
-3. Fallback-sectie onderaan: idem
+**`supabase/functions/storefront-api/index.ts`** — regel 1719-1720:
+Vervang de template literal door een array met expliciete 12 regels:
 
 ```typescript
-// Interface
-bankDetails?: {
-  account_holder?: string;
-  beneficiary_name?: string;  // ← toevoegen
-  iban?: string;
-  bic?: string;
-  reference?: string;
-  ogm_reference?: string;     // ← toevoegen
-};
+const qrPayload = [
+  "BCD",                          // 1: Service Tag
+  "002",                          // 2: Version
+  "1",                            // 3: UTF-8
+  "SCT",                          // 4: SEPA Credit Transfer
+  bic,                            // 5: BIC
+  name,                           // 6: Beneficiary Name
+  iban.replace(/\s/g, ''),        // 7: IBAN zonder spaties
+  `EUR${Number(amount).toFixed(2)}`, // 8: Amount
+  "",                             // 9: Purpose (leeg)
+  "",                             // 10: Structured Reference (leeg)
+  ref,                            // 11: Unstructured Remittance (bestelnummer)
+  "",                             // 12: Display text (leeg)
+].join("\n");
+```
 
-// EPC generatie
-const epcPayload = generateEPCString({
-  bic: bankDetails.bic || "",
-  beneficiaryName: bankDetails.beneficiary_name || bankDetails.account_holder || "",
-  iban: bankDetails.iban || "",
-  amount: total,
-  text: orderNumber,
-});
-
-// Fallback sectie
-<p><strong>Rekeninghouder:</strong> {bankDetails.beneficiary_name || bankDetails.account_holder}</p>
+Plus een debug log ervoor:
+```typescript
+console.log('QR EPC payload data:', { iban, bic, name, amount, ref });
 ```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/storefront/ShopQRPayment.tsx` | Fix veldnamen om overeen te komen met API response |
+| `supabase/functions/process-refund/index.ts` | Fix npm: import → esm.sh |
+| `supabase/functions/storefront-api/index.ts` | Fix EPC payload structuur (12 regels) + debug log |
 
 ### Geen database wijzigingen nodig
+De tenant data staat correct in de database.
 
