@@ -424,6 +424,31 @@ export function NewsletterSettings() {
               />
             </div>
           )}
+
+          {formData.provider === 'internal' && formData.welcome_email_enabled && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="welcome_email_subject">Onderwerp</Label>
+                <Input
+                  id="welcome_email_subject"
+                  value={formData.welcome_email_subject}
+                  onChange={(e) => setFormData(prev => ({ ...prev, welcome_email_subject: e.target.value }))}
+                  placeholder="Welkom bij onze nieuwsbrief!"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Inhoud</Label>
+                <CampaignRichEditor
+                  content={formData.welcome_email_body}
+                  onChange={(html) => setFormData(prev => ({ ...prev, welcome_email_body: html }))}
+                  placeholder="Schrijf je welkomstbericht..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Dit bericht wordt automatisch verstuurd wanneer iemand zich aanmeldt voor je nieuwsbrief.
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
