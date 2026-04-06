@@ -21,6 +21,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
+import { VariableInserter } from './VariableInserter';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
 
 const campaignSchema = z.object({
@@ -420,9 +421,9 @@ export function CampaignDialog({
                     content={richContent}
                     onChange={handleRichContentChange}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Variabelen: {'{{customer_name}}'}, {'{{company_name}}'}, {'{{unsubscribe_url}}'}
-                  </p>
+                  <div className="mt-1">
+                    <VariableInserter onInsert={(v) => handleRichContentChange(richContent + v)} />
+                  </div>
                 </div>
               ) : (
                 <FormField
@@ -437,9 +438,12 @@ export function CampaignDialog({
                           {...field}
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Variabelen: {'{{customer_name}}'}, {'{{customer_email}}'}, {'{{company_name}}'}, {'{{unsubscribe_url}}'}
-                      </p>
+                      <div className="mt-1">
+                        <VariableInserter onInsert={(v) => {
+                          const current = form.getValues('html_content');
+                          form.setValue('html_content', current + v, { shouldValidate: true });
+                        }} />
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
