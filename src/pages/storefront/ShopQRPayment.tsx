@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { generateEPCString } from "@/lib/epcQrCode";
+import { useCart } from "@/hooks/useCart";
 import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
