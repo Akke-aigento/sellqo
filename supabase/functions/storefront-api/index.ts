@@ -1386,7 +1386,6 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   // Get tenant for VAT
   const { data: tenant } = await supabase
     .from('tenants').select('default_vat_rate, currency, stripe_account_id, iban, bic, name')
-    .from('tenants').select('default_vat_rate, currency, name, iban')
     .eq('id', tenantId).single();
 
   const vatRate = tenant?.default_vat_rate || 21;
