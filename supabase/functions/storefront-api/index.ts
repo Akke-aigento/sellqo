@@ -215,12 +215,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
     },
     payments: {
       stripe_enabled: !!tenant.stripe_account_id && !!tenant.stripe_charges_enabled,
-      bank_transfer_enabled: !!tenant.iban,
-      bank_details: tenant.iban ? {
-        iban: tenant.iban,
-        bic: tenant.bic || '',
-        account_holder: tenant.name || '',
-      } : null,
+      bank_transfer_enabled: !!tenant.bank_account_iban,
     },
     appearance: {
       announcement_bar: announcementText ? { text: announcementText, enabled: themeSettings?.show_announcement_bar || false } : null,
@@ -1330,21 +1325,6 @@ function deriveCartCheckoutStatus(cart: any): string {
   return 'shopping';
 }
 
-async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
-  const { data: tenant } = await supabase
-    .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name')
-    .eq('id', tenantId).single();
-
-  const methods: any[] = [];
-  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled) {
-    methods.push({ id: 'stripe', name: 'Online betalen', description: 'Betaal met iDEAL, creditcard of andere methoden', type: 'online' });
-  }
-  if (tenant?.iban) {
-    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via bankoverschrijving', type: 'manual' });
-  }
-  return methods;
-}
 async function getCartForCheckout(supabase: any, tenantId: string, cartId: string) {
   const { data: cart, error } = await supabase
     .from('storefront_carts').select('*')
@@ -1385,7 +1365,6 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
 
   // Get tenant for VAT
   const { data: tenant } = await supabase
-    .from('tenants').select('default_vat_rate, currency, stripe_account_id, iban, bic, name')
     .from('tenants').select('default_vat_rate, currency, name, iban')
     .eq('id', tenantId).single();
 
@@ -1773,15 +1752,6 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     };
   }
 
-  // Bank transfer — include bank details for QR code generation
-  return {
-    order_id: order.id, order_number: order.order_number, payment_method: 'bank_transfer', total,
-    bank_details: {
-      iban: tenant?.iban || '',
-      bic: tenant?.bic || '',
-      account_holder: tenant?.name || '',
-    },
-  };
   return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Onbekende betaalmethode' } };
 }
 
@@ -1833,22 +1803,6 @@ async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<
     .select('id, product_id, product_name, product_sku, product_image, quantity, unit_price, total_price, variant_id, variant_title')
     .eq('order_id', orderId);
 
-  // Include bank details for bank transfer orders
-  let bank_details = null;
-  if (order.payment_method === 'bank_transfer') {
-    const { data: tenant } = await supabase
-      .from('tenants').select('iban, bic, name')
-      .eq('id', tenantId).single();
-    if (tenant?.iban) {
-      bank_details = {
-        iban: tenant.iban,
-        bic: tenant.bic || '',
-        account_holder: tenant.name || '',
-      };
-    }
-  }
-
-  return { ...order, items: items || [], bank_details };
   let shippingMethod = null;
   if (order.shipping_method_id) {
     const { data: sm } = await supabase.from('shipping_methods').select('id, name, price').eq('id', order.shipping_method_id).single();
