@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/hooks/useTenant';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
+import { VariableInserter } from './VariableInserter';
 import type { EmailTemplate } from '@/types/marketing';
 
 const templateSchema = z.object({
@@ -189,9 +190,14 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                   />
                 </TabsContent>
               </Tabs>
-              <p className="text-xs text-muted-foreground">
-                Beschikbare variabelen: {'{{customer_name}}'}, {'{{company_name}}'}, {'{{company_address}}'}, {'{{unsubscribe_url}}'}, {'{{subject}}'}
-              </p>
+              <VariableInserter onInsert={(v) => {
+                if (editorMode === 'visual') {
+                  handleRichContentChange(richContent + v);
+                } else {
+                  const current = form.getValues('html_content');
+                  form.setValue('html_content', current + v, { shouldValidate: true });
+                }
+              }} />
             </div>
 
             {/* Email Preview */}
