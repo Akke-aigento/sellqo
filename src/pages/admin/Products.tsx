@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
 import { 
   Plus, 
@@ -16,6 +17,7 @@ import {
   List,
   Grid3X3,
   Sparkles,
+  XCircle,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -67,6 +69,7 @@ import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/ty
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
+  const isMobile = useIsMobile();
   const { 
     products, 
     isLoading, 
@@ -121,7 +124,10 @@ export default function ProductsPage() {
       if (stockFilter === 'in_stock' && product.stock <= 0) return false;
 
       // Category filter
-      if (categoryFilter !== 'all' && product.category_id !== categoryFilter) return false;
+      if (categoryFilter !== 'all') {
+        const allCategoryIds = (product as any).product_categories?.map((pc: any) => pc.category_id) || [];
+        if (!allCategoryIds.includes(categoryFilter) && product.category_id !== categoryFilter) return false;
+      }
 
       return true;
     });
@@ -291,7 +297,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedIds.size > 0 ? 'pb-20' : ''}`}>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -381,32 +387,38 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Bulk actions */}
+      {/* Floating Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-muted/50 p-3">
-          <span className="text-sm font-medium">
-            {selectedIds.size} geselecteerd
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
-              <Settings2 className="mr-2 h-4 w-4" />
-              Bewerken
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkActivate}>
-              <Eye className="mr-2 h-4 w-4" />
-              Activeren
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
-              <EyeOff className="mr-2 h-4 w-4" />
-              Deactiveren
-            </Button>
-            <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Verwijderen
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              AI Genereer
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-3 max-w-screen-xl mx-auto">
+            <span className="text-sm font-medium whitespace-nowrap">
+              {selectedIds.size} geselecteerd
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
+                <Settings2 className="mr-2 h-4 w-4" />
+                Bewerken
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleBulkActivate}>
+                <Eye className="mr-2 h-4 w-4" />
+                Activeren
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
+                <EyeOff className="mr-2 h-4 w-4" />
+                Deactiveren
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Verwijderen
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                AI Genereer
+              </Button>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="ml-auto">
+              <XCircle className="mr-2 h-4 w-4" />
+              Deselecteer
             </Button>
           </div>
         </div>
@@ -416,6 +428,72 @@ export default function ProductsPage() {
       {viewMode === 'grid' ? (
         <div className="min-h-[400px]">
           <ProductGridView products={filteredProducts} />
+        </div>
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {isLoading ? (
+            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-12">
+              <Package className="h-8 w-8 text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">
+                {products.length === 0 ? 'Nog geen producten.' : 'Geen producten gevonden met deze filters'}
+              </p>
+            </div>
+          ) : (
+            filteredProducts.map((product) => (
+              <div key={product.id} className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="pt-0.5">
+                    <Checkbox
+                      checked={selectedIds.has(product.id)}
+                      onCheckedChange={() => toggleSelect(product.id)}
+                    />
+                  </div>
+                  {product.featured_image ? (
+                    <img src={product.featured_image} alt={product.name} className="h-12 w-12 rounded object-cover shrink-0" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-muted shrink-0">
+                      <Package className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link to={`/admin/products/${product.id}/edit`} className="font-medium text-sm truncate hover:underline">
+                        {product.name}
+                      </Link>
+                      <span className="font-medium text-sm shrink-0">{formatPrice(product.price)}</span>
+                    </div>
+                    {product.sku && <div className="text-xs text-muted-foreground mt-0.5">{product.sku}</div>}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {getStockBadge(product)}
+                      {getVisibilityBadge(product)}
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link to={`/admin/products/${product.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Bewerken
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Verwijderen
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       ) : (
         <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
@@ -516,18 +594,40 @@ export default function ProductsPage() {
                       {product.sku || '-'}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {product.category ? (
+                      {(product as any).product_categories?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(product as any).product_categories
+                            .slice(0, 3)
+                            .map((pc: any) => {
+                              const cat = categories.find(c => c.id === pc.category_id);
+                              return cat ? (
+                                <Badge key={cat.id} variant="outline" className="text-xs">{cat.name}</Badge>
+                              ) : null;
+                            })}
+                          {(product as any).product_categories.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{(product as any).product_categories.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : product.category ? (
                         <Badge variant="outline">{product.category.name}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatPrice(product.price)}
-                      {product.compare_at_price && (
-                        <span className="ml-2 text-sm text-muted-foreground line-through">
-                          {formatPrice(product.compare_at_price)}
-                        </span>
+                      {product.product_type === 'bundle' && product.bundle_pricing_model === 'dynamic' ? (
+                        <span className="text-muted-foreground text-xs italic">Dynamisch</span>
+                      ) : (
+                        <>
+                          {formatPrice(product.price)}
+                          {product.compare_at_price && (
+                            <span className="ml-2 text-sm text-muted-foreground line-through">
+                              {formatPrice(product.compare_at_price)}
+                            </span>
+                          )}
+                        </>
                       )}
                     </TableCell>
                     <TableCell>{getStockBadge(product)}</TableCell>

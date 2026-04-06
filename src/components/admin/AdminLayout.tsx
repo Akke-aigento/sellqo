@@ -9,6 +9,7 @@ import { TrialBanner } from './TrialBanner';
 import { TrialExpiredBlocker } from './TrialExpiredBlocker';
 import { useGlobalNotificationListener } from '@/hooks/useGlobalNotificationListener';
 import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
+import { PlatformViewModeProvider } from '@/hooks/usePlatformViewMode';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -40,11 +41,13 @@ function AdminLayoutContent() {
 export function AdminLayout() {
   return (
     <TenantProvider>
-      <GamificationProvider>
-        <SidebarProvider>
-          <AdminLayoutContent />
-        </SidebarProvider>
-      </GamificationProvider>
+      <PlatformViewModeProvider>
+        <GamificationProvider>
+          <SidebarProvider>
+            <AdminLayoutContent />
+          </SidebarProvider>
+        </GamificationProvider>
+      </PlatformViewModeProvider>
     </TenantProvider>
   );
 }

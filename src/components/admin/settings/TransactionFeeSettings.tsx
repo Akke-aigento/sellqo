@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransactionUsage } from '@/hooks/useTransactionUsage';
 import type { PaymentMethodType } from '@/types/billing';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 interface TenantPaymentConfig {
   payment_methods_enabled: PaymentMethodType[];
@@ -47,6 +48,7 @@ export function TransactionFeeSettings() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialConfig, setInitialConfig] = useState<TenantPaymentConfig | null>(null);
 
   useEffect(() => {
     if (activeTenantId) {
@@ -65,13 +67,15 @@ export function TransactionFeeSettings() {
 
       if (error) throw error;
 
-      setConfig({
+      const loaded = {
         payment_methods_enabled: (data.payment_methods_enabled as PaymentMethodType[]) || ['stripe'],
         pass_transaction_fee_to_customer: data.pass_transaction_fee_to_customer || false,
         transaction_fee_label: data.transaction_fee_label || 'Transactiekosten',
         iban: data.iban,
         bic: data.bic,
-      });
+      };
+      setConfig(loaded);
+      setInitialConfig(loaded);
     } catch (error) {
       console.error('Error loading payment config:', error);
       toast.error('Fout bij laden instellingen');
@@ -327,21 +331,12 @@ export function TransactionFeeSettings() {
       </Card>
 
       {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={saveConfig} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Opslaan...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Instellingen opslaan
-            </>
-          )}
-        </Button>
-      </div>
+      <FloatingSaveBar
+        isDirty={initialConfig !== null && JSON.stringify(config) !== JSON.stringify(initialConfig)}
+        isSaving={isSaving}
+        onSave={saveConfig}
+        onCancel={() => { if (initialConfig) setConfig(initialConfig); }}
+      />
     </div>
   );
 }

@@ -126,11 +126,9 @@ export const SHOPIFY_PRODUCT_MAPPING: FieldMapping = {
   'Battery size (product.metafields.shopify.battery-size)': { target: 'raw_import_data', transform: 'jsonString:battery_size' },
   'Battery technology (product.metafields.shopify.battery-technology)': { target: 'raw_import_data', transform: 'jsonString:battery_technology' },
   'Battery type (product.metafields.shopify.battery-type)': { target: 'raw_import_data', transform: 'jsonString:battery_type' },
-  'Color (product.metafields.shopify.color-pattern)': { target: 'raw_import_data', transform: 'jsonString:color' },
   'Connection type (product.metafields.shopify.connection-type)': { target: 'raw_import_data', transform: 'jsonString:connection_type' },
   'Item condition (product.metafields.shopify.item-condition)': { target: 'raw_import_data', transform: 'jsonString:item_condition' },
   'Manufacturer type (product.metafields.shopify.manufacturer-type)': { target: 'raw_import_data', transform: 'jsonString:manufacturer_type' },
-  'Material (product.metafields.shopify.material)': { target: 'raw_import_data', transform: 'jsonString:material' },
   'Operating system (product.metafields.shopify.operating-system)': { target: 'raw_import_data', transform: 'jsonString:operating_system' },
   'Outlet type (product.metafields.shopify.outlet-type)': { target: 'raw_import_data', transform: 'jsonString:outlet_type' },
   'Plug type (input) (product.metafields.shopify.plug-type-input)': { target: 'raw_import_data', transform: 'jsonString:plug_type_input' },
@@ -141,6 +139,48 @@ export const SHOPIFY_PRODUCT_MAPPING: FieldMapping = {
   'Socket type (product.metafields.shopify.socket-type)': { target: 'raw_import_data', transform: 'jsonString:socket_type' },
   'Suitable space (product.metafields.shopify.suitable-space)': { target: 'raw_import_data', transform: 'jsonString:suitable_space' },
   'Wire/Rope material (product.metafields.shopify.wire-rope-material)': { target: 'raw_import_data', transform: 'jsonString:wire_material' },
+
+  // Clothing & Fashion metafields — mapped to product_specifications and product_custom_specs
+  // Direct spec mappings (columns exist in product_specifications table)
+  'Color (product.metafields.shopify.color-pattern)': { target: '_spec_color' },
+  'Size (product.metafields.shopify.size)': { target: '_spec_size' },
+  'Fabric (product.metafields.shopify.fabric)': { target: '_spec_material' },
+  'Material (product.metafields.shopify.material)': { target: '_spec_material' },
+  'Care instructions (product.metafields.shopify.care-instructions)': { target: '_spec_storage_instructions' },
+
+  // Custom spec mappings (go to product_custom_specs with group "Kleding")
+  'Accessory size (product.metafields.shopify.accessory-size)': { target: '_custom_spec_Kleding_accessory_size' },
+  'Activewear clothing features (product.metafields.shopify.activewear-clothing-features)': { target: '_custom_spec_Kleding_activewear_features' },
+  'Activity (product.metafields.shopify.activity)': { target: '_custom_spec_Kleding_activity' },
+  'Age group (product.metafields.shopify.age-group)': { target: '_custom_spec_Kleding_age_group' },
+  'Bag/Case features (product.metafields.shopify.bag-case-features)': { target: '_custom_spec_Kleding_bag_case_features' },
+  'Bag/Case material (product.metafields.shopify.bag-case-material)': { target: '_custom_spec_Kleding_bag_case_material' },
+  'Bag/Case storage features (product.metafields.shopify.bag-case-storage-features)': { target: '_custom_spec_Kleding_bag_case_storage' },
+  'Carry options (product.metafields.shopify.carry-options)': { target: '_custom_spec_Kleding_carry_options' },
+  'Closure type (product.metafields.shopify.closure-type)': { target: '_custom_spec_Kleding_closure_type' },
+  'Clothing accessory material (product.metafields.shopify.clothing-accessory-material)': { target: '_custom_spec_Kleding_clothing_accessory_material' },
+  'Clothing features (product.metafields.shopify.clothing-features)': { target: '_custom_spec_Kleding_clothing_features' },
+  'Fit (product.metafields.shopify.fit)': { target: '_custom_spec_Kleding_fit' },
+  'Footwear material (product.metafields.shopify.footwear-material)': { target: '_custom_spec_Kleding_footwear_material' },
+  'Headwear features (product.metafields.shopify.headwear-features)': { target: '_custom_spec_Kleding_headwear_features' },
+  'Neckline (product.metafields.shopify.neckline)': { target: '_custom_spec_Kleding_neckline' },
+  'Outerwear clothing features (product.metafields.shopify.outerwear-clothing-features)': { target: '_custom_spec_Kleding_outerwear_features' },
+  'Pants length type (product.metafields.shopify.pants-length-type)': { target: '_custom_spec_Kleding_pants_length' },
+  'Shoe features (product.metafields.shopify.shoe-features)': { target: '_custom_spec_Kleding_shoe_features' },
+  'Shoe fit (product.metafields.shopify.shoe-fit)': { target: '_custom_spec_Kleding_shoe_fit' },
+  'Sleeve length type (product.metafields.shopify.sleeve-length-type)': { target: '_custom_spec_Kleding_sleeve_length' },
+  'Sneaker style (product.metafields.shopify.sneaker-style)': { target: '_custom_spec_Kleding_sneaker_style' },
+  'Target gender (product.metafields.shopify.target-gender)': { target: '_custom_spec_Kleding_target_gender' },
+  'Toe style (product.metafields.shopify.toe-style)': { target: '_custom_spec_Kleding_toe_style' },
+  'Top length type (product.metafields.shopify.top-length-type)': { target: '_custom_spec_Kleding_top_length' },
+  'Waist rise (product.metafields.shopify.waist-rise)': { target: '_custom_spec_Kleding_waist_rise' },
+
+  // Internal variant pass-through fields (not visible in UI, used by edge function)
+  '_variants_json': { target: '_variants_json' },
+  '_option1_name': { target: '_option1_name' },
+  '_option2_name': { target: '_option2_name' },
+  '_option3_name': { target: '_option3_name' },
+  '_variant_count': { target: '_variant_count' },
 };
 
 // ============================================================================
@@ -621,8 +661,22 @@ export function transformRecord(
       transformedValue = value?.trim() || null;
     }
     
+    // Handle array merging (for images from multiple sources)
+    if (Array.isArray(transformedValue)) {
+      const existing = result[config.target];
+      if (Array.isArray(existing)) {
+        // Merge arrays, deduplicate, skip empty
+        const merged = [...existing, ...transformedValue].filter(Boolean);
+        result[config.target] = [...new Set(merged)];
+      } else if (transformedValue.length > 0) {
+        result[config.target] = transformedValue;
+      }
+      // Skip if empty array and nothing exists yet
+      continue;
+    }
+    
     // Handle JSON object merging (for addresses and raw_import_data)
-    if (typeof transformedValue === 'object' && transformedValue !== null && !Array.isArray(transformedValue)) {
+    if (typeof transformedValue === 'object' && transformedValue !== null) {
       const existing = result[config.target];
       if (typeof existing === 'object' && existing !== null && !Array.isArray(existing)) {
         // Merge with existing object
@@ -638,6 +692,14 @@ export function transformRecord(
     }
   }
   
+  // Pass through internal variant fields directly from source row
+  const internalFields = ['_variants_json', '_option1_name', '_option2_name', '_option3_name', '_variant_count'];
+  for (const field of internalFields) {
+    if (row[field] !== undefined && row[field] !== '') {
+      result[field] = row[field];
+    }
+  }
+
   return result;
 }
 
@@ -714,17 +776,20 @@ export function consolidateShopifyProductRows(
       }
     }
     
-    // Collect variant data (rows with Option1 Value but no Title)
-    const hasVariantData = row['Option1 Value'] && !row['Title']?.trim();
-    if (hasVariantData) {
+    // Collect variant data (ALL rows with Option1 Value, including the first/title row)
+    if (row['Option1 Value']?.trim()) {
       variantsMap.get(handle)?.push({
         sku: row['Variant SKU'] || '',
         price: row['Variant Price'] || '',
+        compare_at_price: row['Variant Compare At Price'] || '',
         stock: row['Variant Inventory Qty'] || '',
         option1: row['Option1 Value'] || '',
         option2: row['Option2 Value'] || '',
         option3: row['Option3 Value'] || '',
         barcode: row['Variant Barcode'] || '',
+        image: row['Variant Image'] || '',
+        weight: row['Variant Grams'] || '',
+        requires_shipping: row['Variant Requires Shipping'] || '',
       });
     }
   }
@@ -741,11 +806,20 @@ export function consolidateShopifyProductRows(
       mainRow['Image Src'] = images.join(',');
     }
     
-    // Add variant count for reference
-    if (variants.length > 0) {
-      mainRow['_variant_count'] = String(variants.length);
-      mainRow['_variants_json'] = JSON.stringify(variants);
+    // Filter out "Default Title" variants — not real variants
+    const realVariants = variants.filter(v => v.option1?.trim().toLowerCase() !== 'default title');
+    
+    // Add variant count and option names for the edge function
+    if (realVariants.length > 0) {
+      mainRow['_variant_count'] = String(realVariants.length);
+      mainRow['_variants_json'] = JSON.stringify(realVariants);
+      // Pass option names so edge function knows what each option represents
+      if (mainRow['Option1 Name']) mainRow['_option1_name'] = mainRow['Option1 Name'];
+      if (mainRow['Option2 Name']) mainRow['_option2_name'] = mainRow['Option2 Name'];
+      if (mainRow['Option3 Name']) mainRow['_option3_name'] = mainRow['Option3 Name'];
     }
+    
+    console.log(`[CONSOLIDATE] Handle="${handle}" images=${images.length} totalVariants=${variants.length} realVariants=${realVariants.length} hasVariantsJson=${!!mainRow['_variants_json']} option1Name="${mainRow['Option1 Name'] || ''}" option2Name="${mainRow['Option2 Name'] || ''}"`);
     
     consolidated.push(mainRow);
   }

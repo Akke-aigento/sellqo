@@ -9,10 +9,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AD_PLATFORMS, type AdCampaign, type AdCampaignStatus } from '@/types/ads';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
-import { MoreHorizontal, Pause, Play, Trash2, Edit, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
+  onEdit?: (campaign: AdCampaign) => void;
 }
 
 const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -24,10 +29,15 @@ const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default
   rejected: { label: 'Afgewezen', variant: 'destructive' },
 };
 
-export function CampaignCard({ campaign }: CampaignCardProps) {
+export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
+  const queryClient = useQueryClient();
+  const [pushing, setPushing] = useState(false);
   const platformInfo = AD_PLATFORMS[campaign.platform];
   const statusConfig = STATUS_CONFIG[campaign.status as AdCampaignStatus] || STATUS_CONFIG.draft;
+
+  const isBol = campaign.platform === 'bol_ads';
+  const notPushed = isBol && !campaign.platform_campaign_id;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -53,6 +63,27 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
     }
   };
 
+  const handlePushToBol = async () => {
+    setPushing(true);
+    try {
+      toast({ title: 'Campagne wordt naar Bol.com gestuurd...' });
+      const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
+        body: { campaign_id: campaign.id },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast({ title: 'Campagne live op Bol.com! 🎉' });
+        queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
+      } else {
+        toast({ title: 'Push gestart', description: data?.message || 'Status wordt verwerkt' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Push mislukt', description: e.message, variant: 'destructive' });
+    } finally {
+      setPushing(false);
+    }
+  };
+
   return (
     <div className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
       {/* Platform Icon */}
@@ -67,9 +98,22 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
           <Badge variant={statusConfig.variant} className="shrink-0">
             {statusConfig.label}
           </Badge>
+          {isBol && campaign.platform_campaign_id && (
+            <Badge variant="outline" className="shrink-0 text-xs">
+              Bol ID: {campaign.platform_campaign_id}
+            </Badge>
+          )}
+          {notPushed && (
+            <Badge variant="destructive" className="shrink-0 text-xs">
+              Niet gepusht
+            </Badge>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">
           {platformInfo.name} • {campaign.campaign_type.replace(/_/g, ' ')}
+          {campaign.platform_status && (
+            <span className="ml-2 text-xs">({campaign.platform_status})</span>
+          )}
         </p>
       </div>
 
@@ -103,6 +147,19 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
         </div>
       )}
 
+      {/* Push to Bol button for unpushed campaigns */}
+      {notPushed && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePushToBol}
+          disabled={pushing}
+        >
+          {pushing ? <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+          Push naar Bol
+        </Button>
+      )}
+
       {/* Actions */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -111,14 +168,14 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
             <Edit className="h-4 w-4 mr-2" />
             Bewerken
           </DropdownMenuItem>
-          {campaign.platform_campaign_id && (
-            <DropdownMenuItem>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Bekijk in {platformInfo.name}
+          {notPushed && (
+            <DropdownMenuItem onClick={handlePushToBol} disabled={pushing}>
+              <Upload className="h-4 w-4 mr-2" />
+              Push naar Bol.com
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

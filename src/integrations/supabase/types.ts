@@ -490,6 +490,1178 @@ export type Database = {
           },
         ]
       }
+      ads_ai_recommendations: {
+        Row: {
+          applied_at: string | null
+          auto_apply: boolean | null
+          channel: string
+          confidence: number | null
+          created_at: string | null
+          current_value: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          reason: string
+          recommendation_type: string
+          recommended_value: Json | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          auto_apply?: boolean | null
+          channel: string
+          confidence?: number | null
+          created_at?: string | null
+          current_value?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          reason: string
+          recommendation_type: string
+          recommended_value?: Json | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          auto_apply?: boolean | null
+          channel?: string
+          confidence?: number | null
+          created_at?: string | null
+          current_value?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          reason?: string
+          recommendation_type?: string
+          recommended_value?: Json | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_ai_recommendations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_ai_rules: {
+        Row: {
+          actions: Json
+          channel: string | null
+          conditions: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          name: string
+          rule_type: string
+          tenant_id: string
+        }
+        Insert: {
+          actions: Json
+          channel?: string | null
+          conditions: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name: string
+          rule_type: string
+          tenant_id: string
+        }
+        Update: {
+          actions?: Json
+          channel?: string | null
+          conditions?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name?: string
+          rule_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_ai_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_amazon_adgroups: {
+        Row: {
+          amazon_adgroup_id: string
+          campaign_id: string
+          created_at: string | null
+          default_bid: number | null
+          id: string
+          name: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amazon_adgroup_id: string
+          campaign_id: string
+          created_at?: string | null
+          default_bid?: number | null
+          id?: string
+          name: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amazon_adgroup_id?: string
+          campaign_id?: string
+          created_at?: string | null
+          default_bid?: number | null
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_amazon_adgroups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_adgroups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_amazon_campaigns: {
+        Row: {
+          amazon_campaign_id: string
+          bidding_strategy: string | null
+          campaign_type: string
+          created_at: string | null
+          daily_budget: number | null
+          id: string
+          name: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          targeting_type: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amazon_campaign_id: string
+          bidding_strategy?: string | null
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          name: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          targeting_type?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amazon_campaign_id?: string
+          bidding_strategy?: string | null
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          targeting_type?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_amazon_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_amazon_keywords: {
+        Row: {
+          adgroup_id: string
+          amazon_keyword_id: string | null
+          bid: number | null
+          created_at: string | null
+          id: string
+          is_negative: boolean | null
+          keyword: string
+          match_type: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id: string
+          amazon_keyword_id?: string | null
+          bid?: number | null
+          created_at?: string | null
+          id?: string
+          is_negative?: boolean | null
+          keyword: string
+          match_type?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string
+          amazon_keyword_id?: string | null
+          bid?: number | null
+          created_at?: string | null
+          id?: string
+          is_negative?: boolean | null
+          keyword?: string
+          match_type?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_amazon_keywords_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_keywords_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_amazon_performance: {
+        Row: {
+          acos: number | null
+          adgroup_id: string | null
+          campaign_id: string | null
+          clicks: number | null
+          conversion_rate: number | null
+          cpc: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number | null
+          keyword_id: string | null
+          orders: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          acos?: number | null
+          adgroup_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number | null
+          keyword_id?: string | null
+          orders?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          acos?: number | null
+          adgroup_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          keyword_id?: string | null
+          orders?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_amazon_performance_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_performance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_performance_keyword_id_fkey"
+            columns: ["keyword_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_keywords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_performance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_amazon_search_terms: {
+        Row: {
+          adgroup_id: string | null
+          ai_action: string | null
+          ai_action_taken: boolean | null
+          campaign_id: string | null
+          clicks: number | null
+          created_at: string | null
+          date: string
+          id: string
+          impressions: number | null
+          orders: number | null
+          revenue: number | null
+          search_term: string
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id?: string | null
+          ai_action?: string | null
+          ai_action_taken?: boolean | null
+          campaign_id?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          impressions?: number | null
+          orders?: number | null
+          revenue?: number | null
+          search_term: string
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string | null
+          ai_action?: string | null
+          ai_action_taken?: boolean | null
+          campaign_id?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          orders?: number | null
+          revenue?: number | null
+          search_term?: string
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_amazon_search_terms_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_search_terms_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_amazon_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_amazon_search_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_adgroups: {
+        Row: {
+          bolcom_adgroup_id: string
+          campaign_id: string
+          created_at: string | null
+          default_bid: number | null
+          id: string
+          name: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          bolcom_adgroup_id: string
+          campaign_id: string
+          created_at?: string | null
+          default_bid?: number | null
+          id?: string
+          name: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          bolcom_adgroup_id?: string
+          campaign_id?: string
+          created_at?: string | null
+          default_bid?: number | null
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_adgroups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_adgroups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_campaigns: {
+        Row: {
+          bolcom_campaign_id: string
+          campaign_type: string
+          created_at: string | null
+          daily_budget: number | null
+          end_date: string | null
+          id: string
+          name: string
+          raw_data: Json | null
+          start_date: string | null
+          status: string
+          synced_at: string | null
+          targeting_type: string
+          tenant_id: string
+          total_budget: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bolcom_campaign_id: string
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          end_date?: string | null
+          id?: string
+          name: string
+          raw_data?: Json | null
+          start_date?: string | null
+          status?: string
+          synced_at?: string | null
+          targeting_type?: string
+          tenant_id: string
+          total_budget?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bolcom_campaign_id?: string
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          start_date?: string | null
+          status?: string
+          synced_at?: string | null
+          targeting_type?: string
+          tenant_id?: string
+          total_budget?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_keywords: {
+        Row: {
+          adgroup_id: string
+          bid: number | null
+          bolcom_keyword_id: string | null
+          created_at: string | null
+          id: string
+          is_negative: boolean | null
+          keyword: string
+          match_type: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id: string
+          bid?: number | null
+          bolcom_keyword_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_negative?: boolean | null
+          keyword: string
+          match_type?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string
+          bid?: number | null
+          bolcom_keyword_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_negative?: boolean | null
+          keyword?: string
+          match_type?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_keywords_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_keywords_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_performance: {
+        Row: {
+          acos: number | null
+          adgroup_id: string | null
+          campaign_id: string | null
+          clicks: number | null
+          conversion_rate: number | null
+          cpc: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number | null
+          keyword_id: string | null
+          orders: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          acos?: number | null
+          adgroup_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number | null
+          keyword_id?: string | null
+          orders?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          acos?: number | null
+          adgroup_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          keyword_id?: string | null
+          orders?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_performance_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_performance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_performance_keyword_id_fkey"
+            columns: ["keyword_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_keywords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_performance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_search_terms: {
+        Row: {
+          adgroup_id: string | null
+          ai_action: string | null
+          ai_action_taken: boolean | null
+          campaign_id: string | null
+          clicks: number | null
+          created_at: string | null
+          date: string
+          id: string
+          impressions: number | null
+          orders: number | null
+          revenue: number | null
+          search_term: string
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id?: string | null
+          ai_action?: string | null
+          ai_action_taken?: boolean | null
+          campaign_id?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          impressions?: number | null
+          orders?: number | null
+          revenue?: number | null
+          search_term: string
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string | null
+          ai_action?: string | null
+          ai_action_taken?: boolean | null
+          campaign_id?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          orders?: number | null
+          revenue?: number | null
+          search_term?: string
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_search_terms_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_search_terms_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_search_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_bolcom_targeting_products: {
+        Row: {
+          adgroup_id: string
+          created_at: string | null
+          ean: string
+          id: string
+          product_id: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          adgroup_id: string
+          created_at?: string | null
+          ean: string
+          id?: string
+          product_id?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          adgroup_id?: string
+          created_at?: string | null
+          ean?: string
+          id?: string
+          product_id?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_bolcom_targeting_products_adgroup_id_fkey"
+            columns: ["adgroup_id"]
+            isOneToOne: false
+            referencedRelation: "ads_bolcom_adgroups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_targeting_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_bolcom_targeting_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_google_campaigns: {
+        Row: {
+          bidding_strategy: string | null
+          campaign_type: string
+          created_at: string | null
+          daily_budget: number | null
+          google_campaign_id: string
+          id: string
+          name: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          bidding_strategy?: string | null
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          google_campaign_id: string
+          id?: string
+          name: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          bidding_strategy?: string | null
+          campaign_type?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          google_campaign_id?: string
+          id?: string
+          name?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_google_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_google_performance: {
+        Row: {
+          campaign_id: string | null
+          clicks: number | null
+          conversions: number | null
+          cost_per_conversion: number | null
+          cpc: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cost_per_conversion?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cost_per_conversion?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_google_performance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_google_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_google_performance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_meta_adsets: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          daily_budget: number | null
+          id: string
+          meta_adset_id: string
+          name: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          targeting: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          meta_adset_id: string
+          name: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          targeting?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          meta_adset_id?: string
+          name?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          targeting?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_meta_adsets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_meta_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_meta_adsets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_meta_campaigns: {
+        Row: {
+          created_at: string | null
+          daily_budget: number | null
+          id: string
+          lifetime_budget: number | null
+          meta_campaign_id: string
+          name: string
+          objective: string
+          raw_data: Json | null
+          status: string
+          synced_at: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          lifetime_budget?: number | null
+          meta_campaign_id: string
+          name: string
+          objective?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          lifetime_budget?: number | null
+          meta_campaign_id?: string
+          name?: string
+          objective?: string
+          raw_data?: Json | null
+          status?: string
+          synced_at?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_meta_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_meta_performance: {
+        Row: {
+          adset_id: string | null
+          campaign_id: string | null
+          clicks: number | null
+          conversions: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          frequency: number | null
+          id: string
+          impressions: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string
+        }
+        Insert: {
+          adset_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id: string
+        }
+        Update: {
+          adset_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          revenue?: number | null
+          spend?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_meta_performance_adset_id_fkey"
+            columns: ["adset_id"]
+            isOneToOne: false
+            referencedRelation: "ads_meta_adsets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_meta_performance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_meta_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_meta_performance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_product_channel_map: {
+        Row: {
+          channel: string
+          channel_product_ref: string | null
+          created_at: string | null
+          id: string
+          is_advertised: boolean | null
+          min_stock_for_ads: number | null
+          product_id: string
+          tenant_id: string
+        }
+        Insert: {
+          channel: string
+          channel_product_ref?: string | null
+          created_at?: string | null
+          id?: string
+          is_advertised?: boolean | null
+          min_stock_for_ads?: number | null
+          product_id: string
+          tenant_id: string
+        }
+        Update: {
+          channel?: string
+          channel_product_ref?: string | null
+          created_at?: string | null
+          id?: string
+          is_advertised?: boolean | null
+          min_stock_for_ads?: number | null
+          product_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_product_channel_map_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_product_channel_map_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_action_suggestions: {
         Row: {
           action_data: Json
@@ -2546,6 +3718,73 @@ export type Database = {
             columns: ["whatsapp_template_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_events: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_hash: string | null
+          page_url: string | null
+          referrer_url: string | null
+          session_id: string | null
+          storefront_customer_id: string | null
+          tenant_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          page_url?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          storefront_customer_id?: string | null
+          tenant_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          page_url?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          storefront_customer_id?: string | null
+          tenant_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_storefront_customer_id_fkey"
+            columns: ["storefront_customer_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -8015,6 +9254,57 @@ export type Database = {
         }
         Relationships: []
       }
+      product_bundle_items: {
+        Row: {
+          child_product_id: string
+          created_at: string
+          customer_can_adjust: boolean
+          id: string
+          max_quantity: number | null
+          min_quantity: number | null
+          product_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          child_product_id: string
+          created_at?: string
+          customer_can_adjust?: boolean
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number | null
+          product_id: string
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          child_product_id?: string
+          created_at?: string
+          customer_can_adjust?: boolean
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number | null
+          product_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_bundle_items_child_product_id_fkey"
+            columns: ["child_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_bundles: {
         Row: {
           bundle_type: string
@@ -11034,35 +12324,74 @@ export type Database = {
       }
       storefront_carts: {
         Row: {
+          billing_address: Json | null
+          billing_same_as_shipping: boolean | null
+          checkout_status: string | null
           created_at: string
           currency: string
+          customer_email: string | null
+          customer_first_name: string | null
           customer_id: string | null
+          customer_last_name: string | null
+          customer_phone: string | null
+          discount_amount: number | null
           discount_code: string | null
           expires_at: string
           id: string
+          payment_method: string | null
           session_id: string
+          shipping_address: Json | null
+          shipping_cost: number | null
+          shipping_method_id: string | null
+          stripe_session_id: string | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          billing_address?: Json | null
+          billing_same_as_shipping?: boolean | null
+          checkout_status?: string | null
           created_at?: string
           currency?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
           customer_id?: string | null
+          customer_last_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number | null
           discount_code?: string | null
           expires_at?: string
           id?: string
+          payment_method?: string | null
           session_id: string
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method_id?: string | null
+          stripe_session_id?: string | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          billing_address?: Json | null
+          billing_same_as_shipping?: boolean | null
+          checkout_status?: string | null
           created_at?: string
           currency?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
           customer_id?: string | null
+          customer_last_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number | null
           discount_code?: string | null
           expires_at?: string
           id?: string
+          payment_method?: string | null
           session_id?: string
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method_id?: string | null
+          stripe_session_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -11098,6 +12427,7 @@ export type Database = {
           last_login_at: string | null
           last_name: string
           marketing_consent: boolean | null
+          newsletter_opt_in: boolean
           newsletter_opted_in: boolean | null
           newsletter_opted_in_at: string | null
           password_hash: string | null
@@ -11124,6 +12454,7 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           marketing_consent?: boolean | null
+          newsletter_opt_in?: boolean
           newsletter_opted_in?: boolean | null
           newsletter_opted_in_at?: string | null
           password_hash?: string | null
@@ -11150,6 +12481,7 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           marketing_consent?: boolean | null
+          newsletter_opt_in?: boolean
           newsletter_opted_in?: boolean | null
           newsletter_opted_in_at?: string | null
           password_hash?: string | null
@@ -12260,6 +13592,7 @@ export type Database = {
           admin_notes: string | null
           created_at: string | null
           extended_trial_until: string | null
+          hidden_pages: string[]
           id: string
           limit_api_calls_override: number | null
           limit_customers_override: number | null
@@ -12282,6 +13615,7 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string | null
           extended_trial_until?: string | null
+          hidden_pages?: string[]
           id?: string
           limit_api_calls_override?: number | null
           limit_customers_override?: number | null
@@ -12304,6 +13638,7 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string | null
           extended_trial_until?: string | null
+          hidden_pages?: string[]
           id?: string
           limit_api_calls_override?: number | null
           limit_customers_override?: number | null
@@ -13987,6 +15322,20 @@ export type Database = {
       }
     }
     Views: {
+      ads_global_daily_summary: {
+        Row: {
+          acos: number | null
+          channel: string | null
+          clicks: number | null
+          date: string | null
+          impressions: number | null
+          orders: number | null
+          revenue: number | null
+          spend: number | null
+          tenant_id: string | null
+        }
+        Relationships: []
+      }
       ai_content_engagement_stats: {
         Row: {
           comments: number | null
@@ -14300,6 +15649,10 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      increment_discount_usage: {
+        Args: { _code: string; _tenant_id: string }
+        Returns: undefined
+      }
       initialize_ai_assistant_config: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -14543,6 +15896,7 @@ export type Database = {
         | "rejected"
         | "exchanged"
         | "repaired"
+        | "refunded"
       supplier_document_type:
         | "invoice"
         | "quote"
@@ -14821,6 +16175,7 @@ export const Constants = {
         "rejected",
         "exchanged",
         "repaired",
+        "refunded",
       ],
       supplier_document_type: [
         "invoice",

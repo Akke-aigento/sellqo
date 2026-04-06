@@ -1,0 +1,1 @@
+ALTER TABLE public.tenant_feature_overrides ADD COLUMN IF NOT EXISTS hidden_pages text[] NOT NULL DEFAULT '{}';

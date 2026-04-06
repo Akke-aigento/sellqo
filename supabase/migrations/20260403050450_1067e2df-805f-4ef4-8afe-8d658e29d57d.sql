@@ -1,0 +1,1 @@
+ALTER TABLE public.storefront_customers ADD COLUMN IF NOT EXISTS newsletter_opt_in BOOLEAN NOT NULL DEFAULT false;

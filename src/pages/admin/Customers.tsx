@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Search, Mail, Phone, ShoppingBag, MoreHorizontal, Eye, Trash2, Building2, UserPlus } from 'lucide-react';
+import { Users, Search, Mail, Phone, ShoppingBag, MoreHorizontal, Eye, Trash2, Building2, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useStorefrontCustomers } from '@/hooks/useStorefrontCustomers';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,17 +20,74 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import type { Customer } from '@/types/order';
 
+interface UnifiedCustomer {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+  phone: string | null;
+  company_name: string | null;
+  customer_type: string;
+  total_orders: number;
+  total_spent: number;
+  created_at: string;
+  source: 'CRM' | 'Webshop' | 'Webshop + CRM';
+  crm_id?: string;
+}
+
 export default function CustomersPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const { customers, isLoading, createCustomer, deleteCustomer } = useCustomers(search);
+  const { storefrontCustomers, isLoading: sfLoading } = useStorefrontCustomers(search);
 
-  // Filter customers by type
-  const filteredCustomers = typeFilter === 'all' 
-    ? customers 
-    : customers.filter(c => c.customer_type === typeFilter);
+  const unifiedCustomers = useMemo(() => {
+    const crmEmails = new Set(customers.map(c => c.email.toLowerCase()));
+    const sfEmails = new Set(storefrontCustomers.map(sc => sc.email.toLowerCase()));
+
+    const unified: UnifiedCustomer[] = customers.map(c => ({
+      id: c.id,
+      first_name: c.first_name,
+      last_name: c.last_name,
+      email: c.email,
+      phone: c.phone,
+      company_name: c.company_name,
+      customer_type: c.customer_type || 'b2c',
+      total_orders: c.total_orders || 0,
+      total_spent: Number(c.total_spent) || 0,
+      created_at: c.created_at,
+      source: sfEmails.has(c.email.toLowerCase()) ? 'Webshop + CRM' : 'CRM',
+      crm_id: c.id,
+    }));
+
+    storefrontCustomers.forEach(sc => {
+      if (!crmEmails.has(sc.email.toLowerCase())) {
+        unified.push({
+          id: `sf-${sc.id}`,
+          first_name: sc.first_name,
+          last_name: sc.last_name,
+          email: sc.email,
+          phone: sc.phone,
+          company_name: sc.company_name,
+          customer_type: 'webshop',
+          total_orders: 0,
+          total_spent: 0,
+          created_at: sc.created_at,
+          source: 'Webshop',
+        });
+      }
+    });
+
+    return unified;
+  }, [customers, storefrontCustomers]);
+
+  const filteredCustomers = useMemo(() => {
+    if (typeFilter === 'all') return unifiedCustomers;
+    return unifiedCustomers.filter(c => c.customer_type === typeFilter);
+  }, [unifiedCustomers, typeFilter]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -54,9 +113,10 @@ export default function CustomersPage() {
     );
   }
 
+  const loading = isLoading || sfLoading;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Klanten</h1>
@@ -68,7 +128,6 @@ export default function CustomersPage() {
         />
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -88,11 +147,11 @@ export default function CustomersPage() {
             <SelectItem value="b2c">B2C</SelectItem>
             <SelectItem value="b2b">B2B</SelectItem>
             <SelectItem value="prospect">Prospects</SelectItem>
+            <SelectItem value="webshop">Webshop</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Customers Table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -105,7 +164,7 @@ export default function CustomersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
-          {isLoading ? (
+          {loading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
@@ -118,15 +177,72 @@ export default function CustomersPage() {
               <p className="text-muted-foreground text-sm">
                 {search 
                   ? 'Probeer een andere zoekopdracht' 
-                  : 'Klanten worden toegevoegd wanneer ze een bestelling plaatsen'}
+                  : 'Klanten verschijnen hier wanneer ze een bestelling plaatsen of een account aanmaken'}
               </p>
             </div>
+          ) : isMobile ? (
+            <div className="space-y-3 px-2">
+              {filteredCustomers.map((customer) => {
+                const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';
+                const canNavigate = !!customer.crm_id;
+                return (
+                  <div 
+                    key={customer.id}
+                    className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={canNavigate ? () => navigate(`/admin/customers/${customer.crm_id}`) : undefined}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-medium text-primary">
+                          {(customer.first_name?.[0] || customer.email[0]).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-sm truncate">{fullName}</span>
+                          <span className="font-medium text-sm shrink-0">{formatCurrency(customer.total_spent)}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate mt-0.5">{customer.email}</div>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {getSourceBadge(customer.source)}
+                          {getTypeBadge(customer.customer_type)}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <ShoppingBag className="h-3 w-3" />
+                            {customer.total_orders}
+                          </span>
+                        </div>
+                      </div>
+                      {customer.crm_id && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/admin/customers/${customer.crm_id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Bekijken
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0"><div className="min-w-[550px]">
+            <div className="overflow-x-auto -mx-4 sm:mx-0"><div className="min-w-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Klant</TableHead>
+                  <TableHead className="hidden sm:table-cell">Bron</TableHead>
                   <TableHead className="hidden sm:table-cell">Type</TableHead>
                   <TableHead className="hidden lg:table-cell">Contact</TableHead>
                   <TableHead className="text-center">Bestellingen</TableHead>
@@ -137,10 +253,10 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {filteredCustomers.map((customer) => (
-                  <CustomerRow
+                  <UnifiedCustomerRow
                     key={customer.id}
                     customer={customer}
-                    onDelete={() => deleteCustomer.mutate(customer.id)}
+                    onDelete={customer.crm_id ? () => deleteCustomer.mutate(customer.crm_id!) : undefined}
                     formatCurrency={formatCurrency}
                   />
                 ))}
@@ -154,29 +270,46 @@ export default function CustomersPage() {
   );
 }
 
-interface CustomerRowProps {
-  customer: Customer;
-  onDelete: () => void;
+function getSourceBadge(source: UnifiedCustomer['source']) {
+  switch (source) {
+    case 'Webshop':
+      return <Badge variant="outline" className="text-xs"><Globe className="h-3 w-3 mr-1" />Webshop</Badge>;
+    case 'CRM':
+      return <Badge variant="secondary" className="text-xs"><Users className="h-3 w-3 mr-1" />CRM</Badge>;
+    case 'Webshop + CRM':
+      return <Badge variant="default" className="text-xs">Webshop + CRM</Badge>;
+  }
+}
+
+function getTypeBadge(type: string) {
+  switch (type) {
+    case 'prospect':
+      return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">Prospect</Badge>;
+    case 'b2b':
+      return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">B2B</Badge>;
+    case 'webshop':
+      return <Badge variant="outline" className="text-xs">Account</Badge>;
+    default:
+      return <Badge variant="secondary">B2C</Badge>;
+  }
+}
+
+interface UnifiedRowProps {
+  customer: UnifiedCustomer;
+  onDelete?: () => void;
   formatCurrency: (amount: number) => string;
 }
 
-function CustomerRow({ customer, onDelete, formatCurrency }: CustomerRowProps) {
+function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowProps) {
   const navigate = useNavigate();
   const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';
-
-  const getTypeBadge = () => {
-    switch (customer.customer_type) {
-      case 'prospect':
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">Prospect</Badge>;
-      case 'b2b':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">B2B</Badge>;
-      default:
-        return <Badge variant="secondary">B2C</Badge>;
-    }
-  };
+  const canNavigate = !!customer.crm_id;
 
   return (
-    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/customers/${customer.id}`)}>
+    <TableRow 
+      className={canNavigate ? "cursor-pointer hover:bg-muted/50" : "hover:bg-muted/50"} 
+      onClick={canNavigate ? () => navigate(`/admin/customers/${customer.crm_id}`) : undefined}
+    >
       <TableCell>
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -199,7 +332,10 @@ function CustomerRow({ customer, onDelete, formatCurrency }: CustomerRowProps) {
         </div>
       </TableCell>
       <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
-        {getTypeBadge()}
+        {getSourceBadge(customer.source)}
+      </TableCell>
+      <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+        {getTypeBadge(customer.customer_type)}
       </TableCell>
       <TableCell className="hidden lg:table-cell">
         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -222,54 +358,58 @@ function CustomerRow({ customer, onDelete, formatCurrency }: CustomerRowProps) {
         </div>
       </TableCell>
       <TableCell className="text-right font-medium">
-        {formatCurrency(Number(customer.total_spent))}
+        {formatCurrency(customer.total_spent)}
       </TableCell>
       <TableCell className="hidden md:table-cell text-muted-foreground">
         {format(new Date(customer.created_at), 'd MMM yyyy', { locale: nl })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link to={`/admin/customers/${customer.id}`}>
-                <Eye className="h-4 w-4 mr-2" />
-                Bekijken
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Verwijderen
+        {onDelete ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canNavigate && (
+                <DropdownMenuItem asChild>
+                  <Link to={`/admin/customers/${customer.crm_id}`}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Bekijken
+                  </Link>
                 </DropdownMenuItem>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Klant verwijderen?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
-                    Bestellingen van deze klant blijven behouden.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                  <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              )}
+              <DropdownMenuSeparator />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Verwijderen
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Klant verwijderen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
+                      Bestellingen van deze klant blijven behouden.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Verwijderen
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </TableCell>
     </TableRow>
   );

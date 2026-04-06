@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { PeppolUpgradeCard } from '@/components/admin/billing/PeppolUpgradeCard';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function PeppolSettings() {
   const { t } = useTranslation();
@@ -65,6 +66,7 @@ export function PeppolSettings() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
@@ -112,11 +114,15 @@ export function PeppolSettings() {
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={isSaving}>
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? t('common.loading') : t('common.save')}
-        </Button>
       </CardContent>
     </Card>
+
+      <FloatingSaveBar
+        isDirty={peppolId !== ((currentTenant as any)?.peppol_id || '')}
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={() => setPeppolId((currentTenant as any)?.peppol_id || '')}
+      />
+    </>
   );
 }

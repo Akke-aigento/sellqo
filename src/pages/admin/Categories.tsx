@@ -342,7 +342,7 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedIds.size > 0 ? 'pb-20' : ''}`}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Categorieën</h1>
@@ -443,6 +443,9 @@ export default function CategoriesPage() {
                       searchQuery={searchQuery}
                       selectedIds={selectedIds}
                       onToggleSelect={handleToggleSelect}
+                      onToggleStatus={(id, updates) => {
+                        updateCategory.mutate({ id, data: updates });
+                      }}
                     />
                   ))}
                 </div>

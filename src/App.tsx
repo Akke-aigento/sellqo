@@ -51,6 +51,11 @@ import LoyaltyProgramsPage from "./pages/admin/LoyaltyPrograms";
 import StackingRulesPage from "./pages/admin/StackingRules";
 import GiftCardsPage from "./pages/admin/GiftCards";
 import AdsPage from "./pages/admin/Ads";
+import AdsBolcomPage from "./pages/admin/AdsBolcom";
+import AdsBolcomCampaignDetailPage from "./pages/admin/AdsBolcomCampaignDetail";
+import AdsBolcomKeywordsPage from "./pages/admin/AdsBolcomKeywords";
+import AdsBolcomSearchTermsPage from "./pages/admin/AdsBolcomSearchTerms";
+import AdsAiRulesPage from "./pages/admin/AdsAiRules";
 import ReportsPage from "./pages/admin/Reports";
 import MessagesPage from "./pages/admin/Messages";
 import SuppliersPage from "./pages/admin/Suppliers";
@@ -94,6 +99,8 @@ import PaymentsPage from "./pages/admin/Payments";
 import HelpPage from "./pages/admin/Help";
 import PlatformDocs from "./pages/admin/PlatformDocs";
 import ChannelFieldMappingAdmin from "./pages/admin/ChannelFieldMappingAdmin";
+import ReturnsPage from "./pages/admin/Returns";
+import ReturnDetailPage from "./pages/admin/ReturnDetail";
 
 import ShopHome from "./pages/storefront/ShopHome";
 import ShopProducts from "./pages/storefront/ShopProducts";
@@ -104,6 +111,7 @@ import ShopCheckout from "./pages/storefront/ShopCheckout";
 import ShopOrderConfirmation from "./pages/storefront/ShopOrderConfirmation";
 import ShopLegalPage from "./pages/storefront/ShopLegalPage";
 import ShopWishlist from "./pages/storefront/ShopWishlist";
+import ShopQRPayment from "./pages/storefront/ShopQRPayment";
 
 const queryClient = new QueryClient();
 
@@ -139,6 +147,7 @@ const App = () => (
             <Route path="/shop/:tenantSlug/page/:pageSlug" element={<CartProvider><WishlistProvider><ShopPage /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/cart" element={<CartProvider><WishlistProvider><ShopCart /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/checkout" element={<CartProvider><WishlistProvider><ShopCheckout /></WishlistProvider></CartProvider>} />
+            <Route path="/shop/:tenantSlug/checkout/qr-betaling" element={<CartProvider><WishlistProvider><ShopQRPayment /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/order/:orderId" element={<CartProvider><WishlistProvider><ShopOrderConfirmation /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/legal/:pageType" element={<CartProvider><WishlistProvider><ShopLegalPage /></WishlistProvider></CartProvider>} />
             <Route path="/shop/:tenantSlug/wishlist" element={<CartProvider><WishlistProvider><ShopWishlist /></WishlistProvider></CartProvider>} />
@@ -158,6 +167,8 @@ const App = () => (
 <Route path="products/:id/edit" element={<ProductForm />} />
               <Route path="orders" element={<OrdersPage />} />
               <Route path="orders/:id" element={<OrderDetailPage />} />
+              <Route path="returns" element={<ReturnsPage />} />
+              <Route path="returns/:id" element={<ReturnDetailPage />} />
               <Route path="orders/quotes" element={<QuotesPage />} />
               <Route path="orders/quotes/new" element={<QuoteFormPage />} />
               <Route path="orders/quotes/:id" element={<QuoteDetailPage />} />
@@ -204,6 +215,11 @@ const App = () => (
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="storefront" element={<StorefrontPage />} />
               <Route path="ads" element={<AdsPage />} />
+              <Route path="ads/bolcom" element={<AdsBolcomPage />} />
+              <Route path="ads/bolcom/campaigns/:id" element={<AdsBolcomCampaignDetailPage />} />
+              <Route path="ads/bolcom/keywords" element={<AdsBolcomKeywordsPage />} />
+              <Route path="ads/bolcom/search-terms" element={<AdsBolcomSearchTermsPage />} />
+              <Route path="ads/ai" element={<AdsAiRulesPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>

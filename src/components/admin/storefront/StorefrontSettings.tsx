@@ -17,10 +17,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { StorefrontApiKeysManager } from './StorefrontApiKeysManager';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { toast } from 'sonner';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function StorefrontSettings() {
   const { currentTenant } = useTenant();
@@ -228,6 +230,8 @@ export function StorefrontSettings() {
                   </div>
                 </AlertDescription>
               </Alert>
+
+              <StorefrontApiKeysManager />
             </div>
           )}
         </CardContent>
@@ -277,12 +281,26 @@ export function StorefrontSettings() {
         </CardContent>
       </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saveThemeSettings.isPending}>
-          Instellingen Opslaan
-        </Button>
-      </div>
+      <FloatingSaveBar
+        isDirty={
+          themeSettings ? (
+            formData.use_custom_frontend !== themeSettings.use_custom_frontend ||
+            formData.custom_frontend_url !== (themeSettings.custom_frontend_url || '') ||
+            formData.custom_head_scripts !== (themeSettings.custom_head_scripts || '')
+          ) : false
+        }
+        isSaving={saveThemeSettings.isPending}
+        onSave={handleSave}
+        onCancel={() => {
+          if (themeSettings) {
+            setFormData({
+              use_custom_frontend: themeSettings.use_custom_frontend,
+              custom_frontend_url: themeSettings.custom_frontend_url || '',
+              custom_head_scripts: themeSettings.custom_head_scripts || '',
+            });
+          }
+        }}
+      />
     </div>
   );
 }

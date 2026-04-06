@@ -87,6 +87,18 @@ Deno.serve(async (req) => {
       if (data_type === "customers") {
         await importCustomers(supabase, tenant_id, records, options, result);
       } else if (data_type === "products") {
+        // Debug: log first record to check variant data
+        if (records.length > 0) {
+          const first = records[0];
+          console.log('[EDGE FUNC] First product record keys:', Object.keys(first));
+          console.log('[EDGE FUNC] _variants_json present:', '_variants_json' in first, 'type:', typeof first._variants_json);
+          if (first._variants_json) {
+            console.log('[EDGE FUNC] _variants_json value (first 300 chars):', String(first._variants_json).substring(0, 300));
+          } else {
+            console.log('[EDGE FUNC] _variants_json is MISSING from record!');
+          }
+          console.log('[EDGE FUNC] _option1_name:', first._option1_name, '_option2_name:', first._option2_name);
+        }
         await importProducts(supabase, tenant_id, records, options, result);
       } else if (data_type === "orders") {
         await importOrders(supabase, tenant_id, records, options, result);
@@ -251,6 +263,9 @@ async function importProducts(
   options: ImportRequest["options"],
   result: ImportResult
 ) {
+  // Cache for category lookups: lowercase name → category id
+  const categoryCache = new Map<string, string>();
+
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     try {
@@ -277,6 +292,8 @@ async function importProducts(
 
       const productData = buildProductData(tenantId, record);
 
+      let productId: string;
+
       if (existing && options.updateExisting) {
         const { error } = await supabase
           .from("products")
@@ -284,14 +301,37 @@ async function importProducts(
           .eq("id", existing.id);
         
         if (error) throw error;
+        productId = existing.id;
         result.success_count++;
       } else if (existing) {
         result.skipped_count++;
+        // Still link category for existing products
+        productId = existing.id;
       } else {
-        const { error } = await supabase.from("products").insert(productData);
+        const { data: newProduct, error } = await supabase
+          .from("products")
+          .insert(productData)
+          .select("id")
+          .single();
         if (error) throw error;
+        productId = newProduct.id;
         result.success_count++;
       }
+
+      // Auto-link category from original_category_value (Shopify "Type")
+      const categoryValue = (record.original_category_value as string) || "";
+      if (categoryValue.trim()) {
+        await linkProductToCategory(supabase, tenantId, productId, categoryValue.trim(), categoryCache);
+      }
+
+      // Upsert product specifications from _spec_ prefixed fields
+      await upsertProductSpecs(supabase, tenantId, productId, record);
+
+      // Upsert custom specs from _custom_spec_ prefixed fields
+      await upsertCustomSpecs(supabase, tenantId, productId, record);
+
+      // Import variants from _variants_json (Shopify consolidated rows)
+      await importProductVariants(supabase, tenantId, productId, record);
     } catch (err) {
       console.error(`Product row ${i + 1} error:`, err);
       result.errors.push({
@@ -302,6 +342,325 @@ async function importProducts(
       result.failed_count++;
       if (!options.skipErrors) throw err;
     }
+  }
+}
+
+async function linkProductToCategory(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  categoryName: string,
+  cache: Map<string, string>
+) {
+  const cacheKey = categoryName.toLowerCase();
+
+  let categoryId = cache.get(cacheKey);
+
+  if (!categoryId) {
+    // Look up existing category (case-insensitive)
+    const { data: existing } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("name", cacheKey)
+      .maybeSingle();
+
+    if (existing) {
+      categoryId = existing.id;
+    } else {
+      // Create new category
+      const slug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const { data: newCat, error } = await supabase
+        .from("categories")
+        .insert({ tenant_id: tenantId, name: categoryName, slug, is_active: true })
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error(`Failed to create category "${categoryName}":`, error);
+        return;
+      }
+      categoryId = newCat.id;
+    }
+    cache.set(cacheKey, categoryId);
+  }
+
+  // Upsert product-category link
+  await supabase
+    .from("product_categories")
+    .upsert(
+      { product_id: productId, category_id: categoryId },
+      { onConflict: "product_id,category_id" }
+    );
+
+  // Also set legacy category_id on the product for compatibility
+  await supabase
+    .from("products")
+    .update({ category_id: categoryId })
+    .eq("id", productId);
+}
+
+// ============= UPSERT PRODUCT SPECIFICATIONS =============
+async function upsertProductSpecs(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  record: Record<string, unknown>
+) {
+  const specFields: Record<string, string> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (key.startsWith("_spec_") && value) {
+      const column = key.replace("_spec_", "");
+      specFields[column] = String(value);
+    }
+  }
+
+  if (Object.keys(specFields).length === 0) return;
+
+  try {
+    // Check if spec row exists
+    const { data: existing } = await supabase
+      .from("product_specifications")
+      .select("id")
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("product_specifications")
+        .update(specFields)
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("product_specifications")
+        .insert({ product_id: productId, tenant_id: tenantId, ...specFields });
+    }
+  } catch (err) {
+    console.error(`Failed to upsert specs for product ${productId}:`, err);
+  }
+}
+
+// ============= UPSERT CUSTOM SPECIFICATIONS =============
+async function upsertCustomSpecs(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  record: Record<string, unknown>
+) {
+  const customSpecs: Array<{ group: string; key: string; value: string }> = [];
+
+  for (const [field, value] of Object.entries(record)) {
+    if (field.startsWith("_custom_spec_") && value) {
+      // Format: _custom_spec_GroupName_spec_key
+      const rest = field.replace("_custom_spec_", "");
+      const firstUnderscore = rest.indexOf("_");
+      if (firstUnderscore === -1) continue;
+      const group = rest.substring(0, firstUnderscore);
+      const key = rest.substring(firstUnderscore + 1).replace(/_/g, " ");
+      customSpecs.push({ group, key, value: String(value) });
+    }
+  }
+
+  if (customSpecs.length === 0) return;
+
+  try {
+    // Delete existing custom specs for this product in the same groups
+    const groups = [...new Set(customSpecs.map((s) => s.group))];
+    for (const group of groups) {
+      await supabase
+        .from("product_custom_specs")
+        .delete()
+        .eq("product_id", productId)
+        .eq("group_name", group);
+    }
+
+    // Insert new custom specs
+    const rows = customSpecs.map((spec, idx) => ({
+      product_id: productId,
+      tenant_id: tenantId,
+      group_name: spec.group,
+      spec_key: spec.key,
+      spec_value: spec.value,
+      value_type: "text" as const,
+      sort_order: idx,
+      group_sort_order: 0,
+    }));
+
+    if (rows.length > 0) {
+      await supabase.from("product_custom_specs").insert(rows);
+    }
+  } catch (err) {
+    console.error(`Failed to upsert custom specs for product ${productId}:`, err);
+  }
+}
+
+// ============= IMPORT PRODUCT VARIANTS =============
+async function importProductVariants(
+  supabase: AnySupabaseClient,
+  tenantId: string,
+  productId: string,
+  record: Record<string, unknown>
+) {
+  const variantsJson = record._variants_json as string;
+  console.log(`[VARIANTS] productId=${productId} _variants_json present=${!!variantsJson} type=${typeof variantsJson} length=${variantsJson ? String(variantsJson).length : 0}`);
+  if (!variantsJson) {
+    console.log(`[VARIANTS] Record keys for this product:`, Object.keys(record));
+    return;
+  }
+
+  try {
+    const variants: Array<{
+      sku: string;
+      price: string;
+      compare_at_price: string;
+      stock: string;
+      option1: string;
+      option2: string;
+      option3: string;
+      barcode: string;
+      image: string;
+      weight: string;
+      requires_shipping: string;
+    }> = JSON.parse(variantsJson);
+
+    if (!variants.length) return;
+
+    // Filter out "Default Title" — not real variants
+    const realVariants = variants.filter(v => v.option1?.trim().toLowerCase() !== 'default title');
+    if (realVariants.length === 0) {
+      console.log(`[variants] Skipping Default Title variants for product ${productId}`);
+      return;
+    }
+
+    // Read option names from consolidated record
+    const optionNames: string[] = [];
+    if (record._option1_name) optionNames.push(String(record._option1_name));
+    if (record._option2_name) optionNames.push(String(record._option2_name));
+    if (record._option3_name) optionNames.push(String(record._option3_name));
+
+    // Fallback option names
+    if (optionNames.length === 0) optionNames.push("Option 1");
+
+    // Step 1: Build and upsert product_variant_options
+    const optionValuesMap = new Map<string, Set<string>>();
+    for (const v of realVariants) {
+      const vals = [v.option1, v.option2, v.option3];
+      for (let i = 0; i < optionNames.length; i++) {
+        const val = vals[i]?.trim();
+        if (val) {
+          if (!optionValuesMap.has(optionNames[i])) {
+            optionValuesMap.set(optionNames[i], new Set());
+          }
+          optionValuesMap.get(optionNames[i])!.add(val);
+        }
+      }
+    }
+
+    // Delete existing variant options for this product, then insert fresh
+    await supabase
+      .from("product_variant_options")
+      .delete()
+      .eq("product_id", productId);
+
+    const optionRows = Array.from(optionValuesMap.entries()).map(([name, valuesSet], idx) => ({
+      product_id: productId,
+      tenant_id: tenantId,
+      name,
+      values: Array.from(valuesSet),
+      position: idx,
+    }));
+
+    if (optionRows.length > 0) {
+      console.log(`[VARIANTS] Inserting ${optionRows.length} variant options:`, JSON.stringify(optionRows));
+      const { data: optData, error: optError } = await supabase
+        .from("product_variant_options")
+        .insert(optionRows)
+        .select();
+      if (optError) console.error("[VARIANTS] Failed to insert variant options:", optError);
+      else console.log(`[VARIANTS] Successfully inserted ${optData?.length} variant options`);
+    }
+
+    // Step 2: Upsert product_variants
+    for (const v of realVariants) {
+      const attributeValues: Record<string, string> = {};
+      const titleParts: string[] = [];
+      const vals = [v.option1, v.option2, v.option3];
+
+      for (let i = 0; i < optionNames.length; i++) {
+        const val = vals[i]?.trim();
+        if (val) {
+          attributeValues[optionNames[i]] = val;
+          titleParts.push(val);
+        }
+      }
+
+      const variantTitle = titleParts.join(" / ") || "Default";
+      const variantSku = v.sku?.trim() || null;
+      const variantBarcode = v.barcode?.trim() || null;
+
+      const variantData: Record<string, unknown> = {
+        product_id: productId,
+        tenant_id: tenantId,
+        title: variantTitle,
+        price: parseFloat(v.price) || 0,
+        compare_at_price: v.compare_at_price ? parseFloat(v.compare_at_price) : null,
+        stock: parseInt(v.stock) || 0,
+        sku: variantSku || null,
+        barcode: variantBarcode || null,
+        attribute_values: attributeValues,
+        image_url: v.image?.trim() || null,
+        weight: v.weight ? parseFloat(v.weight) / 1000 : null, // grams → kg
+        is_active: true,
+      };
+
+      // Try upsert by SKU if available, otherwise insert
+      if (variantSku) {
+        const { data: existingVariant } = await supabase
+          .from("product_variants")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("sku", variantSku)
+          .maybeSingle();
+
+        if (existingVariant) {
+          const { error: uErr } = await supabase
+            .from("product_variants")
+            .update(variantData)
+            .eq("id", existingVariant.id);
+          if (uErr) console.error(`[VARIANTS] Update variant SKU=${variantSku} error:`, uErr);
+          else console.log(`[VARIANTS] Updated variant SKU=${variantSku}`);
+        } else {
+          const { error: iErr } = await supabase.from("product_variants").insert(variantData);
+          if (iErr) console.error(`[VARIANTS] Insert variant SKU=${variantSku} error:`, iErr);
+          else console.log(`[VARIANTS] Inserted variant SKU=${variantSku} title=${variantTitle}`);
+        }
+      } else {
+        // No SKU — check by attribute_values match
+        const { data: existingVariant } = await supabase
+          .from("product_variants")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("attribute_values", attributeValues)
+          .maybeSingle();
+
+        if (existingVariant) {
+          const { error: uErr } = await supabase
+            .from("product_variants")
+            .update(variantData)
+            .eq("id", existingVariant.id);
+          if (uErr) console.error(`[VARIANTS] Update variant (no SKU) error:`, uErr);
+          else console.log(`[VARIANTS] Updated variant title=${variantTitle}`);
+        } else {
+          const { error: iErr } = await supabase.from("product_variants").insert(variantData);
+          if (iErr) console.error(`[VARIANTS] Insert variant (no SKU) error:`, iErr);
+          else console.log(`[VARIANTS] Inserted variant title=${variantTitle}`);
+        }
+      }
+    }
+
+    console.log(`Imported ${variants.length} variants for product ${productId}`);
+  } catch (err) {
+    console.error(`Failed to import variants for product ${productId}:`, err);
   }
 }
 
@@ -326,11 +685,16 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
     weight: record.weight ? parseFloat(String(record.weight)) : null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     images: Array.isArray(record.images) ? record.images : [],
-    featured_image: record.featured_image || null,
+    featured_image: record.featured_image || (Array.isArray(record.images) && record.images.length > 0 ? record.images[0] : null),
     meta_title: record.meta_title || null,
     meta_description: record.meta_description || null,
     is_active: record.is_active ?? true,
     vendor: record.vendor || null,
+    original_category_value: record.original_category_value || null,
+    google_product_category: record.google_product_category || null,
+    shopify_product_id: record.shopify_product_id || null,
+    shopify_handle: record.shopify_handle || null,
+    import_source: record.import_source || "csv",
     raw_import_data: record.raw_import_data || null,
   };
 }

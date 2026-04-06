@@ -234,7 +234,20 @@ export function usePublicProducts(tenantId: string | undefined, options?: {
         .eq('hide_from_storefront', false);
 
       if (options?.categoryId) {
-        query = query.eq('category_id', options.categoryId);
+        // Fetch product IDs linked via junction table for multi-category support
+        const { data: linkedProducts } = await supabase
+          .from('product_categories')
+          .select('product_id')
+          .eq('category_id', options.categoryId);
+        
+        const linkedIds = (linkedProducts || []).map(lp => lp.product_id);
+        
+        if (linkedIds.length > 0) {
+          query = query.in('id', linkedIds);
+        } else {
+          // Fallback: legacy category_id column
+          query = query.eq('category_id', options.categoryId);
+        }
       }
       if (options?.search) {
         query = query.ilike('name', `%${options.search}%`);
@@ -292,27 +305,54 @@ export function usePublicProduct(tenantId: string | undefined, productSlug: stri
 
       const product = data as any;
 
-      // Fetch bundle items if this is a bundle product
-      let bundle_items: any[] = [];
-      if (product.product_type === 'bundle') {
-        const { data: items } = await (supabase as any)
-          .from('product_bundle_items')
-          .select(`
-            id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order,
-            child_product:products!product_bundle_items_child_product_id_fkey(
-              id, name, slug, price, images, featured_image, stock, track_inventory
-            )
-          `)
+      // Fetch variants, variant options, and bundle items in parallel
+      const [variantsResult, variantOptionsResult, bundleResult] = await Promise.all([
+        supabase.from('product_variants')
+          .select('id, title, sku, barcode, price, compare_at_price, stock, track_inventory, image_url, attribute_values, weight, position, is_active, linked_product_id')
           .eq('product_id', product.id)
-          .order('sort_order', { ascending: true });
+          .eq('is_active', true)
+          .order('position', { ascending: true }),
+        supabase.from('product_variant_options')
+          .select('id, name, values, position')
+          .eq('product_id', product.id)
+          .order('position', { ascending: true }),
+        product.product_type === 'bundle'
+          ? (supabase as any)
+              .from('product_bundle_items')
+              .select(`
+                id, quantity, customer_can_adjust, min_quantity, max_quantity, sort_order,
+                child_product:products!product_bundle_items_child_product_id_fkey(
+                  id, name, slug, price, images, featured_image, stock, track_inventory
+                )
+              `)
+              .eq('product_id', product.id)
+              .order('sort_order', { ascending: true })
+          : Promise.resolve({ data: [] }),
+      ]);
 
-        bundle_items = items || [];
-      }
+      const variants = variantsResult.data || [];
+      const variantOptions = variantOptionsResult.data || [];
+      const bundle_items = bundleResult.data || [];
+      const hasVariants = variants.length > 0;
 
       return {
         ...product,
         images: product.images || [],
-        in_stock: !product.track_inventory || (product.stock || 0) > 0,
+        has_variants: hasVariants,
+        variants: variants.map((v: any) => ({
+          ...v,
+          attribute_values: v.attribute_values || {},
+          in_stock: !v.track_inventory || (v.stock || 0) > 0,
+          price: v.price ?? product.price,
+          compare_at_price: v.compare_at_price ?? product.compare_at_price,
+        })),
+        options: variantOptions.map((o: any) => ({
+          name: o.name,
+          values: o.values || [],
+        })),
+        in_stock: hasVariants
+          ? variants.some((v: any) => !v.track_inventory || (v.stock || 0) > 0)
+          : (!product.track_inventory || (product.stock || 0) > 0),
         category: product.categories ? {
           id: product.categories.id,
           name: product.categories.name,

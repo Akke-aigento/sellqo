@@ -5,15 +5,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
 import { AD_PLATFORMS, type AdPlatform } from '@/types/ads';
-import { Plus, TrendingUp, MousePointer, Eye, DollarSign, Target, Sparkles } from 'lucide-react';
+import { TrendingUp, MousePointer, Eye, DollarSign, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CampaignCard } from './CampaignCard';
 
-export function AdsDashboard() {
+interface AdsDashboardProps {
+  onNewCampaign?: () => void;
+}
+
+export function AdsDashboard({ onNewCampaign }: AdsDashboardProps) {
   const { campaigns, isLoading: campaignsLoading, stats, activeCampaigns } = useAdCampaigns();
   const { connectedPlatforms, isLoading: platformsLoading } = useAdPlatforms();
 
   const isLoading = campaignsLoading || platformsLoading;
+  const hasData = campaigns.length > 0 && (stats.totalImpressions > 0 || stats.totalSpend > 0);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -59,12 +64,11 @@ export function AdsDashboard() {
             </Badge>
           )}
         </div>
-        <Button asChild>
-          <Link to="/admin/ads?tab=campaigns&action=new">
-            <Plus className="h-4 w-4 mr-2" />
+        {onNewCampaign && (
+          <Button onClick={onNewCampaign}>
             Nieuwe Campagne
-          </Link>
-        </Button>
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -75,8 +79,12 @@ export function AdsDashboard() {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(stats.totalImpressions)}</div>
-            <p className="text-xs text-muted-foreground">impressies afgelopen 30 dagen</p>
+            <div className="text-2xl font-bold">
+              {hasData ? formatNumber(stats.totalImpressions) : '—'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {hasData ? 'impressies afgelopen 30 dagen' : 'Nog geen data beschikbaar'}
+            </p>
           </CardContent>
         </Card>
 
@@ -86,11 +94,15 @@ export function AdsDashboard() {
             <MousePointer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(stats.totalClicks)}</div>
+            <div className="text-2xl font-bold">
+              {hasData ? formatNumber(stats.totalClicks) : '—'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              CTR: {stats.totalImpressions > 0 
-                ? ((stats.totalClicks / stats.totalImpressions) * 100).toFixed(2) 
-                : 0}%
+              {hasData 
+                ? `CTR: ${stats.totalImpressions > 0 
+                    ? ((stats.totalClicks / stats.totalImpressions) * 100).toFixed(2) 
+                    : 0}%`
+                : 'Nog geen data beschikbaar'}
             </p>
           </CardContent>
         </Card>
@@ -101,8 +113,12 @@ export function AdsDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalSpend)}</div>
-            <p className="text-xs text-muted-foreground">totaal deze periode</p>
+            <div className="text-2xl font-bold">
+              {hasData ? formatCurrency(stats.totalSpend) : '—'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {hasData ? 'totaal deze periode' : 'Nog geen data beschikbaar'}
+            </p>
           </CardContent>
         </Card>
 
@@ -112,9 +128,11 @@ export function AdsDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.overallRoas.toFixed(1)}x</div>
+            <div className="text-2xl font-bold">
+              {hasData ? `${stats.overallRoas.toFixed(1)}x` : '—'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              omzet: {formatCurrency(stats.totalRevenue)}
+              {hasData ? `omzet: ${formatCurrency(stats.totalRevenue)}` : 'Nog geen data beschikbaar'}
             </p>
           </CardContent>
         </Card>
@@ -191,29 +209,22 @@ export function AdsDashboard() {
         </Card>
       )}
 
-      {/* AI Suggestions Placeholder */}
+      {/* AI Suggestions — Beta label */}
       <Card className="border-dashed">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">AI Suggesties</CardTitle>
+            <Badge variant="outline" className="text-xs">Beta</Badge>
           </div>
           <CardDescription>
-            Slimme campagne-aanbevelingen op basis van je verkoopdata
+            Slimme campagne-aanbevelingen op basis van je verkoopdata — binnenkort beschikbaar
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Target className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">
-              Koppel een platform en voeg producten toe om AI-suggesties te ontvangen
-            </p>
-            <Button variant="outline" className="mt-4" asChild>
-              <Link to="/admin/ads?tab=platforms">
-                Platform koppelen
-              </Link>
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            AI-suggesties worden automatisch gegenereerd zodra je actieve campagnes met prestatiedata hebt.
+          </p>
         </CardContent>
       </Card>
     </div>

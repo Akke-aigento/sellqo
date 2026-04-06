@@ -985,17 +985,22 @@ async function generateFacturXPDF(data: {
   // Payment info with EPC QR code
   yPos -= 60;
   
-  // Build EPC QR code data
+  // Build EPC QR code data — EXACT 12 lines, empty lines MUST NOT be omitted.
+  // Reference goes in line 11 (unstructured remittance), NOT line 10 (structured
+  // creditor reference) — Belgian OGM is not a valid ISO 11649 reference.
   const epcLines = [
-    'BCD', '002', '1', 'SCT',
-    tenant.bic || '',
-    (tenant.name || '').slice(0, 70),
-    (tenant.iban || '').replace(/\s/g, '').toUpperCase(),
-    `EUR${total.toFixed(2)}`,
-    '',
-    ogmReference.replace(/[^\d]/g, ''),
-    '',
-    ''
+    'BCD',                                                    // Line 1: Service Tag
+    '002',                                                    // Line 2: Version
+    '1',                                                      // Line 3: Character set (UTF-8)
+    'SCT',                                                    // Line 4: SEPA Credit Transfer
+    tenant.bic || '',                                         // Line 5: BIC
+    (tenant.name || '').slice(0, 70),                         // Line 6: Beneficiary name
+    (tenant.iban || '').replace(/\s/g, '').toUpperCase(),     // Line 7: IBAN
+    `EUR${total.toFixed(2)}`,                                 // Line 8: Amount
+    '',                                                       // Line 9: Purpose code (empty)
+    '',                                                       // Line 10: Structured reference (empty)
+    ogmReference || '',                                       // Line 11: Unstructured remittance info
+    '',                                                       // Line 12: Display text (empty)
   ];
   const epcString = epcLines.join('\n');
   

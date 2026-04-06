@@ -264,104 +264,245 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         logStep("Checkout session completed", { sessionId: session.id });
 
+        const cartId = session.metadata?.cart_id;
         const orderId = session.metadata?.order_id;
-        if (!orderId) {
-          logStep("No order_id in session metadata");
-          break;
-        }
 
-        // Get tenant_id from order first for transaction recording
-        const { data: orderData } = await supabaseClient
-          .from("orders")
-          .select("tenant_id")
-          .eq("id", orderId)
-          .single();
+        if (cartId) {
+          // NEW FLOW: Cart-based — create order from cart
+          logStep("Cart-based checkout", { cartId });
 
-        // Update order payment status
-        const { error } = await supabaseClient
-          .from("orders")
-          .update({
-            payment_status: "paid",
-            status: "processing",
-            stripe_payment_intent_id: session.payment_intent as string,
-          })
-          .eq("id", orderId);
+          // Get cart with all checkout data
+          const { data: cart, error: cartError } = await supabaseClient
+            .from("storefront_carts")
+            .select("*")
+            .eq("id", cartId)
+            .single();
 
-        if (error) {
-          logStep("Error updating order", { error: error.message });
-        } else {
-          logStep("Order updated to paid", { orderId });
-          
-          // Record transaction for usage tracking
-          if (orderData?.tenant_id) {
-            try {
-              await supabaseClient.rpc('record_transaction', {
-                p_tenant_id: orderData.tenant_id,
-                p_transaction_type: 'stripe',
-                p_order_id: orderId,
-              });
-              logStep("Transaction recorded for usage tracking");
-            } catch (txError) {
-              logStep("Warning: Failed to record transaction", { error: String(txError) });
+          if (cartError || !cart) {
+            logStep("Cart not found", { cartId, error: cartError?.message });
+            break;
+          }
+
+          if (cart.checkout_status === 'converted') {
+            logStep("Cart already converted, skipping", { cartId });
+            break;
+          }
+
+          const tenantId = cart.tenant_id;
+
+          // Get cart items
+          const { data: cartItems } = await supabaseClient
+            .from("storefront_cart_items")
+            .select("id, product_id, variant_id, quantity, unit_price, products(id, name, sku, images, category_id)")
+            .eq("cart_id", cartId);
+
+          // Get variant info
+          const variantIds = (cartItems || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
+          let variantMap: Record<string, any> = {};
+          if (variantIds.length > 0) {
+            const { data: variants } = await supabaseClient.from("product_variants").select("id, title, sku, image_url").in("id", variantIds);
+            if (variants) variantMap = Object.fromEntries(variants.map((v: any) => [v.id, v]));
+          }
+
+          const processedItems = (cartItems || []).map((item: any) => {
+            const variant = item.variant_id ? variantMap[item.variant_id] : null;
+            return {
+              id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
+              quantity: item.quantity, unit_price: item.unit_price,
+              product: item.products ? { name: item.products.name, sku: variant?.sku || item.products.sku || null, image: variant?.image_url || item.products.images?.[0] || null } : null,
+              variant: variant ? { title: variant.title } : null,
+              line_total: item.quantity * item.unit_price,
+            };
+          });
+
+          const subtotal = processedItems.reduce((s: number, i: any) => s + i.line_total, 0);
+
+          // Get tenant
+          const { data: tenant } = await supabaseClient
+            .from("tenants").select("default_vat_rate, currency, name")
+            .eq("id", tenantId).single();
+
+          const vatRate = tenant?.default_vat_rate || 21;
+          const shippingCost = Number(cart.shipping_cost) || 0;
+          const discountAmount = Number(cart.discount_amount) || 0;
+          const total = subtotal - discountAmount + shippingCost;
+          const vatAmount = Math.round(subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
+
+          // Find or create customer
+          let customerId: string | null = null;
+          if (cart.customer_email) {
+            const { data: existing } = await supabaseClient
+              .from("customers").select("id")
+              .eq("tenant_id", tenantId).eq("email", cart.customer_email).maybeSingle();
+            if (existing) {
+              customerId = existing.id;
+            } else {
+              const { data: newCust } = await supabaseClient
+                .from("customers")
+                .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: 'consumer' })
+                .select("id").single();
+              customerId = newCust?.id || null;
             }
           }
-        }
 
-        // Update stock for each order item
-        const { data: orderItems } = await supabaseClient
-          .from("order_items")
-          .select("product_id, quantity")
-          .eq("order_id", orderId);
+          // Generate order number
+          const { data: orderNumber } = await supabaseClient.rpc("generate_order_number", { _tenant_id: tenantId });
 
-        if (orderItems) {
-          for (const item of orderItems) {
-            if (item.product_id) {
-              await supabaseClient.rpc("decrement_stock", {
-                p_product_id: item.product_id,
-                p_quantity: item.quantity,
-              });
+          // Create order
+          const { data: newOrder, error: orderCreateError } = await supabaseClient
+            .from("orders")
+            .insert({
+              tenant_id: tenantId,
+              order_number: orderNumber,
+              status: "processing",
+              payment_status: "paid",
+              payment_method: cart.payment_method || "stripe",
+              subtotal,
+              tax_amount: vatAmount,
+              shipping_cost: shippingCost,
+              discount_amount: discountAmount,
+              discount_code: cart.discount_code || null,
+              total,
+              customer_email: cart.customer_email,
+              customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
+              customer_phone: cart.customer_phone || null,
+              customer_id: customerId,
+              shipping_address: cart.shipping_address || null,
+              billing_address: cart.billing_address || cart.shipping_address || null,
+              shipping_method_id: cart.shipping_method_id || null,
+              currency: cart.currency || tenant?.currency || "EUR",
+              stripe_payment_intent_id: session.payment_intent as string,
+              stripe_checkout_session_id: session.id,
+            })
+            .select("id, order_number").single();
+
+          if (orderCreateError) {
+            logStep("Error creating order from cart", { error: orderCreateError.message });
+            break;
+          }
+
+          logStep("Order created from cart", { orderId: newOrder.id, orderNumber: newOrder.order_number });
+
+          // Create order items
+          const orderItems = processedItems.map((item: any) => ({
+            order_id: newOrder.id,
+            product_id: item.product_id,
+            product_name: item.product?.name || '',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.line_total,
+            product_sku: item.product?.sku || null,
+            product_image: item.product?.image || null,
+            variant_id: item.variant_id || null,
+            variant_title: item.variant?.title || null,
+          }));
+          await supabaseClient.from("order_items").insert(orderItems);
+
+          // Mark cart as converted
+          await supabaseClient.from("storefront_carts").update({
+            checkout_status: "converted",
+            updated_at: new Date().toISOString(),
+          }).eq("id", cartId);
+
+          // Decrement stock
+          for (const item of processedItems) {
+            if (item.variant_id) {
+              const { error: varStockErr } = await supabaseClient.rpc("decrement_variant_stock", { p_variant_id: item.variant_id, p_quantity: item.quantity });
+              if (varStockErr) console.warn("Failed to decrement variant stock:", varStockErr.message);
+            } else if (item.product_id) {
+              const { error: prodStockErr } = await supabaseClient.rpc("decrement_stock", { p_product_id: item.product_id, p_quantity: item.quantity });
+              if (prodStockErr) console.warn("Failed to decrement product stock:", prodStockErr.message);
             }
           }
           logStep("Stock updated for order items");
-        }
 
-        // Generate invoice after successful payment
-        try {
-          logStep("Triggering invoice generation", { orderId });
-          
-          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-          const invoiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({ order_id: orderId }),
-          });
-
-          const invoiceResult = await invoiceResponse.json();
-          logStep("Invoice generation result", invoiceResult);
-
-          // Send invoice email if auto_send is enabled
-          if (invoiceResult.success && invoiceResult.auto_send && invoiceResult.invoice_id) {
-            logStep("Triggering invoice email send", { invoice_id: invoiceResult.invoice_id });
-            
-            const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-              },
-              body: JSON.stringify({ invoice_id: invoiceResult.invoice_id }),
-            });
-
-            const emailResult = await emailResponse.json();
-            logStep("Invoice email result", emailResult);
+          // Record transaction
+          try {
+            await supabaseClient.rpc("record_transaction", { p_tenant_id: tenantId, p_transaction_type: "stripe", p_order_id: newOrder.id });
+            logStep("Transaction recorded");
+          } catch (txError) {
+            logStep("Warning: Failed to record transaction", { error: String(txError) });
           }
-        } catch (invoiceError) {
-          logStep("Invoice generation error (non-blocking)", { 
-            error: invoiceError instanceof Error ? invoiceError.message : String(invoiceError) 
-          });
+
+          // Generate invoice
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            const invoiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({ order_id: newOrder.id }),
+            });
+            const invoiceResult = await invoiceResponse.json();
+            logStep("Invoice generation result", invoiceResult);
+
+            if (invoiceResult.success && invoiceResult.auto_send && invoiceResult.invoice_id) {
+              await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+                body: JSON.stringify({ invoice_id: invoiceResult.invoice_id }),
+              });
+            }
+          } catch (invoiceError) {
+            logStep("Invoice generation error (non-blocking)", { error: invoiceError instanceof Error ? invoiceError.message : String(invoiceError) });
+          }
+
+        } else if (orderId) {
+          // LEGACY FLOW: Order-based (backward compat for old sessions)
+          logStep("Legacy order-based checkout", { orderId });
+
+          const { data: orderData } = await supabaseClient
+            .from("orders").select("tenant_id").eq("id", orderId).single();
+
+          const { error } = await supabaseClient
+            .from("orders")
+            .update({ payment_status: "paid", status: "processing", stripe_payment_intent_id: session.payment_intent as string })
+            .eq("id", orderId);
+
+          if (error) {
+            logStep("Error updating order", { error: error.message });
+          } else {
+            logStep("Order updated to paid", { orderId });
+            if (orderData?.tenant_id) {
+              try {
+                await supabaseClient.rpc("record_transaction", { p_tenant_id: orderData.tenant_id, p_transaction_type: "stripe", p_order_id: orderId });
+              } catch (txError) {
+                logStep("Warning: Failed to record transaction", { error: String(txError) });
+              }
+            }
+          }
+
+          // Update stock
+          const { data: orderItems } = await supabaseClient
+            .from("order_items").select("product_id, quantity").eq("order_id", orderId);
+          if (orderItems) {
+            for (const item of orderItems) {
+              if (item.product_id) {
+                await supabaseClient.rpc("decrement_stock", { p_product_id: item.product_id, p_quantity: item.quantity });
+              }
+            }
+          }
+
+          // Generate invoice
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            const invoiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({ order_id: orderId }),
+            });
+            const invoiceResult = await invoiceResponse.json();
+            if (invoiceResult.success && invoiceResult.auto_send && invoiceResult.invoice_id) {
+              await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+                body: JSON.stringify({ invoice_id: invoiceResult.invoice_id }),
+              });
+            }
+          } catch (invoiceError) {
+            logStep("Invoice generation error (non-blocking)", { error: invoiceError instanceof Error ? invoiceError.message : String(invoiceError) });
+          }
+        } else {
+          logStep("No cart_id or order_id in session metadata");
         }
 
         break;

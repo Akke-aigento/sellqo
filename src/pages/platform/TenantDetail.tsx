@@ -12,6 +12,7 @@ import { TenantInvoicesTab } from '@/components/platform/TenantInvoicesTab';
 import { TenantModulesTab } from '@/components/platform/TenantModulesTab';
 import { TenantActivityTab } from '@/components/platform/TenantActivityTab';
 import { TenantActionsTab } from '@/components/platform/TenantActionsTab';
+import { TenantTeamTab } from '@/components/platform/TenantTeamTab';
 
 export default function TenantDetail() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -62,11 +63,12 @@ export default function TenantDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="subscription">Abonnement</TabsTrigger>
           <TabsTrigger value="credits">AI Credits</TabsTrigger>
           <TabsTrigger value="actions">Acties</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="invoices">Facturen</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="activity">Activiteit</TabsTrigger>
@@ -86,6 +88,10 @@ export default function TenantDetail() {
 
         <TabsContent value="actions">
           <TenantActionsTab tenantId={tenantId!} />
+        </TabsContent>
+
+        <TabsContent value="team">
+          <TenantTeamTab tenantId={tenantId!} />
         </TabsContent>
 
         <TabsContent value="invoices">

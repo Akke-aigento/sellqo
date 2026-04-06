@@ -1,4 +1,4 @@
-import { Menu, ArrowLeft } from 'lucide-react';
+import { Menu, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTenant } from '@/hooks/useTenant';
@@ -7,11 +7,16 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/admin/NotificationCenter';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
+import { Switch } from '@/components/ui/switch';
 
 export function AdminHeader() {
   const { currentTenant } = useTenant();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isPlatformAdmin } = useAuth();
+  const { viewMode, setViewMode, isAdminView } = usePlatformViewMode();
   
   const isOnDashboard = location.pathname === '/admin';
 
@@ -52,6 +57,27 @@ export function AdminHeader() {
           </div>
         )}
       </div>
+
+      {/* Platform Admin View Mode Toggle */}
+      {isPlatformAdmin && currentTenant && (
+        <div className="flex items-center gap-2 border-l pl-3 ml-1">
+          <div className="flex items-center gap-1.5">
+            {isAdminView ? (
+              <Eye className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+            <span className="text-xs font-medium hidden sm:inline">
+              {isAdminView ? 'Admin' : 'Tenant'}
+            </span>
+          </div>
+          <Switch
+            checked={isAdminView}
+            onCheckedChange={(checked) => setViewMode(checked ? 'admin' : 'tenant')}
+            className="scale-75"
+          />
+        </div>
+      )}
 
       <NotificationCenter />
       <ThemeToggle />

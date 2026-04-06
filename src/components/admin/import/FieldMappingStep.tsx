@@ -13,6 +13,25 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wand2, Check, AlertTriangle, Minus } from 'lucide-react';
+
+function formatTargetField(field: string): string {
+  if (field.startsWith('_spec_')) {
+    const col = field.replace('_spec_', '');
+    const labels: Record<string, string> = {
+      color: 'Kleur', size: 'Maat', material: 'Materiaal',
+      storage_instructions: 'Bewaarinstructies',
+    };
+    return `Specificatie: ${labels[col] || col}`;
+  }
+  if (field.startsWith('_custom_spec_')) {
+    const rest = field.replace('_custom_spec_', '');
+    const idx = rest.indexOf('_');
+    const group = rest.substring(0, idx);
+    const key = rest.substring(idx + 1).replace(/_/g, ' ');
+    return `${group}: ${key}`;
+  }
+  return field.replace(/_/g, ' ');
+}
 import { getDefaultMapping, findMatchingMapping } from '@/lib/importMappings';
 import { 
   CUSTOMER_TARGET_FIELDS, 
@@ -198,9 +217,11 @@ export function FieldMappingStep({
                               {t('import.skip')}
                             </span>
                           </SelectItem>
-                          {targetFields.map(field => (
+                          {targetFields
+                            .filter(field => !field.startsWith('_variant') && !field.startsWith('_option'))
+                            .map(field => (
                             <SelectItem key={field} value={field}>
-                              {field.replace(/_/g, ' ')}
+                              {formatTargetField(field)}
                             </SelectItem>
                           ))}
                         </SelectContent>

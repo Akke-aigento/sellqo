@@ -16,7 +16,8 @@ import {
   Trash2,
   ExternalLink,
   UserPlus,
-  Loader2
+  Loader2,
+  Activity
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
@@ -33,6 +34,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatCurrency } from '@/lib/utils';
 import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
+import { CustomerActivityTab } from '@/components/admin/customers/CustomerActivityTab';
 import type { Customer } from '@/types/order';
 
 export default function CustomerDetailPage() {
@@ -246,6 +248,10 @@ export default function CustomerDetailPage() {
             <MessageSquare className="h-4 w-4" />
             Gesprekken
           </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Activiteit
+          </TabsTrigger>
           <TabsTrigger value="details" className="gap-2">
             <User className="h-4 w-4" />
             Gegevens
@@ -351,6 +357,11 @@ export default function CustomerDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Activity Tab */}
+        <TabsContent value="activity">
+          <CustomerActivityTab customerId={customerId} />
         </TabsContent>
 
         {/* Details Tab */}

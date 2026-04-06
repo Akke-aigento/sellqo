@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
@@ -21,6 +22,7 @@ import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/typ
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
@@ -92,7 +94,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedOrderIds.length > 0 ? 'pb-20' : ''}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
@@ -139,6 +141,21 @@ export default function OrdersPage() {
                   ? 'Probeer andere filters'
                   : 'Bestellingen verschijnen hier zodra klanten iets bestellen'}
               </p>
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-3 px-2">
+              {orders.map((order) => (
+                <MobileOrderCard
+                  key={order.id}
+                  order={order}
+                  isSelected={selectedOrderIds.includes(order.id)}
+                  onSelect={(checked) => handleSelectOrder(order.id, checked)}
+                  onView={() => navigate(`/admin/orders/${order.id}`)}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDeleteOrder}
+                  formatCurrency={formatCurrency}
+                />
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -308,5 +325,96 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         </DropdownMenu>
       </TableCell>
     </TableRow>
+  );
+}
+
+function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  return (
+    <div 
+      className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
+      onClick={onView}
+    >
+      <div className="flex items-start gap-3">
+        <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onSelect}
+            aria-label={`Selecteer order ${order.order_number}`}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-sm">{order.order_number}</span>
+            <span className="font-medium text-sm">{formatCurrency(Number(order.total))}</span>
+          </div>
+          <div className="text-sm text-muted-foreground truncate mt-0.5">
+            {order.customer_name || order.customer_email}
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <OrderStatusBadge status={order.status} />
+            <PaymentStatusBadge status={order.payment_status} />
+          </div>
+          <div className="text-xs text-muted-foreground mt-1.5">
+            {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
+            {' · '}
+            {order.order_items?.length || 0} artikel{(order.order_items?.length || 0) !== 1 ? 'en' : ''}
+          </div>
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onView}>
+                <Eye className="h-4 w-4 mr-2" />
+                Bekijken
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {order.status !== 'processing' && order.status !== 'cancelled' && (
+                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'processing')}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  In behandeling
+                </DropdownMenuItem>
+              )}
+              {order.status !== 'shipped' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'shipped')}>
+                  <Truck className="h-4 w-4 mr-2" />
+                  Verzonden
+                </DropdownMenuItem>
+              )}
+              {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Afgeleverd
+                </DropdownMenuItem>
+              )}
+              {order.status !== 'cancelled' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onStatusChange(order.id, 'cancelled')}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Annuleren
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDelete(order)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Verwijderen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </div>
   );
 }
