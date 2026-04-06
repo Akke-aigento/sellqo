@@ -1,20 +1,43 @@
 
 
-## Fix: `checkoutGetPaymentMethods` duplicate — stale deployment
+## Fix: `bank_account_iban` → `iban` in getConfig
 
 ### Analyse
 
-Het lokale bestand `supabase/functions/storefront-api/index.ts` heeft **slechts één** declaratie van `checkoutGetPaymentMethods` (regel 1919). De oude versie (die op regel ~1330 stond) is al verwijderd in een eerdere edit.
+Er is slechts **één** plek in de hele storefront-api waar `bank_account_iban` voorkomt: **regel 218** in de `getConfig` functie.
 
-Echter, de **gedeployde** versie is stale — die bevat nog steeds BEIDE declaraties (de error wijst naar regel 2261 in de compiled versie, wat overeenkomt met de tweede declaratie). Dit veroorzaakt de `SyntaxError: Identifier 'checkoutGetPaymentMethods' has already been declared`.
+```typescript
+bank_transfer_enabled: !!tenant.bank_account_iban,  // ← FOUT
+```
+
+De kolom heet `iban` in de database (bevestigd). De `select('*')` op regel 152 haalt alle kolommen op, dus de data is er wel — alleen de verwijzing klopt niet.
+
+De andere plekken (checkoutGetPaymentMethods, checkoutComplete) gebruiken al de correcte kolomnaam `iban`.
 
 ### Fix
 
-Er hoeft geen code te veranderen. De edge function moet opnieuw gedeployd worden zodat de huidige (correcte) versie live gaat.
+**`supabase/functions/storefront-api/index.ts`** — regel 218:
 
-### Actie
+```typescript
+// VAN:
+bank_transfer_enabled: !!tenant.bank_account_iban,
+
+// NAAR:
+bank_transfer_enabled: !!tenant.iban,
+bank_details: tenant.iban ? {
+  account_holder: tenant.name || '',
+  iban: tenant.iban || '',
+  bic: tenant.bic || '',
+} : null,
+```
+
+Daarna redeployen.
+
+### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/storefront-api/index.ts` | Geen wijziging — redeploy |
+| `supabase/functions/storefront-api/index.ts` | Fix kolomnaam + bank_details toevoegen aan config |
+
+### Geen database wijzigingen nodig
 
