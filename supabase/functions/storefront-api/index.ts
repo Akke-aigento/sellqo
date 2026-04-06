@@ -215,7 +215,12 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
     },
     payments: {
       stripe_enabled: !!tenant.stripe_account_id && !!tenant.stripe_charges_enabled,
-      bank_transfer_enabled: !!tenant.bank_account_iban,
+      bank_transfer_enabled: !!tenant.iban,
+      bank_details: tenant.iban ? {
+        account_holder: tenant.name || '',
+        iban: tenant.iban || '',
+        bic: tenant.bic || '',
+      } : null,
     },
     appearance: {
       announcement_bar: announcementText ? { text: announcementText, enabled: themeSettings?.show_announcement_bar || false } : null,
