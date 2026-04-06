@@ -1,56 +1,56 @@
 
 
-## Download-knop toevoegen voor productafbeeldingen
+## Campagne-editor upgraden: Rich text, planning & triggers
 
-### Probleem
-Tenants kunnen hun productafbeeldingen niet downloaden vanuit het admin dashboard. Er is geen download-knop aanwezig bij de afbeeldingen in het ProductForm.
-
-### Oplossing
-Voeg een download-knop toe naast de bestaande knoppen (hoofdafbeelding instellen, verwijderen) in de hover-overlay van elke productafbeelding.
+### Wat er nu is
+De `CampaignDialog` heeft alleen een raw HTML textarea — onbruikbaar voor normale gebruikers. Er is geen scheduling (datum/tijd) en geen trigger-systeem. De inbox heeft al een werkende TipTap rich text editor (`ComposeRichEditor.tsx`) die we kunnen hergebruiken.
 
 ### Wat er verandert
 
-**`src/pages/admin/ProductForm.tsx`** — regel 1491-1497
+**1. Rich text editor met HTML-switch in CampaignDialog**
 
-Voeg een download-knop toe aan de hover-overlay van elke afbeelding:
+- Voeg een toggle toe: "Visueel" (standaard) vs "HTML" modus
+- In visuele modus: hergebruik de bestaande `ComposeRichEditor` (TipTap) met extra extensies voor headings en images
+- In HTML modus: de huidige monospace textarea
+- De editor converteert automatisch tussen modes — visuele output wordt gewrapt in de email-template HTML structuur bij opslaan
+- Voeg een "Voorbeeld" knop toe die de email als preview toont
 
-```tsx
-<div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-  <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title="Maak hoofdafbeelding">
-    <Star className={...} />
-  </Button>
-  {/* NIEUW: Download knop */}
-  <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title="Downloaden">
-    <Download className="h-4 w-4" />
-  </Button>
-  <Button type="button" size="icon" variant="destructive" onClick={() => removeImage(url)} title="Verwijderen">
-    <X className="h-4 w-4" />
-  </Button>
-</div>
+**2. Scheduling: datum en tijd kiezen**
+
+Voeg aan het formulier toe:
+- Een "Wanneer verzenden?" sectie met 3 opties:
+  - **Nu** — directe verzending (huidige gedrag)
+  - **Plannen** — datum + tijdpicker, slaat op met `status: 'scheduled'` en `scheduled_at`
+  - **Trigger** — koppel aan een automatisering (zie punt 3)
+- Gebruik bestaande `scheduled_at` kolom op `email_campaigns` tabel
+
+**3. Trigger-gebaseerde campagnes**
+
+Voeg een trigger-selectie toe wanneer "Trigger" gekozen wordt:
+- **Welkom** — nieuwe klant registreert zich
+- **Verlaten winkelmandje** — winkelmandje niet afgerekend na X uur
+- **Na aankoop** — X uur na bestelling
+- **Verjaardag** — op de verjaardag van de klant
+- **Heractivering** — klant heeft X dagen niet besteld
+
+Dit koppelt aan de bestaande `email_automations` tabel en `AutomationTrigger` type. De campagne wordt gekoppeld aan een automation entry.
+
+### Schema-aanpassing
+Nieuw veld op `email_campaigns`:
+```sql
+ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS automation_id uuid REFERENCES email_automations(id);
 ```
 
-Plus een `downloadImage` helper die via `fetch` + `blob` + tijdelijk `<a>` element de afbeelding downloadt (nodig omdat het cross-origin URLs zijn — een gewone `<a download>` werkt niet cross-origin):
+### Technische aanpak
 
-```typescript
-const downloadImage = async (url: string, filename: string) => {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${filename}.${ext}`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-```
+**Nieuwe component**: `CampaignRichEditor.tsx` — wraps `ComposeRichEditor` met heading-extensie en email-template wrapping
 
-Import `Download` icon van lucide-react toevoegen.
-
-### Bestanden
+**Bestanden:**
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/admin/ProductForm.tsx` | Download-knop + helper functie toevoegen |
-
-### Geen database wijzigingen nodig
+| `src/components/admin/marketing/CampaignDialog.tsx` | Toggle visueel/HTML, scheduling sectie, trigger selectie |
+| `src/components/admin/marketing/CampaignRichEditor.tsx` | Nieuwe wrapper rond TipTap voor campagnes (headings, images) |
+| `src/types/marketing.ts` | `automation_id` toevoegen aan `EmailCampaign` |
+| Database migration | `automation_id` kolom op `email_campaigns` |
 
