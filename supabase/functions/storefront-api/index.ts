@@ -1710,7 +1710,9 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       }
     }
 
-    const order = await createOrderFromCart(supabase, tenantId, cart, 'pending');
+    // Set expiry 7 days from now for unpaid bank transfer orders
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const order = await createOrderFromCart(supabase, tenantId, cart, 'pending', undefined, expiresAt);
 
     // Generate invoice (best-effort)
     try {
