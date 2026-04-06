@@ -1,10 +1,11 @@
-import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { useCustomerTags } from '@/hooks/useCustomerTags';
 import type { SegmentFilterRules } from '@/types/marketing';
 
 interface SegmentBuilderProps {
@@ -22,14 +23,10 @@ const COUNTRIES = [
 ];
 
 export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBuilderProps) {
+  const { data: availableTags = [] } = useCustomerTags();
+
   const updateRule = <K extends keyof SegmentFilterRules>(key: K, value: SegmentFilterRules[K]) => {
     onChange({ ...filterRules, [key]: value });
-  };
-
-  const removeRule = (key: keyof SegmentFilterRules) => {
-    const newRules = { ...filterRules };
-    delete newRules[key];
-    onChange(newRules);
   };
 
   const addCountry = (code: string) => {
@@ -42,6 +39,18 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
   const removeCountry = (code: string) => {
     const countries = filterRules.countries || [];
     updateRule('countries', countries.filter(c => c !== code));
+  };
+
+  const addTag = (tag: string) => {
+    const tags = filterRules.tags || [];
+    if (!tags.includes(tag)) {
+      updateRule('tags', [...tags, tag]);
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    const tags = filterRules.tags || [];
+    updateRule('tags', tags.filter(t => t !== tag));
   };
 
   return (
@@ -68,6 +77,78 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               <SelectItem value="all">Alle klanten</SelectItem>
               <SelectItem value="b2c">Particulier (B2C)</SelectItem>
               <SelectItem value="b2b">Zakelijk (B2B)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Tags */}
+        <div className="space-y-2">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {(filterRules.tags || []).map((tag) => (
+              <Badge key={tag} variant="secondary" className="gap-1">
+                {tag}
+                <button onClick={() => removeTag(tag)}>
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          {availableTags.length > 0 ? (
+            <Select onValueChange={addTag}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tag toevoegen..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTags.filter(t => !(filterRules.tags || []).includes(t)).map((tag) => (
+                  <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-xs text-muted-foreground">Geen tags beschikbaar bij klanten</p>
+          )}
+          {(filterRules.tags || []).length > 1 && (
+            <div className="flex items-center gap-3 mt-2">
+              <Label className="text-xs">Match logica:</Label>
+              <Select
+                value={filterRules.tags_match || 'any'}
+                onValueChange={(value) => updateRule('tags_match', value as 'any' | 'all')}
+              >
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Minstens één tag (OF)</SelectItem>
+                  <SelectItem value="all">Alle tags (EN)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {/* Email Subscribed */}
+        <div className="space-y-2">
+          <Label>Nieuwsbrief status</Label>
+          <Select
+            value={filterRules.email_subscribed === undefined ? 'all' : filterRules.email_subscribed ? 'yes' : 'no'}
+            onValueChange={(value) => {
+              if (value === 'all') {
+                const newRules = { ...filterRules };
+                delete newRules.email_subscribed;
+                onChange(newRules);
+              } else {
+                updateRule('email_subscribed', value === 'yes');
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle klanten</SelectItem>
+              <SelectItem value="yes">Geabonneerd</SelectItem>
+              <SelectItem value="no">Niet geabonneerd</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -148,6 +229,26 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               value={filterRules.max_total_spent ?? ''}
               onChange={(e) => updateRule('max_total_spent', e.target.value ? parseFloat(e.target.value) : undefined)}
               placeholder="∞"
+            />
+          </div>
+        </div>
+
+        {/* Created date range */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Klant aangemaakt na</Label>
+            <Input
+              type="date"
+              value={filterRules.created_after ?? ''}
+              onChange={(e) => updateRule('created_after', e.target.value || undefined)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Klant aangemaakt voor</Label>
+            <Input
+              type="date"
+              value={filterRules.created_before ?? ''}
+              onChange={(e) => updateRule('created_before', e.target.value || undefined)}
             />
           </div>
         </div>

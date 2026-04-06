@@ -114,8 +114,7 @@ export function useSegmentMemberCount(filterRules: SegmentFilterRules) {
       let query = supabase
         .from('customers')
         .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .eq('email_subscribed', true);
+        .eq('tenant_id', currentTenant.id);
 
       // Apply filter rules
       if (filterRules.customer_type && filterRules.customer_type !== 'all') {
@@ -142,8 +141,24 @@ export function useSegmentMemberCount(filterRules: SegmentFilterRules) {
         query = query.lte('total_spent', filterRules.max_total_spent);
       }
 
-      if (filterRules.min_engagement_score !== undefined) {
-        query = query.gte('email_engagement_score', filterRules.min_engagement_score);
+      if (filterRules.email_subscribed !== undefined) {
+        query = query.eq('email_subscribed', filterRules.email_subscribed);
+      }
+
+      if (filterRules.tags && filterRules.tags.length > 0) {
+        if (filterRules.tags_match === 'all') {
+          query = query.contains('tags', filterRules.tags);
+        } else {
+          query = query.overlaps('tags', filterRules.tags);
+        }
+      }
+
+      if (filterRules.created_after) {
+        query = query.gte('created_at', filterRules.created_after);
+      }
+
+      if (filterRules.created_before) {
+        query = query.lte('created_at', filterRules.created_before);
       }
 
       const { count, error } = await query;
