@@ -1,50 +1,62 @@
 
 
-## Opschoning: Testdata Aaron Mercken verwijderen bij VanXcel
+## Automatische opruiming van onbetaalde orders
 
-### Wat er verwijderd wordt
+### Conclusie: huidige flow is correct
 
-| Tabel | Aantal | Criteria |
-|---|---|---|
-| `order_items` | 26 | Gekoppeld aan de testbestellingen |
-| `invoices` | 20+ | Gekoppeld aan de testbestellingen (via `order_id`) |
-| `orders` | 26 | `tenant_id` = VanXcel + `customer_email` = `aaron.mercken@hotmail.com` |
+Bij bankoverschrijvingen **moet** de order direct aangemaakt worden. Er is geen webhook zoals bij Stripe — je kunt niet automatisch detecteren of er betaald is. De order vooraf aanmaken is noodzakelijk zodat:
+- De admin weet welke betalingen binnenkomen
+- De klant een bestelnummer heeft
+- Niets verloren gaat als de browser dichtgaat
 
-Geen platform_invoices gevonden — die hoeven niet verwijderd te worden.
+### Wat we wél kunnen doen: automatisch verlopen
 
-### Volgorde (foreign keys)
+Orders met status `pending` die na X dagen niet betaald zijn, automatisch markeren als `expired`. Dit voorkomt dat het dashboard vol staat met spookorders.
 
-Vanwege foreign key constraints moet de volgorde zijn:
-1. Eerst `order_items` verwijderen (referentie naar `orders`)
-2. Dan `invoices` verwijderen (referentie naar `orders`)
-3. Dan `orders` verwijderen
+### Implementatie
 
-### Uitvoering
-
-Drie DELETE statements via een database migration:
-
+**1. Nieuw veld op orders (migration)**
 ```sql
--- 1. Order items
-DELETE FROM order_items WHERE order_id IN (
-  SELECT id FROM orders 
-  WHERE tenant_id = '54f6b480-280b-42e1-b843-d5beb2831acd' 
-  AND customer_email = 'aaron.mercken@hotmail.com'
-);
-
--- 2. Invoices
-DELETE FROM invoices WHERE order_id IN (
-  SELECT id FROM orders 
-  WHERE tenant_id = '54f6b480-280b-42e1-b843-d5beb2831acd' 
-  AND customer_email = 'aaron.mercken@hotmail.com'
-);
-
--- 3. Orders
-DELETE FROM orders 
-WHERE tenant_id = '54f6b480-280b-42e1-b843-d5beb2831acd' 
-AND customer_email = 'aaron.mercken@hotmail.com';
+-- Voeg een vervaldatum toe aan orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS expires_at timestamptz;
 ```
 
-### Geen code-wijzigingen nodig
+Bij het aanmaken van een bank_transfer order in `checkoutComplete`: `expires_at = now() + interval '7 days'`.
 
-Dit is puur een data-opschoning.
+**2. Database functie voor cleanup**
+```sql
+CREATE OR REPLACE FUNCTION expire_unpaid_orders()
+RETURNS integer AS $$
+DECLARE affected integer;
+BEGIN
+  UPDATE orders 
+  SET status = 'cancelled', payment_status = 'expired'
+  WHERE payment_status = 'pending' 
+    AND expires_at < now()
+    AND status != 'cancelled';
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  RETURN affected;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+**3. Cron job via pg_cron (of een scheduled edge function)**
+
+Draait dagelijks en ruimt verlopen orders op. Stock wordt weer vrijgegeven.
+
+**4. Visuele indicator in admin dashboard**
+
+Orders die bijna verlopen tonen een waarschuwingsbadge ("Verloopt over 2 dagen").
+
+### Bestanden
+
+| Bestand | Actie |
+|---|---|
+| Database migration | `expires_at` kolom + `expire_unpaid_orders` functie |
+| `supabase/functions/storefront-api/index.ts` | `expires_at` instellen bij bank_transfer checkout |
+| Admin orders overzicht (optioneel) | Verloop-indicator tonen |
+
+### Alternatief: handmatig opruimen
+
+Als je liever geen automatische expiry wilt, kunnen we ook een "Verwijder onbetaalde orders" knop toevoegen in het admin dashboard waarmee je zelf opruimt.
 
