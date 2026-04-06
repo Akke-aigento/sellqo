@@ -114,8 +114,7 @@ export function useSegmentMemberCount(filterRules: SegmentFilterRules) {
       let query = supabase
         .from('customers')
         .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .eq('email_subscribed', true);
+        .eq('tenant_id', currentTenant.id);
 
       // Apply filter rules
       if (filterRules.customer_type && filterRules.customer_type !== 'all') {
