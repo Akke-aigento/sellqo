@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, XCircle, Mail, Users, AlertCircle, ExternalLink } from 'lucide-react';
 import { useNewsletterConfig, useNewsletterSubscribers } from '@/hooks/useNewsletterConfig';
 import { toast } from 'sonner';
+import { CampaignRichEditor } from '@/components/admin/marketing/CampaignRichEditor';
 
 export function NewsletterSettings() {
   const { config, isLoading, saveConfig, testConnection } = useNewsletterConfig();
@@ -23,6 +24,8 @@ export function NewsletterSettings() {
     klaviyo_list_id: '',
     double_optin: false,
     welcome_email_enabled: true,
+    welcome_email_subject: 'Welkom bij onze nieuwsbrief!',
+    welcome_email_body: '',
   });
 
   const [testResult, setTestResult] = useState<{
@@ -42,6 +45,8 @@ export function NewsletterSettings() {
         klaviyo_list_id: config.klaviyo_list_id || '',
         double_optin: config.double_optin || false,
         welcome_email_enabled: config.welcome_email_enabled ?? true,
+        welcome_email_subject: config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!',
+        welcome_email_body: config.welcome_email_body || '',
       });
     }
   }, [config]);
@@ -417,6 +422,31 @@ export function NewsletterSettings() {
                 checked={formData.welcome_email_enabled}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, welcome_email_enabled: checked }))}
               />
+            </div>
+          )}
+
+          {formData.provider === 'internal' && formData.welcome_email_enabled && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="welcome_email_subject">Onderwerp</Label>
+                <Input
+                  id="welcome_email_subject"
+                  value={formData.welcome_email_subject}
+                  onChange={(e) => setFormData(prev => ({ ...prev, welcome_email_subject: e.target.value }))}
+                  placeholder="Welkom bij onze nieuwsbrief!"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Inhoud</Label>
+                <CampaignRichEditor
+                  content={formData.welcome_email_body}
+                  onChange={(html) => setFormData(prev => ({ ...prev, welcome_email_body: html }))}
+                  placeholder="Schrijf je welkomstbericht..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Dit bericht wordt automatisch verstuurd wanneer iemand zich aanmeldt voor je nieuwsbrief.
+                </p>
+              </div>
             </div>
           )}
         </CardContent>

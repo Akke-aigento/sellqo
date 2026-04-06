@@ -2057,7 +2057,7 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
 
   // Get tenant newsletter config
   const { data: config } = await supabase
-    .from('tenant_newsletter_config').select('provider, double_optin, mailchimp_api_key, mailchimp_audience_id, mailchimp_server_prefix, klaviyo_api_key, klaviyo_list_id')
+    .from('tenant_newsletter_config').select('provider, double_optin, welcome_email_enabled, welcome_email_subject, welcome_email_body, mailchimp_api_key, mailchimp_audience_id, mailchimp_server_prefix, klaviyo_api_key, klaviyo_list_id')
     .eq('tenant_id', tenantId).maybeSingle();
 
   const provider = config?.provider || 'internal';
@@ -2086,6 +2086,30 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
     sync_status: 'synced',
     confirmed_at: doubleOptin ? null : new Date().toISOString(),
   }).eq('tenant_id', tenantId).eq('email', email);
+
+  // Send welcome email if enabled and not re-subscribing an existing active user
+  if (config?.welcome_email_enabled && config?.welcome_email_body && !doubleOptin && existing?.status !== 'active') {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateName: 'tenant-welcome',
+          recipientEmail: email,
+          idempotencyKey: `welcome-newsletter-${tenantId}-${email}`,
+          templateData: {
+            subject: config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!',
+            body: config.welcome_email_body,
+            firstName: firstName || '',
+          },
+        }),
+      });
+    } catch (e) {
+      console.error('Welcome email send error (non-fatal):', e);
+    }
+  }
 
   return {
     message: doubleOptin ? 'Please check your email to confirm' : 'Successfully subscribed',
