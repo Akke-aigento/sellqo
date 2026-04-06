@@ -1716,8 +1716,21 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     const name = tenantData?.name || '';
     const amount = order.total.toFixed(2);
     const ref = order.order_number;
-    // EPC format: BCD\n002\n1\nSCT\n[BIC]\n[Name]\n[IBAN]\nEUR[Amount]\n[Purpose]\n[StructuredRef]\n[Text]\n[Info]
-    const qrPayload = `BCD\n002\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\n\n${ref}\n\n`;
+    console.log('QR EPC payload data:', { iban, bic, name, amount, ref });
+    const qrPayload = [
+      "BCD",                            // 1: Service Tag
+      "002",                            // 2: Version
+      "1",                              // 3: UTF-8
+      "SCT",                            // 4: SEPA Credit Transfer
+      bic,                              // 5: BIC
+      name,                             // 6: Beneficiary Name
+      iban.replace(/\s/g, ''),          // 7: IBAN zonder spaties
+      `EUR${Number(amount).toFixed(2)}`,// 8: Amount
+      "",                               // 9: Purpose (leeg)
+      "",                               // 10: Structured Reference (leeg)
+      ref,                              // 11: Unstructured Remittance (bestelnummer)
+      "",                               // 12: Display text (leeg)
+    ].join("\n");
 
     return {
       order_id: order.id,
