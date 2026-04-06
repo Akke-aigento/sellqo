@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, XCircle, Mail, Users, AlertCircle, ExternalLink } from 'lucide-react';
 import { useNewsletterConfig, useNewsletterSubscribers } from '@/hooks/useNewsletterConfig';
 import { toast } from 'sonner';
+import { CampaignRichEditor } from '@/components/admin/marketing/CampaignRichEditor';
 
 export function NewsletterSettings() {
   const { config, isLoading, saveConfig, testConnection } = useNewsletterConfig();

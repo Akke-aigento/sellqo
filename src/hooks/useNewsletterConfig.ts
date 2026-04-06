@@ -14,6 +14,8 @@ export interface NewsletterConfig {
   klaviyo_list_id: string | null;
   double_optin: boolean;
   welcome_email_enabled: boolean;
+  welcome_email_subject: string | null;
+  welcome_email_body: string | null;
 }
 
 export function useNewsletterConfig() {
