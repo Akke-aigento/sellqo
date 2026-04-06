@@ -1,124 +1,50 @@
 
-## Fix: lege IBAN/BIC op QR-pagina
 
-### Wat er echt fout gaat
-Dit is geen QR-render probleem meer. De bankgegevens zijn leeg omdat de backend-query in `storefront-api` stuk is.
+## Opschoning: Testdata Aaron Mercken verwijderen bij VanXcel
 
-Ik heb bevestigd:
+### Wat er verwijderd wordt
 
-- In de database bestaan de tenant-velden wél:
-  - `iban`
-  - `bic`
-  - `name`
-- Voor VanXcel staan daar ook echte waarden in.
-- De frontend van VanXcel gebruikt voor checkout **niet** `create-bank-transfer-order`, maar:
-  ```text
-  VanXcel frontend
-    -> sellqo-proxy
-    -> storefront-api
-    -> action: checkout_complete
-  ```
-- In `checkoutComplete` doet `storefront-api` nu:
-  ```ts
-  .select('default_vat_rate, stripe_account_id, iban, bic, name, currency')
-  ```
-- Maar kolom `default_vat_rate` bestaat niet in `public.tenants`.
+| Tabel | Aantal | Criteria |
+|---|---|---|
+| `order_items` | 26 | Gekoppeld aan de testbestellingen |
+| `invoices` | 20+ | Gekoppeld aan de testbestellingen (via `order_id`) |
+| `orders` | 26 | `tenant_id` = VanXcel + `customer_email` = `aaron.mercken@hotmail.com` |
 
-Daardoor faalt die tenant-query. Omdat de code de fout niet controleert, wordt `tenantData` gewoon `undefined` en vallen deze regels terug op lege strings:
+Geen platform_invoices gevonden — die hoeven niet verwijderd te worden.
 
-```ts
-const iban = tenantData?.iban || '';
-const bic = tenantData?.bic || '';
-const name = tenantData?.name || '';
+### Volgorde (foreign keys)
+
+Vanwege foreign key constraints moet de volgorde zijn:
+1. Eerst `order_items` verwijderen (referentie naar `orders`)
+2. Dan `invoices` verwijderen (referentie naar `orders`)
+3. Dan `orders` verwijderen
+
+### Uitvoering
+
+Drie DELETE statements via een database migration:
+
+```sql
+-- 1. Order items
+DELETE FROM order_items WHERE order_id IN (
+  SELECT id FROM orders 
+  WHERE tenant_id = '54f6b480-280b-42e1-b843-d5beb2831acd' 
+  AND customer_email = 'aaron.mercken@hotmail.com'
+);
+
+-- 2. Invoices
+DELETE FROM invoices WHERE order_id IN (
+  SELECT id FROM orders 
+  WHERE tenant_id = '54f6b480-280b-42e1-b843-d5beb2831acd' 
+  AND customer_email = 'aaron.mercken@hotmail.com'
+);
+
+-- 3. Orders
+DELETE FROM orders 
+WHERE tenant_id = '54f6b480-280b-42e1-b843-d5beb2831acd' 
+AND customer_email = 'aaron.mercken@hotmail.com';
 ```
 
-Dat matcht exact met je screenshot en de logs:
-```text
-QR EPC payload data: { iban: "", bic: "", name: "", amount: "10.00", ref: "#1159" }
-```
+### Geen code-wijzigingen nodig
 
-### Bestanden die aangepast moeten worden
+Dit is puur een data-opschoning.
 
-| Bestand | Wijziging |
-|---|---|
-| `supabase/functions/storefront-api/index.ts` | Foute tenant select in `checkoutComplete` corrigeren + query error expliciet afhandelen |
-
-### Concrete fix
-
-In `checkoutComplete`:
-
-**Van**
-```ts
-const { data: tenantData } = await supabase
-  .from('tenants')
-  .select('default_vat_rate, stripe_account_id, iban, bic, name, currency')
-  .eq('id', tenantId).single();
-```
-
-**Naar**
-```ts
-const { data: tenantData, error: tenantError } = await supabase
-  .from('tenants')
-  .select('tax_percentage, stripe_account_id, iban, bic, name, currency')
-  .eq('id', tenantId)
-  .single();
-
-if (tenantError || !tenantData) {
-  console.error('checkoutComplete tenant query failed:', tenantError);
-  return {
-    success: false,
-    error: {
-      code: 'TENANT_CONFIG_ERROR',
-      message: 'Winkelconfiguratie voor betaling kon niet geladen worden',
-    },
-  };
-}
-```
-
-### Waarom dit de juiste fix is
-- `tax_percentage` is de echte kolom in `tenants`
-- Daardoor slaagt de tenant-query opnieuw
-- `tenantData.iban`, `tenantData.bic` en `tenantData.name` worden weer gevuld
-- `bank_details` in de API response bevat dan echte waarden
-- De EPC payload wordt dan opgebouwd met:
-  ```text
-  regel 5 = BIC
-  regel 6 = naam
-  regel 7 = IBAN
-  regel 11 = bestelnummer
-  ```
-
-### Extra robuustheid
-Ik zou tegelijk ook 2 kleine veiligheidsfixes meenemen:
-
-1. **Controleer query errors altijd expliciet** in `checkoutComplete`
-2. **Zoek in `storefront-api/index.ts` naar alle `default_vat_rate` selects op `tenants`**
-   - waar het enkel response-mapping is, vervangen door `tax_percentage`
-   - waar het enkel output-naam is (`vat_rate` in config), kan de outputnaam blijven, maar de bron moet `tax_percentage` zijn
-
-### Verwacht resultaat na implementatie
-Op de QR-betaalpagina en in de bankapp zie je dan:
-
-- Rekeninghouder: `VanXcel`
-- IBAN: `BE41739022737710`
-- BIC: `KREDBEBBXXX`
-- Bedrag: correct
-- Mededeling: bestelnummer
-
-### Technisch detail
-De fout zat dus niet in:
-- `ShopQRPayment.tsx`
-- de EPC QR structuur
-- de tenant-data in de database
-
-De fout zit specifiek in deze backend-keten:
-
-```text
-VanXcel checkout
-  -> sellqo-proxy (/checkout/complete)
-  -> storefront-api action checkout_complete
-  -> SELECT op tenants met niet-bestaande kolom default_vat_rate
-  -> tenantData undefined
-  -> bank_details leeg
-  -> QR payload leeg
-```
