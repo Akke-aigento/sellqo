@@ -47,10 +47,16 @@ interface Order {
 export default function ShopOrderConfirmation() {
   const { tenantSlug, orderId } = useParams<{ tenantSlug: string; orderId: string }>();
   const { tenant } = usePublicStorefront(tenantSlug || '');
+  const { clearCart } = useCart();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Clear cart on mount — safety net after successful checkout
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   // Load order and set up realtime subscription
   useEffect(() => {
