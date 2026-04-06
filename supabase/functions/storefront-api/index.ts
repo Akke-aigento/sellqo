@@ -1364,7 +1364,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
   return { ...cart, cartItems, subtotal };
 }
 
-async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string) {
+async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
   // Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
 
