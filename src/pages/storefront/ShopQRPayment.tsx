@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { generateEPCString } from "@/lib/epcQrCode";
+import { useCart } from "@/hooks/useCart";
 import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -24,7 +26,13 @@ export default function ShopQRPayment() {
   const { tenantSlug } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const state = location.state as QRPaymentState | null;
+
+  // Clear cart on mount — safety net after successful checkout
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   if (!state?.orderId || !state?.bankDetails?.iban) {
     navigate(`/shop/${tenantSlug}`, { replace: true });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CheckCircle, Package, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -46,10 +47,16 @@ interface Order {
 export default function ShopOrderConfirmation() {
   const { tenantSlug, orderId } = useParams<{ tenantSlug: string; orderId: string }>();
   const { tenant } = usePublicStorefront(tenantSlug || '');
+  const { clearCart } = useCart();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Clear cart on mount — safety net after successful checkout
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   // Load order and set up realtime subscription
   useEffect(() => {
