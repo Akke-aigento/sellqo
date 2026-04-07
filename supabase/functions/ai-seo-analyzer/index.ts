@@ -44,6 +44,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch tenant primary language
+    const { data: tenantData } = await supabase
+      .from("tenants")
+      .select("primary_language")
+      .eq("id", tenantId)
+      .single();
+    const lang = tenantData?.primary_language || 'nl';
+
     // Check and use AI credits (2 credits for SEO analysis)
     const { data: creditsUsed, error: creditsError } = await supabase.rpc(
       "use_ai_credits",
@@ -69,7 +77,7 @@ serve(async (req) => {
     // Fetch all categories for the tenant
     const { data: categories, error: categoriesError } = await supabase
       .from("categories")
-      .select("id, name, description, meta_title, meta_description, slug, image_url, is_active")
+      .select(`id, name, description, meta_title_nl, meta_title_en, meta_title_fr, meta_title_de, meta_description_nl, meta_description_en, meta_description_fr, meta_description_de, slug, image_url, is_active`)
       .eq("tenant_id", tenantId)
       .eq("is_active", true);
 
@@ -226,8 +234,11 @@ serve(async (req) => {
       const categoryIssues: SEOIssue[] = [];
       let categoryScore = 100;
 
+      const catMetaTitle = category[`meta_title_${lang}`] as string | null;
+      const catMetaDesc = category[`meta_description_${lang}`] as string | null;
+
       // Check meta title
-      if (!category.meta_title) {
+      if (!catMetaTitle) {
         categoryScore -= 15;
         categoryIssues.push({
           type: 'meta_title_missing',
@@ -237,12 +248,12 @@ serve(async (req) => {
           entity_id: category.id,
           entity_name: category.name,
         });
-      } else if (category.meta_title.length > 60) {
+      } else if (catMetaTitle.length > 60) {
         categoryScore -= 5;
         categoryIssues.push({
           type: 'meta_title_too_long',
           severity: 'info',
-          message: `Meta title te lang (${category.meta_title.length} tekens)`,
+          message: `Meta title te lang (${catMetaTitle.length} tekens)`,
           field: 'meta_title',
           entity_id: category.id,
           entity_name: category.name,
@@ -250,7 +261,7 @@ serve(async (req) => {
       }
 
       // Check meta description
-      if (!category.meta_description) {
+      if (!catMetaDesc) {
         categoryScore -= 15;
         categoryIssues.push({
           type: 'meta_description_missing',
@@ -260,12 +271,12 @@ serve(async (req) => {
           entity_id: category.id,
           entity_name: category.name,
         });
-      } else if (category.meta_description.length > 160) {
+      } else if (catMetaDesc.length > 160) {
         categoryScore -= 5;
         categoryIssues.push({
           type: 'meta_description_too_long',
           severity: 'info',
-          message: `Meta description te lang (${category.meta_description.length} tekens)`,
+          message: `Meta description te lang (${catMetaDesc.length} tekens)`,
           field: 'meta_description',
           entity_id: category.id,
           entity_name: category.name,
@@ -332,8 +343,8 @@ serve(async (req) => {
       categoriesAnalyzed++;
       
       // Add to meta score
-      const hasGoodMeta = category.meta_title && category.meta_description;
-      totalMetaScore += hasGoodMeta ? 100 : (category.meta_title || category.meta_description ? 50 : 0);
+      const hasGoodMeta = catMetaTitle && catMetaDesc;
+      totalMetaScore += hasGoodMeta ? 100 : (catMetaTitle || catMetaDesc ? 50 : 0);
       totalContentScore += category.description ? (category.description.length > 100 ? 100 : 50) : 0;
     }
 
