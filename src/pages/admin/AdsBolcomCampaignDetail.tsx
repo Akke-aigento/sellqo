@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { BolCampaignEditForm } from '@/components/admin/ads/BolCampaignEditForm';
+import { CampaignAIAnalysis } from '@/components/admin/ads/CampaignAIAnalysis';
 
 const formatCurrency = (v: number | null) => v != null ? `€${v.toFixed(2)}` : '—';
 const formatPct = (v: number | null) => v != null ? `${v.toFixed(1)}%` : '—';
