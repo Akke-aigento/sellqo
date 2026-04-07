@@ -400,6 +400,7 @@ Deno.serve(async (req) => {
         platform_campaign_id: bolCampaignId,
         ad_group_id: adGroupId,
         eans_targeted: eans,
+        steps_completed: ['campaign_created', 'adgroup_created', 'products_added'],
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
