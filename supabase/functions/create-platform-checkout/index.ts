@@ -55,12 +55,14 @@ serve(async (req) => {
       });
     }
 
-    // Get tenant for user (via user_roles)
+    // Get tenant for user (via user_roles) — support multi-role users (e.g. platform_admin)
     const { data: userRole } = await supabase
       .from("user_roles")
       .select("tenant_id")
       .eq("user_id", user.id)
-      .single();
+      .not("tenant_id", "is", null)
+      .limit(1)
+      .maybeSingle();
 
     if (!userRole?.tenant_id) {
       logStep("No tenant found for user");

@@ -298,8 +298,19 @@ export default function BillingPage() {
               plans={plans}
               currentPlanId={currentPlan.id}
               currentInterval={subscription?.billing_interval || 'monthly'}
-              isLoading={calculatePlanSwitch.isPending}
-              onSelectPlan={(planId, isUpgrade) => handlePreviewPlanSwitch(planId)}
+              isLoading={calculatePlanSwitch.isPending || createCheckout.isPending}
+              onSelectPlan={(planId, isUpgrade) => {
+                if (subscription?.stripe_subscription_id) {
+                  // Existing Stripe subscription → plan switch flow
+                  handlePreviewPlanSwitch(planId);
+                } else {
+                  // No Stripe subscription (trial/free) → new checkout
+                  createCheckout.mutate({
+                    planId,
+                    interval: selectedInterval === 'yearly' ? 'yearly' : 'monthly',
+                  });
+                }
+              }}
             />
           </CardContent>
         </Card>
