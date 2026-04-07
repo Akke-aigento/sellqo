@@ -167,6 +167,7 @@ serve(async (req) => {
       payout_schedule: payoutSchedule,
       balance: balance,
       upcoming_payout: upcomingPayout,
+      capabilities: account.capabilities || {},
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

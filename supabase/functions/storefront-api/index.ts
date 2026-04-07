@@ -1666,7 +1666,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       customer_email: cart.customer_email,
       metadata: { cart_id: cartId, tenant_id: tenantId },
       payment_intent_data: {
-        application_fee_amount: Math.round(total * 0.05 * 100),
+        application_fee_amount: 0,
         transfer_data: { destination: tenantData.stripe_account_id },
       },
     };

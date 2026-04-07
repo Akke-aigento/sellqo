@@ -12,8 +12,8 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT-SESSION] ${step}${detailsStr}`);
 };
 
-// Platform fee percentage (e.g., 5%)
-const PLATFORM_FEE_PERCENT = 5;
+// Platform fee percentage (currently 0 — no SellQo fee)
+const PLATFORM_FEE_PERCENT = 0;
 
 // EU country codes for VAT determination
 const EU_COUNTRIES = [

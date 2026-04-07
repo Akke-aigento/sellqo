@@ -252,21 +252,29 @@ export function PaymentSettings() {
                 </div>
               </div>
               
-              {!currentTenant?.is_internal_tenant && (
-                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                  <Percent className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Platform fee</p>
-                    <p className="text-xs text-muted-foreground">5% per transactie</p>
-                  </div>
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Percent className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Transactiekosten</p>
+                  <p className="text-xs text-muted-foreground">Standaard Stripe tarieven</p>
                 </div>
-              )}
+              </div>
               
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Shield className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Betaalmethodes</p>
-                  <p className="text-xs text-muted-foreground">iDEAL, Cards, Bancontact</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(() => {
+                      const caps = status.capabilities || {};
+                      const methods: string[] = [];
+                      if (caps.card_payments === 'active') methods.push('Cards');
+                      if (caps.ideal_payments === 'active') methods.push('iDEAL');
+                      if (caps.bancontact_payments === 'active') methods.push('Bancontact');
+                      if (caps.sepa_debit_payments === 'active') methods.push('SEPA');
+                      return methods.length > 0 ? methods.join(', ') : 'Wordt geladen...';
+                    })()}
+                  </p>
                 </div>
               </div>
             </div>
