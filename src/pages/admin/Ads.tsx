@@ -84,7 +84,7 @@ export default function AdsPage() {
               Start met adverteren — verbind je marketplace account om campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
             </p>
             <Button asChild>
-              <Link to="/admin/marketplace">
+              <Link to="/admin/connect">
                 <Cable className="h-4 w-4 mr-2" />
                 Verbind je marketplace account
               </Link>
