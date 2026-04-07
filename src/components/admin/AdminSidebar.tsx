@@ -203,7 +203,7 @@ export function AdminSidebar() {
               <SidebarMenuButton isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
                 {item.icon && <item.icon className="h-4 w-4" />}
                 <span>{item.title}</span>
-                {renderPageToggle(item.id)}
+                {renderPageToggle(item.id, item)}
                 <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
@@ -221,7 +221,7 @@ export function AdminSidebar() {
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
                           <span>{child.title}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
-                          {renderPageToggle(child.id)}
+                          {renderPageToggle(child.id, child)}
                         </NavLink>
                       </SidebarMenuSubButton>
                     )}
