@@ -1,17 +1,34 @@
 
-## Fix: Downgrade kaarten pills dezelfde stijl als upgrade kaarten
 
-### Probleem
-De "Je verliest" pills op downgrade-kaarten gebruiken nog rode achtergronden (`bg-red-50 border-red-200`), terwijl de upgrade "Je krijgt erbij" pills al zijn omgezet naar grijze achtergrond met gekleurde tekst (`bg-muted border-border`). De limit-changes bij downgrades gebruiken ook nog rode achtergronden.
+## Redesign: Downgrade bevestigingsdialog — creatiever en mooier
 
-### Wijziging
+### Huidige situatie
+Er is al een `DowngradeWarningDialog` met een basis AlertDialog, een waarschuwingsicoon, feature-badges, en een checkbox. Het werkt, maar het is vrij standaard en saai.
 
-**Bestand: `src/components/admin/billing/PlanComparisonCards.tsx`**
+### Nieuw ontwerp — twee-staps flow
 
-- **"Je verliest" pills** (regels 310-313, 319): `bg-red-50 border-red-200` → `bg-muted border-border` (zelfde als upgrade pills, tekst blijft `text-red-700`)
-- **"+X meer" button** (regels 316-321): idem, `bg-red-50 border-red-200 hover:bg-red-100` → `bg-muted border-border hover:bg-muted/80`
-- **Limit changes bij downgrade** (regels 334-335): `bg-muted` is al goed voor beide, geen wijziging nodig
+**Stap 1: "Weet je het zeker?" — emotionele eerste pop-up**
+- Groot animerend icoon (ShieldAlert of TrendingDown) met een subtiele pulse-animatie
+- Headline: **"Wil je echt downgraden?"**
+- Subtext: *"Je {currentPlan} abonnement geeft je toegang tot krachtige tools. Weet je zeker dat je deze wilt opgeven?"*
+- Visuele vergelijking: huidige plan vs doel-plan als twee mini-kaartjes naast elkaar, met het huidige plan licht gehighlight en het doel-plan gedempt
+- Twee knoppen: **"Nee, ik blijf bij {currentPlan}"** (primary, opvallend) en **"Ja, ik wil downgraden"** (ghost/outline, bewust minder opvallend)
 
-Resultaat: alle pills hebben een neutrale grijze achtergrond, met groene of rode tekst als enige kleuraccent — consistent voor zowel upgrade als downgrade kaarten.
+**Stap 2: Feature-overzicht + bevestiging (bestaande flow, opgepoetst)**
+- Alleen als gebruiker "Ja" kiest in stap 1
+- Toont de verloren features als nette pills (al gestyled)
+- Checkbox bevestiging blijft
+- Destructive "Bevestig Downgrade" knop
+
+### Wijzigingen
+
+**Bestand: `src/components/admin/billing/DowngradeWarningDialog.tsx`**
+
+- `step` state toevoegen (1 of 2)
+- **Stap 1**: Nieuw design met twee mini plan-kaartjes, grote headline, emotionele copy, en asymmetrische knoppen (blijf-knop is primary + groot, downgrade-knop is klein/outline)
+- **Stap 2**: Bestaande feature-lost lijst + checkbox (al aanwezig), maar met verbeterde styling
+- Animatie via Tailwind `animate-in` classes bij stap-wissel
+- Reset `step` naar 1 bij sluiten
 
 ### Geen database wijzigingen nodig
+
