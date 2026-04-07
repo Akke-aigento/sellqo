@@ -1,54 +1,114 @@
 
 
-## Bewerken: Inline bewerkingsformulier i.p.v. wizard
+## AI Campaign Optimizer — Slimme suggesties op campagne-detailpagina
 
-### Probleem
-De "Bewerken" knop opent nu de volledige CampaignWizard met stappen — je moet door 5 schermen klikken terwijl alle data al bekend is. Bij bewerken wil je gewoon één overzichtelijk formulier met alle huidige waarden die je direct kunt aanpassen.
+### Wat het doet
 
-### Oplossing
-Vervang de CampaignWizard in de edit-dialog door een nieuw `BolCampaignEditForm` component — één enkel formulier met alle velden zichtbaar, pre-filled met de huidige campagne-data.
+Een nieuwe "AI Analyse" sectie op de Bol.com campagne-detailpagina die:
+1. De performance data (keywords, ad groups, spend/revenue/ACoS) verstuurt naar AI
+2. Concrete, actionable suggesties terugkrijgt (bijv. "Verhoog bod op keyword X van €0.25 naar €0.40", "Pauzeer keyword Y — 0 orders bij €12 spend", "Voeg negatief keyword Z toe")
+3. Elke suggestie heeft een **"Toepassen"** knop die de wijziging direct doorvoert via de bestaande `ads-bolcom-manage` edge function
+4. Suggesties worden opgeslagen in de bestaande `ads_ai_recommendations` tabel
 
-### Nieuw component: `src/components/admin/ads/BolCampaignEditForm.tsx`
+### Architectuur
 
-Eén formulier in een Dialog met secties:
+```text
+┌─────────────────────────┐
+│  CampaignDetail page    │
+│  ┌───────────────────┐  │
+│  │ AI Analyse Card   │  │
+│  │  [Analyseer] btn  │  │
+│  │                   │  │
+│  │  Suggestie 1  [✓] │  │
+│  │  Suggestie 2  [✓] │  │
+│  │  Suggestie 3  [✗] │  │
+│  └───────────────────┘  │
+└───────────┬─────────────┘
+            │ invoke
+  ┌─────────▼──────────┐
+  │ ads-campaign-      │
+  │ analyze (edge fn)  │
+  │  - Gather data     │
+  │  - Call Lovable AI │
+  │  - Save to DB      │
+  │  - Return results  │
+  └─────────┬──────────┘
+            │ on accept
+  ┌─────────▼──────────┐
+  │ ads-bolcom-manage  │
+  │  (existing)        │
+  │  - update_bid      │
+  │  - toggle_keyword  │
+  │  - add_negative    │
+  └────────────────────┘
+```
 
-**Sectie 1 — Algemeen**
-- Campagnenaam (Input, pre-filled)
-- Campagne modus: AUTO/MANUAL (RadioGroup, pre-filled uit `targeting_type`)
-- Status badge (read-only)
+### Nieuwe bestanden
 
-**Sectie 2 — Budget**
-- Dagbudget (Input number, pre-filled)
-- Totaalbudget (Input number, optioneel, pre-filled)
-- Doel-ROAS (Slider, pre-filled als beschikbaar)
+**1. `supabase/functions/ads-campaign-analyze/index.ts`** — Edge function
+- Ontvangt `campaign_id` + `tenant_id`
+- Haalt op uit DB: campaign info, ad groups, keywords + performance, search terms
+- Bouwt een gestructureerde prompt met alle data
+- Roept Lovable AI aan (gemini-3-flash-preview) met tool calling om gestructureerde suggesties te extraheren
+- Elke suggestie bevat: `action_type` (increase_bid / decrease_bid / pause_keyword / add_negative / resume_keyword), `entity_id`, `current_value`, `recommended_value`, `reason`, `confidence`
+- Slaat suggesties op in `ads_ai_recommendations` met status `pending`
+- Retourneert de suggesties
 
-**Sectie 3 — Planning**
-- Startdatum (Input date, pre-filled)
-- Einddatum (Input date, optioneel, pre-filled)
+**2. `src/components/admin/ads/CampaignAIAnalysis.tsx`** — UI component
+- "AI Analyse" card met gradient header (sparkles icoon)
+- "Analyseer campagne" knop die de edge function aanroept
+- Toont suggesties als kaartjes met:
+  - Icoon per type (TrendingUp voor bid changes, Ban voor negatieven, Pause voor pauzeren)
+  - Beschrijving in natuurlijke taal (de `reason`)
+  - Huidige vs aanbevolen waarde
+  - Confidence indicator
+  - **"Toepassen"** (groen) en **"Negeren"** (grijs) knoppen
+- Bij "Toepassen": roept `ads-bolcom-manage` aan met de juiste action + payload, update status naar `accepted`
+- Bij "Negeren": update status naar `rejected`
+- Loading state met skeleton cards tijdens analyse
 
-**Onderaan**: "Opslaan" + "Annuleren" knoppen
-
-Bij opslaan: `updateCampaign.mutateAsync` aanroepen met de gewijzigde velden, dan dialog sluiten en data invalidaten.
-
-### Wijzigingen
+### Wijzigingen aan bestaande bestanden
 
 | Bestand | Actie |
 |---------|-------|
-| `src/components/admin/ads/BolCampaignEditForm.tsx` | Nieuw — single-page edit formulier |
-| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | `CampaignWizard` import vervangen door `BolCampaignEditForm`, campaign data direct doorgeven (geen adapter meer nodig) |
+| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | `<CampaignAIAnalysis>` component toevoegen tussen de Performance chart en de Ad Groups sectie |
 
-### Detail
+### Edge function detail — `ads-campaign-analyze`
 
-**BolCampaignEditForm.tsx**
-- Props: `campaign` (de Bol campaign data uit `useBolcomCampaignDetail`), `onClose`, `onSaved`
-- Lokale state voor elk veld, geïnitialiseerd vanuit campaign
-- Gebruikt `useAdCampaigns().updateCampaign` of directe supabase update op `ads_bolcom_campaigns`
-- Alle velden in één scroll-vrij formulier met duidelijke labels
+De prompt bevat:
+- Campagne naam, type (AUTO/MANUAL), dagbudget
+- Per keyword: keyword text, match type, huidig bod, impressies, clicks, spend, orders, ACoS
+- Per ad group: naam, default bid, totale spend/revenue
+- Zoektermen met hoge spend en lage conversie
 
-**AdsBolcomCampaignDetail.tsx**
-- Verwijder `CampaignWizard` import en `campaignForWizard` useMemo adapter
-- Import `BolCampaignEditForm`
-- Dialog content: `<BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} />`
+Tool calling schema voor gestructureerde output:
+```json
+{
+  "name": "campaign_suggestions",
+  "parameters": {
+    "suggestions": [{
+      "action_type": "increase_bid | decrease_bid | pause_keyword | add_negative | resume_keyword",
+      "entity_id": "keyword/adgroup id",
+      "entity_name": "keyword text",
+      "current_value": "€0.25",
+      "recommended_value": "€0.40",
+      "reason": "Dit keyword heeft een ACoS van 8% — ruim onder target. Hoger bod = meer impressies.",
+      "confidence": 0.85,
+      "priority": "high | medium | low"
+    }]
+  }
+}
+```
+
+### Apply-logica per action type
+
+| Action | ads-bolcom-manage action | Payload |
+|--------|--------------------------|---------|
+| `increase_bid` / `decrease_bid` | `update_keyword_bid` | `{ keyword_id, bid }` |
+| `pause_keyword` | `toggle_keyword` | `{ keyword_id, status: "paused" }` |
+| `resume_keyword` | `toggle_keyword` | `{ keyword_id, status: "active" }` |
+| `add_negative` | `add_negative_keyword` | `{ adgroup_id, keyword, match_type }` |
 
 ### Geen database wijzigingen nodig
+De bestaande `ads_ai_recommendations` tabel heeft alle benodigde velden (recommendation_type, entity_id, current_value, recommended_value, reason, confidence, status).
 
