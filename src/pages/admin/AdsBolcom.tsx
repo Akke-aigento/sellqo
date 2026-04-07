@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { useBolcomAds, Period } from '@/hooks/useBolcomAds';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { CampaignWizard } from '@/components/admin/ads/CampaignWizard';
 
 const formatCurrency = (val: number) => `€${val.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatPct = (val: number) => `${val.toFixed(2)}%`;
@@ -49,6 +51,7 @@ export default function AdsBolcomPage() {
   const { period, setPeriod, isLoading, hasData, kpis, chartData, campaigns, topKeywords, topSearchTerms, reportsSyncing, forceReportsSync } = useBolcomAds();
   const [sortKey, setSortKey] = useState<SortKey>('perf_spend');
   const [sortAsc, setSortAsc] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -144,7 +147,7 @@ export default function AdsBolcomPage() {
           <Button onClick={forceReportsSync} variant="ghost" size="sm" className="text-xs text-muted-foreground" disabled={reportsSyncing}>
             Ververs data
           </Button>
-          <Button disabled variant="outline"><Plus className="h-4 w-4 mr-2" />Nieuwe campagne</Button>
+          <Button variant="outline" onClick={() => setShowWizard(true)}><Plus className="h-4 w-4 mr-2" />Nieuwe campagne</Button>
         </div>
       </div>
 
