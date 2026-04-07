@@ -1381,7 +1381,7 @@ serve(async (req) => {
         order_id: order.id,
         customer_id: order.customer_id,
         invoice_number: invoiceNumber,
-        status: 'draft',
+        status: order.payment_status === 'paid' ? 'paid' : 'draft',
         subtotal: subtotalExcl, // Net subtotal (without VAT)
         tax_amount: calculatedTaxAmount,
         total: finalTotal,
