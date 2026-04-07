@@ -11,8 +11,8 @@ import { AD_PLATFORMS, type AdCampaign, type AdCampaignStatus } from '@/types/ad
 import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface CampaignCardProps {
@@ -33,6 +33,8 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
   const queryClient = useQueryClient();
   const [pushing, setPushing] = useState(false);
+  const [pushStep, setPushStep] = useState('');
+  const stepTimerRef = useRef<NodeJS.Timeout | null>(null);
   const platformInfo = AD_PLATFORMS[campaign.platform];
   const statusConfig = STATUS_CONFIG[campaign.status as AdCampaignStatus] || STATUS_CONFIG.draft;
 
@@ -63,16 +65,26 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
     }
   };
 
+  const startStepSimulation = () => {
+    setPushStep('Verbinden met Bol.com...');
+    const t1 = setTimeout(() => setPushStep('Campagne aanmaken...'), 5000);
+    const t2 = setTimeout(() => setPushStep('Producten toevoegen...'), 15000);
+    const t3 = setTimeout(() => setPushStep('Bijna klaar...'), 25000);
+    stepTimerRef.current = t1 as unknown as NodeJS.Timeout;
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  };
+
   const handlePushToBol = async () => {
     setPushing(true);
+    const cleanup = startStepSimulation();
     try {
-      toast({ title: 'Campagne wordt naar Bol.com gestuurd...' });
+      toast({ title: 'Synchroniseren met Bol.com...', description: 'Dit kan 20-30 seconden duren' });
       const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
         body: { campaign_id: campaign.id },
       });
       if (error) throw error;
       if (data?.success) {
-        toast({ title: 'Campagne live op Bol.com! 🎉' });
+        toast({ title: 'Campagne live op Bol.com! 🎉', description: `${data.eans_targeted?.length || 0} producten toegevoegd` });
         queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       } else {
         toast({ title: 'Push gestart', description: data?.message || 'Status wordt verwerkt' });
@@ -80,20 +92,25 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
     } catch (e: any) {
       toast({ title: 'Push mislukt', description: e.message, variant: 'destructive' });
     } finally {
+      cleanup();
       setPushing(false);
+      setPushStep('');
     }
   };
 
   const handleRepushToBol = async () => {
     setPushing(true);
+    setPushStep('Producten opnieuw synchroniseren...');
+    const t1 = setTimeout(() => setPushStep('Ad groups bijwerken...'), 5000);
+    const t2 = setTimeout(() => setPushStep('Producten toevoegen...'), 12000);
     try {
-      toast({ title: 'Ad groups en producten worden opnieuw naar Bol gestuurd...' });
+      toast({ title: 'Opnieuw synchroniseren met Bol.com...', description: 'Dit kan 15-20 seconden duren' });
       const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
         body: { campaign_id: campaign.id, force_repush: true },
       });
       if (error) throw error;
       if (data?.success) {
-        toast({ title: 'Campagne bijgewerkt op Bol.com! 🎉' });
+        toast({ title: 'Campagne bijgewerkt op Bol.com! 🎉', description: `${data.eans_targeted?.length || 0} producten gesynchroniseerd` });
         queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       } else {
         toast({ title: 'Update gestart', description: data?.message || 'Status wordt verwerkt' });
@@ -101,12 +118,23 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
     } catch (e: any) {
       toast({ title: 'Update mislukt', description: e.message, variant: 'destructive' });
     } finally {
+      clearTimeout(t1);
+      clearTimeout(t2);
       setPushing(false);
+      setPushStep('');
     }
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
+    <div className={`relative flex items-center gap-4 p-4 rounded-lg border bg-card transition-colors ${pushing ? 'border-primary/50 animate-pulse' : 'hover:bg-muted/30'}`}>
+      {/* Push overlay */}
+      {pushing && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-background/70 backdrop-blur-[2px]">
+          <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+          <p className="text-sm font-medium">Synchroniseren met Bol.com...</p>
+          {pushStep && <p className="text-xs text-muted-foreground mt-1">{pushStep}</p>}
+        </div>
+      )}
       {/* Platform Icon */}
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${platformInfo.color}`}>
         {platformInfo.icon}
