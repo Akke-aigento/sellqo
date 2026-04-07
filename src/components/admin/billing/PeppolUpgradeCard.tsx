@@ -159,7 +159,7 @@ export function PeppolUpgradeCard({ showAsLocked = true }: PeppolUpgradeCardProp
                   <div className="flex-1">
                     <h5 className="font-medium">Upgrade naar Pro</h5>
                     <p className="text-sm text-muted-foreground">
-                      Peppol + AI features + VVB labels + alles inbegrepen
+                      Peppol + SellQo Connect + AI features + alles inbegrepen
                     </p>
                     <p className="text-lg font-bold mt-2">€79/maand</p>
                   </div>

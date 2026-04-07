@@ -25,6 +25,12 @@ const featureLabels: Record<string, { nl: string; en: string }> = {
   multiCurrency: { nl: 'Multi-valuta', en: 'Multi-currency' },
   facturX: { nl: 'Factur-X', en: 'Factur-X' },
   peppol: { nl: 'Peppol', en: 'Peppol' },
+  bol_com: { nl: 'SellQo Connect — Bol.com', en: 'SellQo Connect — Bol.com' },
+  bol_vvb_labels: { nl: 'SellQo Connect — VVB Labels', en: 'SellQo Connect — VVB Labels' },
+  amazon: { nl: 'SellQo Connect — Amazon', en: 'SellQo Connect — Amazon' },
+  ebay: { nl: 'SellQo Connect — eBay', en: 'SellQo Connect — eBay' },
+  social_commerce: { nl: 'SellQo Connect — Social Commerce', en: 'SellQo Connect — Social Commerce' },
+  whatsapp: { nl: 'SellQo Connect — WhatsApp', en: 'SellQo Connect — WhatsApp' },
 };
 
 export default function PricingPage() {
