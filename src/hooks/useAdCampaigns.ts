@@ -91,11 +91,19 @@ export function useAdCampaigns() {
       // Auto-push to Bol if it's a bol_ads campaign
       if (data?.platform === 'bol_ads') {
         try {
-          toast({ title: 'Campagne wordt naar Bol.com gestuurd...' });
+          toast({ 
+            title: '🔄 Synchroniseren met Bol.com...', 
+            description: 'Campagne wordt aangemaakt. Dit kan 20-30 seconden duren.' 
+          });
           const result = await pushBolCampaign(data.id);
           queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
           if (result?.success) {
-            toast({ title: 'Campagne live op Bol.com! 🎉', description: result.already_pushed ? 'Was al gepusht' : `Platform ID: ${result.platform_campaign_id}` });
+            toast({ 
+              title: '🎉 Campagne live op Bol.com!', 
+              description: result.already_pushed 
+                ? 'Was al gepusht' 
+                : `${result.eans_targeted?.length || 0} producten toegevoegd` 
+            });
           }
         } catch (pushError: any) {
           console.error('Push to Bol failed:', pushError);
