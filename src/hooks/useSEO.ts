@@ -133,6 +133,7 @@ export function useSEO() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['seo-score'] });
       queryClient.invalidateQueries({ queryKey: ['seo-product-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-category-scores'] });
       queryClient.invalidateQueries({ queryKey: ['seo-history'] });
       toast.success(`SEO Analyse voltooid - Score: ${data.overall_score}/100`);
     },
