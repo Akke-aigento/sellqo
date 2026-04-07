@@ -304,10 +304,33 @@ export default function SEODashboard() {
               issues={tenantScore?.issues || []}
               suggestions={tenantScore?.suggestions || []}
               onAction={(action, entityId) => {
-                if (action === 'generate_meta') {
-                  generateContent({ type: 'meta_title', productIds: entityId ? [entityId] : [] });
+                const productIds = entityId ? [entityId] : [];
+                switch (action) {
+                  case 'generate_meta_title':
+                  case 'generate_meta':
+                    generateContent({ type: 'meta_title', productIds });
+                    break;
+                  case 'generate_meta_description':
+                    generateContent({ type: 'meta_description', productIds });
+                    break;
+                  case 'generate_description':
+                  case 'improve_content':
+                    generateContent({ type: 'product_description', productIds });
+                    break;
+                  case 'optimize_categories':
+                    toast.info('Ga naar Categorie SEO hieronder om te optimaliseren');
+                    break;
+                  case 'generate_faq':
+                    toast.info('FAQ generatie wordt binnenkort beschikbaar');
+                    break;
+                  case 'view_product':
+                    if (entityId) {
+                      window.open(`/admin/products/${entityId}`, '_blank');
+                    }
+                    break;
+                  default:
+                    toast.info(`Actie: ${action}`);
                 }
-                toast.info(`Actie: ${action}`);
               }}
               isLoading={isLoading}
             />
