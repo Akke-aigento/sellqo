@@ -4,6 +4,7 @@ import { Check, X, Star, ArrowUp, ArrowDown, Minus, Info, Crown, Sparkles, Packa
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { PlanFeatureDetailDialog } from './PlanFeatureDetailDialog';
 import type { PricingPlan, PricingPlanFeatures, BillingInterval } from '@/types/billing';
@@ -12,8 +13,10 @@ interface PlanComparisonCardsProps {
   plans: PricingPlan[];
   currentPlanId: string;
   currentInterval: BillingInterval;
+  selectedInterval: BillingInterval;
   isLoading?: boolean;
   onSelectPlan: (planId: string, isUpgrade: boolean) => void;
+  onIntervalChange: (interval: BillingInterval) => void;
 }
 
 const featureLabels: Record<keyof PricingPlanFeatures, string> = {
@@ -105,11 +108,15 @@ export function PlanComparisonCards({
   plans,
   currentPlanId,
   currentInterval,
+  selectedInterval,
   isLoading,
   onSelectPlan,
+  onIntervalChange,
 }: PlanComparisonCardsProps) {
   const { i18n } = useTranslation();
   const [detailPlan, setDetailPlan] = useState<PricingPlan | null>(null);
+
+  const isYearly = selectedInterval === 'yearly';
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 }).format(price);
@@ -126,19 +133,38 @@ export function PlanComparisonCards({
   return (
     <>
       <div className="space-y-8">
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-3">
           <h3 className="text-lg font-semibold">Kies het plan dat bij je past</h3>
           <p className="text-sm text-muted-foreground">
             Vergelijk plannen en bekijk wat je krijgt of verliest bij een wijziging
           </p>
+
+          {/* Billing interval toggle */}
+          <div className="flex items-center justify-center gap-3">
+            <span className={cn('text-sm font-medium transition-colors', !isYearly ? 'text-foreground' : 'text-muted-foreground')}>
+              Maandelijks
+            </span>
+            <Switch
+              checked={isYearly}
+              onCheckedChange={(checked) => onIntervalChange(checked ? 'yearly' : 'monthly')}
+            />
+            <span className={cn('text-sm font-medium transition-colors', isYearly ? 'text-foreground' : 'text-muted-foreground')}>
+              Jaarlijks
+            </span>
+            {isYearly && (
+              <Badge className="bg-green-100 text-green-700 border-green-200 text-xs font-medium">
+                Bespaar 2 maanden
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {sortedPlans.map((plan, index) => {
             const isCurrent = plan.id === currentPlanId;
             const isUpgrade = index > currentPlanIndex;
-            const price = currentInterval === 'yearly' ? plan.yearly_price : plan.monthly_price;
-            const monthlyEquivalent = currentInterval === 'yearly' ? plan.yearly_price / 12 : plan.monthly_price;
+            const price = isYearly ? plan.yearly_price : plan.monthly_price;
+            const monthlyEquivalent = isYearly ? plan.yearly_price / 12 : plan.monthly_price;
             const tier = tierConfig[getTierKey(plan.name)] || tierConfig.starter;
 
             const { gained, lost } = currentPlan
