@@ -20,6 +20,7 @@ import {
   MessageCircle,
   MessageSquare,
   Bot,
+  Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,7 +46,8 @@ import { CustomerCommunicationSettings } from '@/components/admin/settings/Custo
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { useAuth } from '@/hooks/useAuth';
-import { Inbox } from 'lucide-react';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
+import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 
 interface SettingsSection {
   id: string;
@@ -53,6 +55,7 @@ interface SettingsSection {
   icon: React.ComponentType<{ className?: string }>;
   component: React.ComponentType;
   adminOnly?: boolean;
+  featureKey?: string;
 }
 
 interface SettingsGroup {
@@ -90,7 +93,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'tax', title: 'BTW instellingen', icon: Receipt, component: TaxSettings },
       { id: 'vat_rates', title: 'BTW Tarieven', icon: Percent, component: VatRatesSettings },
       { id: 'invoicing', title: 'Automatische Facturatie', icon: FileText, component: InvoiceAutomationSettings },
-      { id: 'peppol', title: 'Peppol & E-facturatie', icon: Network, component: PeppolSettings },
+      { id: 'peppol', title: 'Peppol & E-facturatie', icon: Network, component: PeppolSettings, featureKey: 'peppol' },
       { id: 'compliance', title: 'Compliance', icon: FileCheck, component: InvoiceComplianceCard },
     ],
   },
@@ -111,11 +114,11 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },
       { id: 'inbound-email', title: 'Email Inbox', icon: Inbox, component: InboundEmailSettings },
-      { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings },
-      { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings },
-      { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings },
-      { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub },
-      { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true },
+      { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings, featureKey: 'ai_marketing' },
+      { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings, featureKey: 'whatsapp' },
+      { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings, featureKey: 'newsletter' },
+      { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub, featureKey: 'social_commerce' },
+      { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true, featureKey: 'fulfillment_api' },
     ],
   },
 ];
@@ -125,17 +128,29 @@ export default function SettingsPage() {
   const initialSection = searchParams.get('section') || 'profile';
   const [activeSection, setActiveSection] = useState(initialSection);
   const { roles } = useAuth();
+  const { isFeatureGranted } = useTenantPageOverrides();
+  const { subscription } = useTenantSubscription();
 
+  const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
+  const isAdminView = isPlatformAdmin && sessionStorage.getItem('admin_view_mode') === 'true';
   const isTenantAdmin = roles.some(
     r => r.role === 'tenant_admin' || r.role === 'platform_admin'
   );
+
+  const isSectionFeatureVisible = (section: SettingsSection): boolean => {
+    if (!section.featureKey) return true;
+    if (isPlatformAdmin && isAdminView) return true;
+    if (isFeatureGranted(section.featureKey)) return true;
+    const features = subscription?.pricing_plan?.features as unknown as Record<string, boolean> | undefined;
+    if (!features) return true;
+    return features[section.featureKey] !== false;
+  };
 
   const handleSectionChange = (sectionId: string) => {
     setActiveSection(sectionId);
     setSearchParams({ section: sectionId });
   };
 
-  // Find the active section's component
   const ActiveComponent = settingsGroups
     .flatMap(g => g.sections)
     .find(s => s.id === activeSection)?.component;
@@ -150,7 +165,6 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Sidebar Navigation */}
         <aside className="lg:w-64 flex-shrink-0">
           <Card>
             <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
@@ -158,7 +172,7 @@ export default function SettingsPage() {
                 <nav className="space-y-4">
                   {settingsGroups.map((group) => {
                     const visibleSections = group.sections.filter(
-                      s => !s.adminOnly || isTenantAdmin
+                      s => (!s.adminOnly || isTenantAdmin) && isSectionFeatureVisible(s)
                     );
                     if (visibleSections.length === 0) return null;
 
@@ -201,7 +215,6 @@ export default function SettingsPage() {
           </Card>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 min-w-0">
           {ActiveComponent && <ActiveComponent />}
         </main>
