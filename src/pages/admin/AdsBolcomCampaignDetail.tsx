@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBolcomCampaignDetail, Period } from '@/hooks/useBolcomCampaignDetail';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,8 +14,7 @@ import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { CampaignWizard } from '@/components/admin/ads/CampaignWizard';
-import type { AdCampaign } from '@/types/ads';
+import { BolCampaignEditForm } from '@/components/admin/ads/BolCampaignEditForm';
 
 const formatCurrency = (v: number | null) => v != null ? `€${v.toFixed(2)}` : '—';
 const formatPct = (v: number | null) => v != null ? `${v.toFixed(1)}%` : '—';
@@ -49,42 +48,6 @@ export default function AdsBolcomCampaignDetail() {
   const [newKwBid, setNewKwBid] = useState('0.25');
   const [showEdit, setShowEdit] = useState(false);
 
-  // Adapter: map Bol campaign data to AdCampaign shape for CampaignWizard
-  const campaignForWizard = useMemo<AdCampaign | null>(() => {
-    if (!campaign) return null;
-    return {
-      id: campaign.id,
-      tenant_id: campaign.tenant_id,
-      connection_id: null,
-      name: campaign.name,
-      platform: 'bol_ads',
-      campaign_type: 'sponsored_products',
-      segment_id: null,
-      audience_type: null,
-      audience_config: {},
-      product_ids: null,
-      category_ids: null,
-      budget_type: campaign.daily_budget ? 'daily' : 'lifetime',
-      budget_amount: campaign.daily_budget ?? campaign.total_budget ?? null,
-      bid_strategy: (campaign.targeting_type === 'AUTO' ? 'auto' : 'manual_cpc') as any,
-      target_roas: null,
-      status: campaign.status as any,
-      start_date: campaign.start_date,
-      end_date: campaign.end_date,
-      platform_campaign_id: campaign.bolcom_campaign_id,
-      platform_status: campaign.status,
-      impressions: 0,
-      clicks: 0,
-      spend: 0,
-      conversions: 0,
-      revenue: 0,
-      roas: null,
-      ai_suggested: false,
-      ai_suggestion_id: null,
-      created_at: campaign.created_at ?? '',
-      updated_at: campaign.updated_at ?? '',
-    };
-  }, [campaign]);
 
   if (isLoading) {
     return (
@@ -404,8 +367,13 @@ export default function AdsBolcomCampaignDetail() {
 
       {/* Edit Campaign Dialog */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <CampaignWizard campaign={campaignForWizard} onClose={() => setShowEdit(false)} />
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Campagne bewerken</DialogTitle>
+          </DialogHeader>
+          {campaign && (
+            <BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} />
+          )}
         </DialogContent>
       </Dialog>
     </div>
