@@ -78,7 +78,7 @@ export default function BillingPage() {
     const preview = await calculatePlanSwitch.mutateAsync({
       target_plan_id: targetPlanId,
       target_interval: selectedInterval,
-      tenant_id: currentTenant?.id,
+      tenant_id: subscription?.tenant_id,
     });
     
     setPlanSwitchPreview(preview);
@@ -102,7 +102,7 @@ export default function BillingPage() {
     await executePlanSwitch.mutateAsync({
       target_plan_id: selectedTargetPlanId,
       target_interval: selectedInterval,
-      tenant_id: currentTenant?.id,
+      tenant_id: subscription?.tenant_id,
       proration_behavior: 'create_prorations',
     });
     
