@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
@@ -49,7 +49,7 @@ export function AdminSidebar() {
   const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
-  const { isPageHidden, togglePage, isToggling } = useTenantPageOverrides();
+  const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -61,9 +61,20 @@ export function AdminSidebar() {
     // Platform admins in admin view see everything
     if (isPlatformAdmin && isAdminView) return false;
     
+    // If feature is explicitly granted by admin, show it
+    if (isFeatureGranted(item.featureKey)) return false;
+    
     const features = subscription?.pricing_plan?.features;
     if (!features) return true; // No subscription = hide premium features
     
+    return features[item.featureKey as keyof typeof features] !== true;
+  };
+
+  // Check if item is blocked by subscription (for visual indicator)
+  const isItemSubscriptionBlocked = (item: NavItem): boolean => {
+    if (!item.featureKey) return false;
+    const features = subscription?.pricing_plan?.features;
+    if (!features) return true;
     return features[item.featureKey as keyof typeof features] !== true;
   };
 
