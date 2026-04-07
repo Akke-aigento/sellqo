@@ -159,7 +159,7 @@ export function PlanComparisonCards({
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 items-stretch">
           {sortedPlans.map((plan, index) => {
             const isCurrent = plan.id === currentPlanId;
             const isUpgrade = index > currentPlanIndex;
@@ -190,8 +190,8 @@ export function PlanComparisonCards({
               <Card
                 key={plan.id}
                 className={cn(
-                  'relative flex flex-col overflow-hidden transition-all duration-300',
-                  'hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]',
+                  'relative flex flex-col overflow-visible transition-all duration-300',
+                  'hover:shadow-2xl hover:-translate-y-1',
                   'bg-card',
                   plan.highlighted && !isCurrent && 'border-2 border-amber-400 shadow-lg',
                   isCurrent && 'ring-2 ring-primary shadow-lg',
