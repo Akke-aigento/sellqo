@@ -117,8 +117,8 @@ export default function BillingPage() {
     
     setPlanSwitchPreview(preview);
     
-    // Show downgrade warning first if features will be lost
-    if (!preview.is_upgrade && preview.features.lost.length > 0) {
+    // Show downgrade warning if this is a downgrade
+    if (!preview.is_upgrade) {
       setShowDowngradeWarning(true);
     } else {
       setShowPlanSwitchDialog(true);
