@@ -130,18 +130,30 @@ export function PlanSwitchPreviewCard({ preview, isLoading, onConfirm, onCancel 
             </div>
           </div>
 
-          <div className="p-3 bg-primary/5 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Nu te betalen</span>
-              <span className="text-xl font-bold">
-                {formatCurrency(preview.stripe_preview.total, preview.stripe_preview.currency)}
+          <div className="p-3 bg-primary/5 rounded-lg space-y-1.5">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Subtotaal excl. BTW</span>
+              <span>
+                {formatCurrency(
+                  preview.stripe_preview.total - (preview.stripe_preview.tax || 0),
+                  preview.stripe_preview.currency
+                )}
               </span>
             </div>
-            {preview.stripe_preview.tax > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Incl. {formatCurrency(preview.stripe_preview.tax)} BTW
-              </p>
+            {(preview.stripe_preview.tax || 0) > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">BTW</span>
+                <span>{formatCurrency(preview.stripe_preview.tax, preview.stripe_preview.currency)}</span>
+              </div>
             )}
+            <div className="border-t pt-1.5">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Totaal incl. BTW</span>
+                <span className="text-xl font-bold">
+                  {formatCurrency(preview.stripe_preview.total, preview.stripe_preview.currency)}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
