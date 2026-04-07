@@ -48,6 +48,17 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
   const [negKeywords, setNegKeywords] = useState<NegativeKeyword[]>([]);
   const [newNegKw, setNewNegKw] = useState('');
   const [newNegMatch, setNewNegMatch] = useState('broad');
+
+  const addNegKeyword = () => {
+    if (!newNegKw.trim()) return;
+    setNegKeywords(prev => [...prev, { keyword: newNegKw.trim(), matchType: newNegMatch }]);
+    setNewNegKw('');
+  };
+
+  const removeNegKeyword = (idx: number) => {
+    setNegKeywords(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -65,6 +76,21 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
         .eq('tenant_id', campaign.tenant_id);
 
       if (error) throw error;
+
+      // Add negative keywords if any and adGroupId exists
+      if (negKeywords.length > 0 && adGroupId) {
+        for (const nk of negKeywords) {
+          await supabase.functions.invoke('ads-bolcom-manage', {
+            body: {
+              tenant_id: campaign.tenant_id,
+              action: 'add_negative_keyword',
+              adgroup_id: adGroupId,
+              keyword: nk.keyword,
+              match_type: nk.matchType,
+            },
+          });
+        }
+      }
 
       toast.success('Campagne bijgewerkt');
       qc.invalidateQueries({ queryKey: ['bolcom-campaign', campaign.id] });
