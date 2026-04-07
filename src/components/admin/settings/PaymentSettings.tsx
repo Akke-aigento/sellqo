@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock } from 'lucide-react';
+import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
