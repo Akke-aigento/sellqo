@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Settings2, Wallet, CalendarDays } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Settings2, Wallet, CalendarDays, Ban, Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -23,12 +24,18 @@ interface BolCampaign {
   tenant_id: string;
 }
 
+interface NegativeKeyword {
+  keyword: string;
+  matchType: string;
+}
+
 interface Props {
   campaign: BolCampaign;
   onClose: () => void;
+  adGroupId?: string | null;
 }
 
-export function BolCampaignEditForm({ campaign, onClose }: Props) {
+export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
 
