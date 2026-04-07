@@ -1,40 +1,54 @@
 
 
-## Ads module volledig functioneel maken
+## Bewerken: Inline bewerkingsformulier i.p.v. wizard
 
-### Problemen gevonden
+### Probleem
+De "Bewerken" knop opent nu de volledige CampaignWizard met stappen — je moet door 5 schermen klikken terwijl alle data al bekend is. Bij bewerken wil je gewoon één overzichtelijk formulier met alle huidige waarden die je direct kunt aanpassen.
 
-1. **404 bij "Verbind je marketplace account"** — Link gaat naar `/admin/marketplace` maar de route is `/admin/connect`
-2. **"Nieuwe campagne" knop is disabled** — Op de BolAds pagina staat `<Button disabled>` hardcoded
-3. **"Bewerken" knop is disabled** — Op de campaign detail pagina staat `<Button disabled>` hardcoded
-4. **Geen CampaignWizard integratie** — De wizard bestaat en werkt (met AUTO/MANUAL keuze), maar wordt nergens gebruikt vanuit de Bol.com pagina's
-5. **Edit mode ontbreekt in campaign detail** — De "Bewerken" knop doet niets
+### Oplossing
+Vervang de CampaignWizard in de edit-dialog door een nieuw `BolCampaignEditForm` component — één enkel formulier met alle velden zichtbaar, pre-filled met de huidige campagne-data.
+
+### Nieuw component: `src/components/admin/ads/BolCampaignEditForm.tsx`
+
+Eén formulier in een Dialog met secties:
+
+**Sectie 1 — Algemeen**
+- Campagnenaam (Input, pre-filled)
+- Campagne modus: AUTO/MANUAL (RadioGroup, pre-filled uit `targeting_type`)
+- Status badge (read-only)
+
+**Sectie 2 — Budget**
+- Dagbudget (Input number, pre-filled)
+- Totaalbudget (Input number, optioneel, pre-filled)
+- Doel-ROAS (Slider, pre-filled als beschikbaar)
+
+**Sectie 3 — Planning**
+- Startdatum (Input date, pre-filled)
+- Einddatum (Input date, optioneel, pre-filled)
+
+**Onderaan**: "Opslaan" + "Annuleren" knoppen
+
+Bij opslaan: `updateCampaign.mutateAsync` aanroepen met de gewijzigde velden, dan dialog sluiten en data invalidaten.
 
 ### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/Ads.tsx` | Fix link: `/admin/marketplace` → `/admin/connect` |
-| `src/pages/admin/AdsBolcom.tsx` | "Nieuwe campagne" knop activeren met CampaignWizard in een Dialog |
-| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | "Bewerken" knop activeren met CampaignWizard in edit mode via Dialog |
+| `src/components/admin/ads/BolCampaignEditForm.tsx` | Nieuw — single-page edit formulier |
+| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | `CampaignWizard` import vervangen door `BolCampaignEditForm`, campaign data direct doorgeven (geen adapter meer nodig) |
 
 ### Detail
 
-**Ads.tsx** — Eenvoudige link fix (regel 87): `/admin/marketplace` → `/admin/connect`
-
-**AdsBolcom.tsx**
-- Import `CampaignWizard` en `Dialog`/`DialogContent`
-- State toevoegen: `showWizard` (boolean)
-- "Nieuwe campagne" knop: verwijder `disabled`, voeg `onClick={() => setShowWizard(true)}` toe
-- Dialog met `CampaignWizard` renderen met `onClose={() => setShowWizard(false)}`
+**BolCampaignEditForm.tsx**
+- Props: `campaign` (de Bol campaign data uit `useBolcomCampaignDetail`), `onClose`, `onSaved`
+- Lokale state voor elk veld, geïnitialiseerd vanuit campaign
+- Gebruikt `useAdCampaigns().updateCampaign` of directe supabase update op `ads_bolcom_campaigns`
+- Alle velden in één scroll-vrij formulier met duidelijke labels
 
 **AdsBolcomCampaignDetail.tsx**
-- Import `CampaignWizard`, `Dialog`/`DialogContent` en `useAdCampaigns`
-- State toevoegen: `showEdit` (boolean)
-- De lokale `campaign` data uit `useBolcomCampaignDetail` bevat niet alle velden die CampaignWizard verwacht (het is Bol-specifiek met velden als `daily_budget`, `targeting_type`)
-- Maak een adapter die de Bol campaign data mapt naar een `AdCampaign`-achtig object voor de wizard
-- "Bewerken" knop: verwijder `disabled`, voeg `onClick={() => setShowEdit(true)}` toe
-- Dialog met CampaignWizard in edit mode renderen
+- Verwijder `CampaignWizard` import en `campaignForWizard` useMemo adapter
+- Import `BolCampaignEditForm`
+- Dialog content: `<BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} />`
 
 ### Geen database wijzigingen nodig
 
