@@ -186,6 +186,7 @@ const systemItems: NavItem[] = [
     title: 'Integraties',
     url: '/admin/connect',
     icon: Cable,
+    featureKey: 'apiAccess',
     children: [
       { id: 'integrations-connect', title: 'SellQo Connect', url: '/admin/connect' },
       { id: 'integrations-import', title: 'Importeren', url: '/admin/import' },
