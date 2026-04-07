@@ -166,15 +166,14 @@ export function PlanComparisonCards({
                 className={cn(
                   'relative flex flex-col overflow-hidden transition-all duration-300',
                   'hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]',
-                  tier.cardBg,
-                  tier.glowShadow,
-                  plan.highlighted && !isCurrent && `${tier.borderAccent} border-2 shadow-lg`,
+                  'bg-card',
+                  plan.highlighted && !isCurrent && 'border-2 border-amber-400 shadow-lg',
                   isCurrent && 'ring-2 ring-primary shadow-lg',
                   !plan.highlighted && !isCurrent && 'border'
                 )}
               >
                 {/* Top gradient strip */}
-                <div className={cn('h-1.5 w-full bg-gradient-to-r', tier.gradient)} />
+                <div className={cn('h-1 w-full bg-gradient-to-r', tier.stripColor)} />
 
                 {/* Status badges */}
                 <div className="absolute -top-0 left-1/2 -translate-x-1/2 flex gap-1 mt-4">
@@ -184,8 +183,8 @@ export function PlanComparisonCards({
                     </Badge>
                   )}
                   {plan.highlighted && !isCurrent && (
-                    <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md border-0">
-                      <Crown className="h-3 w-3 mr-1" />
+                    <Badge className="bg-white text-amber-700 border-2 border-amber-400 shadow-md">
+                      <Crown className="h-3 w-3 mr-1 text-amber-500" />
                       Meest gekozen
                     </Badge>
                   )}
@@ -193,18 +192,14 @@ export function PlanComparisonCards({
 
                 <CardHeader className={cn('pt-10 pb-4 text-center', !isCurrent && !plan.highlighted && 'pt-6')}>
                   {/* Plan icon */}
-                  <div className={cn(
-                    'mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3',
-                    `bg-gradient-to-br ${tier.gradient}`,
-                    tier.borderAccent, 'border'
-                  )}>
-                    <span className={tier.priceColor}>{tier.icon}</span>
+                  <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-muted/60 border">
+                    <span className="text-foreground">{tier.icon}</span>
                   </div>
 
                   <span className="text-base font-bold tracking-wide uppercase text-muted-foreground">{plan.name}</span>
 
                   <div className="mt-2">
-                    <span className={cn('text-4xl font-extrabold tracking-tight', tier.priceColor)}>
+                    <span className="text-4xl font-extrabold tracking-tight text-foreground">
                       {formatPrice(monthlyEquivalent)}
                     </span>
                     <span className="text-muted-foreground text-sm">/mnd</span>
@@ -223,7 +218,7 @@ export function PlanComparisonCards({
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                       <div
-                        className={cn('h-full rounded-full transition-all duration-500 bg-gradient-to-r', tier.gradient)}
+                        className="h-full rounded-full transition-all duration-500 bg-primary"
                         style={{ width: `${totalCount > 0 ? (enabledCount / totalCount) * 100 : 0}%` }}
                       />
                     </div>
@@ -330,8 +325,7 @@ export function PlanComparisonCards({
                     className={cn(
                       'w-full text-xs font-medium py-2 px-3 rounded-lg border border-dashed transition-all',
                       'flex items-center justify-center gap-1.5 cursor-pointer',
-                      'hover:bg-muted/60 text-muted-foreground hover:text-foreground',
-                      tier.borderAccent
+                      'hover:bg-muted/60 text-muted-foreground hover:text-foreground'
                     )}
                   >
                     <Info className="h-3.5 w-3.5" />
@@ -357,22 +351,14 @@ export function PlanComparisonCards({
                     </Button>
                   ) : isUpgrade ? (
                     <Button
-                      className={cn(
-                        'w-full text-white shadow-lg transition-all duration-200',
-                        'hover:shadow-xl hover:scale-[1.02]',
-                        getTierKey(plan.name) === 'pro'
-                          ? 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700'
-                          : getTierKey(plan.name) === 'enterprise'
-                            ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
-                      )}
+                      className="w-full shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-[1.02]"
                       onClick={() => onSelectPlan(plan.id, true)}
                       disabled={isLoading}
                     >
                       <ArrowUp className="h-4 w-4 mr-1" />
                       Upgrade naar {plan.name}
                       {gained.length > 0 && (
-                        <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0 text-[10px]">
+                        <Badge variant="secondary" className="ml-2 bg-primary-foreground/20 text-primary-foreground border-0 text-[10px]">
                           +{gained.length}
                         </Badge>
                       )}
