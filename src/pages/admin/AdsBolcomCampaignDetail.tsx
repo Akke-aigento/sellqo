@@ -406,7 +406,7 @@ export default function AdsBolcomCampaignDetail() {
             <DialogTitle>Campagne bewerken</DialogTitle>
           </DialogHeader>
           {campaign && (
-            <BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} />
+            <BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} adGroupId={firstAdGroupId} />
           )}
         </DialogContent>
       </Dialog>
