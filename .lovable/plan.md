@@ -1,40 +1,66 @@
 
+## Fix: upgrade faalt nog steeds + rode "Upgrade nu" knop is inderdaad fantoom
 
-## Fix: Upgrade faalt voor trialing tenants zonder Stripe abonnement
+### Wat ik heb vastgesteld
+Er zijn momenteel 3 aparte problemen:
 
-### Oorzaak
+1. **Checkout crasht in de backend**
+   - De logs van `create-platform-checkout` tonen:
+   - `"Received unknown parameter: automatic_payment_methods"`
+   - Daardoor geeft de functie een 500 terug nog vóór er een checkout-url wordt aangemaakt.
 
-De tenant Mancini Milano zit op een **trial** (`status: trialing`) met `stripe_subscription_id: NULL` en `stripe_customer_id: NULL`. 
+2. **De verkeerde tenant wordt gebruikt**
+   - In de live logs werd bij jouw klik niet **Mancini Milano** gebruikt, maar **SellQo**.
+   - Oorzaak: `create-platform-checkout` kiest nog steeds de eerste `tenant_id` uit `user_roles` in plaats van de **geselecteerde tenant** in de UI.
+   - Voor platform admins is dat foutgevoelig.
 
-Wanneer je op "Upgrade" klikt, roept de code altijd `calculate-plan-switch` aan. Die functie zoekt een **actieve Stripe subscription** (`.eq("status", "active")`) en faalt met "No active Stripe subscription found".
-
-De juiste flow is:
-- **Heeft Stripe subscription** → plan-switch (huidige flow)
-- **Geen Stripe subscription** (trial/free) → checkout sessie starten via `create-platform-checkout`
-
-Daarnaast heeft `create-platform-checkout` dezelfde `.single()` bug op `user_roles` die we eerder in de plan-switch functies hebben gefixt — platform admins met meerdere rollen laten die ook crashen.
+3. **De rode upgrade-knop in de usage-card doet niets**
+   - In `Billing.tsx` staat die knop zonder `onClick`.
+   - Dus ja: die knop is momenteel gewoon een **fantoomknop**.
 
 ### Oplossing
+**1. Checkout-function repareren**
+- Verwijder de Stripe-parameter `automatic_payment_methods` uit `create-platform-checkout`.
+- Behoud verder de subscription checkout flow zoals nu.
 
-**1. Billing.tsx — routing op basis van subscription status**
+**2. Altijd de geselecteerde tenant meesturen**
+- Vanuit de frontend de actieve `currentTenant.id` meesturen naar:
+  - `create-platform-checkout`
+  - `platform-customer-portal`
+- In de backend eerst `tenant_id` uit de request body gebruiken.
+- Daarna valideren dat de huidige gebruiker toegang heeft tot die tenant via `user_roles`.
+- Alleen als er géén `tenant_id` is meegegeven nog een fallback-query gebruiken.
 
-In `PlanComparisonCards` `onSelectPlan`:
-- Als `subscription?.stripe_subscription_id` bestaat → huidige `handlePreviewPlanSwitch` flow
-- Anders → `createCheckout.mutate({ planId, interval })` om een Stripe checkout te starten
+**3. Fantoom upgrade-knoppen koppelen aan echte actie**
+- De rode/amber upgrade CTA in `Billing.tsx` laten verwijzen naar dezelfde logica als de plan-kaarten:
+  - **trial/free zonder Stripe subscription** → checkout starten
+  - **bestaande Stripe subscription** → plan-switch preview openen
+- Zo krijgt elke upgradeknop eindelijk echt gedrag.
 
-**2. `create-platform-checkout` — multi-role fix**
-
-Dezelfde fix als bij plan-switch: `.not("tenant_id", "is", null).limit(1).maybeSingle()` in plaats van `.single()`.
-
-**3. `platform-customer-portal` — zelfde fix**
-
-Ook hier `.single()` vervangen door de multi-role-safe variant.
+**4. Betekenis geven aan de rode knop**
+- In plaats van “zomaar een knop” een logische upgrade-target bepalen:
+  - kies het **laagste plan dat de huidige overschrijding opvangt**
+  - voorbeeld: 55 producten op Free → Starter is genoeg
+- Als geen enkel standaardplan genoeg is → stuur naar Enterprise/contact.
 
 ### Bestanden
-
 | Bestand | Actie |
 |---|---|
-| `src/pages/admin/Billing.tsx` | Checkout vs plan-switch routing |
-| `supabase/functions/create-platform-checkout/index.ts` | Multi-role user_roles fix |
-| `supabase/functions/platform-customer-portal/index.ts` | Multi-role user_roles fix |
+| `src/hooks/useTenantSubscription.ts` | `tenant_id` meesturen bij checkout en customer portal |
+| `src/pages/admin/Billing.tsx` | rode/amber upgradeknoppen echte handler geven + aanbevolen upgrade-target gebruiken |
+| `supabase/functions/create-platform-checkout/index.ts` | Stripe parameter fixen + `tenant_id` uit body gebruiken + access check |
+| `supabase/functions/platform-customer-portal/index.ts` | `tenant_id` uit body gebruiken + access check |
 
+### Technische details
+- De huidige 500 komt concreet uit `create-platform-checkout`, niet uit de plan cards zelf.
+- De edge logs tonen expliciet dat checkout nu voor de verkeerde tenant resolveert.
+- De phantom knop zit hier:
+  - `src/pages/admin/Billing.tsx`
+  - usage warning met `<Button ...>Upgrade nu</Button>` zonder click handler.
+- Er zijn **geen databasewijzigingen** nodig.
+
+### Resultaat na deze fix
+- Upgrade werkt opnieuw voor de geselecteerde tenant
+- Platform admins openen checkout/portal voor de juiste klant
+- De rode knop doet eindelijk iets logisch
+- De knop wordt ook inhoudelijk correct: niet “upgrade ergens”, maar “upgrade naar het eerstvolgende plan dat dit oplost”
