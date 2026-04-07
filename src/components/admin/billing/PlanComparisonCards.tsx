@@ -306,7 +306,7 @@ export function PlanComparisonCards({
                               key={i}
                               className={cn(
                                 'text-[10px] flex items-center gap-1.5 px-2 py-1 rounded-md',
-                                change.isIncrease ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                                change.isIncrease ? 'bg-muted text-green-700' : 'bg-muted text-red-700'
                               )}
                             >
                               {change.isIncrease ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
