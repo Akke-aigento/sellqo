@@ -56,49 +56,24 @@ const featureLabels: Record<keyof PricingPlanFeatures, string> = {
 };
 
 const tierConfig: Record<string, {
-  gradient: string;
-  cardBg: string;
-  badge: string;
-  priceColor: string;
+  stripColor: string;
   icon: React.ReactNode;
-  glowShadow: string;
-  borderAccent: string;
 }> = {
   free: {
-    gradient: 'from-slate-100 to-slate-50',
-    cardBg: 'bg-gradient-to-b from-slate-50/80 to-white',
-    badge: 'bg-slate-200 text-slate-700',
-    priceColor: 'text-slate-700',
+    stripColor: 'from-slate-300 to-slate-200',
     icon: <Package className="h-5 w-5" />,
-    glowShadow: '',
-    borderAccent: 'border-slate-200',
   },
   starter: {
-    gradient: 'from-blue-100 to-indigo-50',
-    cardBg: 'bg-gradient-to-b from-blue-50/60 to-white',
-    badge: 'bg-blue-100 text-blue-700',
-    priceColor: 'text-blue-700',
+    stripColor: 'from-blue-400 to-indigo-300',
     icon: <Sparkles className="h-5 w-5" />,
-    glowShadow: 'hover:shadow-blue-200/50',
-    borderAccent: 'border-blue-200',
   },
   pro: {
-    gradient: 'from-teal-100 via-emerald-50 to-cyan-50',
-    cardBg: 'bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/40',
-    badge: 'bg-teal-100 text-teal-700',
-    priceColor: 'text-teal-700',
+    stripColor: 'from-teal-400 to-emerald-300',
     icon: <Crown className="h-5 w-5" />,
-    glowShadow: 'hover:shadow-teal-200/60',
-    borderAccent: 'border-teal-300',
   },
   enterprise: {
-    gradient: 'from-amber-100 via-orange-50 to-yellow-50',
-    cardBg: 'bg-gradient-to-br from-amber-50/60 via-white to-orange-50/30',
-    badge: 'bg-amber-100 text-amber-800',
-    priceColor: 'text-amber-800',
+    stripColor: 'from-amber-400 to-orange-300',
     icon: <Star className="h-5 w-5" />,
-    glowShadow: 'hover:shadow-amber-200/50',
-    borderAccent: 'border-amber-300',
   },
 };
 
