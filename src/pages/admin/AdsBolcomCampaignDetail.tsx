@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useBolcomCampaignDetail, Period } from '@/hooks/useBolcomCampaignDetail';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -48,7 +50,26 @@ export default function AdsBolcomCampaignDetail() {
   const [newKwMatch, setNewKwMatch] = useState('broad');
   const [newKwBid, setNewKwBid] = useState('0.25');
   const [showEdit, setShowEdit] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
+  const handleSyncToBol = async () => {
+    if (!id) return;
+    setIsSyncing(true);
+    const toastId = 'sync-bol';
+    toast.loading('Synchroniseren naar Bol.com...', { id: toastId });
+    try {
+      const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
+        body: { campaign_id: id, force_repush: true },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Campagne gesynchroniseerd naar Bol.com', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.message || 'Synchronisatie mislukt', { id: toastId });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -139,6 +160,10 @@ export default function AdsBolcomCampaignDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSyncToBol} disabled={isSyncing}>
+            {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Synchroniseer naar Bol.com
+          </Button>
           <Button variant="outline" onClick={handleToggleStatus} disabled={updateCampaignStatus.isPending}>
             {isActive ? <><Pause className="h-4 w-4 mr-2" /> Pauzeren</> : <><Play className="h-4 w-4 mr-2" /> Hervatten</>}
           </Button>
@@ -317,9 +342,13 @@ export default function AdsBolcomCampaignDetail() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Negatieve Keywords</CardTitle>
-          <Button size="sm" onClick={() => setNegModalOpen(true)} disabled={!firstAdGroupId}>
-            <Plus className="h-4 w-4 mr-1" /> Toevoegen
-          </Button>
+          {firstAdGroupId ? (
+            <Button size="sm" onClick={() => setNegModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Toevoegen
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">Voeg eerst producten toe aan de campagne</span>
+          )}
         </CardHeader>
         <CardContent>
           {negativeKeywords.length === 0 ? (
@@ -377,7 +406,7 @@ export default function AdsBolcomCampaignDetail() {
             <DialogTitle>Campagne bewerken</DialogTitle>
           </DialogHeader>
           {campaign && (
-            <BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} />
+            <BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} adGroupId={firstAdGroupId} />
           )}
         </DialogContent>
       </Dialog>

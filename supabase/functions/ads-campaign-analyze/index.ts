@@ -46,6 +46,17 @@ Deno.serve(async (req) => {
     const performance = perfRes.data || [];
     const searchTerms = searchTermsRes.data || [];
 
+    // Early return if no data to analyze
+    if (keywords.length === 0 && performance.length === 0 && searchTerms.length === 0) {
+      return new Response(JSON.stringify({
+        suggestions: [],
+        count: 0,
+        message: "Geen data beschikbaar om te analyseren. Wacht tot er performance data binnenkomt van Bol.com.",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Aggregate keyword performance
     const kwPerfMap: Record<string, { impressions: number; clicks: number; spend: number; orders: number; revenue: number }> = {};
     for (const p of performance) {
@@ -94,7 +105,8 @@ REGELS:
 - Keywords zonder impressies: overweeg bod verhogen of verwijderen
 - Geef maximaal 8 suggesties, gesorteerd op prioriteit
 - Wees specifiek met bedragen (huidige waarde → nieuwe waarde)
-- Geef een duidelijke, beknopte Nederlandse reden per suggestie`;
+- Geef een duidelijke, beknopte Nederlandse reden per suggestie
+- Baseer je ALLEEN op de daadwerkelijke data hierboven. Verzin geen keywords of waarden die niet in de data staan.`;
 
     // Call Lovable AI with tool calling for structured output
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -113,7 +125,7 @@ REGELS:
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "Je bent een Bol.com advertising expert. Analyseer campagne data en geef concrete optimalisatie-suggesties. Gebruik altijd de campaign_suggestions tool om je antwoord te structureren." },
+          { role: "system", content: "Je bent een Bol.com advertising expert. Analyseer campagne data en geef concrete optimalisatie-suggesties. Gebruik altijd de campaign_suggestions tool om je antwoord te structureren. Baseer je ALLEEN op echte data — verzin nooit keywords of waarden." },
           { role: "user", content: prompt },
         ],
         tools: [
@@ -183,7 +195,9 @@ REGELS:
 
     let suggestions: any[];
     try {
-      const parsed = JSON.parse(toolCall.function.arguments);
+      const raw = toolCall.function.arguments;
+      const cleaned = typeof raw === "string" ? raw.replace(/```json\s?/g, "").replace(/```/g, "").trim() : raw;
+      const parsed = typeof cleaned === "string" ? JSON.parse(cleaned) : cleaned;
       suggestions = parsed.suggestions || [];
     } catch {
       return new Response(JSON.stringify({ error: "Kon AI-antwoord niet parsen" }), {
@@ -191,16 +205,16 @@ REGELS:
       });
     }
 
-    // Save suggestions to ads_ai_recommendations
+    // Save suggestions to ads_ai_recommendations with campaign_id in entity_id context
     const records = suggestions.map((s: any) => ({
       tenant_id,
       channel: "bolcom",
       entity_type: s.action_type === "add_negative" ? "search_term" : "keyword",
       entity_id: s.entity_id || null,
       recommendation_type: s.action_type,
-      current_value: s.current_value ? { value: s.current_value } : null,
-      recommended_value: s.recommended_value ? { value: s.recommended_value } : null,
-      reason: s.reason,
+      current_value: s.current_value ? { value: s.current_value, campaign_id } : { campaign_id },
+      recommended_value: s.recommended_value ? { value: s.recommended_value, campaign_id } : { campaign_id },
+      reason: `[${s.entity_name}] ${s.reason}`,
       confidence: s.confidence,
       status: "pending",
       auto_apply: false,
@@ -211,6 +225,7 @@ REGELS:
       if (insertErr) console.error("Insert error:", insertErr);
     }
 
+    // Return suggestions with entity_name preserved for inline display
     return new Response(JSON.stringify({ suggestions, count: suggestions.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Settings2, Wallet, CalendarDays } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Settings2, Wallet, CalendarDays, Ban, Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -23,12 +24,18 @@ interface BolCampaign {
   tenant_id: string;
 }
 
+interface NegativeKeyword {
+  keyword: string;
+  matchType: string;
+}
+
 interface Props {
   campaign: BolCampaign;
   onClose: () => void;
+  adGroupId?: string | null;
 }
 
-export function BolCampaignEditForm({ campaign, onClose }: Props) {
+export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +45,19 @@ export function BolCampaignEditForm({ campaign, onClose }: Props) {
   const [totalBudget, setTotalBudget] = useState(campaign.total_budget?.toString() ?? '');
   const [startDate, setStartDate] = useState(campaign.start_date ?? '');
   const [endDate, setEndDate] = useState(campaign.end_date ?? '');
+  const [negKeywords, setNegKeywords] = useState<NegativeKeyword[]>([]);
+  const [newNegKw, setNewNegKw] = useState('');
+  const [newNegMatch, setNewNegMatch] = useState('broad');
+
+  const addNegKeyword = () => {
+    if (!newNegKw.trim()) return;
+    setNegKeywords(prev => [...prev, { keyword: newNegKw.trim(), matchType: newNegMatch }]);
+    setNewNegKw('');
+  };
+
+  const removeNegKeyword = (idx: number) => {
+    setNegKeywords(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -56,6 +76,21 @@ export function BolCampaignEditForm({ campaign, onClose }: Props) {
         .eq('tenant_id', campaign.tenant_id);
 
       if (error) throw error;
+
+      // Add negative keywords if any and adGroupId exists
+      if (negKeywords.length > 0 && adGroupId) {
+        for (const nk of negKeywords) {
+          await supabase.functions.invoke('ads-bolcom-manage', {
+            body: {
+              tenant_id: campaign.tenant_id,
+              action: 'add_negative_keyword',
+              adgroup_id: adGroupId,
+              keyword: nk.keyword,
+              match_type: nk.matchType,
+            },
+          });
+        }
+      }
 
       toast.success('Campagne bijgewerkt');
       qc.invalidateQueries({ queryKey: ['bolcom-campaign', campaign.id] });
@@ -186,6 +221,64 @@ export function BolCampaignEditForm({ campaign, onClose }: Props) {
             <p className="text-xs text-muted-foreground">Laat leeg voor doorlopend</p>
           </div>
         </div>
+      </div>
+
+      <Separator />
+
+      {/* Section 4: Negative Keywords */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <Ban className="h-4 w-4" />
+          Negatieve Keywords
+        </div>
+
+        {!adGroupId && (
+          <p className="text-sm text-muted-foreground">
+            Voeg eerst producten toe aan de campagne om negatieve keywords te kunnen toevoegen.
+          </p>
+        )}
+
+        {adGroupId && (
+          <>
+            {negKeywords.length > 0 && (
+              <div className="space-y-2">
+                {negKeywords.map((nk, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted/30">
+                    <span className="text-sm flex-1">{nk.keyword}</span>
+                    <Badge variant="outline" className="text-xs">{nk.matchType}</Badge>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeNegKeyword(i)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Negatief keyword"
+                value={newNegKw}
+                onChange={e => setNewNegKw(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNegKeyword())}
+                className="flex-1"
+              />
+              <Select value={newNegMatch} onValueChange={setNewNegMatch}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="broad">Broad</SelectItem>
+                  <SelectItem value="phrase">Phrase</SelectItem>
+                  <SelectItem value="exact">Exact</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={addNegKeyword} disabled={!newNegKw.trim()}>
+                <Plus className="h-4 w-4 mr-1" /> Toevoegen
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Negatieve keywords worden bij het opslaan naar Bol.com gestuurd.</p>
+          </>
+        )}
       </div>
 
       <Separator />

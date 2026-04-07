@@ -1,16 +1,29 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, TrendingUp, TrendingDown, Pause, Ban, Play, Check, X, Loader2 } from 'lucide-react';
+import { Sparkles, TrendingUp, TrendingDown, Pause, Ban, Play, Check, X, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
   campaignId: string;
   tenantId: string;
+}
+
+interface Suggestion {
+  id?: string;
+  action_type: string;
+  entity_id?: string;
+  entity_name: string;
+  current_value?: string;
+  recommended_value?: string;
+  reason: string;
+  confidence: number;
+  priority: string;
+  status?: string;
 }
 
 const actionIcons: Record<string, React.ElementType> = {
@@ -36,36 +49,36 @@ const priorityColors: Record<string, string> = {
 };
 
 export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
-  const queryClient = useQueryClient();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  // Fetch existing pending recommendations for this campaign
-  const { data: recommendations = [], isLoading } = useQuery({
-    queryKey: ['campaign-ai-recs', campaignId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ads_ai_recommendations')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .eq('channel', 'bolcom')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [noDataMessage, setNoDataMessage] = useState<string | null>(null);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
   const analyze = async () => {
     setIsAnalyzing(true);
+    setNoDataMessage(null);
     try {
       const { data, error } = await supabase.functions.invoke('ads-campaign-analyze', {
         body: { campaign_id: campaignId, tenant_id: tenantId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`${data.count || 0} suggesties gegenereerd`);
-      queryClient.invalidateQueries({ queryKey: ['campaign-ai-recs', campaignId] });
+
+      if (data?.message) {
+        // No data available
+        setNoDataMessage(data.message);
+        setSuggestions([]);
+        toast.info(data.message);
+      } else {
+        const items = (data?.suggestions || []).map((s: any, i: number) => ({
+          ...s,
+          id: `inline-${i}`,
+          status: 'pending',
+        }));
+        setSuggestions(items);
+        toast.success(`${items.length} suggestie${items.length !== 1 ? 's' : ''} gegenereerd`);
+      }
+      setHasAnalyzed(true);
     } catch (err: any) {
       toast.error(err.message || 'Analyse mislukt');
     } finally {
@@ -74,47 +87,37 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
   };
 
   const applyMutation = useMutation({
-    mutationFn: async (rec: any) => {
-      // Apply via ads-bolcom-manage
+    mutationFn: async (rec: Suggestion) => {
       const actionMap: Record<string, { action: string; payload: any }> = {
-        increase_bid: { action: 'update_keyword_bid', payload: { keyword_id: rec.entity_id, bid: parseFloat(rec.recommended_value?.value?.replace('€', '') || '0') } },
-        decrease_bid: { action: 'update_keyword_bid', payload: { keyword_id: rec.entity_id, bid: parseFloat(rec.recommended_value?.value?.replace('€', '') || '0') } },
+        increase_bid: { action: 'update_keyword_bid', payload: { keyword_id: rec.entity_id, bid: parseFloat(rec.recommended_value?.replace('€', '') || '0') } },
+        decrease_bid: { action: 'update_keyword_bid', payload: { keyword_id: rec.entity_id, bid: parseFloat(rec.recommended_value?.replace('€', '') || '0') } },
         pause_keyword: { action: 'toggle_keyword', payload: { keyword_id: rec.entity_id, status: 'paused' } },
         resume_keyword: { action: 'toggle_keyword', payload: { keyword_id: rec.entity_id, status: 'active' } },
       };
 
-      const mapped = actionMap[rec.recommendation_type];
+      const mapped = actionMap[rec.action_type];
       if (mapped && rec.entity_id) {
         await supabase.functions.invoke('ads-bolcom-manage', {
           body: { tenant_id: tenantId, action: mapped.action, ...mapped.payload },
         });
       }
 
-      // Mark as accepted
-      await supabase
-        .from('ads_ai_recommendations')
-        .update({ status: 'accepted', applied_at: new Date().toISOString() })
-        .eq('id', rec.id);
+      return rec.id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       toast.success('Suggestie toegepast');
-      queryClient.invalidateQueries({ queryKey: ['campaign-ai-recs', campaignId] });
+      setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'accepted' } : s));
     },
     onError: () => toast.error('Kon suggestie niet toepassen'),
   });
 
-  const rejectMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await supabase
-        .from('ads_ai_recommendations')
-        .update({ status: 'rejected' })
-        .eq('id', id);
-    },
-    onSuccess: () => {
-      toast.success('Suggestie genegeerd');
-      queryClient.invalidateQueries({ queryKey: ['campaign-ai-recs', campaignId] });
-    },
-  });
+  const handleReject = (id: string) => {
+    setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'rejected' } : s));
+    toast.success('Suggestie genegeerd');
+  };
+
+  const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
+  const processedSuggestions = suggestions.filter(s => s.status !== 'pending');
 
   return (
     <Card className="border-primary/20">
@@ -148,18 +151,29 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
           </div>
         )}
 
-        {!isAnalyzing && recommendations.length === 0 && (
+        {!isAnalyzing && noDataMessage && (
+          <div className="flex items-center gap-3 py-6 px-4 rounded-lg bg-muted/50 border border-border">
+            <Info className="h-5 w-5 text-muted-foreground shrink-0" />
+            <p className="text-sm text-muted-foreground">{noDataMessage}</p>
+          </div>
+        )}
+
+        {!isAnalyzing && !noDataMessage && !hasAnalyzed && (
           <p className="text-center text-muted-foreground py-6">
             Klik op "Analyseer campagne" om AI-suggesties te genereren op basis van je performance data.
           </p>
         )}
 
-        {!isAnalyzing && recommendations.length > 0 && (
+        {!isAnalyzing && !noDataMessage && hasAnalyzed && pendingSuggestions.length === 0 && processedSuggestions.length === 0 && (
+          <p className="text-center text-muted-foreground py-6">
+            De AI heeft geen suggesties op basis van de huidige data.
+          </p>
+        )}
+
+        {!isAnalyzing && pendingSuggestions.length > 0 && (
           <div className="space-y-3">
-            {recommendations.map((rec) => {
-              const Icon = actionIcons[rec.recommendation_type] || Sparkles;
-              const currentVal = (rec.current_value as any)?.value;
-              const recommendedVal = (rec.recommended_value as any)?.value;
+            {pendingSuggestions.map((rec) => {
+              const Icon = actionIcons[rec.action_type] || Sparkles;
 
               return (
                 <div key={rec.id} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
@@ -169,10 +183,10 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-sm">
-                        {actionLabels[rec.recommendation_type] || rec.recommendation_type}
+                        {actionLabels[rec.action_type] || rec.action_type}
                       </span>
-                      <Badge variant="outline" className={`text-[10px] ${priorityColors[(rec as any).priority || 'medium'] || priorityColors.medium}`}>
-                        {(rec as any).priority || 'medium'}
+                      <Badge variant="outline" className={`text-[10px] ${priorityColors[rec.priority] || priorityColors.medium}`}>
+                        {rec.priority}
                       </Badge>
                       {rec.confidence != null && (
                         <span className="text-[10px] text-muted-foreground">
@@ -180,12 +194,13 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
                         </span>
                       )}
                     </div>
+                    <p className="text-sm font-medium mb-0.5">{rec.entity_name}</p>
                     <p className="text-sm text-muted-foreground">{rec.reason}</p>
-                    {(currentVal || recommendedVal) && (
+                    {(rec.current_value || rec.recommended_value) && (
                       <div className="flex items-center gap-2 mt-1 text-xs">
-                        {currentVal && <span className="text-muted-foreground line-through">{currentVal}</span>}
-                        {currentVal && recommendedVal && <span>→</span>}
-                        {recommendedVal && <span className="font-medium text-primary">{recommendedVal}</span>}
+                        {rec.current_value && <span className="text-muted-foreground line-through">{rec.current_value}</span>}
+                        {rec.current_value && rec.recommended_value && <span>→</span>}
+                        {rec.recommended_value && <span className="font-medium text-primary">{rec.recommended_value}</span>}
                       </div>
                     )}
                   </div>
@@ -203,12 +218,29 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => rejectMutation.mutate(rec.id)}
-                      disabled={rejectMutation.isPending}
+                      onClick={() => handleReject(rec.id!)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!isAnalyzing && processedSuggestions.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Verwerkt</p>
+            {processedSuggestions.map((rec) => {
+              const Icon = actionIcons[rec.action_type] || Sparkles;
+              return (
+                <div key={rec.id} className="flex items-center gap-3 p-2 rounded-lg border border-border/50 opacity-60">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm flex-1">{rec.entity_name} — {actionLabels[rec.action_type]}</span>
+                  <Badge variant="outline" className={rec.status === 'accepted' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted'}>
+                    {rec.status === 'accepted' ? 'Toegepast' : 'Genegeerd'}
+                  </Badge>
                 </div>
               );
             })}
