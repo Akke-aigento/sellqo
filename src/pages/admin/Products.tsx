@@ -22,6 +22,7 @@ import {
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
 import { BulkAIGenerateDialog } from '@/components/admin/products/BulkAIGenerateDialog';
 import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
@@ -69,6 +70,7 @@ import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/ty
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
+  const { isOverLimit, isTrialing } = useUsageLimits();
   const isMobile = useIsMobile();
   const { 
     products, 
