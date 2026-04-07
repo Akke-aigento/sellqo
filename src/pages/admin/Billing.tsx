@@ -92,7 +92,7 @@ export default function BillingPage() {
     }
   };
 
-  const dateLocale = i18n.language === 'nl' ? nl : enUS;
+  // dateLocale already declared above
 
   const formatPrice = (amount: number, currency = 'EUR') => {
     return new Intl.NumberFormat(i18n.language, {
@@ -160,8 +160,7 @@ export default function BillingPage() {
     setSelectedTargetPlanId(null);
   };
 
-  // Determine current plan FIRST (before using it in filters)
-  const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+  // currentPlan already declared above
   
   // Filter plans that can be switched to (exclude current plan)
   const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
