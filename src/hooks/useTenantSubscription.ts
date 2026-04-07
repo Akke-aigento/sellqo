@@ -115,7 +115,7 @@ export function useTenantSubscription() {
   const createCheckout = useMutation({
     mutationFn: async ({ planId, interval }: { planId: string; interval: 'monthly' | 'yearly' }) => {
       const { data, error } = await supabase.functions.invoke('create-platform-checkout', {
-        body: { planId, interval },
+        body: { planId, interval, tenant_id: currentTenant?.id },
       });
 
       if (error) throw error;
@@ -137,7 +137,9 @@ export function useTenantSubscription() {
 
   const openCustomerPortal = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('platform-customer-portal', {});
+      const { data, error } = await supabase.functions.invoke('platform-customer-portal', {
+        body: { tenant_id: currentTenant?.id },
+      });
 
       if (error) throw error;
       return data;

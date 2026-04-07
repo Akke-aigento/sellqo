@@ -41,26 +41,56 @@ serve(async (req) => {
     }
     logStep("User authenticated", { userId: user.id });
 
-    // Get tenant for user — support multi-role users (e.g. platform_admin)
-    const { data: userRole } = await supabase
-      .from("user_roles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .not("tenant_id", "is", null)
-      .limit(1)
-      .maybeSingle();
+    // Read tenant_id from body if provided
+    let requestedTenantId: string | null = null;
+    try {
+      const body = await req.json();
+      requestedTenantId = body?.tenant_id || null;
+    } catch {
+      // No body or invalid JSON — that's fine
+    }
 
-    if (!userRole?.tenant_id) {
-      return new Response(JSON.stringify({ error: "No tenant found" }), { 
-        status: 404, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+    let tenantId = requestedTenantId;
+
+    if (tenantId) {
+      // Validate access
+      const { data: accessCheck } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .or(`tenant_id.eq.${tenantId},role.eq.platform_admin`)
+        .limit(1)
+        .maybeSingle();
+
+      if (!accessCheck) {
+        return new Response(JSON.stringify({ error: "No access to this tenant" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    } else {
+      // Fallback
+      const { data: userRole } = await supabase
+        .from("user_roles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .not("tenant_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+
+      if (!userRole?.tenant_id) {
+        return new Response(JSON.stringify({ error: "No tenant found" }), { 
+          status: 404, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      }
+      tenantId = userRole.tenant_id;
     }
 
     const { data: tenant } = await supabase
       .from("tenants")
       .select("stripe_customer_id")
-      .eq("id", userRole.tenant_id)
+      .eq("id", tenantId)
       .single();
 
     if (!tenant?.stripe_customer_id) {
