@@ -1,114 +1,50 @@
 
 
-## AI Campaign Optimizer — Slimme suggesties op campagne-detailpagina
+## Fix: Negatieve keywords, push-naar-Bol knop & AI analyse zonder data
 
-### Wat het doet
+### Drie problemen
 
-Een nieuwe "AI Analyse" sectie op de Bol.com campagne-detailpagina die:
-1. De performance data (keywords, ad groups, spend/revenue/ACoS) verstuurt naar AI
-2. Concrete, actionable suggesties terugkrijgt (bijv. "Verhoog bod op keyword X van €0.25 naar €0.40", "Pauzeer keyword Y — 0 orders bij €12 spend", "Voeg negatief keyword Z toe")
-3. Elke suggestie heeft een **"Toepassen"** knop die de wijziging direct doorvoert via de bestaande `ads-bolcom-manage` edge function
-4. Suggesties worden opgeslagen in de bestaande `ads_ai_recommendations` tabel
+1. **Negatieve keywords toevoegen werkt niet** — De "Toevoegen" knop is `disabled={!firstAdGroupId}` (regel 320). Als er geen ad groups zijn (wat het geval is voor deze campagne), is de knop altijd disabled. Het probleem is dat negatieve keywords aan een ad group moeten hangen, maar als er geen ad groups bestaan kan dat niet.
 
-### Architectuur
+2. **Geen "Push naar Bol" knop na bewerken** — Na het opslaan van wijzigingen in het bewerkformulier is er geen manier om die wijzigingen door te pushen naar Bol.com. Er moet een "Synchroniseer naar Bol.com" knop komen.
 
-```text
-┌─────────────────────────┐
-│  CampaignDetail page    │
-│  ┌───────────────────┐  │
-│  │ AI Analyse Card   │  │
-│  │  [Analyseer] btn  │  │
-│  │                   │  │
-│  │  Suggestie 1  [✓] │  │
-│  │  Suggestie 2  [✓] │  │
-│  │  Suggestie 3  [✗] │  │
-│  └───────────────────┘  │
-└───────────┬─────────────┘
-            │ invoke
-  ┌─────────▼──────────┐
-  │ ads-campaign-      │
-  │ analyze (edge fn)  │
-  │  - Gather data     │
-  │  - Call Lovable AI │
-  │  - Save to DB      │
-  │  - Return results  │
-  └─────────┬──────────┘
-            │ on accept
-  ┌─────────▼──────────┐
-  │ ads-bolcom-manage  │
-  │  (existing)        │
-  │  - update_bid      │
-  │  - toggle_keyword  │
-  │  - add_negative    │
-  └────────────────────┘
-```
+3. **AI analyse draait zonder data en toont geen suggesties** — De edge function stuurt altijd een request naar de AI, ook als er 0 keywords en 0 performance data is. De AI hallucineer dan suggesties. Bovendien slaat de functie suggesties op in de DB maar de query in de UI filtert niet op `campaign_id` — dus suggesties van álle campagnes worden getoond (of juist niet als er geen match is).
 
-### Nieuwe bestanden
-
-**1. `supabase/functions/ads-campaign-analyze/index.ts`** — Edge function
-- Ontvangt `campaign_id` + `tenant_id`
-- Haalt op uit DB: campaign info, ad groups, keywords + performance, search terms
-- Bouwt een gestructureerde prompt met alle data
-- Roept Lovable AI aan (gemini-3-flash-preview) met tool calling om gestructureerde suggesties te extraheren
-- Elke suggestie bevat: `action_type` (increase_bid / decrease_bid / pause_keyword / add_negative / resume_keyword), `entity_id`, `current_value`, `recommended_value`, `reason`, `confidence`
-- Slaat suggesties op in `ads_ai_recommendations` met status `pending`
-- Retourneert de suggesties
-
-**2. `src/components/admin/ads/CampaignAIAnalysis.tsx`** — UI component
-- "AI Analyse" card met gradient header (sparkles icoon)
-- "Analyseer campagne" knop die de edge function aanroept
-- Toont suggesties als kaartjes met:
-  - Icoon per type (TrendingUp voor bid changes, Ban voor negatieven, Pause voor pauzeren)
-  - Beschrijving in natuurlijke taal (de `reason`)
-  - Huidige vs aanbevolen waarde
-  - Confidence indicator
-  - **"Toepassen"** (groen) en **"Negeren"** (grijs) knoppen
-- Bij "Toepassen": roept `ads-bolcom-manage` aan met de juiste action + payload, update status naar `accepted`
-- Bij "Negeren": update status naar `rejected`
-- Loading state met skeleton cards tijdens analyse
-
-### Wijzigingen aan bestaande bestanden
+### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | `<CampaignAIAnalysis>` component toevoegen tussen de Performance chart en de Ad Groups sectie |
+| `supabase/functions/ads-campaign-analyze/index.ts` | Early return als er geen keywords EN geen performance data is |
+| `src/components/admin/ads/CampaignAIAnalysis.tsx` | Query filteren op campaign_id; suggesties inline tonen na analyse (niet alleen uit DB) |
+| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | "Synchroniseer naar Bol.com" knop toevoegen in header; negatieve keywords knop ook werken als er geen ad groups zijn (lokaal opslaan) |
+| `src/components/admin/ads/BolCampaignEditForm.tsx` | Negatieve keywords sectie toevoegen met add/remove |
 
-### Edge function detail — `ads-campaign-analyze`
+### Detail
 
-De prompt bevat:
-- Campagne naam, type (AUTO/MANUAL), dagbudget
-- Per keyword: keyword text, match type, huidig bod, impressies, clicks, spend, orders, ACoS
-- Per ad group: naam, default bid, totale spend/revenue
-- Zoektermen met hoge spend en lage conversie
+**1. `ads-campaign-analyze/index.ts`**
+- Na het ophalen van data: check `keywords.length === 0 && performance.length === 0`
+- Als true: return `{ suggestions: [], count: 0, message: "Geen data beschikbaar om te analyseren" }` (status 200)
+- Voeg `campaign_id` toe aan elk record dat wordt opgeslagen in `ads_ai_recommendations`
 
-Tool calling schema voor gestructureerde output:
-```json
-{
-  "name": "campaign_suggestions",
-  "parameters": {
-    "suggestions": [{
-      "action_type": "increase_bid | decrease_bid | pause_keyword | add_negative | resume_keyword",
-      "entity_id": "keyword/adgroup id",
-      "entity_name": "keyword text",
-      "current_value": "€0.25",
-      "recommended_value": "€0.40",
-      "reason": "Dit keyword heeft een ACoS van 8% — ruim onder target. Hoger bod = meer impressies.",
-      "confidence": 0.85,
-      "priority": "high | medium | low"
-    }]
-  }
-}
-```
+**2. `CampaignAIAnalysis.tsx`**
+- Query filteren: `.eq('entity_id', ...)` werkt niet goed hier — voeg een custom filter toe op basis van campaign gerelateerde entity IDs, OF sla `campaign_id` op in de recommendation records (beter)
+- Na het analyseren: gebruik de direct teruggekomen `suggestions` uit de response om ze inline te tonen (state), zodat ze meteen zichtbaar zijn zonder DB-roundtrip
+- Bij "Geen data" message van edge function: toon info-bericht i.p.v. "X suggesties gegenereerd"
 
-### Apply-logica per action type
+**3. `AdsBolcomCampaignDetail.tsx`**
+- Header: nieuwe knop "Synchroniseer naar Bol.com" die `push-bol-campaign` aanroept met `force_repush: true`
+- Met loading state en progress toasts (zelfde pattern als CampaignCard)
+- Negatieve keywords "Toevoegen" knop: als er geen ad groups zijn, toon een info-tekst "Voeg eerst producten toe aan de campagne" i.p.v. een disabled knop
 
-| Action | ads-bolcom-manage action | Payload |
-|--------|--------------------------|---------|
-| `increase_bid` / `decrease_bid` | `update_keyword_bid` | `{ keyword_id, bid }` |
-| `pause_keyword` | `toggle_keyword` | `{ keyword_id, status: "paused" }` |
-| `resume_keyword` | `toggle_keyword` | `{ keyword_id, status: "active" }` |
-| `add_negative` | `add_negative_keyword` | `{ adgroup_id, keyword, match_type }` |
+**4. `BolCampaignEditForm.tsx`**
+- Voeg een sectie "Negatieve Keywords" toe onderaan met:
+  - Lijst van huidige negatieve keywords (uit props of via eigen query)
+  - Input + match type selector + "Toevoegen" knop
+  - Roept `addNegativeKeyword` aan (via props callback of directe supabase.functions.invoke)
 
-### Geen database wijzigingen nodig
-De bestaande `ads_ai_recommendations` tabel heeft alle benodigde velden (recommendation_type, entity_id, current_value, recommended_value, reason, confidence, status).
+### Database
+- Voeg `campaign_id` kolom toe aan `ads_ai_recommendations` records bij insert (als het veld bestaat), of sla het op in een metadata/context veld — check eerst of de kolom bestaat
+
+### Geen database migraties nodig
+De `ads_ai_recommendations` tabel heeft al voldoende velden; we gebruiken bestaande kolommen of slaan campaign_id op als context.
 
