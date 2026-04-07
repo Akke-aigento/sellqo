@@ -58,6 +58,29 @@ export function useSEO() {
     enabled: !!tenantId,
   });
 
+  // Fetch category SEO scores
+  const { data: categoryScores, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['seo-category-scores', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await supabase
+        .from('seo_scores')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('entity_type', 'category')
+        .order('overall_score', { ascending: true, nullsFirst: true });
+      
+      if (error) throw error;
+      return (data || []).map(d => ({
+        ...d,
+        issues: (d.issues || []) as unknown as SEOIssue[],
+        suggestions: (d.suggestions || []) as unknown as SEOSuggestion[],
+      })) as SEOScore[];
+    },
+    enabled: !!tenantId,
+  });
+
   // Fetch SEO keywords
   const { data: keywords, isLoading: isLoadingKeywords } = useQuery({
     queryKey: ['seo-keywords', tenantId],
