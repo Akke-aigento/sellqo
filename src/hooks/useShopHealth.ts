@@ -5,7 +5,7 @@ import { useCustomerMessages } from './useCustomerMessages';
 import { useInvoices } from './useInvoices';
 import { useSEO } from './useSEO';
 import { useLegalPages } from './useLegalPages';
-import { useStripeConnect } from './useStripeConnect';
+
 import { useAnalytics } from './useAnalytics';
 import { useTenant } from './useTenant';
 import { useOnboarding } from './useOnboarding';
@@ -59,12 +59,12 @@ export function useShopHealth(): ShopHealthData {
   const { invoices, isLoading: invoicesLoading } = useInvoices();
   const { tenantScore, isLoading: seoLoading } = useSEO();
   const { legalPages, isLoading: legalLoading, getMissingPages } = useLegalPages();
-  const { status: stripeStatus, isLoading: stripeLoading } = useStripeConnect(currentTenant?.id);
+  
   const { dailyStats, summary, isLoading: analyticsLoading } = useAnalytics(7);
   
   const isLoading = ordersLoading || statsLoading || productsLoading || messagesLoading || 
                     invoicesLoading || seoLoading || legalLoading || 
-                    stripeLoading || analyticsLoading;
+                    analyticsLoading;
   
   const healthData = useMemo<HealthData>(() => {
     const now = new Date();
@@ -146,7 +146,7 @@ export function useShopHealth(): ShopHealthData {
       unreadMessages: unreadMessages.length,
       oldestUnreadHours: oldestUnread,
       pendingQuotes: 0,
-      stripeConnected: stripeStatus?.charges_enabled || false,
+      stripeConnected: currentTenant?.stripe_charges_enabled || false,
       overdueInvoicesAmount: overdueAmount,
       overdueInvoicesCount: unpaidSentInvoices.length,
       seoScore: tenantScore?.overall_score || null,
@@ -164,7 +164,7 @@ export function useShopHealth(): ShopHealthData {
     };
   }, [
     orders, stats, products, messages, 
-    invoices, tenantScore, legalPages, stripeStatus, dailyStats,
+    invoices, tenantScore, legalPages, dailyStats,
     summary, onboarding.currentStep, onboarding.totalSteps, currentTenant, getMissingPages
   ]);
   
