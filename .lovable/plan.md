@@ -1,66 +1,80 @@
 
-## Fix: upgrade faalt nog steeds + rode "Upgrade nu" knop is inderdaad fantoom
 
-### Wat ik heb vastgesteld
-Er zijn momenteel 3 aparte problemen:
+## Upgrade-flow verbeteren: plan-keuze dialog + feature-details popup
 
-1. **Checkout crasht in de backend**
-   - De logs van `create-platform-checkout` tonen:
-   - `"Received unknown parameter: automatic_payment_methods"`
-   - Daardoor geeft de functie een 500 terug nog vóór er een checkout-url wordt aangemaakt.
-
-2. **De verkeerde tenant wordt gebruikt**
-   - In de live logs werd bij jouw klik niet **Mancini Milano** gebruikt, maar **SellQo**.
-   - Oorzaak: `create-platform-checkout` kiest nog steeds de eerste `tenant_id` uit `user_roles` in plaats van de **geselecteerde tenant** in de UI.
-   - Voor platform admins is dat foutgevoelig.
-
-3. **De rode upgrade-knop in de usage-card doet niets**
-   - In `Billing.tsx` staat die knop zonder `onClick`.
-   - Dus ja: die knop is momenteel gewoon een **fantoomknop**.
+### Wat er nu misgaat
+1. **"Upgrade nu" knop** gaat direct naar checkout voor het eerstvolgende plan — geen keuze mogelijk
+2. **"+6 meer..." tekst** is niet klikbaar — dood element
+3. **Layout** kan visueel mooier en overzichtelijker
 
 ### Oplossing
-**1. Checkout-function repareren**
-- Verwijder de Stripe-parameter `automatic_payment_methods` uit `create-platform-checkout`.
-- Behoud verder de subscription checkout flow zoals nu.
 
-**2. Altijd de geselecteerde tenant meesturen**
-- Vanuit de frontend de actieve `currentTenant.id` meesturen naar:
-  - `create-platform-checkout`
-  - `platform-customer-portal`
-- In de backend eerst `tenant_id` uit de request body gebruiken.
-- Daarna valideren dat de huidige gebruiker toegang heeft tot die tenant via `user_roles`.
-- Alleen als er géén `tenant_id` is meegegeven nog een fallback-query gebruiken.
+**1. "Upgrade nu" knop → opent plan-keuze dialog**
 
-**3. Fantoom upgrade-knoppen koppelen aan echte actie**
-- De rode/amber upgrade CTA in `Billing.tsx` laten verwijzen naar dezelfde logica als de plan-kaarten:
-  - **trial/free zonder Stripe subscription** → checkout starten
-  - **bestaande Stripe subscription** → plan-switch preview openen
-- Zo krijgt elke upgradeknop eindelijk echt gedrag.
+In plaats van direct `createCheckout` aan te roepen, scrolt de pagina smooth naar de "Wissel van Plan" sectie. Dit geeft de gebruiker de keuze uit alle plannen inclusief downgrade-opties. Simpel, geen extra dialog nodig — de kaarten staan er al.
 
-**4. Betekenis geven aan de rode knop**
-- In plaats van “zomaar een knop” een logische upgrade-target bepalen:
-  - kies het **laagste plan dat de huidige overschrijding opvangt**
-  - voorbeeld: 55 producten op Free → Starter is genoeg
-- Als geen enkel standaardplan genoeg is → stuur naar Enterprise/contact.
+**2. Feature-details popup (nieuw component)**
+
+Nieuw component `PlanFeatureDetailDialog.tsx`:
+- Triggered door klik op "+X meer..." in de plan cards
+- Modale dialog in SellQo-stijl met:
+  - Plan naam + prijs bovenaan
+  - Volledige lijst van alle features met ✓/✗ iconen
+  - Limieten overzicht (producten, orders, klanten, team)
+  - Groepering per categorie (Basis, AI Tools, Integraties, Promoties, etc.)
+  - Upgrade/Downgrade knop onderaan
+
+**3. "+X meer..." klikbaar maken**
+
+In `PlanComparisonCards.tsx`:
+- De "+X meer..." tekst wordt een `<button>` met hover-styling
+- Klik opent de `PlanFeatureDetailDialog` voor dat specifieke plan
+- Geldt voor zowel "gained" als "lost" lijsten
+
+**4. Layout-verbeteringen plan cards**
+
+- Cards krijgen subtiele hover-animatie (scale + shadow)
+- Populair-badge krijgt gradient achtergrond
+- Feature-lijst: consistente spacing, betere kleur-accenten
+- Prijzen prominenter met SellQo teal accent
+
+### Feature-categorieën in de detail-popup
+
+```text
+┌─────────────────────────────────────────┐
+│  ⭐ Starter — € 29/mnd                 │
+├─────────────────────────────────────────┤
+│  BASIS                                  │
+│  ✓ 250 Producten                        │
+│  ✓ 500 Orders/mnd                       │
+│  ✓ 1.000 Klanten                        │
+│  ✓ 3 Teamleden                          │
+│                                         │
+│  WEBSHOP & TOOLS                        │
+│  ✓ Webshop Builder                      │
+│  ✓ Visual Editor                        │
+│  ✓ API toegang                          │
+│  ✓ Webhooks                             │
+│  ✗ POS Kassa                            │
+│                                         │
+│  AI TOOLS                               │
+│  ✓ AI Marketing                         │
+│  ✓ AI Copywriting                       │
+│  ✗ AI SEO                               │
+│  ✗ AI Business Coach                    │
+│  ...                                    │
+│                                         │
+│  [    Upgrade naar Starter    ]          │
+└─────────────────────────────────────────┘
+```
 
 ### Bestanden
+
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useTenantSubscription.ts` | `tenant_id` meesturen bij checkout en customer portal |
-| `src/pages/admin/Billing.tsx` | rode/amber upgradeknoppen echte handler geven + aanbevolen upgrade-target gebruiken |
-| `supabase/functions/create-platform-checkout/index.ts` | Stripe parameter fixen + `tenant_id` uit body gebruiken + access check |
-| `supabase/functions/platform-customer-portal/index.ts` | `tenant_id` uit body gebruiken + access check |
+| `src/components/admin/billing/PlanFeatureDetailDialog.tsx` | Nieuw: volledige feature-popup per plan |
+| `src/components/admin/billing/PlanComparisonCards.tsx` | "+X meer..." klikbaar, hover-animaties, dialog-integratie |
+| `src/pages/admin/Billing.tsx` | "Upgrade nu" knop scrollt naar plan-sectie i.p.v. direct checkout |
 
-### Technische details
-- De huidige 500 komt concreet uit `create-platform-checkout`, niet uit de plan cards zelf.
-- De edge logs tonen expliciet dat checkout nu voor de verkeerde tenant resolveert.
-- De phantom knop zit hier:
-  - `src/pages/admin/Billing.tsx`
-  - usage warning met `<Button ...>Upgrade nu</Button>` zonder click handler.
-- Er zijn **geen databasewijzigingen** nodig.
+### Geen database wijzigingen nodig
 
-### Resultaat na deze fix
-- Upgrade werkt opnieuw voor de geselecteerde tenant
-- Platform admins openen checkout/portal voor de juiste klant
-- De rode knop doet eindelijk iets logisch
-- De knop wordt ook inhoudelijk correct: niet “upgrade ergens”, maar “upgrade naar het eerstvolgende plan dat dit oplost”
