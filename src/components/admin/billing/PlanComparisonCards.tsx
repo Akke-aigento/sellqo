@@ -407,7 +407,7 @@ export function PlanComparisonCards({
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Alle prijzen zijn exclusief BTW
+          Alle prijzen zijn inclusief BTW
         </p>
       </div>
 
