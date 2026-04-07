@@ -1,51 +1,112 @@
 
-## Promoties-overzichtspagina: geblokkeerde modules tonen als "Upgrade"
 
-### Probleem
-De Promotions overview-pagina toont alle 10 modules als klikbare kaarten, ongeacht het abonnement. Items die in de sidebar wél geblokkeerd zijn (Bundels, BOGO, Staffelkorting, Loyaliteit, Cadeaubonnen), zijn hier gewoon toegankelijk. Er is geen visuele indicatie dat deze features premium zijn.
+## Herziening feature-verdeling per plan + implementatie
 
-### Oplossing
+### Huidige situatie vs. logische verdeling
 
-**1. `featureKey` toevoegen aan `promotionModules`**
+Hieronder de volledige feature-matrix zoals die logisch zou moeten zijn. **Vet** = wijziging t.o.v. huidige DB.
 
-Koppel dezelfde featureKeys als de sidebar:
+| Feature | Free | Starter | Pro | Enterprise |
+|---|---|---|---|---|
+| **BASIS** |
+| Producten | 25 | 250 | 2.500 | Onbeperkt |
+| Bestellingen/maand | 50 | 500 | 5.000 | Onbeperkt |
+| Klanten | 100 | 1.000 | 10.000 | Onbeperkt |
+| Teamleden | 1 | 3 | 10 | 50 |
+| Opslag | 1 GB | 10 GB | 50 GB | 250 GB |
+| **WEBSHOP & VERKOOP** |
+| webshop_builder | ❌ | ✅ | ✅ | ✅ |
+| visual_editor | ❌ | ❌ | ✅ | ✅ |
+| pos | ❌ | ❌ | ✅ | ✅ |
+| customDomain | ❌ | ✅ | ✅ | ✅ |
+| removeWatermark | ❌ | ✅ | ✅ | ✅ |
+| **FACTURATIE** |
+| facturX | ❌ | ✅ | ✅ | ✅ |
+| peppol | ❌ | ❌ | ✅ | ✅ |
+| multiCurrency | ❌ | ❌ | ✅ | ✅ |
+| **PROMOTIES** |
+| Kortingscodes (basis) | ✅ | ✅ | ✅ | ✅ |
+| promo_bundles | ❌ | **❌** | ✅ | ✅ |
+| promo_bogo | ❌ | **❌** | ✅ | ✅ |
+| promo_volume | ❌ | **❌** | ✅ | ✅ |
+| promo_giftcards | ❌ | **❌** | ✅ | ✅ |
+| loyalty_program | ❌ | ❌ | ✅ | ✅ |
+| recurring_subscriptions | ❌ | ❌ | ✅ | ✅ |
+| **AI** |
+| ai_marketing | ❌ | ✅ | ✅ | ✅ |
+| ai_copywriting | ❌ | ✅ | ✅ | ✅ |
+| ai_images | ❌ | ❌ | ✅ | ✅ |
+| ai_seo | ❌ | ❌ | ✅ | ✅ |
+| ai_coach | ❌ | ❌ | ✅ | ✅ |
+| ai_chatbot | ❌ | ❌ | ✅ | ✅ |
+| ai_ab_testing | ❌ | ❌ | ✅ | ✅ |
+| **INTEGRATIES & KANALEN** |
+| bol_com | ❌ | ❌ | ✅ | ✅ |
+| bol_vvb_labels | ❌ | ❌ | ✅ | ✅ |
+| amazon | ❌ | ❌ | ❌ | ✅ |
+| ebay | ❌ | ❌ | ❌ | ✅ |
+| social_commerce | ❌ | ❌ | ✅ | ✅ |
+| whatsapp | ❌ | ❌ | ✅ | ✅ |
+| **GEAVANCEERD** |
+| shop_health | ❌ | ✅ | ✅ | ✅ |
+| gamification | ❌ | ✅ | ✅ | ✅ |
+| live_activity | ❌ | ❌ | ✅ | ✅ |
+| multi_warehouse | ❌ | ❌ | ✅ | ✅ |
+| advancedAnalytics | ❌ | ❌ | ✅ | ✅ |
+| **TECHNISCH** |
+| apiAccess | ❌ | ✅ | ✅ | ✅ |
+| webhooks | ❌ | ✅ | ✅ | ✅ |
+| prioritySupport | ❌ | ❌ | ✅ | ✅ |
+| whiteLabel | ❌ | ❌ | ❌ | ✅ |
 
-| Module | featureKey |
-|---|---|
-| Bundels | `promo_bundles` |
-| Staffelkortingen | `promo_volume` |
-| BOGO Acties | `promo_bogo` |
-| Loyaliteitsprogramma | `loyalty_program` |
-| Cadeaukaarten | `promo_giftcards` |
+### Wijzigingen t.o.v. huidige DB (Starter plan)
 
-**2. Feature-check met bestaande hooks**
+Het Starter-plan heeft momenteel te veel premium features aan. De volgende worden **uitgeschakeld**:
 
-Importeer `useTenantPageOverrides` (voor `isFeatureGranted`), `useSubscription`, en de admin view state. Dezelfde logica als sidebar en settings:
+- `promo_bundles`: false (was true) — premium promotie
+- `promo_bogo`: false (was true) — premium promotie
+- `promo_volume`: false (was true) — premium promotie
+- `promo_giftcards`: false (was true) — premium promotie
 
-```text
-isModuleLocked(module):
-  if no featureKey → not locked
-  if platform admin + admin view → not locked
-  if featureKey in granted_features → not locked
-  if subscription has feature → not locked
-  else → locked
+### Nieuwe featureKey: SellQo Connect
+
+Voeg een featureKey `integrations_connect` toe aan de sidebar voor het "Integraties" menu-item. Dit blokkeert SellQo Connect voor Free-plan tenants.
+
+### Implementatie
+
+**1. Database migration — Starter plan features updaten**
+
+```sql
+UPDATE pricing_plans 
+SET features = jsonb_set(
+  jsonb_set(
+    jsonb_set(
+      jsonb_set(features::jsonb, '{promo_bundles}', 'false'),
+      '{promo_bogo}', 'false'),
+    '{promo_volume}', 'false'),
+  '{promo_giftcards}', 'false')
+WHERE slug = 'starter';
 ```
 
-**3. Visuele weergave voor geblokkeerde modules**
+**2. Sidebar — featureKey toevoegen aan Integraties**
 
-- Kaart krijgt een subtiele grijze overlay / `opacity-60`
-- "Beheren" knop wordt vervangen door "Upgrade" knop (amber/oranje stijl) met Lock-icoon
-- De "Upgrade" knop linkt naar `/admin/billing` (of opent upgrade flow)
-- Badge "Premium" verschijnt in plaats van de actief/totaal teller
+In `sidebarConfig.ts`: voeg `featureKey: 'apiAccess'` toe aan het `integrations` item (hergebruik bestaande feature — iedereen zonder API-access heeft ook geen Connect nodig).
 
-**4. Stats bovenaan filteren**
+**3. Landing page PricingSection.tsx updaten**
 
-De totalen (Actieve Promoties, etc.) tellen alleen modules mee waar de tenant toegang toe heeft, zodat de cijfers kloppen met wat ze daadwerkelijk kunnen gebruiken.
+- Starter: verwijder "Alle promotietypes", vervang door "Kortingscodes"
+- Starter: verwijder "Bol.com" en "WhatsApp" uit addons (die zitten niet in het plan)
+- Free: voeg "Geen integraties" toe aan limitations
+
+**4. Pricing.tsx (aparte pricing pagina) — feature-weergave**
+
+De feature-lijst wordt al dynamisch uit de DB geladen, dus na de DB-update kloppen de checkmarks automatisch.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/admin/Promotions.tsx` | featureKey per module, lock-check, upgrade UI voor geblokkeerde kaarten |
+| Database migration | Starter plan features: 4 promo-features naar false |
+| `src/components/admin/sidebar/sidebarConfig.ts` | `featureKey: 'apiAccess'` op integrations item |
+| `src/components/landing/PricingSection.tsx` | Starter/Free teksten corrigeren |
 
-### Geen database wijzigingen nodig
