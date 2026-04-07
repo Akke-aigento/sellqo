@@ -37,21 +37,26 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { target_plan_id, target_interval, proration_behavior = "create_prorations" } = await req.json();
+    const { target_plan_id, target_interval, tenant_id: bodyTenantId, proration_behavior = "create_prorations" } = await req.json();
     if (!target_plan_id) throw new Error("target_plan_id is required");
-    logStep("Request params", { target_plan_id, target_interval, proration_behavior });
+    logStep("Request params", { target_plan_id, target_interval, bodyTenantId, proration_behavior });
 
-    // Get user's tenant
-    const { data: userRole } = await supabase
-      .from("user_roles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .single();
+    // Get user's tenant - prefer explicit tenant_id from body
+    let tenantId = bodyTenantId;
+    if (!tenantId) {
+      const { data: userRole } = await supabase
+        .from("user_roles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .not("tenant_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      tenantId = userRole?.tenant_id;
+    }
 
-    if (!userRole?.tenant_id) {
+    if (!tenantId) {
       throw new Error("No tenant found for user");
     }
-    const tenantId = userRole.tenant_id;
     logStep("Tenant found", { tenantId });
 
     // Get current subscription

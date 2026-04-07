@@ -47,6 +47,7 @@ export function useCalculatePlanSwitch() {
     mutationFn: async (params: {
       target_plan_id: string;
       target_interval?: 'monthly' | 'yearly';
+      tenant_id?: string;
     }): Promise<PlanSwitchPreview> => {
       const { data, error } = await supabase.functions.invoke('calculate-plan-switch', {
         body: params,
@@ -68,6 +69,7 @@ export function useExecutePlanSwitch() {
     mutationFn: async (params: {
       target_plan_id: string;
       target_interval?: 'monthly' | 'yearly';
+      tenant_id?: string;
       proration_behavior?: 'create_prorations' | 'none' | 'always_invoice';
     }) => {
       const { data, error } = await supabase.functions.invoke('execute-plan-switch', {

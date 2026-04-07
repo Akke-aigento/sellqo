@@ -37,27 +37,33 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { target_plan_id, target_interval } = await req.json();
+    const { target_plan_id, target_interval, tenant_id: bodyTenantId } = await req.json();
     if (!target_plan_id) throw new Error("target_plan_id is required");
-    logStep("Request params", { target_plan_id, target_interval });
+    logStep("Request params", { target_plan_id, target_interval, bodyTenantId });
 
-    // Get user's tenant
-    const { data: userRole } = await supabase
-      .from("user_roles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .single();
+    // Get user's tenant - prefer explicit tenant_id from body
+    let tenantId = bodyTenantId;
+    if (!tenantId) {
+      const { data: userRole } = await supabase
+        .from("user_roles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .not("tenant_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      tenantId = userRole?.tenant_id;
+    }
 
-    if (!userRole?.tenant_id) {
+    if (!tenantId) {
       throw new Error("No tenant found for user");
     }
-    logStep("Tenant found", { tenantId: userRole.tenant_id });
+    logStep("Tenant found", { tenantId });
 
     // Get current subscription
     const { data: currentSub } = await supabase
       .from("tenant_subscriptions")
       .select("*, pricing_plan:pricing_plans(*)")
-      .eq("tenant_id", userRole.tenant_id)
+      .eq("tenant_id", tenantId)
       .eq("status", "active")
       .single();
 
@@ -138,7 +144,7 @@ serve(async (req) => {
     const { data: activeAddons } = await supabase
       .from("tenant_addons")
       .select("*")
-      .eq("tenant_id", userRole.tenant_id)
+      .eq("tenant_id", tenantId)
       .eq("status", "active");
 
     const addonsToMigrate = (activeAddons || []).filter(addon => {
