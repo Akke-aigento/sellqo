@@ -104,7 +104,7 @@ export function TrialBanner() {
           <Button 
             size="sm" 
             variant={urgencyLevel === 'expired' || urgencyLevel === 'critical' ? 'default' : 'outline'}
-            onClick={() => navigate('/admin/settings?tab=subscription')}
+            onClick={() => navigate('/admin/billing')}
             className={cn(
               urgencyLevel === 'critical' && 'bg-orange-500 hover:bg-orange-600',
               urgencyLevel === 'expired' && 'bg-destructive hover:bg-destructive/90'
