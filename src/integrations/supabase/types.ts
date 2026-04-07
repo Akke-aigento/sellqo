@@ -13605,6 +13605,7 @@ export type Database = {
           admin_notes: string | null
           created_at: string | null
           extended_trial_until: string | null
+          granted_features: string[] | null
           hidden_pages: string[]
           id: string
           limit_api_calls_override: number | null
@@ -13628,6 +13629,7 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string | null
           extended_trial_until?: string | null
+          granted_features?: string[] | null
           hidden_pages?: string[]
           id?: string
           limit_api_calls_override?: number | null
@@ -13651,6 +13653,7 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string | null
           extended_trial_until?: string | null
+          granted_features?: string[] | null
           hidden_pages?: string[]
           id?: string
           limit_api_calls_override?: number | null

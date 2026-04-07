@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
@@ -49,7 +49,7 @@ export function AdminSidebar() {
   const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
-  const { isPageHidden, togglePage, isToggling } = useTenantPageOverrides();
+  const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -61,9 +61,20 @@ export function AdminSidebar() {
     // Platform admins in admin view see everything
     if (isPlatformAdmin && isAdminView) return false;
     
+    // If feature is explicitly granted by admin, show it
+    if (isFeatureGranted(item.featureKey)) return false;
+    
     const features = subscription?.pricing_plan?.features;
     if (!features) return true; // No subscription = hide premium features
     
+    return features[item.featureKey as keyof typeof features] !== true;
+  };
+
+  // Check if item is blocked by subscription (for visual indicator)
+  const isItemSubscriptionBlocked = (item: NavItem): boolean => {
+    if (!item.featureKey) return false;
+    const features = subscription?.pricing_plan?.features;
+    if (!features) return true;
     return features[item.featureKey as keyof typeof features] !== true;
   };
 
@@ -124,25 +135,53 @@ export function AdminSidebar() {
 
   const showAdminToggles = isPlatformAdmin && isAdminView;
 
-  const renderPageToggle = (itemId: string) => {
-    if (!showAdminToggles) return null;
-    const hidden = isPageHidden(itemId);
+  const renderFeatureToggle = (item: NavItem) => {
+    if (!showAdminToggles || !item.featureKey) return null;
+    const blocked = isItemSubscriptionBlocked(item);
+    if (!blocked) return null; // Only show for subscription-blocked items
+    
+    const granted = isFeatureGranted(item.featureKey);
     return (
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          togglePage(itemId);
+          toggleGrantedFeature(item.featureKey!);
         }}
-        disabled={isToggling}
+        disabled={isTogglingFeature}
         className={cn(
-          'ml-auto p-0.5 rounded hover:bg-accent/50 transition-colors shrink-0',
-          hidden ? 'text-destructive/60' : 'text-muted-foreground/40 hover:text-muted-foreground'
+          'p-0.5 rounded hover:bg-accent/50 transition-colors shrink-0',
+          granted ? 'text-green-500' : 'text-amber-500/60 hover:text-amber-500'
         )}
-        title={hidden ? 'Verborgen voor tenant — klik om te tonen' : 'Zichtbaar voor tenant — klik om te verbergen'}
+        title={granted ? 'Feature toegekend — klik om te blokkeren' : 'Geblokkeerd door abonnement — klik om toch toe te kennen'}
       >
-        {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        {granted ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
       </button>
+    );
+  };
+
+  const renderPageToggle = (itemId: string, item?: NavItem) => {
+    if (!showAdminToggles) return null;
+    const hidden = isPageHidden(itemId);
+    return (
+      <span className="ml-auto flex items-center gap-0.5 shrink-0">
+        {item && renderFeatureToggle(item)}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            togglePage(itemId);
+          }}
+          disabled={isToggling}
+          className={cn(
+            'p-0.5 rounded hover:bg-accent/50 transition-colors',
+            hidden ? 'text-destructive/60' : 'text-muted-foreground/40 hover:text-muted-foreground'
+          )}
+          title={hidden ? 'Verborgen voor tenant — klik om te tonen' : 'Zichtbaar voor tenant — klik om te verbergen'}
+        >
+          {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      </span>
     );
   };
 
@@ -164,7 +203,7 @@ export function AdminSidebar() {
               <SidebarMenuButton isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
                 {item.icon && <item.icon className="h-4 w-4" />}
                 <span>{item.title}</span>
-                {renderPageToggle(item.id)}
+                {renderPageToggle(item.id, item)}
                 <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
@@ -182,7 +221,7 @@ export function AdminSidebar() {
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
                           <span>{child.title}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
-                          {renderPageToggle(child.id)}
+                          {renderPageToggle(child.id, child)}
                         </NavLink>
                       </SidebarMenuSubButton>
                     )}
@@ -205,7 +244,7 @@ export function AdminSidebar() {
               <span>{item.title}</span>
             </span>
             {item.badge && item.id === 'inbox' && <InboxBadge />}
-            {renderPageToggle(item.id)}
+            {renderPageToggle(item.id, item)}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
