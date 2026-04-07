@@ -401,6 +401,13 @@ export default function AdsBolcomCampaignDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Campaign Dialog */}
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <CampaignWizard campaign={campaignForWizard} onClose={() => setShowEdit(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
