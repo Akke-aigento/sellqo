@@ -307,7 +307,7 @@ export function PlanComparisonCards({
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {lost.slice(0, 3).map((feature, i) => (
-                              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-medium border border-red-200">
+                              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-red-700 text-[10px] font-medium border border-border">
                                 <X className="h-2.5 w-2.5" />
                                 {feature}
                               </span>
@@ -316,7 +316,7 @@ export function PlanComparisonCards({
                               <button
                                 type="button"
                                 onClick={() => setDetailPlan(plan)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-medium border border-red-200 hover:bg-red-100 cursor-pointer transition-colors"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-red-700 text-[10px] font-medium border border-border hover:bg-muted/80 cursor-pointer transition-colors"
                               >
                                 +{lost.length - 3} meer
                               </button>
