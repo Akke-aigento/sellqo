@@ -1,83 +1,60 @@
 
-## SEO dashboard blanco: echte oorzaak en gerichte fix
 
-### Wat ik heb vastgesteld
-Ik heb de code, database-structuur en live backenddata nagekeken. Voor VanXcel bestaat er wel degelijk SEO-data en analysehistoriek, dus het probleem is niet dat de analyse niets produceert. Het dashboard blijft blanco door een combinatie van backend save-fouten en leesrechten.
+## Probleem: Promotie-items verdwijnen in Tenant View ondanks "zichtbaar" markering
 
-### Echte oorzaken
+### Oorzaak
+Er zijn **twee onafhankelijke systemen** die menu-items verbergen:
 
-**1. SEO-data is aanwezig, maar de admin ziet ze niet**
-- In `seo_scores` en `seo_analysis_history` bestaan records voor VanXcel
-- De RLS policies op die tabellen gebruiken een directe check op `public.user_roles.tenant_id`
-- Bij een platform admin / tenant switcher is die tenant-koppeling vaak niet aanwezig op de admin-role
-- Daardoor krijgt de UI `tenantScore = null`, en blijven de cijfers + Quick Wins leeg
+1. **Oog-toggles** (page overrides) — handmatig per tenant in/uitschakelen
+2. **Abonnement-features** — items met `featureKey` worden verborgen als het abonnement die feature niet bevat
 
-**2. Nieuwe tenant-level score wordt nog steeds niet correct opgeslagen**
-- `ai-seo-analyzer` probeert de tenant-score op te slaan met `entity_id = null`
-- In de live database is `seo_scores.entity_id` nog steeds `NOT NULL`
-- De logs tonen expliciet:
-  `null value in column "entity_id" of relation "seo_scores" violates not-null constraint`
-- De functie logt die fout nu alleen, maar returned toch succes, waardoor het lijkt alsof analyse gelukt is terwijl de dashboardscore niet geüpdatet wordt
+Mancini Milano zit op het **Free** plan. Dat plan heeft `promo_bundles`, `promo_bogo`, `promo_volume`, `loyalty_program`, en `promo_giftcards` allemaal op `false`. Daarom verdwijnen die 5 promotie-items in Tenant View, ongeacht de oog-toggle status.
 
-**3. Verkeerde taal-kolom in de edge function**
-- De functie leest `tenants.primary_language`
-- In de echte `tenants` tabel bestaat die kolom niet; daar is het `language`
-- Dat maakt de analysecode fragiel en foutgevoelig
+De oog-icons in Admin View tonen alleen de page-override status — ze weten niet dat het abonnement het item ook blokkeert. Daardoor lijkt het alsof alles zichtbaar is, terwijl het dat niet is.
 
-**4. Categorie-scores worden in de frontend uit de verkeerde dataset gehaald**
-- `useSEO()` haalt momenteel enkel `entity_type = 'product'` op voor `productScores`
-- `SEODashboard.tsx` probeert daar daarna ook categorie-scores uit te halen
-- Daardoor blijven categorie-scoreweergaves fout of leeg
+### Oplossing
 
-## Plan van aanpak
+**1. Page override overschrijft abonnement-beperking**
 
-### 1. Database fix voor `seo_scores`
-Maak een migratie die:
-- `seo_scores.entity_id` nullable maakt
-- bestaande tenant-level score rows normaliseert naar `entity_id = NULL`
-- eventuele dubbele tenant-level rows veilig dedupliceert
-- het bestaande partial unique index patroon behoudt voor:
-  - tenant-level rows zonder `entity_id`
-  - entity-level rows met `entity_id`
+Wanneer een platform admin een item expliciet zichtbaar laat (niet in `hidden_pages`), én dat item heeft een `featureKey`, dan moet de admin de mogelijkheid hebben om dat item tóch zichtbaar te maken voor die tenant — ongeacht het abonnement.
 
-### 2. RLS fix voor SEO-tabellen
-Pas de policies op `seo_scores` en `seo_analysis_history` aan zodat:
-- tenant-toegang via `public.get_user_tenant_ids(auth.uid())` loopt
-- platform admins ook leesrechten krijgen via `public.is_platform_admin(auth.uid())`
+Concreet: voeg een `granted_features` array toe aan `tenant_feature_overrides` (naast `hidden_pages`). Als een platform admin in Admin View een premium item expliciet "toekent" aan een tenant, wordt de `featureKey` toegevoegd aan `granted_features`. Die lijst overschrijft de abonnement-check.
 
-Zo kan een admin die naar VanXcel switcht de SEO-data effectief ophalen.
+**2. Visuele feedback in Admin View**
 
-### 3. `ai-seo-analyzer` corrigeren
-In `supabase/functions/ai-seo-analyzer/index.ts`:
-- `tenants.language` gebruiken in plaats van `primary_language`
-- tenant-score blijven opslaan via delete + insert met `entity_id = null`
-- tenant-score save-fouten niet enkel loggen maar de request laten falen
-- ook product/category/history inserts expliciet op fouten controleren
+In Admin View krijgen items die door het abonnement geblokkeerd zijn een **ander icoon** dan het oog:
+- 🔒 Geblokkeerd door abonnement (klikbaar om te "granten")
+- 👁 Zichtbaar (huidige toggle)
+- 👁‍🗨 Verborgen via page override
 
-Zo vermijden we “schijnbaar succesvolle” analyses die het dashboard niet updaten.
+Zo ziet de admin in één oogopslag wát er geblokkeerd wordt en waaróm.
 
-### 4. Frontend dataflow opsplitsen
-In `useSEO()`:
-- aparte category score query toevoegen, of één gecombineerde score-query voor product + category
+**3. Aangepaste `isItemFeatureHidden` logica**
 
-In `SEODashboard.tsx`:
-- `categoriesWithSEO` koppelen aan echte category scores
-- product- en categorie-overzichten elk hun juiste scorebron geven
+```text
+isItemFeatureHidden(item):
+  if no featureKey → not hidden
+  if platform admin + admin view → not hidden
+  if featureKey in granted_features → not hidden   ← NIEUW
+  if subscription has feature → not hidden
+  else → hidden
+```
 
-### 5. Resultaat op dashboard
-Na deze fixes:
-- komen de cijfers bovenaan terug
-- wordt `Quick Wins` opnieuw gevuld
-- tonen categorieën hun echte scores
-- worden nieuwe analyses correct opgeslagen én zichtbaar voor admins
+### Database wijziging
 
-## Bestanden
-- `supabase/migrations/...` — nullable `entity_id`, cleanup, RLS-fix
-- `supabase/functions/ai-seo-analyzer/index.ts` — taalveld + save/error handling
-- `src/hooks/useSEO.ts` — category scores correct ophalen
-- `src/pages/admin/SEODashboard.tsx` — juiste scoremapping
+Voeg `granted_features` kolom toe aan `tenant_feature_overrides`:
 
-## Technische details
-- Dit is geen polling- of laadprobleem
-- De data bestaat al, maar wordt deels niet opgeslagen en deels niet gelezen door RLS
-- De screenshot past exact bij `tenantScore = null`: top cards `--` en lege Quick Wins
+```sql
+ALTER TABLE tenant_feature_overrides 
+ADD COLUMN granted_features text[] DEFAULT '{}';
+```
+
+### Bestanden
+
+| Bestand | Actie |
+|---|---|
+| Database migration | `granted_features` kolom toevoegen |
+| `src/hooks/useTenantPageOverrides.ts` | `granted_features` ophalen + toggle functie toevoegen |
+| `src/components/admin/AdminSidebar.tsx` | `isItemFeatureHidden` aanpassen: check `granted_features`; visuele indicatie voor abonnement-geblokkeerde items in Admin View |
+| `src/components/admin/sidebar/sidebarConfig.ts` | Geen wijzigingen |
+
