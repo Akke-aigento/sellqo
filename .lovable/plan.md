@@ -1,37 +1,34 @@
 
 
-## Fix: Downgrade pop-up toont niet
-
-### Oorzaak
-
-In `Billing.tsx` (regel 121) wordt de downgrade warning **alleen** getoond als:
-1. `preview.is_upgrade === false` — prijs is lager
-2. `preview.features.lost.length > 0` — er zijn features die verloren gaan
-
-Als een van beide condities niet klopt (bijv. plans hebben geen/dezelfde features in de database, of de prijs-vergelijking gaat fout bij interval-wissels), wordt de dialog overgeslagen en gaat het direct naar de plan-switch preview.
-
-### Oplossing
-
-De downgrade warning moet **altijd** verschijnen bij een downgrade, ook als er geen specifieke features verloren gaan. Het is immers altijd goed om te bevestigen dat iemand wil downgraden.
+## Bol.com Advertising: AUTO/MANUAL keuze + re-push + error handling
 
 ### Wijzigingen
 
 | Bestand | Actie |
-|---|---|
-| `src/pages/admin/Billing.tsx` | Conditie aanpassen: toon warning bij **elke** downgrade (`!preview.is_upgrade`), niet alleen als er features verloren gaan |
-| `src/components/admin/billing/DowngradeWarningDialog.tsx` | Stap 2 features-lijst alleen tonen als er daadwerkelijk features zijn, anders direct checkbox tonen |
+|---------|-------|
+| `src/components/admin/ads/CampaignWizard.tsx` | `bid_strategy` toevoegen aan state, AUTO/MANUAL radio in budget stap, meesturen bij submit, tonen in review |
+| `src/components/admin/ads/CampaignCard.tsx` | "Producten opnieuw pushen" menu-item + handler met `force_repush: true` |
+| `supabase/functions/push-bol-campaign/index.ts` | `force_repush` parameter, skip campaign creation bij repush, error responses bij ad group/ads failures |
 
-### Detail
+### Detail per bestand
 
-**Billing.tsx (regel 120-125)**
-```tsx
-// Was:
-if (!preview.is_upgrade && preview.features.lost.length > 0) {
-// Wordt:
-if (!preview.is_upgrade) {
-```
+**1. CampaignWizard.tsx**
+- Import `BidStrategy` type
+- Voeg `bid_strategy: 'auto' as BidStrategy` toe aan formData state
+- In budget stap: Bol-specifieke RadioGroup met AUTO (aanbevolen) en MANUAL opties, boven het Budget Type select
+- `handleSubmit`: stuur `bid_strategy` mee bij `createCampaign.mutateAsync`
+- Review stap: toon "Campagne modus" rij voor Bol campagnes
+- Edit mode useEffect: laad `bid_strategy` uit campaign
 
-**DowngradeWarningDialog.tsx** — de features-sectie in stap 2 heeft al een `featuresLost.length > 0` check, dus dat werkt al correct als er geen features zijn.
+**2. CampaignCard.tsx**
+- `handleRepushToBol` functie: roept `push-bol-campaign` aan met `force_repush: true`
+- Nieuw DropdownMenuItem "Producten opnieuw pushen" voor Bol campagnes die al een `platform_campaign_id` hebben
+
+**3. push-bol-campaign/index.ts**
+- Parse `force_repush` uit request body
+- "Already pushed" check: skip alleen als `!force_repush`
+- Bij `force_repush`: gebruik bestaande `platform_campaign_id`, skip campaign creation (stap 5)
+- Ad group/ads catch blocks: return 500 error response i.p.v. stil falen
 
 ### Geen database wijzigingen nodig
 
