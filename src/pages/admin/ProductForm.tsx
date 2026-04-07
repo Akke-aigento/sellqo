@@ -473,6 +473,12 @@ export default function ProductForm() {
   };
 
    const onSubmit = async (data: FormValues) => {
+    // Enforce usage limit for new products
+    if (!isEditing) {
+      const result = await enforceLimit('products');
+      if (!result.allowed) return;
+    }
+
     // Set legacy category_id to primary (first selected) category
     const primaryCategoryId = selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null;
     const submitData = {

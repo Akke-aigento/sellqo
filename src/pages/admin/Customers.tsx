@@ -123,7 +123,11 @@ export default function CustomersPage() {
           <p className="text-muted-foreground">Beheer je klantenbestand</p>
         </div>
         <CustomerFormDialog 
-          onSubmit={(data) => createCustomer.mutate(data)}
+          onSubmit={async (data) => {
+            const result = await enforceLimit('customers');
+            if (!result.allowed) return;
+            createCustomer.mutate(data);
+          }}
           isLoading={createCustomer.isPending}
         />
       </div>
