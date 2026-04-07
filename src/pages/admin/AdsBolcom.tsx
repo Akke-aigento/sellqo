@@ -323,6 +323,13 @@ export default function AdsBolcomPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Campaign Wizard Dialog */}
+      <Dialog open={showWizard} onOpenChange={setShowWizard}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <CampaignWizard onClose={() => setShowWizard(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

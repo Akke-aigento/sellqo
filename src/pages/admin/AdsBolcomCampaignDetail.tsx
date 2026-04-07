@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBolcomCampaignDetail, Period } from '@/hooks/useBolcomCampaignDetail';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,8 @@ import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { CampaignWizard } from '@/components/admin/ads/CampaignWizard';
+import type { AdCampaign } from '@/types/ads';
 
 const formatCurrency = (v: number | null) => v != null ? `€${v.toFixed(2)}` : '—';
 const formatPct = (v: number | null) => v != null ? `${v.toFixed(1)}%` : '—';
