@@ -1,34 +1,25 @@
 
 
-## Redesign: Downgrade bevestigingsdialog — creatiever en mooier
+## Fix: InvoiceAutomationSettings laadt verkeerde tenant
 
-### Huidige situatie
-Er is al een `DowngradeWarningDialog` met een basis AlertDialog, een waarschuwingsicoon, feature-badges, en een checkbox. Het werkt, maar het is vrij standaard en saai.
+### Oorzaak
+`InvoiceAutomationSettings` gebruikt `useAuth().roles.find(r => r.tenant_id)?.tenant_id` om de tenant te bepalen, terwijl alle andere settings-componenten `useTenant().currentTenant` gebruiken. Hierdoor wordt mogelijk data van een andere tenant geladen dan de geselecteerde in de tenant-switcher.
 
-### Nieuw ontwerp — twee-staps flow
+De database bevestigt dat VanXcel wél een BCC-adres heeft (`verkoopdagboek-shopify@nomadix-bv.odoo.com`), maar het component laadt waarschijnlijk een andere tenant waar deze waarde `null` is.
 
-**Stap 1: "Weet je het zeker?" — emotionele eerste pop-up**
-- Groot animerend icoon (ShieldAlert of TrendingDown) met een subtiele pulse-animatie
-- Headline: **"Wil je echt downgraden?"**
-- Subtext: *"Je {currentPlan} abonnement geeft je toegang tot krachtige tools. Weet je zeker dat je deze wilt opgeven?"*
-- Visuele vergelijking: huidige plan vs doel-plan als twee mini-kaartjes naast elkaar, met het huidige plan licht gehighlight en het doel-plan gedempt
-- Twee knoppen: **"Nee, ik blijf bij {currentPlan}"** (primary, opvallend) en **"Ja, ik wil downgraden"** (ghost/outline, bewust minder opvallend)
+### Wijziging
 
-**Stap 2: Feature-overzicht + bevestiging (bestaande flow, opgepoetst)**
-- Alleen als gebruiker "Ja" kiest in stap 1
-- Toont de verloren features als nette pills (al gestyled)
-- Checkbox bevestiging blijft
-- Destructive "Bevestig Downgrade" knop
+**Bestand: `src/components/admin/settings/InvoiceAutomationSettings.tsx`**
 
-### Wijzigingen
+- Import `useTenant` i.p.v. `useAuth`
+- Vervang `const { roles } = useAuth(); const activeTenantId = roles.find(r => r.tenant_id)?.tenant_id;` door `const { currentTenant } = useTenant(); const activeTenantId = currentTenant?.id;`
+- Alle overige code blijft identiek — `activeTenantId` wordt al overal correct gebruikt
 
-**Bestand: `src/components/admin/billing/DowngradeWarningDialog.tsx`**
+### Bestanden
 
-- `step` state toevoegen (1 of 2)
-- **Stap 1**: Nieuw design met twee mini plan-kaartjes, grote headline, emotionele copy, en asymmetrische knoppen (blijf-knop is primary + groot, downgrade-knop is klein/outline)
-- **Stap 2**: Bestaande feature-lost lijst + checkbox (al aanwezig), maar met verbeterde styling
-- Animatie via Tailwind `animate-in` classes bij stap-wissel
-- Reset `step` naar 1 bij sluiten
+| Bestand | Actie |
+|---|---|
+| `src/components/admin/settings/InvoiceAutomationSettings.tsx` | `useAuth` → `useTenant` voor tenant ID |
 
 ### Geen database wijzigingen nodig
 
