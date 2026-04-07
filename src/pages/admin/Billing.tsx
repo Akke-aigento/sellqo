@@ -298,7 +298,7 @@ export default function BillingPage() {
                     <span className="text-sm font-medium">
                       Je hebt je limiet overschreden
                     </span>
-                    <Button size="sm" variant="destructive" className="ml-auto">
+                    <Button size="sm" variant="destructive" className="ml-auto" onClick={handleUpgradeClick} disabled={createCheckout.isPending}>
                       Upgrade nu
                     </Button>
                   </div>
@@ -310,7 +310,7 @@ export default function BillingPage() {
                     <span className="text-sm">
                       {t('billing.upgrade_needed')}
                     </span>
-                    <Button size="sm" variant="outline" className="ml-auto">
+                    <Button size="sm" variant="outline" className="ml-auto" onClick={handleUpgradeClick} disabled={createCheckout.isPending}>
                       Upgrade
                     </Button>
                   </div>
