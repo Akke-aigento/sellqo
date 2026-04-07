@@ -1,59 +1,83 @@
 
+## SEO dashboard blanco: echte oorzaak en gerichte fix
 
-## SEO Dashboard: scores fixen + Quick Wins actieknoppen
+### Wat ik heb vastgesteld
+Ik heb de code, database-structuur en live backenddata nagekeken. Voor VanXcel bestaat er wel degelijk SEO-data en analysehistoriek, dus het probleem is niet dat de analyse niets produceert. Het dashboard blijft blanco door een combinatie van backend save-fouten en leesrechten.
 
-### Probleem 1: Sub-scores tonen `--`
-De `seo_scores` tabel heeft een unique constraint op `(tenant_id, entity_type, entity_id)`. Voor tenant-level scores is `entity_id = NULL`. In PostgreSQL matcht `NULL != NULL`, waardoor de upsert **nooit** het bestaande record vindt. De eerste insert lukt, maar daarna faalt elke upsert stilletjes. Daarom toont het dashboard oude of geen data.
+### Echte oorzaken
 
-### Probleem 2: Quick Wins zijn passief
-Issues tonen alleen tekst. Er zijn geen actieknoppen om direct iets te doen ("Genereer meta title", "Voeg afbeeldingen toe", etc.).
+**1. SEO-data is aanwezig, maar de admin ziet ze niet**
+- In `seo_scores` en `seo_analysis_history` bestaan records voor VanXcel
+- De RLS policies op die tabellen gebruiken een directe check op `public.user_roles.tenant_id`
+- Bij een platform admin / tenant switcher is die tenant-koppeling vaak niet aanwezig op de admin-role
+- Daardoor krijgt de UI `tenantScore = null`, en blijven de cijfers + Quick Wins leeg
 
----
+**2. Nieuwe tenant-level score wordt nog steeds niet correct opgeslagen**
+- `ai-seo-analyzer` probeert de tenant-score op te slaan met `entity_id = null`
+- In de live database is `seo_scores.entity_id` nog steeds `NOT NULL`
+- De logs tonen expliciet:
+  `null value in column "entity_id" of relation "seo_scores" violates not-null constraint`
+- De functie logt die fout nu alleen, maar returned toch succes, waardoor het lijkt alsof analyse gelukt is terwijl de dashboardscore niet geüpdatet wordt
 
-### Oplossing
+**3. Verkeerde taal-kolom in de edge function**
+- De functie leest `tenants.primary_language`
+- In de echte `tenants` tabel bestaat die kolom niet; daar is het `language`
+- Dat maakt de analysecode fragiel en foutgevoelig
 
-**1. Database: unique constraint fixen voor NULL entity_id**
+**4. Categorie-scores worden in de frontend uit de verkeerde dataset gehaald**
+- `useSEO()` haalt momenteel enkel `entity_type = 'product'` op voor `productScores`
+- `SEODashboard.tsx` probeert daar daarna ook categorie-scores uit te halen
+- Daardoor blijven categorie-scoreweergaves fout of leeg
 
-Vervang de bestaande constraint door een partial unique index die NULL entity_id correct afhandelt:
+## Plan van aanpak
 
-```sql
-ALTER TABLE seo_scores DROP CONSTRAINT uq_seo_scores_tenant_entity;
+### 1. Database fix voor `seo_scores`
+Maak een migratie die:
+- `seo_scores.entity_id` nullable maakt
+- bestaande tenant-level score rows normaliseert naar `entity_id = NULL`
+- eventuele dubbele tenant-level rows veilig dedupliceert
+- het bestaande partial unique index patroon behoudt voor:
+  - tenant-level rows zonder `entity_id`
+  - entity-level rows met `entity_id`
 
-CREATE UNIQUE INDEX uq_seo_scores_tenant_entity 
-ON seo_scores (tenant_id, entity_type) 
-WHERE entity_id IS NULL;
+### 2. RLS fix voor SEO-tabellen
+Pas de policies op `seo_scores` en `seo_analysis_history` aan zodat:
+- tenant-toegang via `public.get_user_tenant_ids(auth.uid())` loopt
+- platform admins ook leesrechten krijgen via `public.is_platform_admin(auth.uid())`
 
-CREATE UNIQUE INDEX uq_seo_scores_tenant_entity_id 
-ON seo_scores (tenant_id, entity_type, entity_id) 
-WHERE entity_id IS NOT NULL;
-```
+Zo kan een admin die naar VanXcel switcht de SEO-data effectief ophalen.
 
-En in de edge function: gebruik `.upsert(..., { onConflict: 'tenant_id,entity_type' })` wanneer `entity_id` null is.
+### 3. `ai-seo-analyzer` corrigeren
+In `supabase/functions/ai-seo-analyzer/index.ts`:
+- `tenants.language` gebruiken in plaats van `primary_language`
+- tenant-score blijven opslaan via delete + insert met `entity_id = null`
+- tenant-score save-fouten niet enkel loggen maar de request laten falen
+- ook product/category/history inserts expliciet op fouten controleren
 
-**2. Quick Wins: actiegerichte knoppen per issue-type**
+Zo vermijden we “schijnbaar succesvolle” analyses die het dashboard niet updaten.
 
-Elke Quick Win krijgt een duidelijke actieknop op basis van het issue-type:
+### 4. Frontend dataflow opsplitsen
+In `useSEO()`:
+- aparte category score query toevoegen, of één gecombineerde score-query voor product + category
 
-| Issue type | Knop | Actie |
-|---|---|---|
-| `meta_title_missing/too_long` | "Genereer meta title" | Roept `generateContent('meta_title', [entityId])` aan |
-| `meta_description_missing/too_long` | "Verbeter beschrijving" | Roept `generateContent('meta_description', [entityId])` aan |
-| `images_missing` | "Ga naar product" | Navigeert naar product-edit pagina |
-| `content_too_short` | "Genereer beschrijving" | Roept `generateContent('product_description', [entityId])` aan |
-| Suggesties met `action` | Actieknop met label | Voert de actie uit |
+In `SEODashboard.tsx`:
+- `categoriesWithSEO` koppelen aan echte category scores
+- product- en categorie-overzichten elk hun juiste scorebron geven
 
-De knoppen krijgen duidelijke labels ("Verbeter nu", "Genereer", "Bekijk product") en een primaire kleur bij hoge urgentie.
+### 5. Resultaat op dashboard
+Na deze fixes:
+- komen de cijfers bovenaan terug
+- wordt `Quick Wins` opnieuw gevuld
+- tonen categorieën hun echte scores
+- worden nieuwe analyses correct opgeslagen én zichtbaar voor admins
 
-**3. Sub-scores met kleur-indicatie**
+## Bestanden
+- `supabase/migrations/...` — nullable `entity_id`, cleanup, RLS-fix
+- `supabase/functions/ai-seo-analyzer/index.ts` — taalveld + save/error handling
+- `src/hooks/useSEO.ts` — category scores correct ophalen
+- `src/pages/admin/SEODashboard.tsx` — juiste scoremapping
 
-De 4 stat-cards bovenaan (Meta Score, Technisch, AI Search, Producten) krijgen een kleurindicatie: groen (≥70), oranje (50-70), rood (<50).
-
-### Bestanden
-
-| Bestand | Actie |
-|---|---|
-| Database migration | Unique constraint vervangen door partial indexes |
-| `supabase/functions/ai-seo-analyzer/index.ts` | Upsert fix: aparte onConflict voor tenant vs entity scores |
-| `src/components/admin/seo/SEOQuickWins.tsx` | Actiegerichte knoppen per issue-type met labels |
-| `src/pages/admin/SEODashboard.tsx` | Kleur-indicatie op stat-cards, betere onAction handler |
-
+## Technische details
+- Dit is geen polling- of laadprobleem
+- De data bestaat al, maar wordt deels niet opgeslagen en deels niet gelezen door RLS
+- De screenshot past exact bij `tenantScore = null`: top cards `--` en lege Quick Wins
