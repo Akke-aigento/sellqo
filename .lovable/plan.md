@@ -1,25 +1,37 @@
 
 
-## Fix: InvoiceAutomationSettings laadt verkeerde tenant
+## Fix: Downgrade pop-up toont niet
 
 ### Oorzaak
-`InvoiceAutomationSettings` gebruikt `useAuth().roles.find(r => r.tenant_id)?.tenant_id` om de tenant te bepalen, terwijl alle andere settings-componenten `useTenant().currentTenant` gebruiken. Hierdoor wordt mogelijk data van een andere tenant geladen dan de geselecteerde in de tenant-switcher.
 
-De database bevestigt dat VanXcel wél een BCC-adres heeft (`verkoopdagboek-shopify@nomadix-bv.odoo.com`), maar het component laadt waarschijnlijk een andere tenant waar deze waarde `null` is.
+In `Billing.tsx` (regel 121) wordt de downgrade warning **alleen** getoond als:
+1. `preview.is_upgrade === false` — prijs is lager
+2. `preview.features.lost.length > 0` — er zijn features die verloren gaan
 
-### Wijziging
+Als een van beide condities niet klopt (bijv. plans hebben geen/dezelfde features in de database, of de prijs-vergelijking gaat fout bij interval-wissels), wordt de dialog overgeslagen en gaat het direct naar de plan-switch preview.
 
-**Bestand: `src/components/admin/settings/InvoiceAutomationSettings.tsx`**
+### Oplossing
 
-- Import `useTenant` i.p.v. `useAuth`
-- Vervang `const { roles } = useAuth(); const activeTenantId = roles.find(r => r.tenant_id)?.tenant_id;` door `const { currentTenant } = useTenant(); const activeTenantId = currentTenant?.id;`
-- Alle overige code blijft identiek — `activeTenantId` wordt al overal correct gebruikt
+De downgrade warning moet **altijd** verschijnen bij een downgrade, ook als er geen specifieke features verloren gaan. Het is immers altijd goed om te bevestigen dat iemand wil downgraden.
 
-### Bestanden
+### Wijzigingen
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/settings/InvoiceAutomationSettings.tsx` | `useAuth` → `useTenant` voor tenant ID |
+| `src/pages/admin/Billing.tsx` | Conditie aanpassen: toon warning bij **elke** downgrade (`!preview.is_upgrade`), niet alleen als er features verloren gaan |
+| `src/components/admin/billing/DowngradeWarningDialog.tsx` | Stap 2 features-lijst alleen tonen als er daadwerkelijk features zijn, anders direct checkbox tonen |
+
+### Detail
+
+**Billing.tsx (regel 120-125)**
+```tsx
+// Was:
+if (!preview.is_upgrade && preview.features.lost.length > 0) {
+// Wordt:
+if (!preview.is_upgrade) {
+```
+
+**DowngradeWarningDialog.tsx** — de features-sectie in stap 2 heeft al een `featuresLost.length > 0` check, dus dat werkt al correct als er geen features zijn.
 
 ### Geen database wijzigingen nodig
 
