@@ -5,14 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/hooks/useTenant';
 import { FileText, Mail, Loader2, Info, ShoppingCart, Globe, Store } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 
 export function InvoiceAutomationSettings() {
-  const { roles } = useAuth();
-  const activeTenantId = roles.find(r => r.tenant_id)?.tenant_id;
+  const { currentTenant } = useTenant();
+  const activeTenantId = currentTenant?.id;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
