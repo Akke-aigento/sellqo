@@ -7,11 +7,18 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 
-type LimitType = 'products' | 'orders' | 'customers' | 'users';
+export type LimitType = 'products' | 'orders' | 'customers' | 'users';
+
+export interface EnforceLimitResult {
+  allowed: boolean;
+  isTrialing: boolean;
+  current: number;
+  limit: number | null;
+}
 
 export function useUsageLimits() {
   const { currentTenant } = useTenant();
-  const { subscription } = useTenantSubscription();
+  const { subscription, usage } = useTenantSubscription();
   const { addons } = useTenantAddons();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -110,11 +117,25 @@ export function useUsageLimits() {
     return count < limit;
   };
 
-  const enforceLimit = async (limitType: LimitType): Promise<boolean> => {
+  // Synchronous check using cached usage data
+  const isOverLimit = (limitType: LimitType): boolean => {
+    if (isUnlimited) return false;
+    if (!usage) return false;
+    const u = usage[limitType];
+    if (!u || u.limit === null) return false;
+    return u.current >= u.limit;
+  };
+
+  const isTrialing = subscription?.status === 'trialing';
+
+  const enforceLimit = async (limitType: LimitType): Promise<EnforceLimitResult> => {
     // Unlimited tenants bypass all limits
-    if (isUnlimited) return true;
+    if (isUnlimited) return { allowed: true, isTrialing: false, current: 0, limit: null };
     
     const withinLimit = await checkLimit(limitType);
+    const u = usage?.[limitType];
+    const current = u?.current ?? 0;
+    const limit = u?.limit ?? null;
     
     if (!withinLimit) {
       const limitLabels: Record<LimitType, string> = {
@@ -124,14 +145,25 @@ export function useUsageLimits() {
         users: t('pricing.features.team_members'),
       };
 
+      if (isTrialing) {
+        // Soft limit during trial — warn but allow
+        toast({
+          title: 'Limiet bereikt (proefperiode)',
+          description: `Je hebt de ${limitLabels[limitType]} limiet bereikt. Na je proefperiode moet je upgraden om door te gaan.`,
+        });
+        return { allowed: true, isTrialing: true, current, limit };
+      }
+
+      // Hard block for paid/active plans
       toast({
         title: t('billing.upgrade_needed'),
         description: `Je hebt de ${limitLabels[limitType]} limiet van je abonnement bereikt. Upgrade je plan om door te gaan.`,
         variant: 'destructive',
       });
+      return { allowed: false, isTrialing: false, current, limit };
     }
     
-    return withinLimit;
+    return { allowed: true, isTrialing, current, limit };
   };
 
   const checkFeature = (featureKey: string): boolean => {
@@ -230,5 +262,8 @@ export function useUsageLimits() {
     enforceLimit,
     checkFeature,
     getUsagePercentage,
+    isOverLimit,
+    isTrialing,
+    usage,
   };
 }
