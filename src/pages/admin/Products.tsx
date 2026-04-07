@@ -22,6 +22,7 @@ import {
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
 import { BulkAIGenerateDialog } from '@/components/admin/products/BulkAIGenerateDialog';
 import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
@@ -47,6 +48,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -69,6 +71,7 @@ import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/ty
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
+  const { isOverLimit, isTrialing } = useUsageLimits();
   const isMobile = useIsMobile();
   const { 
     products, 
@@ -320,12 +323,26 @@ export default function ProductsPage() {
               <Grid3X3 className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
-          <Button asChild>
-            <Link to="/admin/products/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Nieuw product
-            </Link>
-          </Button>
+          {isOverLimit('products') && !isTrialing ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button disabled>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nieuw product
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Limiet bereikt — upgrade je plan</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button asChild>
+              <Link to="/admin/products/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Nieuw product
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

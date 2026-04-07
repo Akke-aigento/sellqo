@@ -79,7 +79,7 @@ export function useTenantSubscription() {
       const users = usersRes.count || 0;
 
       const calcPercentage = (current: number, limit: number | null) => 
-        limit ? Math.min((current / limit) * 100, 100) : 0;
+        limit ? (current / limit) * 100 : 0;
 
       return {
         products: {

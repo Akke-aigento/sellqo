@@ -7,6 +7,7 @@ import { nl } from 'date-fns/locale';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useStorefrontCustomers } from '@/hooks/useStorefrontCustomers';
 import { useTenant } from '@/hooks/useTenant';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,6 +40,7 @@ export default function CustomersPage() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
+  const { enforceLimit } = useUsageLimits();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const { customers, isLoading, createCustomer, deleteCustomer } = useCustomers(search);
@@ -123,7 +125,11 @@ export default function CustomersPage() {
           <p className="text-muted-foreground">Beheer je klantenbestand</p>
         </div>
         <CustomerFormDialog 
-          onSubmit={(data) => createCustomer.mutate(data)}
+          onSubmit={async (data) => {
+            const result = await enforceLimit('customers');
+            if (!result.allowed) return;
+            createCustomer.mutate(data);
+          }}
           isLoading={createCustomer.isPending}
         />
       </div>

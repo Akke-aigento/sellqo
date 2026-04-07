@@ -41,6 +41,7 @@ import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { Button } from '@/components/ui/button';
@@ -141,6 +142,7 @@ export default function ProductForm() {
   const isEditing = !!id;
   
   const { currentTenant } = useTenant();
+  const { enforceLimit } = useUsageLimits();
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { products: allProducts, createProduct, updateProduct } = useProducts();
   const { categories } = useCategories();
@@ -473,6 +475,12 @@ export default function ProductForm() {
   };
 
    const onSubmit = async (data: FormValues) => {
+    // Enforce usage limit for new products
+    if (!isEditing) {
+      const result = await enforceLimit('products');
+      if (!result.allowed) return;
+    }
+
     // Set legacy category_id to primary (first selected) category
     const primaryCategoryId = selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null;
     const submitData = {

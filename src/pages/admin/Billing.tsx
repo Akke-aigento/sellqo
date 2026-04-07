@@ -223,25 +223,49 @@ export default function BillingPage() {
                     storage: 'Opslag (GB)',
                     users: 'Team',
                   };
-                  const isNearLimit = value.percentage >= 80;
+                  const isNearLimit = value.percentage >= 80 && value.percentage < 100;
+                  const isOverLimit = value.percentage >= 100;
                   
                   return (
                     <div key={key} className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span>{labels[key] || key}</span>
-                        <span className={cn(isNearLimit && 'text-amber-500 font-medium')}>
+                        <span className={cn(
+                          isOverLimit && 'text-destructive font-medium',
+                          isNearLimit && !isOverLimit && 'text-amber-500 font-medium'
+                        )}>
                           {value.current.toLocaleString()} / {value.limit?.toLocaleString() || '∞'}
                         </span>
                       </div>
                       <Progress 
-                        value={value.percentage} 
-                        className={cn(isNearLimit && '[&>div]:bg-amber-500')}
+                        value={Math.min(value.percentage, 100)} 
+                        className={cn(
+                          isOverLimit && '[&>div]:bg-destructive',
+                          isNearLimit && !isOverLimit && '[&>div]:bg-amber-500'
+                        )}
                       />
+                      {isOverLimit && (
+                        <p className="text-xs text-destructive font-medium">
+                          Limiet overschreden — upgrade je plan
+                        </p>
+                      )}
                     </div>
                   );
                 })}
 
-                {Object.values(usage).some(v => v.percentage >= 80) && (
+                {Object.values(usage).some(v => v.percentage >= 100) && (
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Je hebt je limiet overschreden
+                    </span>
+                    <Button size="sm" variant="destructive" className="ml-auto">
+                      Upgrade nu
+                    </Button>
+                  </div>
+                )}
+
+                {!Object.values(usage).some(v => v.percentage >= 100) && Object.values(usage).some(v => v.percentage >= 80) && (
                   <div className="flex items-center gap-2 p-3 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
                     <TrendingUp className="h-4 w-4" />
                     <span className="text-sm">

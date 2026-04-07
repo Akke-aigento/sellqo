@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, UserPlus, Calculator, Warehouse, Eye, Shield, UserCog } from 'lucide-react';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -71,10 +72,15 @@ export function InviteTeamMemberDialog({ trigger }: InviteTeamMemberDialogProps)
   const [role, setRole] = useState<InvitationRole>('staff');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { sendInvitation } = useTeamInvitations();
+  const { enforceLimit } = useUsageLimits();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+
+    // Check team member limit
+    const limitResult = await enforceLimit('users');
+    if (!limitResult.allowed) return;
 
     setIsSubmitting(true);
     const success = await sendInvitation(email.trim(), role);
