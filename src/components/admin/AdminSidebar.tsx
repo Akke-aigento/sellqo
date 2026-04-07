@@ -244,7 +244,7 @@ export function AdminSidebar() {
               <span>{item.title}</span>
             </span>
             {item.badge && item.id === 'inbox' && <InboxBadge />}
-            {renderPageToggle(item.id)}
+            {renderPageToggle(item.id, item)}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
