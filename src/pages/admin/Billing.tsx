@@ -331,7 +331,9 @@ export default function BillingPage() {
               plans={plans}
               currentPlanId={currentPlan.id}
               currentInterval={subscription?.billing_interval || 'monthly'}
+              selectedInterval={selectedInterval}
               isLoading={calculatePlanSwitch.isPending || createCheckout.isPending}
+              onIntervalChange={setSelectedInterval}
               onSelectPlan={(planId, isUpgrade) => {
                 if (subscription?.stripe_subscription_id) {
                   // Existing Stripe subscription → plan switch flow
