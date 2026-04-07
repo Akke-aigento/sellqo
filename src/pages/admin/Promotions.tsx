@@ -142,7 +142,7 @@ export default function Promotions() {
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const { roles } = useAuth();
-  const isPlatformAdmin = roles?.includes('platform_admin') || false;
+  const isPlatformAdmin = roles?.some((r: any) => r.role === 'platform_admin') || false;
 
   const isModuleLocked = (module: PromotionModule): boolean => {
     if (!module.featureKey) return false;
