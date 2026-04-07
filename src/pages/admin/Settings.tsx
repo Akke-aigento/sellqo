@@ -141,7 +141,7 @@ export default function SettingsPage() {
     if (!section.featureKey) return true;
     if (isPlatformAdmin && isAdminView) return true;
     if (isFeatureGranted(section.featureKey)) return true;
-    const features = subscription?.pricing_plan?.features as Record<string, boolean> | undefined;
+    const features = subscription?.pricing_plan?.features as unknown as Record<string, boolean> | undefined;
     if (!features) return true;
     return features[section.featureKey] !== false;
   };
