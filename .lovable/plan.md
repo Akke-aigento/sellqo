@@ -1,41 +1,51 @@
 
-
-## Instellingen-secties automatisch verbergen op basis van feature-visibility
+## Promoties-overzichtspagina: geblokkeerde modules tonen als "Upgrade"
 
 ### Probleem
-De Instellingen-pagina toont altijd alle secties (Peppol, WhatsApp, Fulfillment API, etc.), ook als de bijbehorende feature verborgen is in de sidebar. Dit veroorzaakt verwarring bij tenants.
+De Promotions overview-pagina toont alle 10 modules als klikbare kaarten, ongeacht het abonnement. Items die in de sidebar wél geblokkeerd zijn (Bundels, BOGO, Staffelkorting, Loyaliteit, Cadeaubonnen), zijn hier gewoon toegankelijk. Er is geen visuele indicatie dat deze features premium zijn.
 
 ### Oplossing
 
-**1. `featureKey` toevoegen aan settings-secties**
+**1. `featureKey` toevoegen aan `promotionModules`**
 
-Koppel elke instellingen-sectie aan dezelfde `featureKey` als het sidebar-item:
+Koppel dezelfde featureKeys als de sidebar:
 
-| Settings sectie | featureKey |
+| Module | featureKey |
 |---|---|
-| Peppol & E-facturatie | `peppol` |
-| WhatsApp Koppeling | `whatsapp` |
-| AI Assistent | `ai_marketing` |
-| Nieuwsbrief | `newsletter` |
-| Social Media | `social_commerce` |
-| Fulfillment API | `fulfillment_api` |
+| Bundels | `promo_bundles` |
+| Staffelkortingen | `promo_volume` |
+| BOGO Acties | `promo_bogo` |
+| Loyaliteitsprogramma | `loyalty_program` |
+| Cadeaukaarten | `promo_giftcards` |
 
-**2. Visibility-check in Settings.tsx**
+**2. Feature-check met bestaande hooks**
 
-Gebruik dezelfde logica als de sidebar: check abonnement-features + `granted_features` + admin view mode. Secties zonder `featureKey` blijven altijd zichtbaar. Platform admins in Admin View zien alles.
+Importeer `useTenantPageOverrides` (voor `isFeatureGranted`), `useSubscription`, en de admin view state. Dezelfde logica als sidebar en settings:
 
-**3. Implementatie**
+```text
+isModuleLocked(module):
+  if no featureKey → not locked
+  if platform admin + admin view → not locked
+  if featureKey in granted_features → not locked
+  if subscription has feature → not locked
+  else → locked
+```
 
-- Voeg `featureKey?: string` toe aan de `SettingsSection` interface
-- Importeer `useTenantPageOverrides`, `useSubscription`, `useAuth` (admin view check)
-- Filter `visibleSections` op dezelfde manier als `isItemFeatureHidden` in de sidebar
-- Als een hele groep leeg wordt na filtering, verberg de groep
+**3. Visuele weergave voor geblokkeerde modules**
+
+- Kaart krijgt een subtiele grijze overlay / `opacity-60`
+- "Beheren" knop wordt vervangen door "Upgrade" knop (amber/oranje stijl) met Lock-icoon
+- De "Upgrade" knop linkt naar `/admin/billing` (of opent upgrade flow)
+- Badge "Premium" verschijnt in plaats van de actief/totaal teller
+
+**4. Stats bovenaan filteren**
+
+De totalen (Actieve Promoties, etc.) tellen alleen modules mee waar de tenant toegang toe heeft, zodat de cijfers kloppen met wat ze daadwerkelijk kunnen gebruiken.
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/admin/Settings.tsx` | `featureKey` per sectie + visibility filtering |
+| `src/pages/admin/Promotions.tsx` | featureKey per module, lock-check, upgrade UI voor geblokkeerde kaarten |
 
 ### Geen database wijzigingen nodig
-
