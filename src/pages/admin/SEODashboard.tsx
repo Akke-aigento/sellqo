@@ -268,34 +268,23 @@ export default function SEODashboard() {
 
           {/* Quick Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <TrendingUp className="h-4 w-4" />
-                Meta Score
-              </div>
-              <p className="text-xl font-bold">{tenantScore?.meta_score ?? '--'}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <FileCode className="h-4 w-4" />
-                Technisch
-              </div>
-              <p className="text-xl font-bold">{tenantScore?.technical_score ?? '--'}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <Bot className="h-4 w-4" />
-                AI Search
-              </div>
-              <p className="text-xl font-bold">{tenantScore?.ai_search_score ?? '--'}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/60 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <Package className="h-4 w-4" />
-                Producten
-              </div>
-              <p className="text-xl font-bold">{totalProducts}</p>
-            </div>
+            {[
+              { label: 'Meta Score', icon: TrendingUp, value: tenantScore?.meta_score },
+              { label: 'Technisch', icon: FileCode, value: tenantScore?.technical_score },
+              { label: 'AI Search', icon: Bot, value: tenantScore?.ai_search_score },
+              { label: 'Content', icon: Package, value: tenantScore?.content_score },
+            ].map(({ label, icon: StatIcon, value }) => {
+              const color = value == null ? '' : value >= 70 ? 'text-green-600' : value >= 50 ? 'text-orange-500' : 'text-destructive';
+              return (
+                <div key={label} className="p-3 rounded-lg bg-background/60 backdrop-blur">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                    <StatIcon className="h-4 w-4" />
+                    {label}
+                  </div>
+                  <p className={`text-xl font-bold ${color}`}>{value ?? '--'}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 

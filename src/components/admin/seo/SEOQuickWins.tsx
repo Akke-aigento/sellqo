@@ -7,11 +7,12 @@ import {
   AlertTriangle, 
   AlertCircle, 
   Info,
-  ArrowRight,
   FileText,
   Image,
   Type,
-  Code
+  Code,
+  Wand2,
+  ExternalLink,
 } from 'lucide-react';
 import type { SEOIssue, SEOSuggestion } from '@/types/seo';
 
@@ -30,15 +31,6 @@ const getIssueIcon = (type: string) => {
   return AlertCircle;
 };
 
-const getSeverityColor = (severity: string) => {
-  switch (severity) {
-    case 'error': return 'destructive';
-    case 'warning': return 'secondary';
-    case 'info': return 'outline';
-    default: return 'outline';
-  }
-};
-
 const getSeverityIcon = (severity: string) => {
   switch (severity) {
     case 'error': return <AlertCircle className="h-4 w-4 text-destructive" />;
@@ -47,90 +39,109 @@ const getSeverityIcon = (severity: string) => {
   }
 };
 
+function getActionForIssue(issue: SEOIssue): { label: string; action: string } | null {
+  const t = issue.type.toLowerCase();
+  if (t.includes('meta_title')) return { label: 'Genereer meta title', action: 'generate_meta_title' };
+  if (t.includes('meta_description')) return { label: 'Genereer meta description', action: 'generate_meta_description' };
+  if (t.includes('content') || t.includes('description_short') || t.includes('description_missing')) return { label: 'Genereer beschrijving', action: 'generate_description' };
+  if (t.includes('image') || t.includes('alt')) return { label: 'Bekijk product', action: 'view_product' };
+  return null;
+}
+
+function getActionForSuggestion(sug: SEOSuggestion): { label: string; action: string } | null {
+  if (sug.action) {
+    const labels: Record<string, string> = {
+      'generate_meta': 'Genereer meta tags',
+      'improve_content': 'Verbeter content',
+      'optimize_categories': 'Optimaliseer categorieën',
+      'generate_faq': 'Genereer FAQ',
+      'generate_meta_title': 'Genereer meta title',
+      'generate_meta_description': 'Genereer meta description',
+    };
+    return { label: labels[sug.action] || 'Uitvoeren', action: sug.action };
+  }
+  return null;
+}
+
 export function SEOQuickWins({ issues, suggestions, onAction, isLoading }: SEOQuickWinsProps) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
     );
   }
 
   const allItems = [
     ...issues.map((issue) => ({ ...issue, itemType: 'issue' as const })),
-    ...suggestions.map((sug) => ({ ...sug, itemType: 'suggestion' as const, severity: sug.priority === 'high' ? 'error' : sug.priority === 'medium' ? 'warning' : 'info' })),
-  ].slice(0, 6);
+    ...suggestions.map((sug) => ({ ...sug, itemType: 'suggestion' as const, severity: sug.priority === 'high' ? 'error' : sug.priority === 'medium' ? 'warning' : 'info' as const })),
+  ].slice(0, 8);
+
+  if (allItems.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p>Geen verbeterpunten gevonden</p>
+        <p className="text-sm">Voer een analyse uit om suggesties te krijgen</p>
+      </div>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-yellow-500" />
-          Quick Wins
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {allItems.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Geen verbeterpunten gevonden</p>
-            <p className="text-sm">Voer een analyse uit om suggesties te krijgen</p>
+    <div className="space-y-3">
+      {allItems.map((item, index) => {
+        const isIssue = item.itemType === 'issue';
+        const Icon = getIssueIcon(isIssue ? (item as SEOIssue).type : (item as SEOSuggestion).type);
+        const actionInfo = isIssue 
+          ? getActionForIssue(item as SEOIssue)
+          : getActionForSuggestion(item as SEOSuggestion);
+        const isUrgent = item.severity === 'error';
+        const entityId = isIssue ? (item as SEOIssue).entity_id : (item as SEOSuggestion).entity_id;
+
+        return (
+          <div
+            key={index}
+            className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+              isUrgent ? 'bg-destructive/5 border-destructive/20' : 'bg-card hover:bg-accent/50'
+            }`}
+          >
+            <div className="shrink-0">
+              {getSeverityIcon(item.severity)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium text-sm truncate">
+                  {isIssue ? (item as SEOIssue).message : (item as SEOSuggestion).title}
+                </span>
+              </div>
+              {!isIssue && (item as SEOSuggestion).description && (
+                <p className="text-xs text-muted-foreground line-clamp-1 ml-6">
+                  {(item as SEOSuggestion).description}
+                </p>
+              )}
+              {(item as any).entity_name && (
+                <Badge variant="outline" className="mt-1 text-xs ml-6">
+                  {(item as any).entity_name}
+                </Badge>
+              )}
+            </div>
+            {actionInfo && onAction && (
+              <Button
+                size="sm"
+                variant={isUrgent ? 'destructive' : 'secondary'}
+                className="shrink-0 gap-1.5 text-xs"
+                onClick={() => onAction(actionInfo.action, entityId)}
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                {actionInfo.label}
+              </Button>
+            )}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {allItems.map((item, index) => {
-              const isIssue = item.itemType === 'issue';
-              const Icon = getIssueIcon(isIssue ? (item as SEOIssue).type : (item as SEOSuggestion).type);
-              
-              return (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="mt-0.5">
-                    {getSeverityIcon(item.severity)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm truncate">
-                        {isIssue ? (item as SEOIssue).message : (item as SEOSuggestion).title}
-                      </span>
-                    </div>
-                    {!isIssue && (item as SEOSuggestion).description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {(item as SEOSuggestion).description}
-                      </p>
-                    )}
-                    {(item as any).entity_name && (
-                      <Badge variant="outline" className="mt-1 text-xs">
-                        {(item as any).entity_name}
-                      </Badge>
-                    )}
-                  </div>
-                  {!isIssue && (item as SEOSuggestion).action && onAction && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="shrink-0"
-                      onClick={() => onAction((item as SEOSuggestion).action!, (item as SEOSuggestion).entity_id)}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        );
+      })}
+    </div>
   );
 }
