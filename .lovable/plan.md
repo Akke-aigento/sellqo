@@ -1,60 +1,41 @@
 
 
-## Probleem: Promotie-items verdwijnen in Tenant View ondanks "zichtbaar" markering
+## Instellingen-secties automatisch verbergen op basis van feature-visibility
 
-### Oorzaak
-Er zijn **twee onafhankelijke systemen** die menu-items verbergen:
-
-1. **Oog-toggles** (page overrides) — handmatig per tenant in/uitschakelen
-2. **Abonnement-features** — items met `featureKey` worden verborgen als het abonnement die feature niet bevat
-
-Mancini Milano zit op het **Free** plan. Dat plan heeft `promo_bundles`, `promo_bogo`, `promo_volume`, `loyalty_program`, en `promo_giftcards` allemaal op `false`. Daarom verdwijnen die 5 promotie-items in Tenant View, ongeacht de oog-toggle status.
-
-De oog-icons in Admin View tonen alleen de page-override status — ze weten niet dat het abonnement het item ook blokkeert. Daardoor lijkt het alsof alles zichtbaar is, terwijl het dat niet is.
+### Probleem
+De Instellingen-pagina toont altijd alle secties (Peppol, WhatsApp, Fulfillment API, etc.), ook als de bijbehorende feature verborgen is in de sidebar. Dit veroorzaakt verwarring bij tenants.
 
 ### Oplossing
 
-**1. Page override overschrijft abonnement-beperking**
+**1. `featureKey` toevoegen aan settings-secties**
 
-Wanneer een platform admin een item expliciet zichtbaar laat (niet in `hidden_pages`), én dat item heeft een `featureKey`, dan moet de admin de mogelijkheid hebben om dat item tóch zichtbaar te maken voor die tenant — ongeacht het abonnement.
+Koppel elke instellingen-sectie aan dezelfde `featureKey` als het sidebar-item:
 
-Concreet: voeg een `granted_features` array toe aan `tenant_feature_overrides` (naast `hidden_pages`). Als een platform admin in Admin View een premium item expliciet "toekent" aan een tenant, wordt de `featureKey` toegevoegd aan `granted_features`. Die lijst overschrijft de abonnement-check.
+| Settings sectie | featureKey |
+|---|---|
+| Peppol & E-facturatie | `peppol` |
+| WhatsApp Koppeling | `whatsapp` |
+| AI Assistent | `ai_marketing` |
+| Nieuwsbrief | `newsletter` |
+| Social Media | `social_commerce` |
+| Fulfillment API | `fulfillment_api` |
 
-**2. Visuele feedback in Admin View**
+**2. Visibility-check in Settings.tsx**
 
-In Admin View krijgen items die door het abonnement geblokkeerd zijn een **ander icoon** dan het oog:
-- 🔒 Geblokkeerd door abonnement (klikbaar om te "granten")
-- 👁 Zichtbaar (huidige toggle)
-- 👁‍🗨 Verborgen via page override
+Gebruik dezelfde logica als de sidebar: check abonnement-features + `granted_features` + admin view mode. Secties zonder `featureKey` blijven altijd zichtbaar. Platform admins in Admin View zien alles.
 
-Zo ziet de admin in één oogopslag wát er geblokkeerd wordt en waaróm.
+**3. Implementatie**
 
-**3. Aangepaste `isItemFeatureHidden` logica**
-
-```text
-isItemFeatureHidden(item):
-  if no featureKey → not hidden
-  if platform admin + admin view → not hidden
-  if featureKey in granted_features → not hidden   ← NIEUW
-  if subscription has feature → not hidden
-  else → hidden
-```
-
-### Database wijziging
-
-Voeg `granted_features` kolom toe aan `tenant_feature_overrides`:
-
-```sql
-ALTER TABLE tenant_feature_overrides 
-ADD COLUMN granted_features text[] DEFAULT '{}';
-```
+- Voeg `featureKey?: string` toe aan de `SettingsSection` interface
+- Importeer `useTenantPageOverrides`, `useSubscription`, `useAuth` (admin view check)
+- Filter `visibleSections` op dezelfde manier als `isItemFeatureHidden` in de sidebar
+- Als een hele groep leeg wordt na filtering, verberg de groep
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Database migration | `granted_features` kolom toevoegen |
-| `src/hooks/useTenantPageOverrides.ts` | `granted_features` ophalen + toggle functie toevoegen |
-| `src/components/admin/AdminSidebar.tsx` | `isItemFeatureHidden` aanpassen: check `granted_features`; visuele indicatie voor abonnement-geblokkeerde items in Admin View |
-| `src/components/admin/sidebar/sidebarConfig.ts` | Geen wijzigingen |
+| `src/pages/admin/Settings.tsx` | `featureKey` per sectie + visibility filtering |
+
+### Geen database wijzigingen nodig
 
