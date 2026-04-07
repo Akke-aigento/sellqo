@@ -1,46 +1,41 @@
 
 
-## Wauw-factor toevoegen aan billing plan layout
+## Billing cards visueel opschonen: minder kleur, meer elegantie
 
-### Huidige situatie
-De plan cards zijn functioneel correct maar visueel saai: witte kaarten, kleine tekst, geen visuele hiërarchie, geen kleurgradiënten, en de detail-popup is basic.
+### Wat je wilt
+- De **bovenste helft** van de kaarten (icoon, naam, prijs, limieten-grid) is goed — behouden
+- **Minder felle kleuren** per tier: geen blauw/teal/amber gradiënten overal
+- **"Meest gekozen"** badge krijgt alleen een **gouden omranding**, geen felgroene gradient
+- Het **onderste gedeelte** (feature-pills, upgrade-knoppen) is te veel fel groen — neutraler maken
 
-### Aanpak
+### Aanpassingen
 
-**1. Plan Comparison Cards — visuele upgrade**
+**1. Tier-kleuren neutraliseren**
+- Alle kaarten krijgen een schone witte/lichtgrijze achtergrond — geen gekleurde gradiënten meer
+- De gekleurde top-strip (1.5px) blijft als subtiel accent, maar wordt dunner/subtieler
+- Prijs-kleur wordt voor alle plannen gewoon donkergrijs/zwart in plaats van blauw/teal/amber
+- Icoon-achtergrond wordt neutraal (lichtgrijs) voor alle tiers
 
-- Elke plan-tier krijgt een unieke kleur-accent (Free = grijs, Starter = blauw, Pro = teal gradient met glow, Enterprise = donker/goud)
-- Pro-kaart (highlighted) krijgt een **glassmorphism** effect met gradient border en subtiele glow-shadow
-- Prijzen worden groter en krijgen een gradient kleur
-- Limieten worden compacter weergegeven in een grid met iconen
-- "Je krijgt erbij" features krijgen **pill-badges** in plaats van een saaie lijst
-- Upgrade-knoppen krijgen gradient achtergrond + hover-animatie (scale + glow)
-- "Huidig plan" badge krijgt een animated pulse ring
-- Subtiele achtergrond-patronen of gradient mesh per kaart
+**2. "Meest gekozen" badge → gouden rand**
+- Badge wordt wit/transparant met een **gouden border** en subtiele gouden tekst
+- Geen felgroene gradient meer
+- De highlighted kaart krijgt een **gouden border** (border-amber-400) in plaats van een tier-kleur
 
-**2. Feature Detail Dialog — premium look**
+**3. Feature-pills rustiger**
+- "Je krijgt erbij" pills: zachter groen (lichtere achtergrond, subtielere border)
+- De limit-wijzigingen (Producten: 25 → 250) worden gewone tekst met een klein icoon, geen gekleurde achtergrond
+- Meer witruimte, minder visuele drukte
 
-- Header krijgt een grotere gradient met het plan-icoon en een visueel aantrekkelijke prijs-weergave
-- Limieten-grid krijgt grotere cijfers met kleuraccenten en iconen (📦 producten, 📋 orders, etc.)
-- Feature-categorieën krijgen kleur-gecodeerde section headers met achtergrondkleur
-- Check/X iconen worden groter en met meer contrast
-- Upgrade-knop onderin krijgt dezelfde premium gradient-stijl als de cards
-- Animatie bij openen (fade + slide)
-
-**3. Specifieke visuele elementen**
-
-- **Gradient borders**: Pro/Enterprise kaarten krijgen een animated gradient border
-- **Hover states**: Cards liften op met shadow-2xl en scale-[1.02]
-- **Pricing typography**: Prijscijfer 4xl bold met gradient text color voor betaalde plannen
-- **Feature count badge**: "10 van 36 features" als een progress-achtige indicator
-- **Spacing**: Meer breathing room, betere verticale ritme
+**4. Upgrade-knoppen**
+- Alle upgrade-knoppen krijgen dezelfde kleur: de standaard SellQo teal (primary), niet per-tier blauw/amber/oranje
+- Downgrade-knoppen blijven outline/neutraal
+- "Huidig plan" knop blijft disabled outline
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/billing/PlanComparisonCards.tsx` | Complete visuele restyling: gradiënten, glassmorphism, animaties, betere typografie |
-| `src/components/admin/billing/PlanFeatureDetailDialog.tsx` | Premium dialog styling: grotere header, kleur-gecodeerde categorieën, betere CTA |
+| `src/components/admin/billing/PlanComparisonCards.tsx` | tierConfig neutraliseren, badge gouden rand, pills zachter, knoppen uniform |
 
 ### Geen database wijzigingen nodig
 
