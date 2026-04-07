@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { campaign_id } = await req.json();
+    const { campaign_id, force_repush } = await req.json();
     if (!campaign_id) {
       return new Response(
         JSON.stringify({ error: "campaign_id is required" }),
@@ -131,8 +131,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Already pushed?
-    if (campaign.platform_campaign_id) {
+    // Already pushed? Skip unless force_repush
+    if (campaign.platform_campaign_id && !force_repush) {
       return new Response(
         JSON.stringify({
           success: true,
