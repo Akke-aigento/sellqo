@@ -322,12 +322,26 @@ export default function ProductsPage() {
               <Grid3X3 className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
-          <Button asChild>
-            <Link to="/admin/products/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Nieuw product
-            </Link>
-          </Button>
+          {isOverLimit('products') && !isTrialing ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button disabled>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nieuw product
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Limiet bereikt — upgrade je plan</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button asChild>
+              <Link to="/admin/products/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Nieuw product
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
