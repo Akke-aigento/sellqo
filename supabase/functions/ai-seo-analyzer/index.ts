@@ -44,13 +44,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch tenant primary language
+    // Fetch tenant language
     const { data: tenantData } = await supabase
       .from("tenants")
-      .select("primary_language")
+      .select("language")
       .eq("id", tenantId)
       .single();
-    const lang = tenantData?.primary_language || 'nl';
+    const lang = tenantData?.language || 'nl';
 
     // Check and use AI credits (2 credits for SEO analysis)
     const { data: creditsUsed, error: creditsError } = await supabase.rpc(
@@ -449,6 +449,7 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error("Error upserting tenant score:", upsertError);
+      throw new Error(`Failed to save tenant SEO score: ${upsertError.message}`);
     }
 
     // Upsert product scores

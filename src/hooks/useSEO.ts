@@ -58,6 +58,29 @@ export function useSEO() {
     enabled: !!tenantId,
   });
 
+  // Fetch category SEO scores
+  const { data: categoryScores, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['seo-category-scores', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await supabase
+        .from('seo_scores')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('entity_type', 'category')
+        .order('overall_score', { ascending: true, nullsFirst: true });
+      
+      if (error) throw error;
+      return (data || []).map(d => ({
+        ...d,
+        issues: (d.issues || []) as unknown as SEOIssue[],
+        suggestions: (d.suggestions || []) as unknown as SEOSuggestion[],
+      })) as SEOScore[];
+    },
+    enabled: !!tenantId,
+  });
+
   // Fetch SEO keywords
   const { data: keywords, isLoading: isLoadingKeywords } = useQuery({
     queryKey: ['seo-keywords', tenantId],
@@ -110,6 +133,7 @@ export function useSEO() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['seo-score'] });
       queryClient.invalidateQueries({ queryKey: ['seo-product-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['seo-category-scores'] });
       queryClient.invalidateQueries({ queryKey: ['seo-history'] });
       toast.success(`SEO Analyse voltooid - Score: ${data.overall_score}/100`);
     },
@@ -229,11 +253,12 @@ export function useSEO() {
   return {
     tenantScore,
     productScores,
+    categoryScores,
     keywords,
     history,
     quickWins,
     productsNeedingAttention,
-    isLoading: isLoadingScore || isLoadingProducts || isLoadingKeywords,
+    isLoading: isLoadingScore || isLoadingProducts || isLoadingCategories || isLoadingKeywords,
     analyzeSEO: analyzeSeOMutation.mutate,
     isAnalyzing: analyzeSeOMutation.isPending,
     generateContent: generateContentMutation.mutate,
