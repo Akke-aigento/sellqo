@@ -188,6 +188,10 @@ export default function AdsBolcomCampaignDetail() {
         </CardContent>
       </Card>
 
+
+      {/* AI Campaign Optimizer */}
+      <CampaignAIAnalysis campaignId={campaign.id} tenantId={campaign.tenant_id} />
+
       {/* Ad Groups accordion */}
       <Card>
         <CardHeader>
