@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X, Star, ArrowUp, ArrowDown, Minus, Info } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, X, Star, ArrowUp, ArrowDown, Minus, Info, Crown, Sparkles, Package, ShoppingCart, Users, UserPlus } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -55,20 +55,74 @@ const featureLabels: Record<keyof PricingPlanFeatures, string> = {
   promo_giftcards: 'Cadeaubonnen',
 };
 
+const tierConfig: Record<string, {
+  gradient: string;
+  cardBg: string;
+  badge: string;
+  priceColor: string;
+  icon: React.ReactNode;
+  glowShadow: string;
+  borderAccent: string;
+}> = {
+  free: {
+    gradient: 'from-slate-100 to-slate-50',
+    cardBg: 'bg-gradient-to-b from-slate-50/80 to-white',
+    badge: 'bg-slate-200 text-slate-700',
+    priceColor: 'text-slate-700',
+    icon: <Package className="h-5 w-5" />,
+    glowShadow: '',
+    borderAccent: 'border-slate-200',
+  },
+  starter: {
+    gradient: 'from-blue-100 to-indigo-50',
+    cardBg: 'bg-gradient-to-b from-blue-50/60 to-white',
+    badge: 'bg-blue-100 text-blue-700',
+    priceColor: 'text-blue-700',
+    icon: <Sparkles className="h-5 w-5" />,
+    glowShadow: 'hover:shadow-blue-200/50',
+    borderAccent: 'border-blue-200',
+  },
+  pro: {
+    gradient: 'from-teal-100 via-emerald-50 to-cyan-50',
+    cardBg: 'bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/40',
+    badge: 'bg-teal-100 text-teal-700',
+    priceColor: 'text-teal-700',
+    icon: <Crown className="h-5 w-5" />,
+    glowShadow: 'hover:shadow-teal-200/60',
+    borderAccent: 'border-teal-300',
+  },
+  enterprise: {
+    gradient: 'from-amber-100 via-orange-50 to-yellow-50',
+    cardBg: 'bg-gradient-to-br from-amber-50/60 via-white to-orange-50/30',
+    badge: 'bg-amber-100 text-amber-800',
+    priceColor: 'text-amber-800',
+    icon: <Star className="h-5 w-5" />,
+    glowShadow: 'hover:shadow-amber-200/50',
+    borderAccent: 'border-amber-300',
+  },
+};
+
+function getTierKey(planName: string): string {
+  const lower = planName.toLowerCase();
+  if (lower.includes('free') || lower.includes('gratis')) return 'free';
+  if (lower.includes('starter')) return 'starter';
+  if (lower.includes('pro')) return 'pro';
+  if (lower.includes('enterprise') || lower.includes('zakelijk')) return 'enterprise';
+  return 'starter';
+}
+
 function compareFeatures(
   currentFeatures: PricingPlanFeatures,
   targetFeatures: PricingPlanFeatures
 ): { gained: string[]; lost: string[] } {
   const gained: string[] = [];
   const lost: string[] = [];
-
   for (const key of Object.keys(currentFeatures) as (keyof PricingPlanFeatures)[]) {
     const currentHas = currentFeatures[key];
     const targetHas = targetFeatures[key];
     if (!currentHas && targetHas) gained.push(featureLabels[key] || key);
     else if (currentHas && !targetHas) lost.push(featureLabels[key] || key);
   }
-
   return { gained, lost };
 }
 
@@ -82,13 +136,8 @@ export function PlanComparisonCards({
   const { i18n } = useTranslation();
   const [detailPlan, setDetailPlan] = useState<PricingPlan | null>(null);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat(i18n.language, {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 }).format(price);
 
   const formatLimit = (limit: number | null) => {
     if (limit === null) return 'Onbeperkt';
@@ -101,19 +150,21 @@ export function PlanComparisonCards({
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="text-center">
+      <div className="space-y-8">
+        <div className="text-center space-y-1">
+          <h3 className="text-lg font-semibold">Kies het plan dat bij je past</h3>
           <p className="text-sm text-muted-foreground">
             Vergelijk plannen en bekijk wat je krijgt of verliest bij een wijziging
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {sortedPlans.map((plan, index) => {
             const isCurrent = plan.id === currentPlanId;
             const isUpgrade = index > currentPlanIndex;
             const price = currentInterval === 'yearly' ? plan.yearly_price : plan.monthly_price;
             const monthlyEquivalent = currentInterval === 'yearly' ? plan.yearly_price / 12 : plan.monthly_price;
+            const tier = tierConfig[getTierKey(plan.name)] || tierConfig.starter;
 
             const { gained, lost } = currentPlan
               ? compareFeatures(currentPlan.features, plan.features)
@@ -121,182 +172,202 @@ export function PlanComparisonCards({
 
             const limitChanges: { label: string; current: number | null; target: number | null; isIncrease: boolean }[] = [];
             if (currentPlan) {
-              if (plan.limit_products !== currentPlan.limit_products) {
+              if (plan.limit_products !== currentPlan.limit_products)
                 limitChanges.push({ label: 'Producten', current: currentPlan.limit_products, target: plan.limit_products, isIncrease: (plan.limit_products || Infinity) > (currentPlan.limit_products || Infinity) });
-              }
-              if (plan.limit_orders !== currentPlan.limit_orders) {
+              if (plan.limit_orders !== currentPlan.limit_orders)
                 limitChanges.push({ label: 'Orders/mnd', current: currentPlan.limit_orders, target: plan.limit_orders, isIncrease: (plan.limit_orders || Infinity) > (currentPlan.limit_orders || Infinity) });
-              }
-              if (plan.limit_customers !== currentPlan.limit_customers) {
+              if (plan.limit_customers !== currentPlan.limit_customers)
                 limitChanges.push({ label: 'Klanten', current: currentPlan.limit_customers, target: plan.limit_customers, isIncrease: (plan.limit_customers || Infinity) > (currentPlan.limit_customers || Infinity) });
-              }
-              if (plan.limit_users !== currentPlan.limit_users) {
+              if (plan.limit_users !== currentPlan.limit_users)
                 limitChanges.push({ label: 'Teamleden', current: currentPlan.limit_users, target: plan.limit_users, isIncrease: plan.limit_users > currentPlan.limit_users });
-              }
             }
+
+            const enabledCount = plan.features ? Object.values(plan.features).filter(Boolean).length : 0;
+            const totalCount = plan.features ? Object.keys(plan.features).length : 0;
 
             return (
               <Card
                 key={plan.id}
                 className={cn(
-                  'relative flex flex-col transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5',
-                  plan.highlighted && !isCurrent && 'border-primary shadow-md',
-                  isCurrent && 'ring-2 ring-primary bg-primary/5'
+                  'relative flex flex-col overflow-hidden transition-all duration-300',
+                  'hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]',
+                  tier.cardBg,
+                  tier.glowShadow,
+                  plan.highlighted && !isCurrent && `${tier.borderAccent} border-2 shadow-lg`,
+                  isCurrent && 'ring-2 ring-primary shadow-lg',
+                  !plan.highlighted && !isCurrent && 'border'
                 )}
               >
+                {/* Top gradient strip */}
+                <div className={cn('h-1.5 w-full bg-gradient-to-r', tier.gradient)} />
+
                 {/* Status badges */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1">
+                <div className="absolute -top-0 left-1/2 -translate-x-1/2 flex gap-1 mt-4">
                   {isCurrent && (
-                    <Badge className="bg-primary text-primary-foreground shadow-sm">
-                      Huidig plan
+                    <Badge className="bg-primary text-primary-foreground shadow-md animate-pulse">
+                      ✓ Huidig plan
                     </Badge>
                   )}
                   {plan.highlighted && !isCurrent && (
-                    <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm border-0">
-                      <Star className="h-3 w-3 mr-1" />
-                      Populair
+                    <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md border-0">
+                      <Crown className="h-3 w-3 mr-1" />
+                      Meest gekozen
                     </Badge>
                   )}
                 </div>
 
-                <CardHeader className="pt-6">
-                  <CardTitle className="text-center">
-                    <span className="text-lg font-bold">{plan.name}</span>
-                  </CardTitle>
-                  <div className="text-center">
-                    <span className="text-3xl font-bold tracking-tight text-primary">
+                <CardHeader className={cn('pt-10 pb-4 text-center', !isCurrent && !plan.highlighted && 'pt-6')}>
+                  {/* Plan icon */}
+                  <div className={cn(
+                    'mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3',
+                    `bg-gradient-to-br ${tier.gradient}`,
+                    tier.borderAccent, 'border'
+                  )}>
+                    <span className={tier.priceColor}>{tier.icon}</span>
+                  </div>
+
+                  <span className="text-base font-bold tracking-wide uppercase text-muted-foreground">{plan.name}</span>
+
+                  <div className="mt-2">
+                    <span className={cn('text-4xl font-extrabold tracking-tight', tier.priceColor)}>
                       {formatPrice(monthlyEquivalent)}
                     </span>
-                    <span className="text-muted-foreground">/mnd</span>
+                    <span className="text-muted-foreground text-sm">/mnd</span>
                     {currentInterval === 'yearly' && price > 0 && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {formatPrice(price)}/jaar
                       </p>
                     )}
                   </div>
-                </CardHeader>
 
-                <CardContent className="flex-1 space-y-4">
-                  {/* Limits */}
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Producten</span>
-                      <span className="font-medium">{formatLimit(plan.limit_products)}</span>
+                  {/* Feature count indicator */}
+                  <div className="mt-3 mx-auto max-w-[180px]">
+                    <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                      <span>{enabledCount} features</span>
+                      <span>{totalCount} totaal</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Orders/mnd</span>
-                      <span className="font-medium">{formatLimit(plan.limit_orders)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Klanten</span>
-                      <span className="font-medium">{formatLimit(plan.limit_customers)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Teamleden</span>
-                      <span className="font-medium">{plan.limit_users}</span>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full transition-all duration-500 bg-gradient-to-r', tier.gradient)}
+                        style={{ width: `${totalCount > 0 ? (enabledCount / totalCount) * 100 : 0}%` }}
+                      />
                     </div>
                   </div>
+                </CardHeader>
 
-                  {/* Feature changes */}
+                <CardContent className="flex-1 space-y-4 px-5">
+                  {/* Limits grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { icon: <Package className="h-3.5 w-3.5" />, label: 'Producten', value: formatLimit(plan.limit_products) },
+                      { icon: <ShoppingCart className="h-3.5 w-3.5" />, label: 'Orders', value: formatLimit(plan.limit_orders) },
+                      { icon: <Users className="h-3.5 w-3.5" />, label: 'Klanten', value: formatLimit(plan.limit_customers) },
+                      { icon: <UserPlus className="h-3.5 w-3.5" />, label: 'Team', value: String(plan.limit_users) },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-1.5 text-xs p-2 rounded-lg bg-muted/40">
+                        <span className="text-muted-foreground">{item.icon}</span>
+                        <div>
+                          <div className="font-semibold leading-tight">{item.value}</div>
+                          <div className="text-muted-foreground text-[10px]">{item.label}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Feature changes as pill badges */}
                   {!isCurrent && (gained.length > 0 || lost.length > 0 || limitChanges.length > 0) && (
-                    <div className="space-y-3 pt-3 border-t">
+                    <div className="space-y-3 pt-3 border-t border-dashed">
                       {gained.length > 0 && (
                         <div>
-                          <div className="flex items-center gap-1 text-xs font-medium text-green-600 mb-1">
+                          <div className="flex items-center gap-1 text-xs font-semibold text-green-600 mb-1.5">
                             <ArrowUp className="h-3 w-3" />
-                            Je krijgt erbij:
+                            Je krijgt erbij
                           </div>
-                          <ul className="space-y-1">
+                          <div className="flex flex-wrap gap-1">
                             {gained.slice(0, 4).map((feature, i) => (
-                              <li key={i} className="flex items-center gap-1.5 text-xs text-green-600">
-                                <Check className="h-3 w-3" />
+                              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-medium border border-green-200">
+                                <Check className="h-2.5 w-2.5" />
                                 {feature}
-                              </li>
+                              </span>
                             ))}
                             {gained.length > 4 && (
-                              <li>
-                                <button
-                                  type="button"
-                                  onClick={() => setDetailPlan(plan)}
-                                  className="text-xs text-green-600 hover:text-green-700 hover:underline pl-4 cursor-pointer flex items-center gap-1"
-                                >
-                                  <Info className="h-3 w-3" />
-                                  +{gained.length - 4} meer...
-                                </button>
-                              </li>
+                              <button
+                                type="button"
+                                onClick={() => setDetailPlan(plan)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-medium border border-green-200 hover:bg-green-100 cursor-pointer transition-colors"
+                              >
+                                +{gained.length - 4} meer
+                              </button>
                             )}
-                          </ul>
+                          </div>
                         </div>
                       )}
 
                       {lost.length > 0 && (
                         <div>
-                          <div className="flex items-center gap-1 text-xs font-medium text-red-600 mb-1">
+                          <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-1.5">
                             <ArrowDown className="h-3 w-3" />
-                            Je verliest:
+                            Je verliest
                           </div>
-                          <ul className="space-y-1">
-                            {lost.slice(0, 4).map((feature, i) => (
-                              <li key={i} className="flex items-center gap-1.5 text-xs text-red-600">
-                                <X className="h-3 w-3" />
+                          <div className="flex flex-wrap gap-1">
+                            {lost.slice(0, 3).map((feature, i) => (
+                              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-medium border border-red-200">
+                                <X className="h-2.5 w-2.5" />
                                 {feature}
-                              </li>
+                              </span>
                             ))}
-                            {lost.length > 4 && (
-                              <li>
-                                <button
-                                  type="button"
-                                  onClick={() => setDetailPlan(plan)}
-                                  className="text-xs text-red-600 hover:text-red-700 hover:underline pl-4 cursor-pointer flex items-center gap-1"
-                                >
-                                  <Info className="h-3 w-3" />
-                                  +{lost.length - 4} meer...
-                                </button>
-                              </li>
+                            {lost.length > 3 && (
+                              <button
+                                type="button"
+                                onClick={() => setDetailPlan(plan)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-medium border border-red-200 hover:bg-red-100 cursor-pointer transition-colors"
+                              >
+                                +{lost.length - 3} meer
+                              </button>
                             )}
-                          </ul>
+                          </div>
                         </div>
                       )}
 
                       {limitChanges.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                            <Minus className="h-3 w-3" />
-                            Limieten wijzigen:
-                          </div>
-                          <ul className="space-y-1">
-                            {limitChanges.map((change, i) => (
-                              <li
-                                key={i}
-                                className={cn(
-                                  'text-xs flex items-center gap-1.5',
-                                  change.isIncrease ? 'text-green-600' : 'text-red-600'
-                                )}
-                              >
-                                {change.isIncrease ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                                {change.label}: {formatLimit(change.current)} → {formatLimit(change.target)}
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="space-y-1">
+                          {limitChanges.map((change, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                'text-[10px] flex items-center gap-1.5 px-2 py-1 rounded-md',
+                                change.isIncrease ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                              )}
+                            >
+                              {change.isIncrease ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+                              <span className="font-medium">{change.label}:</span> {formatLimit(change.current)} → {formatLimit(change.target)}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* View all features button */}
+                  {/* View all features */}
                   <button
                     type="button"
                     onClick={() => setDetailPlan(plan)}
-                    className="text-xs text-primary hover:text-primary/80 hover:underline cursor-pointer flex items-center gap-1 pt-1"
+                    className={cn(
+                      'w-full text-xs font-medium py-2 px-3 rounded-lg border border-dashed transition-all',
+                      'flex items-center justify-center gap-1.5 cursor-pointer',
+                      'hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+                      tier.borderAccent
+                    )}
                   >
-                    <Info className="h-3 w-3" />
-                    Bekijk alle features
+                    <Info className="h-3.5 w-3.5" />
+                    Bekijk alle {enabledCount} features
                   </button>
                 </CardContent>
 
-                <CardFooter className="pt-4">
+                <CardFooter className="px-5 pb-5 pt-2">
                   {isCurrent ? (
                     <Button className="w-full" variant="outline" disabled>
+                      <Check className="h-4 w-4 mr-1" />
                       Huidig plan
                     </Button>
                   ) : plan.id === 'free' ? (
@@ -311,14 +382,22 @@ export function PlanComparisonCards({
                     </Button>
                   ) : isUpgrade ? (
                     <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      className={cn(
+                        'w-full text-white shadow-lg transition-all duration-200',
+                        'hover:shadow-xl hover:scale-[1.02]',
+                        getTierKey(plan.name) === 'pro'
+                          ? 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700'
+                          : getTierKey(plan.name) === 'enterprise'
+                            ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                      )}
                       onClick={() => onSelectPlan(plan.id, true)}
                       disabled={isLoading}
                     >
                       <ArrowUp className="h-4 w-4 mr-1" />
-                      Upgrade
+                      Upgrade naar {plan.name}
                       {gained.length > 0 && (
-                        <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700">
+                        <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0 text-[10px]">
                           +{gained.length}
                         </Badge>
                       )}
@@ -333,7 +412,7 @@ export function PlanComparisonCards({
                       <ArrowDown className="h-4 w-4 mr-1" />
                       Downgrade
                       {lost.length > 0 && (
-                        <Badge variant="destructive" className="ml-2">
+                        <Badge variant="destructive" className="ml-2 text-[10px]">
                           -{lost.length}
                         </Badge>
                       )}
@@ -345,12 +424,11 @@ export function PlanComparisonCards({
           })}
         </div>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground">
           Alle prijzen zijn exclusief BTW
         </p>
       </div>
 
-      {/* Feature Detail Dialog */}
       <PlanFeatureDetailDialog
         plan={detailPlan}
         currentPlanId={currentPlanId}

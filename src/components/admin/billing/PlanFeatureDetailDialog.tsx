@@ -1,4 +1,4 @@
-import { Check, X, Crown, Zap } from 'lucide-react';
+import { Check, X, Crown, Zap, Package, ShoppingCart, Users, UserPlus, Sparkles, Star, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
 
@@ -26,13 +25,15 @@ interface PlanFeatureDetailDialogProps {
 interface FeatureCategory {
   label: string;
   icon: React.ReactNode;
+  color: string;
   items: { label: string; key: keyof PricingPlanFeatures }[];
 }
 
 const featureCategories: FeatureCategory[] = [
   {
     label: 'Webshop & Tools',
-    icon: <Zap className="h-4 w-4" />,
+    icon: <Package className="h-4 w-4" />,
+    color: 'bg-blue-50 text-blue-700 border-blue-200',
     items: [
       { label: 'Webshop Builder', key: 'webshop_builder' },
       { label: 'Visual Editor', key: 'visual_editor' },
@@ -43,7 +44,8 @@ const featureCategories: FeatureCategory[] = [
   },
   {
     label: 'AI Tools',
-    icon: <Crown className="h-4 w-4" />,
+    icon: <Sparkles className="h-4 w-4" />,
+    color: 'bg-purple-50 text-purple-700 border-purple-200',
     items: [
       { label: 'AI Marketing', key: 'ai_marketing' },
       { label: 'AI Copywriting', key: 'ai_copywriting' },
@@ -57,6 +59,7 @@ const featureCategories: FeatureCategory[] = [
   {
     label: 'Integraties & Kanalen',
     icon: <Zap className="h-4 w-4" />,
+    color: 'bg-teal-50 text-teal-700 border-teal-200',
     items: [
       { label: 'API toegang', key: 'apiAccess' },
       { label: 'Webhooks', key: 'webhooks' },
@@ -70,7 +73,8 @@ const featureCategories: FeatureCategory[] = [
   },
   {
     label: 'Promoties & Loyaliteit',
-    icon: <Zap className="h-4 w-4" />,
+    icon: <Crown className="h-4 w-4" />,
+    color: 'bg-amber-50 text-amber-700 border-amber-200',
     items: [
       { label: 'Bundel aanbiedingen', key: 'promo_bundles' },
       { label: 'Buy One Get One', key: 'promo_bogo' },
@@ -83,7 +87,8 @@ const featureCategories: FeatureCategory[] = [
   },
   {
     label: 'Facturatie & Betalingen',
-    icon: <Zap className="h-4 w-4" />,
+    icon: <ShoppingCart className="h-4 w-4" />,
+    color: 'bg-green-50 text-green-700 border-green-200',
     items: [
       { label: 'POS Kassa', key: 'pos' },
       { label: 'Factur-X e-facturen', key: 'facturX' },
@@ -93,7 +98,8 @@ const featureCategories: FeatureCategory[] = [
   },
   {
     label: 'Geavanceerd',
-    icon: <Zap className="h-4 w-4" />,
+    icon: <Star className="h-4 w-4" />,
+    color: 'bg-slate-50 text-slate-700 border-slate-200',
     items: [
       { label: 'Geavanceerde analytics', key: 'advancedAnalytics' },
       { label: 'Prioriteit support', key: 'prioritySupport' },
@@ -107,6 +113,17 @@ const featureCategories: FeatureCategory[] = [
 function formatLimit(value: number | null) {
   if (value === null) return 'Onbeperkt';
   return value.toLocaleString('nl-NL');
+}
+
+function getTierGradient(planName: string): { header: string; button: string } {
+  const lower = planName.toLowerCase();
+  if (lower.includes('free') || lower.includes('gratis'))
+    return { header: 'from-slate-200 via-slate-100 to-white', button: 'bg-slate-600 hover:bg-slate-700' };
+  if (lower.includes('starter'))
+    return { header: 'from-blue-200 via-indigo-100 to-white', button: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' };
+  if (lower.includes('pro'))
+    return { header: 'from-teal-200 via-emerald-100 to-white', button: 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700' };
+  return { header: 'from-amber-200 via-orange-100 to-white', button: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' };
 }
 
 export function PlanFeatureDetailDialog({
@@ -123,6 +140,7 @@ export function PlanFeatureDetailDialog({
   const isCurrent = plan.id === currentPlanId;
   const isUpgrade = plan.sort_order > currentPlanSortOrder;
   const monthlyPrice = plan.monthly_price;
+  const tierGradient = getTierGradient(plan.name);
 
   const enabledCount = plan.features
     ? Object.values(plan.features).filter(Boolean).length
@@ -134,13 +152,13 @@ export function PlanFeatureDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4">
+        {/* Premium gradient header */}
+        <div className={cn('bg-gradient-to-br px-6 pt-8 pb-5', tierGradient.header)}>
           <DialogHeader>
-            <div className="flex items-center gap-2">
-              <DialogTitle className="text-xl font-bold">{plan.name}</DialogTitle>
+            <div className="flex items-center justify-center gap-2">
+              <DialogTitle className="text-2xl font-extrabold tracking-tight">{plan.name}</DialogTitle>
               {plan.highlighted && (
-                <Badge className="bg-primary/20 text-primary border-0">
+                <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 shadow-sm">
                   <Crown className="h-3 w-3 mr-1" />
                   Populair
                 </Badge>
@@ -151,89 +169,109 @@ export function PlanFeatureDetailDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-3xl font-bold tracking-tight">
+          <div className="mt-4 text-center">
+            <span className="text-5xl font-extrabold tracking-tight">
               €{monthlyPrice}
             </span>
-            <span className="text-muted-foreground">/mnd</span>
+            <span className="text-muted-foreground text-lg">/mnd</span>
           </div>
 
-          <p className="text-xs text-muted-foreground mt-1">
-            {enabledCount} van {totalCount} features inbegrepen
-          </p>
+          {/* Feature progress bar */}
+          <div className="mt-4 max-w-[200px] mx-auto">
+            <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
+              <span>{enabledCount} features</span>
+              <span>{totalCount} totaal</span>
+            </div>
+            <div className="h-2 rounded-full bg-white/60 overflow-hidden shadow-inner">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-700"
+                style={{ width: `${totalCount > 0 ? (enabledCount / totalCount) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
         </div>
 
-        <Separator />
-
-        {/* Limits */}
-        <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Limits grid */}
+        <div className="px-6 py-4 grid grid-cols-4 gap-2 border-b">
           {[
-            { label: 'Producten', value: formatLimit(plan.limit_products) },
-            { label: 'Orders/mnd', value: formatLimit(plan.limit_orders) },
-            { label: 'Klanten', value: formatLimit(plan.limit_customers) },
-            { label: 'Teamleden', value: String(plan.limit_users) },
+            { icon: <Package className="h-4 w-4 text-blue-500" />, label: 'Producten', value: formatLimit(plan.limit_products) },
+            { icon: <ShoppingCart className="h-4 w-4 text-green-500" />, label: 'Orders/mnd', value: formatLimit(plan.limit_orders) },
+            { icon: <Users className="h-4 w-4 text-purple-500" />, label: 'Klanten', value: formatLimit(plan.limit_customers) },
+            { icon: <UserPlus className="h-4 w-4 text-amber-500" />, label: 'Team', value: String(plan.limit_users) },
           ].map((item) => (
-            <div key={item.label} className="text-center p-2 rounded-lg bg-muted/50">
-              <div className="text-sm font-semibold">{item.value}</div>
-              <div className="text-xs text-muted-foreground">{item.label}</div>
+            <div key={item.label} className="text-center p-2.5 rounded-xl bg-muted/40">
+              <div className="flex justify-center mb-1">{item.icon}</div>
+              <div className="text-sm font-bold">{item.value}</div>
+              <div className="text-[10px] text-muted-foreground">{item.label}</div>
             </div>
           ))}
         </div>
 
-        <Separator />
-
         {/* Feature categories */}
-        <ScrollArea className="max-h-[45vh] px-6 py-4">
-          <div className="space-y-5">
-            {featureCategories.map((category) => (
-              <div key={category.label}>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                  {category.icon}
-                  {category.label}
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                  {category.items.map((item) => {
-                    const enabled = plan.features?.[item.key] ?? false;
-                    return (
-                      <div
-                        key={item.key}
-                        className={cn(
-                          'flex items-center gap-2 py-1 text-sm',
-                          !enabled && 'text-muted-foreground/50'
-                        )}
-                      >
-                        {enabled ? (
-                          <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                        ) : (
-                          <X className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
-                        )}
-                        <span>{item.label}</span>
-                      </div>
-                    );
-                  })}
+        <ScrollArea className="max-h-[42vh] px-6 py-4">
+          <div className="space-y-4">
+            {featureCategories.map((category) => {
+              const enabledInCat = category.items.filter(item => plan.features?.[item.key]).length;
+              return (
+                <div key={category.label}>
+                  <div className={cn(
+                    'flex items-center justify-between px-3 py-1.5 rounded-lg border mb-2',
+                    category.color
+                  )}>
+                    <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      {category.icon}
+                      {category.label}
+                    </h4>
+                    <span className="text-[10px] font-medium">{enabledInCat}/{category.items.length}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-0.5 px-1">
+                    {category.items.map((item) => {
+                      const enabled = plan.features?.[item.key] ?? false;
+                      return (
+                        <div
+                          key={item.key}
+                          className={cn(
+                            'flex items-center gap-2 py-1.5 px-2 rounded-md text-sm transition-colors',
+                            enabled ? 'text-foreground' : 'text-muted-foreground/40'
+                          )}
+                        >
+                          {enabled ? (
+                            <div className="h-4 w-4 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                              <Check className="h-2.5 w-2.5 text-green-600" />
+                            </div>
+                          ) : (
+                            <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center shrink-0">
+                              <X className="h-2.5 w-2.5 text-muted-foreground/30" />
+                            </div>
+                          )}
+                          <span className="text-xs">{item.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
 
-        {/* Footer */}
-        <Separator />
-        <div className="px-6 py-4">
+        {/* Footer CTA */}
+        <div className="px-6 py-4 border-t bg-muted/20">
           {isCurrent ? (
             <Button className="w-full" variant="outline" disabled>
+              <Check className="h-4 w-4 mr-1" />
               Huidig plan
             </Button>
           ) : isUpgrade ? (
             <Button
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className={cn('w-full text-white shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all', tierGradient.button)}
               onClick={() => {
                 onSelectPlan(plan.id, true);
                 onOpenChange(false);
               }}
               disabled={isLoading}
             >
-              <Zap className="h-4 w-4 mr-1" />
+              <ArrowUp className="h-4 w-4 mr-1" />
               Upgrade naar {plan.name}
             </Button>
           ) : (
@@ -246,6 +284,7 @@ export function PlanFeatureDetailDialog({
               }}
               disabled={isLoading}
             >
+              <ArrowDown className="h-4 w-4 mr-1" />
               Downgrade naar {plan.name}
             </Button>
           )}
