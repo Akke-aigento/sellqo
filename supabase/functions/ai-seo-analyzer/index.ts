@@ -423,10 +423,17 @@ serve(async (req) => {
       estimated_impact: 10,
     });
 
-    // Upsert tenant SEO score
+    // Upsert tenant SEO score — use delete+insert for NULL entity_id (partial unique index)
+    await supabase
+      .from("seo_scores")
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('entity_type', 'tenant')
+      .is('entity_id', null);
+
     const { error: upsertError } = await supabase
       .from("seo_scores")
-      .upsert({
+      .insert({
         tenant_id: tenantId,
         entity_type: 'tenant',
         entity_id: null,
@@ -435,11 +442,9 @@ serve(async (req) => {
         content_score: contentScore,
         technical_score: technicalScore,
         ai_search_score: aiSearchScore,
-        issues: issues.slice(0, 50), // Limit stored issues
+        issues: issues.slice(0, 50),
         suggestions,
         last_analyzed_at: new Date().toISOString(),
-      }, {
-        onConflict: 'tenant_id,entity_type,entity_id',
       });
 
     if (upsertError) {
