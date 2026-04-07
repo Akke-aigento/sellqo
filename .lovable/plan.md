@@ -1,27 +1,38 @@
 
+## Fix: Bol.com facturen moeten automatisch status "betaald" krijgen
 
-## Fix: Stripe status toont altijd "Niet gekoppeld" op dashboard
+### Probleem
+De `generate-invoice` functie zet **alle** facturen op `status: 'draft'` (lijn 1384), ongeacht of de bestelling al betaald is. Bij Bol.com orders is betaling altijd gegarandeerd, maar de factuur wordt na auto-send alleen naar `'sent'` gezet — nooit naar `'paid'`.
 
-### Oorzaak
-`useShopHealth` gebruikt `useStripeConnect(tenantId)` om de Stripe-status te bepalen. Maar `useStripeConnect` roept `checkStatus()` **niet automatisch aan** — het vereist een handmatige aanroep. Daardoor blijft `status` altijd `null`, en is `stripeConnected` altijd `false`.
+Interessant: `paid_at` wordt wél altijd ingevuld (lijn 1391), maar de status klopt niet.
 
 ### Oplossing
-De `tenants` tabel heeft al `stripe_charges_enabled` als kolom, en `currentTenant` is al beschikbaar in `useShopHealth`. We hoeven helemaal geen edge function aan te roepen — we lezen gewoon de waarde van de tenant.
 
-### Wijziging
+**1. `generate-invoice` functie: status bepalen op basis van betaalstatus**
 
-**`src/hooks/useShopHealth.ts`**:
-- Verwijder `useStripeConnect` import en aanroep
-- Vervang `stripeStatus?.charges_enabled || false` door `currentTenant?.stripe_charges_enabled || false`
-- Verwijder `stripeLoading` uit de `isLoading` check
+In `supabase/functions/generate-invoice/index.ts` rond lijn 1384, de status dynamisch bepalen:
+- Als `order.payment_status === 'paid'` → `status: 'paid'`
+- Anders → `status: 'draft'`
 
-Dit is sneller (geen extra API call), betrouwbaarder (data komt direct uit de DB), en lost het probleem direct op.
+Dit geldt automatisch voor alle Bol.com orders (altijd `payment_status: 'paid'`), maar ook voor Stripe orders die al betaald zijn voordat de factuur wordt gegenereerd.
+
+**2. Bestaande facturen fixen**
+
+Database update via insert tool: alle facturen met `status: 'sent'` waarvan de gekoppelde order `payment_status: 'paid'` is en `marketplace_source: 'bol_com'`, updaten naar `status: 'paid'`.
+
+```sql
+UPDATE invoices SET status = 'paid' 
+WHERE status IN ('draft', 'sent') 
+  AND order_id IN (
+    SELECT id FROM orders 
+    WHERE payment_status = 'paid' 
+    AND marketplace_source = 'bol_com'
+  );
+```
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useShopHealth.ts` | `useStripeConnect` vervangen door directe tenant property |
-
-### Geen database wijzigingen nodig
-
+| `supabase/functions/generate-invoice/index.ts` | Status dynamisch: `'paid'` als order al betaald is |
+| Database (insert tool) | Eenmalige correctie bestaande facturen |
