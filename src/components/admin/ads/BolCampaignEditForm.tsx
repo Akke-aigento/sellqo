@@ -225,6 +225,64 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
 
       <Separator />
 
+      {/* Section 4: Negative Keywords */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <Ban className="h-4 w-4" />
+          Negatieve Keywords
+        </div>
+
+        {!adGroupId && (
+          <p className="text-sm text-muted-foreground">
+            Voeg eerst producten toe aan de campagne om negatieve keywords te kunnen toevoegen.
+          </p>
+        )}
+
+        {adGroupId && (
+          <>
+            {negKeywords.length > 0 && (
+              <div className="space-y-2">
+                {negKeywords.map((nk, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted/30">
+                    <span className="text-sm flex-1">{nk.keyword}</span>
+                    <Badge variant="outline" className="text-xs">{nk.matchType}</Badge>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeNegKeyword(i)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Negatief keyword"
+                value={newNegKw}
+                onChange={e => setNewNegKw(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNegKeyword())}
+                className="flex-1"
+              />
+              <Select value={newNegMatch} onValueChange={setNewNegMatch}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="broad">Broad</SelectItem>
+                  <SelectItem value="phrase">Phrase</SelectItem>
+                  <SelectItem value="exact">Exact</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={addNegKeyword} disabled={!newNegKw.trim()}>
+                <Plus className="h-4 w-4 mr-1" /> Toevoegen
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Negatieve keywords worden bij het opslaan naar Bol.com gestuurd.</p>
+          </>
+        )}
+      </div>
+
+      <Separator />
+
       {/* Actions */}
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose} disabled={saving}>Annuleren</Button>
