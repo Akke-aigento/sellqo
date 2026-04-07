@@ -132,7 +132,7 @@ export function PlanSwitchPreviewCard({ preview, isLoading, onConfirm, onCancel 
 
           <div className="p-3 bg-primary/5 rounded-lg space-y-1.5">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Subtotaal excl. BTW</span>
+              <span className="text-muted-foreground"><span className="text-muted-foreground">Subtotaal</span></span>
               <span>
                 {formatCurrency(
                   preview.stripe_preview.total - (preview.stripe_preview.tax || 0),
@@ -148,7 +148,7 @@ export function PlanSwitchPreviewCard({ preview, isLoading, onConfirm, onCancel 
             )}
             <div className="border-t pt-1.5">
               <div className="flex justify-between items-center">
-                <span className="font-medium">Totaal incl. BTW</span>
+                <span className="font-medium"><span className="font-medium">Totaal (incl. BTW)</span></span>
                 <span className="text-xl font-bold">
                   {formatCurrency(preview.stripe_preview.total, preview.stripe_preview.currency)}
                 </span>

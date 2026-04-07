@@ -364,7 +364,7 @@ export function PricingSection() {
             Stripe betalingen: 1,5% + €0,25 per transactie (standaard Stripe tarieven)
           </p>
           <p className="text-sm text-muted-foreground font-medium">
-            Alle prijzen zijn exclusief BTW
+            Alle prijzen zijn inclusief BTW
           </p>
         </div>
       </div>

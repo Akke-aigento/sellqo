@@ -259,7 +259,7 @@ export default function PricingPage() {
             </div>
           </div>
           <p className="mt-6 text-sm text-muted-foreground font-medium">
-            Alle prijzen zijn exclusief BTW
+            Alle prijzen zijn inclusief BTW
           </p>
         </div>
       </div>
