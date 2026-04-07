@@ -1,33 +1,16 @@
 
 
-## Fix: "Excl. BTW" → "Incl. BTW" overal consistent maken
+## Fix: "Upgrade nu" knoppen redirecten naar verkeerde URL
 
 ### Probleem
-Op drie plekken staat "Alle prijzen zijn exclusief BTW", en in de plan-switch preview staat "Subtotaal excl. BTW". De user wil dat overal duidelijk **inclusief BTW** staat.
+De "Upgrade nu" knop in de `TrialBanner` navigeert naar `/admin/settings?tab=subscription`, maar de billing pagina staat op `/admin/billing`. Dezelfde fout zit in `TrialExpiredBlocker`.
 
 ### Wijzigingen
 
-**1. `src/components/admin/billing/PlanComparisonCards.tsx` (regel 410)**
-- "Alle prijzen zijn exclusief BTW" → "Alle prijzen zijn inclusief BTW"
-
-**2. `src/components/landing/PricingSection.tsx` (regel 367)**
-- "Alle prijzen zijn exclusief BTW" → "Alle prijzen zijn inclusief BTW"
-
-**3. `src/pages/Pricing.tsx` (regel 262)**
-- "Alle prijzen zijn exclusief BTW" → "Alle prijzen zijn inclusief BTW"
-
-**4. `src/components/admin/billing/PlanSwitchPreview.tsx` (regels 133-155)**
-- "Subtotaal excl. BTW" → "Subtotaal"
-- "Totaal incl. BTW" → "Totaal (incl. BTW)" — behouden want hier is het juist wél relevant om te benoemen dat BTW erin zit, naast de aparte BTW-regel
-
-### Bestanden
-
 | Bestand | Actie |
 |---|---|
-| `src/components/admin/billing/PlanComparisonCards.tsx` | "exclusief" → "inclusief" |
-| `src/components/landing/PricingSection.tsx` | "exclusief" → "inclusief" |
-| `src/pages/Pricing.tsx` | "exclusief" → "inclusief" |
-| `src/components/admin/billing/PlanSwitchPreview.tsx` | Labels verduidelijken |
+| `src/components/admin/TrialBanner.tsx` | `/admin/settings?tab=subscription` → `/admin/billing` |
+| `src/components/admin/TrialExpiredBlocker.tsx` | `/admin/settings?tab=subscription&plan=...` → `/admin/billing` |
 
 ### Geen database wijzigingen nodig
 
