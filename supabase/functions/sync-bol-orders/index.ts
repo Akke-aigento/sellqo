@@ -708,8 +708,8 @@ Deno.serve(async (req) => {
                       'Authorization': `Bearer ${serviceKey}`,
                     },
                     body: JSON.stringify({
-                      orderId: label.order_id,
-                      connectionId: connection.id,
+                      order_id: label.order_id,
+                      carrier: (settings.vvbDefaultCarrier as string) || 'POSTNL',
                       retry: true,
                     }),
                   })
