@@ -193,7 +193,7 @@ const systemItems: NavItem[] = [
       { id: 'integrations-shipping', title: 'Verzending', url: '/admin/shipping' },
     ],
   },
-  { id: 'billing', title: 'Facturatie', url: '/admin/billing', icon: Receipt },
+  { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt },
   { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings },
   { id: 'help', title: 'Help', url: '/admin/help', icon: HelpCircle },
 ];
