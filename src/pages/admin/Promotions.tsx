@@ -12,7 +12,8 @@ import {
   Settings2,
   ArrowRight,
   Tag,
-  CreditCard
+  CreditCard,
+  Lock
 } from 'lucide-react';
 import { useBundles } from '@/hooks/useBundles';
 import { useVolumeDiscounts } from '@/hooks/useVolumeDiscounts';
@@ -23,8 +24,22 @@ import { useGiftPromotions } from '@/hooks/useGiftPromotions';
 import { useLoyaltyPrograms } from '@/hooks/useLoyalty';
 import { useDiscountCodes } from '@/hooks/useDiscountCodes';
 import { useGiftCards } from '@/hooks/useGiftCards';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
+import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
+import { useAuth } from '@/hooks/useAuth';
 
-const promotionModules = [
+interface PromotionModule {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+  color: string;
+  featureKey?: string;
+}
+
+const promotionModules: PromotionModule[] = [
   {
     id: 'discount-codes',
     title: 'Kortingscodes',
@@ -40,6 +55,7 @@ const promotionModules = [
     icon: Package,
     href: '/admin/promotions/bundles',
     color: 'bg-blue-500',
+    featureKey: 'promo_bundles',
   },
   {
     id: 'volume',
@@ -48,6 +64,7 @@ const promotionModules = [
     icon: Layers,
     href: '/admin/promotions/volume',
     color: 'bg-green-500',
+    featureKey: 'promo_volume',
   },
   {
     id: 'bogo',
@@ -56,6 +73,7 @@ const promotionModules = [
     icon: Gift,
     href: '/admin/promotions/bogo',
     color: 'bg-purple-500',
+    featureKey: 'promo_bogo',
   },
   {
     id: 'customer-groups',
@@ -88,6 +106,7 @@ const promotionModules = [
     icon: Heart,
     href: '/admin/promotions/loyalty',
     color: 'bg-red-500',
+    featureKey: 'loyalty_program',
   },
   {
     id: 'gift-cards',
@@ -96,6 +115,7 @@ const promotionModules = [
     icon: CreditCard,
     href: '/admin/promotions/gift-cards',
     color: 'bg-teal-500',
+    featureKey: 'promo_giftcards',
   },
   {
     id: 'stacking',
@@ -117,6 +137,21 @@ export default function Promotions() {
   const { data: loyaltyPrograms = [] } = useLoyaltyPrograms();
   const { data: discountCodes = [] } = useDiscountCodes({});
   const { data: giftCards = [] } = useGiftCards();
+
+  const { isFeatureGranted } = useTenantPageOverrides();
+  const { subscription } = useTenantSubscription();
+  const { isAdminView } = usePlatformViewMode();
+  const { roles } = useAuth();
+  const isPlatformAdmin = roles?.some((r: any) => r.role === 'platform_admin') || false;
+
+  const isModuleLocked = (module: PromotionModule): boolean => {
+    if (!module.featureKey) return false;
+    if (isPlatformAdmin && isAdminView) return false;
+    if (isFeatureGranted(module.featureKey)) return false;
+    const features = subscription?.pricing_plan?.features as unknown as Record<string, boolean> | undefined;
+    if (!features) return false;
+    return features[module.featureKey] === false;
+  };
 
   const getCounts = (id: string) => {
     switch (id) {
@@ -143,15 +178,13 @@ export default function Promotions() {
     }
   };
 
-  const totalActive = 
-    bundles.filter(b => b.is_active).length +
-    volumeDiscounts.filter(v => v.is_active).length +
-    bogoPromotions.filter(b => b.is_active).length +
-    customerGroups.filter(c => c.is_active).length +
-    autoDiscounts.filter(a => a.is_active).length +
-    giftPromotions.filter(g => g.is_active).length +
-    loyaltyPrograms.filter(l => l.is_active).length +
-    discountCodes.filter(d => d.is_active).length;
+  // Only count accessible modules in totals
+  const totalActive = promotionModules
+    .filter(m => !isModuleLocked(m))
+    .reduce((sum, m) => {
+      const counts = getCounts(m.id);
+      return sum + counts.active;
+    }, 0);
 
   return (
     <div className="space-y-6">
@@ -197,29 +230,46 @@ export default function Promotions() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {promotionModules.map((module) => {
           const counts = getCounts(module.id);
+          const locked = isModuleLocked(module);
           return (
-            <Card key={module.id} className="group hover:shadow-md transition-shadow">
+            <Card key={module.id} className={`group transition-shadow ${locked ? 'opacity-60' : 'hover:shadow-md'}`}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className={`p-2 rounded-lg ${module.color} text-white`}>
-                    <module.icon className="h-5 w-5" />
+                  <div className={`p-2 rounded-lg ${locked ? 'bg-muted text-muted-foreground' : `${module.color} text-white`}`}>
+                    {locked ? <Lock className="h-5 w-5" /> : <module.icon className="h-5 w-5" />}
                   </div>
-                  {counts.total > 0 && (
+                  {locked ? (
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">
+                      Premium
+                    </Badge>
+                  ) : counts.total > 0 ? (
                     <Badge variant="secondary">
                       {counts.active}/{counts.total} actief
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
                 <CardTitle className="text-lg mt-3">{module.title}</CardTitle>
                 <CardDescription>{module.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button asChild variant="ghost" className="w-full justify-between group-hover:bg-accent">
-                  <NavLink to={module.href}>
-                    Beheren
-                    <ArrowRight className="h-4 w-4" />
-                  </NavLink>
-                </Button>
+                {locked ? (
+                  <Button asChild variant="outline" className="w-full justify-between border-amber-500 text-amber-600 hover:bg-amber-50">
+                    <NavLink to="/admin/billing">
+                      <span className="flex items-center gap-2">
+                        <Lock className="h-3.5 w-3.5" />
+                        Upgrade
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </NavLink>
+                  </Button>
+                ) : (
+                  <Button asChild variant="ghost" className="w-full justify-between group-hover:bg-accent">
+                    <NavLink to={module.href}>
+                      Beheren
+                      <ArrowRight className="h-4 w-4" />
+                    </NavLink>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           );
