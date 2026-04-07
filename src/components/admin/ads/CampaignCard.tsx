@@ -84,6 +84,27 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
     }
   };
 
+  const handleRepushToBol = async () => {
+    setPushing(true);
+    try {
+      toast({ title: 'Ad groups en producten worden opnieuw naar Bol gestuurd...' });
+      const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
+        body: { campaign_id: campaign.id, force_repush: true },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast({ title: 'Campagne bijgewerkt op Bol.com! 🎉' });
+        queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
+      } else {
+        toast({ title: 'Update gestart', description: data?.message || 'Status wordt verwerkt' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Update mislukt', description: e.message, variant: 'destructive' });
+    } finally {
+      setPushing(false);
+    }
+  };
+
   return (
     <div className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
       {/* Platform Icon */}
@@ -176,6 +197,12 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
             <DropdownMenuItem onClick={handlePushToBol} disabled={pushing}>
               <Upload className="h-4 w-4 mr-2" />
               Push naar Bol.com
+            </DropdownMenuItem>
+          )}
+          {isBol && campaign.platform_campaign_id && (
+            <DropdownMenuItem onClick={handleRepushToBol} disabled={pushing}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Producten opnieuw pushen
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

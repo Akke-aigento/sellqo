@@ -13,7 +13,7 @@ import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { useAdPlatforms } from '@/hooks/useAdPlatforms';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
-import { AD_PLATFORMS, CAMPAIGN_TYPES, type AdPlatform, type CampaignType, type AdCampaign } from '@/types/ads';
+import { AD_PLATFORMS, CAMPAIGN_TYPES, type AdPlatform, type CampaignType, type AdCampaign, type BidStrategy } from '@/types/ads';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, Package, Users } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -41,6 +41,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
     budget_type: 'daily' as 'daily' | 'lifetime',
     budget_amount: 25,
     target_roas: 4,
+    bid_strategy: 'auto' as BidStrategy,
   });
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         budget_type: (campaign.budget_type as 'daily' | 'lifetime') || 'daily',
         budget_amount: campaign.budget_amount || 25,
         target_roas: campaign.target_roas || 4,
+        bid_strategy: (campaign.bid_strategy as BidStrategy) || 'auto',
       });
     }
   }, [campaign]);
@@ -106,6 +108,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         segment_id: formData.segment_id || undefined,
         budget_type: formData.budget_type,
         budget_amount: formData.budget_amount,
+        bid_strategy: formData.bid_strategy,
         target_roas: formData.target_roas,
       });
     }
@@ -418,6 +421,46 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
               <CardDescription>Stel je budget en biedstrategie in</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {formData.platform === 'bol_ads' && (
+                <div className="space-y-3">
+                  <Label>Campagne modus (Bol.com)</Label>
+                  <RadioGroup
+                    value={formData.bid_strategy}
+                    onValueChange={(v) => setFormData({ ...formData, bid_strategy: v as BidStrategy })}
+                    className="grid gap-2"
+                  >
+                    <Label
+                      htmlFor="bid-auto"
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        formData.bid_strategy === 'auto' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <RadioGroupItem value="auto" id="bid-auto" className="mt-0.5" />
+                      <div>
+                        <p className="font-medium">Automatisch (aanbevolen)</p>
+                        <p className="text-sm text-muted-foreground">
+                          Bol optimaliseert biedingen automatisch op basis van je doel-ROAS. Geen keywords nodig.
+                        </p>
+                      </div>
+                    </Label>
+                    <Label
+                      htmlFor="bid-manual"
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        formData.bid_strategy === 'manual_cpc' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <RadioGroupItem value="manual_cpc" id="bid-manual" className="mt-0.5" />
+                      <div>
+                        <p className="font-medium">Handmatig</p>
+                        <p className="text-sm text-muted-foreground">
+                          Je stelt zelf keywords en biedingen in. Meer controle, maar vereist actief beheer.
+                        </p>
+                      </div>
+                    </Label>
+                  </RadioGroup>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Budget Type</Label>
                 <Select 
@@ -497,6 +540,14 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                     {formData.campaign_type && CAMPAIGN_TYPES[formData.campaign_type as CampaignType]?.name}
                   </dd>
                 </div>
+                {formData.platform === 'bol_ads' && (
+                  <div className="flex justify-between py-2 border-b">
+                    <dt className="text-muted-foreground">Campagne modus</dt>
+                    <dd className="font-medium">
+                      {formData.bid_strategy === 'auto' ? 'Automatisch' : 'Handmatig'}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between py-2 border-b">
                   <dt className="text-muted-foreground">Producten</dt>
                   <dd className="font-medium">
