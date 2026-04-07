@@ -377,16 +377,18 @@ export function PlanComparisonCards({
                     </Button>
                   ) : isUpgrade ? (
                     <Button
-                      className="w-full shadow-lg transition-all duration-200 hover:shadow-xl"
+                      className="w-full h-auto py-2.5 flex-col gap-0.5 shadow-lg transition-all duration-200 hover:shadow-xl"
                       onClick={() => onSelectPlan(plan.id, true)}
                       disabled={isLoading}
                     >
-                      <ArrowUp className="h-4 w-4 mr-1 shrink-0" />
-                      <span className="truncate">Upgrade naar {plan.name}</span>
+                      <span className="flex items-center gap-1">
+                        <ArrowUp className="h-4 w-4" />
+                        Upgrade naar {plan.name}
+                      </span>
                       {gained.length > 0 && (
-                        <Badge variant="secondary" className="ml-1 shrink-0 bg-primary-foreground/20 text-primary-foreground border-0 text-[10px] px-1.5">
-                          +{gained.length}
-                        </Badge>
+                        <span className="text-[10px] opacity-80 font-normal">
+                          +{gained.length} features erbij
+                        </span>
                       )}
                     </Button>
                   ) : (
