@@ -54,6 +54,46 @@ export default function BillingPage() {
 
   const dateLocale = i18n.language === 'nl' ? nl : enUS;
 
+  // Determine current plan
+  const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+
+  // Find the best upgrade target based on current usage overages
+  const findUpgradeTarget = (): string | null => {
+    if (!usage || !plans.length) return null;
+    
+    // Sort plans by monthly price ascending (cheapest first)
+    const sortedPlans = [...plans]
+      .filter(p => p.id !== 'free' && p.id !== currentPlan?.id)
+      .sort((a, b) => (a.monthly_price || 0) - (b.monthly_price || 0));
+
+    for (const plan of sortedPlans) {
+      const fits =
+        (!plan.limit_products || (usage.products?.current || 0) <= plan.limit_products) &&
+        (!plan.limit_orders || (usage.orders?.current || 0) <= plan.limit_orders) &&
+        (!plan.limit_customers || (usage.customers?.current || 0) <= plan.limit_customers) &&
+        (!plan.limit_users || (usage.users?.current || 0) <= plan.limit_users);
+      if (fits) return plan.id;
+    }
+    // Nothing fits → enterprise (last plan)
+    return sortedPlans[sortedPlans.length - 1]?.id || null;
+  };
+
+  const handleUpgradeClick = () => {
+    const targetPlanId = findUpgradeTarget();
+    if (!targetPlanId) return;
+
+    if (subscription?.stripe_subscription_id) {
+      handlePreviewPlanSwitch(targetPlanId);
+    } else {
+      createCheckout.mutate({
+        planId: targetPlanId,
+        interval: selectedInterval === 'yearly' ? 'yearly' : 'monthly',
+      });
+    }
+  };
+
+  const dateLocale = i18n.language === 'nl' ? nl : enUS;
+
   const formatPrice = (amount: number, currency = 'EUR') => {
     return new Intl.NumberFormat(i18n.language, {
       style: 'currency',
