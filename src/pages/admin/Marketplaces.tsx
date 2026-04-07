@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2 } from 'lucide-react';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -16,6 +18,7 @@ import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/Connect
 import { UnifiedChannelList } from '@/components/admin/marketplace/UnifiedChannelList';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
+import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
@@ -35,6 +38,11 @@ export default function MarketplacesPage() {
     activeConnections: activeSocialConnections,
     totalProductsSynced,
   } = useSocialChannels();
+
+  const { subscription } = useTenantSubscription();
+  const planName = subscription?.pricing_plan?.name?.toLowerCase() || '';
+  const isStarter = planName.includes('starter');
+  const isProOrHigher = planName.includes('pro') || planName.includes('enterprise');
 
   const [connectingType, setConnectingType] = useState<MarketplaceType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -83,6 +91,31 @@ export default function MarketplacesPage() {
           Verbind je verkoopkanalen en synchroniseer automatisch bestellingen en voorraad
         </p>
       </div>
+
+      {/* Plan-dependent banner */}
+      {isStarter && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Link2 className="h-4 w-4 text-primary" />
+          <AlertTitle className="flex items-center gap-2">
+            SellQo Connect Lite
+            <Badge variant="secondary" className="text-[10px]">Lite</Badge>
+          </AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>Je kunt 1 kanaal actief hebben. Upgrade naar Pro voor alle kanalen.</span>
+            <Button size="sm" variant="outline" onClick={() => navigate('/admin/billing')}>
+              <ArrowUp className="h-3 w-3 mr-1" />
+              Upgrade naar Pro
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {isProOrHigher && (
+        <Alert className="border-green-200 bg-green-50/50">
+          <Link2 className="h-4 w-4 text-green-600" />
+          <AlertTitle>SellQo Connect actief</AlertTitle>
+          <AlertDescription>Alle kanalen beschikbaar</AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

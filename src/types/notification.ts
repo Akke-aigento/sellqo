@@ -230,16 +230,16 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
   },
   {
     category: 'integrations',
-    label: 'Integraties',
+    label: 'SellQo Connect',
     icon: 'Plug',
     types: [
       { type: 'shopify_request_submitted', label: 'Shopify verzoek ingediend', description: 'Wanneer je een Shopify koppelverzoek indient', defaultInApp: true, defaultEmail: false },
       { type: 'shopify_request_approved', label: 'Shopify verzoek goedgekeurd', description: 'Wanneer je Shopify verzoek is goedgekeurd', defaultInApp: true, defaultEmail: true },
       { type: 'shopify_request_completed', label: 'Shopify koppeling actief', description: 'Wanneer je Shopify koppeling is geactiveerd', defaultInApp: true, defaultEmail: true },
       { type: 'shopify_request_rejected', label: 'Shopify verzoek afgewezen', description: 'Wanneer je Shopify verzoek is afgewezen', defaultInApp: true, defaultEmail: true },
-      { type: 'integration_connected', label: 'Integratie gekoppeld', description: 'Wanneer een nieuwe integratie wordt gekoppeld', defaultInApp: true, defaultEmail: false },
-      { type: 'integration_disconnected', label: 'Integratie ontkoppeld', description: 'Wanneer een integratie wordt ontkoppeld', defaultInApp: true, defaultEmail: false },
-      { type: 'integration_error', label: 'Integratie fout', description: 'Wanneer er een fout optreedt bij een integratie', defaultInApp: true, defaultEmail: true },
+      { type: 'integration_connected', label: 'SellQo Connect verbonden', description: 'Wanneer een nieuwe integratie wordt gekoppeld', defaultInApp: true, defaultEmail: false },
+      { type: 'integration_disconnected', label: 'SellQo Connect ontkoppeld', description: 'Wanneer een integratie wordt ontkoppeld', defaultInApp: true, defaultEmail: false },
+      { type: 'integration_error', label: 'SellQo Connect fout', description: 'Wanneer er een fout optreedt bij een integratie', defaultInApp: true, defaultEmail: true },
     ]
   },
 ];

@@ -108,8 +108,8 @@ const settingsGroups: SettingsGroup[] = [
   },
   {
     id: 'channels',
-    title: 'Koppelingen & Kanalen',
-    description: 'Communicatie en externe koppelingen',
+    title: 'SellQo Connect',
+    description: 'Beheer al je externe kanalen en koppelingen',
     sections: [
       { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings },
       { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings },

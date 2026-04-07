@@ -21,8 +21,8 @@ const features: Feature[] = [
     icon: Store,
     title: 'Verkoop Overal, Beheer Centraal',
     subtitle: 'Multi-Channel Verkoop',
-    description: 'Koppel je Shopify, WooCommerce, Bol.com, Amazon én Odoo. Alle bestellingen, voorraad en klanten op één dashboard.',
-    badge: '20+ integraties',
+    description: 'SellQo Connect koppelt je webshop aan Bol.com, Amazon, eBay en sociale kanalen — vanuit één dashboard.',
+    badge: 'SellQo Connect',
     gridSpan: 2,
   },
   {

@@ -183,7 +183,7 @@ const systemItems: NavItem[] = [
   { id: 'notifications', title: 'Notificaties', url: '/admin/notifications', icon: BellRing },
   {
     id: 'integrations',
-    title: 'Integraties',
+    title: 'SellQo Connect',
     url: '/admin/connect',
     icon: Cable,
     featureKey: 'apiAccess',

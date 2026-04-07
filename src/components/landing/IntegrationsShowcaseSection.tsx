@@ -158,13 +158,13 @@ export function IntegrationsShowcaseSection() {
           )}
         >
           <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">
-            20+ Integraties
+            SellQo Connect
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Verbind Met Alle Platformen Die Je Gebruikt
+            Verkoop Overal. Beheer Het Hier.
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Van marketplaces tot ERP, van social commerce tot verzending - alles naadloos gekoppeld.
+            SellQo Connect koppelt je webshop aan Bol.com, Amazon, eBay en sociale kanalen — vanuit één dashboard.
           </p>
         </div>
 
