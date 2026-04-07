@@ -1,43 +1,39 @@
 
 
-## Fix: SEO Analyzer crasht — `categories.meta_title` kolom bestaat niet
+## SEO Dashboard verbeteren: sorteerbaar op score + "Verbeter SEO" actieknop
 
-### Oorzaak
-De `ai-seo-analyzer` edge function queryt `categories.meta_title` en `categories.meta_description`, maar deze kolommen bestaan niet. De `categories` tabel gebruikt taalspecifieke kolommen: `meta_title_nl`, `meta_title_en`, `meta_title_fr`, `meta_title_de` (en idem voor `meta_description`).
+### Huidige situatie
+De Product- en Categorie-tabellen tonen SEO-scores, maar:
+- Je kunt niet sorteren op score (slechtste bovenaan)
+- Er is geen visuele kleurindicatie per rij (rood/geel/groen)
+- De actieknoppen zitten verstopt achter een `⋯` menu
+- Er is geen directe "Verbeter SEO" knop bij slechte scores
 
-De `products` tabel heeft wél gewone `meta_title`/`meta_description` kolommen, dus die werkt correct.
+### Wat er verandert
 
-### Oplossing
+**1. Sorteerbare kolommen + standaard op score (laag→hoog)**
+- Score-kolom wordt klikbaar om te sorteren
+- Standaard: producten/categorieën met slechtste score bovenaan
+- Niet-geanalyseerde items helemaal bovenaan
 
-**`supabase/functions/ai-seo-analyzer/index.ts`**:
+**2. Visuele score-indicatie per rij**
+- Gekleurde score-badge: rood (<50), oranje (50-70), groen (70-90), donkergroen (90+)
+- Rij-achtergrondkleur subtiel rood bij score <50
 
-1. **Query aanpassen** (lijn 71): Vervang `meta_title, meta_description` door `meta_title_nl, meta_title_en, meta_title_fr, meta_title_de, meta_description_nl, meta_description_en, meta_description_fr, meta_description_de`
+**3. Directe "Verbeter SEO" knop bij slechte scores**
+- Bij producten/categorieën met score <70: een zichtbare knop "Optimaliseer" naast de score
+- Klikt op de knop → opent een dropdown met alle genereer-opties (meta title, meta description, beschrijving)
+- Bij score <50: knop in rood/destructive variant voor urgentie
 
-2. **Tenant taal ophalen**: Haal de primaire taal van de tenant op (`primary_language` uit `tenants` tabel) om de juiste kolom te gebruiken voor de analyse
-
-3. **Analyse-logica aanpassen** (lijn 230-270): Gebruik `category.meta_title_nl` (of de taal van de tenant) in plaats van `category.meta_title` voor alle checks
-
-### Concrete wijziging
-
-```typescript
-// Haal tenant primary_language op
-const { data: tenant } = await supabase
-  .from('tenants').select('primary_language').eq('id', tenantId).single();
-const lang = tenant?.primary_language || 'nl';
-
-// Categories query met taalspecifieke kolommen
-.select(`id, name, description, meta_title_${lang}, meta_description_${lang}, slug, image_url, is_active`)
-
-// In de analyse-loop:
-const metaTitle = category[`meta_title_${lang}`];
-const metaDesc = category[`meta_description_${lang}`];
-```
+**4. "Alles optimaliseren" knop bovenaan**
+- Nieuwe knop: "Optimaliseer alle slechte scores" — selecteert automatisch alle items met score <70 en biedt bulk-generatie aan
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/ai-seo-analyzer/index.ts` | Categories query + analyse fixen voor taalspecifieke kolommen |
+| `src/components/admin/seo/SEOProductTable.tsx` | Sortering, kleur-badges, directe actieknop bij lage scores |
+| `src/components/admin/seo/SEOCategoryTable.tsx` | Zelfde verbeteringen als ProductTable |
 
 ### Geen database wijzigingen nodig
 
