@@ -1,112 +1,34 @@
 
+## Fix: Plan upgrade faalt voor platform admin — "No tenant found for user"
 
-## Herziening feature-verdeling per plan + implementatie
+### Oorzaak
+De logs tonen: `"No tenant found for user"`. De `calculate-plan-switch` en `execute-plan-switch` edge functions zoeken de tenant via `user_roles` met `.single()`. Maar de platform admin (`info@sellqo.app`) heeft **twee rijen** in `user_roles`:
+- Eén met `role = platform_admin` en `tenant_id = NULL`
+- Eén met `role = tenant_admin` en een specifieke `tenant_id`
 
-### Huidige situatie vs. logische verdeling
+`.single()` faalt bij meerdere rijen → `data = null` → "No tenant found".
 
-Hieronder de volledige feature-matrix zoals die logisch zou moeten zijn. **Vet** = wijziging t.o.v. huidige DB.
+### Oplossing
+De client (Billing.tsx) weet al welke tenant actief is via `useTenantSubscription` / `useTenant`. Stuur de `tenant_id` mee in de request body en gebruik die in de edge functions in plaats van de `user_roles` lookup.
 
-| Feature | Free | Starter | Pro | Enterprise |
-|---|---|---|---|---|
-| **BASIS** |
-| Producten | 25 | 250 | 2.500 | Onbeperkt |
-| Bestellingen/maand | 50 | 500 | 5.000 | Onbeperkt |
-| Klanten | 100 | 1.000 | 10.000 | Onbeperkt |
-| Teamleden | 1 | 3 | 10 | 50 |
-| Opslag | 1 GB | 10 GB | 50 GB | 250 GB |
-| **WEBSHOP & VERKOOP** |
-| webshop_builder | ❌ | ✅ | ✅ | ✅ |
-| visual_editor | ❌ | ❌ | ✅ | ✅ |
-| pos | ❌ | ❌ | ✅ | ✅ |
-| customDomain | ❌ | ✅ | ✅ | ✅ |
-| removeWatermark | ❌ | ✅ | ✅ | ✅ |
-| **FACTURATIE** |
-| facturX | ❌ | ✅ | ✅ | ✅ |
-| peppol | ❌ | ❌ | ✅ | ✅ |
-| multiCurrency | ❌ | ❌ | ✅ | ✅ |
-| **PROMOTIES** |
-| Kortingscodes (basis) | ✅ | ✅ | ✅ | ✅ |
-| promo_bundles | ❌ | **❌** | ✅ | ✅ |
-| promo_bogo | ❌ | **❌** | ✅ | ✅ |
-| promo_volume | ❌ | **❌** | ✅ | ✅ |
-| promo_giftcards | ❌ | **❌** | ✅ | ✅ |
-| loyalty_program | ❌ | ❌ | ✅ | ✅ |
-| recurring_subscriptions | ❌ | ❌ | ✅ | ✅ |
-| **AI** |
-| ai_marketing | ❌ | ✅ | ✅ | ✅ |
-| ai_copywriting | ❌ | ✅ | ✅ | ✅ |
-| ai_images | ❌ | ❌ | ✅ | ✅ |
-| ai_seo | ❌ | ❌ | ✅ | ✅ |
-| ai_coach | ❌ | ❌ | ✅ | ✅ |
-| ai_chatbot | ❌ | ❌ | ✅ | ✅ |
-| ai_ab_testing | ❌ | ❌ | ✅ | ✅ |
-| **INTEGRATIES & KANALEN** |
-| bol_com | ❌ | ❌ | ✅ | ✅ |
-| bol_vvb_labels | ❌ | ❌ | ✅ | ✅ |
-| amazon | ❌ | ❌ | ❌ | ✅ |
-| ebay | ❌ | ❌ | ❌ | ✅ |
-| social_commerce | ❌ | ❌ | ✅ | ✅ |
-| whatsapp | ❌ | ❌ | ✅ | ✅ |
-| **GEAVANCEERD** |
-| shop_health | ❌ | ✅ | ✅ | ✅ |
-| gamification | ❌ | ✅ | ✅ | ✅ |
-| live_activity | ❌ | ❌ | ✅ | ✅ |
-| multi_warehouse | ❌ | ❌ | ✅ | ✅ |
-| advancedAnalytics | ❌ | ❌ | ✅ | ✅ |
-| **TECHNISCH** |
-| apiAccess | ❌ | ✅ | ✅ | ✅ |
-| webhooks | ❌ | ✅ | ✅ | ✅ |
-| prioritySupport | ❌ | ❌ | ✅ | ✅ |
-| whiteLabel | ❌ | ❌ | ❌ | ✅ |
+**1. Client — tenant_id meesturen**
 
-### Wijzigingen t.o.v. huidige DB (Starter plan)
+In `usePlanSwitch.ts`: voeg `tenant_id` toe als parameter aan beide mutations.
 
-Het Starter-plan heeft momenteel te veel premium features aan. De volgende worden **uitgeschakeld**:
+In `Billing.tsx`: geef `currentTenant.id` mee bij het aanroepen van `calculatePlanSwitch.mutateAsync()` en `executePlanSwitch.mutateAsync()`.
 
-- `promo_bundles`: false (was true) — premium promotie
-- `promo_bogo`: false (was true) — premium promotie
-- `promo_volume`: false (was true) — premium promotie
-- `promo_giftcards`: false (was true) — premium promotie
+**2. Edge functions — tenant_id uit body gebruiken**
 
-### Nieuwe featureKey: SellQo Connect
-
-Voeg een featureKey `integrations_connect` toe aan de sidebar voor het "Integraties" menu-item. Dit blokkeert SellQo Connect voor Free-plan tenants.
-
-### Implementatie
-
-**1. Database migration — Starter plan features updaten**
-
-```sql
-UPDATE pricing_plans 
-SET features = jsonb_set(
-  jsonb_set(
-    jsonb_set(
-      jsonb_set(features::jsonb, '{promo_bundles}', 'false'),
-      '{promo_bogo}', 'false'),
-    '{promo_volume}', 'false'),
-  '{promo_giftcards}', 'false')
-WHERE slug = 'starter';
-```
-
-**2. Sidebar — featureKey toevoegen aan Integraties**
-
-In `sidebarConfig.ts`: voeg `featureKey: 'apiAccess'` toe aan het `integrations` item (hergebruik bestaande feature — iedereen zonder API-access heeft ook geen Connect nodig).
-
-**3. Landing page PricingSection.tsx updaten**
-
-- Starter: verwijder "Alle promotietypes", vervang door "Kortingscodes"
-- Starter: verwijder "Bol.com" en "WhatsApp" uit addons (die zitten niet in het plan)
-- Free: voeg "Geen integraties" toe aan limitations
-
-**4. Pricing.tsx (aparte pricing pagina) — feature-weergave**
-
-De feature-lijst wordt al dynamisch uit de DB geladen, dus na de DB-update kloppen de checkmarks automatisch.
+In beide `calculate-plan-switch/index.ts` en `execute-plan-switch/index.ts`:
+- Lees `tenant_id` uit de request body
+- Fallback: als geen `tenant_id` meegegeven, zoek in `user_roles` met filter `.not('tenant_id', 'is', null)` en `.limit(1).single()` zodat de platform_admin rij wordt uitgesloten
+- Valideer dat de user daadwerkelijk toegang heeft tot die tenant (check `user_roles`)
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Database migration | Starter plan features: 4 promo-features naar false |
-| `src/components/admin/sidebar/sidebarConfig.ts` | `featureKey: 'apiAccess'` op integrations item |
-| `src/components/landing/PricingSection.tsx` | Starter/Free teksten corrigeren |
-
+| `src/hooks/usePlanSwitch.ts` | `tenant_id` toevoegen aan params van beide mutations |
+| `src/pages/admin/Billing.tsx` | `currentTenant.id` meegeven bij plan switch calls |
+| `supabase/functions/calculate-plan-switch/index.ts` | `tenant_id` uit body lezen + fallback query fixen |
+| `supabase/functions/execute-plan-switch/index.ts` | Zelfde fix als calculate |
