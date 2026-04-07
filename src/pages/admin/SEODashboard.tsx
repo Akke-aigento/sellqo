@@ -111,6 +111,7 @@ export default function SEODashboard() {
   const { 
     tenantScore, 
     productScores,
+    categoryScores,
     keywords,
     history,
     quickWins,
@@ -132,7 +133,7 @@ export default function SEODashboard() {
   // Merge data with SEO scores
   const categoriesWithSEO = categories?.map((category) => ({
     ...category,
-    seo_score: productScores?.find((s) => s.entity_type === 'category' && s.entity_id === category.id) || null,
+    seo_score: categoryScores?.find((s) => s.entity_id === category.id) || null,
   })) || [];
 
   const productsWithSEO = products?.map((product) => ({

@@ -252,11 +252,12 @@ export function useSEO() {
   return {
     tenantScore,
     productScores,
+    categoryScores,
     keywords,
     history,
     quickWins,
     productsNeedingAttention,
-    isLoading: isLoadingScore || isLoadingProducts || isLoadingKeywords,
+    isLoading: isLoadingScore || isLoadingProducts || isLoadingCategories || isLoadingKeywords,
     analyzeSEO: analyzeSeOMutation.mutate,
     isAnalyzing: analyzeSeOMutation.isPending,
     generateContent: generateContentMutation.mutate,
