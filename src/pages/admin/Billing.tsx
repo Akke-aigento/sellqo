@@ -79,16 +79,10 @@ export default function BillingPage() {
   };
 
   const handleUpgradeClick = () => {
-    const targetPlanId = findUpgradeTarget();
-    if (!targetPlanId) return;
-
-    if (subscription?.stripe_subscription_id) {
-      handlePreviewPlanSwitch(targetPlanId);
-    } else {
-      createCheckout.mutate({
-        planId: targetPlanId,
-        interval: selectedInterval === 'yearly' ? 'yearly' : 'monthly',
-      });
+    // Scroll to plan comparison section instead of direct checkout
+    const planSection = document.getElementById('plan-comparison-section');
+    if (planSection) {
+      planSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -325,7 +319,7 @@ export default function BillingPage() {
 
       {/* Plan Comparison Cards */}
       {plans.length > 0 && currentPlan && (
-        <Card>
+        <Card id="plan-comparison-section">
           <CardHeader>
             <CardTitle>Wissel van Plan</CardTitle>
             <CardDescription>
