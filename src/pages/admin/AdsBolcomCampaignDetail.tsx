@@ -342,9 +342,13 @@ export default function AdsBolcomCampaignDetail() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Negatieve Keywords</CardTitle>
-          <Button size="sm" onClick={() => setNegModalOpen(true)} disabled={!firstAdGroupId}>
-            <Plus className="h-4 w-4 mr-1" /> Toevoegen
-          </Button>
+          {firstAdGroupId ? (
+            <Button size="sm" onClick={() => setNegModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Toevoegen
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">Voeg eerst producten toe aan de campagne</span>
+          )}
         </CardHeader>
         <CardContent>
           {negativeKeywords.length === 0 ? (
