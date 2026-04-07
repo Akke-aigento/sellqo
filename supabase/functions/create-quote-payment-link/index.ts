@@ -104,8 +104,8 @@ serve(async (req) => {
       });
     }
 
-    // Calculate platform fee (2%)
-    const platformFeeAmount = Math.round(quote.total * 0.02 * 100);
+    // Platform fee (currently 0 — no SellQo fee)
+    const platformFeeAmount = 0;
 
     logStep("Creating Stripe checkout session", { lineItems: lineItems.length, platformFee: platformFeeAmount });
 

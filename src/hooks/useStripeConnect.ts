@@ -35,6 +35,7 @@ interface ConnectStatus {
   payout_schedule?: PayoutSchedule;
   balance?: Balance;
   upcoming_payout?: UpcomingPayout;
+  capabilities?: Record<string, string>;
 }
 
 export function useStripeConnect(tenantId: string | undefined) {
