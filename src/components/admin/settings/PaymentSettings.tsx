@@ -253,13 +253,43 @@ export function PaymentSettings() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <Percent className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Transactiekosten</p>
-                  <p className="text-xs text-muted-foreground">Standaard Stripe tarieven</p>
-                </div>
-              </div>
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-3 p-3 bg-muted rounded-lg w-full text-left group hover:bg-muted/80 transition-colors">
+                  <Percent className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Transactiekosten</p>
+                    <p className="text-xs text-muted-foreground">Standaard Stripe tarieven</p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 ml-8 space-y-1.5">
+                  {(() => {
+                    const caps = status.capabilities || {};
+                    const rates: { label: string; rate: string; active: boolean }[] = [
+                      { label: 'iDEAL', rate: '€0,29 per transactie', active: caps.ideal_payments === 'active' },
+                      { label: 'Bancontact', rate: '€0,39 per transactie', active: caps.bancontact_payments === 'active' },
+                      { label: 'Cards (EU)', rate: '1,5% + €0,25', active: caps.card_payments === 'active' },
+                      { label: 'Cards (niet-EU)', rate: '2,9% + €0,25', active: caps.card_payments === 'active' },
+                      { label: 'SEPA Incasso', rate: '€0,35 per transactie', active: caps.sepa_debit_payments === 'active' },
+                    ];
+                    const activeRates = rates.filter(r => r.active);
+                    const displayRates = activeRates.length > 0 ? activeRates : rates;
+                    return (
+                      <>
+                        {displayRates.map((r) => (
+                          <div key={r.label} className="flex items-center justify-between text-sm py-1.5 px-3 rounded bg-background border">
+                            <span className="font-medium text-foreground">{r.label}</span>
+                            <span className="text-muted-foreground">{r.rate}</span>
+                          </div>
+                        ))}
+                        <p className="text-[11px] text-muted-foreground pt-1 px-1">
+                          Tarieven kunnen wijzigen. Zie je Stripe Dashboard voor actuele tarieven.
+                        </p>
+                      </>
+                    );
+                  })()}
+                </CollapsibleContent>
+              </Collapsible>
               
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Shield className="h-5 w-5 text-muted-foreground" />
