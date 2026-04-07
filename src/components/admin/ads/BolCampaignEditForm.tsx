@@ -45,7 +45,9 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
   const [totalBudget, setTotalBudget] = useState(campaign.total_budget?.toString() ?? '');
   const [startDate, setStartDate] = useState(campaign.start_date ?? '');
   const [endDate, setEndDate] = useState(campaign.end_date ?? '');
-
+  const [negKeywords, setNegKeywords] = useState<NegativeKeyword[]>([]);
+  const [newNegKw, setNewNegKw] = useState('');
+  const [newNegMatch, setNewNegMatch] = useState('broad');
   const handleSave = async () => {
     setSaving(true);
     try {
