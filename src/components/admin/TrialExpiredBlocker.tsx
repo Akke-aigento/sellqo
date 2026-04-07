@@ -23,7 +23,7 @@ export function TrialExpiredBlocker() {
   const paidPlans = plans.filter(p => p.monthly_price > 0).slice(0, 3);
 
   const handleUpgrade = (planId: string) => {
-    navigate(`/admin/settings?tab=subscription&plan=${planId}`);
+    navigate('/admin/billing');
   };
 
   const handleLogout = async () => {
